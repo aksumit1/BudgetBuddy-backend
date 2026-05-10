@@ -22,6 +22,8 @@ import org.springframework.test.context.ActiveProfiles;
 @Import(AWSTestConfiguration.class)
 class CorrelationIdFilterTest {
 
+    private static final String X_CORRELATION_ID = "X-Correlation-ID";
+
     @Autowired private CorrelationIdFilter correlationIdFilter;
 
     @Test
@@ -37,7 +39,7 @@ class CorrelationIdFilterTest {
         final MockHttpServletRequest request = new MockHttpServletRequest();
         final MockHttpServletResponse response = new MockHttpServletResponse();
         final String existingCorrelationId = "existing-correlation-id";
-        request.addHeader("X-Correlation-ID", existingCorrelationId);
+        request.addHeader(X_CORRELATION_ID, existingCorrelationId);
         final FilterChain filterChain =
                 (req, res) -> {
                     // Verify correlation ID is set
@@ -45,7 +47,7 @@ class CorrelationIdFilterTest {
                             instanceof
                             org.springframework.mock.web.MockHttpServletResponse mockResponse) {
                         assertEquals(
-                                existingCorrelationId, mockResponse.getHeader("X-Correlation-ID"));
+                                existingCorrelationId, mockResponse.getHeader(X_CORRELATION_ID));
                     }
                 };
 
@@ -53,7 +55,7 @@ class CorrelationIdFilterTest {
         correlationIdFilter.doFilterInternal(request, response, filterChain);
 
         // Then
-        assertEquals(existingCorrelationId, response.getHeader("X-Correlation-ID"));
+        assertEquals(existingCorrelationId, response.getHeader(X_CORRELATION_ID));
     }
 
     @Test
@@ -71,7 +73,7 @@ class CorrelationIdFilterTest {
         correlationIdFilter.doFilterInternal(request, response, filterChain);
 
         // Then
-        final String correlationId = response.getHeader("X-Correlation-ID");
+        final String correlationId = response.getHeader(X_CORRELATION_ID);
         assertNotNull(correlationId, "Should generate correlation ID");
         assertFalse(correlationId.isEmpty(), "Correlation ID should not be empty");
     }
@@ -82,7 +84,7 @@ class CorrelationIdFilterTest {
         // Given
         final MockHttpServletRequest request = new MockHttpServletRequest();
         final MockHttpServletResponse response = new MockHttpServletResponse();
-        request.addHeader("X-Correlation-ID", "");
+        request.addHeader(X_CORRELATION_ID, "");
         final FilterChain filterChain =
                 (req, res) -> {
                     // Filter chain should execute
@@ -92,7 +94,7 @@ class CorrelationIdFilterTest {
         correlationIdFilter.doFilterInternal(request, response, filterChain);
 
         // Then
-        final String correlationId = response.getHeader("X-Correlation-ID");
+        final String correlationId = response.getHeader(X_CORRELATION_ID);
         assertNotNull(correlationId, "Should generate correlation ID");
         assertFalse(correlationId.isEmpty(), "Correlation ID should not be empty");
     }

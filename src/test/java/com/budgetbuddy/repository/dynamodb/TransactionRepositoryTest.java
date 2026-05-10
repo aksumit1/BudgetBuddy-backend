@@ -150,7 +150,8 @@ class TransactionRepositoryTest {
         when(userIdDateIndex.query(any(QueryConditional.class))).thenReturn(pages);
 
         // When
-        final List<TransactionTable> result = transactionRepository.findByUserId(testUserId, 0, 100);
+        final List<TransactionTable> result =
+                transactionRepository.findByUserId(testUserId, 0, 100);
 
         // Then
         assertNotNull(result);
@@ -192,7 +193,8 @@ class TransactionRepositoryTest {
         when(plaidTransactionIdIndex.query(any(QueryConditional.class))).thenReturn(pages);
 
         // When
-        final Optional<TransactionTable> result = transactionRepository.findByPlaidTransactionId(plaidId);
+        final Optional<TransactionTable> result =
+                transactionRepository.findByPlaidTransactionId(plaidId);
 
         // Then
         assertTrue(result.isPresent());
@@ -357,8 +359,8 @@ class TransactionRepositoryTest {
         when(scanPage.items())
                 .thenReturn(
                         List.of(testTransaction)); // Return test transaction with matching userId
-        @SuppressWarnings("unchecked") final
-                PageIterable<TransactionTable> scanPages = mock(PageIterable.class);
+        @SuppressWarnings("unchecked")
+        final PageIterable<TransactionTable> scanPages = mock(PageIterable.class);
         when(scanPages.iterator()).thenReturn(List.of(scanPage).iterator());
         when(transactionTable.scan()).thenReturn(scanPages);
 
@@ -433,7 +435,8 @@ class TransactionRepositoryTest {
         when(userIdDateIndex.query(any(QueryConditional.class))).thenReturn(pages);
 
         // When - Test with negative skip (should be adjusted to 0)
-        final List<TransactionTable> result = transactionRepository.findByUserId(testUserId, -5, 10);
+        final List<TransactionTable> result =
+                transactionRepository.findByUserId(testUserId, -5, 10);
 
         // Then
         assertNotNull(result);
@@ -451,7 +454,8 @@ class TransactionRepositoryTest {
         // When - Test with limit 0 (should default to 50)
         final List<TransactionTable> result1 = transactionRepository.findByUserId(testUserId, 0, 0);
         // When - Test with limit > 100 (should cap at 100)
-        final List<TransactionTable> result2 = transactionRepository.findByUserId(testUserId, 0, 200);
+        final List<TransactionTable> result2 =
+                transactionRepository.findByUserId(testUserId, 0, 200);
 
         // Then
         assertNotNull(result1);

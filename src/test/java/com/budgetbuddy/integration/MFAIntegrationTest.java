@@ -1,7 +1,5 @@
 package com.budgetbuddy.integration;
 
-
-import java.nio.charset.StandardCharsets;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -11,6 +9,7 @@ import com.budgetbuddy.AWSTestConfiguration;
 import com.budgetbuddy.model.dynamodb.UserTable;
 import com.budgetbuddy.service.MFAService;
 import com.budgetbuddy.service.UserService;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
@@ -40,7 +39,8 @@ class MFAIntegrationTest {
     void setUp() {
         testEmail = "test-mfa-" + UUID.randomUUID().toString().substring(0, 8) + "@example.com";
         testPasswordHash =
-                java.util.Base64.getEncoder().encodeToString("test-password-hash".getBytes(StandardCharsets.UTF_8));
+                java.util.Base64.getEncoder()
+                        .encodeToString("test-password-hash".getBytes(StandardCharsets.UTF_8));
         testUser = userService.createUserSecure(testEmail, testPasswordHash, null, null);
     }
 

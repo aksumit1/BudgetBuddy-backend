@@ -34,6 +34,8 @@ import software.amazon.awssdk.services.cloudwatch.model.StandardUnit;
 @ExtendWith(MockitoExtension.class)
 class CloudWatchServiceTest {
 
+    private static final String TESTMETRIC = "TestMetric";
+
     @Mock private CloudWatchClient cloudWatchClient;
 
     @InjectMocks private CloudWatchService cloudWatchService;
@@ -48,7 +50,7 @@ class CloudWatchServiceTest {
     @Test
     void testPutMetricWithValidInputAddsToBuffer() {
         // Given
-        final String metricName = "TestMetric";
+        final String metricName = TESTMETRIC;
         final double value = 10.0;
         final String unit = "Count";
 
@@ -77,7 +79,7 @@ class CloudWatchServiceTest {
     @Test
     void testPutMetricWithDimensionsAddsDimensions() {
         // Given
-        final String metricName = "TestMetric";
+        final String metricName = TESTMETRIC;
         final double value = 10.0;
         final Map<String, String> dimensions = new HashMap<>();
         dimensions.put("Environment", "Test");
@@ -93,7 +95,7 @@ class CloudWatchServiceTest {
     @Test
     void testPutMetricWithStandardUnitAddsMetric() {
         // Given
-        final String metricName = "TestMetric";
+        final String metricName = TESTMETRIC;
         final double value = 10.0;
         final StandardUnit unit = StandardUnit.COUNT;
         final Map<String, String> dimensions = new HashMap<>();
@@ -143,7 +145,7 @@ class CloudWatchServiceTest {
     @Test
     void testPutMetricWithDimensionsWithValidInputAddsToBuffer() {
         // Given
-        final String metricName = "TestMetric";
+        final String metricName = TESTMETRIC;
         final double value = 10.0;
         final String unit = "Count";
         final Dimension dimension = Dimension.builder().name("Environment").value("Test").build();
@@ -171,7 +173,7 @@ class CloudWatchServiceTest {
     void testCreateAlarmWithValidInputCreatesAlarm() {
         // Given
         final String alarmName = "TestAlarm";
-        final String metricName = "TestMetric";
+        final String metricName = TESTMETRIC;
         final double threshold = 100.0;
         final String comparisonOperator = "GreaterThanThreshold";
         final PutMetricAlarmResponse response = PutMetricAlarmResponse.builder().build();
@@ -201,7 +203,7 @@ class CloudWatchServiceTest {
     @Test
     void testGetMetricStatisticsWithValidInputReturnsStatistics() {
         // Given
-        final String metricName = "TestMetric";
+        final String metricName = TESTMETRIC;
         final Instant startTime = Instant.now().minusSeconds(3600);
         final Instant endTime = Instant.now();
 

@@ -1,17 +1,16 @@
 package com.budgetbuddy.service;
 
-
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import java.util.Locale;
 import com.budgetbuddy.model.Subscription;
 import com.budgetbuddy.model.dynamodb.TransactionTable;
 import com.budgetbuddy.repository.dynamodb.TransactionRepository;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
@@ -61,7 +60,8 @@ public class SubscriptionInsightsService {
         LOGGER.info("Detecting unused subscriptions for user: {}", userId);
 
         final List<Subscription> subscriptions = subscriptionService.getActiveSubscriptions(userId);
-        final List<TransactionTable> transactions = transactionRepository.findByUserId(userId, 0, 10_000);
+        final List<TransactionTable> transactions =
+                transactionRepository.findByUserId(userId, 0, 10_000);
 
         final List<UnusedSubscriptionInsight> insights = new ArrayList<>();
 
@@ -98,7 +98,10 @@ public class SubscriptionInsightsService {
                                     String.format(
                                             "No payment in last %d days (expected every %s)",
                                             ChronoUnit.DAYS.between(lastPaymentDate, now),
-                                            subscription.getFrequency().name().toLowerCase(Locale.ROOT)),
+                                            subscription
+                                                    .getFrequency()
+                                                    .name()
+                                                    .toLowerCase(Locale.ROOT)),
                                     calculatePotentialSavings(subscription),
                                     UnusedSubscriptionInsight.Severity.MEDIUM));
                 }
@@ -117,7 +120,8 @@ public class SubscriptionInsightsService {
         LOGGER.info("Detecting price changes for user: {}", userId);
 
         final List<Subscription> subscriptions = subscriptionService.getActiveSubscriptions(userId);
-        final List<TransactionTable> transactions = transactionRepository.findByUserId(userId, 0, 10_000);
+        final List<TransactionTable> transactions =
+                transactionRepository.findByUserId(userId, 0, 10_000);
 
         final List<PriceChangeAlert> alerts = new ArrayList<>();
 
@@ -322,7 +326,9 @@ public class SubscriptionInsightsService {
             return false;
         }
 
-        final int distance = levenshteinDistance(merchant1.toLowerCase(Locale.ROOT), merchant2.toLowerCase(Locale.ROOT));
+        final int distance =
+                levenshteinDistance(
+                        merchant1.toLowerCase(Locale.ROOT), merchant2.toLowerCase(Locale.ROOT));
         final double similarity = 1.0 - ((double) distance / maxLen);
 
         // Require at least 80% similarity

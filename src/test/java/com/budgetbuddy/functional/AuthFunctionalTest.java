@@ -1,7 +1,5 @@
 package com.budgetbuddy.functional;
 
-
-import java.nio.charset.StandardCharsets;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -17,12 +15,12 @@ import com.budgetbuddy.service.AuthService;
 import com.budgetbuddy.service.UserService;
 import com.budgetbuddy.util.TableInitializer;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.nio.charset.StandardCharsets;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -93,7 +91,8 @@ class AuthFunctionalTest {
         // hash)
         // This must be the same for both createUserSecure and authenticate
         testPasswordHash =
-                java.util.Base64.getEncoder().encodeToString("testPassword123".getBytes(StandardCharsets.UTF_8));
+                java.util.Base64.getEncoder()
+                        .encodeToString("testPassword123".getBytes(StandardCharsets.UTF_8));
 
         // Ensure ObjectMapper has JavaTimeModule for Instant serialization
         final ObjectMapper mapper = getObjectMapper();
@@ -113,9 +112,9 @@ class AuthFunctionalTest {
         final String challengeRequestBody = String.format("{\"email\":\"%s\"}", testEmail);
         final var challengeResult =
                 mockMvc.perform(
-                        post("/api/auth/register/challenge")
-                                .contentType(MediaType.APPLICATION_JSON)
-                                .content(challengeRequestBody))
+                                post("/api/auth/register/challenge")
+                                        .contentType(MediaType.APPLICATION_JSON)
+                                        .content(challengeRequestBody))
                         .andExpect(status().isOk())
                         .andReturn();
 
@@ -134,9 +133,9 @@ class AuthFunctionalTest {
         // These are integration tests that test the full stack including DynamoDB
         final var result =
                 mockMvc.perform(
-                        post("/api/auth/register")
-                                .contentType(MediaType.APPLICATION_JSON)
-                                .content(requestBody))
+                                post("/api/auth/register")
+                                        .contentType(MediaType.APPLICATION_JSON)
+                                        .content(requestBody))
                         .andReturn();
 
         final int status = result.getResponse().getStatus();
@@ -176,9 +175,9 @@ class AuthFunctionalTest {
         final String challengeRequestBody = String.format("{\"email\":\"%s\"}", testEmail);
         final var challengeResult =
                 mockMvc.perform(
-                        post("/api/auth/login/challenge")
-                                .contentType(MediaType.APPLICATION_JSON)
-                                .content(challengeRequestBody))
+                                post("/api/auth/login/challenge")
+                                        .contentType(MediaType.APPLICATION_JSON)
+                                        .content(challengeRequestBody))
                         .andExpect(status().isOk())
                         .andReturn();
 
@@ -230,9 +229,9 @@ class AuthFunctionalTest {
         // When/Then
         final var result =
                 mockMvc.perform(
-                        post("/api/auth/refresh")
-                                .contentType(MediaType.APPLICATION_JSON)
-                                .content("{\"refreshToken\":\"" + refreshToken + "\"}"))
+                                post("/api/auth/refresh")
+                                        .contentType(MediaType.APPLICATION_JSON)
+                                        .content("{\"refreshToken\":\"" + refreshToken + "\"}"))
                         .andReturn();
 
         final int status = result.getResponse().getStatus();

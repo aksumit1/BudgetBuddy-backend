@@ -38,6 +38,8 @@ import org.springframework.security.core.userdetails.UserDetails;
 @DisplayName("SyncController Edge Case Tests")
 class SyncControllerEdgeCaseTest {
 
+    private static final String USER_123 = "user-123";
+
     @Mock private SyncService syncService;
 
     @Mock private UserService userService;
@@ -75,8 +77,8 @@ class SyncControllerEdgeCaseTest {
                 new org.springframework.security.core.userdetails.UserDetails() {
                     @Override
                     public java.util.Collection<
-                            ? extends org.springframework.security.core.GrantedAuthority>
-                    getAuthorities() {
+                                    ? extends org.springframework.security.core.GrantedAuthority>
+                            getAuthorities() {
                         return Collections.singletonList(new SimpleGrantedAuthority("ROLE_USER"));
                     }
 
@@ -135,7 +137,7 @@ class SyncControllerEdgeCaseTest {
     void testSyncServiceException() {
         final com.budgetbuddy.model.dynamodb.UserTable user =
                 new com.budgetbuddy.model.dynamodb.UserTable();
-        user.setUserId("user-123");
+        user.setUserId(USER_123);
         user.setEmail("test@example.com");
 
         when(userService.findByEmail(anyString())).thenReturn(java.util.Optional.of(user));
@@ -153,7 +155,7 @@ class SyncControllerEdgeCaseTest {
     void testIncrementalSyncNullTimestamp() {
         final com.budgetbuddy.model.dynamodb.UserTable user =
                 new com.budgetbuddy.model.dynamodb.UserTable();
-        user.setUserId("user-123");
+        user.setUserId(USER_123);
         user.setEmail("test@example.com");
 
         final IncrementalSyncResponse response =
@@ -181,7 +183,7 @@ class SyncControllerEdgeCaseTest {
     void testSyncStatusEmptyData() {
         final com.budgetbuddy.model.dynamodb.UserTable user =
                 new com.budgetbuddy.model.dynamodb.UserTable();
-        user.setUserId("user-123");
+        user.setUserId(USER_123);
         user.setEmail("test@example.com");
 
         final SyncStatusResponse response =
@@ -208,7 +210,7 @@ class SyncControllerEdgeCaseTest {
     void testSyncStatusLargeDataCounts() {
         final com.budgetbuddy.model.dynamodb.UserTable user =
                 new com.budgetbuddy.model.dynamodb.UserTable();
-        user.setUserId("user-123");
+        user.setUserId(USER_123);
         user.setEmail("test@example.com");
 
         final SyncStatusResponse response =
@@ -236,7 +238,7 @@ class SyncControllerEdgeCaseTest {
     void testIncrementalSyncNegativeTimestamp() {
         final com.budgetbuddy.model.dynamodb.UserTable user =
                 new com.budgetbuddy.model.dynamodb.UserTable();
-        user.setUserId("user-123");
+        user.setUserId(USER_123);
         user.setEmail("test@example.com");
 
         final IncrementalSyncResponse response =
@@ -264,7 +266,7 @@ class SyncControllerEdgeCaseTest {
     void testIncrementalSyncFutureTimestamp() {
         final com.budgetbuddy.model.dynamodb.UserTable user =
                 new com.budgetbuddy.model.dynamodb.UserTable();
-        user.setUserId("user-123");
+        user.setUserId(USER_123);
         user.setEmail("test@example.com");
 
         final long futureTimestamp = System.currentTimeMillis() / 1000 + 86_400; // 1 day in future

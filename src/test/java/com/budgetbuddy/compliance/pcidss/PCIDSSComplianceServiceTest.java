@@ -24,6 +24,8 @@ import software.amazon.awssdk.services.kms.KmsClient;
 /** Comprehensive tests for PCIDSSComplianceService */
 class PCIDSSComplianceServiceTest {
 
+    private static final String USER_123 = "user-123";
+
     @Mock private AuditLogService auditLogService;
 
     @Mock private CloudWatchClient cloudWatchClient;
@@ -100,7 +102,8 @@ class PCIDSSComplianceServiceTest {
         final List<String> cipherSuites = Arrays.asList("TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384");
 
         // When
-        final boolean valid = pciDSSComplianceService.validateTLSConfiguration(tlsVersion, cipherSuites);
+        final boolean valid =
+                pciDSSComplianceService.validateTLSConfiguration(tlsVersion, cipherSuites);
 
         // Then
         assertTrue(valid);
@@ -114,7 +117,8 @@ class PCIDSSComplianceServiceTest {
         final List<String> cipherSuites = Arrays.asList("TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384");
 
         // When
-        final boolean valid = pciDSSComplianceService.validateTLSConfiguration(tlsVersion, cipherSuites);
+        final boolean valid =
+                pciDSSComplianceService.validateTLSConfiguration(tlsVersion, cipherSuites);
 
         // Then
         assertFalse(valid);
@@ -128,7 +132,8 @@ class PCIDSSComplianceServiceTest {
         final List<String> cipherSuites = Arrays.asList("RC4-SHA");
 
         // When
-        final boolean valid = pciDSSComplianceService.validateTLSConfiguration(tlsVersion, cipherSuites);
+        final boolean valid =
+                pciDSSComplianceService.validateTLSConfiguration(tlsVersion, cipherSuites);
 
         // Then
         assertFalse(valid);
@@ -164,7 +169,7 @@ class PCIDSSComplianceServiceTest {
     @DisplayName("Should log MFA usage")
     void testLogMFAUsage() {
         // Given
-        final String userId = "user-123";
+        final String userId = USER_123;
         final String mfaMethod = "TOTP";
 
         // When
@@ -178,7 +183,7 @@ class PCIDSSComplianceServiceTest {
     @DisplayName("Should check access authorization")
     void testCheckAccessAuthorization() {
         // Given
-        final String userId = "user-123";
+        final String userId = USER_123;
         final String resource = "/api/transactions";
         final String action = "GET";
 
@@ -195,7 +200,7 @@ class PCIDSSComplianceServiceTest {
     @DisplayName("Should detect unauthorized access")
     void testCheckAccessAuthorizationUnauthorized() {
         // Given
-        final String userId = "user-123";
+        final String userId = USER_123;
         final String resource = "/api/admin/users";
         final String action = "DELETE";
 
@@ -251,7 +256,7 @@ class PCIDSSComplianceServiceTest {
     @DisplayName("Should log cardholder data access")
     void testLogCardholderDataAccess() {
         // Given
-        final String userId = "user-123";
+        final String userId = USER_123;
         final String resource = "/api/transactions";
         final String action = "GET";
 
@@ -279,7 +284,7 @@ class PCIDSSComplianceServiceTest {
     @DisplayName("Should detect intrusion")
     void testDetectIntrusion() {
         // Given
-        final String userId = "user-123";
+        final String userId = USER_123;
         final String resource = "/api/admin";
         final String suspiciousActivity = "Multiple failed login attempts";
 

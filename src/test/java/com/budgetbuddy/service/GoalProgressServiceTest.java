@@ -42,6 +42,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @org.mockito.junit.jupiter.MockitoSettings(strictness = org.mockito.quality.Strictness.LENIENT)
 class GoalProgressServiceTest {
 
+    private static final String TX1 = "tx1";
+
     @Mock private GoalRepository goalRepository;
 
     @Mock private GoalService goalService;
@@ -79,7 +81,7 @@ class GoalProgressServiceTest {
     @Test
     void testCalculateAndUpdateProgressWithAssignedTransactions() {
         // Given: Goal with assigned transactions
-        final TransactionTable tx1 = createTransaction("tx1", goalId, new BigDecimal("100.00"));
+        final TransactionTable tx1 = createTransaction(TX1, goalId, new BigDecimal("100.00"));
         final TransactionTable tx2 = createTransaction("tx2", goalId, new BigDecimal("200.00"));
         final List<TransactionTable> assignedTransactions = Arrays.asList(tx1, tx2);
 
@@ -106,9 +108,11 @@ class GoalProgressServiceTest {
         // prior behaviour credited phantom progress the user hadn't earned.
         // With no tagged transactions and no linked accounts, progress is 0.
         final List<TransactionTable> noAssignedTransactions = new ArrayList<>();
-        final TransactionTable incomeTx1 = createTransaction("income1", null, new BigDecimal("5000.00"));
+        final TransactionTable incomeTx1 =
+                createTransaction("income1", null, new BigDecimal("5000.00"));
         incomeTx1.setTransactionType("INCOME");
-        final TransactionTable incomeTx2 = createTransaction("income2", null, new BigDecimal("3000.00"));
+        final TransactionTable incomeTx2 =
+                createTransaction("income2", null, new BigDecimal("3000.00"));
         incomeTx2.setTransactionType("INCOME");
         final List<TransactionTable> allTransactions = Arrays.asList(incomeTx1, incomeTx2);
 
@@ -140,7 +144,7 @@ class GoalProgressServiceTest {
         final AccountTable account2 = createAccount("acc2", new BigDecimal("1000.00"));
         testGoal.setAccountIds(Arrays.asList("acc1", "acc2"));
 
-        final TransactionTable tx1 = createTransaction("tx1", goalId, new BigDecimal("100.00"));
+        final TransactionTable tx1 = createTransaction(TX1, goalId, new BigDecimal("100.00"));
         final List<TransactionTable> assignedTransactions = Arrays.asList(tx1);
 
         when(goalService.getGoal(testUser, goalId)).thenReturn(testGoal);
@@ -169,7 +173,7 @@ class GoalProgressServiceTest {
         final AccountTable account1 = createAccount("acc1", new BigDecimal("5000.00"));
         final List<AccountTable> allAccounts = Arrays.asList(account1);
 
-        final TransactionTable tx1 = createTransaction("tx1", goalId, new BigDecimal("100.00"));
+        final TransactionTable tx1 = createTransaction(TX1, goalId, new BigDecimal("100.00"));
         final List<TransactionTable> assignedTransactions = Arrays.asList(tx1);
 
         when(goalService.getGoal(testUser, goalId)).thenReturn(testGoal);
@@ -192,7 +196,7 @@ class GoalProgressServiceTest {
     void testCalculateAndUpdateProgressCapsAtTargetAmount() {
         // Given: Goal with progress exceeding target
         testGoal.setTargetAmount(new BigDecimal("1000.00"));
-        final TransactionTable tx1 = createTransaction("tx1", goalId, new BigDecimal("5000.00"));
+        final TransactionTable tx1 = createTransaction(TX1, goalId, new BigDecimal("5000.00"));
         final List<TransactionTable> assignedTransactions = Arrays.asList(tx1);
 
         when(goalService.getGoal(testUser, goalId)).thenReturn(testGoal);
@@ -214,7 +218,7 @@ class GoalProgressServiceTest {
     @Test
     void testCalculateAndUpdateProgressFiltersNegativeAmounts() {
         // Given: Goal with both positive and negative transactions
-        final TransactionTable tx1 = createTransaction("tx1", goalId, new BigDecimal("100.00"));
+        final TransactionTable tx1 = createTransaction(TX1, goalId, new BigDecimal("100.00"));
         final TransactionTable tx2 =
                 createTransaction("tx2", goalId, new BigDecimal("-50.00")); // Negative
         final TransactionTable tx3 = createTransaction("tx3", goalId, new BigDecimal("200.00"));

@@ -105,7 +105,8 @@ public class AuthController {
 
     /** Registration endpoint (PAKE2) Accepts password hash computed with challenge nonce */
     @PostMapping("/register")
-    public ResponseEntity<AuthResponse> register(@Valid @RequestBody final AuthRequest signUpRequest) {
+    public ResponseEntity<AuthResponse> register(
+            @Valid @RequestBody final AuthRequest signUpRequest) {
         // Validate secure format
         if (!signUpRequest.isSecureFormat()) {
             throw new AppException(
@@ -147,7 +148,8 @@ public class AuthController {
      * rotation
      */
     @PostMapping("/refresh")
-    public ResponseEntity<AuthResponse> refreshToken(@RequestBody final RefreshTokenRequest request) {
+    public ResponseEntity<AuthResponse> refreshToken(
+            @RequestBody final RefreshTokenRequest request) {
         if (request == null
                 || request.getRefreshToken() == null
                 || request.getRefreshToken().isEmpty()) {
@@ -167,7 +169,8 @@ public class AuthController {
             summary = "Validate Refresh Token",
             description =
                     "Validates refresh token and issues new tokens with rotation (Zero Trust)")
-    public ResponseEntity<AuthResponse> validateToken(@RequestBody final RefreshTokenRequest request) {
+    public ResponseEntity<AuthResponse> validateToken(
+            @RequestBody final RefreshTokenRequest request) {
         if (request == null
                 || request.getRefreshToken() == null
                 || request.getRefreshToken().isEmpty()) {
@@ -250,7 +253,8 @@ public class AuthController {
     @PostMapping("/change-password")
     @Operation(summary = "Change Password", description = "Changes password for authenticated user")
     public ResponseEntity<PasswordChangeResponse> changePassword(
-            @org.springframework.security.core.annotation.AuthenticationPrincipal final org.springframework.security.core.userdetails.UserDetails userDetails,
+            @org.springframework.security.core.annotation.AuthenticationPrincipal
+                    final org.springframework.security.core.userdetails.UserDetails userDetails,
             @Valid @RequestBody final ChangePasswordRequest request) {
 
         if (userDetails == null || userDetails.getUsername() == null) {

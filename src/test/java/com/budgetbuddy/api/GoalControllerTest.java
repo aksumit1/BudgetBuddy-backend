@@ -33,6 +33,8 @@ import org.springframework.security.core.userdetails.UserDetails;
 @org.mockito.junit.jupiter.MockitoSettings(strictness = org.mockito.quality.Strictness.LENIENT)
 class GoalControllerTest {
 
+    private static final String GOAL_1 = "goal-1";
+
     @Mock private GoalService goalService;
 
     @Mock private UserService userService;
@@ -73,7 +75,7 @@ class GoalControllerTest {
     @Test
     void testGetGoalsWithValidUserReturnsGoals() {
         // Given
-        final List<GoalTable> mockGoals = Arrays.asList(createGoal("goal-1"), createGoal("goal-2"));
+        final List<GoalTable> mockGoals = Arrays.asList(createGoal(GOAL_1), createGoal("goal-2"));
         when(userService.findByEmail("test@example.com"))
                 .thenReturn(java.util.Optional.of(testUser));
         when(goalService.getActiveGoals(testUser)).thenReturn(mockGoals);
@@ -97,7 +99,7 @@ class GoalControllerTest {
         request.setTargetDate(LocalDate.now().plusMonths(6));
         request.setGoalType("SAVINGS");
 
-        final GoalTable mockGoal = createGoal("goal-1");
+        final GoalTable mockGoal = createGoal(GOAL_1);
         when(userService.findByEmail("test@example.com"))
                 .thenReturn(java.util.Optional.of(testUser));
         when(goalService.createGoal(
@@ -116,7 +118,8 @@ class GoalControllerTest {
         when(goalService.getGoal(eq(testUser), any())).thenReturn(mockGoal);
 
         // When
-        final ResponseEntity<GoalTable> response = goalController.createGoal(userDetails, null, request);
+        final ResponseEntity<GoalTable> response =
+                goalController.createGoal(userDetails, null, request);
 
         // Then
         assertEquals(HttpStatus.CREATED, response.getStatusCode());
@@ -126,18 +129,19 @@ class GoalControllerTest {
     @Test
     void testUpdateProgressWithValidDataUpdatesGoal() {
         // Given
-        final GoalController.UpdateProgressRequest request = new GoalController.UpdateProgressRequest();
+        final GoalController.UpdateProgressRequest request =
+                new GoalController.UpdateProgressRequest();
         request.setAmount(BigDecimal.valueOf(100.00));
 
-        final GoalTable mockGoal = createGoal("goal-1");
+        final GoalTable mockGoal = createGoal(GOAL_1);
         when(userService.findByEmail("test@example.com"))
                 .thenReturn(java.util.Optional.of(testUser));
-        when(goalService.updateGoalProgress(testUser, "goal-1", BigDecimal.valueOf(100.00)))
+        when(goalService.updateGoalProgress(testUser, GOAL_1, BigDecimal.valueOf(100.00)))
                 .thenReturn(mockGoal);
 
         // When
         final ResponseEntity<GoalTable> response =
-                goalController.updateProgress(userDetails, "goal-1", request);
+                goalController.updateProgress(userDetails, GOAL_1, request);
 
         // Then
         assertEquals(HttpStatus.OK, response.getStatusCode());

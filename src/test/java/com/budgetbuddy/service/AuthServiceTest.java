@@ -38,7 +38,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 // class level rather than littering every method.
 
 @SuppressWarnings("PMD.LawOfDemeter")
-
 @ExtendWith(MockitoExtension.class)
 class AuthServiceTest {
 

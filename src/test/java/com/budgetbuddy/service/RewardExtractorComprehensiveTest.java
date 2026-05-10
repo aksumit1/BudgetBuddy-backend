@@ -200,7 +200,7 @@ class RewardExtractorComprehensiveTest {
     @DisplayName("Should reject points exceeding maximum (100M)")
     void testDetectPointsExceedingMaximum() {
         final String[] lines = {
-                "Points: 100,000,001" // Exceeds MAX_REASONABLE_POINTS
+            "Points: 100,000,001" // Exceeds MAX_REASONABLE_POINTS
         };
 
         final Long points = rewardExtractor.extractRewardPoints(lines);
@@ -241,7 +241,7 @@ class RewardExtractorComprehensiveTest {
     @DisplayName("Should not match dates as points")
     void testDetectShouldNotMatchDates() {
         final String[] lines = {
-                "Transaction Date: 12/31/2024" // Should not match as points
+            "Transaction Date: 12/31/2024" // Should not match as points
         };
 
         final Long points = rewardExtractor.extractRewardPoints(lines);
@@ -253,7 +253,7 @@ class RewardExtractorComprehensiveTest {
     @DisplayName("Should not match account numbers as points")
     void testDetectShouldNotMatchAccountNumbers() {
         final String[] lines = {
-                "Account Number: 1234" // Should not match as points
+            "Account Number: 1234" // Should not match as points
         };
 
         final Long points = rewardExtractor.extractRewardPoints(lines);

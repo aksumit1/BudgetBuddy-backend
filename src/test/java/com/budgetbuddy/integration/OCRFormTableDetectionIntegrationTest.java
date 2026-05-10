@@ -1,7 +1,5 @@
 package com.budgetbuddy.integration;
 
-
-import java.util.Locale;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -18,6 +16,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -68,7 +67,7 @@ class OCRFormTableDetectionIntegrationTest {
                         Institution Name: JPMorgan Chase Bank, N.A.
                         Account Type: Checking
                         Statement Period: January 2024
-                        
+
                         Date        Description        Amount
                         2024-01-01  Check #5678        1000.00
                         2024-01-02  ACH Deposit        2000.00
@@ -85,7 +84,9 @@ class OCRFormTableDetectionIntegrationTest {
                 fields.stream()
                         .anyMatch(
                                 f ->
-                                        f.getLabel().toLowerCase(Locale.ROOT).contains("account number")
+                                        f.getLabel()
+                                                        .toLowerCase(Locale.ROOT)
+                                                        .contains("account number")
                                                 && f.getValue().contains("1234"));
         assertTrue(foundAccountNumber, "Should detect account number from form fields");
     }
@@ -127,7 +128,8 @@ class OCRFormTableDetectionIntegrationTest {
         // Extract form fields and add to metadata
         final List<FormFieldDetectionService.FormField> fields =
                 formFieldDetectionService.detectFormFields(ocrText);
-        final Map<String, String> accountInfo = formFieldDetectionService.extractAccountInfo(fields);
+        final Map<String, String> accountInfo =
+                formFieldDetectionService.extractAccountInfo(fields);
         metadata.putAll(accountInfo);
 
         final AccountDetectionService.DetectedAccount detected =

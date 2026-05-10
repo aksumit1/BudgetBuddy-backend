@@ -1,7 +1,5 @@
 package com.budgetbuddy.integration;
 
-
-import java.nio.charset.StandardCharsets;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
@@ -16,6 +14,7 @@ import com.budgetbuddy.repository.dynamodb.TransactionRepository;
 import com.budgetbuddy.service.UserService;
 import com.budgetbuddy.util.TableInitializer;
 import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
@@ -25,7 +24,6 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
@@ -44,6 +42,9 @@ import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 @Import(AWSTestConfiguration.class)
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class TransactionCompositeKeyDeduplicationIntegrationTest {
+
+    private static final String DINING = "dining";
+    private static final String PLAID_OLD = "plaid-old-";
 
     @Autowired private TransactionRepository transactionRepository;
 
@@ -70,9 +71,11 @@ class TransactionCompositeKeyDeduplicationIntegrationTest {
         testUser = new UserTable();
         testUser.setUserId(UUID.randomUUID().toString());
         final String base64PasswordHash =
-                java.util.Base64.getEncoder().encodeToString("test-hash".getBytes(StandardCharsets.UTF_8));
+                java.util.Base64.getEncoder()
+                        .encodeToString("test-hash".getBytes(StandardCharsets.UTF_8));
         final String base64ClientSalt =
-                java.util.Base64.getEncoder().encodeToString("test-salt".getBytes(StandardCharsets.UTF_8));
+                java.util.Base64.getEncoder()
+                        .encodeToString("test-salt".getBytes(StandardCharsets.UTF_8));
         testUser = userService.createUserSecure(uniqueEmail, base64PasswordHash, "Test", "User");
 
         // Create test account
@@ -102,12 +105,12 @@ class TransactionCompositeKeyDeduplicationIntegrationTest {
         existingTransaction.setTransactionId(UUID.randomUUID().toString());
         existingTransaction.setUserId(testUser.getUserId());
         existingTransaction.setAccountId(testAccount.getAccountId());
-        existingTransaction.setPlaidTransactionId("plaid-old-" + UUID.randomUUID()); // Old Plaid ID
+        existingTransaction.setPlaidTransactionId(PLAID_OLD + UUID.randomUUID()); // Old Plaid ID
         existingTransaction.setAmount(amount);
         existingTransaction.setDescription(description);
         existingTransaction.setMerchantName("Test Merchant");
-        existingTransaction.setCategoryPrimary("dining");
-        existingTransaction.setCategoryDetailed("dining");
+        existingTransaction.setCategoryPrimary(DINING);
+        existingTransaction.setCategoryDetailed(DINING);
         existingTransaction.setTransactionDate(transactionDate);
         existingTransaction.setCurrencyCode("USD");
         existingTransaction.setCreatedAt(Instant.now());
@@ -144,12 +147,12 @@ class TransactionCompositeKeyDeduplicationIntegrationTest {
         existingTransaction.setTransactionId(UUID.randomUUID().toString());
         existingTransaction.setUserId(testUser.getUserId());
         existingTransaction.setAccountId(testAccount.getAccountId());
-        existingTransaction.setPlaidTransactionId("plaid-old-" + UUID.randomUUID()); // Old Plaid ID
+        existingTransaction.setPlaidTransactionId(PLAID_OLD + UUID.randomUUID()); // Old Plaid ID
         existingTransaction.setAmount(amount);
         existingTransaction.setDescription(description);
         existingTransaction.setMerchantName("Starbucks");
-        existingTransaction.setCategoryPrimary("dining");
-        existingTransaction.setCategoryDetailed("dining");
+        existingTransaction.setCategoryPrimary(DINING);
+        existingTransaction.setCategoryDetailed(DINING);
         existingTransaction.setTransactionDate(transactionDate);
         existingTransaction.setCurrencyCode("USD");
         existingTransaction.setCreatedAt(Instant.now());
@@ -191,7 +194,7 @@ class TransactionCompositeKeyDeduplicationIntegrationTest {
         existingTransaction.setTransactionId(UUID.randomUUID().toString());
         existingTransaction.setUserId(testUser.getUserId());
         existingTransaction.setAccountId(testAccount.getAccountId());
-        existingTransaction.setPlaidTransactionId("plaid-old-" + UUID.randomUUID());
+        existingTransaction.setPlaidTransactionId(PLAID_OLD + UUID.randomUUID());
         existingTransaction.setAmount(amount);
         existingTransaction.setDescription(""); // Empty description
         existingTransaction.setMerchantName(merchantName); // Use merchantName
@@ -229,11 +232,11 @@ class TransactionCompositeKeyDeduplicationIntegrationTest {
         existingTransaction.setTransactionId(UUID.randomUUID().toString());
         existingTransaction.setUserId(testUser.getUserId());
         existingTransaction.setAccountId(testAccount.getAccountId());
-        existingTransaction.setPlaidTransactionId("plaid-old-" + UUID.randomUUID());
+        existingTransaction.setPlaidTransactionId(PLAID_OLD + UUID.randomUUID());
         existingTransaction.setAmount(existingAmount);
         existingTransaction.setDescription(description);
-        existingTransaction.setCategoryPrimary("dining");
-        existingTransaction.setCategoryDetailed("dining");
+        existingTransaction.setCategoryPrimary(DINING);
+        existingTransaction.setCategoryDetailed(DINING);
         existingTransaction.setTransactionDate(transactionDate);
         existingTransaction.setCurrencyCode("USD");
         existingTransaction.setCreatedAt(Instant.now());
@@ -265,11 +268,11 @@ class TransactionCompositeKeyDeduplicationIntegrationTest {
         existingTransaction.setTransactionId(UUID.randomUUID().toString());
         existingTransaction.setUserId(testUser.getUserId());
         existingTransaction.setAccountId(testAccount.getAccountId());
-        existingTransaction.setPlaidTransactionId("plaid-old-" + UUID.randomUUID());
+        existingTransaction.setPlaidTransactionId(PLAID_OLD + UUID.randomUUID());
         existingTransaction.setAmount(amount);
         existingTransaction.setDescription(description);
-        existingTransaction.setCategoryPrimary("dining");
-        existingTransaction.setCategoryDetailed("dining");
+        existingTransaction.setCategoryPrimary(DINING);
+        existingTransaction.setCategoryDetailed(DINING);
         existingTransaction.setTransactionDate(existingDate);
         existingTransaction.setCurrencyCode("USD");
         existingTransaction.setCreatedAt(Instant.now());
@@ -296,7 +299,7 @@ class TransactionCompositeKeyDeduplicationIntegrationTest {
         final String transactionDate = LocalDate.now().toString();
         final BigDecimal amount = new BigDecimal("75.00");
         final String description = "Gas Station Purchase";
-        final String oldPlaidId = "plaid-old-" + UUID.randomUUID();
+        final String oldPlaidId = PLAID_OLD + UUID.randomUUID();
 
         final TransactionTable existingTransaction = new TransactionTable();
         existingTransaction.setTransactionId(UUID.randomUUID().toString());

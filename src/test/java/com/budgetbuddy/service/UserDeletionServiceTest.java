@@ -101,7 +101,8 @@ class UserDeletionServiceTest {
     @Test
     void testDeleteAllUserDataDeletesAllEntities() {
         // Given
-        final List<AccountTable> accounts = Arrays.asList(createAccount("acc-1"), createAccount("acc-2"));
+        final List<AccountTable> accounts =
+                Arrays.asList(createAccount("acc-1"), createAccount("acc-2"));
         final List<TransactionTable> transactions =
                 Arrays.asList(createTransaction("tx-1"), createTransaction("tx-2"));
         final List<TransactionActionTable> actions =

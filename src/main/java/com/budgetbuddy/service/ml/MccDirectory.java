@@ -33,6 +33,8 @@ import java.util.Optional;
 @SuppressWarnings("PMD.OnlyOneReturn")
 public final class MccDirectory {
 
+    private static final String FEE = "fee";
+
     private static final String CHARITY = "charity";
 
     private static final String DINING = "dining";
@@ -209,11 +211,11 @@ public final class MccDirectory {
         m.put("6211", "investment"); // Securities brokers + dealers
         m.put("6051", "transfer"); // FX / money orders / travellers cheques
         // Government / tax / fees
-        m.put("9211", "fee"); // Court costs
-        m.put("9222", "fee"); // Fines
-        m.put("9311", "fee"); // Tax payments
-        m.put("9399", "fee"); // Govt services (misc)
-        m.put("9402", "fee"); // Postal services (govt)
+        m.put("9211", FEE); // Court costs
+        m.put("9222", FEE); // Fines
+        m.put("9311", FEE); // Tax payments
+        m.put("9399", FEE); // Govt services (misc)
+        m.put("9402", FEE); // Postal services (govt)
 
         return Collections.unmodifiableMap(m);
     }

@@ -76,7 +76,8 @@ class ExternalApiPerformanceTest {
             }
 
             if (successCount.get() > 0) {
-                final double avgTimeMs = (totalTime.get() / (double) successCount.get()) / 1_000_000;
+                final double avgTimeMs =
+                        (totalTime.get() / (double) successCount.get()) / 1_000_000;
                 System.out.println("Plaid API Latency:");
                 System.out.println("Average time: " + String.format("%.2f", avgTimeMs) + "ms");
                 System.out.println("Successful calls: " + successCount.get() + "/" + iterations);

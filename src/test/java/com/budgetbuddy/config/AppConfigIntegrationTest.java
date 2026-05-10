@@ -53,10 +53,11 @@ class AppConfigIntegrationTest {
                     (com.fasterxml.jackson.databind.ObjectMapper)
                             ReflectionTestUtils.getField(appConfigIntegration, "objectMapper");
             final com.fasterxml.jackson.databind.JsonNode jsonNode = mapper.readTree(testConfig);
-            final java.util.concurrent.atomic.AtomicReference<com.fasterxml.jackson.databind.JsonNode>
+            final java.util.concurrent.atomic.AtomicReference<
+                            com.fasterxml.jackson.databind.JsonNode>
                     parsedConfig =
                             (java.util.concurrent.atomic.AtomicReference<
-                                    com.fasterxml.jackson.databind.JsonNode>)
+                                            com.fasterxml.jackson.databind.JsonNode>)
                                     ReflectionTestUtils.getField(
                                             appConfigIntegration, "parsedConfiguration");
             parsedConfig.set(jsonNode);
@@ -87,10 +88,11 @@ class AppConfigIntegrationTest {
                     (com.fasterxml.jackson.databind.ObjectMapper)
                             ReflectionTestUtils.getField(appConfigIntegration, "objectMapper");
             final com.fasterxml.jackson.databind.JsonNode jsonNode = mapper.readTree(testConfig);
-            final java.util.concurrent.atomic.AtomicReference<com.fasterxml.jackson.databind.JsonNode>
+            final java.util.concurrent.atomic.AtomicReference<
+                            com.fasterxml.jackson.databind.JsonNode>
                     parsedConfig =
                             (java.util.concurrent.atomic.AtomicReference<
-                                    com.fasterxml.jackson.databind.JsonNode>)
+                                            com.fasterxml.jackson.databind.JsonNode>)
                                     ReflectionTestUtils.getField(
                                             appConfigIntegration, "parsedConfiguration");
             parsedConfig.set(jsonNode);
@@ -120,10 +122,11 @@ class AppConfigIntegrationTest {
                     (com.fasterxml.jackson.databind.ObjectMapper)
                             ReflectionTestUtils.getField(appConfigIntegration, "objectMapper");
             final com.fasterxml.jackson.databind.JsonNode jsonNode = mapper.readTree(testConfig);
-            final java.util.concurrent.atomic.AtomicReference<com.fasterxml.jackson.databind.JsonNode>
+            final java.util.concurrent.atomic.AtomicReference<
+                            com.fasterxml.jackson.databind.JsonNode>
                     parsedConfig =
                             (java.util.concurrent.atomic.AtomicReference<
-                                    com.fasterxml.jackson.databind.JsonNode>)
+                                            com.fasterxml.jackson.databind.JsonNode>)
                                     ReflectionTestUtils.getField(
                                             appConfigIntegration, "parsedConfiguration");
             parsedConfig.set(jsonNode);
@@ -153,10 +156,11 @@ class AppConfigIntegrationTest {
                     (com.fasterxml.jackson.databind.ObjectMapper)
                             ReflectionTestUtils.getField(appConfigIntegration, "objectMapper");
             final com.fasterxml.jackson.databind.JsonNode jsonNode = mapper.readTree(testConfig);
-            final java.util.concurrent.atomic.AtomicReference<com.fasterxml.jackson.databind.JsonNode>
+            final java.util.concurrent.atomic.AtomicReference<
+                            com.fasterxml.jackson.databind.JsonNode>
                     parsedConfig =
                             (java.util.concurrent.atomic.AtomicReference<
-                                    com.fasterxml.jackson.databind.JsonNode>)
+                                            com.fasterxml.jackson.databind.JsonNode>)
                                     ReflectionTestUtils.getField(
                                             appConfigIntegration, "parsedConfiguration");
             parsedConfig.set(jsonNode);

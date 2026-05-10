@@ -33,6 +33,9 @@ import org.springframework.security.core.userdetails.UserDetails;
 @org.mockito.junit.jupiter.MockitoSettings(strictness = org.mockito.quality.Strictness.LENIENT)
 class DMAControllerTest {
 
+    private static final String USER_123 = "user-123";
+    private static final String THIRD_PARTY_123 = "third-party-123";
+
     @Mock private DMAComplianceService dmaComplianceService;
 
     @Mock private UserService userService;
@@ -46,7 +49,7 @@ class DMAControllerTest {
     @BeforeEach
     void setUp() {
         testUser = new UserTable();
-        testUser.setUserId("user-123");
+        testUser.setUserId(USER_123);
         testUser.setEmail("test@example.com");
 
         when(userDetails.getUsername()).thenReturn("test@example.com");
@@ -56,7 +59,7 @@ class DMAControllerTest {
     void testExportDataWithJSONFormatReturnsJSON() {
         // Given
         when(userService.findByEmail("test@example.com")).thenReturn(Optional.of(testUser));
-        when(dmaComplianceService.exportDataPortable("user-123", "JSON"))
+        when(dmaComplianceService.exportDataPortable(USER_123, "JSON"))
                 .thenReturn("{\"data\":\"test\"}");
 
         // When
@@ -77,7 +80,7 @@ class DMAControllerTest {
     void testExportDataWithCSVFormatReturnsCSV() {
         // Given
         when(userService.findByEmail("test@example.com")).thenReturn(Optional.of(testUser));
-        when(dmaComplianceService.exportDataPortable("user-123", "CSV"))
+        when(dmaComplianceService.exportDataPortable(USER_123, "CSV"))
                 .thenReturn("col1,col2\nval1,val2");
 
         // When
@@ -94,7 +97,7 @@ class DMAControllerTest {
     void testExportDataWithXMLFormatReturnsXML() {
         // Given
         when(userService.findByEmail("test@example.com")).thenReturn(Optional.of(testUser));
-        when(dmaComplianceService.exportDataPortable("user-123", "XML"))
+        when(dmaComplianceService.exportDataPortable(USER_123, "XML"))
                 .thenReturn("<data>test</data>");
 
         // When
@@ -111,7 +114,7 @@ class DMAControllerTest {
     void testExportDataWithDefaultFormatReturnsJSON() {
         // Given
         when(userService.findByEmail("test@example.com")).thenReturn(Optional.of(testUser));
-        when(dmaComplianceService.exportDataPortable("user-123", "JSON"))
+        when(dmaComplianceService.exportDataPortable(USER_123, "JSON"))
                 .thenReturn("{\"data\":\"test\"}");
 
         // When - Pass "JSON" explicitly (default value from @RequestParam)
@@ -132,7 +135,7 @@ class DMAControllerTest {
     void testGetInteroperabilityEndpointWithValidUserReturnsEndpoint() {
         // Given
         when(userService.findByEmail("test@example.com")).thenReturn(Optional.of(testUser));
-        when(dmaComplianceService.getInteroperabilityEndpoint("user-123"))
+        when(dmaComplianceService.getInteroperabilityEndpoint(USER_123))
                 .thenReturn("https://api.example.com/interop/user-123");
 
         // When
@@ -144,7 +147,7 @@ class DMAControllerTest {
         assertNotNull(response.getBody());
         assertEquals(
                 "https://api.example.com/interop/user-123", response.getBody().get("endpoint"));
-        assertEquals("user-123", response.getBody().get("userId"));
+        assertEquals(USER_123, response.getBody().get("userId"));
     }
 
     @Test
@@ -158,12 +161,12 @@ class DMAControllerTest {
         // Given
         final DMAController.AuthorizeThirdPartyRequest request =
                 new DMAController.AuthorizeThirdPartyRequest();
-        request.setThirdPartyId("third-party-123");
+        request.setThirdPartyId(THIRD_PARTY_123);
         request.setScope("read:transactions");
 
         when(userService.findByEmail("test@example.com")).thenReturn(Optional.of(testUser));
         when(dmaComplianceService.authorizeThirdPartyAccess(
-                        "user-123", "third-party-123", "read:transactions"))
+                        USER_123, THIRD_PARTY_123, "read:transactions"))
                 .thenReturn(true);
 
         // When
@@ -174,7 +177,7 @@ class DMAControllerTest {
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertNotNull(response.getBody());
         assertTrue((Boolean) response.getBody().get("authorized"));
-        assertEquals("third-party-123", response.getBody().get("thirdPartyId"));
+        assertEquals(THIRD_PARTY_123, response.getBody().get("thirdPartyId"));
     }
 
     @Test
@@ -202,12 +205,12 @@ class DMAControllerTest {
     void testShareDataWithThirdPartyWithValidRequestReturnsData() {
         // Given
         final DMAController.ShareDataRequest request = new DMAController.ShareDataRequest();
-        request.setThirdPartyId("third-party-123");
+        request.setThirdPartyId(THIRD_PARTY_123);
         request.setDataType("transactions");
 
         when(userService.findByEmail("test@example.com")).thenReturn(Optional.of(testUser));
         when(dmaComplianceService.shareDataWithThirdParty(
-                        "user-123", "third-party-123", "transactions"))
+                        USER_123, THIRD_PARTY_123, "transactions"))
                 .thenReturn("{\"transactions\":[]}");
 
         // When
@@ -217,7 +220,7 @@ class DMAControllerTest {
         // Then
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertNotNull(response.getBody());
-        assertEquals("third-party-123", response.getBody().get("thirdPartyId"));
+        assertEquals(THIRD_PARTY_123, response.getBody().get("thirdPartyId"));
         assertEquals("transactions", response.getBody().get("dataType"));
     }
 

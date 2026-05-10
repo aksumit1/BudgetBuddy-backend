@@ -1,6 +1,5 @@
 package com.budgetbuddy.security.ddos;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -9,6 +8,7 @@ import com.budgetbuddy.AWSTestConfiguration;
 import com.budgetbuddy.security.rate.RateLimitService;
 import com.budgetbuddy.service.AsyncSyncService;
 import com.budgetbuddy.util.TableInitializer;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.lang.reflect.Field;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
@@ -36,6 +36,8 @@ import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class ThreadPoolExecutorInjectionTest {
 
+    private static final String ASYNCEXECUTOR = "asyncExecutor";
+
     @Autowired private DDoSProtectionService ddosProtectionService;
 
     @Autowired private NotFoundErrorTrackingService notFoundErrorTrackingService;
@@ -55,7 +57,7 @@ class ThreadPoolExecutorInjectionTest {
     void testDDoSProtectionServiceHasExecutorInjected() throws Exception {
         // Given - DDoS Protection Service
         // When - Check for executor field
-        final Field executorField = DDoSProtectionService.class.getDeclaredField("asyncExecutor");
+        final Field executorField = DDoSProtectionService.class.getDeclaredField(ASYNCEXECUTOR);
         executorField.setAccessible(true);
         final Executor executor = (Executor) executorField.get(ddosProtectionService);
 
@@ -71,7 +73,8 @@ class ThreadPoolExecutorInjectionTest {
     void testNotFoundErrorTrackingServiceHasExecutorInjected() throws Exception {
         // Given - NotFound Error Tracking Service
         // When - Check for executor field
-        final Field executorField = NotFoundErrorTrackingService.class.getDeclaredField("asyncExecutor");
+        final Field executorField =
+                NotFoundErrorTrackingService.class.getDeclaredField(ASYNCEXECUTOR);
         executorField.setAccessible(true);
         final Executor executor = (Executor) executorField.get(notFoundErrorTrackingService);
 
@@ -83,7 +86,7 @@ class ThreadPoolExecutorInjectionTest {
     void testRateLimitServiceHasExecutorInjected() throws Exception {
         // Given - Rate Limit Service
         // When - Check for executor field
-        final Field executorField = RateLimitService.class.getDeclaredField("asyncExecutor");
+        final Field executorField = RateLimitService.class.getDeclaredField(ASYNCEXECUTOR);
         executorField.setAccessible(true);
         final Executor executor = (Executor) executorField.get(rateLimitService);
 
@@ -133,7 +136,7 @@ class ThreadPoolExecutorInjectionTest {
     @Test
     void testDDoSProtectionServiceExecutorIsThreadPool() throws Exception {
         // Given - DDoS Protection Service
-        final Field executorField = DDoSProtectionService.class.getDeclaredField("asyncExecutor");
+        final Field executorField = DDoSProtectionService.class.getDeclaredField(ASYNCEXECUTOR);
         executorField.setAccessible(true);
         final Executor executor = (Executor) executorField.get(ddosProtectionService);
 
@@ -183,15 +186,17 @@ class ThreadPoolExecutorInjectionTest {
     void testAllServicesUseSameExecutorType() throws Exception {
         // Given - All services
         // When - Get executors from all services
-        final Field ddosField = DDoSProtectionService.class.getDeclaredField("asyncExecutor");
+        final Field ddosField = DDoSProtectionService.class.getDeclaredField(ASYNCEXECUTOR);
         ddosField.setAccessible(true);
         final Executor ddosExecutor = (Executor) ddosField.get(ddosProtectionService);
 
-        final Field notFoundField = NotFoundErrorTrackingService.class.getDeclaredField("asyncExecutor");
+        final Field notFoundField =
+                NotFoundErrorTrackingService.class.getDeclaredField(ASYNCEXECUTOR);
         notFoundField.setAccessible(true);
-        final Executor notFoundExecutor = (Executor) notFoundField.get(notFoundErrorTrackingService);
+        final Executor notFoundExecutor =
+                (Executor) notFoundField.get(notFoundErrorTrackingService);
 
-        final Field rateLimitField = RateLimitService.class.getDeclaredField("asyncExecutor");
+        final Field rateLimitField = RateLimitService.class.getDeclaredField(ASYNCEXECUTOR);
         rateLimitField.setAccessible(true);
         final Executor rateLimitExecutor = (Executor) rateLimitField.get(rateLimitService);
 

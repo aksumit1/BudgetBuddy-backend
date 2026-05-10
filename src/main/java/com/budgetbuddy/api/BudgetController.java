@@ -115,7 +115,8 @@ public class BudgetController {
             @AuthenticationPrincipal final UserDetails userDetails,
             @org.springframework.web.bind.annotation.RequestHeader(
                             value = "Idempotency-Key",
-                            required = false) final String idempotencyKey,
+                            required = false)
+                    final String idempotencyKey,
             @Valid @RequestBody final CreateBudgetRequest request) {
         if (userDetails == null || userDetails.getUsername() == null) {
             throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, USER_NOT_AUTHENTICATED);

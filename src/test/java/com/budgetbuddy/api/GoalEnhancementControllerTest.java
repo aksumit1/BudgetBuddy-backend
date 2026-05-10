@@ -51,6 +51,8 @@ import org.springframework.security.core.userdetails.UserDetails;
 @ExtendWith(MockitoExtension.class)
 class GoalEnhancementControllerTest {
 
+    private static final String ERROR = "error";
+
     @Mock private GoalService goalService;
 
     @Mock private GoalMilestoneService milestoneService;
@@ -136,8 +138,8 @@ class GoalEnhancementControllerTest {
         assertNotNull(response.getBody());
         assertTrue(response.getBody() instanceof Map);
         final Map<?, ?> body = (Map<?, ?>) response.getBody();
-        assertTrue(body.containsKey("error"));
-        assertEquals("Goal not found", body.get("error"));
+        assertTrue(body.containsKey(ERROR));
+        assertEquals("Goal not found", body.get(ERROR));
     }
 
     @Test
@@ -332,7 +334,8 @@ class GoalEnhancementControllerTest {
                 .thenReturn(new BigDecimal("100.00"));
 
         // When
-        final ResponseEntity<?> response = controller.getRoundUpTotal(userDetails, goalId, customDays);
+        final ResponseEntity<?> response =
+                controller.getRoundUpTotal(userDetails, goalId, customDays);
 
         // Then
         assertEquals(HttpStatus.OK, response.getStatusCode());
@@ -354,7 +357,8 @@ class GoalEnhancementControllerTest {
             // When
             when(roundUpService.getRoundUpTotal(testGoal, userId, days))
                     .thenReturn(new BigDecimal(String.valueOf(days * 2)));
-            final ResponseEntity<?> response = controller.getRoundUpTotal(userDetails, goalId, days);
+            final ResponseEntity<?> response =
+                    controller.getRoundUpTotal(userDetails, goalId, days);
 
             // Then
             assertEquals(HttpStatus.OK, response.getStatusCode());
@@ -380,8 +384,8 @@ class GoalEnhancementControllerTest {
         assertNotNull(response.getBody());
         assertTrue(response.getBody() instanceof Map);
         final Map<?, ?> body = (Map<?, ?>) response.getBody();
-        assertTrue(body.containsKey("error"));
-        assertEquals("Goal not found", body.get("error"));
+        assertTrue(body.containsKey(ERROR));
+        assertEquals("Goal not found", body.get(ERROR));
         verify(roundUpService, never()).getRoundUpTotal(any(), anyString(), anyInt());
     }
 
@@ -418,7 +422,7 @@ class GoalEnhancementControllerTest {
         assertNotNull(response.getBody());
         assertTrue(response.getBody() instanceof Map);
         final Map<?, ?> body = (Map<?, ?>) response.getBody();
-        assertTrue(body.containsKey("error"));
+        assertTrue(body.containsKey(ERROR));
     }
 
     @Test
@@ -479,7 +483,7 @@ class GoalEnhancementControllerTest {
         assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatusCode());
         assertNotNull(response.getBody());
         final Map<?, ?> body = (Map<?, ?>) response.getBody();
-        assertEquals("Goal not found", body.get("error"));
+        assertEquals("Goal not found", body.get(ERROR));
     }
 
     @Test
@@ -492,19 +496,23 @@ class GoalEnhancementControllerTest {
         final ResponseEntity<?> milestonesResponse = controller.getMilestones(userDetails, goalId);
         assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, milestonesResponse.getStatusCode());
 
-        final ResponseEntity<?> projectionsResponse = controller.getProjections(userDetails, goalId);
+        final ResponseEntity<?> projectionsResponse =
+                controller.getProjections(userDetails, goalId);
         assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, projectionsResponse.getStatusCode());
 
         final ResponseEntity<?> insightsResponse = controller.getInsights(userDetails, goalId);
         assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, insightsResponse.getStatusCode());
 
-        final ResponseEntity<?> roundUpResponse = controller.getRoundUpTotal(userDetails, goalId, 30);
+        final ResponseEntity<?> roundUpResponse =
+                controller.getRoundUpTotal(userDetails, goalId, 30);
         assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, roundUpResponse.getStatusCode());
 
-        final ResponseEntity<?> enableRoundUpResponse = controller.enableRoundUp(userDetails, goalId);
+        final ResponseEntity<?> enableRoundUpResponse =
+                controller.enableRoundUp(userDetails, goalId);
         assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, enableRoundUpResponse.getStatusCode());
 
-        final ResponseEntity<?> disableRoundUpResponse = controller.disableRoundUp(userDetails, goalId);
+        final ResponseEntity<?> disableRoundUpResponse =
+                controller.disableRoundUp(userDetails, goalId);
         assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, disableRoundUpResponse.getStatusCode());
     }
 }

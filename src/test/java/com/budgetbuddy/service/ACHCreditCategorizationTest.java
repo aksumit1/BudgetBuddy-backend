@@ -1,10 +1,10 @@
 package com.budgetbuddy.service;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.math.BigDecimal;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -22,6 +22,10 @@ import org.mockito.junit.jupiter.MockitoExtension;
         justification = "Tests deliberately exercise null-input paths")
 @ExtendWith(MockitoExtension.class)
 class ACHCreditCategorizationTest {
+
+    private static final String INCOME = "income";
+    private static final String PAYMENT = "payment";
+    private static final String SALARY = "salary";
 
     @InjectMocks private PlaidCategoryMapper categoryMapper;
 
@@ -45,8 +49,8 @@ class ACHCreditCategorizationTest {
 
         // Then
         assertNotNull(mapping);
-        assertEquals("income", mapping.getPrimary(), "ACH credit should be income, not rent");
-        // CRITICAL: ACH credits without clear salary indicators should use "deposit" not "salary"
+        assertEquals(INCOME, mapping.getPrimary(), "ACH credit should be income, not rent");
+        // CRITICAL: ACH credits without clear salary indicators should use "deposit" not SALARY
         assertEquals(
                 "deposit",
                 mapping.getDetailed(),
@@ -73,7 +77,7 @@ class ACHCreditCategorizationTest {
 
         // Then
         assertNotNull(mapping);
-        assertEquals("income", mapping.getPrimary(), "ACH credit should override rent category");
+        assertEquals(INCOME, mapping.getPrimary(), "ACH credit should override rent category");
     }
 
     @Test
@@ -96,7 +100,7 @@ class ACHCreditCategorizationTest {
 
         // Then
         assertNotNull(mapping);
-        assertEquals("income", mapping.getPrimary(), "ACH credit should be income");
+        assertEquals(INCOME, mapping.getPrimary(), "ACH credit should be income");
     }
 
     @Test
@@ -119,7 +123,7 @@ class ACHCreditCategorizationTest {
 
         // Then: Should remain as utilities (or payment if recurring), not income
         assertNotNull(mapping);
-        assertNotEquals("income", mapping.getPrimary(), "ACH debit should not be income");
+        assertNotEquals(INCOME, mapping.getPrimary(), "ACH debit should not be income");
     }
 
     @Test
@@ -142,7 +146,7 @@ class ACHCreditCategorizationTest {
 
         // Then: Should not be affected by ACH credit logic
         assertNotNull(mapping);
-        assertNotEquals("income", mapping.getPrimary(), "Non-ACH transaction should not be income");
+        assertNotEquals(INCOME, mapping.getPrimary(), "Non-ACH transaction should not be income");
     }
 
     @Test
@@ -166,13 +170,13 @@ class ACHCreditCategorizationTest {
         // Then
         assertNotNull(mapping);
         assertEquals(
-                "income",
+                INCOME,
                 mapping.getPrimary(),
                 "ACH Electronic Credit should be income, even with GUSTO PAY");
         // CRITICAL: "GUSTO PAY" contains payroll service name (Gusto), so should be categorized as
-        // "salary"
+        // SALARY
         assertEquals(
-                "salary",
+                SALARY,
                 mapping.getDetailed(),
                 "ACH Electronic Credit with GUSTO PAY should be salary (Gusto is a payroll service)");
     }
@@ -198,12 +202,12 @@ class ACHCreditCategorizationTest {
         // Then
         assertNotNull(mapping);
         assertEquals(
-                "income",
+                INCOME,
                 mapping.getPrimary(),
                 "ACH Electronic Credit should be income by description");
         // Description contains "Salary Payment", so should be categorized as salary
         assertEquals(
-                "salary",
+                SALARY,
                 mapping.getDetailed(),
                 "ACH credit with salary in description should be salary");
     }
@@ -228,10 +232,10 @@ class ACHCreditCategorizationTest {
 
         // Then
         assertNotNull(mapping);
-        assertEquals("income", mapping.getPrimary(), "ACH Credit should be income by description");
+        assertEquals(INCOME, mapping.getPrimary(), "ACH Credit should be income by description");
         // Description contains "Direct Deposit", so should be categorized as salary
         assertEquals(
-                "salary", mapping.getDetailed(), "ACH credit with direct deposit should be salary");
+                SALARY, mapping.getDetailed(), "ACH credit with direct deposit should be salary");
     }
 
     @Test
@@ -254,8 +258,8 @@ class ACHCreditCategorizationTest {
 
         // Then
         assertNotNull(mapping);
-        assertEquals("payment", mapping.getPrimary(), "ACH Debit should be payment, not expense");
-        assertEquals("payment", mapping.getDetailed());
+        assertEquals(PAYMENT, mapping.getPrimary(), "ACH Debit should be payment, not expense");
+        assertEquals(PAYMENT, mapping.getDetailed());
     }
 
     @Test
@@ -278,8 +282,8 @@ class ACHCreditCategorizationTest {
 
         // Then
         assertNotNull(mapping);
-        assertEquals("payment", mapping.getPrimary(), "ACH Electronic Debit should be payment");
-        assertEquals("payment", mapping.getDetailed());
+        assertEquals(PAYMENT, mapping.getPrimary(), "ACH Electronic Debit should be payment");
+        assertEquals(PAYMENT, mapping.getDetailed());
     }
 
     @Test
@@ -302,8 +306,8 @@ class ACHCreditCategorizationTest {
 
         // Then
         assertNotNull(mapping);
-        assertEquals("payment", mapping.getPrimary(), "ACH debit (by channel) should be payment");
-        assertEquals("payment", mapping.getDetailed());
+        assertEquals(PAYMENT, mapping.getPrimary(), "ACH debit (by channel) should be payment");
+        assertEquals(PAYMENT, mapping.getDetailed());
     }
 
     @Test
@@ -326,8 +330,8 @@ class ACHCreditCategorizationTest {
 
         // Then
         assertNotNull(mapping);
-        assertEquals("income", mapping.getPrimary(), "ACH credit should be income, not payment");
-        assertNotEquals("payment", mapping.getPrimary(), "ACH credit should not be payment");
+        assertEquals(INCOME, mapping.getPrimary(), "ACH credit should be income, not payment");
+        assertNotEquals(PAYMENT, mapping.getPrimary(), "ACH credit should not be payment");
     }
 
     @Test
@@ -350,12 +354,10 @@ class ACHCreditCategorizationTest {
 
         // Then
         assertNotNull(mapping);
-        assertEquals("income", mapping.getPrimary(), "ACH credit should be income");
+        assertEquals(INCOME, mapping.getPrimary(), "ACH credit should be income");
         // Description contains "Salary", so should be categorized as salary
         assertEquals(
-                "salary",
-                mapping.getDetailed(),
-                "ACH credit with salary keywords should be salary");
+                SALARY, mapping.getDetailed(), "ACH credit with salary keywords should be salary");
     }
 
     @Test
@@ -378,12 +380,10 @@ class ACHCreditCategorizationTest {
 
         // Then
         assertNotNull(mapping);
-        assertEquals("income", mapping.getPrimary());
+        assertEquals(INCOME, mapping.getPrimary());
         // Description contains "Payroll", so should be categorized as salary
         assertEquals(
-                "salary",
-                mapping.getDetailed(),
-                "ACH credit with payroll keywords should be salary");
+                SALARY, mapping.getDetailed(), "ACH credit with payroll keywords should be salary");
     }
 
     @Test
@@ -406,7 +406,7 @@ class ACHCreditCategorizationTest {
 
         // Then
         assertNotNull(mapping);
-        assertEquals("income", mapping.getPrimary());
+        assertEquals(INCOME, mapping.getPrimary());
         assertEquals(
                 "deposit",
                 mapping.getDetailed(),

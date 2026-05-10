@@ -42,6 +42,8 @@ import org.springframework.security.core.userdetails.UserDetails;
 @ExtendWith(MockitoExtension.class)
 class MFAControllerTest {
 
+    private static final String SUCCESS = "success";
+
     @Mock private MFAService mfaService;
 
     @Mock private UserService userService;
@@ -133,7 +135,7 @@ class MFAControllerTest {
         // Then
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertNotNull(response.getBody());
-        assertTrue((Boolean) response.getBody().get("success"));
+        assertTrue((Boolean) response.getBody().get(SUCCESS));
         assertEquals(backupCodes, response.getBody().get("backupCodes"));
         verify(mfaService, times(1)).verifyTOTP(testUserId, 123_456);
         verify(mfaService, times(1)).enableMFA(testUserId);
@@ -166,17 +168,19 @@ class MFAControllerTest {
         // Given
         when(mfaService.verifyTOTP(testUserId, 123_456)).thenReturn(true);
 
-        final MFAController.AuthenticateTOTPRequest request = new MFAController.AuthenticateTOTPRequest();
+        final MFAController.AuthenticateTOTPRequest request =
+                new MFAController.AuthenticateTOTPRequest();
         request.setUserId(testUserId);
         request.setCode(123_456);
 
         // When
-        final ResponseEntity<Map<String, Object>> response = mfaController.authenticateTOTP(request);
+        final ResponseEntity<Map<String, Object>> response =
+                mfaController.authenticateTOTP(request);
 
         // Then
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertNotNull(response.getBody());
-        assertTrue((Boolean) response.getBody().get("success"));
+        assertTrue((Boolean) response.getBody().get(SUCCESS));
         verify(mfaService, times(1)).verifyTOTP(testUserId, 123_456);
     }
 
@@ -220,17 +224,19 @@ class MFAControllerTest {
         // Given
         when(mfaService.verifyBackupCode(testUserId, "CODE1")).thenReturn(true);
 
-        final MFAController.VerifyBackupCodeRequest request = new MFAController.VerifyBackupCodeRequest();
+        final MFAController.VerifyBackupCodeRequest request =
+                new MFAController.VerifyBackupCodeRequest();
         request.setUserId(testUserId);
         request.setCode("CODE1");
 
         // When
-        final ResponseEntity<Map<String, Object>> response = mfaController.verifyBackupCode(request);
+        final ResponseEntity<Map<String, Object>> response =
+                mfaController.verifyBackupCode(request);
 
         // Then
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertNotNull(response.getBody());
-        assertTrue((Boolean) response.getBody().get("success"));
+        assertTrue((Boolean) response.getBody().get(SUCCESS));
         verify(mfaService, times(1)).verifyBackupCode(testUserId, "CODE1");
     }
 
@@ -249,7 +255,8 @@ class MFAControllerTest {
                 .thenReturn(result);
 
         // When
-        final ResponseEntity<Map<String, Object>> response = mfaController.requestSMSOTP(userDetails);
+        final ResponseEntity<Map<String, Object>> response =
+                mfaController.requestSMSOTP(userDetails);
 
         // Then
         assertEquals(HttpStatus.OK, response.getStatusCode());
@@ -288,7 +295,8 @@ class MFAControllerTest {
                 .thenReturn(true);
 
         // When
-        final ResponseEntity<Map<String, Object>> response = mfaController.requestEmailOTP(userDetails);
+        final ResponseEntity<Map<String, Object>> response =
+                mfaController.requestEmailOTP(userDetails);
 
         // Then
         assertEquals(HttpStatus.OK, response.getStatusCode());
@@ -313,7 +321,7 @@ class MFAControllerTest {
         // Then
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertNotNull(response.getBody());
-        assertTrue((Boolean) response.getBody().get("success"));
+        assertTrue((Boolean) response.getBody().get(SUCCESS));
         verify(mfaService, times(1)).verifyOTP(testUserId, MFAService.OTPType.SMS, "123456");
     }
 
@@ -332,7 +340,7 @@ class MFAControllerTest {
         // Then
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertNotNull(response.getBody());
-        assertTrue((Boolean) response.getBody().get("success"));
+        assertTrue((Boolean) response.getBody().get(SUCCESS));
         verify(mfaService, times(1)).verifyOTP(testUserId, MFAService.OTPType.EMAIL, "123456");
     }
 
@@ -345,7 +353,8 @@ class MFAControllerTest {
         when(mfaService.hasBackupCodes(testUserId)).thenReturn(true);
 
         // When
-        final ResponseEntity<Map<String, Object>> response = mfaController.getMFAStatus(userDetails);
+        final ResponseEntity<Map<String, Object>> response =
+                mfaController.getMFAStatus(userDetails);
 
         // Then
         assertEquals(HttpStatus.OK, response.getStatusCode());

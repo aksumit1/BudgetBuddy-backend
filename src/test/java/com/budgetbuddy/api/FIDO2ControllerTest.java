@@ -33,6 +33,8 @@ import org.springframework.security.core.userdetails.UserDetails;
 @org.mockito.junit.jupiter.MockitoSettings(strictness = org.mockito.quality.Strictness.LENIENT)
 class FIDO2ControllerTest {
 
+    private static final String USER_123 = "user-123";
+
     @Mock private FIDO2Service fido2Service;
 
     @Mock private UserService userService;
@@ -46,7 +48,7 @@ class FIDO2ControllerTest {
     @BeforeEach
     void setUp() {
         testUser = new UserTable();
-        testUser.setUserId("user-123");
+        testUser.setUserId(USER_123);
         testUser.setEmail("test@example.com");
 
         when(userDetails.getUsername()).thenReturn("test@example.com");
@@ -66,7 +68,7 @@ class FIDO2ControllerTest {
         final FIDO2Service.RegistrationChallengeResult result =
                 new FIDO2Service.RegistrationChallengeResult(mockOptions);
 
-        when(fido2Service.generateRegistrationChallenge("user-123", "test@example.com"))
+        when(fido2Service.generateRegistrationChallenge(USER_123, "test@example.com"))
                 .thenReturn(result);
 
         // When
@@ -93,7 +95,7 @@ class FIDO2ControllerTest {
         request.setCredentialJson("{\"credential\":\"test\"}");
 
         when(userService.findByEmail("test@example.com")).thenReturn(Optional.of(testUser));
-        when(fido2Service.verifyRegistration("user-123", "{\"credential\":\"test\"}"))
+        when(fido2Service.verifyRegistration(USER_123, "{\"credential\":\"test\"}"))
                 .thenReturn(true);
 
         // When
@@ -114,7 +116,7 @@ class FIDO2ControllerTest {
         request.setCredentialJson("{\"credential\":\"invalid\"}");
 
         when(userService.findByEmail("test@example.com")).thenReturn(Optional.of(testUser));
-        when(fido2Service.verifyRegistration("user-123", "{\"credential\":\"invalid\"}"))
+        when(fido2Service.verifyRegistration(USER_123, "{\"credential\":\"invalid\"}"))
                 .thenReturn(false);
 
         // When/Then
@@ -136,7 +138,7 @@ class FIDO2ControllerTest {
         // Given
         final FIDO2Controller.AuthenticateChallengeRequest request =
                 new FIDO2Controller.AuthenticateChallengeRequest();
-        request.setUserId("user-123");
+        request.setUserId(USER_123);
 
         final com.yubico.webauthn.data.PublicKeyCredentialRequestOptions mockOptions =
                 mock(com.yubico.webauthn.data.PublicKeyCredentialRequestOptions.class);
@@ -148,7 +150,7 @@ class FIDO2ControllerTest {
         final FIDO2Service.AuthenticationChallengeResult result =
                 new FIDO2Service.AuthenticationChallengeResult(mockOptions);
 
-        when(fido2Service.generateAuthenticationChallenge("user-123")).thenReturn(result);
+        when(fido2Service.generateAuthenticationChallenge(USER_123)).thenReturn(result);
 
         // When
         final ResponseEntity<Map<String, Object>> response =
@@ -171,14 +173,15 @@ class FIDO2ControllerTest {
         // Given
         final FIDO2Controller.AuthenticatePasskeyRequest request =
                 new FIDO2Controller.AuthenticatePasskeyRequest();
-        request.setUserId("user-123");
+        request.setUserId(USER_123);
         request.setCredentialJson("{\"credential\":\"test\"}");
 
-        when(fido2Service.verifyAuthentication("user-123", "{\"credential\":\"test\"}"))
+        when(fido2Service.verifyAuthentication(USER_123, "{\"credential\":\"test\"}"))
                 .thenReturn(true);
 
         // When
-        final ResponseEntity<Map<String, Object>> response = controller.verifyAuthentication(request);
+        final ResponseEntity<Map<String, Object>> response =
+                controller.verifyAuthentication(request);
 
         // Then
         assertEquals(HttpStatus.OK, response.getStatusCode());
@@ -191,10 +194,10 @@ class FIDO2ControllerTest {
         // Given
         final FIDO2Controller.AuthenticatePasskeyRequest request =
                 new FIDO2Controller.AuthenticatePasskeyRequest();
-        request.setUserId("user-123");
+        request.setUserId(USER_123);
         request.setCredentialJson("{\"credential\":\"invalid\"}");
 
-        when(fido2Service.verifyAuthentication("user-123", "{\"credential\":\"invalid\"}"))
+        when(fido2Service.verifyAuthentication(USER_123, "{\"credential\":\"invalid\"}"))
                 .thenReturn(false);
 
         // When/Then
@@ -211,7 +214,7 @@ class FIDO2ControllerTest {
                 new FIDO2Service.PasskeyInfo("cred-123", java.time.Instant.now());
         final List<FIDO2Service.PasskeyInfo> passkeys = Arrays.asList(passkey);
 
-        when(fido2Service.listPasskeys("user-123")).thenReturn(passkeys);
+        when(fido2Service.listPasskeys(USER_123)).thenReturn(passkeys);
 
         // When
         final ResponseEntity<Map<String, Object>> response = controller.listPasskeys(userDetails);
@@ -226,14 +229,14 @@ class FIDO2ControllerTest {
     void testDeletePasskeyWithValidCredentialIdReturnsNoContent() {
         // Given
         when(userService.findByEmail("test@example.com")).thenReturn(Optional.of(testUser));
-        doNothing().when(fido2Service).deletePasskey("user-123", "cred-123");
+        doNothing().when(fido2Service).deletePasskey(USER_123, "cred-123");
 
         // When
         final ResponseEntity<Void> response = controller.deletePasskey(userDetails, "cred-123");
 
         // Then
         assertEquals(HttpStatus.NO_CONTENT, response.getStatusCode());
-        verify(fido2Service).deletePasskey("user-123", "cred-123");
+        verify(fido2Service).deletePasskey(USER_123, "cred-123");
     }
 
     @Test

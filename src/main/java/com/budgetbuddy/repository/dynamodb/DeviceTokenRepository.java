@@ -137,7 +137,8 @@ public class DeviceTokenRepository {
                     deviceToken.getPlatform());
         } catch (Exception e) {
             LOGGER.error("Failed to save device token: {}", e.getMessage());
-            throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to save device token", e);
+            throw new AppException(
+                    ErrorCode.INTERNAL_SERVER_ERROR, "Failed to save device token", e);
         }
     }
 

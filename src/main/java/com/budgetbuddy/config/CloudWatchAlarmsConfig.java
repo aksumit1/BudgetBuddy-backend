@@ -122,7 +122,10 @@ public class CloudWatchAlarmsConfig {
         private final String comparisonOperator;
 
         public AlarmConfig(
-                final String name, final int threshold, final int evaluationPeriods, final String comparisonOperator) {
+                final String name,
+                final int threshold,
+                final int evaluationPeriods,
+                final String comparisonOperator) {
             this.name = name;
             this.threshold = threshold;
             this.evaluationPeriods = evaluationPeriods;

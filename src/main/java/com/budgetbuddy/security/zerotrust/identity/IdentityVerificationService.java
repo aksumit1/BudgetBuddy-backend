@@ -1,8 +1,8 @@
 package com.budgetbuddy.security.zerotrust.identity;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import com.budgetbuddy.model.dynamodb.UserTable;
 import com.budgetbuddy.repository.dynamodb.UserRepository;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

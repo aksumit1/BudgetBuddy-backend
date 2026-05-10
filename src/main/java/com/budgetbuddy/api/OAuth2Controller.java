@@ -1,8 +1,8 @@
 package com.budgetbuddy.api;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import com.budgetbuddy.exception.AppException;
 import com.budgetbuddy.exception.ErrorCode;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import java.util.Map;
@@ -29,7 +29,8 @@ import org.springframework.web.bind.annotation.RestController;
 @SuppressWarnings("PMD.DataClass")
 @SuppressFBWarnings(
         value = {"EI_EXPOSE_REP", "EI_EXPOSE_REP2"},
-        justification = "JSON DTO / DynamoDB entity getters expose lists by reference; "
+        justification =
+                "JSON DTO / DynamoDB entity getters expose lists by reference; "
                         + "the design is value-semantic and Jackson creates fresh instances; Spring constructor injection — beans are shared by design")
 @RestController
 @RequestMapping("/api/oauth2")
@@ -83,15 +84,12 @@ public class OAuth2Controller {
 
         final Map<String, Object> userInfo =
                 Map.of(
-                        "sub", jwt.getSubject() != null ? jwt.getSubject() : "unknown",
+                        "sub",
+                        jwt.getSubject() != null ? jwt.getSubject() : "unknown",
                         EMAIL,
-                        jwt.getClaimAsString(EMAIL) != null
-                                ? jwt.getClaimAsString(EMAIL)
-                                : "",
+                        jwt.getClaimAsString(EMAIL) != null ? jwt.getClaimAsString(EMAIL) : "",
                         "name",
-                        jwt.getClaimAsString("name") != null
-                                ? jwt.getClaimAsString("name")
-                                : "",
+                        jwt.getClaimAsString("name") != null ? jwt.getClaimAsString("name") : "",
                         PREFERRED_USERNAME,
                         jwt.getClaimAsString(PREFERRED_USERNAME) != null
                                 ? jwt.getClaimAsString(PREFERRED_USERNAME)

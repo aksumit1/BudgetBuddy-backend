@@ -128,7 +128,8 @@ class PlaidControllerTest {
     void testExchangePublicTokenWithValidTokenReturnsSuccess() {
         // Given
         final String publicToken = "public-token-123";
-        final PlaidController.ExchangeTokenRequest request = new PlaidController.ExchangeTokenRequest();
+        final PlaidController.ExchangeTokenRequest request =
+                new PlaidController.ExchangeTokenRequest();
         request.setPublicToken(publicToken);
         final ItemPublicTokenExchangeResponse mockResponse = new ItemPublicTokenExchangeResponse();
         mockResponse.setAccessToken("access-token-123");
@@ -140,7 +141,8 @@ class PlaidControllerTest {
         doNothing().when(plaidSyncService).syncTransactions(any(), anyString());
 
         // When
-        final ResponseEntity<?> response = plaidController.exchangePublicToken(userDetails, request);
+        final ResponseEntity<?> response =
+                plaidController.exchangePublicToken(userDetails, request);
 
         // Then
         assertEquals(HttpStatus.OK, response.getStatusCode());
@@ -162,7 +164,8 @@ class PlaidControllerTest {
     @Test
     void testExchangePublicTokenTriggersBothAccountAndTransactionSync() {
         // Given
-        final PlaidController.ExchangeTokenRequest request = new PlaidController.ExchangeTokenRequest();
+        final PlaidController.ExchangeTokenRequest request =
+                new PlaidController.ExchangeTokenRequest();
         request.setPublicToken("public-token-xyz");
         final ItemPublicTokenExchangeResponse mockResponse = new ItemPublicTokenExchangeResponse();
         mockResponse.setAccessToken("access-token-xyz");
@@ -172,7 +175,8 @@ class PlaidControllerTest {
         doNothing().when(plaidSyncService).syncTransactions(any(), anyString());
 
         // When
-        final ResponseEntity<?> response = plaidController.exchangePublicToken(userDetails, request);
+        final ResponseEntity<?> response =
+                plaidController.exchangePublicToken(userDetails, request);
 
         // Then - 200 returned AND both sync paths fired
         assertEquals(HttpStatus.OK, response.getStatusCode());
@@ -189,7 +193,8 @@ class PlaidControllerTest {
     @Test
     void testExchangePublicTokenSyncsAccountsBeforeTransactions() {
         // Given
-        final PlaidController.ExchangeTokenRequest request = new PlaidController.ExchangeTokenRequest();
+        final PlaidController.ExchangeTokenRequest request =
+                new PlaidController.ExchangeTokenRequest();
         request.setPublicToken("public-token-order");
         final ItemPublicTokenExchangeResponse mockResponse = new ItemPublicTokenExchangeResponse();
         mockResponse.setAccessToken("access-token-order");
@@ -217,7 +222,8 @@ class PlaidControllerTest {
     @Test
     void testExchangePublicTokenAccountSyncFailureStillAttemptsTransactionSync() {
         // Given
-        final PlaidController.ExchangeTokenRequest request = new PlaidController.ExchangeTokenRequest();
+        final PlaidController.ExchangeTokenRequest request =
+                new PlaidController.ExchangeTokenRequest();
         request.setPublicToken("public-token-fail");
         final ItemPublicTokenExchangeResponse mockResponse = new ItemPublicTokenExchangeResponse();
         mockResponse.setAccessToken("access-token-fail");
@@ -229,7 +235,8 @@ class PlaidControllerTest {
         doNothing().when(plaidSyncService).syncTransactions(any(), anyString());
 
         // When
-        final ResponseEntity<?> response = plaidController.exchangePublicToken(userDetails, request);
+        final ResponseEntity<?> response =
+                plaidController.exchangePublicToken(userDetails, request);
 
         // Then - response still 200, transaction sync still attempted
         assertEquals(HttpStatus.OK, response.getStatusCode());

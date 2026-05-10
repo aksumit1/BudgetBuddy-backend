@@ -1,6 +1,5 @@
 package com.budgetbuddy.notification;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -16,6 +15,7 @@ import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -83,7 +83,8 @@ class EmailNotificationServiceTest {
         when(sesClient.sendEmail(any(SendEmailRequest.class))).thenReturn(response);
 
         // When
-        final boolean result = emailService.sendEmail(testUserId, testToEmail, subject, body, null, null);
+        final boolean result =
+                emailService.sendEmail(testUserId, testToEmail, subject, body, null, null);
 
         // Then
         assertTrue(result, "Email should be sent successfully");
@@ -164,9 +165,9 @@ class EmailNotificationServiceTest {
                                 event ->
                                         event.getLevel() == Level.ERROR
                                                 && event.getFormattedMessage()
-                                                .contains("Failed to send templated email")
+                                                        .contains("Failed to send templated email")
                                                 && event.getFormattedMessage()
-                                                .contains("JSON error"));
+                                                        .contains("JSON error"));
         assertTrue(foundErrorLog, "Should log ERROR with template failure message");
     }
 

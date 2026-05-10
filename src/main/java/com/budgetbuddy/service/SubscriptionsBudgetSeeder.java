@@ -1,10 +1,10 @@
 package com.budgetbuddy.service;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import com.budgetbuddy.model.Subscription;
 import com.budgetbuddy.model.dynamodb.BudgetTable;
 import com.budgetbuddy.model.dynamodb.UserTable;
 import com.budgetbuddy.repository.dynamodb.BudgetRepository;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.List;
@@ -112,9 +112,9 @@ public class SubscriptionsBudgetSeeder {
             final BigDecimal monthly =
                     switch (freq) {
                         case "YEARLY" ->
-                            amount.divide(new BigDecimal("12"), 2, RoundingMode.HALF_UP);
+                                amount.divide(new BigDecimal("12"), 2, RoundingMode.HALF_UP);
                         case "QUARTERLY" ->
-                            amount.divide(new BigDecimal("3"), 2, RoundingMode.HALF_UP);
+                                amount.divide(new BigDecimal("3"), 2, RoundingMode.HALF_UP);
                         case "WEEKLY" -> amount.multiply(new BigDecimal("4.33"));
                         case "BIWEEKLY" -> amount.multiply(new BigDecimal("2.17"));
                         default -> amount; // MONTHLY, or anything else → treat as monthly

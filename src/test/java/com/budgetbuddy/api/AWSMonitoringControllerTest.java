@@ -68,12 +68,13 @@ class AWSMonitoringControllerTest {
         // Given
         final Instant startTime = Instant.now().minusSeconds(3600);
         final Instant endTime = Instant.now();
-        final software.amazon.awssdk.services.cloudwatch.model.GetMetricStatisticsResponse statistics =
-                software.amazon.awssdk.services.cloudwatch.model.GetMetricStatisticsResponse
-                        .builder()
-                        .label("CPUUtilization")
-                        .datapoints(java.util.Collections.emptyList())
-                        .build();
+        final software.amazon.awssdk.services.cloudwatch.model.GetMetricStatisticsResponse
+                statistics =
+                        software.amazon.awssdk.services.cloudwatch.model.GetMetricStatisticsResponse
+                                .builder()
+                                .label("CPUUtilization")
+                                .datapoints(java.util.Collections.emptyList())
+                                .build();
 
         when(userService.findByEmail("admin@example.com")).thenReturn(Optional.of(adminUser));
         when(userDetails.getUsername()).thenReturn("admin@example.com");
@@ -117,8 +118,8 @@ class AWSMonitoringControllerTest {
         when(cloudTrailService.lookupEvents("admin-123", startTime, endTime)).thenReturn(events);
 
         // When
-        final ResponseEntity<List<software.amazon.awssdk.services.cloudtrail.model.Event>> response =
-                controller.getCloudTrailEvents(userDetails, null, startTime, endTime);
+        final ResponseEntity<List<software.amazon.awssdk.services.cloudtrail.model.Event>>
+                response = controller.getCloudTrailEvents(userDetails, null, startTime, endTime);
 
         // Then
         assertEquals(HttpStatus.OK, response.getStatusCode());
@@ -137,8 +138,9 @@ class AWSMonitoringControllerTest {
         when(cloudTrailService.lookupEvents("user-456", startTime, endTime)).thenReturn(events);
 
         // When
-        final ResponseEntity<List<software.amazon.awssdk.services.cloudtrail.model.Event>> response =
-                controller.getCloudTrailEvents(userDetails, "user-456", startTime, endTime);
+        final ResponseEntity<List<software.amazon.awssdk.services.cloudtrail.model.Event>>
+                response =
+                        controller.getCloudTrailEvents(userDetails, "user-456", startTime, endTime);
 
         // Then
         assertEquals(HttpStatus.OK, response.getStatusCode());
@@ -156,7 +158,8 @@ class AWSMonitoringControllerTest {
         when(cloudFormationService.listStacks()).thenReturn(stacks);
 
         // When
-        final ResponseEntity<List<software.amazon.awssdk.services.cloudformation.model.StackSummary>>
+        final ResponseEntity<
+                        List<software.amazon.awssdk.services.cloudformation.model.StackSummary>>
                 response = controller.getCloudFormationStacks(userDetails);
 
         // Then

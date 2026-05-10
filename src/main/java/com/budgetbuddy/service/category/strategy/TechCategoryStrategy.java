@@ -9,6 +9,8 @@ import org.springframework.stereotype.Component;
 @Component
 public class TechCategoryStrategy extends BaseCategoryStrategy {
 
+    private static final String TECH = "tech";
+
     private static final String CURSOR = "cursor";
 
     private static final String CURSOR_AI = "cursor ai";
@@ -17,38 +19,40 @@ public class TechCategoryStrategy extends BaseCategoryStrategy {
 
     @Override
     public String detectCategory(
-            final String normalizedMerchantName, final String descriptionLower, final String merchantName) {
+            final String normalizedMerchantName,
+            final String descriptionLower,
+            final String merchantName) {
         if (normalizedMerchantName == null || normalizedMerchantName.isBlank()) {
             return null;
         }
 
         // AI/Tech Services - Must come after streaming services to prevent false matches
         final String[] aiTechServices = {
-                "chatgpt",
-                "chat gpt",
-                "openai",
-                "open ai",
-                "anthropic",
-                "anthropic ai",
-                "claude",
-                "claude ai",
-                "cohere",
-                "hugging face",
-                "huggingface",
-                CURSOR,
-                CURSOR_AI,
-                "github copilot",
-                "copilot",
-                "replicate",
-                "together ai",
-                "togetherai"
+            "chatgpt",
+            "chat gpt",
+            "openai",
+            "open ai",
+            "anthropic",
+            "anthropic ai",
+            "claude",
+            "claude ai",
+            "cohere",
+            "hugging face",
+            "huggingface",
+            CURSOR,
+            CURSOR_AI,
+            "github copilot",
+            "copilot",
+            "replicate",
+            "together ai",
+            "togetherai"
         };
         for (final String service : aiTechServices) {
             if (normalizedMerchantName.contains(service) || descriptionLower.contains(service)) {
                 LOGGER.debug(
                         "🏷️ detectCategoryFromMerchantName: Detected AI/tech service '{}' → 'tech'",
                         service);
-                return "tech";
+                return TECH;
             }
         }
         if (normalizedMerchantName.contains(CURSOR)
@@ -56,42 +60,42 @@ public class TechCategoryStrategy extends BaseCategoryStrategy {
                 || normalizedMerchantName.contains(CURSOR_AI)
                 || descriptionLower.contains(CURSOR_AI)) {
             LOGGER.debug("🏷️ detectCategoryFromMerchantName: Detected Cursor → 'tech'");
-            return "tech";
+            return TECH;
         }
         if (normalizedMerchantName.contains("ai powered")
                 || descriptionLower.contains("ai powered")
                 || normalizedMerchantName.contains("artificial intelligence")
                 || descriptionLower.contains("artificial intelligence")) {
-            return "tech";
+            return TECH;
         }
         // Tech Companies
         final String[] techCompanies = {
-                "microsoft",
-                "apple",
-                "google",
-                "amazon web services",
-                "aws",
-                "adobe",
-                "oracle",
-                "salesforce",
-                "servicenow",
-                "atlassian",
-                "github",
-                "gitlab",
-                "slack",
-                "zoom",
-                "dropbox",
-                "box",
-                "notion",
-                "figma",
-                "sketch",
-                "linear",
-                "vercel",
-                "netlify"
+            "microsoft",
+            "apple",
+            "google",
+            "amazon web services",
+            "aws",
+            "adobe",
+            "oracle",
+            "salesforce",
+            "servicenow",
+            "atlassian",
+            "github",
+            "gitlab",
+            "slack",
+            "zoom",
+            "dropbox",
+            "box",
+            "notion",
+            "figma",
+            "sketch",
+            "linear",
+            "vercel",
+            "netlify"
         };
         for (final String company : techCompanies) {
             if (normalizedMerchantName.contains(company) || descriptionLower.contains(company)) {
-                return "tech";
+                return TECH;
             }
         }
 
@@ -106,10 +110,10 @@ public class TechCategoryStrategy extends BaseCategoryStrategy {
                 || (descriptionLower.contains("subscription")
                         && (normalizedMerchantName.contains(SOFTWARE)
                                 || normalizedMerchantName.contains("saas")
-                                || normalizedMerchantName.contains("tech")
+                                || normalizedMerchantName.contains(TECH)
                                 || normalizedMerchantName.contains("cloud")
                                 || normalizedMerchantName.contains("api")))) {
-            return "tech";
+            return TECH;
         }
 
         // ========== HOME IMPROVEMENT ==========
@@ -119,18 +123,18 @@ public class TechCategoryStrategy extends BaseCategoryStrategy {
             return "home improvement";
         }
         final String[] homeImprovementStores = {
-                "lowes",
-                "lowe's",
-                "menards",
-                "ace hardware",
-                "acehardware",
-                "true value",
-                "truevalue",
-                "harbor freight",
-                "harborfreight",
-                "northern tool",
-                "northerntool",
-                "harbor freight tools"
+            "lowes",
+            "lowe's",
+            "menards",
+            "ace hardware",
+            "acehardware",
+            "true value",
+            "truevalue",
+            "harbor freight",
+            "harborfreight",
+            "northern tool",
+            "northerntool",
+            "harbor freight tools"
         };
         for (final String store : homeImprovementStores) {
             if (normalizedMerchantName.contains(store) || descriptionLower.contains(store)) {

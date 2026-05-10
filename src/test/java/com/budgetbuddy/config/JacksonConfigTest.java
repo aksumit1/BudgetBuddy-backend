@@ -1,6 +1,5 @@
 package com.budgetbuddy.config;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -8,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.budgetbuddy.AWSTestConfiguration;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;

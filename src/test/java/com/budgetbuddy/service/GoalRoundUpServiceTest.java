@@ -25,6 +25,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class GoalRoundUpServiceTest {
 
+    private static final String TEST_GOAL_ID = "test-goal-id";
+
     @Mock private GoalRepository goalRepository;
 
     @Mock private TransactionRepository transactionRepository;
@@ -47,7 +49,7 @@ class GoalRoundUpServiceTest {
                         transactionService);
 
         testGoal = new GoalTable();
-        testGoal.setGoalId("test-goal-id");
+        testGoal.setGoalId(TEST_GOAL_ID);
 
         testTransaction = new TransactionTable();
         testTransaction.setTransactionId("test-tx-id");
@@ -95,17 +97,17 @@ class GoalRoundUpServiceTest {
     @Test
     void testProcessRoundUpValidTransaction() {
         testTransaction.setAmount(new BigDecimal("-4.23"));
-        testTransaction.setGoalId("test-goal-id");
+        testTransaction.setGoalId(TEST_GOAL_ID);
 
-        when(goalRepository.findById("test-goal-id")).thenReturn(Optional.of(testGoal));
+        when(goalRepository.findById(TEST_GOAL_ID)).thenReturn(Optional.of(testGoal));
 
         // Should not throw exception
-        assertDoesNotThrow(() -> roundUpService.processRoundUp(testTransaction, "test-goal-id"));
+        assertDoesNotThrow(() -> roundUpService.processRoundUp(testTransaction, TEST_GOAL_ID));
     }
 
     @Test
     void testProcessRoundUpNullTransaction() {
-        assertDoesNotThrow(() -> roundUpService.processRoundUp(null, "test-goal-id"));
+        assertDoesNotThrow(() -> roundUpService.processRoundUp(null, TEST_GOAL_ID));
     }
 
     @Test
@@ -117,42 +119,42 @@ class GoalRoundUpServiceTest {
     void testProcessRoundUpGoalNotFound() {
         testTransaction.setAmount(new BigDecimal("-4.23"));
 
-        when(goalRepository.findById("test-goal-id")).thenReturn(Optional.empty());
+        when(goalRepository.findById(TEST_GOAL_ID)).thenReturn(Optional.empty());
 
-        assertDoesNotThrow(() -> roundUpService.processRoundUp(testTransaction, "test-goal-id"));
+        assertDoesNotThrow(() -> roundUpService.processRoundUp(testTransaction, TEST_GOAL_ID));
     }
 
     @Test
     void testEnableRoundUp() {
-        when(goalRepository.findById("test-goal-id")).thenReturn(Optional.of(testGoal));
+        when(goalRepository.findById(TEST_GOAL_ID)).thenReturn(Optional.of(testGoal));
         doNothing().when(goalRepository).save(any(GoalTable.class));
 
-        assertDoesNotThrow(() -> roundUpService.enableRoundUp("test-goal-id"));
+        assertDoesNotThrow(() -> roundUpService.enableRoundUp(TEST_GOAL_ID));
 
         verify(goalRepository).save(any(GoalTable.class));
     }
 
     @Test
     void testEnableRoundUpGoalNotFound() {
-        when(goalRepository.findById("test-goal-id")).thenReturn(Optional.empty());
+        when(goalRepository.findById(TEST_GOAL_ID)).thenReturn(Optional.empty());
 
         assertThrows(
-                IllegalArgumentException.class, () -> roundUpService.enableRoundUp("test-goal-id"));
+                IllegalArgumentException.class, () -> roundUpService.enableRoundUp(TEST_GOAL_ID));
     }
 
     @Test
     void testDisableRoundUp() {
-        when(goalRepository.findById("test-goal-id")).thenReturn(Optional.of(testGoal));
+        when(goalRepository.findById(TEST_GOAL_ID)).thenReturn(Optional.of(testGoal));
         doNothing().when(goalRepository).save(any(GoalTable.class));
 
-        assertDoesNotThrow(() -> roundUpService.disableRoundUp("test-goal-id"));
+        assertDoesNotThrow(() -> roundUpService.disableRoundUp(TEST_GOAL_ID));
 
         verify(goalRepository).save(any(GoalTable.class));
     }
 
     @Test
     void testGetRoundUpTotal() {
-        when(transactionRepository.findByUserIdAndGoalId("user-id", "test-goal-id"))
+        when(transactionRepository.findByUserIdAndGoalId("user-id", TEST_GOAL_ID))
                 .thenReturn(java.util.Collections.emptyList());
 
         final BigDecimal total = roundUpService.getRoundUpTotal(testGoal, "user-id", 30);

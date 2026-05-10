@@ -1,8 +1,8 @@
 package com.budgetbuddy.service.correctness;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import com.budgetbuddy.model.dynamodb.UserTable;
 import com.budgetbuddy.repository.dynamodb.UserRepository;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import org.slf4j.Logger;

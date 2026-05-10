@@ -37,6 +37,9 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @org.mockito.junit.jupiter.MockitoSettings(strictness = org.mockito.quality.Strictness.LENIENT)
 class TransactionTypeCategoryServiceTest {
 
+    private static final String OTHER = "other";
+    private static final String DINING = "dining";
+
     @Mock private PlaidCategoryMapper plaidCategoryMapper;
 
     @Mock private ImportCategoryParser importCategoryParser;
@@ -303,7 +306,7 @@ class TransactionTypeCategoryServiceTest {
         when(circuitBreakerService.execute(anyString(), any(), any())).thenReturn(null);
 
         // When: Determine category with matching categories
-        // Service logic: Rule 1 checks if importer is not "other" AND importSource is "PLAID"
+        // Service logic: Rule 1 checks if importer is not OTHER AND importSource is "PLAID"
         // Since importSource is "CSV", Rule 1 doesn't return, so Rule 2 should apply
         // Rule 2: If parserCategory matches importerPrimary → HYBRID
         final TransactionTypeCategoryService.CategoryResult result =
@@ -342,7 +345,7 @@ class TransactionTypeCategoryServiceTest {
         // Given: ML detection with high confidence
         final EnhancedCategoryDetectionService.DetectionResult mlResult =
                 new EnhancedCategoryDetectionService.DetectionResult(
-                        "dining", 0.9, "ML_PREDICTION", "ML model prediction");
+                        DINING, 0.9, "ML_PREDICTION", "ML model prediction");
 
         // CRITICAL: Service uses detectCategoryWithContext, not detectCategory
         // Signature: detectCategoryWithContext(merchantName, description, amount, paymentChannel,
@@ -365,14 +368,15 @@ class TransactionTypeCategoryServiceTest {
                         any(BigDecimal.class),
                         anyString(),
                         anyString()))
-                .thenReturn("dining");
+                .thenReturn(DINING);
 
         // CRITICAL: Mock circuit breaker to return ML result by executing the supplier
         // Override the lenient mock from setUp()
         when(circuitBreakerService.execute(eq("ML_CategoryDetection"), any(), any()))
                 .thenAnswer(
                         invocation -> {
-                            final java.util.function.Supplier<?> supplier = invocation.getArgument(1);
+                            final java.util.function.Supplier<?> supplier =
+                                    invocation.getArgument(1);
                             if (supplier != null) {
                                 try {
                                     return supplier.get();
@@ -386,8 +390,8 @@ class TransactionTypeCategoryServiceTest {
         // When: Determine category
         final TransactionTypeCategoryService.CategoryResult result =
                 service.determineCategory(
-                        "other", // Generic importer category
-                        "other",
+                        OTHER, // Generic importer category
+                        OTHER,
                         checkingAccount,
                         "Starbucks",
                         "Coffee purchase",
@@ -398,21 +402,21 @@ class TransactionTypeCategoryServiceTest {
 
         // Then: Should use ML result (Rule 3 or Rule 6: ML with high confidence)
         // Note: If ML detection fails or circuit breaker doesn't execute supplier,
-        // service falls back to parser category or "other"
+        // service falls back to parser category or OTHER
         assertNotNull(result);
         // CRITICAL: ML detection might not be working if circuit breaker mock isn't executing
         // supplier
-        // For now, accept either "dining" (expected) or "other" (if ML detection fails)
+        // For now, accept either DINING (expected) or OTHER (if ML detection fails)
         // The important thing is that the test doesn't crash
-        if ("dining".equals(result.getCategoryPrimary())) {
+        if (DINING.equals(result.getCategoryPrimary())) {
             assertEquals("ML", result.getSource());
             assertEquals(0.9, result.getConfidence(), 0.01);
         } else {
-            // If ML detection failed, service should fall back to parser category "dining"
-            // But if that also fails, it returns "other"
+            // If ML detection failed, service should fall back to parser category DINING
+            // But if that also fails, it returns OTHER
             assertTrue(
-                    "dining".equals(result.getCategoryPrimary())
-                            || "other".equals(result.getCategoryPrimary()),
+                    DINING.equals(result.getCategoryPrimary())
+                            || OTHER.equals(result.getCategoryPrimary()),
                     "Expected 'dining' or 'other', got: " + result.getCategoryPrimary());
         }
     }
@@ -427,7 +431,7 @@ class TransactionTypeCategoryServiceTest {
                         any(BigDecimal.class),
                         anyString(),
                         anyString()))
-                .thenReturn("other");
+                .thenReturn(OTHER);
 
         // When: Determine category for investment account
         final TransactionTypeCategoryService.CategoryResult result =
@@ -461,7 +465,7 @@ class TransactionTypeCategoryServiceTest {
                         any(BigDecimal.class),
                         anyString(),
                         anyString()))
-                .thenReturn("other");
+                .thenReturn(OTHER);
 
         // When: Determine category with nulls
         final TransactionTypeCategoryService.CategoryResult result =
@@ -469,7 +473,7 @@ class TransactionTypeCategoryServiceTest {
 
         // Then: Should return default category
         assertNotNull(result);
-        assertEquals("other", result.getCategoryPrimary());
+        assertEquals(OTHER, result.getCategoryPrimary());
     }
 
     @Test
@@ -534,7 +538,7 @@ class TransactionTypeCategoryServiceTest {
                         any(BigDecimal.class),
                         anyString(),
                         anyString()))
-                .thenReturn("other");
+                .thenReturn(OTHER);
 
         // When: Determine category with very large amount
         final TransactionTypeCategoryService.CategoryResult result =
@@ -564,7 +568,7 @@ class TransactionTypeCategoryServiceTest {
                         any(BigDecimal.class),
                         anyString(),
                         anyString()))
-                .thenReturn("other");
+                .thenReturn(OTHER);
 
         // When: Determine category with zero amount
         final TransactionTypeCategoryService.CategoryResult result =
@@ -702,12 +706,12 @@ class TransactionTypeCategoryServiceTest {
                         any(BigDecimal.class),
                         anyString(),
                         anyString()))
-                .thenReturn("dining");
+                .thenReturn(DINING);
 
         // Mock ML detection to return dining
         final EnhancedCategoryDetectionService.DetectionResult mlResult =
                 new EnhancedCategoryDetectionService.DetectionResult(
-                        "dining", 0.9, "ML", "CAFFE detected");
+                        DINING, 0.9, "ML", "CAFFE detected");
         when(circuitBreakerService.execute(anyString(), any(), any())).thenReturn(mlResult);
 
         // When: Determine category
@@ -726,7 +730,7 @@ class TransactionTypeCategoryServiceTest {
         // Then: Should be dining (not other)
         assertNotNull(result);
         assertEquals(
-                "dining",
+                DINING,
                 result.getCategoryPrimary(),
                 "CAFFE Nero should be categorized as dining, not other. Got: "
                         + result.getCategoryPrimary());

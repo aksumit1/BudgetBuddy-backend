@@ -1,19 +1,18 @@
 package com.budgetbuddy.service;
 
-
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import java.util.Locale;
 import com.budgetbuddy.exception.AppException;
 import com.budgetbuddy.exception.ErrorCode;
 import com.budgetbuddy.model.Subscription;
 import com.budgetbuddy.model.dynamodb.TransactionTable;
 import com.budgetbuddy.repository.dynamodb.TransactionRepository;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -170,7 +169,8 @@ public class ExpenseReductionService {
         final LocalDate endDate = LocalDate.now();
         final LocalDate startDate = endDate.minusDays(60); // Last 60 days
 
-        final String startDateStr = startDate.format(java.time.format.DateTimeFormatter.ISO_LOCAL_DATE);
+        final String startDateStr =
+                startDate.format(java.time.format.DateTimeFormatter.ISO_LOCAL_DATE);
         final String endDateStr = endDate.format(java.time.format.DateTimeFormatter.ISO_LOCAL_DATE);
 
         final List<TransactionTable> transactions =
@@ -299,7 +299,9 @@ public class ExpenseReductionService {
                         ? subscription.getMerchantName().toLowerCase(Locale.ROOT)
                         : "";
         final String category =
-                subscription.getCategory() != null ? subscription.getCategory().toLowerCase(Locale.ROOT) : "";
+                subscription.getCategory() != null
+                        ? subscription.getCategory().toLowerCase(Locale.ROOT)
+                        : "";
         final String name = merchantName;
 
         if (name.contains("netflix")
@@ -336,7 +338,8 @@ public class ExpenseReductionService {
         final LocalDate endDate = LocalDate.now();
         final LocalDate startDate = endDate.minusDays(ANALYSIS_WINDOW_DAYS);
 
-        final String startDateStr = startDate.format(java.time.format.DateTimeFormatter.ISO_LOCAL_DATE);
+        final String startDateStr =
+                startDate.format(java.time.format.DateTimeFormatter.ISO_LOCAL_DATE);
         final String endDateStr = endDate.format(java.time.format.DateTimeFormatter.ISO_LOCAL_DATE);
 
         final List<TransactionTable> transactions =
@@ -415,7 +418,8 @@ public class ExpenseReductionService {
         final LocalDate endDate = LocalDate.now();
         final LocalDate startDate = endDate.minusDays(ANALYSIS_WINDOW_DAYS);
 
-        final String startDateStr = startDate.format(java.time.format.DateTimeFormatter.ISO_LOCAL_DATE);
+        final String startDateStr =
+                startDate.format(java.time.format.DateTimeFormatter.ISO_LOCAL_DATE);
         final String endDateStr = endDate.format(java.time.format.DateTimeFormatter.ISO_LOCAL_DATE);
 
         final List<TransactionTable> transactions =

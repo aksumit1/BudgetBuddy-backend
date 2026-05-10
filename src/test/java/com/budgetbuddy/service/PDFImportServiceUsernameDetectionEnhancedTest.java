@@ -1,6 +1,5 @@
 package com.budgetbuddy.service;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -9,6 +8,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.lang.reflect.Method;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
@@ -253,14 +253,14 @@ public class PDFImportServiceUsernameDetectionEnhancedTest {
     @DisplayName("Should skip transaction lines when finding username candidates")
     void testFindUsernameCandidatesSkipsTransactionLines() throws Exception {
         final String[] lines = {
-                "JOHN DOE",
-                "01/15/2024 LULULEMON ATHLETICA $123.45", // Transaction line
-                "DELTA AIR LINES $99.99", // Transaction line
-                "Card Member: JANE SMITH"
+            "JOHN DOE",
+            "01/15/2024 LULULEMON ATHLETICA $123.45", // Transaction line
+            "DELTA AIR LINES $99.99", // Transaction line
+            "Card Member: JANE SMITH"
         };
 
-        @SuppressWarnings({"unchecked", "PMD.AvoidCatchingGenericException"}) final
-                List<String> candidates =
+        @SuppressWarnings({"unchecked", "PMD.AvoidCatchingGenericException"})
+        final List<String> candidates =
                 (List<String>) findUsernameCandidates.invoke(pdfImportService, lines, 1, 1, 3);
 
         // Should find "JOHN DOE" but skip transaction lines
@@ -281,10 +281,10 @@ public class PDFImportServiceUsernameDetectionEnhancedTest {
     @DisplayName("Should only return all-caps candidates when multiple candidates exist")
     void testAllCapsOnlyWithMultipleCandidates() throws Exception {
         final String[] lines = {
-                "JOHN DOE", // All-caps
-                "John Doe", // Title case
-                "jane smith", // Lower case
-                "Card Member: MARY JANE" // All-caps
+            "JOHN DOE", // All-caps
+            "John Doe", // Title case
+            "jane smith", // Lower case
+            "Card Member: MARY JANE" // All-caps
         };
 
         final AccountDetectionService.DetectedAccount detectedAccount =
@@ -307,9 +307,9 @@ public class PDFImportServiceUsernameDetectionEnhancedTest {
     @DisplayName("Should return null if no all-caps candidates exist")
     void testAllCapsOnlyNoAllCapsCandidates() throws Exception {
         final String[] lines = {
-                "John Doe", // Title case only
-                "jane smith", // Lower case only
-                "Card Member: Mary Jane" // Title case
+            "John Doe", // Title case only
+            "jane smith", // Lower case only
+            "Card Member: Mary Jane" // Title case
         };
 
         final AccountDetectionService.DetectedAccount detectedAccount =
@@ -329,9 +329,9 @@ public class PDFImportServiceUsernameDetectionEnhancedTest {
     @DisplayName("Should prefer all-caps even when account holder name matches mixed-case")
     void testAllCapsOnlyWithAccountHolderName() throws Exception {
         final String[] lines = {
-                "JOHN DOE", // All-caps
-                "John Doe", // Title case (matches account holder)
-                "Card Member: JANE SMITH" // All-caps
+            "JOHN DOE", // All-caps
+            "John Doe", // Title case (matches account holder)
+            "Card Member: JANE SMITH" // All-caps
         };
 
         final AccountDetectionService.DetectedAccount detectedAccount =
@@ -571,8 +571,8 @@ public class PDFImportServiceUsernameDetectionEnhancedTest {
     void testErrorHandlingNullArray() throws Exception {
         assertDoesNotThrow(
                 () -> {
-                    @SuppressWarnings("unchecked") final
-                            List<String> result =
+                    @SuppressWarnings("unchecked")
+                    final List<String> result =
                             (List<String>)
                                     findUsernameCandidates.invoke(pdfImportService, null, 0, 1, 3);
                     assertNotNull(result, "Should return empty list, not null");
@@ -646,7 +646,9 @@ public class PDFImportServiceUsernameDetectionEnhancedTest {
         final AtomicInteger successCount = new AtomicInteger(0);
         final AtomicInteger errorCount = new AtomicInteger(0);
 
-        final String[] lines = {"JOHN DOE", "Card Member: JANE SMITH", "01/15/2024 MERCHANT $123.45"};
+        final String[] lines = {
+            "JOHN DOE", "Card Member: JANE SMITH", "01/15/2024 MERCHANT $123.45"
+        };
 
         final AccountDetectionService.DetectedAccount detectedAccount =
                 new AccountDetectionService.DetectedAccount();
@@ -695,7 +697,7 @@ public class PDFImportServiceUsernameDetectionEnhancedTest {
         final AtomicInteger errorCount = new AtomicInteger(0);
 
         final String[] testNames = {
-                "JOHN DOE", "Standard Purchases", "HULU.COM/BILL", "DELHI DL K", "Mary Jane Smith"
+            "JOHN DOE", "Standard Purchases", "HULU.COM/BILL", "DELHI DL K", "Mary Jane Smith"
         };
 
         for (int i = 0; i < numThreads; i++) {
@@ -728,15 +730,15 @@ public class PDFImportServiceUsernameDetectionEnhancedTest {
     void testIntegrationRealisticScenario() throws Exception {
         // Simulate a realistic PDF with multiple false positives
         final String[] lines = {
-                "Card Member: JOHN DOE", // Move closer to transaction
-                "123 Main Street",
-                "New York, NY 10001",
-                "Date Description Amount",
-                "01/15/2024 LULULEMON ATHLETICA $123.45", // Transaction - should be skipped
-                "",
-                "JANE SMITH", // All-caps name - should be detected
-                "Date Description Amount",
-                "01/17/2024 AMAZON $50.00"
+            "Card Member: JOHN DOE", // Move closer to transaction
+            "123 Main Street",
+            "New York, NY 10001",
+            "Date Description Amount",
+            "01/15/2024 LULULEMON ATHLETICA $123.45", // Transaction - should be skipped
+            "",
+            "JANE SMITH", // All-caps name - should be detected
+            "Date Description Amount",
+            "01/17/2024 AMAZON $50.00"
         };
 
         final AccountDetectionService.DetectedAccount detectedAccount =
@@ -783,15 +785,15 @@ public class PDFImportServiceUsernameDetectionEnhancedTest {
     @DisplayName("Should handle complex multi-user statement")
     void testIntegrationMultiUserStatement() throws Exception {
         final String[] lines = {
-                "JOHN DOE", // Index 0
-                "123 Main St", // Index 1
-                "New York, NY 10001", // Index 2
-                "01/15/2024 MERCHANT $100.00", // Index 3 - transaction line
-                "",
-                "JANE SMITH", // Index 5
-                "456 Oak Ave", // Index 6
-                "Los Angeles, CA 90001", // Index 7
-                "01/16/2024 STORE $200.00" // Index 8 - transaction line
+            "JOHN DOE", // Index 0
+            "123 Main St", // Index 1
+            "New York, NY 10001", // Index 2
+            "01/15/2024 MERCHANT $100.00", // Index 3 - transaction line
+            "",
+            "JANE SMITH", // Index 5
+            "456 Oak Ave", // Index 6
+            "Los Angeles, CA 90001", // Index 7
+            "01/16/2024 STORE $200.00" // Index 8 - transaction line
         };
 
         final AccountDetectionService.DetectedAccount detectedAccount =

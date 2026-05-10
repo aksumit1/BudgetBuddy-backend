@@ -1,7 +1,5 @@
 package com.budgetbuddy.api;
 
-
-import java.util.Locale;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.anyString;
 import static org.mockito.Mockito.doNothing;
@@ -24,6 +22,7 @@ import com.budgetbuddy.service.UserService;
 import com.budgetbuddy.util.MessageUtil;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import java.util.Locale;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -43,36 +42,39 @@ import org.springframework.test.web.servlet.MockMvc;
 @Import(AWSTestConfiguration.class)
 class AuthControllerPasswordResetTest {
 
+    private static final String DEPRECATION = "deprecation";
+    private static final String PASSWORD_HASH = "password_hash";
+
     @Autowired private MockMvc mockMvc;
 
     @Autowired private ObjectMapper objectMapper;
 
     // Note: @MockitoBean is deprecated in Spring Boot 3.4.0, but still functional
-    @SuppressWarnings("deprecation")
+    @SuppressWarnings(DEPRECATION)
     @MockitoBean
     private AuthService authService;
 
-    @SuppressWarnings("deprecation")
+    @SuppressWarnings(DEPRECATION)
     @MockitoBean
     private UserService userService;
 
-    @SuppressWarnings("deprecation")
+    @SuppressWarnings(DEPRECATION)
     @MockitoBean
     private PasswordResetService passwordResetService;
 
-    @SuppressWarnings("deprecation")
+    @SuppressWarnings(DEPRECATION)
     @MockitoBean
     private MessageUtil messageUtil;
 
-    @SuppressWarnings("deprecation")
+    @SuppressWarnings(DEPRECATION)
     @MockitoBean
     private DDoSProtectionService ddosProtectionService;
 
-    @SuppressWarnings("deprecation")
+    @SuppressWarnings(DEPRECATION)
     @MockitoBean
     private RateLimitService rateLimitService;
 
-    @SuppressWarnings("deprecation")
+    @SuppressWarnings(DEPRECATION)
     @MockitoBean
     private ChallengeService challengeService;
 
@@ -105,7 +107,8 @@ class AuthControllerPasswordResetTest {
     void testForgotPasswordSuccess() throws Exception {
         // Given
         doNothing().when(passwordResetService).requestPasswordReset(testEmail);
-        final AuthController.ForgotPasswordRequest request = new AuthController.ForgotPasswordRequest();
+        final AuthController.ForgotPasswordRequest request =
+                new AuthController.ForgotPasswordRequest();
         request.setEmail(testEmail);
 
         // When/Then
@@ -125,7 +128,8 @@ class AuthControllerPasswordResetTest {
     @Test
     void testForgotPasswordInvalidEmail() throws Exception {
         // Given
-        final AuthController.ForgotPasswordRequest request = new AuthController.ForgotPasswordRequest();
+        final AuthController.ForgotPasswordRequest request =
+                new AuthController.ForgotPasswordRequest();
         request.setEmail("invalid-email");
 
         // When/Then
@@ -151,7 +155,8 @@ class AuthControllerPasswordResetTest {
                 .when(passwordResetService)
                 .requestPasswordReset(testEmail);
 
-        final AuthController.ForgotPasswordRequest request = new AuthController.ForgotPasswordRequest();
+        final AuthController.ForgotPasswordRequest request =
+                new AuthController.ForgotPasswordRequest();
         request.setEmail(testEmail);
 
         // When/Then
@@ -193,15 +198,16 @@ class AuthControllerPasswordResetTest {
         // BREAKING CHANGE: Client salt removed - backend handles salt management
         // PAKE2: Challenge is now required
         final String testChallenge = "test-challenge-123";
-        doNothing().when(passwordResetService).resetPassword(testEmail, testCode, "password_hash");
-        doNothing().when(userService).resetPasswordByEmail(testEmail, "password_hash");
+        doNothing().when(passwordResetService).resetPassword(testEmail, testCode, PASSWORD_HASH);
+        doNothing().when(userService).resetPasswordByEmail(testEmail, PASSWORD_HASH);
         // Mock challenge verification to succeed
         doNothing().when(challengeService).verifyAndConsumeChallenge(testChallenge, testEmail);
 
-        final AuthController.PasswordResetRequest request = new AuthController.PasswordResetRequest();
+        final AuthController.PasswordResetRequest request =
+                new AuthController.PasswordResetRequest();
         request.setEmail(testEmail);
         request.setCode(testCode);
-        request.setPasswordHash("password_hash");
+        request.setPasswordHash(PASSWORD_HASH);
         request.setChallenge(testChallenge);
         // BREAKING CHANGE: Client salt removed, PAKE2 challenge required
 
@@ -215,17 +221,18 @@ class AuthControllerPasswordResetTest {
                 .andExpect(jsonPath("$.message").value("Password reset successful"));
 
         // BREAKING CHANGE: Client salt removed
-        verify(passwordResetService).resetPassword(testEmail, testCode, "password_hash");
-        verify(userService).resetPasswordByEmail(testEmail, "password_hash");
+        verify(passwordResetService).resetPassword(testEmail, testCode, PASSWORD_HASH);
+        verify(userService).resetPasswordByEmail(testEmail, PASSWORD_HASH);
         verify(challengeService).verifyAndConsumeChallenge(testChallenge, testEmail);
     }
 
     @Test
     void testResetPasswordMissingCode() throws Exception {
         // Given
-        final AuthController.PasswordResetRequest request = new AuthController.PasswordResetRequest();
+        final AuthController.PasswordResetRequest request =
+                new AuthController.PasswordResetRequest();
         request.setEmail(testEmail);
-        request.setPasswordHash("password_hash");
+        request.setPasswordHash(PASSWORD_HASH);
 
         // Code is missing
 
@@ -242,7 +249,8 @@ class AuthControllerPasswordResetTest {
     @Test
     void testResetPasswordInvalidFormat() throws Exception {
         // Given
-        final AuthController.PasswordResetRequest request = new AuthController.PasswordResetRequest();
+        final AuthController.PasswordResetRequest request =
+                new AuthController.PasswordResetRequest();
         request.setEmail(testEmail);
         request.setCode(testCode);
         // Missing password_hash and salt

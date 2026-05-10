@@ -1,8 +1,5 @@
 package com.budgetbuddy.integration;
 
-
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import java.nio.charset.StandardCharsets;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -21,7 +18,9 @@ import com.budgetbuddy.repository.dynamodb.TransactionRepository;
 import com.budgetbuddy.service.AuthService;
 import com.budgetbuddy.service.UserService;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -53,6 +52,14 @@ import org.springframework.test.web.servlet.MockMvc;
 @Import(AWSTestConfiguration.class)
 class CategoryPreservationIntegrationTest {
 
+    private static final String GROCERIES = "groceries";
+    private static final String PAGE = "page";
+    private static final String FILENAME = "filename";
+    private static final String AUTHORIZATION = "Authorization";
+    private static final String SIZE = "size";
+    private static final String DINING = "dining";
+    private static final String ACCOUNTID = "accountId";
+
     @Autowired private MockMvc mockMvc;
 
     @Autowired private AccountRepository accountRepository;
@@ -76,7 +83,8 @@ class CategoryPreservationIntegrationTest {
         // Create test user with password
         final String testEmail = "test-category-preservation-" + UUID.randomUUID() + "@example.com";
         final String testPasswordHash =
-                java.util.Base64.getEncoder().encodeToString("hashed-password".getBytes(StandardCharsets.UTF_8));
+                java.util.Base64.getEncoder()
+                        .encodeToString("hashed-password".getBytes(StandardCharsets.UTF_8));
 
         testUser = userService.createUserSecure(testEmail, testPasswordHash, "Test", "User");
 
@@ -112,17 +120,20 @@ class CategoryPreservationIntegrationTest {
 
         final MockMultipartFile file =
                 new MockMultipartFile(
-                        "file", "test.csv", "text/csv", csvContent.toString().getBytes(StandardCharsets.UTF_8));
+                        "file",
+                        "test.csv",
+                        "text/csv",
+                        csvContent.toString().getBytes(StandardCharsets.UTF_8));
 
         // Step 1: Get preview for page 0
         final var previewResult0 =
                 mockMvc.perform(
-                        multipart("/api/transactions/import-csv/preview")
-                                .file(file)
-                                .param("filename", "test.csv")
-                                .param("page", "0")
-                                .param("size", "100")
-                                .header("Authorization", "Bearer " + authToken))
+                                multipart("/api/transactions/import-csv/preview")
+                                        .file(file)
+                                        .param(FILENAME, "test.csv")
+                                        .param(PAGE, "0")
+                                        .param(SIZE, "100")
+                                        .header(AUTHORIZATION, "Bearer " + authToken))
                         .andExpect(status().isOk())
                         .andReturn();
 
@@ -137,10 +148,10 @@ class CategoryPreservationIntegrationTest {
         for (int i = 0; i < 100; i++) {
             final ImportCategoryPreservationRequest.PreviewCategory cat =
                     new ImportCategoryPreservationRequest.PreviewCategory();
-            cat.setCategoryPrimary("groceries");
-            cat.setCategoryDetailed("groceries");
-            cat.setImporterCategoryPrimary("groceries");
-            cat.setImporterCategoryDetailed("groceries");
+            cat.setCategoryPrimary(GROCERIES);
+            cat.setCategoryDetailed(GROCERIES);
+            cat.setImporterCategoryPrimary(GROCERIES);
+            cat.setImporterCategoryDetailed(GROCERIES);
             previewCategories.add(cat);
         }
 
@@ -155,22 +166,22 @@ class CategoryPreservationIntegrationTest {
         mockMvc.perform(
                         multipart("/api/transactions/import-csv/chunk")
                                 .file(file)
-                                .param("filename", "test.csv")
-                                .param("page", "0")
-                                .param("size", "100")
-                                .param("accountId", testAccount.getAccountId())
+                                .param(FILENAME, "test.csv")
+                                .param(PAGE, "0")
+                                .param(SIZE, "100")
+                                .param(ACCOUNTID, testAccount.getAccountId())
                                 .param("previewCategoriesJson", preservationJson)
-                                .header("Authorization", "Bearer " + authToken))
+                                .header(AUTHORIZATION, "Bearer " + authToken))
                 .andExpect(status().isOk());
 
         // Step 3: Get preview for page 1
         mockMvc.perform(
                         multipart("/api/transactions/import-csv/preview")
                                 .file(file)
-                                .param("filename", "test.csv")
-                                .param("page", "1")
-                                .param("size", "100")
-                                .header("Authorization", "Bearer " + authToken))
+                                .param(FILENAME, "test.csv")
+                                .param(PAGE, "1")
+                                .param(SIZE, "100")
+                                .header(AUTHORIZATION, "Bearer " + authToken))
                 .andExpect(status().isOk());
 
         // Create preview categories for page 1
@@ -179,10 +190,10 @@ class CategoryPreservationIntegrationTest {
         for (int i = 0; i < 100; i++) {
             final ImportCategoryPreservationRequest.PreviewCategory cat =
                     new ImportCategoryPreservationRequest.PreviewCategory();
-            cat.setCategoryPrimary("dining");
-            cat.setCategoryDetailed("dining");
-            cat.setImporterCategoryPrimary("dining");
-            cat.setImporterCategoryDetailed("dining");
+            cat.setCategoryPrimary(DINING);
+            cat.setCategoryDetailed(DINING);
+            cat.setImporterCategoryPrimary(DINING);
+            cat.setImporterCategoryDetailed(DINING);
             previewCategories1.add(cat);
         }
 
@@ -197,12 +208,12 @@ class CategoryPreservationIntegrationTest {
         mockMvc.perform(
                         multipart("/api/transactions/import-csv/chunk")
                                 .file(file)
-                                .param("filename", "test.csv")
-                                .param("page", "1")
-                                .param("size", "100")
-                                .param("accountId", testAccount.getAccountId())
+                                .param(FILENAME, "test.csv")
+                                .param(PAGE, "1")
+                                .param(SIZE, "100")
+                                .param(ACCOUNTID, testAccount.getAccountId())
                                 .param("previewCategoriesJson", preservationJson1)
-                                .header("Authorization", "Bearer " + authToken))
+                                .header(AUTHORIZATION, "Bearer " + authToken))
                 .andExpect(status().isOk());
 
         // Step 5: Verify transactions were created with preserved categories
@@ -242,7 +253,7 @@ class CategoryPreservationIntegrationTest {
         // preserved
         final long groceriesCount =
                 transactions.stream()
-                        .filter(tx -> "groceries".equals(tx.getCategoryPrimary()))
+                        .filter(tx -> GROCERIES.equals(tx.getCategoryPrimary()))
                         .count();
         assertTrue(
                 groceriesCount >= 95,
@@ -255,12 +266,10 @@ class CategoryPreservationIntegrationTest {
         // Check other categories (page 1 might have different categories if preview wasn't applied
         // correctly)
         final long diningCount =
-                transactions.stream()
-                        .filter(tx -> "dining".equals(tx.getCategoryPrimary()))
-                        .count();
+                transactions.stream().filter(tx -> DINING.equals(tx.getCategoryPrimary())).count();
         final long otherCount =
                 transactions.stream()
-                        .filter(tx -> !"groceries".equals(tx.getCategoryPrimary()))
+                        .filter(tx -> !GROCERIES.equals(tx.getCategoryPrimary()))
                         .count();
 
         // We should have at least 95 groceries, and the rest should be other categories (dining or
@@ -279,18 +288,23 @@ class CategoryPreservationIntegrationTest {
     @Test
     void testCategoryPreservationAccountMismatchReCategorizes() throws Exception {
         // Given: CSV file and preview categories with one account
-        final String csvContent = "Date,Description,Amount\n" + "2025-01-01,Test Transaction,100.00\n";
+        final String csvContent =
+                "Date,Description,Amount\n" + "2025-01-01,Test Transaction,100.00\n";
 
         final MockMultipartFile file =
-                new MockMultipartFile("file", "test.csv", "text/csv", csvContent.getBytes(StandardCharsets.UTF_8));
+                new MockMultipartFile(
+                        "file",
+                        "test.csv",
+                        "text/csv",
+                        csvContent.getBytes(StandardCharsets.UTF_8));
 
         // Create preview categories with different account
         final List<ImportCategoryPreservationRequest.PreviewCategory> previewCategories =
                 new ArrayList<>();
         final ImportCategoryPreservationRequest.PreviewCategory cat =
                 new ImportCategoryPreservationRequest.PreviewCategory();
-        cat.setCategoryPrimary("groceries");
-        cat.setImporterCategoryPrimary("groceries");
+        cat.setCategoryPrimary(GROCERIES);
+        cat.setImporterCategoryPrimary(GROCERIES);
         previewCategories.add(cat);
 
         final ImportCategoryPreservationRequest preservationRequest =
@@ -304,14 +318,14 @@ class CategoryPreservationIntegrationTest {
         mockMvc.perform(
                         multipart("/api/transactions/import-csv/chunk")
                                 .file(file)
-                                .param("filename", "test.csv")
-                                .param("page", "0")
-                                .param("size", "100")
+                                .param(FILENAME, "test.csv")
+                                .param(PAGE, "0")
+                                .param(SIZE, "100")
                                 .param(
-                                        "accountId",
+                                        ACCOUNTID,
                                         testAccount.getAccountId()) // Different from preview
                                 .param("previewCategoriesJson", preservationJson)
-                                .header("Authorization", "Bearer " + authToken))
+                                .header(AUTHORIZATION, "Bearer " + authToken))
                 .andExpect(status().isOk());
 
         // Then: Transaction should be re-categorized (not preserved)
@@ -319,9 +333,9 @@ class CategoryPreservationIntegrationTest {
                 transactionRepository.findByUserId(testUser.getUserId(), 0, 10);
 
         assertEquals(1, transactions.size());
-        // Category should be detected, not necessarily "groceries"
+        // Category should be detected, not necessarily GROCERIES
         assertNotNull(transactions.get(0).getCategoryPrimary());
-        // May or may not be "groceries" depending on detection
+        // May or may not be GROCERIES depending on detection
     }
 
     @Test
@@ -330,15 +344,19 @@ class CategoryPreservationIntegrationTest {
         final String csvContent = "Date,Description,Amount\n" + "2025-01-01,PCC Store,50.00\n";
 
         final MockMultipartFile file =
-                new MockMultipartFile("file", "test.csv", "text/csv", csvContent.getBytes(StandardCharsets.UTF_8));
+                new MockMultipartFile(
+                        "file",
+                        "test.csv",
+                        "text/csv",
+                        csvContent.getBytes(StandardCharsets.UTF_8));
 
         // Create preview categories with importer categories
         final List<ImportCategoryPreservationRequest.PreviewCategory> previewCategories =
                 new ArrayList<>();
         final ImportCategoryPreservationRequest.PreviewCategory cat =
                 new ImportCategoryPreservationRequest.PreviewCategory();
-        cat.setCategoryPrimary("groceries"); // Final category
-        cat.setCategoryDetailed("groceries");
+        cat.setCategoryPrimary(GROCERIES); // Final category
+        cat.setCategoryDetailed(GROCERIES);
         cat.setImporterCategoryPrimary("other"); // Original importer category
         cat.setImporterCategoryDetailed("other");
         previewCategories.add(cat);
@@ -354,12 +372,12 @@ class CategoryPreservationIntegrationTest {
         mockMvc.perform(
                         multipart("/api/transactions/import-csv/chunk")
                                 .file(file)
-                                .param("filename", "test.csv")
-                                .param("page", "0")
-                                .param("size", "100")
-                                .param("accountId", testAccount.getAccountId())
+                                .param(FILENAME, "test.csv")
+                                .param(PAGE, "0")
+                                .param(SIZE, "100")
+                                .param(ACCOUNTID, testAccount.getAccountId())
                                 .param("previewCategoriesJson", preservationJson)
-                                .header("Authorization", "Bearer " + authToken))
+                                .header(AUTHORIZATION, "Bearer " + authToken))
                 .andExpect(status().isOk());
 
         // Then: Both categoryPrimary and importerCategoryPrimary should be preserved
@@ -368,7 +386,7 @@ class CategoryPreservationIntegrationTest {
 
         assertEquals(1, transactions.size());
         final TransactionTable tx = transactions.get(0);
-        assertEquals("groceries", tx.getCategoryPrimary());
+        assertEquals(GROCERIES, tx.getCategoryPrimary());
         assertEquals("other", tx.getImporterCategoryPrimary()); // Preserved from preview
     }
 
@@ -378,17 +396,21 @@ class CategoryPreservationIntegrationTest {
         final String csvContent = "Date,Description,Amount\n" + "2025-01-01,PCC Store,50.00\n";
 
         final MockMultipartFile file =
-                new MockMultipartFile("file", "test.csv", "text/csv", csvContent.getBytes(StandardCharsets.UTF_8));
+                new MockMultipartFile(
+                        "file",
+                        "test.csv",
+                        "text/csv",
+                        csvContent.getBytes(StandardCharsets.UTF_8));
 
         // When: Get preview (this will parse the transaction)
         final var previewResult =
                 mockMvc.perform(
-                        multipart("/api/transactions/import-csv/preview")
-                                .file(file)
-                                .param("filename", "test.csv")
-                                .param("page", "0")
-                                .param("size", "100")
-                                .header("Authorization", "Bearer " + authToken))
+                                multipart("/api/transactions/import-csv/preview")
+                                        .file(file)
+                                        .param(FILENAME, "test.csv")
+                                        .param(PAGE, "0")
+                                        .param(SIZE, "100")
+                                        .header(AUTHORIZATION, "Bearer " + authToken))
                         .andExpect(status().isOk())
                         .andReturn();
 
@@ -397,19 +419,19 @@ class CategoryPreservationIntegrationTest {
         assertTrue(previewJson.contains("\"transactions\""));
 
         // Parse the JSON response to extract category information
-        // The parser should correctly identify PCC Store as "groceries"
+        // The parser should correctly identify PCC Store as GROCERIES
         // In a real scenario, both categoryPrimary and importerCategoryPrimary should be
-        // "groceries"
+        // GROCERIES
 
         // When: Import without preview categories (to test actual parsing)
         mockMvc.perform(
                         multipart("/api/transactions/import-csv/chunk")
                                 .file(file)
-                                .param("filename", "test.csv")
-                                .param("page", "0")
-                                .param("size", "100")
-                                .param("accountId", testAccount.getAccountId())
-                                .header("Authorization", "Bearer " + authToken))
+                                .param(FILENAME, "test.csv")
+                                .param(PAGE, "0")
+                                .param(SIZE, "100")
+                                .param(ACCOUNTID, testAccount.getAccountId())
+                                .header(AUTHORIZATION, "Bearer " + authToken))
                 .andExpect(status().isOk());
 
         // Then: Transaction should have groceries category
@@ -421,11 +443,11 @@ class CategoryPreservationIntegrationTest {
         // The parser should correctly identify PCC Store as groceries
         // Both categoryPrimary and importerCategoryPrimary should match since user didn't edit
         assertEquals(
-                "groceries",
+                GROCERIES,
                 tx.getCategoryPrimary(),
                 "PCC Store should be parsed as 'groceries', not 'other'");
         assertEquals(
-                "groceries",
+                GROCERIES,
                 tx.getImporterCategoryPrimary(),
                 "PCC Store importer category should be 'groceries', matching categoryPrimary");
     }

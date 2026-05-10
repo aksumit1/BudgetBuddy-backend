@@ -1,8 +1,5 @@
 package com.budgetbuddy.api;
 
-
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import java.nio.charset.StandardCharsets;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
@@ -20,7 +17,9 @@ import com.budgetbuddy.repository.dynamodb.TransactionRepository;
 import com.budgetbuddy.service.PDFImportService;
 import com.budgetbuddy.service.UserService;
 import com.budgetbuddy.util.TableInitializer;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.ByteArrayOutputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -98,7 +97,9 @@ class PDFImportAccountAssociationTest {
     void setUp() {
         // Create test user
         final String email = "test-pdf-account-" + UUID.randomUUID() + "@example.com";
-        final String passwordHash = java.util.Base64.getEncoder().encodeToString("test-hash".getBytes(StandardCharsets.UTF_8));
+        final String passwordHash =
+                java.util.Base64.getEncoder()
+                        .encodeToString("test-hash".getBytes(StandardCharsets.UTF_8));
         testUser = userService.createUserSecure(email, passwordHash, "Test", "User");
 
         // Mock UserDetails
@@ -107,8 +108,7 @@ class PDFImportAccountAssociationTest {
     }
 
     @Test
-    void testPDFImportTwoDifferentPDFsTransactionsAssociatedWithCorrectAccounts()
-            throws Exception {
+    void testPDFImportTwoDifferentPDFsTransactionsAssociatedWithCorrectAccounts() throws Exception {
         // Given: Two different PDFs with different account information
 
         // PDF 1: Chase Checking account
@@ -134,16 +134,18 @@ class PDFImportAccountAssociationTest {
         final org.springframework.mock.web.MockMultipartFile pdf1File =
                 new org.springframework.mock.web.MockMultipartFile(
                         "file", "chase_checking_1234.pdf", "application/pdf", pdf1Content);
-        final ResponseEntity<com.budgetbuddy.api.TransactionController.BatchImportResponse> response1 =
-                transactionController.importPDF(
-                        userDetails, pdf1File, null, "chase_checking_1234.pdf");
+        final ResponseEntity<com.budgetbuddy.api.TransactionController.BatchImportResponse>
+                response1 =
+                        transactionController.importPDF(
+                                userDetails, pdf1File, null, "chase_checking_1234.pdf");
 
         assertEquals(200, response1.getStatusCode().value());
         assertNotNull(response1.getBody());
         assertTrue(response1.getBody().getCreated() > 0, "Should create transactions from PDF 1");
 
         // Get account 1 that was created
-        final List<AccountTable> accountsAfterPdf1 = accountRepository.findByUserId(testUser.getUserId());
+        final List<AccountTable> accountsAfterPdf1 =
+                accountRepository.findByUserId(testUser.getUserId());
         assertEquals(
                 1, accountsAfterPdf1.size(), "Should have created exactly 1 account after PDF 1");
         final AccountTable account1 = accountsAfterPdf1.get(0);
@@ -175,16 +177,18 @@ class PDFImportAccountAssociationTest {
         final org.springframework.mock.web.MockMultipartFile pdf2File =
                 new org.springframework.mock.web.MockMultipartFile(
                         "file", "wells_fargo_savings_5678.pdf", "application/pdf", pdf2Content);
-        final ResponseEntity<com.budgetbuddy.api.TransactionController.BatchImportResponse> response2 =
-                transactionController.importPDF(
-                        userDetails, pdf2File, null, "wells_fargo_savings_5678.pdf");
+        final ResponseEntity<com.budgetbuddy.api.TransactionController.BatchImportResponse>
+                response2 =
+                        transactionController.importPDF(
+                                userDetails, pdf2File, null, "wells_fargo_savings_5678.pdf");
 
         assertEquals(200, response2.getStatusCode().value());
         assertNotNull(response2.getBody());
         assertTrue(response2.getBody().getCreated() > 0, "Should create transactions from PDF 2");
 
         // Get accounts after PDF 2
-        final List<AccountTable> accountsAfterPdf2 = accountRepository.findByUserId(testUser.getUserId());
+        final List<AccountTable> accountsAfterPdf2 =
+                accountRepository.findByUserId(testUser.getUserId());
         assertEquals(
                 2, accountsAfterPdf2.size(), "Should have created exactly 2 accounts after PDF 2");
 
@@ -290,7 +294,8 @@ class PDFImportAccountAssociationTest {
         transactionController.importPDF(userDetails, pdf1File, null, "chase_checking_1234.pdf");
 
         // Get account 1
-        final List<AccountTable> accountsAfterPdf1 = accountRepository.findByUserId(testUser.getUserId());
+        final List<AccountTable> accountsAfterPdf1 =
+                accountRepository.findByUserId(testUser.getUserId());
         assertEquals(1, accountsAfterPdf1.size());
         final String account1Id = accountsAfterPdf1.get(0).getAccountId();
 
@@ -301,7 +306,8 @@ class PDFImportAccountAssociationTest {
         transactionController.importPDF(userDetails, pdf2File, null, "chase_checking_1234.pdf");
 
         // Then: Should still have only 1 account (reused)
-        final List<AccountTable> accountsAfterPdf2 = accountRepository.findByUserId(testUser.getUserId());
+        final List<AccountTable> accountsAfterPdf2 =
+                accountRepository.findByUserId(testUser.getUserId());
         assertEquals(
                 1, accountsAfterPdf2.size(), "Should reuse existing account, not create duplicate");
         assertEquals(account1Id, accountsAfterPdf2.get(0).getAccountId(), "Should reuse account 1");
@@ -320,7 +326,10 @@ class PDFImportAccountAssociationTest {
 
     /** Create a simple PDF with account information and transactions */
     private byte[] createPDFWithAccountInfo(
-            final String title, final String accountInfo, final String accountType, final String... transactions)
+            final String title,
+            final String accountInfo,
+            final String accountType,
+            final String... transactions)
             throws Exception {
         // Build text content with account info and transactions
         final StringBuilder textContent = new StringBuilder();

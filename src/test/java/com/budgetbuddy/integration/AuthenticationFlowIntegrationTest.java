@@ -1,9 +1,5 @@
 package com.budgetbuddy.integration;
 
-
-
-import java.nio.charset.StandardCharsets;
-import java.util.Locale;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -15,6 +11,8 @@ import com.budgetbuddy.model.dynamodb.UserTable;
 import com.budgetbuddy.security.PasswordHashingService;
 import com.budgetbuddy.service.AuthService;
 import com.budgetbuddy.service.UserService;
+import java.nio.charset.StandardCharsets;
+import java.util.Locale;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -75,8 +73,10 @@ class AuthenticationFlowIntegrationTest {
      */
     private String deriveConsistentSaltFromEmail(final String email) {
         try {
-            final java.security.MessageDigest digest = java.security.MessageDigest.getInstance("SHA-256");
-            final byte[] hash = digest.digest(email.toLowerCase(Locale.ROOT).getBytes(StandardCharsets.UTF_8));
+            final java.security.MessageDigest digest =
+                    java.security.MessageDigest.getInstance("SHA-256");
+            final byte[] hash =
+                    digest.digest(email.toLowerCase(Locale.ROOT).getBytes(StandardCharsets.UTF_8));
             // Take first 16 bytes as salt (matching iOS implementation)
             final byte[] salt = new byte[16];
             System.arraycopy(hash, 0, salt, 0, 16);
@@ -90,7 +90,8 @@ class AuthenticationFlowIntegrationTest {
     @DisplayName("Register -> Sign Out -> Sign In: Same password should work")
     void testRegisterSignOutSignInWithSamePasswordSucceeds() {
         // Step 1: Register user
-        final UserTable user = userService.createUserSecure(testEmail, testPasswordHash, "Test", "User");
+        final UserTable user =
+                userService.createUserSecure(testEmail, testPasswordHash, "Test", "User");
         assertNotNull(user, "User should be created");
         assertNotNull(user.getUserId(), "User should have userId");
         assertNotNull(user.getPasswordHash(), "User should have password hash");
@@ -133,7 +134,8 @@ class AuthenticationFlowIntegrationTest {
     @DisplayName("Sign In -> Sign Out -> Sign In: Same password should work")
     void testSignInSignOutSignInWithSamePasswordSucceeds() {
         // Step 1: Register user first
-        final UserTable user = userService.createUserSecure(testEmail, testPasswordHash, "Test", "User");
+        final UserTable user =
+                userService.createUserSecure(testEmail, testPasswordHash, "Test", "User");
         assertNotNull(user, "User should be created");
 
         // Step 2: First sign in
@@ -202,11 +204,11 @@ class AuthenticationFlowIntegrationTest {
         final String salt1 =
                 java.util.Base64.getEncoder()
                         .encodeToString(
-                                new byte[]{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16});
+                                new byte[] {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16});
         final String salt2 =
                 java.util.Base64.getEncoder()
                         .encodeToString(
-                                new byte[]{16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1});
+                                new byte[] {16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1});
 
         final PasswordHashingService.PasswordHashResult hash1 =
                 passwordHashingService.hashPlaintextPassword(
@@ -229,7 +231,8 @@ class AuthenticationFlowIntegrationTest {
     @DisplayName("Multiple sign-ins: Same password should work every time")
     void testMultipleSignInsWithSamePasswordAllSucceed() {
         // Given: Registered user
-        final UserTable user = userService.createUserSecure(testEmail, testPasswordHash, "Test", "User");
+        final UserTable user =
+                userService.createUserSecure(testEmail, testPasswordHash, "Test", "User");
         assertNotNull(user, "User should be created");
 
         // When: Sign in multiple times with same password

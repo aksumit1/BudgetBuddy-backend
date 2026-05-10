@@ -1,8 +1,5 @@
 package com.budgetbuddy.api;
 
-
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import java.util.Locale;
 import com.budgetbuddy.exception.AppException;
 import com.budgetbuddy.exception.ErrorCode;
 import com.budgetbuddy.model.dynamodb.AccountTable;
@@ -15,6 +12,7 @@ import com.budgetbuddy.repository.dynamodb.BudgetRepository;
 import com.budgetbuddy.repository.dynamodb.GoalRepository;
 import com.budgetbuddy.repository.dynamodb.TransactionRepository;
 import com.budgetbuddy.service.UserService;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
@@ -23,6 +21,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import org.springframework.http.ResponseEntity;
@@ -92,7 +91,8 @@ public class PlannerController {
 
     @PostMapping("/evaluate")
     public ResponseEntity<Map<String, Object>> evaluate(
-            @AuthenticationPrincipal final UserDetails userDetails, @RequestBody final EvaluateRequest req) {
+            @AuthenticationPrincipal final UserDetails userDetails,
+            @RequestBody final EvaluateRequest req) {
         if (userDetails == null) {
             throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "User not authenticated");
         }
@@ -152,7 +152,8 @@ public class PlannerController {
             if (a.getBalance() == null) {
                 continue;
             }
-            final String type = a.getAccountType() == null ? "" : a.getAccountType().toUpperCase(Locale.ROOT);
+            final String type =
+                    a.getAccountType() == null ? "" : a.getAccountType().toUpperCase(Locale.ROOT);
             if (type.contains("CHECKING")
                     || type.contains("SAVINGS")
                     || type.contains("MONEY_MARKET")) {
@@ -172,7 +173,8 @@ public class PlannerController {
                 continue;
             }
             final BigDecimal spent = mtdSpend.getOrDefault(b.getCategory(), BigDecimal.ZERO);
-            final BigDecimal remainingInBudget = b.getMonthlyLimit().subtract(spent).max(BigDecimal.ZERO);
+            final BigDecimal remainingInBudget =
+                    b.getMonthlyLimit().subtract(spent).max(BigDecimal.ZERO);
             remainingBudget = remainingBudget.add(remainingInBudget);
         }
         return cash.subtract(remainingBudget).max(BigDecimal.ZERO);
@@ -230,8 +232,7 @@ public class PlannerController {
         }
         out.sort(
                 (a, b) ->
-                        Integer.compare(
-                                (int) b.get(MONTHS_DELAYED), (int) a.get(MONTHS_DELAYED)));
+                        Integer.compare((int) b.get(MONTHS_DELAYED), (int) a.get(MONTHS_DELAYED)));
         return out;
     }
 
@@ -240,7 +241,8 @@ public class PlannerController {
         final String cat = req.category == null ? "default" : req.category.toLowerCase(Locale.ROOT);
         final List<Map<String, Object>> out = new ArrayList<>();
         for (final AccountTable a : accountRepository.findByUserId(user.getUserId())) {
-            final String type = a.getAccountType() == null ? "" : a.getAccountType().toUpperCase(Locale.ROOT);
+            final String type =
+                    a.getAccountType() == null ? "" : a.getAccountType().toUpperCase(Locale.ROOT);
             if (!type.contains("CREDIT") && !type.contains("CHARGE")) {
                 continue;
             }
@@ -309,7 +311,10 @@ public class PlannerController {
             if (t.getDeletedAt() != null || t.getAmount().signum() >= 0) {
                 continue;
             }
-            final String cat = t.getCategoryPrimary() == null ? "" : t.getCategoryPrimary().toLowerCase(Locale.ROOT);
+            final String cat =
+                    t.getCategoryPrimary() == null
+                            ? ""
+                            : t.getCategoryPrimary().toLowerCase(Locale.ROOT);
             if (!discretionary.contains(cat)) {
                 continue;
             }
@@ -322,7 +327,8 @@ public class PlannerController {
         final BigDecimal total = totals.values().stream().reduce(BigDecimal.ZERO, BigDecimal::add);
         final List<Map<String, Object>> out = new ArrayList<>();
         for (final var e : totals.entrySet()) {
-            final BigDecimal monthly = e.getValue().divide(new BigDecimal("3"), 2, RoundingMode.HALF_UP);
+            final BigDecimal monthly =
+                    e.getValue().divide(new BigDecimal("3"), 2, RoundingMode.HALF_UP);
             if (monthly.compareTo(new BigDecimal("20")) < 0) {
                 continue;
             }

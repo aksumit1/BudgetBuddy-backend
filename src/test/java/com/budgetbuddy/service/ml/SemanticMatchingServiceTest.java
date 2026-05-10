@@ -1,7 +1,5 @@
 package com.budgetbuddy.service.ml;
 
-
-import java.util.Locale;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -13,6 +11,7 @@ import static org.mockito.Mockito.when;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Locale;
 import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -59,11 +58,11 @@ class SemanticMatchingServiceTest {
     @DisplayName("findBestSemanticMatch detects groceries semantically")
     void testFindBestSemanticMatchGroceries() {
         final String[] groceryCases = {
-                "Grocery Store",
-                "Supermarket Shopping",
-                "Food Market Purchase",
-                "Grocery Shopping Trip",
-                "Fresh Food Market"
+            "Grocery Store",
+            "Supermarket Shopping",
+            "Food Market Purchase",
+            "Grocery Shopping Trip",
+            "Fresh Food Market"
         };
 
         for (final String merchant : groceryCases) {
@@ -82,7 +81,7 @@ class SemanticMatchingServiceTest {
     @DisplayName("findBestSemanticMatch detects dining semantically")
     void testFindBestSemanticMatchDining() {
         final String[] diningCases = {
-                "Restaurant Meal", "Cafe Coffee", "Fast Food Lunch", "Dining Out", "Takeout Delivery"
+            "Restaurant Meal", "Cafe Coffee", "Fast Food Lunch", "Dining Out", "Takeout Delivery"
         };
 
         for (final String merchant : diningCases) {
@@ -100,7 +99,7 @@ class SemanticMatchingServiceTest {
     @DisplayName("findBestSemanticMatch detects transportation semantically")
     void testFindBestSemanticMatchTransportation() {
         final String[] transportationCases = {
-                "Gas Station", "Fuel Purchase", "Petrol Fill Up", "Uber Ride", "Parking Fee"
+            "Gas Station", "Fuel Purchase", "Petrol Fill Up", "Uber Ride", "Parking Fee"
         };
 
         for (final String merchant : transportationCases) {
@@ -119,7 +118,7 @@ class SemanticMatchingServiceTest {
     @DisplayName("findBestSemanticMatch detects utilities semantically")
     void testFindBestSemanticMatchUtilities() {
         final String[] utilityCases = {
-                "Electric Bill", "Water Utility", "Internet Service", "Phone Bill", "Cable TV"
+            "Electric Bill", "Water Utility", "Internet Service", "Phone Bill", "Cable TV"
         };
 
         for (final String merchant : utilityCases) {
@@ -203,7 +202,7 @@ class SemanticMatchingServiceTest {
     @DisplayName("findBestSemanticMatch handles special characters")
     void testFindBestSemanticMatchSpecialCharacters() {
         final String[] specialCases = {
-                "Grocery Store!@#$", "Grocery-Store", "Grocery_Store", "Grocery.Store"
+            "Grocery Store!@#$", "Grocery-Store", "Grocery_Store", "Grocery.Store"
         };
 
         for (final String merchant : specialCases) {
@@ -240,7 +239,8 @@ class SemanticMatchingServiceTest {
     @Test
     @DisplayName("addSemanticCluster adds new category")
     void testAddSemanticCluster() {
-        final Set<String> keywords = new HashSet<>(Arrays.asList("test", "testing", "test category"));
+        final Set<String> keywords =
+                new HashSet<>(Arrays.asList("test", "testing", "test category"));
         semanticMatchingService.addSemanticCluster("test_category", keywords);
 
         // Verify it was added by trying to match

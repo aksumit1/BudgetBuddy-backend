@@ -1,8 +1,8 @@
 package com.budgetbuddy.compliance.hipaa;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import com.budgetbuddy.compliance.AuditLogService;
 import com.budgetbuddy.security.zerotrust.identity.IdentityVerificationService;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;

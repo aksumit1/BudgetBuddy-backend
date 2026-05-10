@@ -1,9 +1,8 @@
 package com.budgetbuddy.service.category;
 
-
-import java.util.Locale;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -37,7 +36,10 @@ public class FuzzyMatchingService {
         private final double confidence;
 
         public FuzzyMatch(
-                final String matchedMerchant, final double similarity, final String matchType, final double confidence) {
+                final String matchedMerchant,
+                final double similarity,
+                final String matchType,
+                final double confidence) {
             this.matchedMerchant = matchedMerchant;
             this.similarity = similarity;
             this.matchType = matchType;
@@ -87,7 +89,8 @@ public class FuzzyMatchingService {
         }
 
         // Try Levenshtein distance matching
-        for (final Map.Entry<String, InMemoryMerchantService.Merchant> entry : candidates.entrySet()) {
+        for (final Map.Entry<String, InMemoryMerchantService.Merchant> entry :
+                candidates.entrySet()) {
             final String candidate = entry.getKey();
 
             // Skip if lengths are too different (performance optimization)
@@ -112,7 +115,8 @@ public class FuzzyMatchingService {
                     candidates.entrySet()) {
                 final String candidate = entry.getKey();
 
-                final double partialSimilarity = calculatePartialSimilarity(normalizedQuery, candidate);
+                final double partialSimilarity =
+                        calculatePartialSimilarity(normalizedQuery, candidate);
 
                 if (partialSimilarity >= PARTIAL_MATCH_THRESHOLD) {
                     // Check if this is better than existing matches
@@ -122,13 +126,13 @@ public class FuzzyMatchingService {
                                             m ->
                                                     m.getMatchedMerchant().equals(candidate)
                                                             && m.getSimilarity()
-                                                            >= partialSimilarity);
+                                                                    >= partialSimilarity);
 
                     if (isBetter) {
                         final double confidence =
                                 0.85
                                         + (partialSimilarity - PARTIAL_MATCH_THRESHOLD)
-                                        * 0.15; // 85-90% confidence
+                                                * 0.15; // 85-90% confidence
                         matches.add(
                                 new FuzzyMatch(
                                         candidate, partialSimilarity, "PARTIAL", confidence));
@@ -151,7 +155,8 @@ public class FuzzyMatchingService {
         // Sort by similarity (descending), then by confidence
         matches.sort(
                 (a, b) -> {
-                    final int similarityCompare = Double.compare(b.getSimilarity(), a.getSimilarity());
+                    final int similarityCompare =
+                            Double.compare(b.getSimilarity(), a.getSimilarity());
                     if (similarityCompare != 0) {
                         return similarityCompare;
                     }
@@ -326,6 +331,9 @@ public class FuzzyMatchingService {
         if (str == null) {
             return "";
         }
-        return str.toLowerCase(Locale.ROOT).replaceAll("[^a-z0-9]", "").replaceAll("\\s+", "").trim();
+        return str.toLowerCase(Locale.ROOT)
+                .replaceAll("[^a-z0-9]", "")
+                .replaceAll("\\s+", "")
+                .trim();
     }
 }

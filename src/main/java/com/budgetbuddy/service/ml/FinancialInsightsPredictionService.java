@@ -1,7 +1,5 @@
 package com.budgetbuddy.service.ml;
 
-
-import java.util.Locale;
 import com.budgetbuddy.model.dynamodb.TransactionTable;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -13,6 +11,7 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -171,13 +170,16 @@ public class FinancialInsightsPredictionService {
                                     tx -> {
                                         final String desc =
                                                 tx.getDescription() != null
-                                                        ? tx.getDescription().toLowerCase(Locale.ROOT)
+                                                        ? tx.getDescription()
+                                                                .toLowerCase(Locale.ROOT)
                                                         : "";
                                         final String merchant =
                                                 tx.getMerchantName() != null
-                                                        ? tx.getMerchantName().toLowerCase(Locale.ROOT)
+                                                        ? tx.getMerchantName()
+                                                                .toLowerCase(Locale.ROOT)
                                                         : "";
-                                        final String name = subscriptionName.toLowerCase(Locale.ROOT);
+                                        final String name =
+                                                subscriptionName.toLowerCase(Locale.ROOT);
                                         return desc.contains(name) || merchant.contains(name);
                                     })
                             .sorted(
@@ -273,8 +275,8 @@ public class FinancialInsightsPredictionService {
         final double savingsRate =
                 monthlyIncome.compareTo(BigDecimal.ZERO) > 0
                         ? monthlySavings
-                        .divide(monthlyIncome, 4, RoundingMode.HALF_UP)
-                        .doubleValue()
+                                .divide(monthlyIncome, 4, RoundingMode.HALF_UP)
+                                .doubleValue()
                         : 0.0;
 
         for (final Map.Entry<String, GoalData> entry : goals.entrySet()) {
@@ -349,11 +351,13 @@ public class FinancialInsightsPredictionService {
                                     tx -> {
                                         final String desc =
                                                 tx.getDescription() != null
-                                                        ? tx.getDescription().toLowerCase(Locale.ROOT)
+                                                        ? tx.getDescription()
+                                                                .toLowerCase(Locale.ROOT)
                                                         : "";
                                         final String merchant =
                                                 tx.getMerchantName() != null
-                                                        ? tx.getMerchantName().toLowerCase(Locale.ROOT)
+                                                        ? tx.getMerchantName()
+                                                                .toLowerCase(Locale.ROOT)
                                                         : "";
                                         final String name = paymentName.toLowerCase(Locale.ROOT);
                                         return desc.contains(name) || merchant.contains(name);
@@ -414,22 +418,22 @@ public class FinancialInsightsPredictionService {
             }
 
             // Find interest charges for this account
-                    historicalTransactions.stream()
-                            .filter(tx -> accountId.equals(tx.getAccountId()))
-                            .filter(
-                                    tx -> {
-                                        final String desc =
-                                                tx.getDescription() != null
-                                                        ? tx.getDescription().toLowerCase(Locale.ROOT)
-                                                        : "";
-                                        return desc.contains("interest")
-                                                || desc.contains("finance charge");
-                                    })
-                            .sorted(Comparator.comparing(TransactionTable::getTransactionDate))
-                            .collect(Collectors.toList());
+            historicalTransactions.stream()
+                    .filter(tx -> accountId.equals(tx.getAccountId()))
+                    .filter(
+                            tx -> {
+                                final String desc =
+                                        tx.getDescription() != null
+                                                ? tx.getDescription().toLowerCase(Locale.ROOT)
+                                                : "";
+                                return desc.contains("interest") || desc.contains("finance charge");
+                            })
+                    .sorted(Comparator.comparing(TransactionTable::getTransactionDate))
+                    .collect(Collectors.toList());
 
             // Analyze balance trend
-            final List<BigDecimal> balances = extractBalanceHistory(historicalTransactions, accountId);
+            final List<BigDecimal> balances =
+                    extractBalanceHistory(historicalTransactions, accountId);
             final TrendAnalysis balanceTrend = analyzeAmountTrend(balances);
 
             // Predict future interest based on balance trend
@@ -699,7 +703,8 @@ public class FinancialInsightsPredictionService {
             return BigDecimal.ZERO;
         }
 
-        final BigDecimal sum = monthlyIncome.values().stream().reduce(BigDecimal.ZERO, BigDecimal::add);
+        final BigDecimal sum =
+                monthlyIncome.values().stream().reduce(BigDecimal.ZERO, BigDecimal::add);
 
         return sum.divide(BigDecimal.valueOf(monthlyIncome.size()), 2, RoundingMode.HALF_UP);
     }
@@ -734,7 +739,8 @@ public class FinancialInsightsPredictionService {
             return BigDecimal.ZERO;
         }
 
-        final BigDecimal sum = monthlyExpenses.values().stream().reduce(BigDecimal.ZERO, BigDecimal::add);
+        final BigDecimal sum =
+                monthlyExpenses.values().stream().reduce(BigDecimal.ZERO, BigDecimal::add);
 
         return sum.divide(BigDecimal.valueOf(monthlyExpenses.size()), 2, RoundingMode.HALF_UP);
     }
@@ -798,7 +804,8 @@ public class FinancialInsightsPredictionService {
             return 0.5;
         }
 
-        final double mean = savingsRates.stream().mapToDouble(Double::doubleValue).average().orElse(0.0);
+        final double mean =
+                savingsRates.stream().mapToDouble(Double::doubleValue).average().orElse(0.0);
         final double variance =
                 savingsRates.stream().mapToDouble(r -> Math.pow(r - mean, 2)).average().orElse(0.0);
         final double stdDev = Math.sqrt(variance);

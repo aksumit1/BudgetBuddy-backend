@@ -121,7 +121,7 @@ class LocalizationTest {
     void testGetMessageWithArguments() {
         // Given
         LocaleContextHolder.setLocale(Locale.US);
-        final Object[] args = new Object[]{"test@example.com"};
+        final Object[] args = new Object[] {"test@example.com"};
 
         // When
         final String message = messageUtil.getMessage("error.user.not.found", args);

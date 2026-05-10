@@ -1,6 +1,5 @@
 package com.budgetbuddy.service;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
@@ -11,6 +10,7 @@ import com.budgetbuddy.model.dynamodb.AccountTable;
 import com.budgetbuddy.service.circuitbreaker.CircuitBreakerService;
 import com.budgetbuddy.service.ml.EnhancedCategoryDetectionService;
 import com.budgetbuddy.service.ml.MerchantCategoryDataService;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.math.BigDecimal;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -30,6 +30,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
         justification = "Tests deliberately exercise null-input paths")
 @ExtendWith(MockitoExtension.class)
 public class TransactionTypeCategoryServiceNewLogicTest {
+
+    private static final String CREDIT_CARD = "credit_card";
 
     @Mock private PlaidCategoryMapper plaidCategoryMapper;
 
@@ -72,7 +74,7 @@ public class TransactionTypeCategoryServiceNewLogicTest {
         // Given: Credit card account, negative amount, shopping category
         final AccountTable account = new AccountTable();
         account.setAccountType("credit");
-        account.setAccountSubtype("credit_card");
+        account.setAccountSubtype(CREDIT_CARD);
 
         final BigDecimal amount = BigDecimal.valueOf(-100.00);
         final String categoryPrimary = "shopping";
@@ -88,7 +90,7 @@ public class TransactionTypeCategoryServiceNewLogicTest {
                         null, // transactionTypeIndicator
                         description,
                         null // paymentChannel
-                );
+                        );
 
         // Then: Should be EXPENSE (not PAYMENT)
         assertNotNull(result);
@@ -101,7 +103,7 @@ public class TransactionTypeCategoryServiceNewLogicTest {
         // Given: Credit card account, negative amount, payment category
         final AccountTable account = new AccountTable();
         account.setAccountType("credit");
-        account.setAccountSubtype("credit_card");
+        account.setAccountSubtype(CREDIT_CARD);
 
         final BigDecimal amount = BigDecimal.valueOf(-500.00);
         final String categoryPrimary = "payment";
@@ -123,7 +125,7 @@ public class TransactionTypeCategoryServiceNewLogicTest {
         // Given: Credit card account, negative amount, dining category
         final AccountTable account = new AccountTable();
         account.setAccountType("credit");
-        account.setAccountSubtype("credit_card");
+        account.setAccountSubtype(CREDIT_CARD);
 
         final BigDecimal amount = BigDecimal.valueOf(-50.00);
         final String categoryPrimary = "dining";
@@ -145,7 +147,7 @@ public class TransactionTypeCategoryServiceNewLogicTest {
         // Given: Credit card account, negative amount, payment keywords in description
         final AccountTable account = new AccountTable();
         account.setAccountType("credit");
-        account.setAccountSubtype("credit_card");
+        account.setAccountSubtype(CREDIT_CARD);
 
         final BigDecimal amount = BigDecimal.valueOf(-500.00);
         final String categoryPrimary = null;
@@ -308,7 +310,7 @@ public class TransactionTypeCategoryServiceNewLogicTest {
         // Given: Credit card account, negative amount, no category, no payment keywords
         final AccountTable account = new AccountTable();
         account.setAccountType("credit");
-        account.setAccountSubtype("credit_card");
+        account.setAccountSubtype(CREDIT_CARD);
 
         final BigDecimal amount = BigDecimal.valueOf(-100.00);
         final String categoryPrimary = null;

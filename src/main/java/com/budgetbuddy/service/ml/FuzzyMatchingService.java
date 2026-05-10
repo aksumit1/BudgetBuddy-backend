@@ -1,12 +1,11 @@
 package com.budgetbuddy.service.ml;
 
-
-import java.util.Locale;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
 import org.apache.commons.text.similarity.JaroWinklerSimilarity;
 import org.slf4j.Logger;
@@ -416,7 +415,8 @@ public class FuzzyMatchingService {
             return 0.0;
         }
 
-        final Set<String> queryTokens = new HashSet<>(Arrays.asList(query.toLowerCase(Locale.ROOT).split("\\s+")));
+        final Set<String> queryTokens =
+                new HashSet<>(Arrays.asList(query.toLowerCase(Locale.ROOT).split("\\s+")));
         final Set<String> candidateTokens =
                 new HashSet<>(Arrays.asList(candidate.toLowerCase(Locale.ROOT).split("\\s+")));
 

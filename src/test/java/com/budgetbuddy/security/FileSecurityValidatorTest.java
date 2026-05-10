@@ -1,7 +1,5 @@
 package com.budgetbuddy.security;
 
-
-import java.nio.charset.StandardCharsets;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -10,6 +8,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.budgetbuddy.exception.AppException;
 import com.budgetbuddy.exception.ErrorCode;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
@@ -22,6 +21,8 @@ import org.springframework.web.multipart.MultipartFile;
  * Malicious file uploads - File type spoofing - Oversized files - Dangerous file extensions
  */
 class FileSecurityValidatorTest {
+
+    private static final String FILE = "file";
 
     private FileSecurityValidator validator;
 
@@ -36,10 +37,11 @@ class FileSecurityValidatorTest {
     void testValidateFileNameWithPathTraversalThrowsException() {
         final MultipartFile file =
                 new MockMultipartFile(
-                        "file",
+                        FILE,
                         "../../../etc/passwd",
                         "text/csv",
-                        "date,amount,description\n2025-01-01,100.00,Test".getBytes(StandardCharsets.UTF_8));
+                        "date,amount,description\n2025-01-01,100.00,Test"
+                                .getBytes(StandardCharsets.UTF_8));
 
         final AppException exception =
                 assertThrows(
@@ -56,10 +58,11 @@ class FileSecurityValidatorTest {
     void testValidateFileNameWithEncodedPathTraversalThrowsException() {
         final MultipartFile file =
                 new MockMultipartFile(
-                        "file",
+                        FILE,
                         "file.csv%00../../../etc/passwd",
                         "text/csv",
-                        "date,amount,description\n2025-01-01,100.00,Test".getBytes(StandardCharsets.UTF_8));
+                        "date,amount,description\n2025-01-01,100.00,Test"
+                                .getBytes(StandardCharsets.UTF_8));
 
         final AppException exception =
                 assertThrows(
@@ -75,10 +78,11 @@ class FileSecurityValidatorTest {
     void testValidateFileNameWithBackslashPathTraversalThrowsException() {
         final MultipartFile file =
                 new MockMultipartFile(
-                        "file",
+                        FILE,
                         "..\\..\\..\\windows\\system32\\config\\sam",
                         "text/csv",
-                        "date,amount,description\n2025-01-01,100.00,Test".getBytes(StandardCharsets.UTF_8));
+                        "date,amount,description\n2025-01-01,100.00,Test"
+                                .getBytes(StandardCharsets.UTF_8));
 
         final AppException exception =
                 assertThrows(
@@ -133,11 +137,11 @@ class FileSecurityValidatorTest {
     void testValidateFileUploadWithDangerousExtensionThrowsException() {
         final MultipartFile file =
                 new MockMultipartFile(
-                        "file",
+                        FILE,
                         "malware.exe",
                         "application/x-msdownload",
-                        new byte[]{0x4D, 0x5A} // PE executable signature
-                );
+                        new byte[] {0x4D, 0x5A} // PE executable signature
+                        );
 
         final AppException exception =
                 assertThrows(
@@ -154,7 +158,7 @@ class FileSecurityValidatorTest {
     void testValidateFileUploadWithScriptExtensionThrowsException() {
         final MultipartFile file =
                 new MockMultipartFile(
-                        "file",
+                        FILE,
                         "script.sh",
                         "application/x-sh",
                         "#!/bin/bash\necho 'malicious'".getBytes(StandardCharsets.UTF_8));
@@ -172,7 +176,11 @@ class FileSecurityValidatorTest {
     @Test
     void testValidateFileUploadWithWrongExtensionThrowsException() {
         final MultipartFile file =
-                new MockMultipartFile("file", "data.pdf", "application/pdf", "%PDF-1.4".getBytes(StandardCharsets.UTF_8));
+                new MockMultipartFile(
+                        FILE,
+                        "data.pdf",
+                        "application/pdf",
+                        "%PDF-1.4".getBytes(StandardCharsets.UTF_8));
 
         final AppException exception =
                 assertThrows(
@@ -190,7 +198,8 @@ class FileSecurityValidatorTest {
     void testValidateFileUploadWithOversizedFileThrowsException() {
         // Create a file larger than 10MB
         final byte[] largeContent = new byte[11 * 1024 * 1024]; // 11MB
-        final MultipartFile file = new MockMultipartFile("file", "large.csv", "text/csv", largeContent);
+        final MultipartFile file =
+                new MockMultipartFile(FILE, "large.csv", "text/csv", largeContent);
 
         final AppException exception =
                 assertThrows(
@@ -210,10 +219,11 @@ class FileSecurityValidatorTest {
         // File has .pdf extension but contains CSV content
         final MultipartFile file =
                 new MockMultipartFile(
-                        "file",
+                        FILE,
                         "spoofed.pdf",
                         "application/pdf",
-                        "date,amount,description\n2025-01-01,100.00,Test".getBytes(StandardCharsets.UTF_8));
+                        "date,amount,description\n2025-01-01,100.00,Test"
+                                .getBytes(StandardCharsets.UTF_8));
 
         final AppException exception =
                 assertThrows(
@@ -231,13 +241,13 @@ class FileSecurityValidatorTest {
         // File has .csv extension but contains binary content
         final MultipartFile file =
                 new MockMultipartFile(
-                        "file",
+                        FILE,
                         "spoofed.csv",
                         "text/csv",
-                        new byte[]{
-                                (byte) 0x4D, (byte) 0x5A, (byte) 0x90, (byte) 0x00
+                        new byte[] {
+                            (byte) 0x4D, (byte) 0x5A, (byte) 0x90, (byte) 0x00
                         } // PE executable signature
-                );
+                        );
 
         final AppException exception =
                 assertThrows(
@@ -252,9 +262,10 @@ class FileSecurityValidatorTest {
     @Test
     void testValidateFileUploadWithValidPDFPasses() {
         // Valid PDF with correct magic bytes
-        final byte[] pdfContent = new byte[]{0x25, 0x50, 0x44, 0x46, 0x2D, 0x31, 0x2E, 0x34}; // %PDF-1.4
+        final byte[] pdfContent =
+                new byte[] {0x25, 0x50, 0x44, 0x46, 0x2D, 0x31, 0x2E, 0x34}; // %PDF-1.4
         final MultipartFile file =
-                new MockMultipartFile("file", "valid.pdf", "application/pdf", pdfContent);
+                new MockMultipartFile(FILE, "valid.pdf", "application/pdf", pdfContent);
 
         assertDoesNotThrow(
                 () -> {
@@ -266,10 +277,11 @@ class FileSecurityValidatorTest {
     void testValidateFileUploadWithValidCSVPasses() {
         final MultipartFile file =
                 new MockMultipartFile(
-                        "file",
+                        FILE,
                         "valid.csv",
                         "text/csv",
-                        "date,amount,description\n2025-01-01,100.00,Test".getBytes(StandardCharsets.UTF_8));
+                        "date,amount,description\n2025-01-01,100.00,Test"
+                                .getBytes(StandardCharsets.UTF_8));
 
         assertDoesNotThrow(
                 () -> {
@@ -366,7 +378,8 @@ class FileSecurityValidatorTest {
     @Test
     void testValidateFileUploadWithEmptyFilenameThrowsException() {
         final MultipartFile file =
-                new MockMultipartFile("file", "", "text/csv", "date,amount".getBytes(StandardCharsets.UTF_8));
+                new MockMultipartFile(
+                        FILE, "", "text/csv", "date,amount".getBytes(StandardCharsets.UTF_8));
 
         final AppException exception =
                 assertThrows(
@@ -381,7 +394,11 @@ class FileSecurityValidatorTest {
     @Test
     void testValidateFileUploadWithNoExtensionThrowsException() {
         final MultipartFile file =
-                new MockMultipartFile("file", "filename", "text/csv", "date,amount".getBytes(StandardCharsets.UTF_8));
+                new MockMultipartFile(
+                        FILE,
+                        "filename",
+                        "text/csv",
+                        "date,amount".getBytes(StandardCharsets.UTF_8));
 
         final AppException exception =
                 assertThrows(
@@ -397,7 +414,8 @@ class FileSecurityValidatorTest {
     void testValidateFileUploadWithVeryLongFilenameThrowsException() {
         final String longName = "a".repeat(256) + ".csv";
         final MultipartFile file =
-                new MockMultipartFile("file", longName, "text/csv", "date,amount".getBytes(StandardCharsets.UTF_8));
+                new MockMultipartFile(
+                        FILE, longName, "text/csv", "date,amount".getBytes(StandardCharsets.UTF_8));
 
         final AppException exception =
                 assertThrows(

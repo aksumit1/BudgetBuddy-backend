@@ -16,6 +16,8 @@ import org.mockito.Mockito;
 @DisplayName("Real-World Statement Integration Tests")
 class RealWorldStatementIntegrationTest {
 
+    private static final String DESCRIPTION = "description";
+
     private EnhancedPatternMatcher matcher;
     private PDFImportService pdfImportService;
     private AccountDetectionService accountDetectionService;
@@ -50,7 +52,7 @@ class RealWorldStatementIntegrationTest {
             if (result.isMatched()) {
                 matchedCount++;
                 assertNotNull(result.getFields().get("date"));
-                assertNotNull(result.getFields().get("description"));
+                assertNotNull(result.getFields().get(DESCRIPTION));
                 assertNotNull(result.getFields().get("amount"));
             }
         }
@@ -73,8 +75,8 @@ class RealWorldStatementIntegrationTest {
             if (result.isMatched()) {
                 matchedCount++;
                 assertTrue(
-                        result.getFields().get("description").contains("WSDOT")
-                                || result.getFields().get("description").contains("COMCAST"));
+                        result.getFields().get(DESCRIPTION).contains("WSDOT")
+                                || result.getFields().get(DESCRIPTION).contains("COMCAST"));
             }
         }
 
@@ -98,9 +100,9 @@ class RealWorldStatementIntegrationTest {
             if (result.isMatched()) {
                 matchedCount++;
                 assertTrue(
-                        result.getFields().get("description").contains("DOLLAR")
-                                || result.getFields().get("description").contains("CHEFSTORE")
-                                || result.getFields().get("description").contains("COSTCO"));
+                        result.getFields().get(DESCRIPTION).contains("DOLLAR")
+                                || result.getFields().get(DESCRIPTION).contains("CHEFSTORE")
+                                || result.getFields().get(DESCRIPTION).contains("COSTCO"));
             }
         }
 
@@ -124,7 +126,7 @@ class RealWorldStatementIntegrationTest {
                 // Verify all required fields are present
                 assertNotNull(result.getFields().get("date"), "Date should not be null");
                 assertNotNull(
-                        result.getFields().get("description"), "Description should not be null");
+                        result.getFields().get(DESCRIPTION), "Description should not be null");
                 assertNotNull(result.getFields().get("amount"), "Amount should not be null");
                 // Verify confidence is reasonable
                 assertTrue(result.getConfidence() > 0.0, "Confidence should be positive");

@@ -1,6 +1,5 @@
 package com.budgetbuddy.security;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -11,6 +10,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -39,6 +39,8 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
         justification = "JUnit idiom — test methods accept any setup exception")
 @ExtendWith(MockitoExtension.class)
 class JwtAuthenticationFilterTest {
+
+    private static final String AUTHORIZATION = "Authorization";
 
     @Mock private JwtTokenProvider tokenProvider;
 
@@ -72,7 +74,7 @@ class JwtAuthenticationFilterTest {
                                 Collections.singletonList(new SimpleGrantedAuthority("ROLE_USER")))
                         .build();
 
-        when(request.getHeader("Authorization")).thenReturn(BEARER_TOKEN);
+        when(request.getHeader(AUTHORIZATION)).thenReturn(BEARER_TOKEN);
         when(tokenProvider.validateToken(VALID_TOKEN)).thenReturn(true);
         when(tokenProvider.getUsernameFromToken(VALID_TOKEN)).thenReturn(TEST_USERNAME);
         when(userDetailsService.loadUserByUsername(TEST_USERNAME)).thenReturn(userDetails);
@@ -92,7 +94,7 @@ class JwtAuthenticationFilterTest {
     @Test
     void testDoFilterInternalWithInvalidTokenShouldNotSetAuthentication() throws Exception {
         // Given
-        when(request.getHeader("Authorization")).thenReturn(BEARER_TOKEN);
+        when(request.getHeader(AUTHORIZATION)).thenReturn(BEARER_TOKEN);
         when(tokenProvider.validateToken(VALID_TOKEN)).thenReturn(false);
 
         // When
@@ -108,7 +110,7 @@ class JwtAuthenticationFilterTest {
     @Test
     void testDoFilterInternalWithNoTokenShouldNotSetAuthentication() throws Exception {
         // Given
-        when(request.getHeader("Authorization")).thenReturn(null);
+        when(request.getHeader(AUTHORIZATION)).thenReturn(null);
 
         // When
         jwtAuthenticationFilter.doFilterInternal(request, response, filterChain);
@@ -123,7 +125,7 @@ class JwtAuthenticationFilterTest {
     @Test
     void testDoFilterInternalWithUserNotFoundShouldNotSetAuthentication() throws Exception {
         // Given
-        when(request.getHeader("Authorization")).thenReturn(BEARER_TOKEN);
+        when(request.getHeader(AUTHORIZATION)).thenReturn(BEARER_TOKEN);
         when(tokenProvider.validateToken(VALID_TOKEN)).thenReturn(true);
         when(tokenProvider.getUsernameFromToken(VALID_TOKEN)).thenReturn(TEST_USERNAME);
         when(userDetailsService.loadUserByUsername(TEST_USERNAME))
@@ -142,7 +144,7 @@ class JwtAuthenticationFilterTest {
     @Test
     void testDoFilterInternalWithJwtExceptionShouldNotSetAuthentication() throws Exception {
         // Given
-        when(request.getHeader("Authorization")).thenReturn(BEARER_TOKEN);
+        when(request.getHeader(AUTHORIZATION)).thenReturn(BEARER_TOKEN);
         when(tokenProvider.validateToken(VALID_TOKEN))
                 .thenThrow(new io.jsonwebtoken.JwtException("Invalid token"));
 
@@ -159,7 +161,7 @@ class JwtAuthenticationFilterTest {
     @Test
     void testDoFilterInternalWithEmptyUsernameShouldNotSetAuthentication() throws Exception {
         // Given
-        when(request.getHeader("Authorization")).thenReturn(BEARER_TOKEN);
+        when(request.getHeader(AUTHORIZATION)).thenReturn(BEARER_TOKEN);
         when(tokenProvider.validateToken(VALID_TOKEN)).thenReturn(true);
         when(tokenProvider.getUsernameFromToken(VALID_TOKEN)).thenReturn("");
 
@@ -176,7 +178,7 @@ class JwtAuthenticationFilterTest {
     @Test
     void testDoFilterInternalWithNullUsernameShouldNotSetAuthentication() throws Exception {
         // Given
-        when(request.getHeader("Authorization")).thenReturn(BEARER_TOKEN);
+        when(request.getHeader(AUTHORIZATION)).thenReturn(BEARER_TOKEN);
         when(tokenProvider.validateToken(VALID_TOKEN)).thenReturn(true);
         when(tokenProvider.getUsernameFromToken(VALID_TOKEN)).thenReturn(null);
 
@@ -193,7 +195,7 @@ class JwtAuthenticationFilterTest {
     @Test
     void testDoFilterInternalWithUnexpectedExceptionShouldContinueFilterChain() throws Exception {
         // Given
-        when(request.getHeader("Authorization")).thenReturn(BEARER_TOKEN);
+        when(request.getHeader(AUTHORIZATION)).thenReturn(BEARER_TOKEN);
         when(tokenProvider.validateToken(VALID_TOKEN))
                 .thenThrow(new RuntimeException("Unexpected error"));
 
@@ -208,7 +210,7 @@ class JwtAuthenticationFilterTest {
     @Test
     void testDoFilterInternalWithNullUserDetailsShouldNotSetAuthentication() throws Exception {
         // Given
-        when(request.getHeader("Authorization")).thenReturn(BEARER_TOKEN);
+        when(request.getHeader(AUTHORIZATION)).thenReturn(BEARER_TOKEN);
         when(tokenProvider.validateToken(VALID_TOKEN)).thenReturn(true);
         when(tokenProvider.getUsernameFromToken(VALID_TOKEN)).thenReturn(TEST_USERNAME);
         when(userDetailsService.loadUserByUsername(TEST_USERNAME)).thenReturn(null);
@@ -225,7 +227,7 @@ class JwtAuthenticationFilterTest {
     @Test
     void testDoFilterInternalWithTokenWithoutBearerPrefixShouldNotProcess() throws Exception {
         // Given
-        when(request.getHeader("Authorization")).thenReturn(VALID_TOKEN); // No "Bearer " prefix
+        when(request.getHeader(AUTHORIZATION)).thenReturn(VALID_TOKEN); // No "Bearer " prefix
 
         // When
         jwtAuthenticationFilter.doFilterInternal(request, response, filterChain);

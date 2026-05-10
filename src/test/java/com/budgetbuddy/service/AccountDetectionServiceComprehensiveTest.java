@@ -37,6 +37,9 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @DisplayName("AccountDetectionService Comprehensive Tests")
 class AccountDetectionServiceComprehensiveTest {
 
+    private static final String CHASE = "Chase";
+    private static final String DESCRIPTION = "description";
+
     @Mock private AccountRepository accountRepository;
 
     private AccountDetectionService accountDetectionService;
@@ -81,7 +84,7 @@ class AccountDetectionServiceComprehensiveTest {
         final AccountDetectionService.DetectedAccount result =
                 accountDetectionService.detectFromHeaders(null, filename);
         assertNotNull(result);
-        assertEquals("Chase", result.getInstitutionName());
+        assertEquals(CHASE, result.getInstitutionName());
     }
 
     @Test
@@ -91,7 +94,7 @@ class AccountDetectionServiceComprehensiveTest {
         final AccountDetectionService.DetectedAccount result =
                 accountDetectionService.detectFromHeaders(Collections.emptyList(), filename);
         assertNotNull(result);
-        assertEquals("Chase", result.getInstitutionName());
+        assertEquals(CHASE, result.getInstitutionName());
     }
 
     @Test
@@ -101,7 +104,7 @@ class AccountDetectionServiceComprehensiveTest {
         final AccountDetectionService.DetectedAccount result =
                 accountDetectionService.detectFromPDFContent(null, filename);
         assertNotNull(result);
-        assertEquals("Chase", result.getInstitutionName());
+        assertEquals(CHASE, result.getInstitutionName());
     }
 
     @Test
@@ -111,7 +114,7 @@ class AccountDetectionServiceComprehensiveTest {
         final AccountDetectionService.DetectedAccount result =
                 accountDetectionService.detectFromPDFContent("", filename);
         assertNotNull(result);
-        assertEquals("Chase", result.getInstitutionName());
+        assertEquals(CHASE, result.getInstitutionName());
     }
 
     @Test
@@ -137,7 +140,7 @@ class AccountDetectionServiceComprehensiveTest {
         final AccountDetectionService.DetectedAccount detected =
                 new AccountDetectionService.DetectedAccount();
         detected.setAccountNumber("1234");
-        detected.setInstitutionName("Chase");
+        detected.setInstitutionName(CHASE);
 
         when(accountRepository.findByAccountNumberAndInstitution(
                         anyString(), anyString(), anyString()))
@@ -163,7 +166,7 @@ class AccountDetectionServiceComprehensiveTest {
         final AccountDetectionService.DetectedAccount result =
                 accountDetectionService.detectFromFilename(longFilename.toString());
         assertNotNull(result);
-        assertEquals("Chase", result.getInstitutionName());
+        assertEquals(CHASE, result.getInstitutionName());
         assertEquals("1234", result.getAccountNumber());
     }
 
@@ -174,7 +177,7 @@ class AccountDetectionServiceComprehensiveTest {
         final AccountDetectionService.DetectedAccount result =
                 accountDetectionService.detectFromFilename(filename);
         assertNotNull(result);
-        assertEquals("Chase", result.getInstitutionName());
+        assertEquals(CHASE, result.getInstitutionName());
     }
 
     @Test
@@ -184,7 +187,7 @@ class AccountDetectionServiceComprehensiveTest {
         final AccountDetectionService.DetectedAccount result =
                 accountDetectionService.detectFromFilename(filename);
         assertNotNull(result);
-        assertEquals("Chase", result.getInstitutionName());
+        assertEquals(CHASE, result.getInstitutionName());
         assertEquals("1234", result.getAccountNumber());
     }
 
@@ -195,7 +198,7 @@ class AccountDetectionServiceComprehensiveTest {
         final AccountDetectionService.DetectedAccount result =
                 accountDetectionService.detectFromFilename(filename);
         assertNotNull(result);
-        assertEquals("Chase", result.getInstitutionName());
+        assertEquals(CHASE, result.getInstitutionName());
         assertEquals("1234", result.getAccountNumber());
     }
 
@@ -218,7 +221,7 @@ class AccountDetectionServiceComprehensiveTest {
         final AccountDetectionService.DetectedAccount result =
                 accountDetectionService.detectFromFilename(filename);
         assertNotNull(result);
-        assertEquals("Chase", result.getInstitutionName());
+        assertEquals(CHASE, result.getInstitutionName());
         assertEquals("3100", result.getAccountNumber());
     }
 
@@ -252,7 +255,7 @@ class AccountDetectionServiceComprehensiveTest {
         final AccountDetectionService.DetectedAccount result =
                 accountDetectionService.detectFromHeaders(headers, "chase_checking_1234.csv");
         assertNotNull(result);
-        assertEquals("Chase", result.getInstitutionName());
+        assertEquals(CHASE, result.getInstitutionName());
     }
 
     @Test
@@ -265,7 +268,7 @@ class AccountDetectionServiceComprehensiveTest {
         final AccountDetectionService.DetectedAccount result =
                 accountDetectionService.detectFromPDFContent(longText.toString(), "test.pdf");
         assertNotNull(result);
-        assertEquals("Chase", result.getInstitutionName());
+        assertEquals(CHASE, result.getInstitutionName());
     }
 
     @Test
@@ -275,7 +278,7 @@ class AccountDetectionServiceComprehensiveTest {
         final AccountDetectionService.DetectedAccount result =
                 accountDetectionService.detectFromPDFContent(text, "chase_checking_1234.pdf");
         assertNotNull(result);
-        assertEquals("Chase", result.getInstitutionName());
+        assertEquals(CHASE, result.getInstitutionName());
     }
 
     // ========== Boundary Conditions Tests ==========
@@ -287,7 +290,7 @@ class AccountDetectionServiceComprehensiveTest {
         final AccountDetectionService.DetectedAccount result =
                 accountDetectionService.detectFromFilename(filename + "1234.csv");
         assertNotNull(result);
-        assertEquals("Chase", result.getInstitutionName());
+        assertEquals(CHASE, result.getInstitutionName());
     }
 
     @Test
@@ -297,7 +300,7 @@ class AccountDetectionServiceComprehensiveTest {
         final AccountDetectionService.DetectedAccount result =
                 accountDetectionService.detectFromFilename(filename);
         assertNotNull(result);
-        assertEquals("Chase", result.getInstitutionName());
+        assertEquals(CHASE, result.getInstitutionName());
         // May or may not extract account number depending on pattern
     }
 
@@ -308,7 +311,7 @@ class AccountDetectionServiceComprehensiveTest {
         final AccountDetectionService.DetectedAccount result =
                 accountDetectionService.detectFromFilename(filename);
         assertNotNull(result);
-        assertEquals("Chase", result.getInstitutionName());
+        assertEquals(CHASE, result.getInstitutionName());
         assertEquals("1234", result.getAccountNumber());
     }
 
@@ -316,8 +319,9 @@ class AccountDetectionServiceComprehensiveTest {
     @DisplayName(
             "detectFromHeaders with exactly 3 transaction columns detects as transaction table")
     void testDetectFromHeadersExactlyThreeTransactionColumnsDetectsAsTransactionTable() {
-        final List<String> headers = Arrays.asList("date", "amount", "description");
-        final boolean isTransactionTable = accountDetectionService.isTransactionTableHeaders(headers);
+        final List<String> headers = Arrays.asList("date", "amount", DESCRIPTION);
+        final boolean isTransactionTable =
+                accountDetectionService.isTransactionTableHeaders(headers);
         assertTrue(isTransactionTable);
     }
 
@@ -326,15 +330,18 @@ class AccountDetectionServiceComprehensiveTest {
             "detectFromHeaders with 2 transaction columns does not detect as transaction table")
     void testDetectFromHeadersTwoTransactionColumnsNotDetectedAsTransactionTable() {
         final List<String> headers = Arrays.asList("date", "amount");
-        final boolean isTransactionTable = accountDetectionService.isTransactionTableHeaders(headers);
+        final boolean isTransactionTable =
+                accountDetectionService.isTransactionTableHeaders(headers);
         assertFalse(isTransactionTable);
     }
 
     @Test
     @DisplayName("detectFromHeaders with mixed case transaction columns detects correctly")
     void testDetectFromHeadersMixedCaseTransactionColumnsDetectsCorrectly() {
-        final List<String> headers = Arrays.asList("Date", "AMOUNT", "Description", "Balance", "Type");
-        final boolean isTransactionTable = accountDetectionService.isTransactionTableHeaders(headers);
+        final List<String> headers =
+                Arrays.asList("Date", "AMOUNT", "Description", "Balance", "Type");
+        final boolean isTransactionTable =
+                accountDetectionService.isTransactionTableHeaders(headers);
         assertTrue(isTransactionTable);
     }
 
@@ -344,7 +351,7 @@ class AccountDetectionServiceComprehensiveTest {
         final String userId = "user-123";
         final AccountDetectionService.DetectedAccount detected =
                 new AccountDetectionService.DetectedAccount();
-        detected.setInstitutionName("Chase");
+        detected.setInstitutionName(CHASE);
         detected.setAccountType("depository");
         // NOTE: No accountNumber set - so findByAccountNumberAndInstitution and findByAccountNumber
         // won't be called
@@ -375,7 +382,7 @@ class AccountDetectionServiceComprehensiveTest {
                 Arrays.asList(
                         "details",
                         "posting date",
-                        "description",
+                        DESCRIPTION,
                         "amount",
                         "type",
                         "balance",
@@ -397,7 +404,7 @@ class AccountDetectionServiceComprehensiveTest {
     @DisplayName("isTransactionTableHeaders with mixed headers detects correctly")
     void testIsTransactionTableHeadersMixedHeadersDetectsCorrectly() {
         final List<String> headers =
-                Arrays.asList("account name", "date", "amount", "description", "balance");
+                Arrays.asList("account name", "date", "amount", DESCRIPTION, "balance");
         final boolean result = accountDetectionService.isTransactionTableHeaders(headers);
         assertTrue(result, "Should detect transaction table when 3+ transaction columns present");
     }
@@ -408,7 +415,9 @@ class AccountDetectionServiceComprehensiveTest {
     @MethodSource("filenamePatternProvider")
     @DisplayName("detectFromFilename with various filename patterns")
     void testDetectFromFilenameVariousPatterns(
-            final String filename, final String expectedInstitution, final String expectedAccountNumber) {
+            final String filename,
+            final String expectedInstitution,
+            final String expectedAccountNumber) {
         final AccountDetectionService.DetectedAccount result =
                 accountDetectionService.detectFromFilename(filename);
         assertNotNull(result);
@@ -422,10 +431,10 @@ class AccountDetectionServiceComprehensiveTest {
 
     static Stream<Arguments> filenamePatternProvider() {
         return Stream.of(
-                Arguments.of("Chase3100_Activity_20251221.csv", "Chase", "3100"),
-                Arguments.of("chase_3100_activity.csv", "Chase", "3100"),
-                Arguments.of("chase 3100 activity.csv", "Chase", "3100"),
-                Arguments.of("CHASE3100.csv", "Chase", "3100"),
+                Arguments.of("Chase3100_Activity_20251221.csv", CHASE, "3100"),
+                Arguments.of("chase_3100_activity.csv", CHASE, "3100"),
+                Arguments.of("chase 3100 activity.csv", CHASE, "3100"),
+                Arguments.of("CHASE3100.csv", CHASE, "3100"),
                 Arguments.of("bofa_5678_statement.pdf", "Bank of America", "5678"),
                 Arguments.of("wells_fargo_9012.xlsx", "Wells Fargo", "9012"),
                 Arguments.of("capital_one_3456.csv", "Capital One", "3456"));
@@ -555,7 +564,7 @@ class AccountDetectionServiceComprehensiveTest {
         assertEquals(threadCount, results.size());
         for (final AccountDetectionService.DetectedAccount result : results) {
             assertNotNull(result);
-            assertEquals("Chase", result.getInstitutionName());
+            assertEquals(CHASE, result.getInstitutionName());
         }
     }
 
@@ -573,7 +582,7 @@ class AccountDetectionServiceComprehensiveTest {
                     new Thread(
                             () -> {
                                 final List<String> headers =
-                                        Arrays.asList("date", "amount", "description");
+                                        Arrays.asList("date", "amount", DESCRIPTION);
                                 final String filename = "chase_checking_" + index + ".csv";
                                 final AccountDetectionService.DetectedAccount result =
                                         accountDetectionService.detectFromHeaders(
@@ -593,7 +602,7 @@ class AccountDetectionServiceComprehensiveTest {
         assertEquals(threadCount, results.size());
         for (final AccountDetectionService.DetectedAccount result : results) {
             assertNotNull(result);
-            assertEquals("Chase", result.getInstitutionName());
+            assertEquals(CHASE, result.getInstitutionName());
         }
     }
 
@@ -624,15 +633,14 @@ class AccountDetectionServiceComprehensiveTest {
     @DisplayName("detectFromHeaders with transaction table prioritizes filename")
     void testDetectFromHeadersTransactionTablePrioritizesFilename() {
         final List<String> headers =
-                Arrays.asList(
-                        "details", "posting date", "description", "amount", "type", "balance");
+                Arrays.asList("details", "posting date", DESCRIPTION, "amount", "type", "balance");
         final String filename = "Chase3100_Activity_20251221.csv";
 
         final AccountDetectionService.DetectedAccount result =
                 accountDetectionService.detectFromHeaders(headers, filename);
 
         assertNotNull(result);
-        assertEquals("Chase", result.getInstitutionName());
+        assertEquals(CHASE, result.getInstitutionName());
         assertEquals("3100", result.getAccountNumber());
         // Should not extract institution from transaction headers
     }

@@ -1,6 +1,5 @@
 package com.budgetbuddy.service;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -9,6 +8,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.budgetbuddy.exception.AppException;
 import com.budgetbuddy.exception.ErrorCode;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
@@ -24,6 +24,11 @@ import org.junit.jupiter.api.Test;
         value = "THROWS_METHOD_THROWS_CLAUSE_BASIC_EXCEPTION",
         justification = "JUnit idiom — test methods accept any setup exception")
 class PDFImportServiceTest {
+
+    private static final String DATE = "date";
+    private static final String AMOUNT = "amount";
+    private static final String DESCRIPTION = "description";
+    private static final String PARSETRANSACTION = "parseTransaction";
 
     private PDFImportService pdfImportService;
 
@@ -140,9 +145,9 @@ class PDFImportServiceTest {
     void testParseTransactionWithCreditCardAccountReversesSign() throws Exception {
         // Given
         final java.util.Map<String, String> row = new java.util.HashMap<>();
-        row.put("date", "01/15/2024");
-        row.put("description", "Grocery Store");
-        row.put("amount", "50.00");
+        row.put(DATE, "01/15/2024");
+        row.put(DESCRIPTION, "Grocery Store");
+        row.put(AMOUNT, "50.00");
 
         final AccountDetectionService.DetectedAccount creditCardAccount =
                 new AccountDetectionService.DetectedAccount();
@@ -152,7 +157,7 @@ class PDFImportServiceTest {
         // Use reflection to access private parseTransaction method
         final java.lang.reflect.Method parseTransactionMethod =
                 PDFImportService.class.getDeclaredMethod(
-                        "parseTransaction",
+                        PARSETRANSACTION,
                         java.util.Map.class,
                         int.class,
                         Integer.class,
@@ -183,9 +188,9 @@ class PDFImportServiceTest {
             throws Exception {
         // Given - Credit card payment (negative in import, should reverse to positive)
         final java.util.Map<String, String> row = new java.util.HashMap<>();
-        row.put("date", "01/15/2024");
-        row.put("description", "Payment");
-        row.put("amount", "-100.00");
+        row.put(DATE, "01/15/2024");
+        row.put(DESCRIPTION, "Payment");
+        row.put(AMOUNT, "-100.00");
 
         final AccountDetectionService.DetectedAccount creditCardAccount =
                 new AccountDetectionService.DetectedAccount();
@@ -194,7 +199,7 @@ class PDFImportServiceTest {
         // Use reflection to access private parseTransaction method
         final java.lang.reflect.Method parseTransactionMethod =
                 PDFImportService.class.getDeclaredMethod(
-                        "parseTransaction",
+                        PARSETRANSACTION,
                         java.util.Map.class,
                         int.class,
                         Integer.class,
@@ -224,9 +229,9 @@ class PDFImportServiceTest {
     void testParseTransactionWithNonCreditCardAccountDoesNotReverseSign() throws Exception {
         // Given
         final java.util.Map<String, String> row = new java.util.HashMap<>();
-        row.put("date", "01/15/2024");
-        row.put("description", "Grocery Store");
-        row.put("amount", "50.00");
+        row.put(DATE, "01/15/2024");
+        row.put(DESCRIPTION, "Grocery Store");
+        row.put(AMOUNT, "50.00");
 
         final AccountDetectionService.DetectedAccount checkingAccount =
                 new AccountDetectionService.DetectedAccount();
@@ -235,7 +240,7 @@ class PDFImportServiceTest {
         // Use reflection to access private parseTransaction method
         final java.lang.reflect.Method parseTransactionMethod =
                 PDFImportService.class.getDeclaredMethod(
-                        "parseTransaction",
+                        PARSETRANSACTION,
                         java.util.Map.class,
                         int.class,
                         Integer.class,
@@ -265,14 +270,14 @@ class PDFImportServiceTest {
     void testParseTransactionWithNullDetectedAccountDoesNotReverseSign() throws Exception {
         // Given
         final java.util.Map<String, String> row = new java.util.HashMap<>();
-        row.put("date", "01/15/2024");
-        row.put("description", "Grocery Store");
-        row.put("amount", "50.00");
+        row.put(DATE, "01/15/2024");
+        row.put(DESCRIPTION, "Grocery Store");
+        row.put(AMOUNT, "50.00");
 
         // Use reflection to access private parseTransaction method
         final java.lang.reflect.Method parseTransactionMethod =
                 PDFImportService.class.getDeclaredMethod(
-                        "parseTransaction",
+                        PARSETRANSACTION,
                         java.util.Map.class,
                         int.class,
                         Integer.class,
@@ -296,9 +301,9 @@ class PDFImportServiceTest {
     void testParseTransactionWithNullAccountTypeDoesNotReverseSign() throws Exception {
         // Given
         final java.util.Map<String, String> row = new java.util.HashMap<>();
-        row.put("date", "01/15/2024");
-        row.put("description", "Grocery Store");
-        row.put("amount", "50.00");
+        row.put(DATE, "01/15/2024");
+        row.put(DESCRIPTION, "Grocery Store");
+        row.put(AMOUNT, "50.00");
 
         final AccountDetectionService.DetectedAccount account =
                 new AccountDetectionService.DetectedAccount();
@@ -307,7 +312,7 @@ class PDFImportServiceTest {
         // Use reflection to access private parseTransaction method
         final java.lang.reflect.Method parseTransactionMethod =
                 PDFImportService.class.getDeclaredMethod(
-                        "parseTransaction",
+                        PARSETRANSACTION,
                         java.util.Map.class,
                         int.class,
                         Integer.class,
@@ -331,9 +336,9 @@ class PDFImportServiceTest {
     void testParseTransactionWithCreditCardAccountZeroAmountRejected() throws Exception {
         // Given - Zero amounts are rejected by parseAmount as invalid transactions
         final java.util.Map<String, String> row = new java.util.HashMap<>();
-        row.put("date", "01/15/2024");
-        row.put("description", "Zero Transaction");
-        row.put("amount", "0.00");
+        row.put(DATE, "01/15/2024");
+        row.put(DESCRIPTION, "Zero Transaction");
+        row.put(AMOUNT, "0.00");
 
         final AccountDetectionService.DetectedAccount creditCardAccount =
                 new AccountDetectionService.DetectedAccount();
@@ -342,7 +347,7 @@ class PDFImportServiceTest {
         // Use reflection to access private parseTransaction method
         final java.lang.reflect.Method parseTransactionMethod =
                 PDFImportService.class.getDeclaredMethod(
-                        "parseTransaction",
+                        PARSETRANSACTION,
                         java.util.Map.class,
                         int.class,
                         Integer.class,
@@ -381,7 +386,7 @@ class PDFImportServiceTest {
         // Use reflection to access private parseTransaction method
         final java.lang.reflect.Method parseTransactionMethod =
                 PDFImportService.class.getDeclaredMethod(
-                        "parseTransaction",
+                        PARSETRANSACTION,
                         java.util.Map.class,
                         int.class,
                         Integer.class,
@@ -393,9 +398,9 @@ class PDFImportServiceTest {
         // Test 1: Grocery shopping at safeway $100 (expense - positive in statement, should be
         // negative in DB)
         final java.util.Map<String, String> expenseRow = new java.util.HashMap<>();
-        expenseRow.put("date", "01/15/2024");
-        expenseRow.put("description", "Grocery shopping at safeway");
-        expenseRow.put("amount", "$100.00"); // Positive amount in credit card statement (expense)
+        expenseRow.put(DATE, "01/15/2024");
+        expenseRow.put(DESCRIPTION, "Grocery shopping at safeway");
+        expenseRow.put(AMOUNT, "$100.00"); // Positive amount in credit card statement (expense)
 
         final PDFImportService.ParsedTransaction expenseTransaction =
                 (PDFImportService.ParsedTransaction)
@@ -420,9 +425,9 @@ class PDFImportServiceTest {
         // Test 2: Automatic payment - thank you -$99 (payment - negative in statement, should be
         // positive in DB)
         final java.util.Map<String, String> paymentRow = new java.util.HashMap<>();
-        paymentRow.put("date", "01/20/2024");
-        paymentRow.put("description", "Automatic payment - thank you");
-        paymentRow.put("amount", "-$99.00"); // Negative amount in credit card statement (payment)
+        paymentRow.put(DATE, "01/20/2024");
+        paymentRow.put(DESCRIPTION, "Automatic payment - thank you");
+        paymentRow.put(AMOUNT, "-$99.00"); // Negative amount in credit card statement (payment)
 
         final PDFImportService.ParsedTransaction paymentTransaction =
                 (PDFImportService.ParsedTransaction)

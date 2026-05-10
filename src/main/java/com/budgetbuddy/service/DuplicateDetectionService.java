@@ -1,10 +1,8 @@
 package com.budgetbuddy.service;
 
-
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import java.util.Locale;
 import com.budgetbuddy.model.dynamodb.TransactionTable;
 import com.budgetbuddy.repository.dynamodb.TransactionRepository;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
@@ -13,6 +11,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -31,9 +30,15 @@ import org.springframework.stereotype.Service;
 // callers — defensive-copying it would break dependency injection.
 @SuppressFBWarnings(
         value = {"EI_EXPOSE_REP", "EI_EXPOSE_REP2"},
-        justification = "JSON DTO / DynamoDB entity getters expose lists by reference; "
+        justification =
+                "JSON DTO / DynamoDB entity getters expose lists by reference; "
                         + "the design is value-semantic and Jackson creates fresh instances; Spring constructor injection — beans are shared by design")
-@SuppressWarnings({"PMD.LawOfDemeter", "PMD.AvoidCatchingGenericException", "PMD.DataClass", "PMD.OnlyOneReturn"})
+@SuppressWarnings({
+    "PMD.LawOfDemeter",
+    "PMD.AvoidCatchingGenericException",
+    "PMD.DataClass",
+    "PMD.OnlyOneReturn"
+})
 @Service
 public class DuplicateDetectionService {
 
@@ -219,9 +224,9 @@ public class DuplicateDetectionService {
         final BigDecimal diff2 = t1.getAmount().add(t2.getAmount());
         final boolean amountMatch =
                 diff1.compareTo(BigDecimal.valueOf(0.01)) < 0
-                        && diff1.compareTo(BigDecimal.valueOf(-0.01)) > 0
+                                && diff1.compareTo(BigDecimal.valueOf(-0.01)) > 0
                         || diff2.compareTo(BigDecimal.valueOf(0.01)) < 0
-                        && diff2.compareTo(BigDecimal.valueOf(-0.01)) > 0;
+                                && diff2.compareTo(BigDecimal.valueOf(-0.01)) > 0;
 
         // CRITICAL FIX: Parse date from TransactionTable and compare with LocalDate from
         // ParsedTransaction
@@ -273,9 +278,9 @@ public class DuplicateDetectionService {
         final BigDecimal diff2 = t1.getAmount().add(t2.getAmount());
         final boolean amountMatch =
                 diff1.compareTo(BigDecimal.valueOf(0.01)) < 0
-                        && diff1.compareTo(BigDecimal.valueOf(-0.01)) > 0
+                                && diff1.compareTo(BigDecimal.valueOf(-0.01)) > 0
                         || diff2.compareTo(BigDecimal.valueOf(0.01)) < 0
-                        && diff2.compareTo(BigDecimal.valueOf(-0.01)) > 0;
+                                && diff2.compareTo(BigDecimal.valueOf(-0.01)) > 0;
 
         // CRITICAL FIX: Parse date from TransactionTable and compare with LocalDate from
         // ParsedTransaction
@@ -379,7 +384,8 @@ public class DuplicateDetectionService {
         final String m2 = t2.getMerchantName();
         if (m1 != null && !m1.isEmpty() && m2 != null && !m2.isEmpty()) {
             final double merchantScore =
-                    calculateStringSimilarity(m1.toLowerCase(Locale.ROOT).trim(), m2.toLowerCase(Locale.ROOT).trim());
+                    calculateStringSimilarity(
+                            m1.toLowerCase(Locale.ROOT).trim(), m2.toLowerCase(Locale.ROOT).trim());
             scores.add(merchantScore * 0.2); // 20% weight
         }
 
@@ -538,7 +544,8 @@ public class DuplicateDetectionService {
         final List<String> reasons = new ArrayList<>();
 
         // Compare amounts - check if they match or are negatives of each other
-        final BigDecimal diff1 = newTransaction.getAmount().subtract(existingTransaction.getAmount());
+        final BigDecimal diff1 =
+                newTransaction.getAmount().subtract(existingTransaction.getAmount());
         final BigDecimal diff2 = newTransaction.getAmount().add(existingTransaction.getAmount());
         BigDecimal amountDiff = diff1;
         if (diff2.compareTo(diff1) < 0
@@ -578,7 +585,10 @@ public class DuplicateDetectionService {
         private final double similarity;
         private final String matchReason;
 
-        public DuplicateMatch(final TransactionTable transaction, final double similarity, final String matchReason) {
+        public DuplicateMatch(
+                final TransactionTable transaction,
+                final double similarity,
+                final String matchReason) {
             this.transaction = transaction;
             this.similarity = similarity;
             this.matchReason = matchReason;
@@ -607,7 +617,10 @@ public class DuplicateDetectionService {
         private String merchantName;
 
         public ParsedTransaction(
-                final LocalDate date, final BigDecimal amount, final String description, final String merchantName) {
+                final LocalDate date,
+                final BigDecimal amount,
+                final String description,
+                final String merchantName) {
             this.date = date;
             this.amount = amount;
             this.description = description;

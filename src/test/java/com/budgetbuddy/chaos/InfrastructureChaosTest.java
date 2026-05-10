@@ -1,7 +1,5 @@
 package com.budgetbuddy.chaos;
 
-
-import java.nio.charset.StandardCharsets;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -13,6 +11,7 @@ import com.budgetbuddy.service.UserService;
 import com.budgetbuddy.util.TableInitializer;
 import io.github.resilience4j.circuitbreaker.CircuitBreaker;
 import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
+import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.List;
 import java.util.UUID;
@@ -67,7 +66,8 @@ class InfrastructureChaosTest {
     void setUp() {
         // Create test user
         final String email = "chaos-test-" + UUID.randomUUID() + "@example.com";
-        final String passwordHash = Base64.getEncoder().encodeToString("testpassword".getBytes(StandardCharsets.UTF_8));
+        final String passwordHash =
+                Base64.getEncoder().encodeToString("testpassword".getBytes(StandardCharsets.UTF_8));
         testUser = userService.createUserSecure(email, passwordHash, "Chaos", "Test");
     }
 

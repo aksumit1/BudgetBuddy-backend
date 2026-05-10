@@ -33,6 +33,9 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @org.mockito.junit.jupiter.MockitoSettings(strictness = org.mockito.quality.Strictness.LENIENT)
 class BudgetServiceTest {
 
+    private static final String BUDGET_1 = "budget-1";
+    private static final String USER_123 = "user-123";
+
     @Mock private BudgetRepository budgetRepository;
 
     @Mock private TransactionService transactionService;
@@ -44,7 +47,7 @@ class BudgetServiceTest {
     @BeforeEach
     void setUp() {
         testUser = new UserTable();
-        testUser.setUserId("user-123");
+        testUser.setUserId(USER_123);
         testUser.setEmail("test@example.com");
         testUser.setPreferredCurrency("USD");
     }
@@ -52,7 +55,7 @@ class BudgetServiceTest {
     @Test
     void testCreateOrUpdateBudgetWithNewBudgetCreatesBudget() {
         // Given
-        when(budgetRepository.findByUserIdAndCategory("user-123", "FOOD"))
+        when(budgetRepository.findByUserIdAndCategory(USER_123, "FOOD"))
                 .thenReturn(Optional.empty());
         when(budgetRepository.findByUserId(anyString())).thenReturn(Collections.emptyList());
         doNothing().when(budgetRepository).save(any(BudgetTable.class));
@@ -75,11 +78,11 @@ class BudgetServiceTest {
         // Given
         final BudgetTable existingBudget = new BudgetTable();
         existingBudget.setBudgetId("budget-123");
-        existingBudget.setUserId("user-123");
+        existingBudget.setUserId(USER_123);
         existingBudget.setCategory("FOOD");
         existingBudget.setMonthlyLimit(BigDecimal.valueOf(500.00));
 
-        when(budgetRepository.findByUserIdAndCategory("user-123", "FOOD"))
+        when(budgetRepository.findByUserIdAndCategory(USER_123, "FOOD"))
                 .thenReturn(Optional.of(existingBudget));
         when(transactionService.getTransactionsByCategory(any(), anyString(), any()))
                 .thenReturn(Collections.emptyList());
@@ -111,14 +114,15 @@ class BudgetServiceTest {
     void testCreateOrUpdateBudgetWithInvalidLimitThrowsException() {
         // When/Then - Zero limit is allowed (zero-based budgeting support)
         // Zero limit should NOT throw exception
-        when(budgetRepository.findByUserIdAndCategory("user-123", "FOOD"))
+        when(budgetRepository.findByUserIdAndCategory(USER_123, "FOOD"))
                 .thenReturn(Optional.empty());
         when(budgetRepository.findByUserId(anyString())).thenReturn(Collections.emptyList());
         doNothing().when(budgetRepository).save(any(BudgetTable.class));
         when(transactionService.getTransactionsByCategory(any(), anyString(), any()))
                 .thenReturn(Collections.emptyList());
 
-        final BudgetTable result = budgetService.createOrUpdateBudget(testUser, "FOOD", BigDecimal.ZERO);
+        final BudgetTable result =
+                budgetService.createOrUpdateBudget(testUser, "FOOD", BigDecimal.ZERO);
         assertNotNull(result);
         assertEquals(BigDecimal.ZERO, result.getMonthlyLimit());
 
@@ -137,9 +141,8 @@ class BudgetServiceTest {
         // Given
         final List<BudgetTable> mockBudgets =
                 Arrays.asList(
-                        createBudget("budget-1", "FOOD"),
-                        createBudget("budget-2", "TRANSPORTATION"));
-        when(budgetRepository.findByUserId("user-123")).thenReturn(mockBudgets);
+                        createBudget(BUDGET_1, "FOOD"), createBudget("budget-2", "TRANSPORTATION"));
+        when(budgetRepository.findByUserId(USER_123)).thenReturn(mockBudgets);
 
         // When
         final List<BudgetTable> result = budgetService.getBudgets(testUser);
@@ -152,36 +155,35 @@ class BudgetServiceTest {
     @Test
     void testGetBudgetWithUnauthorizedUserThrowsException() {
         // Given
-        final BudgetTable budget = createBudget("budget-1", "FOOD");
+        final BudgetTable budget = createBudget(BUDGET_1, "FOOD");
         budget.setUserId("other-user");
-        when(budgetRepository.findById("budget-1")).thenReturn(Optional.of(budget));
+        when(budgetRepository.findById(BUDGET_1)).thenReturn(Optional.of(budget));
 
         // When/Then
         final AppException exception =
-                assertThrows(
-                        AppException.class, () -> budgetService.getBudget(testUser, "budget-1"));
+                assertThrows(AppException.class, () -> budgetService.getBudget(testUser, BUDGET_1));
         assertEquals(ErrorCode.UNAUTHORIZED_ACCESS, exception.getErrorCode());
     }
 
     @Test
     void testDeleteBudgetWithValidBudgetDeletesBudget() {
         // Given
-        final BudgetTable budget = createBudget("budget-1", "FOOD");
-        when(budgetRepository.findById("budget-1")).thenReturn(Optional.of(budget));
-        doNothing().when(budgetRepository).delete("budget-1");
+        final BudgetTable budget = createBudget(BUDGET_1, "FOOD");
+        when(budgetRepository.findById(BUDGET_1)).thenReturn(Optional.of(budget));
+        doNothing().when(budgetRepository).delete(BUDGET_1);
 
         // When
-        budgetService.deleteBudget(testUser, "budget-1");
+        budgetService.deleteBudget(testUser, BUDGET_1);
 
         // Then
-        verify(budgetRepository).delete("budget-1");
+        verify(budgetRepository).delete(BUDGET_1);
     }
 
     // Helper methods
     private BudgetTable createBudget(final String id, final String category) {
         final BudgetTable budget = new BudgetTable();
         budget.setBudgetId(id);
-        budget.setUserId("user-123");
+        budget.setUserId(USER_123);
         budget.setCategory(category);
         budget.setMonthlyLimit(BigDecimal.valueOf(1000.00));
         budget.setCurrentSpent(BigDecimal.ZERO);

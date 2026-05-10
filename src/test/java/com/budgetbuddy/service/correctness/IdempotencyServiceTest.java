@@ -40,6 +40,9 @@ import software.amazon.awssdk.services.dynamodb.model.PutItemRequest;
 @ExtendWith(MockitoExtension.class)
 class IdempotencyServiceTest {
 
+    private static final String USER_1 = "user-1";
+    private static final String KEY_ABCDEF_123456 = "key-abcdef-123456";
+
     @Mock private DynamoDbClient client;
 
     private IdempotencyService service;
@@ -60,8 +63,8 @@ class IdempotencyServiceTest {
         final AtomicInteger invocations = new AtomicInteger();
         final String result =
                 service.runOnce(
-                        "user-1",
-                        "key-abcdef-123456",
+                        USER_1,
+                        KEY_ABCDEF_123456,
                         () -> {
                             invocations.incrementAndGet();
                             return "tx-42";
@@ -93,8 +96,8 @@ class IdempotencyServiceTest {
         final AtomicInteger invocations = new AtomicInteger();
         final String result =
                 service.runOnce(
-                        "user-1",
-                        "key-abcdef-123456",
+                        USER_1,
+                        KEY_ABCDEF_123456,
                         () -> {
                             invocations.incrementAndGet();
                             return "tx-duplicate";
@@ -122,8 +125,8 @@ class IdempotencyServiceTest {
         final AtomicInteger invocations = new AtomicInteger();
         final String result =
                 service.runOnce(
-                        "user-1",
-                        "key-abcdef-123456",
+                        USER_1,
+                        KEY_ABCDEF_123456,
                         () -> {
                             invocations.incrementAndGet();
                             return "tx-new";
@@ -145,7 +148,7 @@ class IdempotencyServiceTest {
         when(client.putItem(any(PutItemRequest.class)))
                 .thenThrow(ConditionalCheckFailedException.builder().message("parallel").build());
 
-        final String result = service.runOnce("user-1", "key-abcdef-123456", () -> "tx-loser");
+        final String result = service.runOnce(USER_1, KEY_ABCDEF_123456, () -> "tx-loser");
         assertEquals("tx-loser", result); // We return our work — client re-fetches by id.
     }
 
@@ -158,14 +161,14 @@ class IdempotencyServiceTest {
         // idempotency yet).
         final AtomicInteger invocations = new AtomicInteger();
         service.runOnce(
-                "user-1",
+                USER_1,
                 null,
                 () -> {
                     invocations.incrementAndGet();
                     return "x";
                 });
         service.runOnce(
-                "user-1",
+                USER_1,
                 "short",
                 () -> {
                     invocations.incrementAndGet();
@@ -173,7 +176,7 @@ class IdempotencyServiceTest {
                 });
         service.runOnce(
                 null,
-                "key-abcdef-123456",
+                KEY_ABCDEF_123456,
                 () -> {
                     invocations.incrementAndGet();
                     return "z";
@@ -191,9 +194,10 @@ class IdempotencyServiceTest {
         // causing the supplier to run twice. Verify we ask for consistency.
         when(client.getItem(any(GetItemRequest.class)))
                 .thenReturn(GetItemResponse.builder().build());
-        service.runOnce("user-1", "key-abcdef-123456", () -> "tx-1");
+        service.runOnce(USER_1, KEY_ABCDEF_123456, () -> "tx-1");
 
-        final ArgumentCaptor<GetItemRequest> getCaptor = ArgumentCaptor.forClass(GetItemRequest.class);
+        final ArgumentCaptor<GetItemRequest> getCaptor =
+                ArgumentCaptor.forClass(GetItemRequest.class);
         verify(client, times(1)).getItem(getCaptor.capture());
         org.junit.jupiter.api.Assertions.assertTrue(
                 Boolean.TRUE.equals(getCaptor.getValue().consistentRead()),

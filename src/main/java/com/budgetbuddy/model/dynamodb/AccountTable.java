@@ -1,8 +1,8 @@
 package com.budgetbuddy.model.dynamodb;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonInclude;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;

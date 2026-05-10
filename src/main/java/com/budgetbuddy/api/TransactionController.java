@@ -1,10 +1,5 @@
 package com.budgetbuddy.api;
 
-
-
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import java.nio.charset.StandardCharsets;
-import java.util.Locale;
 import com.budgetbuddy.exception.AppException;
 import com.budgetbuddy.exception.ErrorCode;
 import com.budgetbuddy.model.dynamodb.AccountTable;
@@ -28,17 +23,20 @@ import com.budgetbuddy.service.SubscriptionService;
 import com.budgetbuddy.service.TransactionService;
 import com.budgetbuddy.service.UserService;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import jakarta.validation.Valid;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -84,6 +82,13 @@ import org.springframework.web.multipart.MultipartFile;
 @RestController
 @RequestMapping("/api/transactions")
 public class TransactionController {
+
+    private static final String NONE = "none";
+    private static final String FILE = "file";
+    private static final String IMPORT = "import_";
+    private static final String AMOUNT = "amount";
+    private static final String NULL = "null";
+    private static final String OTHER = "other";
 
     private static final Logger LOGGER = LoggerFactory.getLogger(TransactionController.class);
 
@@ -205,7 +210,8 @@ public class TransactionController {
         }
 
         final int skip = page * size;
-        final List<TransactionTable> transactions = transactionService.getTransactions(user, skip, size);
+        final List<TransactionTable> transactions =
+                transactionService.getTransactions(user, skip, size);
         return ResponseEntity.ok(transactions);
     }
 
@@ -343,9 +349,7 @@ public class TransactionController {
     @PostMapping
     public ResponseEntity<TransactionTable> createTransaction(
             @AuthenticationPrincipal final UserDetails userDetails,
-            @RequestHeader(
-                            value = "Idempotency-Key",
-                            required = false) final String idempotencyKey,
+            @RequestHeader(value = "Idempotency-Key", required = false) final String idempotencyKey,
             @Valid @RequestBody final CreateTransactionRequest request) {
         if (userDetails == null || userDetails.getUsername() == null) {
             throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "User not authenticated");
@@ -511,8 +515,7 @@ public class TransactionController {
 
         if (request.getIfUnmodifiedSince() != null && !request.getIfUnmodifiedSince().isBlank()) {
             try {
-                final Instant clientKnownUpdatedAt =
-                        Instant.parse(request.getIfUnmodifiedSince());
+                final Instant clientKnownUpdatedAt = Instant.parse(request.getIfUnmodifiedSince());
                 final Optional<TransactionTable> existing =
                         transactionService.findByTransactionIdAndUserId(id, user.getUserId());
                 if (existing.isPresent() && existing.get().getUpdatedAt() != null) {
@@ -554,8 +557,8 @@ public class TransactionController {
                         request.getGoalId(), // Pass optional goal ID this transaction contributes
                         // to
                         request.getLinkedTransactionId() // Pass optional linked transaction ID
-                // (for cross-account duplicate detection)
-                );
+                        // (for cross-account duplicate detection)
+                        );
 
         // Send push notification for real-time sync on other devices
         try {
@@ -624,12 +627,10 @@ public class TransactionController {
                         try {
                             // Check if category changed to subscription-related
                             final boolean isSubscriptionCategory =
-                                    ("subscriptions"
-                                            .equalsIgnoreCase(
-                                                    request.getCategoryPrimary()))
+                                    ("subscriptions".equalsIgnoreCase(request.getCategoryPrimary()))
                                             || ("subscriptions"
-                                            .equalsIgnoreCase(
-                                                    request.getCategoryDetailed()));
+                                                    .equalsIgnoreCase(
+                                                            request.getCategoryDetailed()));
 
                             // Always run detection after update (category might have changed, or
                             // new transaction pattern might emerge)
@@ -781,7 +782,8 @@ public class TransactionController {
 
         // Send push notification for real-time sync on other devices (batch import)
         try {
-            final int totalCount = response.getCreated(); // Number of successfully created transactions
+            final int totalCount =
+                    response.getCreated(); // Number of successfully created transactions
             if (totalCount > 0) {
                 dataChangeNotificationService.notifyBatchTransactionsImported(
                         user.getUserId(), totalCount);
@@ -1097,7 +1099,7 @@ public class TransactionController {
 
         // Ensure non-empty after sanitization
         if (sanitized.isEmpty()) {
-            sanitized = "import_" + System.currentTimeMillis() + ".csv";
+            sanitized = IMPORT + System.currentTimeMillis() + ".csv";
             LOGGER.warn(
                     "⚠️ Filename became empty after sanitization, using default: '{}'", sanitized);
         }
@@ -1110,7 +1112,7 @@ public class TransactionController {
     @PostMapping("/import-csv/preview")
     public ResponseEntity<CSVImportPreviewResponse> previewCSV(
             @AuthenticationPrincipal final UserDetails userDetails,
-            @RequestParam("file") final MultipartFile file,
+            @RequestParam(FILE) final MultipartFile file,
             @RequestParam(required = false) String accountId,
             @RequestParam(required = false) final String password,
             @RequestParam(required = false) final String filename,
@@ -1137,8 +1139,7 @@ public class TransactionController {
                 // URL-decode the filename parameter (URLComponents automatically encodes it, Spring
                 // decodes it)
                 originalFilename =
-                        java.net.URLDecoder.decode(
-                                filename.trim(), StandardCharsets.UTF_8);
+                        java.net.URLDecoder.decode(filename.trim(), StandardCharsets.UTF_8);
                 originalFilename = sanitizeFilename(originalFilename);
                 fromParameter = true;
             } else {
@@ -1147,7 +1148,7 @@ public class TransactionController {
 
             // If still null/empty, use a default (but log as error condition)
             if (originalFilename == null || originalFilename.isBlank()) {
-                originalFilename = "import_" + System.currentTimeMillis() + ".csv";
+                originalFilename = IMPORT + System.currentTimeMillis() + ".csv";
                 LOGGER.error(
                         "❌ Both filename parameter and MultipartFile.getOriginalFilename() returned null/empty, using default: '{}'",
                         originalFilename);
@@ -1181,7 +1182,8 @@ public class TransactionController {
                     password != null && !password.isEmpty());
 
             // Apply security processing
-            final byte[] fileContent = applySecurityProcessing(file, user.getUserId(), CSV_EXTENSIONS);
+            final byte[] fileContent =
+                    applySecurityProcessing(file, user.getUserId(), CSV_EXTENSIONS);
 
             // Parse CSV - use original filename (not sanitized version) for account detection
             try (InputStream inputStream = new ByteArrayInputStream(fileContent)) {
@@ -1193,7 +1195,8 @@ public class TransactionController {
                 final List<DuplicateDetectionService.ParsedTransaction> parsedForDuplicateCheck =
                         new ArrayList<>();
 
-                for (final CSVImportService.ParsedTransaction parsed : importResult.getTransactions()) {
+                for (final CSVImportService.ParsedTransaction parsed :
+                        importResult.getTransactions()) {
                     // Convert to DuplicateDetectionService.ParsedTransaction
                     final DuplicateDetectionService.ParsedTransaction dupTx =
                             new DuplicateDetectionService.ParsedTransaction(
@@ -1237,7 +1240,8 @@ public class TransactionController {
                             parsed.getDescription(),
                             parsed.getAmount(),
                             parsed.getCategoryPrimary());
-                    final Map<String, Object> txMap = buildTransactionMap(parsed, duplicates.get(i));
+                    final Map<String, Object> txMap =
+                            buildTransactionMap(parsed, duplicates.get(i));
                     paginatedTransactions.add(txMap);
                 }
 
@@ -1352,10 +1356,10 @@ public class TransactionController {
                         response.getTotalParsed(),
                         response.getTransactions() != null ? response.getTransactions().size() : 0,
                         importResult.getErrors() != null ? importResult.getErrors().size() : 0,
-                        accountInfo != null ? accountInfo.getAccountName() : "none",
-                        accountInfo != null ? accountInfo.getInstitutionName() : "none",
-                        accountInfo != null ? accountInfo.getAccountType() : "none",
-                        accountInfo != null ? accountInfo.getAccountNumber() : "none");
+                        accountInfo != null ? accountInfo.getAccountName() : NONE,
+                        accountInfo != null ? accountInfo.getInstitutionName() : NONE,
+                        accountInfo != null ? accountInfo.getAccountType() : NONE,
+                        accountInfo != null ? accountInfo.getAccountNumber() : NONE);
 
                 return ResponseEntity.ok(response);
             }
@@ -1371,7 +1375,7 @@ public class TransactionController {
     @PostMapping("/import-csv")
     public ResponseEntity<BatchImportResponse> importCSV(
             @AuthenticationPrincipal final UserDetails userDetails,
-            @RequestParam("file") final MultipartFile file,
+            @RequestParam(FILE) final MultipartFile file,
             @RequestParam(required = false) final String accountId,
             @RequestParam(required = false) final String password,
             @RequestParam(required = false) final String filename) {
@@ -1392,8 +1396,7 @@ public class TransactionController {
 
             if (filename != null && !filename.isBlank()) {
                 originalFilename =
-                        java.net.URLDecoder.decode(
-                                filename.trim(), StandardCharsets.UTF_8);
+                        java.net.URLDecoder.decode(filename.trim(), StandardCharsets.UTF_8);
                 originalFilename = sanitizeFilename(originalFilename);
                 fromParameter = true;
             } else {
@@ -1401,7 +1404,7 @@ public class TransactionController {
             }
 
             if (originalFilename == null || originalFilename.isBlank()) {
-                originalFilename = "import_" + System.currentTimeMillis() + ".csv";
+                originalFilename = IMPORT + System.currentTimeMillis() + ".csv";
                 LOGGER.error(
                         "❌ Both filename parameter and MultipartFile.getOriginalFilename() returned null/empty, using default: '{}'",
                         originalFilename);
@@ -1436,7 +1439,8 @@ public class TransactionController {
                     password != null && !password.isEmpty());
 
             // Apply security processing
-            final byte[] fileContent = applySecurityProcessing(file, user.getUserId(), CSV_EXTENSIONS);
+            final byte[] fileContent =
+                    applySecurityProcessing(file, user.getUserId(), CSV_EXTENSIONS);
 
             // Parse and import CSV - use original filename for account detection
             try (InputStream inputStream = new ByteArrayInputStream(fileContent)) {
@@ -1449,7 +1453,7 @@ public class TransactionController {
                 LOGGER.info(
                         "🔍 [Non-paginated Import] Account creation check - provided accountId: '{}', detectedAccount: {}, matchedAccountId: '{}'",
                         accountId,
-                        importResult.getDetectedAccount() != null ? "present" : "null",
+                        importResult.getDetectedAccount() != null ? "present" : NULL,
                         importResult.getMatchedAccountId());
 
                 if (accountIdToUse == null || accountIdToUse.isBlank()) {
@@ -1484,17 +1488,17 @@ public class TransactionController {
                                 importResult.getDetectedAccount();
                         final boolean hasAccountInfo =
                                 (detected.getInstitutionName() != null
-                                        && !detected.getInstitutionName().isBlank())
+                                                && !detected.getInstitutionName().isBlank())
                                         || (detected.getAccountName() != null
-                                        && !detected.getAccountName().isBlank())
+                                                && !detected.getAccountName().isBlank())
                                         || (detected.getAccountNumber() != null
-                                        && !detected.getAccountNumber().isBlank())
+                                                && !detected.getAccountNumber().isBlank())
                                         || (detected.getAccountType() != null
-                                        && !detected.getAccountType().isBlank())
+                                                && !detected.getAccountType().isBlank())
                                         || (detected.getMatchedAccountId() != null
-                                        && !detected.getMatchedAccountId()
-                                        .trim()
-                                        .isEmpty());
+                                                && !detected.getMatchedAccountId()
+                                                        .trim()
+                                                        .isEmpty());
 
                         if (hasAccountInfo) {
                             LOGGER.info(
@@ -1557,7 +1561,7 @@ public class TransactionController {
     @PostMapping("/import-csv/chunk")
     public ResponseEntity<ChunkImportResponse> importCSVChunk(
             @AuthenticationPrincipal final UserDetails userDetails,
-            @RequestParam("file") final MultipartFile file,
+            @RequestParam(FILE) final MultipartFile file,
             @RequestParam(defaultValue = "0") final int page,
             @RequestParam(defaultValue = "100") final int size,
             @RequestParam(required = false) final String accountId,
@@ -1587,19 +1591,19 @@ public class TransactionController {
             String originalFilename;
             if (filename != null && !filename.isBlank()) {
                 originalFilename =
-                        java.net.URLDecoder.decode(
-                                filename.trim(), StandardCharsets.UTF_8);
+                        java.net.URLDecoder.decode(filename.trim(), StandardCharsets.UTF_8);
                 originalFilename = sanitizeFilename(originalFilename);
             } else {
                 originalFilename = getOriginalFilenameSafely(file);
             }
 
             if (originalFilename == null || originalFilename.isBlank()) {
-                originalFilename = "import_" + System.currentTimeMillis() + ".csv";
+                originalFilename = IMPORT + System.currentTimeMillis() + ".csv";
             }
 
             // Apply security processing
-            final byte[] fileContent = applySecurityProcessing(file, user.getUserId(), CSV_EXTENSIONS);
+            final byte[] fileContent =
+                    applySecurityProcessing(file, user.getUserId(), CSV_EXTENSIONS);
 
             // CRITICAL: Parse preview categories from JSON if provided
             // Use preview categories if account matches preview account
@@ -1699,7 +1703,7 @@ public class TransactionController {
                                         + "', institution: '"
                                         + importResult.getDetectedAccount().getInstitutionName()
                                         + "')"
-                                : "null",
+                                : NULL,
                         importResult.getMatchedAccountId());
 
                 if (accountIdToUse == null || accountIdToUse.isBlank()) {
@@ -1812,30 +1816,30 @@ public class TransactionController {
                                     importResult.getDetectedAccount();
                             final boolean hasAccountInfo =
                                     (detectedAccount.getInstitutionName() != null
-                                            && !detectedAccount
-                                            .getInstitutionName()
-                                            .trim()
-                                            .isEmpty())
+                                                    && !detectedAccount
+                                                            .getInstitutionName()
+                                                            .trim()
+                                                            .isEmpty())
                                             || (detectedAccount.getAccountName() != null
-                                            && !detectedAccount
-                                            .getAccountName()
-                                            .trim()
-                                            .isEmpty())
+                                                    && !detectedAccount
+                                                            .getAccountName()
+                                                            .trim()
+                                                            .isEmpty())
                                             || (detectedAccount.getAccountNumber() != null
-                                            && !detectedAccount
-                                            .getAccountNumber()
-                                            .trim()
-                                            .isEmpty())
+                                                    && !detectedAccount
+                                                            .getAccountNumber()
+                                                            .trim()
+                                                            .isEmpty())
                                             || (detectedAccount.getAccountType() != null
-                                            && !detectedAccount
-                                            .getAccountType()
-                                            .trim()
-                                            .isEmpty())
+                                                    && !detectedAccount
+                                                            .getAccountType()
+                                                            .trim()
+                                                            .isEmpty())
                                             || (detectedAccount.getMatchedAccountId() != null
-                                            && !detectedAccount
-                                            .getMatchedAccountId()
-                                            .trim()
-                                            .isEmpty());
+                                                    && !detectedAccount
+                                                            .getMatchedAccountId()
+                                                            .trim()
+                                                            .isEmpty());
 
                             if (hasAccountInfo) {
                                 // Account was detected with meaningful information - try to create
@@ -1852,8 +1856,7 @@ public class TransactionController {
                                             "🔨 [Page 0] STEP 2: Calling autoCreateAccountIfDetected...");
                                     accountIdToUse =
                                             autoCreateAccountIfDetected(user, detectedAccount);
-                                    if (accountIdToUse != null
-                                            && !accountIdToUse.isBlank()) {
+                                    if (accountIdToUse != null && !accountIdToUse.isBlank()) {
                                         LOGGER.info(
                                                 "✅ [Page 0] STEP 3: Account created successfully - ID='{}'",
                                                 accountIdToUse);
@@ -1922,20 +1925,21 @@ public class TransactionController {
                                             "🔍 [Page {}] STEP 2b: Found {} existing accounts, checking for match by detected account",
                                             page,
                                             existingAccounts.size());
-                                    final AccountDetectionService.DetectedAccount detectedAccountForPage =
-                                            importResult.getDetectedAccount();
+                                    final AccountDetectionService.DetectedAccount
+                                            detectedAccountForPage =
+                                                    importResult.getDetectedAccount();
                                     LOGGER.info(
                                             "🔍 [Page {}] STEP 2c: Detected account info - name='{}', institution='{}', type='{}', number='{}'",
                                             page,
                                             detectedAccountForPage != null
                                                     ? detectedAccountForPage.getAccountName()
-                                                    : "null",
+                                                    : NULL,
                                             detectedAccountForPage != null
                                                     ? detectedAccountForPage.getInstitutionName()
-                                                    : "null",
+                                                    : NULL,
                                             detectedAccountForPage != null
                                                     ? detectedAccountForPage.getAccountType()
-                                                    : "null",
+                                                    : NULL,
                                             detectedAccountForPage != null
                                                             && detectedAccountForPage
                                                                             .getAccountNumber()
@@ -1950,7 +1954,7 @@ public class TransactionController {
                                                                                                     .getAccountNumber()
                                                                                                     .length()
                                                                                             - 4))
-                                                    : "null");
+                                                    : NULL);
 
                                     if (detectedAccountForPage != null) {
                                         LOGGER.info(
@@ -1980,10 +1984,11 @@ public class TransactionController {
                                                                                 == null) {
                                                                             return false;
                                                                         }
-                                                                        final String normalizedAccNumber =
-                                                                                normalizeAccountNumber(
-                                                                                        acc
-                                                                                                .getAccountNumber());
+                                                                        final String
+                                                                                normalizedAccNumber =
+                                                                                        normalizeAccountNumber(
+                                                                                                acc
+                                                                                                        .getAccountNumber());
                                                                         return normalizedDetectedNumber
                                                                                 .equals(
                                                                                         normalizedAccNumber);
@@ -2024,24 +2029,25 @@ public class TransactionController {
                                                     existingAccounts.stream()
                                                             .filter(
                                                                     acc -> {
-                                                                        final boolean institutionMatch =
-                                                                                detectedAccountForPage
-                                                                                        .getInstitutionName()
-                                                                                        != null
-                                                                                        && detectedAccountForPage
-                                                                                        .getInstitutionName()
-                                                                                        .equals(
-                                                                                                acc
-                                                                                                        .getInstitutionName());
+                                                                        final boolean
+                                                                                institutionMatch =
+                                                                                        detectedAccountForPage
+                                                                                                                .getInstitutionName()
+                                                                                                        != null
+                                                                                                && detectedAccountForPage
+                                                                                                        .getInstitutionName()
+                                                                                                        .equals(
+                                                                                                                acc
+                                                                                                                        .getInstitutionName());
                                                                         final boolean typeMatch =
                                                                                 detectedAccountForPage
-                                                                                        .getAccountType()
-                                                                                        != null
+                                                                                                        .getAccountType()
+                                                                                                != null
                                                                                         && detectedAccountForPage
-                                                                                        .getAccountType()
-                                                                                        .equals(
-                                                                                                acc
-                                                                                                        .getAccountType());
+                                                                                                .getAccountType()
+                                                                                                .equals(
+                                                                                                        acc
+                                                                                                                .getAccountType());
                                                                         return institutionMatch
                                                                                 && typeMatch;
                                                                     })
@@ -2081,22 +2087,23 @@ public class TransactionController {
                                                                         // institution
                                                                         final boolean nameMatch =
                                                                                 detectedAccountForPage
-                                                                                        .getAccountName()
-                                                                                        != null
+                                                                                                        .getAccountName()
+                                                                                                != null
                                                                                         && detectedAccountForPage
-                                                                                        .getAccountName()
-                                                                                        .equals(
-                                                                                                acc
-                                                                                                        .getAccountName());
-                                                                        final boolean institutionMatch =
-                                                                                detectedAccountForPage
-                                                                                        .getInstitutionName()
-                                                                                        != null
-                                                                                        && detectedAccountForPage
-                                                                                        .getInstitutionName()
-                                                                                        .equals(
-                                                                                                acc
-                                                                                                        .getInstitutionName());
+                                                                                                .getAccountName()
+                                                                                                .equals(
+                                                                                                        acc
+                                                                                                                .getAccountName());
+                                                                        final boolean
+                                                                                institutionMatch =
+                                                                                        detectedAccountForPage
+                                                                                                                .getInstitutionName()
+                                                                                                        != null
+                                                                                                && detectedAccountForPage
+                                                                                                        .getInstitutionName()
+                                                                                                        .equals(
+                                                                                                                acc
+                                                                                                                        .getInstitutionName());
                                                                         return nameMatch
                                                                                 && institutionMatch;
                                                                     })
@@ -2165,12 +2172,12 @@ public class TransactionController {
                                                             Comparator.comparing(
                                                                     (AccountTable acc) ->
                                                                             acc.getCreatedAt()
-                                                                                    != null
+                                                                                            != null
                                                                                     ? acc
-                                                                                    .getCreatedAt()
+                                                                                            .getCreatedAt()
                                                                                     : Instant
-                                                                                    .ofEpochMilli(
-                                                                                            0)))
+                                                                                            .ofEpochMilli(
+                                                                                                    0)))
                                                     .orElse(null);
 
                                     if (mostRecentAccount != null) {
@@ -2249,7 +2256,7 @@ public class TransactionController {
     @PostMapping("/import-excel/preview")
     public ResponseEntity<ExcelImportPreviewResponse> previewExcel(
             @AuthenticationPrincipal final UserDetails userDetails,
-            @RequestParam("file") final MultipartFile file,
+            @RequestParam(FILE) final MultipartFile file,
             @RequestParam(required = false) String accountId,
             @RequestParam(required = false) final String filename,
             @RequestParam(defaultValue = "0") final int page,
@@ -2271,8 +2278,7 @@ public class TransactionController {
 
             if (filename != null && !filename.isBlank()) {
                 originalFilename =
-                        java.net.URLDecoder.decode(
-                                filename.trim(), StandardCharsets.UTF_8);
+                        java.net.URLDecoder.decode(filename.trim(), StandardCharsets.UTF_8);
                 originalFilename = sanitizeFilename(originalFilename);
                 fromParameter = true;
             } else {
@@ -2280,7 +2286,7 @@ public class TransactionController {
             }
 
             if (originalFilename == null || originalFilename.isBlank()) {
-                originalFilename = "import_" + System.currentTimeMillis() + ".xlsx";
+                originalFilename = IMPORT + System.currentTimeMillis() + ".xlsx";
                 LOGGER.error(
                         "❌ Both filename parameter and MultipartFile.getOriginalFilename() returned null/empty, using default: '{}'",
                         originalFilename);
@@ -2313,7 +2319,8 @@ public class TransactionController {
                     file.getContentType());
 
             // Apply security processing
-            final byte[] fileContent = applySecurityProcessing(file, user.getUserId(), EXCEL_EXTENSIONS);
+            final byte[] fileContent =
+                    applySecurityProcessing(file, user.getUserId(), EXCEL_EXTENSIONS);
 
             // Parse Excel - use original filename for account detection
             try (InputStream inputStream = new ByteArrayInputStream(fileContent)) {
@@ -2325,7 +2332,8 @@ public class TransactionController {
                 final List<DuplicateDetectionService.ParsedTransaction> parsedForDuplicateCheck =
                         new ArrayList<>();
 
-                for (final CSVImportService.ParsedTransaction parsed : importResult.getTransactions()) {
+                for (final CSVImportService.ParsedTransaction parsed :
+                        importResult.getTransactions()) {
                     final DuplicateDetectionService.ParsedTransaction dupTx =
                             new DuplicateDetectionService.ParsedTransaction(
                                     parsed.getDate(),
@@ -2359,7 +2367,8 @@ public class TransactionController {
                 for (int i = startIndex; i < endIndex; i++) {
                     final CSVImportService.ParsedTransaction parsed =
                             importResult.getTransactions().get(i);
-                    final Map<String, Object> txMap = buildTransactionMap(parsed, duplicates.get(i));
+                    final Map<String, Object> txMap =
+                            buildTransactionMap(parsed, duplicates.get(i));
                     paginatedTransactions.add(txMap);
                 }
 
@@ -2473,10 +2482,10 @@ public class TransactionController {
                         "📥 Excel Preview Response - Total parsed: {}, Transactions: {}, Detected account: {} (institution: {}, type: {}, number: {})",
                         response.getTotalParsed(),
                         response.getTransactions() != null ? response.getTransactions().size() : 0,
-                        accountInfo != null ? accountInfo.getAccountName() : "none",
-                        accountInfo != null ? accountInfo.getInstitutionName() : "none",
-                        accountInfo != null ? accountInfo.getAccountType() : "none",
-                        accountInfo != null ? accountInfo.getAccountNumber() : "none");
+                        accountInfo != null ? accountInfo.getAccountName() : NONE,
+                        accountInfo != null ? accountInfo.getInstitutionName() : NONE,
+                        accountInfo != null ? accountInfo.getAccountType() : NONE,
+                        accountInfo != null ? accountInfo.getAccountNumber() : NONE);
 
                 return ResponseEntity.ok(response);
             }
@@ -2492,7 +2501,7 @@ public class TransactionController {
     @PostMapping("/import-excel")
     public ResponseEntity<BatchImportResponse> importExcel(
             @AuthenticationPrincipal final UserDetails userDetails,
-            @RequestParam("file") final MultipartFile file,
+            @RequestParam(FILE) final MultipartFile file,
             @RequestParam(required = false) final String accountId,
             @RequestParam(required = false) final String filename) {
         if (userDetails == null || userDetails.getUsername() == null) {
@@ -2512,8 +2521,7 @@ public class TransactionController {
 
             if (filename != null && !filename.isBlank()) {
                 originalFilename =
-                        java.net.URLDecoder.decode(
-                                filename.trim(), StandardCharsets.UTF_8);
+                        java.net.URLDecoder.decode(filename.trim(), StandardCharsets.UTF_8);
                 originalFilename = sanitizeFilename(originalFilename);
                 fromParameter = true;
             } else {
@@ -2521,7 +2529,7 @@ public class TransactionController {
             }
 
             if (originalFilename == null || originalFilename.isBlank()) {
-                originalFilename = "import_" + System.currentTimeMillis() + ".xlsx";
+                originalFilename = IMPORT + System.currentTimeMillis() + ".xlsx";
                 LOGGER.error(
                         "❌ Both filename parameter and MultipartFile.getOriginalFilename() returned null/empty, using default: '{}'",
                         originalFilename);
@@ -2555,7 +2563,8 @@ public class TransactionController {
                     accountId);
 
             // Apply security processing
-            final byte[] fileContent = applySecurityProcessing(file, user.getUserId(), EXCEL_EXTENSIONS);
+            final byte[] fileContent =
+                    applySecurityProcessing(file, user.getUserId(), EXCEL_EXTENSIONS);
 
             // Parse and import Excel - use original filename for account detection
             try (InputStream inputStream = new ByteArrayInputStream(fileContent)) {
@@ -2578,7 +2587,7 @@ public class TransactionController {
     @PostMapping("/import-excel/chunk")
     public ResponseEntity<ChunkImportResponse> importExcelChunk(
             @AuthenticationPrincipal final UserDetails userDetails,
-            @RequestParam("file") final MultipartFile file,
+            @RequestParam(FILE) final MultipartFile file,
             @RequestParam(defaultValue = "0") final int page,
             @RequestParam(defaultValue = "100") final int size,
             @RequestParam(required = false) final String accountId,
@@ -2607,19 +2616,19 @@ public class TransactionController {
             String originalFilename;
             if (filename != null && !filename.isBlank()) {
                 originalFilename =
-                        java.net.URLDecoder.decode(
-                                filename.trim(), StandardCharsets.UTF_8);
+                        java.net.URLDecoder.decode(filename.trim(), StandardCharsets.UTF_8);
                 originalFilename = sanitizeFilename(originalFilename);
             } else {
                 originalFilename = getOriginalFilenameSafely(file);
             }
 
             if (originalFilename == null || originalFilename.isBlank()) {
-                originalFilename = "import_" + System.currentTimeMillis() + ".xlsx";
+                originalFilename = IMPORT + System.currentTimeMillis() + ".xlsx";
             }
 
             // Apply security processing
-            final byte[] fileContent = applySecurityProcessing(file, user.getUserId(), EXCEL_EXTENSIONS);
+            final byte[] fileContent =
+                    applySecurityProcessing(file, user.getUserId(), EXCEL_EXTENSIONS);
 
             // Parse Excel file
             try (InputStream inputStream = new ByteArrayInputStream(fileContent)) {
@@ -2749,21 +2758,21 @@ public class TransactionController {
                                                         final boolean nameMatch =
                                                                 detected.getAccountName() != null
                                                                         && detected.getAccountName()
-                                                                        .equals(
-                                                                                acc
-                                                                                        .getAccountName());
+                                                                                .equals(
+                                                                                        acc
+                                                                                                .getAccountName());
                                                         final boolean institutionMatch =
                                                                 detected.getInstitutionName()
-                                                                        != null
+                                                                                != null
                                                                         && detected.getInstitutionName()
-                                                                        .equals(
-                                                                                acc
-                                                                                        .getInstitutionName());
+                                                                                .equals(
+                                                                                        acc
+                                                                                                .getInstitutionName());
                                                         final boolean recentlyCreated =
                                                                 acc.getCreatedAt() != null
                                                                         && acc.getCreatedAt()
-                                                                        .isAfter(
-                                                                                fiveMinutesAgo);
+                                                                                .isAfter(
+                                                                                        fiveMinutesAgo);
                                                         return nameMatch
                                                                 && institutionMatch
                                                                 && recentlyCreated;
@@ -2825,7 +2834,7 @@ public class TransactionController {
     @PostMapping("/import-pdf/preview")
     public ResponseEntity<PDFImportPreviewResponse> previewPDF(
             @AuthenticationPrincipal final UserDetails userDetails,
-            @RequestParam("file") final MultipartFile file,
+            @RequestParam(FILE) final MultipartFile file,
             @RequestParam(required = false) String accountId,
             @RequestParam(required = false) final String filename,
             @RequestParam(defaultValue = "0") final int page,
@@ -2847,8 +2856,7 @@ public class TransactionController {
 
             if (filename != null && !filename.isBlank()) {
                 originalFilename =
-                        java.net.URLDecoder.decode(
-                                filename.trim(), StandardCharsets.UTF_8);
+                        java.net.URLDecoder.decode(filename.trim(), StandardCharsets.UTF_8);
                 originalFilename = sanitizeFilename(originalFilename);
                 fromParameter = true;
             } else {
@@ -2856,7 +2864,7 @@ public class TransactionController {
             }
 
             if (originalFilename == null || originalFilename.isBlank()) {
-                originalFilename = "import_" + System.currentTimeMillis() + ".pdf";
+                originalFilename = IMPORT + System.currentTimeMillis() + ".pdf";
                 LOGGER.error(
                         "❌ Both filename parameter and MultipartFile.getOriginalFilename() returned null/empty, using default: '{}'",
                         originalFilename);
@@ -2889,7 +2897,8 @@ public class TransactionController {
                     file.getContentType());
 
             // Apply security processing
-            final byte[] fileContent = applySecurityProcessing(file, user.getUserId(), PDF_EXTENSIONS);
+            final byte[] fileContent =
+                    applySecurityProcessing(file, user.getUserId(), PDF_EXTENSIONS);
 
             // Parse PDF - use original filename for account detection
             try (InputStream inputStream = new ByteArrayInputStream(fileContent)) {
@@ -2901,7 +2910,8 @@ public class TransactionController {
                 final List<DuplicateDetectionService.ParsedTransaction> parsedForDuplicateCheck =
                         new ArrayList<>();
 
-                for (final PDFImportService.ParsedTransaction parsed : importResult.getTransactions()) {
+                for (final PDFImportService.ParsedTransaction parsed :
+                        importResult.getTransactions()) {
                     final DuplicateDetectionService.ParsedTransaction dupTx =
                             new DuplicateDetectionService.ParsedTransaction(
                                     parsed.getDate(),
@@ -2923,8 +2933,8 @@ public class TransactionController {
                         duplicateCount,
                         parsedForDuplicateCheck.size());
                 if (duplicateCount > 0) {
-                    for (final Map.Entry<Integer, List<DuplicateDetectionService.DuplicateMatch>> entry :
-                            duplicates.entrySet()) {
+                    for (final Map.Entry<Integer, List<DuplicateDetectionService.DuplicateMatch>>
+                            entry : duplicates.entrySet()) {
                         LOGGER.info(
                                 "🔍 PDF Preview - Transaction index {} has {} duplicate(s): {}",
                                 entry.getKey(),
@@ -3013,8 +3023,7 @@ public class TransactionController {
                 // wasn't a perfect structured parse.
                 if (importResult.getInfoMessages() != null
                         && !importResult.getInfoMessages().isEmpty()) {
-                    response.setInfoMessages(
-                            new ArrayList<>(importResult.getInfoMessages()));
+                    response.setInfoMessages(new ArrayList<>(importResult.getInfoMessages()));
                 }
                 DetectedAccountInfo accountInfo = null;
                 if (importResult.getDetectedAccount() != null) {
@@ -3139,13 +3148,13 @@ public class TransactionController {
                         "📥 PDF Preview Response - Total parsed: {}, Transactions: {}, Detected account: {} (institution: {}, type: {}, number: {}, balance: {})",
                         response.getTotalParsed(),
                         response.getTransactions() != null ? response.getTransactions().size() : 0,
-                        accountInfo != null ? accountInfo.getAccountName() : "none",
-                        accountInfo != null ? accountInfo.getInstitutionName() : "none",
-                        accountInfo != null ? accountInfo.getAccountType() : "none",
-                        accountInfo != null ? accountInfo.getAccountNumber() : "none",
+                        accountInfo != null ? accountInfo.getAccountName() : NONE,
+                        accountInfo != null ? accountInfo.getInstitutionName() : NONE,
+                        accountInfo != null ? accountInfo.getAccountType() : NONE,
+                        accountInfo != null ? accountInfo.getAccountNumber() : NONE,
                         accountInfo != null && accountInfo.getBalance() != null
                                 ? accountInfo.getBalance()
-                                : "none");
+                                : NONE);
 
                 return ResponseEntity.ok(response);
             }
@@ -3161,7 +3170,7 @@ public class TransactionController {
     @PostMapping("/import-pdf")
     public ResponseEntity<BatchImportResponse> importPDF(
             @AuthenticationPrincipal final UserDetails userDetails,
-            @RequestParam("file") final MultipartFile file,
+            @RequestParam(FILE) final MultipartFile file,
             @RequestParam(required = false) final String accountId,
             @RequestParam(required = false) final String filename) {
         if (userDetails == null || userDetails.getUsername() == null) {
@@ -3181,8 +3190,7 @@ public class TransactionController {
 
             if (filename != null && !filename.isBlank()) {
                 originalFilename =
-                        java.net.URLDecoder.decode(
-                                filename.trim(), StandardCharsets.UTF_8);
+                        java.net.URLDecoder.decode(filename.trim(), StandardCharsets.UTF_8);
                 originalFilename = sanitizeFilename(originalFilename);
                 fromParameter = true;
             } else {
@@ -3190,7 +3198,7 @@ public class TransactionController {
             }
 
             if (originalFilename == null || originalFilename.isBlank()) {
-                originalFilename = "import_" + System.currentTimeMillis() + ".pdf";
+                originalFilename = IMPORT + System.currentTimeMillis() + ".pdf";
                 LOGGER.error(
                         "❌ Both filename parameter and MultipartFile.getOriginalFilename() returned null/empty, using default: '{}'",
                         originalFilename);
@@ -3224,7 +3232,8 @@ public class TransactionController {
                     accountId);
 
             // Apply security processing
-            final byte[] fileContent = applySecurityProcessing(file, user.getUserId(), PDF_EXTENSIONS);
+            final byte[] fileContent =
+                    applySecurityProcessing(file, user.getUserId(), PDF_EXTENSIONS);
 
             // Parse and import PDF - use original filename for account detection
             try (InputStream inputStream = new ByteArrayInputStream(fileContent)) {
@@ -3367,7 +3376,7 @@ public class TransactionController {
     @PostMapping("/import-pdf/chunk")
     public ResponseEntity<ChunkImportResponse> importPDFChunk(
             @AuthenticationPrincipal final UserDetails userDetails,
-            @RequestParam("file") final MultipartFile file,
+            @RequestParam(FILE) final MultipartFile file,
             @RequestParam(defaultValue = "0") final int page,
             @RequestParam(defaultValue = "100") final int size,
             @RequestParam(required = false) final String accountId,
@@ -3396,19 +3405,19 @@ public class TransactionController {
             String originalFilename;
             if (filename != null && !filename.isBlank()) {
                 originalFilename =
-                        java.net.URLDecoder.decode(
-                                filename.trim(), StandardCharsets.UTF_8);
+                        java.net.URLDecoder.decode(filename.trim(), StandardCharsets.UTF_8);
                 originalFilename = sanitizeFilename(originalFilename);
             } else {
                 originalFilename = getOriginalFilenameSafely(file);
             }
 
             if (originalFilename == null || originalFilename.isBlank()) {
-                originalFilename = "import_" + System.currentTimeMillis() + ".pdf";
+                originalFilename = IMPORT + System.currentTimeMillis() + ".pdf";
             }
 
             // Apply security processing
-            final byte[] fileContent = applySecurityProcessing(file, user.getUserId(), PDF_EXTENSIONS);
+            final byte[] fileContent =
+                    applySecurityProcessing(file, user.getUserId(), PDF_EXTENSIONS);
 
             // Parse PDF file
             try (InputStream inputStream = new ByteArrayInputStream(fileContent)) {
@@ -3538,21 +3547,21 @@ public class TransactionController {
                                                         final boolean nameMatch =
                                                                 detected.getAccountName() != null
                                                                         && detected.getAccountName()
-                                                                        .equals(
-                                                                                acc
-                                                                                        .getAccountName());
+                                                                                .equals(
+                                                                                        acc
+                                                                                                .getAccountName());
                                                         final boolean institutionMatch =
                                                                 detected.getInstitutionName()
-                                                                        != null
+                                                                                != null
                                                                         && detected.getInstitutionName()
-                                                                        .equals(
-                                                                                acc
-                                                                                        .getInstitutionName());
+                                                                                .equals(
+                                                                                        acc
+                                                                                                .getInstitutionName());
                                                         final boolean recentlyCreated =
                                                                 acc.getCreatedAt() != null
                                                                         && acc.getCreatedAt()
-                                                                        .isAfter(
-                                                                                fiveMinutesAgo);
+                                                                                .isAfter(
+                                                                                        fiveMinutesAgo);
                                                         return nameMatch
                                                                 && institutionMatch
                                                                 && recentlyCreated;
@@ -3698,7 +3707,7 @@ public class TransactionController {
                             "credit",
                             "loan",
                             "investment",
-                            "other",
+                            OTHER,
                             "brokerage",
                             "401k",
                             "ira",
@@ -3742,16 +3751,14 @@ public class TransactionController {
                     }
 
                     BigDecimal amount = null;
-                    if (txMap.get("amount") != null) {
-                        if (txMap.get("amount") instanceof Number) {
-                            amount =
-                                    BigDecimal.valueOf(
-                                            ((Number) txMap.get("amount")).doubleValue());
-                        } else if (txMap.get("amount") instanceof String) {
+                    if (txMap.get(AMOUNT) != null) {
+                        if (txMap.get(AMOUNT) instanceof Number) {
+                            amount = BigDecimal.valueOf(((Number) txMap.get(AMOUNT)).doubleValue());
+                        } else if (txMap.get(AMOUNT) instanceof String) {
                             try {
-                                amount = new BigDecimal(txMap.get("amount").toString());
+                                amount = new BigDecimal(txMap.get(AMOUNT).toString());
                             } catch (NumberFormatException e) {
-                                LOGGER.warn("Invalid amount format: {}", txMap.get("amount"));
+                                LOGGER.warn("Invalid amount format: {}", txMap.get(AMOUNT));
                             }
                         }
                     }
@@ -3840,7 +3847,7 @@ public class TransactionController {
                         parsed.getTransactionType(),
                         duplicateMatches,
                         null // userName not available in CSV imports
-                );
+                        );
         // Add importer category fields for preview
         if (parsed.getImporterCategoryPrimary() != null) {
             txMap.put("importerCategoryPrimary", parsed.getImporterCategoryPrimary());
@@ -3872,7 +3879,7 @@ public class TransactionController {
                         parsed.getTransactionType(),
                         duplicateMatches,
                         parsed.getUserName() // userName (card/account user from PDF User field)
-                );
+                        );
         // Add importer category fields for preview
         if (parsed.getImporterCategoryPrimary() != null) {
             txMap.put("importerCategoryPrimary", parsed.getImporterCategoryPrimary());
@@ -3911,12 +3918,12 @@ public class TransactionController {
                 LOGGER.warn(
                         "buildTransactionMapInternal: Amount out of reasonable range: {}, using null",
                         amount);
-                txMap.put("amount", null);
+                txMap.put(AMOUNT, null);
             } else {
-                txMap.put("amount", amount);
+                txMap.put(AMOUNT, amount);
             }
         } else {
-            txMap.put("amount", null);
+            txMap.put(AMOUNT, null);
         }
 
         // Description: Normalize empty strings to null for consistency
@@ -3927,26 +3934,20 @@ public class TransactionController {
         // Merchant name: Normalize empty strings to null
         txMap.put(
                 "merchantName",
-                merchantName != null && !merchantName.isBlank()
-                        ? merchantName.trim()
-                        : null);
+                merchantName != null && !merchantName.isBlank() ? merchantName.trim() : null);
 
         // Location: Normalize empty strings to null
-        txMap.put(
-                "location",
-                location != null && !location.isBlank() ? location.trim() : null);
+        txMap.put("location", location != null && !location.isBlank() ? location.trim() : null);
 
         // User name: Card/account user (family member who made the transaction)
-        txMap.put(
-                "userName",
-                userName != null && !userName.isBlank() ? userName.trim() : null);
+        txMap.put("userName", userName != null && !userName.isBlank() ? userName.trim() : null);
 
         // Category: Ensure we always have a valid category (never null)
-        // CRITICAL: Default to "other" if category is null/empty to prevent downstream errors
+        // CRITICAL: Default to OTHER if category is null/empty to prevent downstream errors
         final String safeCategoryPrimary =
                 categoryPrimary != null && !categoryPrimary.isBlank()
                         ? categoryPrimary.trim()
-                        : "other";
+                        : OTHER;
         final String safeCategoryDetailed =
                 categoryDetailed != null && !categoryDetailed.isBlank()
                         ? categoryDetailed.trim()
@@ -3957,16 +3958,12 @@ public class TransactionController {
         // Currency code: Normalize empty strings to null
         txMap.put(
                 "currencyCode",
-                currencyCode != null && !currencyCode.isBlank()
-                        ? currencyCode.trim()
-                        : null);
+                currencyCode != null && !currencyCode.isBlank() ? currencyCode.trim() : null);
 
         // Payment channel: Normalize empty strings to null
         txMap.put(
                 "paymentChannel",
-                paymentChannel != null && !paymentChannel.isBlank()
-                        ? paymentChannel.trim()
-                        : null);
+                paymentChannel != null && !paymentChannel.isBlank() ? paymentChannel.trim() : null);
 
         // Transaction type: Ensure we always have a valid type (never null)
         // CRITICAL: Default to "EXPENSE" if type is null/empty (most common type)
@@ -4032,8 +4029,9 @@ public class TransactionController {
             final List<CSVImportService.ParsedTransaction> transactions,
             final String importSource,
             final String fileName) {
-        final com.budgetbuddy.service.importer.TransactionImportOrchestrator.BatchImportResult result =
-                importOrchestrator.processBatch(user, transactions, importSource, fileName);
+        final com.budgetbuddy.service.importer.TransactionImportOrchestrator.BatchImportResult
+                result =
+                        importOrchestrator.processBatch(user, transactions, importSource, fileName);
         final BatchImportResponse response = new BatchImportResponse();
         response.setTotal(result.getTotal());
         response.setCreated(result.getCreated());
@@ -4065,7 +4063,8 @@ public class TransactionController {
 
         for (int i = 0; i < totalTransactions; i += BATCH_SIZE) {
             final int endIndex = Math.min(i + BATCH_SIZE, totalTransactions);
-            final List<PDFImportService.ParsedTransaction> batch = transactions.subList(i, endIndex);
+            final List<PDFImportService.ParsedTransaction> batch =
+                    transactions.subList(i, endIndex);
             final int batchNumber = (i / BATCH_SIZE) + 1;
             final int totalBatches = (int) Math.ceil((double) totalTransactions / BATCH_SIZE);
 
@@ -4123,7 +4122,7 @@ public class TransactionController {
                                     // member)
                                     null, // goalId
                                     null // linkedTransactionId
-                            );
+                                    );
 
                     // CRITICAL: Log amount after creation to verify sign preservation
                     LOGGER.info(
@@ -4292,7 +4291,7 @@ public class TransactionController {
                 regexp = "^(none|flagged|reviewed|error)?$",
                 message = "Review status must be none, flagged, reviewed, or error")
         private String
-                reviewStatus; // Optional: review status ("none", "flagged", "reviewed", "error")
+                reviewStatus; // Optional: review status (NONE, "flagged", "reviewed", "error")
 
         @jakarta.validation.constraints.Size(
                 max = 200,
@@ -4559,7 +4558,7 @@ public class TransactionController {
                 regexp = "^(none|flagged|reviewed|error)?$",
                 message = "Review status must be none, flagged, reviewed, or error")
         private String
-                reviewStatus; // Optional: review status ("none", "flagged", "reviewed", "error")
+                reviewStatus; // Optional: review status (NONE, "flagged", "reviewed", "error")
 
         private Boolean isHidden; // Optional: whether transaction is hidden from view
 
@@ -5135,17 +5134,17 @@ public class TransactionController {
         // If all fields are empty, create account with defaults instead of returning null
         final boolean allFieldsNullOrEmpty =
                 (detectedAccount.getInstitutionName() == null
-                        || detectedAccount.getInstitutionName().isBlank())
+                                || detectedAccount.getInstitutionName().isBlank())
                         && (detectedAccount.getAccountName() == null
-                        || detectedAccount.getAccountName().isBlank())
+                                || detectedAccount.getAccountName().isBlank())
                         && (detectedAccount.getAccountType() == null
-                        || detectedAccount.getAccountType().isBlank())
+                                || detectedAccount.getAccountType().isBlank())
                         && (detectedAccount.getAccountSubtype() == null
-                        || detectedAccount.getAccountSubtype().isBlank())
+                                || detectedAccount.getAccountSubtype().isBlank())
                         && (detectedAccount.getAccountNumber() == null
-                        || detectedAccount.getAccountNumber().isBlank())
+                                || detectedAccount.getAccountNumber().isBlank())
                         && (detectedAccount.getMatchedAccountId() == null
-                        || detectedAccount.getMatchedAccountId().isBlank());
+                                || detectedAccount.getMatchedAccountId().isBlank());
 
         if (allFieldsNullOrEmpty) {
             LOGGER.info(
@@ -5167,7 +5166,7 @@ public class TransactionController {
                                                         0,
                                                         detectedAccount.getAccountNumber().length()
                                                                 - 4))
-                        : "null",
+                        : NULL,
                 detectedAccount.getMatchedAccountId());
 
         // CRITICAL: If matchedAccountId is provided, verify it exists and return it
@@ -5196,7 +5195,8 @@ public class TransactionController {
             // This check + save operation should be atomic, but DynamoDB doesn't support
             // transactions across tables
             // We use account number as a natural unique key to prevent duplicates
-            final List<AccountTable> existingAccounts = accountRepository.findByUserId(user.getUserId());
+            final List<AccountTable> existingAccounts =
+                    accountRepository.findByUserId(user.getUserId());
             LOGGER.info(
                     "🔍 autoCreateAccountIfDetected: Checking {} existing accounts for user",
                     existingAccounts != null ? existingAccounts.size() : 0);
@@ -5350,13 +5350,13 @@ public class TransactionController {
             String accountType = detectedAccount.getAccountType();
             if (accountType != null && !accountType.isBlank()) {
                 accountType = accountType.trim().toLowerCase(Locale.ROOT);
-                // Validate account type - if invalid, default to "other"
+                // Validate account type - if invalid, default to OTHER
                 if (!isValidAccountType(accountType)) {
                     LOGGER.warn("Invalid account type '{}', defaulting to 'other'", accountType);
-                    accountType = "other";
+                    accountType = OTHER;
                 }
             } else {
-                accountType = "other";
+                accountType = OTHER;
             }
             newAccount.setAccountType(accountType);
             newAccount.setAccountSubtype(detectedAccount.getAccountSubtype());
@@ -5446,7 +5446,7 @@ public class TransactionController {
                         newAccount.getAccountType(),
                         newAccount.getAccountNumber() != null
                                 ? "***" + newAccount.getAccountNumber()
-                                : "null",
+                                : NULL,
                         newAccount.getPaymentDueDate(),
                         newAccount.getMinimumPaymentDue(),
                         newAccount.getRewardPoints());
@@ -5456,7 +5456,8 @@ public class TransactionController {
                 LOGGER.warn(
                         "Account save failed (possibly duplicate), attempting to find existing: {}",
                         saveException.getMessage());
-                final List<AccountTable> finalCheck = accountRepository.findByUserId(user.getUserId());
+                final List<AccountTable> finalCheck =
+                        accountRepository.findByUserId(user.getUserId());
                 if (finalCheck != null) {
                     for (final AccountTable existing : finalCheck) {
                         // CRITICAL FIX: Normalize account numbers before comparison
@@ -5494,7 +5495,7 @@ public class TransactionController {
                 || "credit".equals(normalized)
                 || "loan".equals(normalized)
                 || "investment".equals(normalized)
-                || "other".equals(normalized)
+                || OTHER.equals(normalized)
                 || "brokerage".equals(normalized)
                 || "checking".equals(normalized)
                 || "savings".equals(normalized)
@@ -5583,7 +5584,7 @@ public class TransactionController {
             if (name.length() > 0) {
                 name.append(' ');
             }
-            name.append("other");
+            name.append(OTHER);
         }
 
         // Extract and add last 4 digits from account number
@@ -5904,7 +5905,7 @@ public class TransactionController {
                     new MultipartFile() {
                         @Override
                         public String getName() {
-                            return "file";
+                            return FILE;
                         }
 
                         @Override
@@ -5961,7 +5962,8 @@ public class TransactionController {
         private int chunkIndex;
         private boolean success;
 
-        public ChunkUploadResponse(final String uploadId, final int chunkIndex, final boolean success) {
+        public ChunkUploadResponse(
+                final String uploadId, final int chunkIndex, final boolean success) {
             this.uploadId = uploadId;
             this.chunkIndex = chunkIndex;
             this.success = success;
@@ -6226,7 +6228,8 @@ public class TransactionController {
 
         public ImportHistoryResponse() {}
 
-        public static ImportHistoryResponse from(final com.budgetbuddy.model.ImportHistory history) {
+        public static ImportHistoryResponse from(
+                final com.budgetbuddy.model.ImportHistory history) {
             final ImportHistoryResponse response = new ImportHistoryResponse();
             response.id = history.getImportId();
             response.userId = history.getUserId();

@@ -1,9 +1,9 @@
 package com.budgetbuddy.service;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.math.BigDecimal;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -23,13 +23,17 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class InvestmentCategorizationTest {
 
+    private static final String INVESTMENT = "investment";
+    private static final String BROKERAGE = "Brokerage";
+    private static final String BANK = "Bank";
+
     @InjectMocks private PlaidCategoryMapper categoryMapper;
 
     @Test
     void testCDDepositCategorizedAsCD() {
         // Given
         final String description = "CD Deposit";
-        final String merchantName = "Bank";
+        final String merchantName = BANK;
         final String paymentChannel = null;
         final BigDecimal amount = new BigDecimal("10000.00");
 
@@ -46,7 +50,7 @@ class InvestmentCategorizationTest {
         // Then
         assertNotNull(mapping);
         assertEquals(
-                "investment",
+                INVESTMENT,
                 mapping.getPrimary(),
                 "CD deposit should be investment, not entertainment");
         assertEquals(
@@ -59,7 +63,7 @@ class InvestmentCategorizationTest {
     void testCDDepositCertificateOfDepositCategorizedAsCD() {
         // Given
         final String description = "Certificate of Deposit";
-        final String merchantName = "Bank";
+        final String merchantName = BANK;
         final String paymentChannel = null;
         final BigDecimal amount = new BigDecimal("5000.00");
 
@@ -70,7 +74,7 @@ class InvestmentCategorizationTest {
 
         // Then
         assertNotNull(mapping);
-        assertEquals("investment", mapping.getPrimary());
+        assertEquals(INVESTMENT, mapping.getPrimary());
         assertEquals(
                 "cd",
                 mapping.getDetailed(),
@@ -81,7 +85,7 @@ class InvestmentCategorizationTest {
     void testCDMaturityCategorizedAsCD() {
         // Given
         final String description = "CD Maturity";
-        final String merchantName = "Bank";
+        final String merchantName = BANK;
         final String paymentChannel = null;
         final BigDecimal amount = new BigDecimal("10000.00");
 
@@ -92,7 +96,7 @@ class InvestmentCategorizationTest {
 
         // Then
         assertNotNull(mapping);
-        assertEquals("investment", mapping.getPrimary());
+        assertEquals(INVESTMENT, mapping.getPrimary());
         assertEquals("cd", mapping.getDetailed(), "CD maturity should be categorized as 'cd'");
     }
 
@@ -100,7 +104,7 @@ class InvestmentCategorizationTest {
     void testCDInterestCategorizedAsCD() {
         // Given
         final String description = "CD Interest Payment";
-        final String merchantName = "Bank";
+        final String merchantName = BANK;
         final String paymentChannel = null;
         final BigDecimal amount = new BigDecimal("50.00");
 
@@ -116,7 +120,7 @@ class InvestmentCategorizationTest {
 
         // Then
         assertNotNull(mapping);
-        assertEquals("investment", mapping.getPrimary(), "CD interest should be investment");
+        assertEquals(INVESTMENT, mapping.getPrimary(), "CD interest should be investment");
         assertEquals("cd", mapping.getDetailed(), "CD interest should be categorized as 'cd'");
     }
 
@@ -124,7 +128,7 @@ class InvestmentCategorizationTest {
     void testCDDepositWithIncomeCategoryOverriddenToCD() {
         // Given: CD deposit that might be categorized as income
         final String description = "CD Deposit - Certificate of Deposit";
-        final String merchantName = "Bank";
+        final String merchantName = BANK;
         final String paymentChannel = null;
         final BigDecimal amount = new BigDecimal("5000.00");
 
@@ -136,7 +140,7 @@ class InvestmentCategorizationTest {
         // Then
         assertNotNull(mapping);
         assertEquals(
-                "investment", mapping.getPrimary(), "CD deposit should be investment, not income");
+                INVESTMENT, mapping.getPrimary(), "CD deposit should be investment, not income");
         assertEquals("cd", mapping.getDetailed(), "CD deposit should be categorized as 'cd'");
     }
 
@@ -146,7 +150,7 @@ class InvestmentCategorizationTest {
     void testStockPurchaseCategorizedAsStocks() {
         // Given
         final String description = "Stock Purchase - AAPL";
-        final String merchantName = "Brokerage";
+        final String merchantName = BROKERAGE;
         final String paymentChannel = null;
         final BigDecimal amount = new BigDecimal("-1000.00");
 
@@ -157,7 +161,7 @@ class InvestmentCategorizationTest {
 
         // Then
         assertNotNull(mapping);
-        assertEquals("investment", mapping.getPrimary(), "Stock purchase should be investment");
+        assertEquals(INVESTMENT, mapping.getPrimary(), "Stock purchase should be investment");
         assertEquals(
                 "stocks",
                 mapping.getDetailed(),
@@ -168,7 +172,7 @@ class InvestmentCategorizationTest {
     void testStockEquityCategorizedAsStocks() {
         // Given
         final String description = "Equity Investment";
-        final String merchantName = "Brokerage";
+        final String merchantName = BROKERAGE;
         final String paymentChannel = null;
         final BigDecimal amount = new BigDecimal("-2000.00");
 
@@ -179,7 +183,7 @@ class InvestmentCategorizationTest {
 
         // Then
         assertNotNull(mapping);
-        assertEquals("investment", mapping.getPrimary());
+        assertEquals(INVESTMENT, mapping.getPrimary());
         assertEquals("stocks", mapping.getDetailed(), "Equity should be categorized as 'stocks'");
     }
 
@@ -187,7 +191,7 @@ class InvestmentCategorizationTest {
     void testCommonStockCategorizedAsStocks() {
         // Given
         final String description = "Common Stock Purchase";
-        final String merchantName = "Brokerage";
+        final String merchantName = BROKERAGE;
         final String paymentChannel = null;
         final BigDecimal amount = new BigDecimal("-1500.00");
 
@@ -198,7 +202,7 @@ class InvestmentCategorizationTest {
 
         // Then
         assertNotNull(mapping);
-        assertEquals("investment", mapping.getPrimary());
+        assertEquals(INVESTMENT, mapping.getPrimary());
         assertEquals(
                 "stocks", mapping.getDetailed(), "Common stock should be categorized as 'stocks'");
     }
@@ -209,7 +213,7 @@ class InvestmentCategorizationTest {
     void testBondPurchaseCategorizedAsBonds() {
         // Given
         final String description = "Bond Purchase";
-        final String merchantName = "Brokerage";
+        final String merchantName = BROKERAGE;
         final String paymentChannel = null;
         final BigDecimal amount = new BigDecimal("-5000.00");
 
@@ -220,7 +224,7 @@ class InvestmentCategorizationTest {
 
         // Then
         assertNotNull(mapping);
-        assertEquals("investment", mapping.getPrimary(), "Bond purchase should be investment");
+        assertEquals(INVESTMENT, mapping.getPrimary(), "Bond purchase should be investment");
         assertEquals(
                 "bonds", mapping.getDetailed(), "Bond purchase should be categorized as 'bonds'");
     }
@@ -229,7 +233,7 @@ class InvestmentCategorizationTest {
     void testMunicipalBondCategorizedAsMunicipalBonds() {
         // Given
         final String description = "Municipal Bond Purchase";
-        final String merchantName = "Brokerage";
+        final String merchantName = BROKERAGE;
         final String paymentChannel = null;
         final BigDecimal amount = new BigDecimal("-3000.00");
 
@@ -240,7 +244,7 @@ class InvestmentCategorizationTest {
 
         // Then
         assertNotNull(mapping);
-        assertEquals("investment", mapping.getPrimary());
+        assertEquals(INVESTMENT, mapping.getPrimary());
         assertEquals(
                 "municipalBonds",
                 mapping.getDetailed(),
@@ -251,7 +255,7 @@ class InvestmentCategorizationTest {
     void testMuniBondCategorizedAsMunicipalBonds() {
         // Given
         final String description = "Muni Bond Investment";
-        final String merchantName = "Brokerage";
+        final String merchantName = BROKERAGE;
         final String paymentChannel = null;
         final BigDecimal amount = new BigDecimal("-2500.00");
 
@@ -262,7 +266,7 @@ class InvestmentCategorizationTest {
 
         // Then
         assertNotNull(mapping);
-        assertEquals("investment", mapping.getPrimary());
+        assertEquals(INVESTMENT, mapping.getPrimary());
         assertEquals(
                 "municipalBonds",
                 mapping.getDetailed(),
@@ -273,7 +277,7 @@ class InvestmentCategorizationTest {
     void testTreasuryBillCategorizedAsTBills() {
         // Given
         final String description = "Treasury Bill Purchase";
-        final String merchantName = "Brokerage";
+        final String merchantName = BROKERAGE;
         final String paymentChannel = null;
         final BigDecimal amount = new BigDecimal("-10000.00");
 
@@ -284,7 +288,7 @@ class InvestmentCategorizationTest {
 
         // Then
         assertNotNull(mapping);
-        assertEquals("investment", mapping.getPrimary());
+        assertEquals(INVESTMENT, mapping.getPrimary());
         assertEquals(
                 "tBills", mapping.getDetailed(), "Treasury Bill should be categorized as 'tBills'");
     }
@@ -293,7 +297,7 @@ class InvestmentCategorizationTest {
     void testTBillCategorizedAsTBills() {
         // Given
         final String description = "T-Bill Investment";
-        final String merchantName = "Brokerage";
+        final String merchantName = BROKERAGE;
         final String paymentChannel = null;
         final BigDecimal amount = new BigDecimal("-5000.00");
 
@@ -304,7 +308,7 @@ class InvestmentCategorizationTest {
 
         // Then
         assertNotNull(mapping);
-        assertEquals("investment", mapping.getPrimary());
+        assertEquals(INVESTMENT, mapping.getPrimary());
         assertEquals("tBills", mapping.getDetailed(), "T-Bill should be categorized as 'tBills'");
     }
 
@@ -312,7 +316,7 @@ class InvestmentCategorizationTest {
     void testUSTreasuryCategorizedAsTBills() {
         // Given
         final String description = "US Treasury Investment";
-        final String merchantName = "Brokerage";
+        final String merchantName = BROKERAGE;
         final String paymentChannel = null;
         final BigDecimal amount = new BigDecimal("-7500.00");
 
@@ -323,7 +327,7 @@ class InvestmentCategorizationTest {
 
         // Then
         assertNotNull(mapping);
-        assertEquals("investment", mapping.getPrimary());
+        assertEquals(INVESTMENT, mapping.getPrimary());
         assertEquals(
                 "tBills", mapping.getDetailed(), "US Treasury should be categorized as 'tBills'");
     }
@@ -345,7 +349,7 @@ class InvestmentCategorizationTest {
 
         // Then
         assertNotNull(mapping);
-        assertEquals("investment", mapping.getPrimary(), "401k contribution should be investment");
+        assertEquals(INVESTMENT, mapping.getPrimary(), "401k contribution should be investment");
         assertEquals(
                 "fourZeroOneK",
                 mapping.getDetailed(),
@@ -367,7 +371,7 @@ class InvestmentCategorizationTest {
 
         // Then
         assertNotNull(mapping);
-        assertEquals("investment", mapping.getPrimary());
+        assertEquals(INVESTMENT, mapping.getPrimary());
         assertEquals(
                 "fourZeroOneK",
                 mapping.getDetailed(),
@@ -389,7 +393,7 @@ class InvestmentCategorizationTest {
 
         // Then
         assertNotNull(mapping);
-        assertEquals("investment", mapping.getPrimary());
+        assertEquals(INVESTMENT, mapping.getPrimary());
         assertEquals(
                 "fiveTwoNine",
                 mapping.getDetailed(),
@@ -411,7 +415,7 @@ class InvestmentCategorizationTest {
 
         // Then
         assertNotNull(mapping);
-        assertEquals("investment", mapping.getPrimary());
+        assertEquals(INVESTMENT, mapping.getPrimary());
         assertEquals(
                 "fiveTwoNine",
                 mapping.getDetailed(),
@@ -433,7 +437,7 @@ class InvestmentCategorizationTest {
 
         // Then
         assertNotNull(mapping);
-        assertEquals("investment", mapping.getPrimary());
+        assertEquals(INVESTMENT, mapping.getPrimary());
         assertEquals("ira", mapping.getDetailed(), "IRA should be categorized as 'ira'");
     }
 
@@ -452,7 +456,7 @@ class InvestmentCategorizationTest {
 
         // Then
         assertNotNull(mapping);
-        assertEquals("investment", mapping.getPrimary());
+        assertEquals(INVESTMENT, mapping.getPrimary());
         assertEquals("ira", mapping.getDetailed(), "Roth IRA should be categorized as 'ira'");
     }
 
@@ -471,7 +475,7 @@ class InvestmentCategorizationTest {
 
         // Then
         assertNotNull(mapping);
-        assertEquals("investment", mapping.getPrimary());
+        assertEquals(INVESTMENT, mapping.getPrimary());
         assertEquals(
                 "ira", mapping.getDetailed(), "Traditional IRA should be categorized as 'ira'");
     }
@@ -491,7 +495,7 @@ class InvestmentCategorizationTest {
 
         // Then
         assertNotNull(mapping);
-        assertEquals("investment", mapping.getPrimary());
+        assertEquals(INVESTMENT, mapping.getPrimary());
         assertEquals("ira", mapping.getDetailed(), "SEP IRA should be categorized as 'ira'");
     }
 
@@ -512,7 +516,7 @@ class InvestmentCategorizationTest {
 
         // Then
         assertNotNull(mapping);
-        assertEquals("investment", mapping.getPrimary(), "Mutual fund should be investment");
+        assertEquals(INVESTMENT, mapping.getPrimary(), "Mutual fund should be investment");
         assertEquals(
                 "mutualFunds",
                 mapping.getDetailed(),
@@ -523,7 +527,7 @@ class InvestmentCategorizationTest {
     void testETFCategorizedAsETF() {
         // Given
         final String description = "ETF Purchase";
-        final String merchantName = "Brokerage";
+        final String merchantName = BROKERAGE;
         final String paymentChannel = null;
         final BigDecimal amount = new BigDecimal("-1500.00");
 
@@ -534,7 +538,7 @@ class InvestmentCategorizationTest {
 
         // Then
         assertNotNull(mapping);
-        assertEquals("investment", mapping.getPrimary());
+        assertEquals(INVESTMENT, mapping.getPrimary());
         assertEquals("etf", mapping.getDetailed(), "ETF should be categorized as 'etf'");
     }
 
@@ -542,7 +546,7 @@ class InvestmentCategorizationTest {
     void testExchangeTradedFundCategorizedAsETF() {
         // Given
         final String description = "Exchange Traded Fund Investment";
-        final String merchantName = "Brokerage";
+        final String merchantName = BROKERAGE;
         final String paymentChannel = null;
         final BigDecimal amount = new BigDecimal("-1800.00");
 
@@ -553,7 +557,7 @@ class InvestmentCategorizationTest {
 
         // Then
         assertNotNull(mapping);
-        assertEquals("investment", mapping.getPrimary());
+        assertEquals(INVESTMENT, mapping.getPrimary());
         assertEquals(
                 "etf",
                 mapping.getDetailed(),
@@ -566,7 +570,7 @@ class InvestmentCategorizationTest {
     void testMoneyMarketCategorizedAsMoneyMarket() {
         // Given
         final String description = "Money Market Account";
-        final String merchantName = "Bank";
+        final String merchantName = BANK;
         final String paymentChannel = null;
         final BigDecimal amount = new BigDecimal("-5000.00");
 
@@ -577,7 +581,7 @@ class InvestmentCategorizationTest {
 
         // Then
         assertNotNull(mapping);
-        assertEquals("investment", mapping.getPrimary());
+        assertEquals(INVESTMENT, mapping.getPrimary());
         assertEquals(
                 "moneyMarket",
                 mapping.getDetailed(),
@@ -588,7 +592,7 @@ class InvestmentCategorizationTest {
     void testMMAccountCategorizedAsMoneyMarket() {
         // Given
         final String description = "MM Account Investment";
-        final String merchantName = "Bank";
+        final String merchantName = BANK;
         final String paymentChannel = null;
         final BigDecimal amount = new BigDecimal("-3000.00");
 
@@ -599,7 +603,7 @@ class InvestmentCategorizationTest {
 
         // Then
         assertNotNull(mapping);
-        assertEquals("investment", mapping.getPrimary());
+        assertEquals(INVESTMENT, mapping.getPrimary());
         assertEquals(
                 "moneyMarket",
                 mapping.getDetailed(),
@@ -623,7 +627,7 @@ class InvestmentCategorizationTest {
 
         // Then
         assertNotNull(mapping);
-        assertEquals("investment", mapping.getPrimary());
+        assertEquals(INVESTMENT, mapping.getPrimary());
         assertEquals(
                 "preciousMetals",
                 mapping.getDetailed(),
@@ -645,7 +649,7 @@ class InvestmentCategorizationTest {
 
         // Then
         assertNotNull(mapping);
-        assertEquals("investment", mapping.getPrimary());
+        assertEquals(INVESTMENT, mapping.getPrimary());
         assertEquals(
                 "preciousMetals",
                 mapping.getDetailed(),
@@ -667,7 +671,7 @@ class InvestmentCategorizationTest {
 
         // Then
         assertNotNull(mapping);
-        assertEquals("investment", mapping.getPrimary());
+        assertEquals(INVESTMENT, mapping.getPrimary());
         assertEquals(
                 "preciousMetals",
                 mapping.getDetailed(),
@@ -691,7 +695,7 @@ class InvestmentCategorizationTest {
 
         // Then
         assertNotNull(mapping);
-        assertEquals("investment", mapping.getPrimary());
+        assertEquals(INVESTMENT, mapping.getPrimary());
         assertEquals("crypto", mapping.getDetailed(), "Bitcoin should be categorized as 'crypto'");
     }
 
@@ -710,7 +714,7 @@ class InvestmentCategorizationTest {
 
         // Then
         assertNotNull(mapping);
-        assertEquals("investment", mapping.getPrimary());
+        assertEquals(INVESTMENT, mapping.getPrimary());
         assertEquals("crypto", mapping.getDetailed(), "Ethereum should be categorized as 'crypto'");
     }
 
@@ -729,7 +733,7 @@ class InvestmentCategorizationTest {
 
         // Then
         assertNotNull(mapping);
-        assertEquals("investment", mapping.getPrimary());
+        assertEquals(INVESTMENT, mapping.getPrimary());
         assertEquals(
                 "crypto",
                 mapping.getDetailed(),
@@ -751,7 +755,7 @@ class InvestmentCategorizationTest {
 
         // Then
         assertNotNull(mapping);
-        assertEquals("investment", mapping.getPrimary());
+        assertEquals(INVESTMENT, mapping.getPrimary());
         assertEquals("crypto", mapping.getDetailed(), "BTC should be categorized as 'crypto'");
     }
 
@@ -761,7 +765,7 @@ class InvestmentCategorizationTest {
     void testBrokerageAccountCategorizedAsOtherInvestment() {
         // Given
         final String description = "Brokerage Account Investment";
-        final String merchantName = "Brokerage";
+        final String merchantName = BROKERAGE;
         final String paymentChannel = null;
         final BigDecimal amount = new BigDecimal("-5000.00");
 
@@ -772,7 +776,7 @@ class InvestmentCategorizationTest {
 
         // Then
         assertNotNull(mapping);
-        assertEquals("investment", mapping.getPrimary());
+        assertEquals(INVESTMENT, mapping.getPrimary());
         assertEquals(
                 "otherInvestment",
                 mapping.getDetailed(),
@@ -794,7 +798,7 @@ class InvestmentCategorizationTest {
 
         // Then
         assertNotNull(mapping);
-        assertEquals("investment", mapping.getPrimary());
+        assertEquals(INVESTMENT, mapping.getPrimary());
         assertEquals(
                 "otherInvestment",
                 mapping.getDetailed(),
@@ -805,7 +809,7 @@ class InvestmentCategorizationTest {
     void testSecuritiesTradingCategorizedAsOtherInvestment() {
         // Given
         final String description = "Securities Trading";
-        final String merchantName = "Brokerage";
+        final String merchantName = BROKERAGE;
         final String paymentChannel = null;
         final BigDecimal amount = new BigDecimal("-3000.00");
 
@@ -816,7 +820,7 @@ class InvestmentCategorizationTest {
 
         // Then
         assertNotNull(mapping);
-        assertEquals("investment", mapping.getPrimary());
+        assertEquals(INVESTMENT, mapping.getPrimary());
         assertEquals(
                 "otherInvestment",
                 mapping.getDetailed(),

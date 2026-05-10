@@ -1,11 +1,9 @@
 package com.budgetbuddy.service;
 
-
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import java.util.Locale;
 import com.budgetbuddy.model.Subscription;
 import com.budgetbuddy.model.dynamodb.TransactionTable;
 import com.budgetbuddy.repository.dynamodb.TransactionRepository;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
@@ -14,6 +12,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
@@ -35,9 +34,15 @@ import org.springframework.stereotype.Service;
 // callers — defensive-copying it would break dependency injection.
 @SuppressFBWarnings(
         value = {"EI_EXPOSE_REP", "EI_EXPOSE_REP2"},
-        justification = "JSON DTO / DynamoDB entity getters expose lists by reference; "
+        justification =
+                "JSON DTO / DynamoDB entity getters expose lists by reference; "
                         + "the design is value-semantic and Jackson creates fresh instances; Spring constructor injection — beans are shared by design")
-@SuppressWarnings({"PMD.LawOfDemeter", "PMD.AvoidCatchingGenericException", "PMD.DataClass", "PMD.OnlyOneReturn"})
+@SuppressWarnings({
+    "PMD.LawOfDemeter",
+    "PMD.AvoidCatchingGenericException",
+    "PMD.DataClass",
+    "PMD.OnlyOneReturn"
+})
 @Service
 public class SubscriptionAdvancedService {
 
@@ -62,7 +67,8 @@ public class SubscriptionAdvancedService {
      */
     public SubscriptionHealthScore calculateHealthScore(
             final String userId, final Subscription subscription) {
-        final List<TransactionTable> transactions = transactionRepository.findByUserId(userId, 0, 10_000);
+        final List<TransactionTable> transactions =
+                transactionRepository.findByUserId(userId, 0, 10_000);
         final List<TransactionTable> subscriptionTransactions =
                 findSubscriptionTransactions(transactions, subscription);
 
@@ -108,7 +114,8 @@ public class SubscriptionAdvancedService {
         }
 
         // Check for duplicates (same merchant, different amounts)
-        final List<Subscription> allSubscriptions = subscriptionService.getActiveSubscriptions(userId);
+        final List<Subscription> allSubscriptions =
+                subscriptionService.getActiveSubscriptions(userId);
         final long duplicateCount =
                 allSubscriptions.stream()
                         .filter(
@@ -146,7 +153,8 @@ public class SubscriptionAdvancedService {
         LOGGER.info("Detecting trial expirations for user: {}", userId);
 
         final List<Subscription> subscriptions = subscriptionService.getActiveSubscriptions(userId);
-        final List<TransactionTable> transactions = transactionRepository.findByUserId(userId, 0, 10_000);
+        final List<TransactionTable> transactions =
+                transactionRepository.findByUserId(userId, 0, 10_000);
 
         final List<TrialExpirationAlert> alerts = new ArrayList<>();
 
@@ -164,17 +172,19 @@ public class SubscriptionAdvancedService {
             if (description != null && description.toLowerCase(Locale.ROOT).contains("trial")) {
                 // Check if this is the first payment (trial period)
                 if (subTransactions.size() == 1) {
-                    final LocalDate firstPayment = parseDate(subTransactions.get(0).getTransactionDate());
+                    final LocalDate firstPayment =
+                            parseDate(subTransactions.get(0).getTransactionDate());
                     if (firstPayment != null) {
                         // Assume 7, 14, or 30 day trial
                         final LocalDate[] trialEndDates = {
-                                firstPayment.plusDays(7),
-                                firstPayment.plusDays(14),
-                                firstPayment.plusDays(30)
+                            firstPayment.plusDays(7),
+                            firstPayment.plusDays(14),
+                            firstPayment.plusDays(30)
                         };
 
                         for (final LocalDate trialEnd : trialEndDates) {
-                            final long daysUntil = ChronoUnit.DAYS.between(LocalDate.now(), trialEnd);
+                            final long daysUntil =
+                                    ChronoUnit.DAYS.between(LocalDate.now(), trialEnd);
                             if (daysUntil >= 0 && daysUntil <= 3) {
                                 alerts.add(
                                         new TrialExpirationAlert(
@@ -222,7 +232,8 @@ public class SubscriptionAdvancedService {
                     subscriptions.stream()
                             .filter(
                                     sub -> {
-                                        final String merchant = sub.getMerchantName().toLowerCase(Locale.ROOT);
+                                        final String merchant =
+                                                sub.getMerchantName().toLowerCase(Locale.ROOT);
                                         return services.stream().anyMatch(merchant::contains);
                                     })
                             .collect(Collectors.toList());
@@ -391,7 +402,8 @@ public class SubscriptionAdvancedService {
                         .map(AlternativeRecommendation::getPotentialSavings)
                         .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        final BigDecimal totalSavings = cancellationSavings.add(bundlingSavings).add(alternativeSavings);
+        final BigDecimal totalSavings =
+                cancellationSavings.add(bundlingSavings).add(alternativeSavings);
 
         // Calculate current monthly spend
         final BigDecimal monthlySpend =
@@ -515,7 +527,10 @@ public class SubscriptionAdvancedService {
         private final List<String> issues;
 
         public SubscriptionHealthScore(
-                final Subscription subscription, final int score, final String healthLevel, final List<String> issues) {
+                final Subscription subscription,
+                final int score,
+                final String healthLevel,
+                final List<String> issues) {
             this.subscription = subscription;
             this.score = score;
             this.healthLevel = healthLevel;

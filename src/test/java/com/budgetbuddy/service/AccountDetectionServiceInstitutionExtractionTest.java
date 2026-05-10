@@ -1,6 +1,5 @@
 package com.budgetbuddy.service;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -8,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.budgetbuddy.repository.dynamodb.AccountRepository;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.lang.reflect.Method;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -29,6 +29,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
         justification = "JUnit idiom — test methods accept any setup exception")
 @ExtendWith(MockitoExtension.class)
 class AccountDetectionServiceInstitutionExtractionTest {
+
+    private static final String CHASE = "Chase";
 
     @Mock private AccountRepository accountRepository;
 
@@ -76,7 +78,7 @@ class AccountDetectionServiceInstitutionExtractionTest {
         final String institution = invokeExtractInstitutionFromTextStrict(text);
 
         // Then
-        assertEquals("Chase", institution);
+        assertEquals(CHASE, institution);
     }
 
     @Test
@@ -120,8 +122,7 @@ class AccountDetectionServiceInstitutionExtractionTest {
     }
 
     @Test
-    void testExtractInstitutionMultipleInstitutionsInHeaderSelectsMostFrequent()
-            throws Exception {
+    void testExtractInstitutionMultipleInstitutionsInHeaderSelectsMostFrequent() throws Exception {
         // Given - Multiple institutions mentioned, but one appears more frequently
         final String text =
                 "Chase Bank\n"
@@ -136,7 +137,7 @@ class AccountDetectionServiceInstitutionExtractionTest {
         final String institution = invokeExtractInstitutionFromTextStrict(text);
 
         // Then - Should select Chase (appears 3 times) over JP Morgan (appears 1 time)
-        assertEquals("Chase", institution);
+        assertEquals(CHASE, institution);
     }
 
     @Test
@@ -154,7 +155,7 @@ class AccountDetectionServiceInstitutionExtractionTest {
         final String institution = invokeExtractInstitutionFromTextStrict(text);
 
         // Then - Should still detect but with lower score
-        assertEquals("Chase", institution);
+        assertEquals(CHASE, institution);
     }
 
     // ========== Website Pattern Matching Tests ==========
@@ -192,7 +193,7 @@ class AccountDetectionServiceInstitutionExtractionTest {
         final String institution = invokeExtractInstitutionFromTextStrict(text);
 
         // Then
-        assertEquals("Chase", institution);
+        assertEquals(CHASE, institution);
     }
 
     @Test
@@ -227,7 +228,7 @@ class AccountDetectionServiceInstitutionExtractionTest {
         final String institution = invokeExtractInstitutionFromTextStrict(text);
 
         // Then - Should still detect but website bonus is lower
-        assertEquals("Chase", institution);
+        assertEquals(CHASE, institution);
     }
 
     // ========== Frequency-Based Ranking Tests ==========
@@ -267,7 +268,7 @@ class AccountDetectionServiceInstitutionExtractionTest {
         final String institution = invokeExtractInstitutionFromTextStrict(text);
 
         // Then - Chase should win (in header)
-        assertEquals("Chase", institution);
+        assertEquals(CHASE, institution);
     }
 
     // ========== Keyword Specificity Tests ==========
@@ -378,11 +379,11 @@ class AccountDetectionServiceInstitutionExtractionTest {
         final String institution = invokeExtractInstitutionFromTextStrict(text);
 
         // Then - Word boundaries should prevent substring matches
-        // If something matched, verify it's not "Chase" (which would be false positive from
+        // If something matched, verify it's not CHASE (which would be false positive from
         // "purchase")
         if (institution != null) {
             assertNotEquals(
-                    "Chase",
+                    CHASE,
                     institution,
                     "Should not match 'chase' as substring in 'purchase' - word boundaries should prevent this");
         }
@@ -468,7 +469,7 @@ class AccountDetectionServiceInstitutionExtractionTest {
         final String institution = invokeExtractInstitutionFromTextStrict(text);
 
         // Then - Should still detect but with lower score
-        assertEquals("Chase", institution);
+        assertEquals(CHASE, institution);
     }
 
     // ========== Error Conditions Tests ==========
@@ -523,7 +524,7 @@ class AccountDetectionServiceInstitutionExtractionTest {
         final String institution = invokeExtractInstitutionFromTextStrict(text);
 
         // Then - Should still detect from name, not crash on website
-        assertEquals("Chase", institution);
+        assertEquals(CHASE, institution);
     }
 
     // ========== Race Condition Simulation Tests ==========
@@ -593,7 +594,7 @@ class AccountDetectionServiceInstitutionExtractionTest {
         final String institution = invokeExtractInstitutionFromTextStrict(text);
 
         // Then - Should select Chase (website in header)
-        assertEquals("Chase", institution);
+        assertEquals(CHASE, institution);
     }
 
     // ========== Helper Method ==========

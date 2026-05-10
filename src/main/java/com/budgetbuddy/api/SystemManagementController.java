@@ -1,7 +1,7 @@
 package com.budgetbuddy.api;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import com.budgetbuddy.config.DnsCacheConfig;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.HashMap;
 import java.util.Map;
 import org.slf4j.Logger;

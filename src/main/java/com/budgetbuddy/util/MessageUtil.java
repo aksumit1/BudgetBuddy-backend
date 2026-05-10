@@ -55,13 +55,15 @@ public class MessageUtil {
 
     /** Get success message */
     public String getSuccessMessage(final String successCode) {
-        final String messageKey = "success." + successCode.toLowerCase(Locale.ROOT).replace("_", ".");
+        final String messageKey =
+                "success." + successCode.toLowerCase(Locale.ROOT).replace("_", ".");
         return getMessage(messageKey);
     }
 
     /** Get validation message */
     public String getValidationMessage(final String validationCode) {
-        final String messageKey = "validation." + validationCode.toLowerCase(Locale.ROOT).replace("_", ".");
+        final String messageKey =
+                "validation." + validationCode.toLowerCase(Locale.ROOT).replace("_", ".");
         return getMessage(messageKey);
     }
 }

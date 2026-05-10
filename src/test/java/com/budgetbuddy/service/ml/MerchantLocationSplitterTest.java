@@ -41,7 +41,8 @@ class MerchantLocationSplitterTest {
 
     @Test
     void canadianProvinceTail() {
-        final MerchantLocationSplitter.Split s = MerchantLocationSplitter.split("TIM HORTONS TORONTO ON");
+        final MerchantLocationSplitter.Split s =
+                MerchantLocationSplitter.split("TIM HORTONS TORONTO ON");
         assertEquals("TIM HORTONS", s.merchant());
         assertEquals("Toronto, ON", s.location());
     }

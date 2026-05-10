@@ -1,6 +1,5 @@
 package com.budgetbuddy.api;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import com.budgetbuddy.exception.AppException;
 import com.budgetbuddy.exception.ErrorCode;
 import com.budgetbuddy.model.dynamodb.BudgetTable;
@@ -11,6 +10,7 @@ import com.budgetbuddy.repository.dynamodb.BudgetRepository;
 import com.budgetbuddy.repository.dynamodb.GoalRepository;
 import com.budgetbuddy.repository.dynamodb.TransactionRepository;
 import com.budgetbuddy.service.UserService;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;

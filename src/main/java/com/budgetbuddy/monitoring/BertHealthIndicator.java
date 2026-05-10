@@ -1,7 +1,7 @@
 package com.budgetbuddy.monitoring;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import com.budgetbuddy.service.ml.SemanticMatchingService;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.actuate.health.Health;
@@ -98,7 +98,8 @@ public class BertHealthIndicator implements HealthIndicator {
                                 .getClass()
                                 .getMethod("getBertEmbeddingForHealthCheck", String.class);
                 final String testText = "test";
-                final Object embedding = getEmbeddingMethod.invoke(semanticMatchingService, testText);
+                final Object embedding =
+                        getEmbeddingMethod.invoke(semanticMatchingService, testText);
 
                 if (embedding == null) {
                     return false;

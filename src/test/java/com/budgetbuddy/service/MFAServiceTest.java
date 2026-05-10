@@ -1,6 +1,5 @@
 package com.budgetbuddy.service;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -10,6 +9,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.budgetbuddy.exception.AppException;
 import com.budgetbuddy.repository.dynamodb.UserRepository;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -25,6 +25,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
         justification = "JUnit idiom — test methods accept any setup exception")
 @ExtendWith(MockitoExtension.class)
 class MFAServiceTest {
+
+    private static final String TEST_USER_ID = "test-user-id";
 
     @Mock private UserRepository userRepository;
 
@@ -53,7 +55,7 @@ class MFAServiceTest {
     @Test
     void testSetupTOTPWithValidInputReturnsSecretAndQRCode() {
         // Given
-        final String userId = "test-user-id";
+        final String userId = TEST_USER_ID;
         final String email = "test@example.com";
 
         // When
@@ -83,14 +85,14 @@ class MFAServiceTest {
         assertThrows(
                 AppException.class,
                 () -> {
-                    mfaService.setupTOTP("test-user-id", null);
+                    mfaService.setupTOTP(TEST_USER_ID, null);
                 });
     }
 
     @Test
     void testVerifyTOTPWithValidCodeReturnsTrue() {
         // Given
-        final String userId = "test-user-id";
+        final String userId = TEST_USER_ID;
         final String email = "test@example.com";
         final MFAService.TOTPSetupResult setup = mfaService.setupTOTP(userId, email);
 
@@ -111,7 +113,7 @@ class MFAServiceTest {
     @Test
     void testGenerateBackupCodesWithValidInputReturnsListOfCodes() {
         // Given
-        final String userId = "test-user-id";
+        final String userId = TEST_USER_ID;
 
         // When
         final List<String> codes = mfaService.generateBackupCodes(userId);
@@ -130,7 +132,7 @@ class MFAServiceTest {
     @Test
     void testVerifyBackupCodeWithValidCodeReturnsTrue() {
         // Given
-        final String userId = "test-user-id";
+        final String userId = TEST_USER_ID;
         final List<String> codes = mfaService.generateBackupCodes(userId);
         assertFalse(codes.isEmpty(), "Backup codes should be generated");
         final String codeToVerify = codes.get(0);
@@ -145,7 +147,7 @@ class MFAServiceTest {
     @Test
     void testVerifyBackupCodeWithInvalidCodeReturnsFalse() {
         // Given
-        final String userId = "test-user-id";
+        final String userId = TEST_USER_ID;
         mfaService.generateBackupCodes(userId);
 
         // When
@@ -158,7 +160,7 @@ class MFAServiceTest {
     @Test
     void testGenerateOTPWithValidInputReturnsOTP() {
         // Given
-        final String userId = "test-user-id";
+        final String userId = TEST_USER_ID;
 
         // When
         final String otp = mfaService.generateOTP(userId, MFAService.OTPType.SMS);
@@ -172,7 +174,7 @@ class MFAServiceTest {
     @Test
     void testVerifyOTPWithValidCodeReturnsTrue() {
         // Given
-        final String userId = "test-user-id";
+        final String userId = TEST_USER_ID;
         final String otp = mfaService.generateOTP(userId, MFAService.OTPType.SMS);
         assertNotNull(otp, "OTP should be generated");
         assertEquals(6, otp.length(), "OTP should be 6 digits");
@@ -187,7 +189,7 @@ class MFAServiceTest {
     @Test
     void testVerifyOTPWithInvalidCodeReturnsFalse() {
         // Given
-        final String userId = "test-user-id";
+        final String userId = TEST_USER_ID;
         mfaService.generateOTP(userId, MFAService.OTPType.SMS);
 
         // When
@@ -200,7 +202,7 @@ class MFAServiceTest {
     @Test
     void testVerifyOTPWithExpiredCodeReturnsFalse() throws InterruptedException {
         // Given
-        final String userId = "test-user-id";
+        final String userId = TEST_USER_ID;
         final String otp = mfaService.generateOTP(userId, MFAService.OTPType.EMAIL);
 
         // Wait for expiration (default is 300 seconds, but for testing we'd need to mock time)

@@ -1,6 +1,5 @@
 package com.budgetbuddy.plaid;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import com.budgetbuddy.compliance.pcidss.PCIDSSComplianceService;
 import com.budgetbuddy.exception.AppException;
 import com.budgetbuddy.exception.ErrorCode;
@@ -22,6 +21,7 @@ import com.plaid.client.model.TransactionsGetRequest;
 import com.plaid.client.model.TransactionsGetRequestOptions;
 import com.plaid.client.model.TransactionsGetResponse;
 import com.plaid.client.request.PlaidApi;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import io.github.resilience4j.retry.annotation.Retry;
 import java.util.HashMap;
@@ -50,13 +50,17 @@ import org.springframework.stereotype.Service;
 @Service
 public class PlaidService {
 
-    private static final String ACCESS_TOKEN_CANNOT_BE_NULL_OR_EMPTY = "Access token cannot be null or empty";
+    private static final String PLAID = "plaid";
+
+    private static final String ACCESS_TOKEN_CANNOT_BE_NULL_OR_EMPTY =
+            "Access token cannot be null or empty";
 
     private static final String NO_ERROR_BODY = "No error body";
 
     private static final String RATE_LIMIT_EXCEEDED = "RATE_LIMIT_EXCEEDED";
 
-    private static final String RATE_LIMIT_EXCEEDED_FOR_TRANSACTIONS = "Rate limit exceeded for transactions";
+    private static final String RATE_LIMIT_EXCEEDED_FOR_TRANSACTIONS =
+            "Rate limit exceeded for transactions";
 
     private static final String TRANSACTIONS_LIMIT = "TRANSACTIONS_LIMIT";
 
@@ -65,7 +69,10 @@ public class PlaidService {
     private final PlaidApi plaidApi;
     private final String environment;
 
-    @SuppressWarnings({"unused", "PMD.AvoidCatchingGenericException"}) // Reserved for future PCI-DSS compliance logging
+    @SuppressWarnings({
+        "unused",
+        "PMD.AvoidCatchingGenericException"
+    }) // Reserved for future PCI-DSS compliance logging
     private final PCIDSSComplianceService pciDSSComplianceService;
 
     private final String redirectUri;
@@ -213,8 +220,8 @@ public class PlaidService {
     /**
      * Create Link Token for Plaid Link Generates a secure link token for Plaid Link initialization
      */
-    @CircuitBreaker(name = "plaid")
-    @Retry(name = "plaid")
+    @CircuitBreaker(name = PLAID)
+    @Retry(name = PLAID)
     public LinkTokenCreateResponse createLinkToken(final String userId, final String clientName) {
         if (userId == null || userId.isEmpty()) {
             throw new AppException(ErrorCode.INVALID_INPUT, "User ID cannot be null or empty");
@@ -358,8 +365,8 @@ public class PlaidService {
     }
 
     /** Exchange Public Token for Access Token */
-    @CircuitBreaker(name = "plaid")
-    @Retry(name = "plaid")
+    @CircuitBreaker(name = PLAID)
+    @Retry(name = PLAID)
     public ItemPublicTokenExchangeResponse exchangePublicToken(final String publicToken) {
         if (publicToken == null || publicToken.isEmpty()) {
             throw new AppException(ErrorCode.INVALID_INPUT, "Public token cannot be null or empty");
@@ -393,8 +400,8 @@ public class PlaidService {
     }
 
     /** Get Accounts Retrieves all accounts for an access token */
-    @CircuitBreaker(name = "plaid")
-    @Retry(name = "plaid")
+    @CircuitBreaker(name = PLAID)
+    @Retry(name = PLAID)
     public AccountsGetResponse getAccounts(final String accessToken) {
         if (accessToken == null || accessToken.isEmpty()) {
             throw new AppException(ErrorCode.INVALID_INPUT, ACCESS_TOKEN_CANNOT_BE_NULL_OR_EMPTY);
@@ -426,8 +433,8 @@ public class PlaidService {
      * Get Transactions Retrieves transactions for a date range Handles pagination to fetch ALL
      * transactions
      */
-    @CircuitBreaker(name = "plaid")
-    @Retry(name = "plaid")
+    @CircuitBreaker(name = PLAID)
+    @Retry(name = PLAID)
     public TransactionsGetResponse getTransactions(
             final String accessToken, final String startDate, final String endDate) {
         if (accessToken == null || accessToken.isEmpty()) {
@@ -502,7 +509,8 @@ public class PlaidService {
                             && (plaidError.errorCode != null
                                     && (TRANSACTIONS_LIMIT.equals(plaidError.errorCode)
                                             || RATE_LIMIT_EXCEEDED.equals(plaidError.errorCode)
-                                            || (RATE_LIMIT_EXCEEDED.equals(plaidError.errorType))))) {
+                                            || (RATE_LIMIT_EXCEEDED.equals(
+                                                    plaidError.errorType))))) {
                         LOGGER.warn(
                                 "Plaid rate limit exceeded: {} - {}. Request ID: {}",
                                 plaidError.errorCode,
@@ -589,7 +597,8 @@ public class PlaidService {
 
                 try {
                     // Create request with cursor for next page
-                    final TransactionsGetRequestOptions options = new TransactionsGetRequestOptions();
+                    final TransactionsGetRequestOptions options =
+                            new TransactionsGetRequestOptions();
                     // Try to set cursor using reflection
                     try {
                         final java.lang.reflect.Method setCursorMethod =
@@ -627,12 +636,15 @@ public class PlaidService {
 
                         // Check for rate limit errors (HTTP 429) during pagination
                         if (nextHttpResponse.code() == 429) {
-                            final PlaidErrorResponse plaidError = parsePlaidErrorResponse(errorBody);
+                            final PlaidErrorResponse plaidError =
+                                    parsePlaidErrorResponse(errorBody);
                             if (plaidError != null
                                     && (plaidError.errorCode != null
                                             && (TRANSACTIONS_LIMIT.equals(plaidError.errorCode)
-                                                    || RATE_LIMIT_EXCEEDED.equals(plaidError.errorCode)
-                                                    || (RATE_LIMIT_EXCEEDED.equals(plaidError.errorType))))) {
+                                                    || RATE_LIMIT_EXCEEDED.equals(
+                                                            plaidError.errorCode)
+                                                    || (RATE_LIMIT_EXCEEDED.equals(
+                                                            plaidError.errorType))))) {
                                 LOGGER.warn(
                                         "Plaid rate limit exceeded during pagination (page {}): {} - {}. Request ID: {}",
                                         pageCount + 1,
@@ -814,8 +826,8 @@ public class PlaidService {
     }
 
     /** Get Institutions Retrieves supported financial institutions */
-    @CircuitBreaker(name = "plaid")
-    @Retry(name = "plaid")
+    @CircuitBreaker(name = PLAID)
+    @Retry(name = PLAID)
     public InstitutionsGetResponse getInstitutions(final String query, final int count) {
         if (query == null || query.isEmpty()) {
             throw new AppException(ErrorCode.INVALID_INPUT, "Query cannot be null or empty");
@@ -851,7 +863,8 @@ public class PlaidService {
             request.count(count);
             request.countryCodes(List.of(CountryCode.US));
 
-            final InstitutionsGetResponse response = plaidApi.institutionsGet(request).execute().body();
+            final InstitutionsGetResponse response =
+                    plaidApi.institutionsGet(request).execute().body();
 
             if (response == null) {
                 throw new AppException(
@@ -872,8 +885,8 @@ public class PlaidService {
     }
 
     /** Remove Item Removes a Plaid item (disconnects account) */
-    @CircuitBreaker(name = "plaid")
-    @Retry(name = "plaid")
+    @CircuitBreaker(name = PLAID)
+    @Retry(name = PLAID)
     public ItemRemoveResponse removeItem(final String accessToken) {
         if (accessToken == null || accessToken.isEmpty()) {
             throw new AppException(ErrorCode.INVALID_INPUT, ACCESS_TOKEN_CANNOT_BE_NULL_OR_EMPTY);

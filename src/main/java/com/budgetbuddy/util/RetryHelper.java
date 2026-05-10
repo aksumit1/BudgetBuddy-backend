@@ -1,10 +1,9 @@
 package com.budgetbuddy.util;
 
-
 import com.budgetbuddy.exception.AppException;
 import com.budgetbuddy.exception.ErrorCode;
-import java.util.Locale;
 import java.time.Duration;
+import java.util.Locale;
 import java.util.Random;
 import java.util.function.Supplier;
 import org.slf4j.Logger;
@@ -111,12 +110,15 @@ public final class RetryHelper {
                             maxRetries,
                             e.getMessage(),
                             e);
-                    throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR, 
-                            "Operation failed after " + maxRetries + " retries", e);
+                    throw new AppException(
+                            ErrorCode.INTERNAL_SERVER_ERROR,
+                            "Operation failed after " + maxRetries + " retries",
+                            e);
                 }
 
                 // Add jitter to prevent thundering herd
-                final long jitter = RANDOM.nextInt((int) (currentDelay.toMillis() * 0.1)); // 10% jitter
+                final long jitter =
+                        RANDOM.nextInt((int) (currentDelay.toMillis() * 0.1)); // 10% jitter
                 final long delayWithJitter = currentDelay.toMillis() + jitter;
 
                 LOGGER.warn(
@@ -131,7 +133,8 @@ public final class RetryHelper {
                     Thread.sleep(delayWithJitter);
                 } catch (InterruptedException ie) {
                     Thread.currentThread().interrupt();
-                    throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR, "Retry interrupted", ie);
+                    throw new AppException(
+                            ErrorCode.INTERNAL_SERVER_ERROR, "Retry interrupted", ie);
                 }
 
                 currentDelay =
@@ -140,7 +143,9 @@ public final class RetryHelper {
             }
         }
 
-        throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR, "Operation failed after " + maxRetries + " retries");
+        throw new AppException(
+                ErrorCode.INTERNAL_SERVER_ERROR,
+                "Operation failed after " + maxRetries + " retries");
     }
 
     /** Execute operation with default retry settings */

@@ -1,10 +1,10 @@
 package com.budgetbuddy.security.ddos;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import com.budgetbuddy.exception.EnhancedGlobalExceptionHandler;
 import com.budgetbuddy.exception.ErrorCode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -86,7 +86,8 @@ public class NotFoundErrorTrackingFilter extends OncePerRequestFilter {
         }
 
         // Wrap response to capture status code
-        final ContentCachingResponseWrapper wrappedResponse = new ContentCachingResponseWrapper(response);
+        final ContentCachingResponseWrapper wrappedResponse =
+                new ContentCachingResponseWrapper(response);
 
         try {
             filterChain.doFilter(request, wrappedResponse);

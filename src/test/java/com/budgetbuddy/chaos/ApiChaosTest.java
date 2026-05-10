@@ -1,8 +1,5 @@
 package com.budgetbuddy.chaos;
 
-
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import java.nio.charset.StandardCharsets;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -15,6 +12,8 @@ import com.budgetbuddy.service.AuthService;
 import com.budgetbuddy.service.UserService;
 import com.budgetbuddy.util.TableInitializer;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import java.nio.charset.StandardCharsets;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
@@ -58,6 +57,8 @@ import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class ApiChaosTest {
 
+    private static final String AUTHORIZATION = "Authorization";
+
     @Autowired private MockMvc mockMvc;
 
     @Autowired private ObjectMapper objectMapper;
@@ -85,7 +86,8 @@ class ApiChaosTest {
         // hash)
         // This must be the same for both createUserSecure and authenticate
         testPasswordHash =
-                java.util.Base64.getEncoder().encodeToString("testPassword123".getBytes(StandardCharsets.UTF_8));
+                java.util.Base64.getEncoder()
+                        .encodeToString("testPassword123".getBytes(StandardCharsets.UTF_8));
 
         // Create test user - tables should be initialized before tests run
         // BREAKING CHANGE: firstName and lastName are optional (can be null)
@@ -111,7 +113,8 @@ class ApiChaosTest {
         // Given - Make many rapid requests
         // Updated to use higher request count that matches new rate limits (100M per minute)
         // But keep it reasonable for test execution time
-        final int requestCount = 1000; // Increased from 200 to test higher limits, but still reasonable
+        final int requestCount =
+                1000; // Increased from 200 to test higher limits, but still reasonable
         final AtomicInteger successCount = new AtomicInteger(0);
         final AtomicInteger rateLimitedCount = new AtomicInteger(0);
 
@@ -125,12 +128,12 @@ class ApiChaosTest {
                         try {
                             final int status =
                                     mockMvc.perform(
-                                            get("/api/transactions")
-                                                    .header(
-                                                            "Authorization",
-                                                            "Bearer " + authToken)
-                                                    .contentType(
-                                                            MediaType.APPLICATION_JSON))
+                                                    get("/api/transactions")
+                                                            .header(
+                                                                    AUTHORIZATION,
+                                                                    "Bearer " + authToken)
+                                                            .contentType(
+                                                                    MediaType.APPLICATION_JSON))
                                             .andReturn()
                                             .getResponse()
                                             .getStatus();
@@ -193,12 +196,12 @@ class ApiChaosTest {
 
                             final int status =
                                     mockMvc.perform(
-                                            get(endpoint)
-                                                    .header(
-                                                            "Authorization",
-                                                            "Bearer " + authToken)
-                                                    .contentType(
-                                                            MediaType.APPLICATION_JSON))
+                                                    get(endpoint)
+                                                            .header(
+                                                                    AUTHORIZATION,
+                                                                    "Bearer " + authToken)
+                                                            .contentType(
+                                                                    MediaType.APPLICATION_JSON))
                                             .andReturn()
                                             .getResponse()
                                             .getStatus();
@@ -249,13 +252,13 @@ class ApiChaosTest {
     void testChaosInvalidInputsShouldReturn400() throws Exception {
         // Given - Various invalid inputs
         final String[] invalidInputs = {
-                "{\"invalid\":\"json\"",
-                "{\"email\":\"not-an-email\"}",
-                "{\"amount\":\"not-a-number\"}",
-                "{\"date\":\"invalid-date\"}",
-                null,
-                "",
-                "{}"
+            "{\"invalid\":\"json\"",
+            "{\"email\":\"not-an-email\"}",
+            "{\"amount\":\"not-a-number\"}",
+            "{\"date\":\"invalid-date\"}",
+            null,
+            "",
+            "{}"
         };
 
         // When/Then - All should return 400 or appropriate error
@@ -276,7 +279,7 @@ class ApiChaosTest {
     void testChaosMalformedJsonShouldReturn400() throws Exception {
         // Given
         final String[] malformedJson = {
-                "{invalid json}", "{\"key\": value}", "[{invalid}]", "not json at all"
+            "{invalid json}", "{\"key\": value}", "[{invalid}]", "not json at all"
         };
 
         // When/Then
@@ -295,13 +298,13 @@ class ApiChaosTest {
     void testChaosInvalidTokensShouldReturn401() throws Exception {
         // Given - Various invalid tokens
         final String[] invalidTokens = {
-                "invalid-token",
-                "Bearer invalid",
-                "Bearer ",
-                "",
-                null,
-                "Bearer expired.token.here",
-                "Bearer malformed.token"
+            "invalid-token",
+            "Bearer invalid",
+            "Bearer ",
+            "",
+            null,
+            "Bearer expired.token.here",
+            "Bearer malformed.token"
         };
 
         // When/Then
@@ -312,7 +315,7 @@ class ApiChaosTest {
 
             mockMvc.perform(
                             get("/api/transactions")
-                                    .header("Authorization", token)
+                                    .header(AUTHORIZATION, token)
                                     .contentType(MediaType.APPLICATION_JSON))
                     .andExpect(status().isUnauthorized());
         }
@@ -322,7 +325,7 @@ class ApiChaosTest {
     void testChaosMissingAuthShouldReturn401() throws Exception {
         // When/Then - All protected endpoints should require auth
         final String[] protectedEndpoints = {
-                "/api/transactions", "/api/accounts", "/api/budgets", "/api/goals", "/api/users/me"
+            "/api/transactions", "/api/accounts", "/api/budgets", "/api/goals", "/api/users/me"
         };
 
         for (final String endpoint : protectedEndpoints) {
@@ -352,14 +355,14 @@ class ApiChaosTest {
                                             () -> {
                                                 try {
                                                     mockMvc.perform(
-                                                            get("/api/transactions")
-                                                                    .header(
-                                                                            "Authorization",
-                                                                            "Bearer "
-                                                                                    + authToken)
-                                                                    .contentType(
-                                                                            MediaType
-                                                                                    .APPLICATION_JSON))
+                                                                    get("/api/transactions")
+                                                                            .header(
+                                                                                    AUTHORIZATION,
+                                                                                    "Bearer "
+                                                                                            + authToken)
+                                                                            .contentType(
+                                                                                    MediaType
+                                                                                            .APPLICATION_JSON))
                                                             .andReturn();
                                                     successCount.incrementAndGet();
                                                 } catch (Exception e) {
@@ -479,9 +482,9 @@ class ApiChaosTest {
             try {
                 final org.springframework.test.web.servlet.MvcResult result =
                         mockMvc.perform(
-                                get("/api/transactions")
-                                        .header("Authorization", "Bearer " + authToken)
-                                        .contentType(MediaType.APPLICATION_JSON))
+                                        get("/api/transactions")
+                                                .header(AUTHORIZATION, "Bearer " + authToken)
+                                                .contentType(MediaType.APPLICATION_JSON))
                                 .andReturn();
 
                 final int status = result.getResponse().getStatus();
@@ -547,17 +550,17 @@ class ApiChaosTest {
     void testChaosDataCorruptionShouldValidateAndReject() throws Exception {
         // Given - Corrupted data
         final String[] corruptedData = {
-                "{\"amount\":-999999999}",
-                "{\"date\":\"2099-13-45\"}",
-                "{\"email\":\"a@b\"}",
-                "{\"amount\":\"NaN\"}"
+            "{\"amount\":-999999999}",
+            "{\"date\":\"2099-13-45\"}",
+            "{\"email\":\"a@b\"}",
+            "{\"amount\":\"NaN\"}"
         };
 
         // When/Then - System should validate and reject corrupted data
         for (final String data : corruptedData) {
             mockMvc.perform(
                             post("/api/transactions")
-                                    .header("Authorization", "Bearer " + authToken)
+                                    .header(AUTHORIZATION, "Bearer " + authToken)
                                     .contentType(MediaType.APPLICATION_JSON)
                                     .content(data))
                     .andExpect(status().is4xxClientError());

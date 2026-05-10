@@ -1,7 +1,5 @@
 package com.budgetbuddy.security;
 
-
-import java.util.Locale;
 import com.budgetbuddy.exception.AppException;
 import com.budgetbuddy.exception.ErrorCode;
 import java.io.IOException;
@@ -10,6 +8,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.Locale;
 import java.util.Set;
 import java.util.regex.Pattern;
 import org.slf4j.Logger;
@@ -30,9 +29,11 @@ import org.springframework.web.multipart.MultipartFile;
 @Component
 public class FileSecurityValidator {
 
-    private static final String INVALID_FILE_PATH_ABSOLUTE_PATHS_ARE_NOT = "Invalid file path: absolute paths are not allowed";
+    private static final String INVALID_FILE_PATH_ABSOLUTE_PATHS_ARE_NOT =
+            "Invalid file path: absolute paths are not allowed";
 
-    private static final String INVALID_FILE_PATH_PATH_TRAVERSAL = "Invalid file path: path traversal detected";
+    private static final String INVALID_FILE_PATH_PATH_TRAVERSAL =
+            "Invalid file path: path traversal detected";
 
     private static final Logger LOGGER = LoggerFactory.getLogger(FileSecurityValidator.class);
 
@@ -134,8 +135,7 @@ public class FileSecurityValidator {
         // Check for path traversal patterns
         if (PATH_TRAVERSAL_PATTERN.matcher(key).find()) {
             LOGGER.warn("Path traversal attempt detected in S3 key: {}", key);
-            throw new AppException(
-                    ErrorCode.INVALID_INPUT, INVALID_FILE_PATH_PATH_TRAVERSAL);
+            throw new AppException(ErrorCode.INVALID_INPUT, INVALID_FILE_PATH_PATH_TRAVERSAL);
         }
 
         // Check for null bytes
@@ -209,8 +209,7 @@ public class FileSecurityValidator {
             if (!isTrustedPath) {
                 LOGGER.warn("Absolute path detected (not in trusted directory): {}", filePath);
                 throw new AppException(
-                        ErrorCode.INVALID_INPUT,
-                        INVALID_FILE_PATH_ABSOLUTE_PATHS_ARE_NOT);
+                        ErrorCode.INVALID_INPUT, INVALID_FILE_PATH_ABSOLUTE_PATHS_ARE_NOT);
             }
             // For trusted paths, continue validation for path traversal
         }
@@ -240,8 +239,7 @@ public class FileSecurityValidator {
             if (PATH_TRAVERSAL_PATTERN.matcher(normalizedPath).find()) {
                 LOGGER.warn(
                         "Path traversal attempt detected after normalization: {}", normalizedPath);
-                throw new AppException(
-                        ErrorCode.INVALID_INPUT, INVALID_FILE_PATH_PATH_TRAVERSAL);
+                throw new AppException(ErrorCode.INVALID_INPUT, INVALID_FILE_PATH_PATH_TRAVERSAL);
             }
 
             // CRITICAL: Double-check for absolute paths after normalization
@@ -280,16 +278,14 @@ public class FileSecurityValidator {
                             "Absolute path detected after normalization (not in trusted directory): {}",
                             normalized);
                     throw new AppException(
-                            ErrorCode.INVALID_INPUT,
-                            INVALID_FILE_PATH_ABSOLUTE_PATHS_ARE_NOT);
+                            ErrorCode.INVALID_INPUT, INVALID_FILE_PATH_ABSOLUTE_PATHS_ARE_NOT);
                 }
             }
 
             // Ensure normalized path doesn't contain .. (double check)
             if (normalized.toString().contains("..")) {
                 LOGGER.warn("Path traversal detected after normalization: {}", normalized);
-                throw new AppException(
-                        ErrorCode.INVALID_INPUT, INVALID_FILE_PATH_PATH_TRAVERSAL);
+                throw new AppException(ErrorCode.INVALID_INPUT, INVALID_FILE_PATH_PATH_TRAVERSAL);
             }
 
             return normalized;
@@ -385,7 +381,8 @@ public class FileSecurityValidator {
                 }
                 break;
             case "xlsx":
-                if (!"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet".equals(contentType)) {
+                if (!"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                        .equals(contentType)) {
                     LOGGER.warn("Content type mismatch for XLSX file: {}", contentType);
                 }
                 break;
@@ -393,6 +390,10 @@ public class FileSecurityValidator {
                 if (!"application/vnd.ms-excel".equals(contentType)) {
                     LOGGER.warn("Content type mismatch for XLS file: {}", contentType);
                 }
+                break;
+            default:
+                // Extensions outside csv/pdf/xlsx/xls are filtered earlier; if one
+                // slips through we don't enforce a content-type pairing for it.
                 break;
         }
     }

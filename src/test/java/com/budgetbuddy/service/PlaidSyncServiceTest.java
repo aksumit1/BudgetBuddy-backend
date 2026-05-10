@@ -13,7 +13,6 @@ import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.anyString;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.doAnswer;
-import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.eq;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
@@ -57,6 +56,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @SuppressWarnings("PMD.LawOfDemeter")
 @ExtendWith(MockitoExtension.class)
 class PlaidSyncServiceTest {
+
+    private static final String PLAID_ACCOUNT_1 = "plaid-account-1";
 
     @Mock private PlaidService plaidService;
 
@@ -173,7 +174,7 @@ class PlaidSyncServiceTest {
         final AccountTable existingAccount = new AccountTable();
         existingAccount.setAccountId(UUID.randomUUID().toString());
         existingAccount.setUserId(testUserId);
-        existingAccount.setPlaidAccountId("plaid-account-1");
+        existingAccount.setPlaidAccountId(PLAID_ACCOUNT_1);
         existingAccount.setActive(true);
 
         when(plaidService.getAccounts(testAccessToken)).thenReturn(accountsResponse);
@@ -208,7 +209,8 @@ class PlaidSyncServiceTest {
 
         // Then — existing accounts persist via saveWithLock (optimistic concurrency).
         verify(accountRepository, times(1)).saveWithLock(existingAccount);
-        final ArgumentCaptor<AccountTable> accountCaptor = ArgumentCaptor.forClass(AccountTable.class);
+        final ArgumentCaptor<AccountTable> accountCaptor =
+                ArgumentCaptor.forClass(AccountTable.class);
         verify(accountRepository).saveWithLock(accountCaptor.capture());
         final AccountTable savedAccount = accountCaptor.getValue();
         assertTrue(savedAccount.getActive(), "Account should be marked as active");
@@ -248,7 +250,8 @@ class PlaidSyncServiceTest {
         plaidSyncService.syncAccounts(testUser, testAccessToken, null);
 
         // Then
-        final ArgumentCaptor<AccountTable> accountCaptor = ArgumentCaptor.forClass(AccountTable.class);
+        final ArgumentCaptor<AccountTable> accountCaptor =
+                ArgumentCaptor.forClass(AccountTable.class);
         verify(accountRepository, atLeastOnce()).saveIfNotExists(accountCaptor.capture());
         final AccountTable savedAccount = accountCaptor.getValue();
         assertTrue(savedAccount.getActive(), "New accounts should have active = true");
@@ -311,7 +314,7 @@ class PlaidSyncServiceTest {
         final AccountTable testAccount = new AccountTable();
         testAccount.setAccountId(UUID.randomUUID().toString());
         testAccount.setUserId(testUser.getUserId());
-        testAccount.setPlaidAccountId("plaid-account-1");
+        testAccount.setPlaidAccountId(PLAID_ACCOUNT_1);
         testAccount.setLastSyncedAt(null); // First sync - ensure sync isn't skipped
         testAccount.setActive(true);
 
@@ -321,7 +324,7 @@ class PlaidSyncServiceTest {
         when(plaidService.getTransactions(eq(testAccessToken), anyString(), anyString()))
                 .thenReturn(transactionsResponse);
         // Mock dataExtractor to return account ID for transaction grouping and transaction ID
-        when(dataExtractor.extractAccountIdFromTransaction(any())).thenReturn("plaid-account-1");
+        when(dataExtractor.extractAccountIdFromTransaction(any())).thenReturn(PLAID_ACCOUNT_1);
         when(dataExtractor.extractTransactionId(any()))
                 .thenAnswer(
                         invocation -> {
@@ -377,7 +380,7 @@ class PlaidSyncServiceTest {
         final List<AccountBase> accounts = new ArrayList<>();
 
         final AccountBase account1 = new AccountBase();
-        account1.setAccountId("plaid-account-1");
+        account1.setAccountId(PLAID_ACCOUNT_1);
         account1.setName("Test Account 1");
         account1.setOfficialName("Official Test Account 1");
         // Note: Type and Subtype are enums in Plaid SDK - using string representation for testing
@@ -412,7 +415,7 @@ class PlaidSyncServiceTest {
 
         final Transaction transaction1 = new Transaction();
         transaction1.setTransactionId("plaid-transaction-1");
-        transaction1.setAccountId("plaid-account-1"); // CRITICAL: Set accountId for grouping
+        transaction1.setAccountId(PLAID_ACCOUNT_1); // CRITICAL: Set accountId for grouping
         transaction1.setAmount(100.0);
         transaction1.setDate(java.time.LocalDate.now());
         transaction1.setName("Test Transaction 1");
@@ -421,7 +424,7 @@ class PlaidSyncServiceTest {
 
         final Transaction transaction2 = new Transaction();
         transaction2.setTransactionId("plaid-transaction-2");
-        transaction2.setAccountId("plaid-account-1"); // CRITICAL: Set accountId for grouping
+        transaction2.setAccountId(PLAID_ACCOUNT_1); // CRITICAL: Set accountId for grouping
         transaction2.setAmount(-50.0);
         transaction2.setDate(java.time.LocalDate.now().minusDays(1));
         transaction2.setName("Test Transaction 2");

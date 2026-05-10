@@ -1,10 +1,10 @@
 package com.budgetbuddy.service;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.lang.reflect.Method;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -54,10 +54,10 @@ class PDFImportServiceUsernameDetectionStandaloneNamesTest {
     void testDetectTomTrackerBeforeTransaction() throws Exception {
         // Given: Lines with TOM TRACKER on its own line before a transaction
         final String[] lines = {
-                "Date, Post,  Date Description Amount, Payments, Credits and Adjustments",
-                "TOM TRACKER",
-                "09/19 09/20 COSTCO WHSE #0110        ISSAQUAH     WA $7.70",
-                "09/20 09/20 SHELL OIL 57444030803    KENT         WA $30.00"
+            "Date, Post,  Date Description Amount, Payments, Credits and Adjustments",
+            "TOM TRACKER",
+            "09/19 09/20 COSTCO WHSE #0110        ISSAQUAH     WA $7.70",
+            "09/20 09/20 SHELL OIL 57444030803    KENT         WA $30.00"
         };
 
         // Transaction line is at index 2
@@ -82,10 +82,10 @@ class PDFImportServiceUsernameDetectionStandaloneNamesTest {
     void testDetectRogerBrandonBeforeTransaction() throws Exception {
         // Given: Lines with ROGER BRANDON on its own line before transactions
         final String[] lines = {
-                "Date, Post,  Date Description Amount",
-                "ROGER BRANDON",
-                "09/19 09/20 COSTCO WHSE #0110        ISSAQUAH     WA $104.36",
-                "09/19 09/20 COSTCO WHSE #0110        ISSAQUAH     WA $117.46"
+            "Date, Post,  Date Description Amount",
+            "ROGER BRANDON",
+            "09/19 09/20 COSTCO WHSE #0110        ISSAQUAH     WA $104.36",
+            "09/19 09/20 COSTCO WHSE #0110        ISSAQUAH     WA $117.46"
         };
 
         // Transaction line is at index 2
@@ -110,10 +110,10 @@ class PDFImportServiceUsernameDetectionStandaloneNamesTest {
     void testDetectNameTwoLinesBeforeTransaction() throws Exception {
         // Given: Name appears 2 lines before transaction
         final String[] lines = {
-                "Date Description Amount",
-                "TOM TRACKER",
-                "Promo Purchase-Offer 4 (9.990%)",
-                "09/19 09/20 COSTCO WHSE #0110        ISSAQUAH     WA $7.70"
+            "Date Description Amount",
+            "TOM TRACKER",
+            "Promo Purchase-Offer 4 (9.990%)",
+            "09/19 09/20 COSTCO WHSE #0110        ISSAQUAH     WA $7.70"
         };
 
         // Transaction line is at index 3
@@ -147,7 +147,8 @@ class PDFImportServiceUsernameDetectionStandaloneNamesTest {
     @DisplayName("Should validate ROGER BRANDON as valid name format")
     void testIsValidNameFormatRogerBrandon() throws Exception {
         // When
-        final boolean result = (Boolean) isValidNameFormat.invoke(pdfImportService, "ROGER BRANDON");
+        final boolean result =
+                (Boolean) isValidNameFormat.invoke(pdfImportService, "ROGER BRANDON");
 
         // Then
         assertTrue(result, "ROGER BRANDON should be valid name format");
@@ -158,10 +159,10 @@ class PDFImportServiceUsernameDetectionStandaloneNamesTest {
     void testDetectNameWithPromoTextOnNextLine() throws Exception {
         // Given: Name followed by promo text, then transaction
         final String[] lines = {
-                "Date Description Amount",
-                "TOM TRACKER",
-                "Promo Purchase-Offer 4 (9.990%)",
-                "09/19 09/20 COSTCO WHSE #0110        ISSAQUAH     WA $7.70"
+            "Date Description Amount",
+            "TOM TRACKER",
+            "Promo Purchase-Offer 4 (9.990%)",
+            "09/19 09/20 COSTCO WHSE #0110        ISSAQUAH     WA $7.70"
         };
 
         // Transaction line is at index 3
@@ -186,10 +187,10 @@ class PDFImportServiceUsernameDetectionStandaloneNamesTest {
     void testDetectMultipleNamesPrefersClosest() throws Exception {
         // Given: Multiple names before transaction
         final String[] lines = {
-                "Date Description Amount",
-                "TOM TRACKER",
-                "ROGER BRANDON",
-                "09/19 09/20 COSTCO WHSE #0110        ISSAQUAH     WA $104.36"
+            "Date Description Amount",
+            "TOM TRACKER",
+            "ROGER BRANDON",
+            "09/19 09/20 COSTCO WHSE #0110        ISSAQUAH     WA $104.36"
         };
 
         // Transaction line is at index 3

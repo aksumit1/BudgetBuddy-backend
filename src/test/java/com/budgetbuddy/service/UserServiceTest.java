@@ -35,6 +35,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class UserServiceTest {
 
+    private static final String TEST = "Test";
+
     @Mock private UserRepository userRepository;
 
     @Mock private PasswordHashingService passwordHashingService;
@@ -68,7 +70,7 @@ class UserServiceTest {
 
         // When - BREAKING CHANGE: Client salt removed
         final UserTable result =
-                userService.createUserSecure(testEmail, testPasswordHash, "Test", "User");
+                userService.createUserSecure(testEmail, testPasswordHash, TEST, "User");
 
         // Then
         assertNotNull(result);
@@ -96,7 +98,7 @@ class UserServiceTest {
                         AppException.class,
                         () ->
                                 userService.createUserSecure(
-                                        testEmail, testPasswordHash, "Test", "User"));
+                                        testEmail, testPasswordHash, TEST, "User"));
         // CRITICAL FIX: The implementation now throws INTERNAL_SERVER_ERROR for userId collision
         assertEquals(ErrorCode.INTERNAL_SERVER_ERROR, exception.getErrorCode());
         assertTrue(
@@ -124,7 +126,7 @@ class UserServiceTest {
 
         // When
         final UserTable result =
-                userService.createUserSecure(testEmail, testPasswordHash, "Test", "User");
+                userService.createUserSecure(testEmail, testPasswordHash, TEST, "User");
 
         // Then
         assertNotNull(result);
@@ -165,7 +167,7 @@ class UserServiceTest {
 
         // When - Should still create user (pseudo account creation is best-effort)
         final UserTable result =
-                userService.createUserSecure(testEmail, testPasswordHash, "Test", "User");
+                userService.createUserSecure(testEmail, testPasswordHash, TEST, "User");
 
         // Then - User should still be created
         assertNotNull(result);
@@ -180,7 +182,7 @@ class UserServiceTest {
         final AppException exception =
                 assertThrows(
                         AppException.class,
-                        () -> userService.createUserSecure(null, testPasswordHash, "Test", "User"));
+                        () -> userService.createUserSecure(null, testPasswordHash, TEST, "User"));
         assertEquals(ErrorCode.INVALID_INPUT, exception.getErrorCode());
     }
 
@@ -265,7 +267,7 @@ class UserServiceTest {
         final UserTable user = new UserTable();
         user.setUserId("user-123");
         user.setEmail(testEmail);
-        user.setFirstName("Test");
+        user.setFirstName(TEST);
         user.setLastName("User");
         user.setEnabled(true);
         user.setRoles(Set.of("USER"));

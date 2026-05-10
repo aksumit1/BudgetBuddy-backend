@@ -293,7 +293,8 @@ public class AWSTestConfiguration {
     @Bean
     @Primary
     public PlaidService plaidService(
-            final com.budgetbuddy.compliance.pcidss.PCIDSSComplianceService pciDSSComplianceService) {
+            final com.budgetbuddy.compliance.pcidss.PCIDSSComplianceService
+                    pciDSSComplianceService) {
         // Create a mock that will be used instead of the real PlaidService
         final PlaidService mockPlaidService = Mockito.mock(PlaidService.class);
         // Mock createLinkToken to return a valid response

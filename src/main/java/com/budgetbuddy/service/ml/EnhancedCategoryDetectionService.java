@@ -1,13 +1,12 @@
 package com.budgetbuddy.service.ml;
 
-
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import java.util.Locale;
 import jakarta.annotation.PostConstruct;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -260,8 +259,7 @@ public class EnhancedCategoryDetectionService {
             // CRITICAL: Validate BigDecimal amount
             if (amount != null
                     && (amount.compareTo(BigDecimal.valueOf(1_000_000_000)) > 0
-                            || amount.compareTo(BigDecimal.valueOf(-1_000_000_000))
-                                    < 0)) {
+                            || amount.compareTo(BigDecimal.valueOf(-1_000_000_000)) < 0)) {
                 LOGGER.warn("Amount out of reasonable range: {}", amount);
                 // Continue processing but use null for amount string
                 amount = null;
@@ -278,26 +276,22 @@ public class EnhancedCategoryDetectionService {
             // keyword (Starbucks → 5814 → dining), that's a network-authoritative
             // category label. Runs first so fuzzy + semantic don't get to wiggle
             // us off a known-good MCC answer. See MccDirectory / MCC_PLAN.md.
-            {
-                final String mccSource =
-                        merchantName != null && !merchantName.isBlank()
-                                ? merchantName
-                                : description;
-                if (mccSource != null && !mccSource.isBlank()) {
-                    final java.util.Optional<String> mccCategory =
-                            MccDirectory.categoryForMerchant(mccSource);
-                    if (mccCategory.isPresent()) {
-                        final java.util.Optional<String> mcc = MccDirectory.mccForMerchant(mccSource);
-                        results.add(
-                                new DetectionResult(
-                                        mccCategory.get(),
-                                        0.95, // High confidence — MCC is network-authoritative.
-                                        "MCC_DIRECTORY",
-                                        "merchantKeyword→MCC="
-                                                + mcc.orElse("?")
-                                                + "→"
-                                                + mccCategory.get()));
-                    }
+            final String mccSource =
+                    merchantName != null && !merchantName.isBlank() ? merchantName : description;
+            if (mccSource != null && !mccSource.isBlank()) {
+                final java.util.Optional<String> mccCategory =
+                        MccDirectory.categoryForMerchant(mccSource);
+                if (mccCategory.isPresent()) {
+                    final java.util.Optional<String> mcc = MccDirectory.mccForMerchant(mccSource);
+                    results.add(
+                            new DetectionResult(
+                                    mccCategory.get(),
+                                    0.95, // High confidence — MCC is network-authoritative.
+                                    "MCC_DIRECTORY",
+                                    "merchantKeyword→MCC="
+                                            + mcc.orElse("?")
+                                            + "→"
+                                            + mccCategory.get()));
                 }
             }
 
@@ -438,7 +432,7 @@ public class EnhancedCategoryDetectionService {
                                         paymentChannel, // Payment channel for context
                                         accountType, // Account type for context
                                         accountSubtype // Account subtype for context
-                                );
+                                        );
 
                         if (semanticMatch != null && semanticMatch.category != null) {
                             LOGGER.info(
@@ -656,7 +650,8 @@ public class EnhancedCategoryDetectionService {
         }
         final String cat = category.toLowerCase(Locale.ROOT);
         final String type = accountType != null ? accountType.toLowerCase(Locale.ROOT) : "";
-        final String subtype = accountSubtype != null ? accountSubtype.toLowerCase(Locale.ROOT) : "";
+        final String subtype =
+                accountSubtype != null ? accountSubtype.toLowerCase(Locale.ROOT) : "";
 
         if (type.contains("credit") || subtype.contains("credit card")) {
             // Credit cards don't hold savings or investments.
@@ -707,7 +702,8 @@ public class EnhancedCategoryDetectionService {
      * Payment-channel priors. Physical channels (in-store POS) argue against online-only categories
      * like subscriptions, and online/ACH argues against cash-back-style categories.
      */
-    private double paymentChannelWeightMultiplier(final String category, final String paymentChannel) {
+    private double paymentChannelWeightMultiplier(
+            final String category, final String paymentChannel) {
         if (category == null || paymentChannel == null) {
             return 1.0;
         }
@@ -846,7 +842,11 @@ public class EnhancedCategoryDetectionService {
         public final String method;
         public final String reason;
 
-        public DetectionResult(final String category, final double confidence, final String method, final String reason) {
+        public DetectionResult(
+                final String category,
+                final double confidence,
+                final String method,
+                final String reason) {
             this.category = category;
             this.confidence = confidence;
             this.method = method;

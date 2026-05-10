@@ -1,12 +1,12 @@
 package com.budgetbuddy.api;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import com.budgetbuddy.exception.AppException;
 import com.budgetbuddy.exception.ErrorCode;
 import com.budgetbuddy.model.dynamodb.TransactionActionTable;
 import com.budgetbuddy.model.dynamodb.UserTable;
 import com.budgetbuddy.service.TransactionActionService;
 import com.budgetbuddy.service.UserService;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -50,7 +50,8 @@ public class TransactionActionController {
 
     @GetMapping("/{transactionId}/actions")
     public ResponseEntity<List<TransactionActionTable>> getActions(
-            @AuthenticationPrincipal final UserDetails userDetails, @PathVariable final String transactionId) {
+            @AuthenticationPrincipal final UserDetails userDetails,
+            @PathVariable final String transactionId) {
         if (userDetails == null || userDetails.getUsername() == null) {
             throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, USER_NOT_AUTHENTICATED);
         }
@@ -101,8 +102,8 @@ public class TransactionActionController {
                         request.getPriority(),
                         request.getActionId(), // Pass optional actionId from app for consistency
                         request.getPlaidTransactionId() // Pass optional Plaid transaction ID for
-                // fallback lookup
-                );
+                        // fallback lookup
+                        );
 
         return ResponseEntity.status(HttpStatus.CREATED).body(action);
     }

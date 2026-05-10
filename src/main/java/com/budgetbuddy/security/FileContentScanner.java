@@ -1,7 +1,5 @@
 package com.budgetbuddy.security;
 
-
-import java.util.Locale;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
@@ -9,6 +7,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.regex.Pattern;
 import org.slf4j.Logger;
@@ -78,7 +77,8 @@ public class FileContentScanner {
      * @param fileName File name (for context)
      * @return ScanResult with findings
      */
-    public ScanResult scanFile(final InputStream inputStream, final String fileName) throws IOException {
+    public ScanResult scanFile(final InputStream inputStream, final String fileName)
+            throws IOException {
         final ScanResult result = new ScanResult();
 
         // Read file content (limit to first 1MB for scanning)
@@ -108,7 +108,8 @@ public class FileContentScanner {
         // names, etc.
         // PDF files should only be checked for binary executable signatures, not text injection
         // patterns
-        final boolean isPDF = fileName != null && fileName.toLowerCase(Locale.ROOT).endsWith(".pdf");
+        final boolean isPDF =
+                fileName != null && fileName.toLowerCase(Locale.ROOT).endsWith(".pdf");
         final boolean isPDFBinary =
                 bytesRead >= 4
                         && buffer[0] == 0x25

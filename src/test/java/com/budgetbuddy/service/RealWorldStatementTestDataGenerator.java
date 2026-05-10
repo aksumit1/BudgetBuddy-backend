@@ -90,7 +90,11 @@ public final class RealWorldStatementTestDataGenerator {
 
     /** Generate a realistic transaction line in Pattern 1 format */
     public static String generatePattern1Transaction(
-            final int month, final int day, final int year, final String merchant, final double amount) {
+            final int month,
+            final int day,
+            final int year,
+            final String merchant,
+            final double amount) {
         final String date = String.format("%02d/%02d", month, day);
         final double absAmount = amount < 0 ? -amount : amount;
         String amountStr = String.format("$%.2f", absAmount);
@@ -102,7 +106,11 @@ public final class RealWorldStatementTestDataGenerator {
 
     /** Generate a realistic transaction line with CR/DR indicators */
     public static String generateTransactionWithCRDR(
-            final int month, final int day, final String merchant, final double amount, final boolean isCredit) {
+            final int month,
+            final int day,
+            final String merchant,
+            final double amount,
+            final boolean isCredit) {
         final String date = String.format("%02d/%02d", month, day);
         final double absAmount = amount < 0 ? -amount : amount;
         final String amountStr = String.format("$%.2f", absAmount);
@@ -196,7 +204,8 @@ public final class RealWorldStatementTestDataGenerator {
     }
 
     /** Generate edge case: transaction with very long merchant name */
-    public static String generateTransactionWithLongMerchant(final int month, final int day, final double amount) {
+    public static String generateTransactionWithLongMerchant(
+            final int month, final int day, final double amount) {
         final String date = String.format("%02d/%02d", month, day);
         final String merchant = "VERY LONG MERCHANT NAME " + "X".repeat(200);
         final double absAmount = amount < 0 ? -amount : amount;
@@ -205,7 +214,8 @@ public final class RealWorldStatementTestDataGenerator {
     }
 
     /** Generate edge case: transaction with very short merchant name */
-    public static String generateTransactionWithShortMerchant(final int month, final int day, final double amount) {
+    public static String generateTransactionWithShortMerchant(
+            final int month, final int day, final double amount) {
         final String date = String.format("%02d/%02d", month, day);
         final double absAmount = amount < 0 ? -amount : amount;
         final String amountStr = String.format("$%.2f", absAmount);
@@ -213,25 +223,29 @@ public final class RealWorldStatementTestDataGenerator {
     }
 
     /** Generate edge case: transaction with zero amount */
-    public static String generateTransactionWithZeroAmount(final int month, final int day, final String merchant) {
+    public static String generateTransactionWithZeroAmount(
+            final int month, final int day, final String merchant) {
         final String date = String.format("%02d/%02d", month, day);
         return String.format("%s     %s $0.00", date, merchant);
     }
 
     /** Generate edge case: transaction with very large amount */
-    public static String generateTransactionWithLargeAmount(final int month, final int day, final String merchant) {
+    public static String generateTransactionWithLargeAmount(
+            final int month, final int day, final String merchant) {
         final String date = String.format("%02d/%02d", month, day);
         return String.format("%s     %s $999,999.99", date, merchant);
     }
 
     /** Generate edge case: transaction with very small amount */
-    public static String generateTransactionWithSmallAmount(final int month, final int day, final String merchant) {
+    public static String generateTransactionWithSmallAmount(
+            final int month, final int day, final String merchant) {
         final String date = String.format("%02d/%02d", month, day);
         return String.format("%s     %s $0.01", date, merchant);
     }
 
     /** Generate edge case: transaction with date far in the future */
-    public static String generateTransactionWithFutureDate(final String merchant, final double amount) {
+    public static String generateTransactionWithFutureDate(
+            final String merchant, final double amount) {
         final String date = "12/31/2050";
         final double absAmount = amount < 0 ? -amount : amount;
         final String amountStr = String.format("$%.2f", absAmount);
@@ -239,7 +253,8 @@ public final class RealWorldStatementTestDataGenerator {
     }
 
     /** Generate edge case: transaction with date far in the past */
-    public static String generateTransactionWithPastDate(final String merchant, final double amount) {
+    public static String generateTransactionWithPastDate(
+            final String merchant, final double amount) {
         final String date = "01/01/2000";
         final double absAmount = amount < 0 ? -amount : amount;
         final String amountStr = String.format("$%.2f", absAmount);
@@ -391,7 +406,12 @@ public final class RealWorldStatementTestDataGenerator {
 
     /** Generate US Bank statement transaction (Pattern: Date PostDate Description Amount) */
     public static String generateUSBankTransaction(
-            final int month1, final int day1, final int month2, final int day2, final String description, final double amount) {
+            final int month1,
+            final int day1,
+            final int month2,
+            final int day2,
+            final String description,
+            final double amount) {
         final String date1 = String.format("%02d/%02d", month1, day1);
         final String date2 = String.format("%02d/%02d", month2, day2);
         final double absAmount = amount < 0 ? -amount : amount;
@@ -401,7 +421,11 @@ public final class RealWorldStatementTestDataGenerator {
 
     /** Generate Discover statement transaction (Pattern: Date Description Amount CR/DR) */
     public static String generateDiscoverTransaction(
-            final int month, final int day, final String description, final double amount, final boolean isCredit) {
+            final int month,
+            final int day,
+            final String description,
+            final double amount,
+            final boolean isCredit) {
         final String date = String.format("%02d/%02d/%02d", month, day, 24);
         final double absAmount = amount < 0 ? -amount : amount;
         final String amountStr = String.format("$%.2f", absAmount);
@@ -423,7 +447,11 @@ public final class RealWorldStatementTestDataGenerator {
 
     /** Generate Capital One statement transaction (Pattern: Date Description Location Amount) */
     public static String generateCapitalOneTransaction(
-            final int month, final int day, final String description, final String location, final double amount) {
+            final int month,
+            final int day,
+            final String description,
+            final String location,
+            final double amount) {
         final String date = String.format("%02d/%02d", month, day);
         final double absAmount = amount < 0 ? -amount : amount;
         final String amountStr = String.format("$%.2f", absAmount);
@@ -442,7 +470,11 @@ public final class RealWorldStatementTestDataGenerator {
 
     /** Generate PayPal statement transaction (Pattern: Date Description Amount) */
     public static String generatePayPalTransaction(
-            final int month, final int day, final int year, final String description, final double amount) {
+            final int month,
+            final int day,
+            final int year,
+            final String description,
+            final double amount) {
         final String date = String.format("%02d/%02d/%04d", month, day, year);
         final double absAmount = amount < 0 ? -amount : amount;
         final String amountStr = String.format("%.2f", absAmount);
@@ -670,7 +702,8 @@ public final class RealWorldStatementTestDataGenerator {
 
         for (int i = 0; i < 35; i++) {
             final int day = 1 + random.nextInt(28);
-            final String merchant = "VENMO PAYMENT TO " + MERCHANTS[random.nextInt(MERCHANTS.length)];
+            final String merchant =
+                    "VENMO PAYMENT TO " + MERCHANTS[random.nextInt(MERCHANTS.length)];
             final double amount = 10.00 + random.nextDouble() * 150.00;
             final boolean isCredit = random.nextBoolean();
             lines.add(generateVenmoTransaction(month, day, merchant, isCredit ? amount : -amount));
@@ -741,6 +774,5 @@ public final class RealWorldStatementTestDataGenerator {
         return lines;
     }
 
-    private RealWorldStatementTestDataGenerator() {
-    }
+    private RealWorldStatementTestDataGenerator() {}
 }

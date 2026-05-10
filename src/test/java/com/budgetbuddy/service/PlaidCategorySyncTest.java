@@ -1,6 +1,5 @@
 package com.budgetbuddy.service;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -32,6 +31,7 @@ import com.budgetbuddy.model.dynamodb.UserTable;
 import com.budgetbuddy.plaid.PlaidService;
 import com.budgetbuddy.repository.dynamodb.AccountRepository;
 import com.budgetbuddy.repository.dynamodb.TransactionRepository;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.time.LocalDate;
 import java.util.Arrays;
 import java.util.Optional;
@@ -59,6 +59,11 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @org.mockito.junit.jupiter.MockitoSettings(strictness = org.mockito.quality.Strictness.LENIENT)
 class PlaidCategorySyncTest {
 
+    private static final String DINING = "dining";
+    private static final String OTHER = "other";
+    private static final String GROCERIES = "groceries";
+    private static final String PLAID_ACCOUNT_123 = "plaid-account-123";
+
     @Mock private PlaidService plaidService;
 
     @Mock private AccountRepository accountRepository;
@@ -85,7 +90,7 @@ class PlaidCategorySyncTest {
         testAccount = new AccountTable();
         testAccount.setAccountId("account-123");
         testAccount.setUserId("user-123");
-        testAccount.setPlaidAccountId("plaid-account-123");
+        testAccount.setPlaidAccountId(PLAID_ACCOUNT_123);
         testAccount.setActive(true);
         testAccount.setLastSyncedAt(null); // Ensure sync isn't skipped
 
@@ -146,7 +151,7 @@ class PlaidCategorySyncTest {
         when(pfc.getPrimary()).thenReturn("FOOD_AND_DRINK");
         when(pfc.getDetailed()).thenReturn("RESTAURANTS");
         when(plaidTransaction.getPersonalFinanceCategory()).thenReturn(pfc);
-        lenient().when(plaidTransaction.getAccountId()).thenReturn("plaid-account-123");
+        lenient().when(plaidTransaction.getAccountId()).thenReturn(PLAID_ACCOUNT_123);
         when(plaidTransaction.getAmount()).thenReturn(25.50);
         when(plaidTransaction.getName()).thenReturn("McDonald's");
         when(plaidTransaction.getMerchantName()).thenReturn("McDonald's");
@@ -167,7 +172,7 @@ class PlaidCategorySyncTest {
         when(plaidService.getTransactions(anyString(), anyString(), anyString()))
                 .thenReturn(mockResponse);
         // Mock dataExtractor to return account ID for transaction grouping and transaction ID
-        when(dataExtractor.extractAccountIdFromTransaction(any())).thenReturn("plaid-account-123");
+        when(dataExtractor.extractAccountIdFromTransaction(any())).thenReturn(PLAID_ACCOUNT_123);
         when(dataExtractor.extractTransactionId(any()))
                 .thenAnswer(
                         invocation -> {
@@ -227,7 +232,7 @@ class PlaidCategorySyncTest {
                                 } else {
                                     categoryMapping =
                                             new PlaidCategoryMapper.CategoryMapping(
-                                                    "other", "other", false);
+                                                    OTHER, OTHER, false);
                                 }
 
                                 txTable.setImporterCategoryPrimary(plaidCategoryPrimary);
@@ -247,7 +252,7 @@ class PlaidCategorySyncTest {
                 .saveIfPlaidTransactionNotExists(any(TransactionTable.class));
 
         final PlaidCategoryMapper.CategoryMapping categoryMapping =
-                new PlaidCategoryMapper.CategoryMapping("dining", "dining", false);
+                new PlaidCategoryMapper.CategoryMapping(DINING, DINING, false);
         when(categoryMapper.mapPlaidCategory(
                         eq("FOOD_AND_DRINK"), eq("RESTAURANTS"), anyString(), anyString()))
                 .thenReturn(categoryMapping);
@@ -266,8 +271,8 @@ class PlaidCategorySyncTest {
                                     assertEquals(
                                             "RESTAURANTS",
                                             transaction.getImporterCategoryDetailed());
-                                    assertEquals("dining", transaction.getCategoryPrimary());
-                                    assertEquals("dining", transaction.getCategoryDetailed());
+                                    assertEquals(DINING, transaction.getCategoryPrimary());
+                                    assertEquals(DINING, transaction.getCategoryDetailed());
                                     assertFalse(transaction.getCategoryOverridden());
                                     return true;
                                 }));
@@ -282,8 +287,8 @@ class PlaidCategorySyncTest {
         existingTransaction.setAccountId("account-123");
         existingTransaction.setImporterCategoryPrimary("FOOD_AND_DRINK");
         existingTransaction.setImporterCategoryDetailed("RESTAURANTS");
-        existingTransaction.setCategoryPrimary("dining");
-        existingTransaction.setCategoryDetailed("dining");
+        existingTransaction.setCategoryPrimary(DINING);
+        existingTransaction.setCategoryDetailed(DINING);
         existingTransaction.setCategoryOverridden(false);
 
         when(transactionRepository.findById("txn-123"))
@@ -313,20 +318,20 @@ class PlaidCategorySyncTest {
                         null,
                         null,
                         null,
-                        "groceries",
-                        "groceries",
+                        GROCERIES,
+                        GROCERIES,
                         null,
                         null,
                         null,
                         false,
                         null,
                         null // goalId, linkedTransactionId
-                );
+                        );
 
         // Then - Verify override is stored
         assertNotNull(updated);
-        assertEquals("groceries", updated.getCategoryPrimary());
-        assertEquals("groceries", updated.getCategoryDetailed());
+        assertEquals(GROCERIES, updated.getCategoryPrimary());
+        assertEquals(GROCERIES, updated.getCategoryDetailed());
         assertTrue(updated.getCategoryOverridden());
         // Original Plaid categories should be preserved
         assertEquals("FOOD_AND_DRINK", updated.getImporterCategoryPrimary());
@@ -340,7 +345,7 @@ class PlaidCategorySyncTest {
                 mock(com.plaid.client.model.Transaction.class);
 
         when(plaidTransaction.getPersonalFinanceCategory()).thenReturn(null);
-        when(plaidTransaction.getAccountId()).thenReturn("plaid-account-123");
+        when(plaidTransaction.getAccountId()).thenReturn(PLAID_ACCOUNT_123);
         when(plaidTransaction.getAmount()).thenReturn(25.50);
         when(plaidTransaction.getName()).thenReturn("Transaction");
         when(plaidTransaction.getDate()).thenReturn(LocalDate.now());
@@ -359,7 +364,7 @@ class PlaidCategorySyncTest {
         when(plaidService.getTransactions(anyString(), anyString(), anyString()))
                 .thenReturn(mockResponse);
         // Mock dataExtractor to return account ID for transaction grouping and transaction ID
-        when(dataExtractor.extractAccountIdFromTransaction(any())).thenReturn("plaid-account-123");
+        when(dataExtractor.extractAccountIdFromTransaction(any())).thenReturn(PLAID_ACCOUNT_123);
         when(dataExtractor.extractTransactionId(any()))
                 .thenAnswer(
                         invocation -> {
@@ -419,7 +424,7 @@ class PlaidCategorySyncTest {
                                 } else {
                                     categoryMapping =
                                             new PlaidCategoryMapper.CategoryMapping(
-                                                    "other", "other", false);
+                                                    OTHER, OTHER, false);
                                 }
 
                                 txTable.setImporterCategoryPrimary(plaidCategoryPrimary);
@@ -441,7 +446,7 @@ class PlaidCategorySyncTest {
         // Only stub categoryMapper if it's actually used (when category is null, it may not be
         // called)
         final PlaidCategoryMapper.CategoryMapping categoryMapping =
-                new PlaidCategoryMapper.CategoryMapping("other", "other", false);
+                new PlaidCategoryMapper.CategoryMapping(OTHER, OTHER, false);
         lenient()
                 .when(categoryMapper.mapPlaidCategory(isNull(), isNull(), anyString(), anyString()))
                 .thenReturn(categoryMapping);
@@ -456,8 +461,8 @@ class PlaidCategorySyncTest {
                                 transaction -> {
                                     assertNull(transaction.getImporterCategoryPrimary());
                                     assertNull(transaction.getImporterCategoryDetailed());
-                                    assertEquals("other", transaction.getCategoryPrimary());
-                                    assertEquals("other", transaction.getCategoryDetailed());
+                                    assertEquals(OTHER, transaction.getCategoryPrimary());
+                                    assertEquals(OTHER, transaction.getCategoryDetailed());
                                     return true;
                                 }));
     }
@@ -479,8 +484,8 @@ class PlaidCategorySyncTest {
                 mapper.mapPlaidCategory("INCOME", "SALARY", "Employer", "Monthly salary");
 
         // Then - Verify mappings
-        assertEquals("dining", result1.getPrimary());
-        assertEquals("dining", result1.getDetailed());
+        assertEquals(DINING, result1.getPrimary());
+        assertEquals(DINING, result1.getDetailed());
         assertFalse(result1.isOverridden());
 
         assertEquals("transportation", result2.getPrimary());
@@ -499,15 +504,15 @@ class PlaidCategorySyncTest {
         // Given
         final PlaidCategoryMapper mapper = new PlaidCategoryMapper();
         final PlaidCategoryMapper.CategoryMapping original =
-                new PlaidCategoryMapper.CategoryMapping("dining", "dining", false);
+                new PlaidCategoryMapper.CategoryMapping(DINING, DINING, false);
 
         // When - Apply override
         final PlaidCategoryMapper.CategoryMapping overridden =
-                mapper.applyOverride(original, "groceries", "groceries");
+                mapper.applyOverride(original, GROCERIES, GROCERIES);
 
         // Then
-        assertEquals("groceries", overridden.getPrimary());
-        assertEquals("groceries", overridden.getDetailed());
+        assertEquals(GROCERIES, overridden.getPrimary());
+        assertEquals(GROCERIES, overridden.getDetailed());
         assertTrue(overridden.isOverridden());
     }
 }

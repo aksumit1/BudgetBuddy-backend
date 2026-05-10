@@ -1,13 +1,12 @@
 package com.budgetbuddy.service;
 
-
-import java.util.Locale;
 import com.budgetbuddy.exception.AppException;
 import com.budgetbuddy.exception.ErrorCode;
 import java.security.SecureRandom;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Base64;
+import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import org.slf4j.Logger;
@@ -58,7 +57,8 @@ public class ChallengeService {
         final String nonce = Base64.getEncoder().encodeToString(nonceBytes);
 
         // Set expiration time
-        final Instant expiresAt = Instant.now().plus(CHALLENGE_EXPIRATION_MINUTES, ChronoUnit.MINUTES);
+        final Instant expiresAt =
+                Instant.now().plus(CHALLENGE_EXPIRATION_MINUTES, ChronoUnit.MINUTES);
 
         // Store challenge
         challenges.put(nonce, new ChallengeInfo(email.toLowerCase(Locale.ROOT), expiresAt));

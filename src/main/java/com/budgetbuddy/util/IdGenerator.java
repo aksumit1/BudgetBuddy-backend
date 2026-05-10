@@ -1,8 +1,7 @@
 package com.budgetbuddy.util;
 
-
-import java.util.Locale;
 import java.nio.charset.StandardCharsets;
+import java.util.Locale;
 import java.util.UUID;
 
 /**
@@ -49,7 +48,9 @@ public final class IdGenerator {
         // Create composite key: institutionName:plaidAccountId
         // This ensures uniqueness and determinism
         final String compositeKey =
-                institutionName.trim().toLowerCase(Locale.ROOT) + ":" + plaidAccountId.trim().toLowerCase(Locale.ROOT);
+                institutionName.trim().toLowerCase(Locale.ROOT)
+                        + ":"
+                        + plaidAccountId.trim().toLowerCase(Locale.ROOT);
         return generateDeterministicUUID(ACCOUNT_NAMESPACE, compositeKey);
     }
 
@@ -102,7 +103,10 @@ public final class IdGenerator {
         }
 
         // Create composite key: userId:category
-        final String compositeKey = userId.trim().toLowerCase(Locale.ROOT) + ":" + category.trim().toLowerCase(Locale.ROOT);
+        final String compositeKey =
+                userId.trim().toLowerCase(Locale.ROOT)
+                        + ":"
+                        + category.trim().toLowerCase(Locale.ROOT);
         return generateDeterministicUUID(BUDGET_NAMESPACE, compositeKey);
     }
 
@@ -126,7 +130,10 @@ public final class IdGenerator {
         // Create composite key: userId:goalName
         // Note: If goal names can change, this will generate different IDs
         // For true consistency, consider including a creation timestamp or unique identifier
-        final String compositeKey = userId.trim().toLowerCase(Locale.ROOT) + ":" + goalName.trim().toLowerCase(Locale.ROOT);
+        final String compositeKey =
+                userId.trim().toLowerCase(Locale.ROOT)
+                        + ":"
+                        + goalName.trim().toLowerCase(Locale.ROOT);
         return generateDeterministicUUID(GOAL_NAMESPACE, compositeKey);
     }
 
@@ -251,6 +258,5 @@ public final class IdGenerator {
         return normalizeUUID(uuid1).equals(normalizeUUID(uuid2));
     }
 
-    private IdGenerator() {
-    }
+    private IdGenerator() {}
 }

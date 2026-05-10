@@ -1,6 +1,5 @@
 package com.budgetbuddy.api;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -15,6 +14,7 @@ import com.budgetbuddy.exception.AppException;
 import com.budgetbuddy.model.dynamodb.UserTable;
 import com.budgetbuddy.service.TransactionSyncService;
 import com.budgetbuddy.service.UserService;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.time.LocalDate;
 import java.util.Map;
 import java.util.Optional;
@@ -43,6 +43,8 @@ import org.springframework.security.core.userdetails.UserDetails;
 @org.mockito.junit.jupiter.MockitoSettings(strictness = org.mockito.quality.Strictness.LENIENT)
 class TransactionSyncControllerTest {
 
+    private static final String USER_123 = "user-123";
+
     @Mock private TransactionSyncService transactionSyncService;
 
     @Mock private UserService userService;
@@ -62,7 +64,7 @@ class TransactionSyncControllerTest {
         controller = new TransactionSyncController(transactionSyncService, userService);
 
         testUser = new UserTable();
-        testUser.setUserId("user-123");
+        testUser.setUserId(USER_123);
         testUser.setEmail("test@example.com");
 
         when(userDetails.getUsername()).thenReturn("test@example.com");
@@ -72,12 +74,13 @@ class TransactionSyncControllerTest {
     void testSyncTransactionsWithValidRequestReturnsAccepted() {
         // Given
         final String accessToken = "access-token-123";
-        final TransactionSyncService.SyncResult syncResult = new TransactionSyncService.SyncResult();
+        final TransactionSyncService.SyncResult syncResult =
+                new TransactionSyncService.SyncResult();
         syncResult.setNewCount(0);
         syncResult.setUpdatedCount(0);
 
         when(userService.findByEmail("test@example.com")).thenReturn(Optional.of(testUser));
-        when(transactionSyncService.syncTransactions("user-123", accessToken))
+        when(transactionSyncService.syncTransactions(USER_123, accessToken))
                 .thenReturn(CompletableFuture.completedFuture(syncResult));
 
         // When
@@ -88,7 +91,7 @@ class TransactionSyncControllerTest {
         assertEquals(HttpStatus.ACCEPTED, response.getStatusCode());
         assertNotNull(response.getBody());
         assertEquals("accepted", response.getBody().get("status"));
-        verify(transactionSyncService).syncTransactions("user-123", accessToken);
+        verify(transactionSyncService).syncTransactions(USER_123, accessToken);
     }
 
     @Test
@@ -109,12 +112,13 @@ class TransactionSyncControllerTest {
         final String accessToken = "access-token-123";
         final LocalDate sinceDate = LocalDate.now().minusDays(30);
 
-        final TransactionSyncService.SyncResult syncResult = new TransactionSyncService.SyncResult();
+        final TransactionSyncService.SyncResult syncResult =
+                new TransactionSyncService.SyncResult();
         syncResult.setNewCount(10);
         syncResult.setUpdatedCount(5);
 
         when(userService.findByEmail("test@example.com")).thenReturn(Optional.of(testUser));
-        when(transactionSyncService.syncIncremental("user-123", accessToken, sinceDate))
+        when(transactionSyncService.syncIncremental(USER_123, accessToken, sinceDate))
                 .thenReturn(CompletableFuture.completedFuture(syncResult));
 
         // When
@@ -132,13 +136,14 @@ class TransactionSyncControllerTest {
     void testSyncIncrementalWithNullSinceDateUsesDefault() throws Exception {
         // Given
         final String accessToken = "access-token-123";
-        final TransactionSyncService.SyncResult syncResult = new TransactionSyncService.SyncResult();
+        final TransactionSyncService.SyncResult syncResult =
+                new TransactionSyncService.SyncResult();
         syncResult.setNewCount(0);
         syncResult.setUpdatedCount(0);
 
         when(userService.findByEmail("test@example.com")).thenReturn(Optional.of(testUser));
         when(transactionSyncService.syncIncremental(
-                        eq("user-123"), eq(accessToken), any(LocalDate.class)))
+                        eq(USER_123), eq(accessToken), any(LocalDate.class)))
                 .thenReturn(CompletableFuture.completedFuture(syncResult));
 
         // When
@@ -155,11 +160,12 @@ class TransactionSyncControllerTest {
         final String accessToken = "access-token-123";
         final LocalDate sinceDate = LocalDate.now().minusDays(30);
 
-        final CompletableFuture<TransactionSyncService.SyncResult> future = new CompletableFuture<>();
+        final CompletableFuture<TransactionSyncService.SyncResult> future =
+                new CompletableFuture<>();
         future.completeExceptionally(new RuntimeException("Sync failed"));
 
         when(userService.findByEmail("test@example.com")).thenReturn(Optional.of(testUser));
-        when(transactionSyncService.syncIncremental("user-123", accessToken, sinceDate))
+        when(transactionSyncService.syncIncremental(USER_123, accessToken, sinceDate))
                 .thenReturn(future);
 
         // When/Then
@@ -180,7 +186,7 @@ class TransactionSyncControllerTest {
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertNotNull(response.getBody());
         assertEquals("completed", response.getBody().get("status"));
-        assertEquals("user-123", response.getBody().get("userId"));
+        assertEquals(USER_123, response.getBody().get("userId"));
     }
 
     @Test

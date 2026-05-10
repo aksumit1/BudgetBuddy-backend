@@ -22,7 +22,6 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
@@ -35,6 +34,8 @@ import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 @Import(AWSTestConfiguration.class)
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class TransactionNotesIntegrationTest {
+
+    private static final String DINING = "dining";
 
     @Autowired private TransactionService transactionService;
 
@@ -91,8 +92,8 @@ class TransactionNotesIntegrationTest {
                         BigDecimal.valueOf(-50.00),
                         LocalDate.now(),
                         "Test Transaction",
-                        "dining",
-                        "dining",
+                        DINING,
+                        DINING,
                         transactionId,
                         notes);
 
@@ -120,11 +121,11 @@ class TransactionNotesIntegrationTest {
                         BigDecimal.valueOf(-50.00),
                         LocalDate.now(),
                         "Test Transaction",
-                        "dining",
-                        "dining",
+                        DINING,
+                        DINING,
                         transactionId,
                         "" // Empty notes
-                );
+                        );
 
         // Then
         assertNotNull(transaction);
@@ -149,11 +150,11 @@ class TransactionNotesIntegrationTest {
                         BigDecimal.valueOf(-50.00),
                         LocalDate.now(),
                         "Test Transaction",
-                        "dining",
-                        "dining",
+                        DINING,
+                        DINING,
                         transactionId,
                         null // Null notes
-                );
+                        );
 
         // Then
         assertNotNull(transaction);
@@ -171,8 +172,8 @@ class TransactionNotesIntegrationTest {
                         BigDecimal.valueOf(-50.00),
                         LocalDate.now(),
                         "Test Transaction",
-                        "dining",
-                        "dining",
+                        DINING,
+                        DINING,
                         transactionId,
                         null);
         assertNull(transaction.getNotes());
@@ -203,8 +204,8 @@ class TransactionNotesIntegrationTest {
                         BigDecimal.valueOf(-50.00),
                         LocalDate.now(),
                         "Test Transaction",
-                        "dining",
-                        "dining",
+                        DINING,
+                        DINING,
                         transactionId,
                         "Original note");
         assertEquals("Original note", transaction.getNotes());
@@ -234,8 +235,8 @@ class TransactionNotesIntegrationTest {
                         BigDecimal.valueOf(-50.00),
                         LocalDate.now(),
                         "Test Transaction",
-                        "dining",
-                        "dining",
+                        DINING,
+                        DINING,
                         transactionId,
                         "Original note");
         assertEquals("Original note", transaction.getNotes());
@@ -261,8 +262,8 @@ class TransactionNotesIntegrationTest {
                         BigDecimal.valueOf(-50.00),
                         LocalDate.now(),
                         "Test Transaction",
-                        "dining",
-                        "dining",
+                        DINING,
+                        DINING,
                         transactionId,
                         originalNotes);
         assertEquals(originalNotes, transaction.getNotes());
@@ -295,8 +296,8 @@ class TransactionNotesIntegrationTest {
                         BigDecimal.valueOf(-50.00),
                         LocalDate.now(),
                         "Test Transaction",
-                        "dining",
-                        "dining",
+                        DINING,
+                        DINING,
                         transactionId,
                         notesWithWhitespace);
 
@@ -319,8 +320,8 @@ class TransactionNotesIntegrationTest {
                         BigDecimal.valueOf(-50.00),
                         LocalDate.now(),
                         "Test Transaction",
-                        "dining",
-                        "dining",
+                        DINING,
+                        DINING,
                         transactionId,
                         whitespaceOnly);
 

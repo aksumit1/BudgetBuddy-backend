@@ -1,9 +1,9 @@
 package com.budgetbuddy.service;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import com.budgetbuddy.model.dynamodb.GoalTable;
 import com.budgetbuddy.model.dynamodb.TransactionTable;
 import com.budgetbuddy.repository.dynamodb.TransactionRepository;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
@@ -28,7 +28,12 @@ import org.springframework.stereotype.Service;
 @SuppressFBWarnings(
         value = "EI_EXPOSE_REP2",
         justification = "Spring constructor injection — beans are shared by design")
-@SuppressWarnings({"PMD.LawOfDemeter", "PMD.AvoidCatchingGenericException", "PMD.DataClass", "PMD.OnlyOneReturn"})
+@SuppressWarnings({
+    "PMD.LawOfDemeter",
+    "PMD.AvoidCatchingGenericException",
+    "PMD.DataClass",
+    "PMD.OnlyOneReturn"
+})
 @Service
 public class GoalAnalyticsService {
 
@@ -133,7 +138,8 @@ public class GoalAnalyticsService {
                                         return false;
                                     }
                                     try {
-                                        final LocalDate txDate = LocalDate.parse(tx.getTransactionDate());
+                                        final LocalDate txDate =
+                                                LocalDate.parse(tx.getTransactionDate());
                                         return txDate.isAfter(threeMonthsAgo)
                                                 && txDate.isBefore(LocalDate.now().plusDays(1));
                                     } catch (Exception e) {

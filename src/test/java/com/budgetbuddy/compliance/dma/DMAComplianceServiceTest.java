@@ -35,6 +35,8 @@ import org.mockito.MockitoAnnotations;
 /** Comprehensive tests for DMAComplianceService */
 class DMAComplianceServiceTest {
 
+    private static final String USER_123 = "user-123";
+
     @Mock private GDPRComplianceService gdprComplianceService;
 
     @Mock private AuditLogService auditLogService;
@@ -69,7 +71,7 @@ class DMAComplianceServiceTest {
     @DisplayName("Should export data in JSON format")
     void testExportDataPortableJSON() {
         // Given
-        final String userId = "user-123";
+        final String userId = USER_123;
         final String jsonData = "{\"userId\":\"user-123\"}";
         when(gdprComplianceService.exportDataPortable(userId)).thenReturn(jsonData);
 
@@ -86,7 +88,7 @@ class DMAComplianceServiceTest {
     @DisplayName("Should export data in CSV format")
     void testExportDataPortableCSV() {
         // Given
-        final String userId = "user-123";
+        final String userId = USER_123;
         final UserTable user = new UserTable();
         user.setUserId(userId);
         user.setEmail("test@example.com");
@@ -110,7 +112,7 @@ class DMAComplianceServiceTest {
     @DisplayName("Should export data in XML format")
     void testExportDataPortableXML() {
         // Given
-        final String userId = "user-123";
+        final String userId = USER_123;
         final UserTable user = new UserTable();
         user.setUserId(userId);
         user.setEmail("test@example.com");
@@ -135,7 +137,7 @@ class DMAComplianceServiceTest {
     @DisplayName("Should throw exception for unsupported format")
     void testExportDataPortableUnsupportedFormat() {
         // Given
-        final String userId = "user-123";
+        final String userId = USER_123;
 
         // When/Then
         assertThrows(
@@ -149,7 +151,7 @@ class DMAComplianceServiceTest {
     @DisplayName("Should get interoperability endpoint")
     void testGetInteroperabilityEndpoint() {
         // Given
-        final String userId = "user-123";
+        final String userId = USER_123;
 
         // When
         final String endpoint = dmaComplianceService.getInteroperabilityEndpoint(userId);
@@ -164,7 +166,7 @@ class DMAComplianceServiceTest {
     @DisplayName("Should authorize third-party access")
     void testAuthorizeThirdPartyAccess() {
         // Given
-        final String userId = "user-123";
+        final String userId = USER_123;
         final String thirdPartyId = "third-party-456";
         final String scope = "transactions";
 
@@ -189,7 +191,7 @@ class DMAComplianceServiceTest {
     @DisplayName("Should share data with authorized third party")
     void testShareDataWithThirdParty() {
         // Given
-        final String userId = "user-123";
+        final String userId = USER_123;
         final String thirdPartyId = "third-party-456";
         final String dataType = "transactions";
         final String jsonData = "{\"data\":\"test\"}";
@@ -217,7 +219,7 @@ class DMAComplianceServiceTest {
     @DisplayName("Should export CSV with transactions")
     void testExportAsCSVWithTransactions() {
         // Given
-        final String userId = "user-123";
+        final String userId = USER_123;
         final UserTable user = new UserTable();
         user.setUserId(userId);
         user.setEmail("test@example.com");

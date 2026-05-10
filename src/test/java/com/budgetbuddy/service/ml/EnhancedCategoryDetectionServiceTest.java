@@ -37,6 +37,9 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @DisplayName("EnhancedCategoryDetectionService Tests")
 class EnhancedCategoryDetectionServiceTest {
 
+    private static final String GROCERIES = "groceries";
+    private static final String DESCRIPTION = "Description";
+
     @Mock private FuzzyMatchingService fuzzyMatchingService;
 
     @Mock private CategoryClassificationModel mlModel;
@@ -92,10 +95,10 @@ class EnhancedCategoryDetectionServiceTest {
                 .when(mlModel.predict(anyString(), anyString(), any(), anyString()))
                 .thenReturn(
                         new CategoryClassificationModel.PredictionResult(
-                                "groceries", 0.5, java.util.Collections.emptyList()));
+                                GROCERIES, 0.5, java.util.Collections.emptyList()));
 
         final EnhancedCategoryDetectionService.DetectionResult result =
-                service.detectCategory("", "Description", new BigDecimal("75.50"), "POS", null);
+                service.detectCategory("", DESCRIPTION, new BigDecimal("75.50"), "POS", null);
 
         assertNotNull(result);
     }
@@ -112,7 +115,7 @@ class EnhancedCategoryDetectionServiceTest {
         // construction time, so we must re-mock and rebuild before exercising the
         // service in this test (the @BeforeEach default seeds it empty).
         final java.util.Map<String, String> knownMerchants = new java.util.HashMap<>();
-        knownMerchants.put("zorblix mart", "groceries");
+        knownMerchants.put("zorblix mart", GROCERIES);
         when(merchantCategoryDataService.getMerchantToCategoryMap()).thenReturn(knownMerchants);
         service =
                 new EnhancedCategoryDetectionService(
@@ -137,10 +140,10 @@ class EnhancedCategoryDetectionServiceTest {
 
         final EnhancedCategoryDetectionService.DetectionResult result =
                 service.detectCategory(
-                        "ZORBLIX MART", "Description", new BigDecimal("75.50"), "POS", null);
+                        "ZORBLIX MART", DESCRIPTION, new BigDecimal("75.50"), "POS", null);
 
         assertNotNull(result);
-        assertEquals("groceries", result.category);
+        assertEquals(GROCERIES, result.category);
         assertEquals("FUZZY_MATCH", result.method);
         assertTrue(result.isHighConfidence());
     }
@@ -158,14 +161,14 @@ class EnhancedCategoryDetectionServiceTest {
         when(mlModel.predict(anyString(), anyString(), any(), anyString()))
                 .thenReturn(
                         new CategoryClassificationModel.PredictionResult(
-                                "groceries", 0.5, java.util.Collections.emptyList()));
+                                GROCERIES, 0.5, java.util.Collections.emptyList()));
 
         // Should not throw NPE, should fall back to ML
         assertDoesNotThrow(
                 () -> {
                     final EnhancedCategoryDetectionService.DetectionResult result =
                             service.detectCategory(
-                                    "UNKNOWN", "Description", new BigDecimal("75.50"), "POS", null);
+                                    "UNKNOWN", DESCRIPTION, new BigDecimal("75.50"), "POS", null);
                     assertNotNull(result);
                 });
     }
@@ -177,7 +180,7 @@ class EnhancedCategoryDetectionServiceTest {
     void testDetectCategoryUsesSemanticMatch() {
         when(fuzzyMatchingService.findBestMatch(anyString(), anyList())).thenReturn(null);
         final SemanticMatchingService.SemanticMatchResult semanticResult =
-                new SemanticMatchingService.SemanticMatchResult("groceries", 0.75, "SEMANTIC");
+                new SemanticMatchingService.SemanticMatchResult(GROCERIES, 0.75, "SEMANTIC");
         // CRITICAL: Service calls findBestSemanticMatchWithContext, not findBestSemanticMatch
         when(semanticMatchingService.findBestSemanticMatchWithContext(
                         anyString(), anyString(), any(), any(), any(), any()))
@@ -192,7 +195,7 @@ class EnhancedCategoryDetectionServiceTest {
                         "Grocery Store", "Shopping", new BigDecimal("75.50"), "POS", null);
 
         assertNotNull(result);
-        assertEquals("groceries", result.category);
+        assertEquals(GROCERIES, result.category);
         assertEquals("SEMANTIC_MATCH", result.method);
     }
 
@@ -216,14 +219,15 @@ class EnhancedCategoryDetectionServiceTest {
                 .when(mlModel.predict(anyString(), anyString(), any(), anyString()))
                 .thenReturn(
                         new CategoryClassificationModel.PredictionResult(
-                                "groceries", 0.75, java.util.Collections.emptyList()));
+                                GROCERIES, 0.75, java.util.Collections.emptyList()));
 
         final EnhancedCategoryDetectionService.DetectionResult result =
                 service.detectCategory(
-                        "UNKNOWN", "Description", new BigDecimal("75.50"), "POS", null);
+                        "UNKNOWN", DESCRIPTION, new BigDecimal("75.50"), "POS", null);
 
         assertNotNull(result);
-        assertEquals("NONE", result.method, "ML path is disabled — unmatched merchants resolve to NONE");
+        assertEquals(
+                "NONE", result.method, "ML path is disabled — unmatched merchants resolve to NONE");
     }
 
     @Test
@@ -236,12 +240,12 @@ class EnhancedCategoryDetectionServiceTest {
                 .thenReturn(null);
         final CategoryClassificationModel.PredictionResult mlResult =
                 new CategoryClassificationModel.PredictionResult(
-                        "groceries", 0.25, java.util.Collections.emptyList());
+                        GROCERIES, 0.25, java.util.Collections.emptyList());
         when(mlModel.predict(anyString(), anyString(), any(), anyString())).thenReturn(mlResult);
 
         final EnhancedCategoryDetectionService.DetectionResult result =
                 service.detectCategory(
-                        "UNKNOWN", "Description", new BigDecimal("75.50"), "POS", null);
+                        "UNKNOWN", DESCRIPTION, new BigDecimal("75.50"), "POS", null);
 
         assertNotNull(result);
         assertEquals("NONE", result.method);
@@ -256,22 +260,22 @@ class EnhancedCategoryDetectionServiceTest {
                 new FuzzyMatchingService.MatchResult("safeway", 0.90, 0.92, 0.88, 0.90);
         when(fuzzyMatchingService.findBestMatch(anyString(), anyList())).thenReturn(fuzzyResult);
         final SemanticMatchingService.SemanticMatchResult semanticResult =
-                new SemanticMatchingService.SemanticMatchResult("groceries", 0.80, "SEMANTIC");
+                new SemanticMatchingService.SemanticMatchResult(GROCERIES, 0.80, "SEMANTIC");
         // CRITICAL: Service calls findBestSemanticMatchWithContext, not findBestSemanticMatch
         when(semanticMatchingService.findBestSemanticMatchWithContext(
                         anyString(), anyString(), any(), any(), any(), any()))
                 .thenReturn(semanticResult);
         final CategoryClassificationModel.PredictionResult mlResult =
                 new CategoryClassificationModel.PredictionResult(
-                        "groceries", 0.80, java.util.Collections.emptyList());
+                        GROCERIES, 0.80, java.util.Collections.emptyList());
         when(mlModel.predict(anyString(), anyString(), any(), anyString())).thenReturn(mlResult);
 
         final EnhancedCategoryDetectionService.DetectionResult result =
                 service.detectCategory(
-                        "SAFEWAY", "Description", new BigDecimal("75.50"), "POS", null);
+                        "SAFEWAY", DESCRIPTION, new BigDecimal("75.50"), "POS", null);
 
         assertNotNull(result);
-        assertEquals("groceries", result.category);
+        assertEquals(GROCERIES, result.category);
         assertEquals("COMBINED", result.method);
     }
 
@@ -295,7 +299,7 @@ class EnhancedCategoryDetectionServiceTest {
 
         final EnhancedCategoryDetectionService.DetectionResult result =
                 service.detectCategory(
-                        "SAFEWAY", "Description", new BigDecimal("75.50"), "POS", null);
+                        "SAFEWAY", DESCRIPTION, new BigDecimal("75.50"), "POS", null);
 
         assertNotNull(result);
         assertEquals("ERROR", result.method);
@@ -318,7 +322,7 @@ class EnhancedCategoryDetectionServiceTest {
                                 null, 0.0, java.util.Collections.emptyList()));
 
         final EnhancedCategoryDetectionService.DetectionResult result =
-                service.detectCategory("SAFEWAY", "Description", veryLargeAmount, "POS", null);
+                service.detectCategory("SAFEWAY", DESCRIPTION, veryLargeAmount, "POS", null);
 
         assertNotNull(result);
         // Amount should be nulled out if too large
@@ -340,7 +344,7 @@ class EnhancedCategoryDetectionServiceTest {
                                 null, 0.0, java.util.Collections.emptyList()));
 
         final EnhancedCategoryDetectionService.DetectionResult result =
-                service.detectCategory("SAFEWAY", "Description", veryNegativeAmount, "POS", null);
+                service.detectCategory("SAFEWAY", DESCRIPTION, veryNegativeAmount, "POS", null);
 
         assertNotNull(result);
     }
@@ -350,15 +354,15 @@ class EnhancedCategoryDetectionServiceTest {
     @Test
     @DisplayName("trainModel with valid data calls mlModel.train")
     void testTrainModelValidData() {
-        service.trainModel("SAFEWAY", "Description", "75.50", "POS", "groceries");
+        service.trainModel("SAFEWAY", DESCRIPTION, "75.50", "POS", GROCERIES);
 
-        verify(mlModel, times(1)).train("SAFEWAY", "Description", "75.50", "POS", "groceries");
+        verify(mlModel, times(1)).train("SAFEWAY", DESCRIPTION, "75.50", "POS", GROCERIES);
     }
 
     @Test
     @DisplayName("trainModel with null category does nothing")
     void testTrainModelNullCategory() {
-        service.trainModel("SAFEWAY", "Description", "75.50", "POS", null);
+        service.trainModel("SAFEWAY", DESCRIPTION, "75.50", "POS", null);
 
         verify(mlModel, never())
                 .train(anyString(), anyString(), anyString(), anyString(), anyString());
@@ -374,7 +378,7 @@ class EnhancedCategoryDetectionServiceTest {
         // Should not throw
         assertDoesNotThrow(
                 () -> {
-                    service.trainModel("SAFEWAY", "Description", "75.50", "POS", "groceries");
+                    service.trainModel("SAFEWAY", DESCRIPTION, "75.50", "POS", GROCERIES);
                 });
     }
 
@@ -383,7 +387,7 @@ class EnhancedCategoryDetectionServiceTest {
     @Test
     @DisplayName("addKnownMerchant adds merchant to database")
     void testAddKnownMerchant() {
-        service.addKnownMerchant("NEW_MERCHANT", "groceries");
+        service.addKnownMerchant("NEW_MERCHANT", GROCERIES);
 
         // Verify it's in the known merchants (would need getter or test via detectCategory)
         // For now, just verify no exception
@@ -398,7 +402,7 @@ class EnhancedCategoryDetectionServiceTest {
     void testAddKnownMerchantNullInputs() {
         assertDoesNotThrow(
                 () -> {
-                    service.addKnownMerchant(null, "groceries");
+                    service.addKnownMerchant(null, GROCERIES);
                     service.addKnownMerchant("MERCHANT", null);
                     service.addKnownMerchant(null, null);
                 });
@@ -411,21 +415,21 @@ class EnhancedCategoryDetectionServiceTest {
     void testDetectionResultConfidenceLevels() {
         final EnhancedCategoryDetectionService.DetectionResult high =
                 new EnhancedCategoryDetectionService.DetectionResult(
-                        "groceries", 0.75, "FUZZY_MATCH", "Test");
+                        GROCERIES, 0.75, "FUZZY_MATCH", "Test");
         assertTrue(high.isHighConfidence());
         assertFalse(high.isMediumConfidence());
         assertFalse(high.isLowConfidence());
 
         final EnhancedCategoryDetectionService.DetectionResult med =
                 new EnhancedCategoryDetectionService.DetectionResult(
-                        "groceries", 0.60, "ML_PREDICTION", "Test");
+                        GROCERIES, 0.60, "ML_PREDICTION", "Test");
         assertFalse(med.isHighConfidence());
         assertTrue(med.isMediumConfidence());
         assertFalse(med.isLowConfidence());
 
         final EnhancedCategoryDetectionService.DetectionResult low =
                 new EnhancedCategoryDetectionService.DetectionResult(
-                        "groceries", 0.40, "ML_PREDICTION", "Test");
+                        GROCERIES, 0.40, "ML_PREDICTION", "Test");
         assertFalse(low.isHighConfidence());
         assertFalse(low.isMediumConfidence());
         assertTrue(low.isLowConfidence());

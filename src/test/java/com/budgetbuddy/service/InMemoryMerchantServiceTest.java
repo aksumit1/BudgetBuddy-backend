@@ -20,6 +20,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class InMemoryMerchantServiceTest {
 
+    private static final String GROCERIES = "groceries";
+
     @Mock private MCCCodeMapper mccMapper;
 
     @Mock private FuzzyMatchingService fuzzyMatchingService;
@@ -49,9 +51,9 @@ class InMemoryMerchantServiceTest {
             final String category = result.getCategoryPrimary();
             final boolean isValidCategory =
                     category != null
-                            && ("groceries".equals(category)
-                            || "shopping".equals(category)
-                            || "subscriptions".equals(category));
+                            && (GROCERIES.equals(category)
+                                    || "shopping".equals(category)
+                                    || "subscriptions".equals(category));
 
             // Only check confidence and source if we got a valid category
             if (isValidCategory) {
@@ -86,14 +88,14 @@ class InMemoryMerchantServiceTest {
     void testDetectCategoryWithMCCCode() {
         // Mock MCC mapper to return a valid mapping
         final MCCCodeMapper.CategoryMapping mapping =
-                new MCCCodeMapper.CategoryMapping("groceries", "supermarket", 0.95);
+                new MCCCodeMapper.CategoryMapping(GROCERIES, "supermarket", 0.95);
         when(mccMapper.getCategoryFromMCC("5411")).thenReturn(mapping);
 
         final TransactionTypeCategoryService.CategoryResult result =
                 merchantService.detectCategory("Unknown Merchant", "Test Description", "5411");
 
         assertNotNull(result, "Should return category result for valid MCC code");
-        assertEquals("groceries", result.getCategoryPrimary());
+        assertEquals(GROCERIES, result.getCategoryPrimary());
         assertEquals(0.95, result.getConfidence(), 0.01);
         assertEquals("MCC_CODE", result.getSource());
     }
@@ -124,7 +126,7 @@ class InMemoryMerchantServiceTest {
 
         // May be null if merchants.json is not loaded in test environment
         if (result != null) {
-            assertEquals("groceries", result.getCategoryPrimary());
+            assertEquals(GROCERIES, result.getCategoryPrimary());
             assertTrue(result.getConfidence() >= 0.90);
         } else {
             // If merchants.json isn't loaded, skip this test
@@ -155,7 +157,7 @@ class InMemoryMerchantServiceTest {
     void testDetectCategoryMCCPriority() {
         // MCC should take priority over merchant name if both available
         when(mccMapper.getCategoryFromMCC("5411"))
-                .thenReturn(new MCCCodeMapper.CategoryMapping("groceries", "supermarket", 0.95));
+                .thenReturn(new MCCCodeMapper.CategoryMapping(GROCERIES, "supermarket", 0.95));
 
         final TransactionTypeCategoryService.CategoryResult result =
                 merchantService.detectCategory("Walmart", "WMT", "5411");

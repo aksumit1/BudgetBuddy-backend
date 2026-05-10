@@ -163,7 +163,8 @@ public class DistributedLock {
      * Execute with distributed lock Automatically acquires and releases lock Falls back to
      * executing without distributed lock if Redis is unavailable
      */
-    public <T> T executeWithLock(final String lockKey, final Duration timeout, final LockedOperation<T> operation) {
+    public <T> T executeWithLock(
+            final String lockKey, final Duration timeout, final LockedOperation<T> operation) {
         final LockResult lockResult = acquireLock(lockKey, timeout);
 
         if (!lockResult.isAcquired()) {
@@ -185,7 +186,8 @@ public class DistributedLock {
         } catch (RuntimeException e) {
             throw e;
         } catch (Exception e) {
-            throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR, "Error executing locked operation", e);
+            throw new AppException(
+                    ErrorCode.INTERNAL_SERVER_ERROR, "Error executing locked operation", e);
         } finally {
             final boolean released = releaseLock(lockKey, lockResult.getLockValue());
             if (!released && redisTemplate != null) {
@@ -208,7 +210,8 @@ public class DistributedLock {
         } catch (RuntimeException e) {
             throw e;
         } catch (Exception e) {
-            throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR, "Error executing locked operation", e);
+            throw new AppException(
+                    ErrorCode.INTERNAL_SERVER_ERROR, "Error executing locked operation", e);
         } finally {
             releaseLock(lockKey, lockResult.getLockValue());
         }

@@ -1,6 +1,5 @@
 package com.budgetbuddy.api;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import com.budgetbuddy.exception.AppException;
 import com.budgetbuddy.exception.ErrorCode;
 import com.budgetbuddy.model.dynamodb.GoalTable;
@@ -8,6 +7,7 @@ import com.budgetbuddy.model.dynamodb.UserTable;
 import com.budgetbuddy.service.GoalProgressService;
 import com.budgetbuddy.service.GoalService;
 import com.budgetbuddy.service.UserService;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import jakarta.validation.Valid;
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -40,7 +40,8 @@ import org.springframework.web.bind.annotation.RestController;
 // callers — defensive-copying it would break dependency injection.
 @SuppressFBWarnings(
         value = {"EI_EXPOSE_REP", "EI_EXPOSE_REP2"},
-        justification = "JSON DTO / DynamoDB entity getters expose lists by reference; "
+        justification =
+                "JSON DTO / DynamoDB entity getters expose lists by reference; "
                         + "the design is value-semantic and Jackson creates fresh instances; Spring constructor injection — beans are shared by design")
 @SuppressWarnings({"PMD.LawOfDemeter", "PMD.AvoidCatchingGenericException", "PMD.DataClass"})
 @RestController
@@ -149,7 +150,9 @@ public class GoalController {
         try {
             dataChangeNotificationService.notifyGoalMilestoneReached(
                     user.getUserId(), updated.getGoalId(), updated.getName(), 100, true);
-        } catch (@SuppressWarnings("PMD.AvoidCatchingGenericException") Exception e) {
+        } catch (
+                @SuppressWarnings("PMD.AvoidCatchingGenericException")
+                Exception e) {
             org.slf4j.LoggerFactory.getLogger(GoalController.class)
                     .debug(
                             "Goal-milestone notification failed (best-effort, request not aborted): {}",
@@ -184,7 +187,8 @@ public class GoalController {
             @AuthenticationPrincipal final UserDetails userDetails,
             @org.springframework.web.bind.annotation.RequestHeader(
                             value = "Idempotency-Key",
-                            required = false) final String idempotencyKey,
+                            required = false)
+                    final String idempotencyKey,
             @Valid @RequestBody final CreateGoalRequest request) {
         if (userDetails == null || userDetails.getUsername() == null) {
             throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, USER_NOT_AUTHENTICATED);

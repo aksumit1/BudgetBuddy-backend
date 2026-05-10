@@ -1,11 +1,11 @@
 package com.budgetbuddy.api;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import com.budgetbuddy.exception.AppException;
 import com.budgetbuddy.exception.ErrorCode;
 import com.budgetbuddy.model.dynamodb.UserTable;
 import com.budgetbuddy.service.UserService;
 import com.budgetbuddy.service.notification.DailyReadEmailService;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.Map;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -48,7 +48,8 @@ public class DailyReadEmailController {
 
     @PutMapping
     public ResponseEntity<Void> set(
-            @AuthenticationPrincipal final UserDetails userDetails, @RequestBody final SetOptInRequest body) {
+            @AuthenticationPrincipal final UserDetails userDetails,
+            @RequestBody final SetOptInRequest body) {
         final UserTable user = authenticate(userDetails);
         dailyReadEmail.setOptedIn(user.getUserId(), body.optedIn);
         return ResponseEntity.noContent().build();

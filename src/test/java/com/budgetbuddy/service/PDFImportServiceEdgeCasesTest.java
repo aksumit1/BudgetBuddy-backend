@@ -1,8 +1,5 @@
 package com.budgetbuddy.service;
 
-
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import java.nio.charset.StandardCharsets;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -10,9 +7,11 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.budgetbuddy.exception.AppException;
 import com.budgetbuddy.exception.ErrorCode;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
@@ -40,6 +39,12 @@ import org.junit.jupiter.api.Test;
 @SuppressWarnings("PMD.AvoidCatchingGenericException")
 @DisplayName("PDF Import Service Edge Cases and Error Handling Tests")
 class PDFImportServiceEdgeCasesTest {
+
+    private static final String AMOUNT = "amount";
+    private static final String EXTRACTROWWITHSMARTCOLUMNDETECTION =
+            "extractRowWithSmartColumnDetection";
+    private static final String DATE = "date";
+    private static final String UNCHECKED = "unchecked";
 
     private PDFImportService pdfImportService;
 
@@ -79,7 +84,8 @@ class PDFImportServiceEdgeCasesTest {
     @Test
     @DisplayName("Should handle PDF with only whitespace")
     void testParsePDFWhitespaceOnlyThrowsException() {
-        final InputStream whitespaceStream = new ByteArrayInputStream("   \n\t   ".getBytes(StandardCharsets.UTF_8));
+        final InputStream whitespaceStream =
+                new ByteArrayInputStream("   \n\t   ".getBytes(StandardCharsets.UTF_8));
 
         final AppException exception =
                 assertThrows(
@@ -124,15 +130,15 @@ class PDFImportServiceEdgeCasesTest {
 
         final java.lang.reflect.Method method =
                 PDFImportService.class.getDeclaredMethod(
-                        "extractRowWithSmartColumnDetection",
+                        EXTRACTROWWITHSMARTCOLUMNDETECTION,
                         String.class,
                         List.class,
                         Integer.class);
         method.setAccessible(true);
 
-        final List<String> headers = List.of("date", "description", "amount");
-        @SuppressWarnings({"unchecked", "PMD.AvoidCatchingGenericException"}) final
-                java.util.Map<String, String> row =
+        final List<String> headers = List.of(DATE, "description", AMOUNT);
+        @SuppressWarnings({UNCHECKED, "PMD.AvoidCatchingGenericException"})
+        final java.util.Map<String, String> row =
                 (java.util.Map<String, String>)
                         method.invoke(pdfImportService, line, headers, 2025);
 
@@ -147,20 +153,20 @@ class PDFImportServiceEdgeCasesTest {
 
         final java.lang.reflect.Method method =
                 PDFImportService.class.getDeclaredMethod(
-                        "extractRowWithSmartColumnDetection",
+                        EXTRACTROWWITHSMARTCOLUMNDETECTION,
                         String.class,
                         List.class,
                         Integer.class);
         method.setAccessible(true);
 
-        final List<String> headers = List.of("date", "description", "amount");
-        @SuppressWarnings("unchecked") final
-                java.util.Map<String, String> row =
+        final List<String> headers = List.of(DATE, "description", AMOUNT);
+        @SuppressWarnings(UNCHECKED)
+        final java.util.Map<String, String> row =
                 (java.util.Map<String, String>)
                         method.invoke(pdfImportService, line, headers, 2025);
 
         assertNotNull(row, "Should handle very large amount");
-        assertEquals("$9,999,999.99", row.get("amount"));
+        assertEquals("$9,999,999.99", row.get(AMOUNT));
 
         // Test parsing
         final java.lang.reflect.Method parseAmountMethod =
@@ -179,14 +185,14 @@ class PDFImportServiceEdgeCasesTest {
     @DisplayName("Should handle corrupted PDF file")
     void testParsePDFCorruptedFileThrowsException() {
         final byte[] corruptedBytes =
-                new byte[]{
-                        (byte) 0x00,
-                        (byte) 0x01,
-                        (byte) 0x02,
-                        (byte) 0x03,
-                        (byte) 0xFF,
-                        (byte) 0xFE,
-                        (byte) 0xFD
+                new byte[] {
+                    (byte) 0x00,
+                    (byte) 0x01,
+                    (byte) 0x02,
+                    (byte) 0x03,
+                    (byte) 0xFF,
+                    (byte) 0xFE,
+                    (byte) 0xFD
                 };
         final InputStream corruptedStream = new ByteArrayInputStream(corruptedBytes);
 
@@ -203,7 +209,8 @@ class PDFImportServiceEdgeCasesTest {
     @Test
     @DisplayName("Should handle null filename gracefully")
     void testParsePDFNullFilename() {
-        final InputStream validStream = new ByteArrayInputStream("%PDF-1.4\n".getBytes(StandardCharsets.UTF_8));
+        final InputStream validStream =
+                new ByteArrayInputStream("%PDF-1.4\n".getBytes(StandardCharsets.UTF_8));
 
         // Should handle null filename (might infer year from content or use current year)
         try {
@@ -237,7 +244,8 @@ class PDFImportServiceEdgeCasesTest {
 
         // Note: Would need actual PDF creation for full test
         // For now, test that empty result throws exception
-        final InputStream pdfStream = new ByteArrayInputStream(pdfText.getBytes(StandardCharsets.UTF_8));
+        final InputStream pdfStream =
+                new ByteArrayInputStream(pdfText.getBytes(StandardCharsets.UTF_8));
 
         final AppException exception =
                 assertThrows(
@@ -257,15 +265,15 @@ class PDFImportServiceEdgeCasesTest {
 
         final java.lang.reflect.Method method =
                 PDFImportService.class.getDeclaredMethod(
-                        "extractRowWithSmartColumnDetection",
+                        EXTRACTROWWITHSMARTCOLUMNDETECTION,
                         String.class,
                         List.class,
                         Integer.class);
         method.setAccessible(true);
 
-        final List<String> headers = List.of("description", "amount");
-        @SuppressWarnings("unchecked") final
-                java.util.Map<String, String> row =
+        final List<String> headers = List.of("description", AMOUNT);
+        @SuppressWarnings(UNCHECKED)
+        final java.util.Map<String, String> row =
                 (java.util.Map<String, String>)
                         method.invoke(pdfImportService, line, headers, 2025);
 
@@ -281,15 +289,15 @@ class PDFImportServiceEdgeCasesTest {
 
         final java.lang.reflect.Method method =
                 PDFImportService.class.getDeclaredMethod(
-                        "extractRowWithSmartColumnDetection",
+                        EXTRACTROWWITHSMARTCOLUMNDETECTION,
                         String.class,
                         List.class,
                         Integer.class);
         method.setAccessible(true);
 
-        final List<String> headers = List.of("date", "description");
-        @SuppressWarnings("unchecked") final
-                java.util.Map<String, String> row =
+        final List<String> headers = List.of(DATE, "description");
+        @SuppressWarnings(UNCHECKED)
+        final java.util.Map<String, String> row =
                 (java.util.Map<String, String>)
                         method.invoke(pdfImportService, line, headers, 2025);
 
@@ -324,16 +332,16 @@ class PDFImportServiceEdgeCasesTest {
 
                                         final java.lang.reflect.Method method =
                                                 PDFImportService.class.getDeclaredMethod(
-                                                        "extractRowWithSmartColumnDetection",
+                                                        EXTRACTROWWITHSMARTCOLUMNDETECTION,
                                                         String.class,
                                                         List.class,
                                                         Integer.class);
                                         method.setAccessible(true);
 
                                         final List<String> headers =
-                                                List.of("date", "description", "amount");
-                                        @SuppressWarnings("unchecked") final
-                                                java.util.Map<String, String> row =
+                                                List.of(DATE, "description", AMOUNT);
+                                        @SuppressWarnings(UNCHECKED)
+                                        final java.util.Map<String, String> row =
                                                 (java.util.Map<String, String>)
                                                         method.invoke(
                                                                 pdfImportService,
@@ -435,21 +443,21 @@ class PDFImportServiceEdgeCasesTest {
 
         final java.lang.reflect.Method method =
                 PDFImportService.class.getDeclaredMethod(
-                        "extractRowWithSmartColumnDetection",
+                        EXTRACTROWWITHSMARTCOLUMNDETECTION,
                         String.class,
                         List.class,
                         Integer.class);
         method.setAccessible(true);
 
-        final List<String> headers = List.of("date", "description", "amount");
-        @SuppressWarnings("unchecked") final
-                java.util.Map<String, String> row =
+        final List<String> headers = List.of(DATE, "description", AMOUNT);
+        @SuppressWarnings(UNCHECKED)
+        final java.util.Map<String, String> row =
                 (java.util.Map<String, String>)
                         method.invoke(pdfImportService, line, headers, 2025);
 
         assertNotNull(row, "Should handle multiple currency symbols");
         // Should extract the amount at the end
-        assertEquals("$14.27", row.get("amount"));
+        assertEquals("$14.27", row.get(AMOUNT));
     }
 
     @Test
@@ -460,20 +468,20 @@ class PDFImportServiceEdgeCasesTest {
 
         final java.lang.reflect.Method method =
                 PDFImportService.class.getDeclaredMethod(
-                        "extractRowWithSmartColumnDetection",
+                        EXTRACTROWWITHSMARTCOLUMNDETECTION,
                         String.class,
                         List.class,
                         Integer.class);
         method.setAccessible(true);
 
-        final List<String> headers = List.of("date", "description", "amount");
-        @SuppressWarnings("unchecked") final
-                java.util.Map<String, String> row =
+        final List<String> headers = List.of(DATE, "description", AMOUNT);
+        @SuppressWarnings(UNCHECKED)
+        final java.util.Map<String, String> row =
                 (java.util.Map<String, String>)
                         method.invoke(pdfImportService, line, headers, 2025);
 
         assertNotNull(row, "Should handle description with date-like strings");
-        assertEquals("11/25", row.get("date"), "Should use first date as transaction date");
+        assertEquals("11/25", row.get(DATE), "Should use first date as transaction date");
         // Description should contain the merchant and sale info (may or may not include the
         // date-like string)
         assertTrue(
@@ -490,22 +498,22 @@ class PDFImportServiceEdgeCasesTest {
 
         final java.lang.reflect.Method method =
                 PDFImportService.class.getDeclaredMethod(
-                        "extractRowWithSmartColumnDetection",
+                        EXTRACTROWWITHSMARTCOLUMNDETECTION,
                         String.class,
                         List.class,
                         Integer.class);
         method.setAccessible(true);
 
-        final List<String> headers = List.of("date", "description", "amount");
-        @SuppressWarnings("unchecked") final
-                java.util.Map<String, String> row =
+        final List<String> headers = List.of(DATE, "description", AMOUNT);
+        @SuppressWarnings(UNCHECKED)
+        final java.util.Map<String, String> row =
                 (java.util.Map<String, String>)
                         method.invoke(pdfImportService, line, headers, 2025);
 
         assertNotNull(row, "Should handle description with amount-like numbers");
         assertEquals(
                 "$14.27",
-                row.get("amount"),
+                row.get(AMOUNT),
                 "Should extract amount at end, not numbers in description");
     }
 
@@ -514,7 +522,8 @@ class PDFImportServiceEdgeCasesTest {
     void testParsePDFPasswordProtectedWithoutPassword() {
         // This would require an actual password-protected PDF
         // For now, test that service handles null password
-        final InputStream pdfStream = new ByteArrayInputStream("%PDF-1.4\n".getBytes(StandardCharsets.UTF_8));
+        final InputStream pdfStream =
+                new ByteArrayInputStream("%PDF-1.4\n".getBytes(StandardCharsets.UTF_8));
 
         try {
             final PDFImportService.ImportResult result =

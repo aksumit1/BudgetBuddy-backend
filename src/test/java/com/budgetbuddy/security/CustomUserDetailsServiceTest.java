@@ -23,6 +23,8 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 
 class CustomUserDetailsServiceTest {
 
+    private static final String HASH = "hash";
+
     @Mock private UserRepository userRepository;
 
     private CustomUserDetailsService service;
@@ -88,7 +90,7 @@ class CustomUserDetailsServiceTest {
         final UserTable user = new UserTable();
         user.setUserId("user-456");
         user.setEmail(email);
-        user.setPasswordHash("hash");
+        user.setPasswordHash(HASH);
         user.setEnabled(false);
         user.setRoles(Set.of("USER"));
 
@@ -109,7 +111,7 @@ class CustomUserDetailsServiceTest {
         final UserTable user = new UserTable();
         user.setUserId("user-789");
         user.setEmail(email);
-        user.setPasswordHash("hash");
+        user.setPasswordHash(HASH);
         user.setEnabled(true);
         user.setRoles(null); // No roles
 
@@ -131,7 +133,7 @@ class CustomUserDetailsServiceTest {
         final UserTable user = new UserTable();
         user.setUserId("user-101");
         user.setEmail(email);
-        user.setPasswordHash("hash");
+        user.setPasswordHash(HASH);
         user.setEnabled(true);
         user.setRoles(Set.of()); // Empty roles
 
@@ -153,7 +155,7 @@ class CustomUserDetailsServiceTest {
         final UserTable user = new UserTable();
         user.setUserId("user-admin");
         user.setEmail(email);
-        user.setPasswordHash("hash");
+        user.setPasswordHash(HASH);
         user.setEnabled(true);
         user.setRoles(Set.of("USER", "ADMIN"));
 
@@ -178,7 +180,7 @@ class CustomUserDetailsServiceTest {
         final UserTable user = new UserTable();
         user.setUserId("user-mixed");
         user.setEmail(email);
-        user.setPasswordHash("hash");
+        user.setPasswordHash(HASH);
         user.setEnabled(true);
         user.setRoles(Set.of("user", "admin")); // Lowercase
 

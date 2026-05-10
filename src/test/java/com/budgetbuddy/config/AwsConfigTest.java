@@ -12,31 +12,37 @@ import software.amazon.awssdk.services.s3.presigner.S3Presigner;
 /** Unit Tests for AwsConfig Tests AWS client configuration including LocalStack support */
 class AwsConfigTest {
 
+    private static final String SECRETACCESSKEY = "secretAccessKey";
+    private static final String US_EAST_1 = "us-east-1";
+    private static final String S3ENDPOINT = "s3Endpoint";
+    private static final String AWSREGION = "awsRegion";
+    private static final String ACCESSKEYID = "accessKeyId";
+
     private AwsConfig awsConfig = new AwsConfig();
 
     @Test
     void testS3ClientWithDefaultRegion() {
         // Given
-        ReflectionTestUtils.setField(awsConfig, "awsRegion", "us-east-1");
-        ReflectionTestUtils.setField(awsConfig, "s3Endpoint", "");
-        ReflectionTestUtils.setField(awsConfig, "accessKeyId", "");
-        ReflectionTestUtils.setField(awsConfig, "secretAccessKey", "");
+        ReflectionTestUtils.setField(awsConfig, AWSREGION, US_EAST_1);
+        ReflectionTestUtils.setField(awsConfig, S3ENDPOINT, "");
+        ReflectionTestUtils.setField(awsConfig, ACCESSKEYID, "");
+        ReflectionTestUtils.setField(awsConfig, SECRETACCESSKEY, "");
 
         // When
         final S3Client client = awsConfig.s3Client();
 
         // Then
         assertNotNull(client);
-        assertEquals("us-east-1", client.serviceClientConfiguration().region().id());
+        assertEquals(US_EAST_1, client.serviceClientConfiguration().region().id());
     }
 
     @Test
     void testS3ClientWithLocalStackEndpoint() {
         // Given
-        ReflectionTestUtils.setField(awsConfig, "awsRegion", "us-east-1");
-        ReflectionTestUtils.setField(awsConfig, "s3Endpoint", "http://localhost:4566");
-        ReflectionTestUtils.setField(awsConfig, "accessKeyId", "");
-        ReflectionTestUtils.setField(awsConfig, "secretAccessKey", "");
+        ReflectionTestUtils.setField(awsConfig, AWSREGION, US_EAST_1);
+        ReflectionTestUtils.setField(awsConfig, S3ENDPOINT, "http://localhost:4566");
+        ReflectionTestUtils.setField(awsConfig, ACCESSKEYID, "");
+        ReflectionTestUtils.setField(awsConfig, SECRETACCESSKEY, "");
 
         // When
         final S3Client client = awsConfig.s3Client();
@@ -51,10 +57,10 @@ class AwsConfigTest {
     @Test
     void testS3ClientWithStaticCredentials() {
         // Given
-        ReflectionTestUtils.setField(awsConfig, "awsRegion", "us-east-1");
-        ReflectionTestUtils.setField(awsConfig, "s3Endpoint", "");
-        ReflectionTestUtils.setField(awsConfig, "accessKeyId", "test-key");
-        ReflectionTestUtils.setField(awsConfig, "secretAccessKey", "test-secret");
+        ReflectionTestUtils.setField(awsConfig, AWSREGION, US_EAST_1);
+        ReflectionTestUtils.setField(awsConfig, S3ENDPOINT, "");
+        ReflectionTestUtils.setField(awsConfig, ACCESSKEYID, "test-key");
+        ReflectionTestUtils.setField(awsConfig, SECRETACCESSKEY, "test-secret");
 
         // When
         final S3Client client = awsConfig.s3Client();
@@ -67,10 +73,10 @@ class AwsConfigTest {
     @Test
     void testS3PresignerWithDefaultRegion() {
         // Given
-        ReflectionTestUtils.setField(awsConfig, "awsRegion", "us-west-2");
-        ReflectionTestUtils.setField(awsConfig, "s3Endpoint", "");
-        ReflectionTestUtils.setField(awsConfig, "accessKeyId", "");
-        ReflectionTestUtils.setField(awsConfig, "secretAccessKey", "");
+        ReflectionTestUtils.setField(awsConfig, AWSREGION, "us-west-2");
+        ReflectionTestUtils.setField(awsConfig, S3ENDPOINT, "");
+        ReflectionTestUtils.setField(awsConfig, ACCESSKEYID, "");
+        ReflectionTestUtils.setField(awsConfig, SECRETACCESSKEY, "");
 
         // When
         final S3Presigner presigner = awsConfig.s3Presigner();
@@ -83,10 +89,10 @@ class AwsConfigTest {
     @Test
     void testS3PresignerWithLocalStackEndpoint() {
         // Given
-        ReflectionTestUtils.setField(awsConfig, "awsRegion", "us-east-1");
-        ReflectionTestUtils.setField(awsConfig, "s3Endpoint", "http://localhost:4566");
-        ReflectionTestUtils.setField(awsConfig, "accessKeyId", "");
-        ReflectionTestUtils.setField(awsConfig, "secretAccessKey", "");
+        ReflectionTestUtils.setField(awsConfig, AWSREGION, US_EAST_1);
+        ReflectionTestUtils.setField(awsConfig, S3ENDPOINT, "http://localhost:4566");
+        ReflectionTestUtils.setField(awsConfig, ACCESSKEYID, "");
+        ReflectionTestUtils.setField(awsConfig, SECRETACCESSKEY, "");
 
         // When
         final S3Presigner presigner = awsConfig.s3Presigner();
@@ -100,10 +106,10 @@ class AwsConfigTest {
     @Test
     void testS3PresignerWithStaticCredentials() {
         // Given
-        ReflectionTestUtils.setField(awsConfig, "awsRegion", "us-east-1");
-        ReflectionTestUtils.setField(awsConfig, "s3Endpoint", "");
-        ReflectionTestUtils.setField(awsConfig, "accessKeyId", "test-key");
-        ReflectionTestUtils.setField(awsConfig, "secretAccessKey", "test-secret");
+        ReflectionTestUtils.setField(awsConfig, AWSREGION, US_EAST_1);
+        ReflectionTestUtils.setField(awsConfig, S3ENDPOINT, "");
+        ReflectionTestUtils.setField(awsConfig, ACCESSKEYID, "test-key");
+        ReflectionTestUtils.setField(awsConfig, SECRETACCESSKEY, "test-secret");
 
         // When
         final S3Presigner presigner = awsConfig.s3Presigner();

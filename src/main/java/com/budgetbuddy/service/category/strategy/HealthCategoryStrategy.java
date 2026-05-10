@@ -9,130 +9,134 @@ import org.springframework.stereotype.Component;
 @Component
 public class HealthCategoryStrategy extends BaseCategoryStrategy {
 
+    private static final String HEALTH = "health";
+
     @Override
     public String detectCategory(
-            final String normalizedMerchantName, final String descriptionLower, final String merchantName) {
+            final String normalizedMerchantName,
+            final String descriptionLower,
+            final String merchantName) {
         if (normalizedMerchantName == null || normalizedMerchantName.isBlank()) {
             return null;
         }
 
         // Health, fitness, gyms, beauty salons, hair cuts, golf, tennis, soccer, ski resorts, etc.
         final String[] gymsAndFitness = {
-                "proclub",
-                "pro club",
-                "24 hour fitness",
-                "24hour fitness",
-                "24hr fitness",
-                "24-hour fitness",
-                "24-hourfitness",
-                "gold's gym",
-                "golds gym",
-                "goldsgym",
-                "planet fitness",
-                "planetfitness",
-                "equinox",
-                "lifetime fitness",
-                "lifetimefitness",
-                "ymca",
-                "ymca fitness",
-                "la fitness",
-                "lafitness",
-                "crunch fitness",
-                "crunchfitness",
-                "anytime fitness",
-                "anytimefitness",
-                "orange theory",
-                "orangetheory",
-                "crossfit",
-                "fitness",
-                "gym",
-                "health club",
-                "healthclub",
-                "athletic club",
-                "athleticclub",
-                "fitness center",
-                "fitnesscenter",
-                "workout",
-                "personal trainer",
-                "personaltrainer",
-                "seattle badminton club",
-                "seattlebadminton club",
-                "seattlebadmintonclub",
-                "badminton club",
-                "badmintonclub",
-                "badminton"
+            "proclub",
+            "pro club",
+            "24 hour fitness",
+            "24hour fitness",
+            "24hr fitness",
+            "24-hour fitness",
+            "24-hourfitness",
+            "gold's gym",
+            "golds gym",
+            "goldsgym",
+            "planet fitness",
+            "planetfitness",
+            "equinox",
+            "lifetime fitness",
+            "lifetimefitness",
+            "ymca",
+            "ymca fitness",
+            "la fitness",
+            "lafitness",
+            "crunch fitness",
+            "crunchfitness",
+            "anytime fitness",
+            "anytimefitness",
+            "orange theory",
+            "orangetheory",
+            "crossfit",
+            "fitness",
+            "gym",
+            "health club",
+            "healthclub",
+            "athletic club",
+            "athleticclub",
+            "fitness center",
+            "fitnesscenter",
+            "workout",
+            "personal trainer",
+            "personaltrainer",
+            "seattle badminton club",
+            "seattlebadminton club",
+            "seattlebadmintonclub",
+            "badminton club",
+            "badmintonclub",
+            "badminton"
         };
         for (final String gym : gymsAndFitness) {
             if (normalizedMerchantName.contains(gym) || descriptionLower.contains(gym)) {
                 LOGGER.debug(
                         "🏷️ detectCategoryFromMerchantName: Detected gym/fitness '{}' → 'health'",
                         gym);
-                return "health";
+                return HEALTH;
             }
         }
 
         // Beauty salons, hair cuts, makeup, body waxing, nails, spa, massages, toes, skin
         final String[] beautyServices = {
-                "beauty salon",
-                "beautysalon",
-                "beauty parlor",
-                "beautyparlor",
-                "hair salon",
-                "hairsalon",
-                "hair cut",
-                "haircut",
-                "hair cuts",
-                "haircuts",
-                "hair color",
-                "haircolor",
-                "hair coloring",
-                "haircoloring",
-                "body waxing",
-                "bodywaxing",
-                "waxing",
-                "makeup",
-                "make up",
-                "beauty studio",
-                "beautystudio",
-                "salon",
-                "saloon",
-                "supercuts",
-                "super cuts",
-                "great clips",
-                "greatclips",
-                "lucky hair salon",
-                "lucky hair salin",
-                "luckyhair",
-                "luckyhairsalin",
-                "nails",
-                "nail salon",
-                "nailsalon",
-                "nail",
-                "manicure",
-                "pedicure",
-                "spa",
-                "massage",
-                "massages",
-                "toes",
-                "skin",
-                "skin care",
-                "skincare",
-                "stop 4 nails",
-                "stop4nails",
-                "stop four nails",
-                "stopfournails",
-                "cosmetic store",
-                "cosmeticstore",
-                "cosmetics",
-                "makeup store",
-                "makeupstore"
+            "beauty salon",
+            "beautysalon",
+            "beauty parlor",
+            "beautyparlor",
+            "hair salon",
+            "hairsalon",
+            "hair cut",
+            "haircut",
+            "hair cuts",
+            "haircuts",
+            "hair color",
+            "haircolor",
+            "hair coloring",
+            "haircoloring",
+            "body waxing",
+            "bodywaxing",
+            "waxing",
+            "makeup",
+            "make up",
+            "beauty studio",
+            "beautystudio",
+            "salon",
+            "saloon",
+            "supercuts",
+            "super cuts",
+            "great clips",
+            "greatclips",
+            "lucky hair salon",
+            "lucky hair salin",
+            "luckyhair",
+            "luckyhairsalin",
+            "nails",
+            "nail salon",
+            "nailsalon",
+            "nail",
+            "manicure",
+            "pedicure",
+            "spa",
+            "massage",
+            "massages",
+            "toes",
+            "skin",
+            "skin care",
+            "skincare",
+            "stop 4 nails",
+            "stop4nails",
+            "stop four nails",
+            "stopfournails",
+            "cosmetic store",
+            "cosmeticstore",
+            "cosmetics",
+            "makeup store",
+            "makeupstore"
         };
         for (final String beauty : beautyServices) {
             if (normalizedMerchantName.contains(beauty) || descriptionLower.contains(beauty)) {
                 LOGGER.debug(
                         "🏷️ detectCategoryFromMerchantName: Detected beauty service '{}' → 'health'",
                         beauty);
-                return "health";
+                return HEALTH;
             }
         }
 
@@ -146,7 +150,7 @@ public class HealthCategoryStrategy extends BaseCategoryStrategy {
                 || normalizedMerchantName.contains("golf club")
                 || descriptionLower.contains("golf club")) {
             LOGGER.debug("🏷️ detectCategoryFromMerchantName: Detected golf → 'health'");
-            return "health";
+            return HEALTH;
         }
 
         // Tennis
@@ -157,7 +161,7 @@ public class HealthCategoryStrategy extends BaseCategoryStrategy {
                 || normalizedMerchantName.contains("tennis club")
                 || descriptionLower.contains("tennis club")) {
             LOGGER.debug("🏷️ detectCategoryFromMerchantName: Detected tennis → 'health'");
-            return "health";
+            return HEALTH;
         }
 
         // Soccer and other sports activities
@@ -178,7 +182,7 @@ public class HealthCategoryStrategy extends BaseCategoryStrategy {
                 || normalizedMerchantName.contains("martial arts")
                 || descriptionLower.contains("martial arts")) {
             LOGGER.debug("🏷️ detectCategoryFromMerchantName: Detected sports activity → 'health'");
-            return "health";
+            return HEALTH;
         }
 
         // Ski resorts (Summit at Snoqualmie, etc.)
@@ -188,7 +192,7 @@ public class HealthCategoryStrategy extends BaseCategoryStrategy {
                 || normalizedMerchantName.contains("summit at snoqualmie")
                 || descriptionLower.contains("summit at snoqualmie")) {
             LOGGER.debug("🏷️ detectCategoryFromMerchantName: Detected ski resort → 'health'");
-            return "health";
+            return HEALTH;
         }
         // Ski activities (skiing, ski lessons, etc.) - but not ski gear/equipment
         if ((normalizedMerchantName.contains("ski") || descriptionLower.contains("ski"))
@@ -199,7 +203,7 @@ public class HealthCategoryStrategy extends BaseCategoryStrategy {
                 && !normalizedMerchantName.contains("ski equipment")
                 && !descriptionLower.contains("ski equipment")) {
             LOGGER.debug("🏷️ detectCategoryFromMerchantName: Detected ski activity → 'health'");
-            return "health";
+            return HEALTH;
         }
 
         return null; // No match found

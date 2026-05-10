@@ -1,6 +1,5 @@
 package com.budgetbuddy.api;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import com.budgetbuddy.exception.AppException;
 import com.budgetbuddy.exception.ErrorCode;
 import com.budgetbuddy.model.dynamodb.CustomMerchantMappingTable;
@@ -10,6 +9,7 @@ import com.budgetbuddy.repository.dynamodb.TransactionRepository;
 import com.budgetbuddy.service.CategoryLearningService;
 import com.budgetbuddy.service.TransactionService;
 import com.budgetbuddy.service.UserService;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import jakarta.validation.Valid;
 import java.util.List;
 import java.util.Map;
@@ -40,7 +40,8 @@ import org.springframework.web.bind.annotation.RestController;
 @SuppressWarnings({"PMD.DataClass", "PMD.OnlyOneReturn"})
 @SuppressFBWarnings(
         value = {"EI_EXPOSE_REP", "EI_EXPOSE_REP2"},
-        justification = "JSON DTO / DynamoDB entity getters expose lists by reference; "
+        justification =
+                "JSON DTO / DynamoDB entity getters expose lists by reference; "
                         + "the design is value-semantic and Jackson creates fresh instances; Spring constructor injection — beans are shared by design")
 @RestController
 @RequestMapping("/api/categories")
@@ -126,11 +127,7 @@ public class CategoryController {
                     "Skipping correction recording - category unchanged for transaction {}",
                     request.getTransactionId());
             return ResponseEntity.ok(
-                    Map.of(
-                            SUCCESS,
-                            true,
-                            MESSAGE,
-                            "Category unchanged, no correction recorded"));
+                    Map.of(SUCCESS, true, MESSAGE, "Category unchanged, no correction recorded"));
         }
 
         // Record correction
@@ -244,7 +241,8 @@ public class CategoryController {
     /** Delete a custom mapping DELETE /api/categories/custom-mappings/{mappingId} */
     @DeleteMapping("/custom-mappings/{mappingId}")
     public ResponseEntity<Map<String, Object>> deleteCustomMapping(
-            @AuthenticationPrincipal final UserDetails userDetails, @PathVariable final String mappingId) {
+            @AuthenticationPrincipal final UserDetails userDetails,
+            @PathVariable final String mappingId) {
 
         // Edge case: Validate authentication
         if (userDetails == null || userDetails.getUsername() == null) {

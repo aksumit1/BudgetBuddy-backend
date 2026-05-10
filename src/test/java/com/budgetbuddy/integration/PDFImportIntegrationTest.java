@@ -1,8 +1,5 @@
 package com.budgetbuddy.integration;
 
-
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import java.nio.charset.StandardCharsets;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -11,11 +8,13 @@ import com.budgetbuddy.AWSTestConfiguration;
 import com.budgetbuddy.exception.AppException;
 import com.budgetbuddy.exception.ErrorCode;
 import com.budgetbuddy.service.PDFImportService;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.PDPage;
 import org.apache.pdfbox.pdmodel.PDPageContentStream;
@@ -96,7 +95,7 @@ class PDFImportIntegrationTest {
                                 t ->
                                         t.getDescription().contains("SAFEWAY")
                                                 && t.getAmount().compareTo(new BigDecimal("14.27"))
-                                                == 0);
+                                                        == 0);
         assertTrue(foundSafeway, "Should parse SAFEWAY transaction");
 
         final boolean foundAutopay =
@@ -105,9 +104,9 @@ class PDFImportIntegrationTest {
                                 t ->
                                         t.getDescription().contains("AUTOPAY")
                                                 && t.getAmount()
-                                                .compareTo(
-                                                        new BigDecimal("-436.80"))
-                                                == 0);
+                                                                .compareTo(
+                                                                        new BigDecimal("-436.80"))
+                                                        == 0);
         assertTrue(foundAutopay, "Should parse negative AUTOPAY amount");
     }
 
@@ -138,9 +137,9 @@ class PDFImportIntegrationTest {
                                 t ->
                                         t.getDescription().contains("DEPOSIT")
                                                 && t.getAmount()
-                                                .compareTo(
-                                                        new BigDecimal("2000.00"))
-                                                == 0);
+                                                                .compareTo(
+                                                                        new BigDecimal("2000.00"))
+                                                        == 0);
         assertTrue(foundDeposit, "Should parse deposit transaction");
     }
 
@@ -237,7 +236,7 @@ class PDFImportIntegrationTest {
                         """;
 
         final InputStream pdfStream =
-                createMultiPagePDF(new String[]{page1Text, page2Text}, "multipage_2025.pdf");
+                createMultiPagePDF(new String[] {page1Text, page2Text}, "multipage_2025.pdf");
         final PDFImportService.ImportResult result =
                 pdfImportService.parsePDF(pdfStream, "multipage_2025.pdf", null, null);
 
@@ -247,7 +246,8 @@ class PDFImportIntegrationTest {
     @Test
     @DisplayName("Should handle PDF with invalid format")
     void testPDFImportInvalidPDFThrowsException() {
-        final InputStream invalidStream = new ByteArrayInputStream("Not a PDF file".getBytes(StandardCharsets.UTF_8));
+        final InputStream invalidStream =
+                new ByteArrayInputStream("Not a PDF file".getBytes(StandardCharsets.UTF_8));
 
         final AppException exception =
                 assertThrows(
@@ -276,7 +276,8 @@ class PDFImportIntegrationTest {
     }
 
     /** Create a simple PDF from text content */
-    private InputStream createPDFFromText(final String text, final String fileName) throws IOException {
+    private InputStream createPDFFromText(final String text, final String fileName)
+            throws IOException {
         try (PDDocument document = new PDDocument()) {
             final PDPage page = new PDPage(PDRectangle.A4);
             document.addPage(page);
@@ -310,7 +311,8 @@ class PDFImportIntegrationTest {
     }
 
     /** Create a multi-page PDF from text content */
-    private InputStream createMultiPagePDF(final String[] pageTexts, final String fileName) throws IOException {
+    private InputStream createMultiPagePDF(final String[] pageTexts, final String fileName)
+            throws IOException {
         try (PDDocument document = new PDDocument()) {
             for (final String pageText : pageTexts) {
                 final PDPage page = new PDPage(PDRectangle.A4);

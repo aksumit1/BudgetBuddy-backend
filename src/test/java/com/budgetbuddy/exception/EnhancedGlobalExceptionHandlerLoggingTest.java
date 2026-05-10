@@ -88,9 +88,9 @@ class EnhancedGlobalExceptionHandlerLoggingTest {
                                 event ->
                                         event.getLevel() == Level.WARN
                                                 && (event.getMessage()
-                                                .contains("Business logic error")
-                                                || event.getMessage()
-                                                .contains("USER_ALREADY_EXISTS")));
+                                                                .contains("Business logic error")
+                                                        || event.getMessage()
+                                                                .contains("USER_ALREADY_EXISTS")));
 
         assertTrue(
                 foundWarnLog,
@@ -106,7 +106,7 @@ class EnhancedGlobalExceptionHandlerLoggingTest {
                                 event ->
                                         event.getLevel() == Level.ERROR
                                                 && event.getMessage()
-                                                .contains("USER_ALREADY_EXISTS"));
+                                                        .contains("USER_ALREADY_EXISTS"));
 
         assertFalse(foundErrorLog, "Business logic error should NOT be logged at ERROR level");
     }
@@ -136,9 +136,9 @@ class EnhancedGlobalExceptionHandlerLoggingTest {
                                 event ->
                                         event.getLevel() == Level.ERROR
                                                 && (event.getMessage().contains("Application error")
-                                                || event.getMessage()
-                                                .contains(
-                                                        "INTERNAL_SERVER_ERROR")));
+                                                        || event.getMessage()
+                                                                .contains(
+                                                                        "INTERNAL_SERVER_ERROR")));
 
         assertTrue(
                 foundErrorLog,
@@ -165,9 +165,9 @@ class EnhancedGlobalExceptionHandlerLoggingTest {
                                 event ->
                                         event.getLevel() == Level.WARN
                                                 && (event.getMessage()
-                                                .contains("Business logic error")
-                                                || event.getMessage()
-                                                .contains("INVALID_CREDENTIALS")));
+                                                                .contains("Business logic error")
+                                                        || event.getMessage()
+                                                                .contains("INVALID_CREDENTIALS")));
 
         assertTrue(
                 foundWarnLog,
@@ -193,9 +193,9 @@ class EnhancedGlobalExceptionHandlerLoggingTest {
                                 event ->
                                         event.getLevel() == Level.WARN
                                                 && (event.getMessage()
-                                                .contains("Business logic error")
-                                                || event.getMessage()
-                                                .contains("USER_NOT_FOUND")));
+                                                                .contains("Business logic error")
+                                                        || event.getMessage()
+                                                                .contains("USER_NOT_FOUND")));
 
         assertTrue(
                 foundWarnLog,

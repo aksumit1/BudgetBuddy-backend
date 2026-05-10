@@ -19,6 +19,8 @@ import software.amazon.awssdk.services.cloudwatch.CloudWatchClient;
 /** Comprehensive tests for ISO27001ComplianceService */
 class ISO27001ComplianceServiceTest {
 
+    private static final String USER_123 = "user-123";
+
     @Mock private AuditLogService auditLogService;
 
     @Mock private CloudWatchClient cloudWatchClient;
@@ -36,7 +38,7 @@ class ISO27001ComplianceServiceTest {
     @DisplayName("Should log user registration")
     void testLogUserRegistration() {
         // Given
-        final String userId = "user-123";
+        final String userId = USER_123;
         final String registrationType = "EMAIL";
 
         // When
@@ -50,7 +52,7 @@ class ISO27001ComplianceServiceTest {
     @DisplayName("Should log access provisioning")
     void testLogAccessProvisioning() {
         // Given
-        final String userId = "user-123";
+        final String userId = USER_123;
         final String resource = "/api/transactions";
         final String accessLevel = "READ";
 
@@ -80,7 +82,7 @@ class ISO27001ComplianceServiceTest {
     @DisplayName("Should log credential change")
     void testLogCredentialChange() {
         // Given
-        final String userId = "user-123";
+        final String userId = USER_123;
         final String changeType = "PASSWORD_RESET";
 
         // When
@@ -94,7 +96,7 @@ class ISO27001ComplianceServiceTest {
     @DisplayName("Should review user access rights")
     void testReviewUserAccessRights() {
         // Given
-        final String userId = "user-123";
+        final String userId = USER_123;
 
         // When
         iso27001ComplianceService.reviewUserAccessRights(userId);
@@ -107,7 +109,7 @@ class ISO27001ComplianceServiceTest {
     @DisplayName("Should log access removal")
     void testLogAccessRemoval() {
         // Given
-        final String userId = "user-123";
+        final String userId = USER_123;
         final String resource = "/api/admin";
         final String reason = "Termination";
 
@@ -122,7 +124,7 @@ class ISO27001ComplianceServiceTest {
     @DisplayName("Should log secure logon")
     void testLogSecureLogon() {
         // Given
-        final String userId = "user-123";
+        final String userId = USER_123;
         final String method = "MFA_TOTP";
 
         // When
@@ -136,7 +138,7 @@ class ISO27001ComplianceServiceTest {
     @DisplayName("Should log password management")
     void testLogPasswordManagement() {
         // Given
-        final String userId = "user-123";
+        final String userId = USER_123;
         final String activity = "PASSWORD_CHANGE";
 
         // When

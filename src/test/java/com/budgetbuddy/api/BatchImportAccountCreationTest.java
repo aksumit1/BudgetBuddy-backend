@@ -1,9 +1,5 @@
 package com.budgetbuddy.api;
 
-
-
-import java.nio.charset.StandardCharsets;
-import java.util.Locale;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -29,15 +25,16 @@ import com.budgetbuddy.service.AuthService;
 import com.budgetbuddy.service.UserService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -66,6 +63,9 @@ import org.springframework.test.web.servlet.MvcResult;
 @Import(AWSTestConfiguration.class)
 class BatchImportAccountCreationTest {
 
+    private static final String OTHER = "other";
+    private static final String AUTHORIZATION = "Authorization";
+
     @Autowired private MockMvc mockMvc;
 
     @Autowired private ObjectMapper objectMapper;
@@ -92,7 +92,8 @@ class BatchImportAccountCreationTest {
         // hash)
         // This must be the same for both createUserSecure and authenticate
         final String passwordHash =
-                java.util.Base64.getEncoder().encodeToString("testPassword123".getBytes(StandardCharsets.UTF_8));
+                java.util.Base64.getEncoder()
+                        .encodeToString("testPassword123".getBytes(StandardCharsets.UTF_8));
         testUser = userService.createUserSecure(testEmail, passwordHash, "Test", "User");
 
         // Wait a bit for DynamoDB eventual consistency
@@ -134,7 +135,7 @@ class BatchImportAccountCreationTest {
         tx1.setTransactionDate(LocalDate.parse("2024-01-15"));
         tx1.setDescription("Test Transaction 1");
         tx1.setCategoryPrimary("expense");
-        tx1.setCategoryDetailed("other");
+        tx1.setCategoryDetailed(OTHER);
         tx1.setTransactionType("EXPENSE");
         transactions.add(tx1);
 
@@ -144,7 +145,7 @@ class BatchImportAccountCreationTest {
         tx2.setTransactionDate(LocalDate.parse("2024-01-16"));
         tx2.setDescription("Test Transaction 2");
         tx2.setCategoryPrimary("expense");
-        tx2.setCategoryDetailed("other");
+        tx2.setCategoryDetailed(OTHER);
         tx2.setTransactionType("EXPENSE");
         transactions.add(tx2);
 
@@ -153,10 +154,10 @@ class BatchImportAccountCreationTest {
         // When: Batch import is executed
         final MvcResult result =
                 mockMvc.perform(
-                        post("/api/transactions/batch-import")
-                                .header("Authorization", "Bearer " + accessToken)
-                                .contentType(MediaType.APPLICATION_JSON)
-                                .content(objectMapper.writeValueAsString(request)))
+                                post("/api/transactions/batch-import")
+                                        .header(AUTHORIZATION, "Bearer " + accessToken)
+                                        .contentType(MediaType.APPLICATION_JSON)
+                                        .content(objectMapper.writeValueAsString(request)))
                         .andExpect(status().isOk())
                         .andExpect(jsonPath("$.created").value(2))
                         .andExpect(jsonPath("$.failed").value(0))
@@ -171,8 +172,7 @@ class BatchImportAccountCreationTest {
 
         assertNotNull(response.getCreatedAccountId(), "createdAccountId should be present");
         assertFalse(
-                response.getCreatedAccountId().isBlank(),
-                "createdAccountId should not be empty");
+                response.getCreatedAccountId().isBlank(), "createdAccountId should not be empty");
 
         // Validate UUID format
         assertDoesNotThrow(
@@ -237,7 +237,7 @@ class BatchImportAccountCreationTest {
         tx1.setTransactionDate(LocalDate.parse("2024-01-15"));
         tx1.setDescription("Test Transaction");
         tx1.setCategoryPrimary("expense");
-        tx1.setCategoryDetailed("other");
+        tx1.setCategoryDetailed(OTHER);
         tx1.setTransactionType("EXPENSE");
         // Intentionally set wrong accountId to test override
         tx1.setAccountId(UUID.randomUUID().toString());
@@ -248,10 +248,10 @@ class BatchImportAccountCreationTest {
         // When: Batch import is executed
         final MvcResult result =
                 mockMvc.perform(
-                        post("/api/transactions/batch-import")
-                                .header("Authorization", "Bearer " + accessToken)
-                                .contentType(MediaType.APPLICATION_JSON)
-                                .content(objectMapper.writeValueAsString(request)))
+                                post("/api/transactions/batch-import")
+                                        .header(AUTHORIZATION, "Bearer " + accessToken)
+                                        .contentType(MediaType.APPLICATION_JSON)
+                                        .content(objectMapper.writeValueAsString(request)))
                         .andExpect(status().isOk())
                         .andReturn();
 
@@ -296,7 +296,7 @@ class BatchImportAccountCreationTest {
         tx1.setTransactionDate(LocalDate.parse("2024-01-15"));
         tx1.setDescription("Test Transaction");
         tx1.setCategoryPrimary("expense");
-        tx1.setCategoryDetailed("other");
+        tx1.setCategoryDetailed(OTHER);
         tx1.setTransactionType("EXPENSE");
         transactions.add(tx1);
 
@@ -305,10 +305,10 @@ class BatchImportAccountCreationTest {
         // When: Batch import is executed
         final MvcResult result =
                 mockMvc.perform(
-                        post("/api/transactions/batch-import")
-                                .header("Authorization", "Bearer " + accessToken)
-                                .contentType(MediaType.APPLICATION_JSON)
-                                .content(objectMapper.writeValueAsString(request)))
+                                post("/api/transactions/batch-import")
+                                        .header(AUTHORIZATION, "Bearer " + accessToken)
+                                        .contentType(MediaType.APPLICATION_JSON)
+                                        .content(objectMapper.writeValueAsString(request)))
                         .andExpect(status().isOk())
                         .andReturn();
 
@@ -345,7 +345,7 @@ class BatchImportAccountCreationTest {
         tx1.setTransactionDate(LocalDate.parse("2024-01-15"));
         tx1.setDescription("Valid Transaction");
         tx1.setCategoryPrimary("expense");
-        tx1.setCategoryDetailed("other");
+        tx1.setCategoryDetailed(OTHER);
         tx1.setTransactionType("EXPENSE");
         transactions.add(tx1);
         transactions.add(null); // Null transaction (edge case)
@@ -356,7 +356,7 @@ class BatchImportAccountCreationTest {
         // Should not throw exception, should handle null gracefully
         mockMvc.perform(
                         post("/api/transactions/batch-import")
-                                .header("Authorization", "Bearer " + accessToken)
+                                .header(AUTHORIZATION, "Bearer " + accessToken)
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk());
@@ -390,7 +390,7 @@ class BatchImportAccountCreationTest {
         tx1.setTransactionDate(LocalDate.parse("2024-01-15"));
         tx1.setDescription("Test Transaction");
         tx1.setCategoryPrimary("expense");
-        tx1.setCategoryDetailed("other");
+        tx1.setCategoryDetailed(OTHER);
         tx1.setTransactionType("EXPENSE");
         tx1.setAccountId(wrongAccountId); // Wrong accountId
         transactions.add(tx1);
@@ -400,10 +400,10 @@ class BatchImportAccountCreationTest {
         // When: Batch import is executed
         final MvcResult result =
                 mockMvc.perform(
-                        post("/api/transactions/batch-import")
-                                .header("Authorization", "Bearer " + accessToken)
-                                .contentType(MediaType.APPLICATION_JSON)
-                                .content(objectMapper.writeValueAsString(request)))
+                                post("/api/transactions/batch-import")
+                                        .header(AUTHORIZATION, "Bearer " + accessToken)
+                                        .contentType(MediaType.APPLICATION_JSON)
+                                        .content(objectMapper.writeValueAsString(request)))
                         .andExpect(status().isOk())
                         .andReturn();
 

@@ -146,8 +146,10 @@ public class SecretsManagerService {
                         secretName);
                 return envValue;
             }
-            throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR, 
-                    "Failed to fetch secret " + secretName + " and no fallback available", e);
+            throw new AppException(
+                    ErrorCode.INTERNAL_SERVER_ERROR,
+                    "Failed to fetch secret " + secretName + " and no fallback available",
+                    e);
         }
     }
 
@@ -209,7 +211,8 @@ public class SecretsManagerService {
             try {
                 final GetSecretValueRequest request =
                         GetSecretValueRequest.builder().secretId(secretName).build();
-                final GetSecretValueResponse response = secretsManagerClient.getSecretValue(request);
+                final GetSecretValueResponse response =
+                        secretsManagerClient.getSecretValue(request);
                 final String freshValue = response.secretString();
                 if (freshValue != null) {
                     secretCache.put(secretName, freshValue);

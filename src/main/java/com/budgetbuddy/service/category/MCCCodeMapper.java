@@ -48,7 +48,10 @@ public class MCCCodeMapper {
         private final String detailedCategory;
         private final double confidence;
 
-        public CategoryMapping(final String primaryCategory, final String detailedCategory, final double confidence) {
+        public CategoryMapping(
+                final String primaryCategory,
+                final String detailedCategory,
+                final double confidence) {
             this.primaryCategory = primaryCategory;
             this.detailedCategory = detailedCategory;
             this.confidence = confidence;
@@ -96,8 +99,7 @@ public class MCCCodeMapper {
         MCC_TO_CATEGORY.put("4121", new CategoryMapping(TRANSPORTATION, "taxi", 0.90));
         MCC_TO_CATEGORY.put("7512", new CategoryMapping(TRANSPORTATION, "car_rental", 0.95));
         MCC_TO_CATEGORY.put("7513", new CategoryMapping(TRANSPORTATION, "truck_rental", 0.90));
-        MCC_TO_CATEGORY.put(
-                "7519", new CategoryMapping(TRANSPORTATION, "motor_home_rental", 0.85));
+        MCC_TO_CATEGORY.put("7519", new CategoryMapping(TRANSPORTATION, "motor_home_rental", 0.85));
         MCC_TO_CATEGORY.put("4784", new CategoryMapping(TRANSPORTATION, "toll", 0.95));
 
         // ========== TRAVEL ==========
@@ -218,8 +220,7 @@ public class MCCCodeMapper {
         MCC_TO_CATEGORY.put("5976", new CategoryMapping(EDUCATION, "printer_supplies", 0.90));
         MCC_TO_CATEGORY.put("8211", new CategoryMapping(EDUCATION, "elementary_school", 0.95));
         MCC_TO_CATEGORY.put("8220", new CategoryMapping(EDUCATION, "university", 0.95));
-        MCC_TO_CATEGORY.put(
-                "8241", new CategoryMapping(EDUCATION, "correspondence_school", 0.90));
+        MCC_TO_CATEGORY.put("8241", new CategoryMapping(EDUCATION, "correspondence_school", 0.90));
         MCC_TO_CATEGORY.put("8244", new CategoryMapping(EDUCATION, "business_school", 0.90));
         MCC_TO_CATEGORY.put("8249", new CategoryMapping(EDUCATION, "vocational_school", 0.90));
         MCC_TO_CATEGORY.put("8299", new CategoryMapping(EDUCATION, "schools", 0.90));
@@ -258,11 +259,9 @@ public class MCCCodeMapper {
         MCC_TO_CATEGORY.put("7841", new CategoryMapping(ENTERTAINMENT, "video_rental", 0.90));
         MCC_TO_CATEGORY.put("7922", new CategoryMapping(ENTERTAINMENT, "theater", 0.95));
         MCC_TO_CATEGORY.put("7929", new CategoryMapping(ENTERTAINMENT, "band", 0.85));
-        MCC_TO_CATEGORY.put(
-                "7991", new CategoryMapping(ENTERTAINMENT, "tourist_attraction", 0.90));
+        MCC_TO_CATEGORY.put("7991", new CategoryMapping(ENTERTAINMENT, "tourist_attraction", 0.90));
         MCC_TO_CATEGORY.put("7993", new CategoryMapping(ENTERTAINMENT, "video_game", 0.90));
-        MCC_TO_CATEGORY.put(
-                "7994", new CategoryMapping(ENTERTAINMENT, "video_game_arcade", 0.90));
+        MCC_TO_CATEGORY.put("7994", new CategoryMapping(ENTERTAINMENT, "video_game_arcade", 0.90));
         MCC_TO_CATEGORY.put("7995", new CategoryMapping(ENTERTAINMENT, "betting", 0.85));
         MCC_TO_CATEGORY.put("7996", new CategoryMapping(ENTERTAINMENT, "amusement_park", 0.95));
         MCC_TO_CATEGORY.put("7997", new CategoryMapping(ENTERTAINMENT, "aquarium", 0.90));
@@ -329,8 +328,7 @@ public class MCCCodeMapper {
             normalized = String.format("%04d", Integer.parseInt(normalized));
         }
 
-        return MCC_TO_CATEGORY.getOrDefault(
-                normalized, new CategoryMapping(OTHER, OTHER, 0.50));
+        return MCC_TO_CATEGORY.getOrDefault(normalized, new CategoryMapping(OTHER, OTHER, 0.50));
     }
 
     /** Check if MCC code is available and mapped */

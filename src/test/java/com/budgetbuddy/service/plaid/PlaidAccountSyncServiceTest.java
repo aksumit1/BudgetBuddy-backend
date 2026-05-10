@@ -136,7 +136,8 @@ class PlaidAccountSyncServiceTest {
         // — see PlaidAccountSyncService.persistWithConflictRetry. The legacy save()
         // path is reserved for new accounts created via saveIfNotExists.
         verify(accountRepository, atLeastOnce()).saveWithLock(any(AccountTable.class));
-        final ArgumentCaptor<AccountTable> accountCaptor = ArgumentCaptor.forClass(AccountTable.class);
+        final ArgumentCaptor<AccountTable> accountCaptor =
+                ArgumentCaptor.forClass(AccountTable.class);
         verify(accountRepository, atLeastOnce()).saveWithLock(accountCaptor.capture());
         final AccountTable savedAccount =
                 accountCaptor.getAllValues().get(accountCaptor.getAllValues().size() - 1);

@@ -1,12 +1,12 @@
 package com.budgetbuddy.api;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import com.budgetbuddy.model.dynamodb.UserTable;
 import com.budgetbuddy.service.GoalAnalyticsService;
 import com.budgetbuddy.service.GoalMilestoneService;
 import com.budgetbuddy.service.GoalRoundUpService;
 import com.budgetbuddy.service.GoalService;
 import com.budgetbuddy.service.UserService;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -78,7 +78,8 @@ public class GoalEnhancementController {
                             .orElseThrow(() -> new RuntimeException(USER_NOT_FOUND));
 
             final var goal = goalService.getGoal(user, id);
-            final List<GoalMilestoneService.Milestone> milestones = milestoneService.getMilestones(goal);
+            final List<GoalMilestoneService.Milestone> milestones =
+                    milestoneService.getMilestones(goal);
 
             final Map<String, Object> response = new HashMap<>();
             response.put("milestones", milestones);

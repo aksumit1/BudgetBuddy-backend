@@ -128,13 +128,13 @@ class PasswordStrengthValidatorTest {
     void testIsValidValidPasswordWithDifferentSpecialCharsShouldReturnTrue() {
         // Given
         final String[] validPasswords = {
-                "Password123@",
-                "Password123$",
-                "Password123!",
-                "Password123%",
-                "Password123*",
-                "Password123?",
-                "Password123&"
+            "Password123@",
+            "Password123$",
+            "Password123!",
+            "Password123%",
+            "Password123*",
+            "Password123?",
+            "Password123&"
         };
 
         // When/Then

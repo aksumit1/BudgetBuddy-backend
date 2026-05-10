@@ -9,11 +9,15 @@ import org.springframework.stereotype.Component;
 @Component
 public class GroceriesCategoryStrategy extends BaseCategoryStrategy {
 
+    private static final String GROCERIES = "groceries";
+
     private static final String SAFEWAY = "safeway";
 
     @Override
     public String detectCategory(
-            final String normalizedMerchantName, final String descriptionLower, final String merchantName) {
+            final String normalizedMerchantName,
+            final String descriptionLower,
+            final String merchantName) {
         if (normalizedMerchantName == null || normalizedMerchantName.isBlank()) {
             return null;
         }
@@ -28,26 +32,26 @@ public class GroceriesCategoryStrategy extends BaseCategoryStrategy {
             LOGGER.debug(
                     "detectCategoryFromMerchantName: Detected Safeway in normalizedMerchantName='{}' → 'groceries'",
                     normalizedMerchantName);
-            return "groceries";
+            return GROCERIES;
         }
         if (normalizedMerchantName.contains("pcc")
                 || normalizedMerchantName.contains("pcc natural markets")
                 || normalizedMerchantName.contains("pcc community markets")) {
-            return "groceries";
+            return GROCERIES;
         }
         if (normalizedMerchantName.contains("amazon fresh")
                 || normalizedMerchantName.contains("amazonfresh")
                 || (normalizedMerchantName.contains("amazon")
                         && (descriptionLower.contains("fresh")
                                 || descriptionLower.contains("grocery")))) {
-            return "groceries";
+            return GROCERIES;
         }
         if (normalizedMerchantName.contains("qfc")
                 || normalizedMerchantName.contains("quality food centers")
                 || descriptionLower.contains("qfc")
                 || descriptionLower.contains("quality food centers")) {
             LOGGER.debug("🏷️ detectCategoryFromMerchantName: Detected QFC → 'groceries'");
-            return "groceries";
+            return GROCERIES;
         }
         // Chefstore (grocery store)
         if (normalizedMerchantName.contains("chefstore")
@@ -55,7 +59,7 @@ public class GroceriesCategoryStrategy extends BaseCategoryStrategy {
                 || descriptionLower.contains("chefstore")
                 || descriptionLower.contains("chef store")) {
             LOGGER.debug("🏷️ detectCategoryFromMerchantName: Detected Chefstore → 'groceries'");
-            return "groceries";
+            return GROCERIES;
         }
         // Town & Country market (pantry/market patterns are typically grocery stores)
         if (normalizedMerchantName.contains("town & country")
@@ -66,12 +70,12 @@ public class GroceriesCategoryStrategy extends BaseCategoryStrategy {
                 || descriptionLower.contains("town&country")) {
             LOGGER.debug(
                     "🏷️ detectCategoryFromMerchantName: Detected Town & Country market → 'groceries'");
-            return "groceries";
+            return GROCERIES;
         }
         // Mayuri Foods (grocery store)
         if (normalizedMerchantName.contains("mayuri") || descriptionLower.contains("mayuri")) {
             LOGGER.debug("🏷️ detectCategoryFromMerchantName: Detected Mayuri Foods → 'groceries'");
-            return "groceries";
+            return GROCERIES;
         }
         // Meet Fresh (grocery store)
         if (normalizedMerchantName.contains("meet fresh")
@@ -79,7 +83,7 @@ public class GroceriesCategoryStrategy extends BaseCategoryStrategy {
                 || descriptionLower.contains("meet fresh")
                 || descriptionLower.contains("meetfresh")) {
             LOGGER.debug("🏷️ detectCategoryFromMerchantName: Detected Meet Fresh → 'groceries'");
-            return "groceries";
+            return GROCERIES;
         }
         // Pantry/market patterns (typically grocery stores)
         if ((normalizedMerchantName.contains("pantry") || normalizedMerchantName.contains("market"))
@@ -87,7 +91,7 @@ public class GroceriesCategoryStrategy extends BaseCategoryStrategy {
                 && !descriptionLower.contains("parking")) {
             LOGGER.debug(
                     "detectCategoryFromMerchantName: Detected pantry/market pattern → 'groceries'");
-            return "groceries";
+            return GROCERIES;
         }
         if (normalizedMerchantName.contains("sunny honey")
                 || normalizedMerchantName.contains("sunnyhoney")
@@ -95,11 +99,11 @@ public class GroceriesCategoryStrategy extends BaseCategoryStrategy {
                 || descriptionLower.contains("sunnyhoney")) {
             LOGGER.debug(
                     "🏷️ detectCategoryFromMerchantName: Detected Sunny Honey Company → 'groceries'");
-            return "groceries";
+            return GROCERIES;
         }
         if (normalizedMerchantName.contains("dk market")
                 || normalizedMerchantName.contains("dkmarket")) {
-            return "groceries";
+            return GROCERIES;
         }
         // CRITICAL: COSTCO GAS must be checked BEFORE general COSTCO (groceries)
         if (normalizedMerchantName.contains("costco gas")
@@ -123,7 +127,7 @@ public class GroceriesCategoryStrategy extends BaseCategoryStrategy {
                 || descriptionLower.contains("costcowarehouse")) {
             LOGGER.debug(
                     "🏷️ detectCategoryFromMerchantName: Detected Costco Warehouse (COSTCO WHSE) → 'groceries'");
-            return "groceries";
+            return GROCERIES;
         }
 
         // Walmart Plus subscription (WMT PLUS)
@@ -135,68 +139,68 @@ public class GroceriesCategoryStrategy extends BaseCategoryStrategy {
                 || descriptionLower.contains("walmart plus")) {
             LOGGER.debug(
                     "🏷️ detectCategoryFromMerchantName: Detected Walmart Plus subscription → 'groceries'");
-            return "groceries";
+            return GROCERIES;
         }
 
         // Additional US grocery chains
         final String[] usGroceryStores = {
-                "whole foods",
-                "wholefoods",
-                "wf ",
-                "trader joe",
-                "traderjoe",
-                "kroger",
-                "albertsons",
-                "publix",
-                "wegmans",
-                "h-e-b",
-                "heb",
-                "stop & shop",
-                "stopandshop",
-                "giant eagle",
-                "gianteagle",
-                "meijer",
-                "food lion",
-                "foodlion",
-                "ralphs",
-                "vons",
-                "fred meyer",
-                "fredmeyer",
-                "fred-meyer",
-                "smiths",
-                "king soopers",
-                "harris teeter",
-                "harristeeter",
-                "sprouts",
-                "sprouts farmers market",
-                "aldi",
-                "lidl",
-                "costco",
-                "sam's club",
-                "samsclub",
-                "bj's",
-                "bjs",
-                "target",
-                "walmart",
-                "walmart supercenter",
-                "supercenter"
+            "whole foods",
+            "wholefoods",
+            "wf ",
+            "trader joe",
+            "traderjoe",
+            "kroger",
+            "albertsons",
+            "publix",
+            "wegmans",
+            "h-e-b",
+            "heb",
+            "stop & shop",
+            "stopandshop",
+            "giant eagle",
+            "gianteagle",
+            "meijer",
+            "food lion",
+            "foodlion",
+            "ralphs",
+            "vons",
+            "fred meyer",
+            "fredmeyer",
+            "fred-meyer",
+            "smiths",
+            "king soopers",
+            "harris teeter",
+            "harristeeter",
+            "sprouts",
+            "sprouts farmers market",
+            "aldi",
+            "lidl",
+            "costco",
+            "sam's club",
+            "samsclub",
+            "bj's",
+            "bjs",
+            "target",
+            "walmart",
+            "walmart supercenter",
+            "supercenter"
         };
         for (final String store : usGroceryStores) {
             if (normalizedMerchantName.contains(store)) {
-                return "groceries";
+                return GROCERIES;
             }
         }
 
         // Indian Grocery Stores
         final String[] indianGroceryStores = {
-                "indian supermarket", "indian store", "indian market", "indian grocery",
-                "patel brothers", "patelbrothers", "apna bazaar", "apnabazaar",
-                "namaste plaza", "namasteplaza", "bombay bazaar", "bombaybazaar",
-                "india gate", "indiagate", "spice bazaar", "spicebazaar"
+            "indian supermarket", "indian store", "indian market", "indian grocery",
+            "patel brothers", "patelbrothers", "apna bazaar", "apnabazaar",
+            "namaste plaza", "namasteplaza", "bombay bazaar", "bombaybazaar",
+            "india gate", "indiagate", "spice bazaar", "spicebazaar"
         };
         for (final String store : indianGroceryStores) {
             if (normalizedMerchantName.contains(store) || descriptionLower.contains(store)) {
-                return "groceries";
+                return GROCERIES;
             }
         }
 
@@ -209,7 +213,7 @@ public class GroceriesCategoryStrategy extends BaseCategoryStrategy {
                 || normalizedMerchantName.contains("foodmart")
                 || normalizedMerchantName.contains("hypermarket")
                 || normalizedMerchantName.contains("hyper market")) {
-            return "groceries";
+            return GROCERIES;
         }
 
         return null; // No match found

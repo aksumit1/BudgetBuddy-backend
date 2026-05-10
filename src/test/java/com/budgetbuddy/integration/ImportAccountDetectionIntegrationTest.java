@@ -50,7 +50,8 @@ class ImportAccountDetectionIntegrationTest {
         // Create test user
         final String testEmail = "account-detection-test-" + UUID.randomUUID() + "@example.com";
         final String base64PasswordHash =
-                java.util.Base64.getEncoder().encodeToString("hashed-password".getBytes(StandardCharsets.UTF_8));
+                java.util.Base64.getEncoder()
+                        .encodeToString("hashed-password".getBytes(StandardCharsets.UTF_8));
         testUser = userService.createUserSecure(testEmail, base64PasswordHash, "Test", "User");
 
         // Create existing account for matching

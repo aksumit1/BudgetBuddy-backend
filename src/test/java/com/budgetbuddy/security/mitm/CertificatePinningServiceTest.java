@@ -1,6 +1,5 @@
 package com.budgetbuddy.security.mitm;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -9,6 +8,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.PublicKey;
@@ -53,7 +53,7 @@ class CertificatePinningServiceTest {
                 new CertificatePinningService(
                         false, // disabled
                         "" // no certificates
-                );
+                        );
 
         // When/Then - Should allow certificates when disabled
         // Note: This test verifies the service doesn't throw exceptions when disabled
@@ -112,7 +112,7 @@ class CertificatePinningServiceTest {
         final CertificatePinningService serviceWithEmptySet =
                 new CertificatePinningService(
                         true, "" // empty set
-                );
+                        );
 
         // Create a mock certificate
         final X509Certificate cert = mock(X509Certificate.class);
@@ -148,12 +148,14 @@ class CertificatePinningServiceTest {
 
         // Calculate the certificate hash
         final byte[] publicKeyBytes = keyPair.getPublic().getEncoded();
-        final java.security.MessageDigest digest = java.security.MessageDigest.getInstance("SHA-256");
+        final java.security.MessageDigest digest =
+                java.security.MessageDigest.getInstance("SHA-256");
         final byte[] hash = digest.digest(publicKeyBytes);
         final String certHash = java.util.Base64.getEncoder().encodeToString(hash);
 
         // Create service with this hash pinned
-        final CertificatePinningService serviceWithHash = new CertificatePinningService(true, certHash);
+        final CertificatePinningService serviceWithHash =
+                new CertificatePinningService(true, certHash);
 
         // When
         final boolean result = serviceWithHash.validateCertificate(cert);
@@ -234,7 +236,7 @@ class CertificatePinningServiceTest {
         when(cert.getPublicKey()).thenReturn(publicKey);
         when(publicKey.getEncoded()).thenReturn(new byte[] {1, 2, 3});
 
-        final X509Certificate[] chain = new X509Certificate[]{cert};
+        final X509Certificate[] chain = new X509Certificate[] {cert};
 
         // When/Then
         assertThrows(

@@ -1,6 +1,5 @@
 package com.budgetbuddy.integration;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -10,6 +9,7 @@ import com.budgetbuddy.model.dynamodb.AccountTable;
 import com.budgetbuddy.model.dynamodb.TransactionActionTable;
 import com.budgetbuddy.model.dynamodb.TransactionTable;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.regex.Pattern;

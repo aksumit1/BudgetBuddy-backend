@@ -114,7 +114,8 @@ public class CertificatePinningService {
     /** Get SHA-256 hash of certificate's public key */
     private String getCertificateHash(final X509Certificate certificate) throws Exception {
         final byte[] publicKeyBytes = certificate.getPublicKey().getEncoded();
-        final java.security.MessageDigest digest = java.security.MessageDigest.getInstance("SHA-256");
+        final java.security.MessageDigest digest =
+                java.security.MessageDigest.getInstance("SHA-256");
         final byte[] hash = digest.digest(publicKeyBytes);
         return Base64.getEncoder().encodeToString(hash);
     }

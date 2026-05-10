@@ -1,16 +1,16 @@
 package com.budgetbuddy.compliance.dma;
 
-import com.budgetbuddy.exception.AppException;
-import com.budgetbuddy.exception.ErrorCode;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import com.budgetbuddy.compliance.AuditLogService;
 import com.budgetbuddy.compliance.gdpr.GDPRComplianceService;
+import com.budgetbuddy.exception.AppException;
+import com.budgetbuddy.exception.ErrorCode;
 import com.budgetbuddy.model.dynamodb.UserTable;
 import com.budgetbuddy.repository.dynamodb.AccountRepository;
 import com.budgetbuddy.repository.dynamodb.BudgetRepository;
 import com.budgetbuddy.repository.dynamodb.GoalRepository;
 import com.budgetbuddy.repository.dynamodb.TransactionRepository;
 import com.budgetbuddy.repository.dynamodb.UserRepository;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
@@ -250,7 +250,8 @@ public class DMAComplianceService {
             return csv.toString();
         } catch (Exception e) {
             LOGGER.error("Failed to export data as CSV: {}", e.getMessage());
-            throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to export data as CSV", e);
+            throw new AppException(
+                    ErrorCode.INTERNAL_SERVER_ERROR, "Failed to export data as CSV", e);
         }
     }
 
@@ -344,7 +345,8 @@ public class DMAComplianceService {
             return xml.toString();
         } catch (Exception e) {
             LOGGER.error("Failed to export data as XML: {}", e.getMessage());
-            throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to export data as XML", e);
+            throw new AppException(
+                    ErrorCode.INTERNAL_SERVER_ERROR, "Failed to export data as XML", e);
         }
     }
 }

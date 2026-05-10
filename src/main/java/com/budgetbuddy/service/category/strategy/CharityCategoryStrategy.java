@@ -11,7 +11,9 @@ public class CharityCategoryStrategy extends BaseCategoryStrategy {
 
     @Override
     public String detectCategory(
-            final String normalizedMerchantName, final String descriptionLower, final String merchantName) {
+            final String normalizedMerchantName,
+            final String descriptionLower,
+            final String merchantName) {
         if (normalizedMerchantName == null || normalizedMerchantName.isBlank()) {
             return null;
         }
@@ -24,22 +26,22 @@ public class CharityCategoryStrategy extends BaseCategoryStrategy {
                 || descriptionLower.contains("gofundme")) {
             // Check if it's actually a school - if so, skip charity detection
             final String[] schoolTypes = {
-                    "middle school",
-                    "middleschool",
-                    "high school",
-                    "highschool",
-                    "elementary school",
-                    "elementaryschool",
-                    "elementary",
-                    "secondary school",
-                    "secondaryschool",
-                    "senior secondary school",
-                    "college",
-                    "university",
-                    "phd",
-                    "ph.d",
-                    "school district",
-                    "schooldistrict"
+                "middle school",
+                "middleschool",
+                "high school",
+                "highschool",
+                "elementary school",
+                "elementaryschool",
+                "elementary",
+                "secondary school",
+                "secondaryschool",
+                "senior secondary school",
+                "college",
+                "university",
+                "phd",
+                "ph.d",
+                "school district",
+                "schooldistrict"
             };
             boolean isSchool = false;
             for (final String school : schoolTypes) {

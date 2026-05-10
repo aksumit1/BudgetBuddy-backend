@@ -1,8 +1,5 @@
 package com.budgetbuddy.api;
 
-
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import java.nio.charset.StandardCharsets;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -26,7 +23,9 @@ import com.budgetbuddy.service.CSVImportService;
 import com.budgetbuddy.service.DuplicateDetectionService;
 import com.budgetbuddy.service.TransactionService;
 import com.budgetbuddy.service.UserService;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.util.Collections;
 import java.util.List;
@@ -57,6 +56,10 @@ import org.springframework.security.core.userdetails.UserDetails;
 @ExtendWith(MockitoExtension.class)
 @org.mockito.junit.jupiter.MockitoSettings(strictness = org.mockito.quality.Strictness.LENIENT)
 class PreviewModelFieldsTest {
+
+    private static final String TRANSACTIONTYPEINDICATOR = "transactionTypeIndicator";
+    private static final String FILE = "file";
+    private static final String TEST = "test";
 
     @Mock private TransactionService transactionService;
 
@@ -176,7 +179,8 @@ class PreviewModelFieldsTest {
                 .thenReturn(importResult);
 
         final MockMultipartFile file =
-                new MockMultipartFile("file", "test.csv", "text/csv", "test".getBytes(StandardCharsets.UTF_8));
+                new MockMultipartFile(
+                        FILE, "test.csv", "text/csv", TEST.getBytes(StandardCharsets.UTF_8));
 
         // Act
         final ResponseEntity<TransactionController.CSVImportPreviewResponse> response =
@@ -188,8 +192,8 @@ class PreviewModelFieldsTest {
         assertEquals(1, transactions.size());
 
         final Map<String, Object> txMap = transactions.get(0);
-        assertTrue(txMap.containsKey("transactionTypeIndicator"));
-        assertEquals("DEBIT", txMap.get("transactionTypeIndicator"));
+        assertTrue(txMap.containsKey(TRANSACTIONTYPEINDICATOR));
+        assertEquals("DEBIT", txMap.get(TRANSACTIONTYPEINDICATOR));
     }
 
     @Test
@@ -205,7 +209,8 @@ class PreviewModelFieldsTest {
                 .thenReturn(importResult);
 
         final MockMultipartFile file =
-                new MockMultipartFile("file", "test.csv", "text/csv", "test".getBytes(StandardCharsets.UTF_8));
+                new MockMultipartFile(
+                        FILE, "test.csv", "text/csv", TEST.getBytes(StandardCharsets.UTF_8));
 
         // Act
         final ResponseEntity<TransactionController.CSVImportPreviewResponse> response =
@@ -219,8 +224,8 @@ class PreviewModelFieldsTest {
         final Map<String, Object> txMap = transactions.get(0);
         // Field should not be present if null (based on buildTransactionMap logic)
         assertFalse(
-                txMap.containsKey("transactionTypeIndicator")
-                        && txMap.get("transactionTypeIndicator") != null);
+                txMap.containsKey(TRANSACTIONTYPEINDICATOR)
+                        && txMap.get(TRANSACTIONTYPEINDICATOR) != null);
     }
 
     @Test
@@ -236,7 +241,8 @@ class PreviewModelFieldsTest {
                 .thenReturn(importResult);
 
         final MockMultipartFile file =
-                new MockMultipartFile("file", "test.csv", "text/csv", "test".getBytes(StandardCharsets.UTF_8));
+                new MockMultipartFile(
+                        FILE, "test.csv", "text/csv", TEST.getBytes(StandardCharsets.UTF_8));
 
         // Act
         final ResponseEntity<TransactionController.CSVImportPreviewResponse> response =
@@ -246,7 +252,7 @@ class PreviewModelFieldsTest {
         assertNotNull(response.getBody());
         final List<Map<String, Object>> transactions = response.getBody().getTransactions();
         final Map<String, Object> txMap = transactions.get(0);
-        assertEquals("CREDIT", txMap.get("transactionTypeIndicator"));
+        assertEquals("CREDIT", txMap.get(TRANSACTIONTYPEINDICATOR));
     }
 
     @Test
@@ -262,7 +268,8 @@ class PreviewModelFieldsTest {
                 .thenReturn(importResult);
 
         final MockMultipartFile file =
-                new MockMultipartFile("file", "test.csv", "text/csv", "test".getBytes(StandardCharsets.UTF_8));
+                new MockMultipartFile(
+                        FILE, "test.csv", "text/csv", TEST.getBytes(StandardCharsets.UTF_8));
 
         // Act
         final ResponseEntity<TransactionController.CSVImportPreviewResponse> response =
@@ -272,7 +279,7 @@ class PreviewModelFieldsTest {
         assertNotNull(response.getBody());
         final List<Map<String, Object>> transactions = response.getBody().getTransactions();
         final Map<String, Object> txMap = transactions.get(0);
-        assertEquals("DR", txMap.get("transactionTypeIndicator"));
+        assertEquals("DR", txMap.get(TRANSACTIONTYPEINDICATOR));
     }
 
     // ========== cardNumber in DetectedAccountInfo Tests ==========
@@ -297,7 +304,8 @@ class PreviewModelFieldsTest {
                 .thenReturn(importResult);
 
         final MockMultipartFile file =
-                new MockMultipartFile("file", "test.csv", "text/csv", "test".getBytes(StandardCharsets.UTF_8));
+                new MockMultipartFile(
+                        FILE, "test.csv", "text/csv", TEST.getBytes(StandardCharsets.UTF_8));
 
         // Act
         final ResponseEntity<TransactionController.CSVImportPreviewResponse> response =
@@ -334,7 +342,8 @@ class PreviewModelFieldsTest {
                 .thenReturn(importResult);
 
         final MockMultipartFile file =
-                new MockMultipartFile("file", "test.csv", "text/csv", "test".getBytes(StandardCharsets.UTF_8));
+                new MockMultipartFile(
+                        FILE, "test.csv", "text/csv", TEST.getBytes(StandardCharsets.UTF_8));
 
         // Act
         final ResponseEntity<TransactionController.CSVImportPreviewResponse> response =
@@ -360,7 +369,8 @@ class PreviewModelFieldsTest {
                 .thenReturn(importResult);
 
         final MockMultipartFile file =
-                new MockMultipartFile("file", "test.csv", "text/csv", "test".getBytes(StandardCharsets.UTF_8));
+                new MockMultipartFile(
+                        FILE, "test.csv", "text/csv", TEST.getBytes(StandardCharsets.UTF_8));
 
         // Act
         final ResponseEntity<TransactionController.CSVImportPreviewResponse> response =
@@ -394,7 +404,8 @@ class PreviewModelFieldsTest {
                 .thenReturn(importResult);
 
         final MockMultipartFile file =
-                new MockMultipartFile("file", "test.csv", "text/csv", "test".getBytes(StandardCharsets.UTF_8));
+                new MockMultipartFile(
+                        FILE, "test.csv", "text/csv", TEST.getBytes(StandardCharsets.UTF_8));
 
         // Act
         final ResponseEntity<TransactionController.CSVImportPreviewResponse> response =
@@ -405,9 +416,9 @@ class PreviewModelFieldsTest {
         final List<Map<String, Object>> transactions = response.getBody().getTransactions();
         assertEquals(3, transactions.size());
 
-        assertEquals("DEBIT", transactions.get(0).get("transactionTypeIndicator"));
-        assertEquals("CREDIT", transactions.get(1).get("transactionTypeIndicator"));
-        assertEquals("DR", transactions.get(2).get("transactionTypeIndicator"));
+        assertEquals("DEBIT", transactions.get(0).get(TRANSACTIONTYPEINDICATOR));
+        assertEquals("CREDIT", transactions.get(1).get(TRANSACTIONTYPEINDICATOR));
+        assertEquals("DR", transactions.get(2).get(TRANSACTIONTYPEINDICATOR));
     }
 
     // ========== Helper Methods ==========

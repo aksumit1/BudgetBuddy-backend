@@ -1,7 +1,5 @@
 package com.budgetbuddy.integration;
 
-
-import java.nio.charset.StandardCharsets;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -17,13 +15,13 @@ import com.budgetbuddy.service.FIDO2Service;
 import com.budgetbuddy.service.MFAService;
 import com.budgetbuddy.service.UserService;
 import com.budgetbuddy.util.TableInitializer;
+import java.nio.charset.StandardCharsets;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
@@ -74,7 +72,8 @@ class AuthenticationOverhaulIntegrationTest {
                 "test-overhaul-" + UUID.randomUUID().toString().substring(0, 8) + "@example.com";
         // Generate password hash (simulating client-side hashing)
         testPasswordHash =
-                java.util.Base64.getEncoder().encodeToString("test-password-hash".getBytes(StandardCharsets.UTF_8));
+                java.util.Base64.getEncoder()
+                        .encodeToString("test-password-hash".getBytes(StandardCharsets.UTF_8));
     }
 
     @Test

@@ -38,6 +38,8 @@ import org.springframework.security.core.userdetails.UserDetails;
 @ExtendWith(MockitoExtension.class)
 class FinancialInsightsControllerTest {
 
+    private static final String USER_123 = "user-123";
+
     @Mock private TransactionAnomalyService anomalyService;
 
     @Mock private ExpenseReductionService expenseReductionService;
@@ -64,7 +66,7 @@ class FinancialInsightsControllerTest {
                         .build();
 
         user = new UserTable();
-        user.setUserId("user-123");
+        user.setUserId(USER_123);
         user.setEmail("test@example.com");
     }
 
@@ -87,10 +89,11 @@ class FinancialInsightsControllerTest {
                         "Reason");
         anomalies.add(anomaly);
 
-        when(anomalyService.detectAnomalies("user-123")).thenReturn(anomalies);
+        when(anomalyService.detectAnomalies(USER_123)).thenReturn(anomalies);
 
         // Act
-        final ResponseEntity<List<Map<String, Object>>> response = controller.getAnomalies(userDetails);
+        final ResponseEntity<List<Map<String, Object>>> response =
+                controller.getAnomalies(userDetails);
 
         // Assert
         assertEquals(HttpStatus.OK, response.getStatusCode());
@@ -115,7 +118,7 @@ class FinancialInsightsControllerTest {
                         "sub-1");
         recommendations.add(rec);
 
-        when(expenseReductionService.getRecommendations("user-123")).thenReturn(recommendations);
+        when(expenseReductionService.getRecommendations(USER_123)).thenReturn(recommendations);
 
         // Act
         final ResponseEntity<List<Map<String, Object>>> response =
@@ -145,7 +148,7 @@ class FinancialInsightsControllerTest {
                         BigDecimal.valueOf(10_000));
         recommendations.add(rec);
 
-        when(goalsService.getRecommendations("user-123")).thenReturn(recommendations);
+        when(goalsService.getRecommendations(USER_123)).thenReturn(recommendations);
 
         // Act
         final ResponseEntity<List<Map<String, Object>>> response =
@@ -175,7 +178,7 @@ class FinancialInsightsControllerTest {
                         null);
         alerts.add(alert);
 
-        when(missedPaymentService.detectMissedPayments("user-123")).thenReturn(alerts);
+        when(missedPaymentService.detectMissedPayments(USER_123)).thenReturn(alerts);
 
         // Act
         final ResponseEntity<List<Map<String, Object>>> response =
@@ -206,7 +209,7 @@ class FinancialInsightsControllerTest {
                         "Recommendation");
         alerts.add(alert);
 
-        when(highInterestService.detectHighInterest("user-123")).thenReturn(alerts);
+        when(highInterestService.detectHighInterest(USER_123)).thenReturn(alerts);
 
         // Act
         final ResponseEntity<List<Map<String, Object>>> response =
@@ -222,14 +225,15 @@ class FinancialInsightsControllerTest {
         // Arrange
         when(userService.findByEmail("test@example.com")).thenReturn(Optional.of(user));
 
-        when(anomalyService.detectAnomalies("user-123")).thenReturn(new ArrayList<>());
-        when(expenseReductionService.getRecommendations("user-123")).thenReturn(new ArrayList<>());
-        when(goalsService.getRecommendations("user-123")).thenReturn(new ArrayList<>());
-        when(missedPaymentService.detectMissedPayments("user-123")).thenReturn(new ArrayList<>());
-        when(highInterestService.detectHighInterest("user-123")).thenReturn(new ArrayList<>());
+        when(anomalyService.detectAnomalies(USER_123)).thenReturn(new ArrayList<>());
+        when(expenseReductionService.getRecommendations(USER_123)).thenReturn(new ArrayList<>());
+        when(goalsService.getRecommendations(USER_123)).thenReturn(new ArrayList<>());
+        when(missedPaymentService.detectMissedPayments(USER_123)).thenReturn(new ArrayList<>());
+        when(highInterestService.detectHighInterest(USER_123)).thenReturn(new ArrayList<>());
 
         // Act
-        final ResponseEntity<Map<String, Object>> response = controller.getInsightsSummary(userDetails);
+        final ResponseEntity<Map<String, Object>> response =
+                controller.getInsightsSummary(userDetails);
 
         // Assert
         assertEquals(HttpStatus.OK, response.getStatusCode());

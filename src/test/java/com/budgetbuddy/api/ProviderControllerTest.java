@@ -1,6 +1,5 @@
 package com.budgetbuddy.api;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -23,6 +22,7 @@ import com.budgetbuddy.exception.ErrorCode;
 import com.budgetbuddy.model.dynamodb.UserTable;
 import com.budgetbuddy.service.ProviderService;
 import com.budgetbuddy.service.UserService;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.time.Instant;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
@@ -53,6 +53,9 @@ import org.springframework.security.core.userdetails.UserDetails;
 @org.mockito.junit.jupiter.MockitoSettings(strictness = org.mockito.quality.Strictness.LENIENT)
 class ProviderControllerTest {
 
+    private static final String PLAID = "plaid";
+    private static final String USER_123 = "user-123";
+
     @Mock private ProviderService providerService;
 
     @Mock private UserService userService;
@@ -68,7 +71,7 @@ class ProviderControllerTest {
         lenient().when(userDetails.getUsername()).thenReturn("test@example.com");
 
         user = new UserTable();
-        user.setUserId("user-123");
+        user.setUserId(USER_123);
         user.setEmail("test@example.com");
     }
 
@@ -79,7 +82,7 @@ class ProviderControllerTest {
 
         final ProviderController.ProviderHealthResponse plaidResponse =
                 new ProviderController.ProviderHealthResponse();
-        plaidResponse.setProviderId("plaid");
+        plaidResponse.setProviderId(PLAID);
         plaidResponse.setIsHealthy(true);
         plaidResponse.setIsStale(false);
 
@@ -89,7 +92,7 @@ class ProviderControllerTest {
         stripeResponse.setIsHealthy(true);
         stripeResponse.setIsStale(false);
 
-        when(providerService.getAllProviders("user-123"))
+        when(providerService.getAllProviders(USER_123))
                 .thenReturn(List.of(plaidResponse, stripeResponse));
 
         // When
@@ -101,7 +104,7 @@ class ProviderControllerTest {
         assertEquals(HttpStatus.OK, result.getStatusCode());
         assertNotNull(result.getBody());
         assertEquals(2, result.getBody().size());
-        assertTrue(result.getBody().stream().anyMatch(p -> "plaid".equals(p.getProviderId())));
+        assertTrue(result.getBody().stream().anyMatch(p -> PLAID.equals(p.getProviderId())));
         assertTrue(result.getBody().stream().anyMatch(p -> "stripe".equals(p.getProviderId())));
     }
 
@@ -112,23 +115,23 @@ class ProviderControllerTest {
 
         final ProviderController.ProviderHealthResponse response =
                 new ProviderController.ProviderHealthResponse();
-        response.setProviderId("plaid");
+        response.setProviderId(PLAID);
         response.setIsHealthy(true);
         response.setIsStale(false);
         response.setLastSuccess(Instant.now());
         response.setFailureCount(0);
 
-        when(providerService.getProviderHealth("user-123", "plaid")).thenReturn(response);
+        when(providerService.getProviderHealth(USER_123, PLAID)).thenReturn(response);
 
         // When
         final ResponseEntity<ProviderController.ProviderHealthResponse> result =
-                controller.getProviderHealth(userDetails, "plaid");
+                controller.getProviderHealth(userDetails, PLAID);
 
         // Then
         assertNotNull(result);
         assertEquals(HttpStatus.OK, result.getStatusCode());
         assertNotNull(result.getBody());
-        assertEquals("plaid", result.getBody().getProviderId());
+        assertEquals(PLAID, result.getBody().getProviderId());
         assertTrue(result.getBody().getIsHealthy());
         assertFalse(result.getBody().getIsStale());
     }
@@ -137,7 +140,7 @@ class ProviderControllerTest {
     void testGetProviderHealthProviderNotFound() {
         // Given
         when(userService.findByEmail("test@example.com")).thenReturn(java.util.Optional.of(user));
-        when(providerService.getProviderHealth("user-123", "unknown")).thenReturn(null);
+        when(providerService.getProviderHealth(USER_123, "unknown")).thenReturn(null);
 
         // When/Then
         final AppException exception =
@@ -162,23 +165,23 @@ class ProviderControllerTest {
 
         final ProviderController.ProviderHealthResponse response =
                 new ProviderController.ProviderHealthResponse();
-        response.setProviderId("plaid");
+        response.setProviderId(PLAID);
         response.setIsHealthy(true);
         response.setIsStale(false);
 
         when(providerService.updateProviderHealth(
-                        eq("user-123"), eq("plaid"), anyBoolean(), anyBoolean(), isNull()))
+                        eq(USER_123), eq(PLAID), anyBoolean(), anyBoolean(), isNull()))
                 .thenReturn(response);
 
         // When
         final ResponseEntity<ProviderController.ProviderHealthResponse> result =
-                controller.updateProviderHealth(userDetails, "plaid", request);
+                controller.updateProviderHealth(userDetails, PLAID, request);
 
         // Then
         assertNotNull(result);
         assertEquals(HttpStatus.OK, result.getStatusCode());
         verify(providerService, times(1))
-                .updateProviderHealth(eq("user-123"), eq("plaid"), eq(true), eq(false), isNull());
+                .updateProviderHealth(eq(USER_123), eq(PLAID), eq(true), eq(false), isNull());
     }
 
     @Test
@@ -188,22 +191,22 @@ class ProviderControllerTest {
 
         final ProviderController.ProviderHealthResponse response =
                 new ProviderController.ProviderHealthResponse();
-        response.setProviderId("plaid");
+        response.setProviderId(PLAID);
         response.setIsHealthy(false);
         response.setIsStale(true);
 
-        when(providerService.markProviderAsStale("user-123", "plaid")).thenReturn(response);
+        when(providerService.markProviderAsStale(USER_123, PLAID)).thenReturn(response);
 
         // When
         final ResponseEntity<ProviderController.ProviderHealthResponse> result =
-                controller.markProviderAsStale(userDetails, "plaid");
+                controller.markProviderAsStale(userDetails, PLAID);
 
         // Then
         assertNotNull(result);
         assertEquals(HttpStatus.OK, result.getStatusCode());
         assertNotNull(result.getBody());
         assertTrue(result.getBody().getIsStale());
-        verify(providerService, times(1)).markProviderAsStale("user-123", "plaid");
+        verify(providerService, times(1)).markProviderAsStale(USER_123, PLAID);
     }
 
     @Test
@@ -213,15 +216,15 @@ class ProviderControllerTest {
 
         final ProviderController.ProviderHealthResponse response =
                 new ProviderController.ProviderHealthResponse();
-        response.setProviderId("plaid");
+        response.setProviderId(PLAID);
         response.setIsHealthy(true);
         response.setIsStale(false);
 
-        when(providerService.clearStaleStatus("user-123", "plaid")).thenReturn(response);
+        when(providerService.clearStaleStatus(USER_123, PLAID)).thenReturn(response);
 
         // When
         final ResponseEntity<ProviderController.ProviderHealthResponse> result =
-                controller.clearStaleStatus(userDetails, "plaid");
+                controller.clearStaleStatus(userDetails, PLAID);
 
         // Then
         assertNotNull(result);
@@ -229,7 +232,7 @@ class ProviderControllerTest {
         assertNotNull(result.getBody());
         assertFalse(result.getBody().getIsStale());
         assertTrue(result.getBody().getIsHealthy());
-        verify(providerService, times(1)).clearStaleStatus("user-123", "plaid");
+        verify(providerService, times(1)).clearStaleStatus(USER_123, PLAID);
     }
 
     @Test
@@ -244,7 +247,7 @@ class ProviderControllerTest {
                 assertThrows(
                         AppException.class,
                         () -> {
-                            controller.updateProviderHealth(nullUserDetails, "plaid", request);
+                            controller.updateProviderHealth(nullUserDetails, PLAID, request);
                         });
 
         assertEquals(ErrorCode.UNAUTHORIZED_ACCESS, exception.getErrorCode());
@@ -277,7 +280,7 @@ class ProviderControllerTest {
                 assertThrows(
                         AppException.class,
                         () -> {
-                            controller.updateProviderHealth(userDetails, "plaid", nullRequest);
+                            controller.updateProviderHealth(userDetails, PLAID, nullRequest);
                         });
 
         assertEquals(ErrorCode.INVALID_INPUT, exception.getErrorCode());
@@ -294,11 +297,11 @@ class ProviderControllerTest {
 
         final ProviderController.ProviderHealthResponse response =
                 new ProviderController.ProviderHealthResponse();
-        response.setProviderId("plaid");
+        response.setProviderId(PLAID);
         response.setIsHealthy(true);
 
         when(providerService.updateProviderHealth(
-                        eq("user-123"), eq("plaid"), anyBoolean(), anyBoolean(), isNull()))
+                        eq(USER_123), eq(PLAID), anyBoolean(), anyBoolean(), isNull()))
                 .thenReturn(response);
 
         // When - Simulate concurrent updates
@@ -315,7 +318,7 @@ class ProviderControllerTest {
                                     ResponseEntity<ProviderController.ProviderHealthResponse>
                                             result =
                                                     controller.updateProviderHealth(
-                                                            userDetails, "plaid", request);
+                                                            userDetails, PLAID, request);
                                     success[index] = result.getStatusCode() == HttpStatus.OK;
                                 } catch (Exception e) {
                                     success[index] = false;

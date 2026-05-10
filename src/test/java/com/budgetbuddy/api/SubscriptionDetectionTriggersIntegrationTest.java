@@ -1,10 +1,5 @@
 package com.budgetbuddy.api;
 
-
-
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import java.nio.charset.StandardCharsets;
-import java.util.Locale;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -31,10 +26,13 @@ import com.budgetbuddy.service.SubscriptionService;
 import com.budgetbuddy.service.UserService;
 import com.budgetbuddy.util.TableInitializer;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -70,6 +68,10 @@ import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 @org.junit.jupiter.api.Tag("integration")
 public class SubscriptionDetectionTriggersIntegrationTest {
 
+    private static final String SUBSCRIPTIONS = "subscriptions";
+    private static final String NETFLIX = "Netflix";
+    private static final String ENTERTAINMENT = "entertainment";
+
     @Autowired private MockMvc mockMvc;
 
     @Autowired private SubscriptionService subscriptionService;
@@ -102,7 +104,8 @@ public class SubscriptionDetectionTriggersIntegrationTest {
         // Create test user
         testUserEmail = "test-subscription-triggers-" + UUID.randomUUID() + "@example.com";
         final String base64PasswordHash =
-                java.util.Base64.getEncoder().encodeToString("test-password".getBytes(StandardCharsets.UTF_8));
+                java.util.Base64.getEncoder()
+                        .encodeToString("test-password".getBytes(StandardCharsets.UTF_8));
         testUser = userService.createUserSecure(testUserEmail, base64PasswordHash, "Test", "User");
         testUserId = testUser.getUserId();
 
@@ -129,7 +132,8 @@ public class SubscriptionDetectionTriggersIntegrationTest {
 
     /** Helper method to add JWT token to request */
     private org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder withAuth(
-            final org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder builder) {
+            final org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder
+                    builder) {
         return builder.header("Authorization", "Bearer " + accessToken);
     }
 
@@ -144,8 +148,8 @@ public class SubscriptionDetectionTriggersIntegrationTest {
         tx.setTransactionDate(date.format(java.time.format.DateTimeFormatter.ISO_LOCAL_DATE));
         tx.setDescription(merchant + " Subscription");
         tx.setMerchantName(merchant);
-        tx.setCategoryPrimary("subscriptions");
-        tx.setCategoryDetailed("subscriptions");
+        tx.setCategoryPrimary(SUBSCRIPTIONS);
+        tx.setCategoryDetailed(SUBSCRIPTIONS);
         tx.setTransactionType("EXPENSE");
         return tx;
     }
@@ -163,7 +167,8 @@ public class SubscriptionDetectionTriggersIntegrationTest {
     /** Helper method to wait and retry subscription check */
     private List<Subscription> waitAndGetSubscriptions(final int maxRetries) {
         for (int i = 0; i < maxRetries; i++) {
-            final List<Subscription> subscriptions = subscriptionService.getSubscriptions(testUserId);
+            final List<Subscription> subscriptions =
+                    subscriptionService.getSubscriptions(testUserId);
             if (!subscriptions.isEmpty() || i == maxRetries - 1) {
                 return subscriptions;
             }
@@ -185,20 +190,19 @@ public class SubscriptionDetectionTriggersIntegrationTest {
         final LocalDate date2 = LocalDate.now();
 
         final TransactionTable tx1 =
-                createSubscriptionTransaction("Netflix", new BigDecimal("-15.99"), date1);
+                createSubscriptionTransaction(NETFLIX, new BigDecimal("-15.99"), date1);
         transactionRepository.save(tx1);
 
         // When: Create second transaction (should trigger detection)
         final TransactionController.CreateTransactionRequest request =
-                new TransactionController.CreateTransactionRequest() {
-                };
+                new TransactionController.CreateTransactionRequest() {};
         request.setAccountId(testAccount.getAccountId());
         request.setAmount(new BigDecimal("15.99")); // Positive amount (backend will handle sign)
         request.setTransactionDate(date2);
         request.setDescription("Netflix Subscription");
-        request.setMerchantName("Netflix");
-        request.setCategoryPrimary("subscriptions");
-        request.setCategoryDetailed("subscriptions");
+        request.setMerchantName(NETFLIX);
+        request.setCategoryPrimary(SUBSCRIPTIONS);
+        request.setCategoryDetailed(SUBSCRIPTIONS);
 
         mockMvc.perform(
                         withAuth(post("/api/transactions"))
@@ -237,29 +241,28 @@ public class SubscriptionDetectionTriggersIntegrationTest {
         final LocalDate date3 = LocalDate.now().minusMonths(1);
 
         final TransactionTable tx1 =
-                createSubscriptionTransaction("Netflix", new BigDecimal("-15.99"), date1);
-        tx1.setCategoryPrimary("entertainment");
-        tx1.setCategoryDetailed("entertainment");
+                createSubscriptionTransaction(NETFLIX, new BigDecimal("-15.99"), date1);
+        tx1.setCategoryPrimary(ENTERTAINMENT);
+        tx1.setCategoryDetailed(ENTERTAINMENT);
         transactionRepository.save(tx1);
 
         final TransactionTable tx2 =
-                createSubscriptionTransaction("Netflix", new BigDecimal("-15.99"), date2);
-        tx2.setCategoryPrimary("entertainment");
-        tx2.setCategoryDetailed("entertainment");
+                createSubscriptionTransaction(NETFLIX, new BigDecimal("-15.99"), date2);
+        tx2.setCategoryPrimary(ENTERTAINMENT);
+        tx2.setCategoryDetailed(ENTERTAINMENT);
         transactionRepository.save(tx2);
 
         final TransactionTable tx3 =
-                createSubscriptionTransaction("Netflix", new BigDecimal("-15.99"), date3);
-        tx3.setCategoryPrimary("entertainment");
-        tx3.setCategoryDetailed("entertainment");
+                createSubscriptionTransaction(NETFLIX, new BigDecimal("-15.99"), date3);
+        tx3.setCategoryPrimary(ENTERTAINMENT);
+        tx3.setCategoryDetailed(ENTERTAINMENT);
         transactionRepository.save(tx3);
 
         // When: Update third transaction to subscription category
         final TransactionController.UpdateTransactionRequest updateRequest =
-                new TransactionController.UpdateTransactionRequest() {
-                };
-        updateRequest.setCategoryPrimary("subscriptions");
-        updateRequest.setCategoryDetailed("subscriptions");
+                new TransactionController.UpdateTransactionRequest() {};
+        updateRequest.setCategoryPrimary(SUBSCRIPTIONS);
+        updateRequest.setCategoryDetailed(SUBSCRIPTIONS);
 
         mockMvc.perform(
                         withAuth(put("/api/transactions/" + tx3.getTransactionId()))
@@ -338,21 +341,19 @@ public class SubscriptionDetectionTriggersIntegrationTest {
         final LocalDate baseDate = LocalDate.now().minusMonths(2);
         for (int i = 0; i < 3; i++) {
             final TransactionController.CreateTransactionRequest tx =
-                    new TransactionController.CreateTransactionRequest() {
-                    };
+                    new TransactionController.CreateTransactionRequest() {};
             tx.setAccountId(testAccount.getAccountId());
             tx.setAmount(new BigDecimal("12.99"));
             tx.setTransactionDate(baseDate.plusMonths(i));
             tx.setDescription("Disney+ Subscription");
             tx.setMerchantName("Disney+");
-            tx.setCategoryPrimary("subscriptions");
-            tx.setCategoryDetailed("subscriptions");
+            tx.setCategoryPrimary(SUBSCRIPTIONS);
+            tx.setCategoryDetailed(SUBSCRIPTIONS);
             transactions.add(tx);
         }
 
         final TransactionController.BatchImportRequest batchRequest =
-                new TransactionController.BatchImportRequest() {
-                };
+                new TransactionController.BatchImportRequest() {};
         batchRequest.setTransactions(transactions);
 
         // When: Import batch
@@ -407,7 +408,7 @@ public class SubscriptionDetectionTriggersIntegrationTest {
         for (int i = 0; i < 3; i++) {
             final TransactionTable tx =
                     createSubscriptionTransaction(
-                            "Netflix", new BigDecimal("-15.99"), baseDate.plusMonths(i));
+                            NETFLIX, new BigDecimal("-15.99"), baseDate.plusMonths(i));
             transactionRepository.save(tx);
         }
 
@@ -421,15 +422,14 @@ public class SubscriptionDetectionTriggersIntegrationTest {
 
         // When: Create one more transaction to trigger detection
         final TransactionController.CreateTransactionRequest request =
-                new TransactionController.CreateTransactionRequest() {
-                };
+                new TransactionController.CreateTransactionRequest() {};
         request.setAccountId(testAccount.getAccountId());
         request.setAmount(new BigDecimal("15.99"));
         request.setTransactionDate(baseDate.plusMonths(3));
         request.setDescription("Netflix Subscription");
-        request.setMerchantName("Netflix");
-        request.setCategoryPrimary("subscriptions");
-        request.setCategoryDetailed("subscriptions");
+        request.setMerchantName(NETFLIX);
+        request.setCategoryPrimary(SUBSCRIPTIONS);
+        request.setCategoryDetailed(SUBSCRIPTIONS);
 
         final var result =
                 mockMvc.perform(
@@ -480,14 +480,13 @@ public class SubscriptionDetectionTriggersIntegrationTest {
     void testSubscriptionDetectionInsufficientTransactions() throws Exception {
         // Given: Create only 1 transaction (insufficient for detection)
         final TransactionController.CreateTransactionRequest request =
-                new TransactionController.CreateTransactionRequest() {
-                };
+                new TransactionController.CreateTransactionRequest() {};
         request.setAccountId(testAccount.getAccountId());
         request.setAmount(new BigDecimal("15.99"));
         request.setTransactionDate(LocalDate.now());
         request.setDescription("Netflix Subscription");
-        request.setCategoryPrimary("subscriptions");
-        request.setCategoryDetailed("subscriptions");
+        request.setCategoryPrimary(SUBSCRIPTIONS);
+        request.setCategoryDetailed(SUBSCRIPTIONS);
 
         mockMvc.perform(
                         withAuth(post("/api/transactions"))

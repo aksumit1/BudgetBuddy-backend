@@ -96,7 +96,8 @@ class FIDO2ChallengeRepositoryTest {
                 .thenReturn(testChallenge);
 
         // When
-        final Optional<FIDO2ChallengeTable> result = repository.findByChallengeKey(testChallengeKey);
+        final Optional<FIDO2ChallengeTable> result =
+                repository.findByChallengeKey(testChallengeKey);
 
         // Then
         assertTrue(result.isPresent());
@@ -133,7 +134,8 @@ class FIDO2ChallengeRepositoryTest {
         // deleteItem returns void, no need to stub it
 
         // When
-        final Optional<FIDO2ChallengeTable> result = repository.findByChallengeKey(testChallengeKey);
+        final Optional<FIDO2ChallengeTable> result =
+                repository.findByChallengeKey(testChallengeKey);
 
         // Then
         assertFalse(result.isPresent());
@@ -146,7 +148,8 @@ class FIDO2ChallengeRepositoryTest {
         org.mockito.Mockito.lenient().when(challengeTable.getItem(any(Key.class))).thenReturn(null);
 
         // When
-        final Optional<FIDO2ChallengeTable> result = repository.findByChallengeKey(testChallengeKey);
+        final Optional<FIDO2ChallengeTable> result =
+                repository.findByChallengeKey(testChallengeKey);
 
         // Then
         assertFalse(result.isPresent());
@@ -182,7 +185,8 @@ class FIDO2ChallengeRepositoryTest {
     @Test
     void testGenerateChallengeKeyWithValidInputReturnsKey() {
         // When
-        final String key = FIDO2ChallengeRepository.generateChallengeKey("user-123", "registration");
+        final String key =
+                FIDO2ChallengeRepository.generateChallengeKey("user-123", "registration");
 
         // Then
         assertEquals("user-123:registration", key);

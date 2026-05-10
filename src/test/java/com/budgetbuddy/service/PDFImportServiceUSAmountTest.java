@@ -1,12 +1,12 @@
 package com.budgetbuddy.service;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.lang.reflect.Method;
 import java.math.BigDecimal;
 import java.util.Map;
@@ -30,6 +30,8 @@ import org.mockito.Mockito;
         justification = "JUnit idiom — test methods accept any setup exception")
 @SuppressWarnings("PMD.AvoidCatchingGenericException")
 class PDFImportServiceUSAmountTest {
+
+    private static final String AMOUNT = "amount";
 
     private PDFImportService pdfImportService;
     private EnhancedPatternMatcher enhancedPatternMatcher;
@@ -339,7 +341,7 @@ class PDFImportServiceUSAmountTest {
         assertNotNull(result, "Should parse Pattern 1 with CR");
         assertEquals("11/09", result.get("date"));
         assertTrue(result.get("description").contains("DEPOSIT"));
-        assertEquals("$1,234.56 CR", result.get("amount"));
+        assertEquals("$1,234.56 CR", result.get(AMOUNT));
     }
 
     @Test
@@ -347,7 +349,7 @@ class PDFImportServiceUSAmountTest {
         final String line = "11/09     PAYMENT MADE $458.40 DR";
         final Map<String, String> result = parsePattern1ViaReflection(line, 2024);
         assertNotNull(result, "Should parse Pattern 1 with DR");
-        assertEquals("$458.40 DR", result.get("amount"));
+        assertEquals("$458.40 DR", result.get(AMOUNT));
     }
 
     @Test
@@ -355,7 +357,7 @@ class PDFImportServiceUSAmountTest {
         final String line = "11/09     PAYMENT MADE ($458.40)";
         final Map<String, String> result = parsePattern1ViaReflection(line, 2024);
         assertNotNull(result, "Should parse Pattern 1 with parentheses");
-        assertEquals("($458.40)", result.get("amount"));
+        assertEquals("($458.40)", result.get(AMOUNT));
     }
 
     @Test
@@ -363,7 +365,7 @@ class PDFImportServiceUSAmountTest {
         final String line = "11/09     DEPOSIT +$1,234.56";
         final Map<String, String> result = parsePattern1ViaReflection(line, 2024);
         assertNotNull(result, "Should parse Pattern 1 with + sign");
-        assertEquals("+$1,234.56", result.get("amount"));
+        assertEquals("+$1,234.56", result.get(AMOUNT));
     }
 
     @Test
@@ -371,7 +373,7 @@ class PDFImportServiceUSAmountTest {
         final String line = "Prefix text 10/12 MERCHANT $25.00 CR";
         final Map<String, String> result = parsePattern2ViaReflection(line, 2024);
         assertNotNull(result, "Should parse Pattern 2 with CR");
-        assertEquals("$25.00 CR", result.get("amount"));
+        assertEquals("$25.00 CR", result.get(AMOUNT));
     }
 
     @Test
@@ -379,7 +381,7 @@ class PDFImportServiceUSAmountTest {
         final String line = "10/08 10/08 DOLLAR TREE TUKWILA WA ($19.84)";
         final Map<String, String> result = parsePattern5ViaReflection(line, 2024);
         assertNotNull(result, "Should parse Pattern 5 with parentheses");
-        assertEquals("($19.84)", result.get("amount"));
+        assertEquals("($19.84)", result.get(AMOUNT));
     }
 
     @Test
@@ -387,27 +389,27 @@ class PDFImportServiceUSAmountTest {
         final String line = "10/08 10/08 DOLLAR TREE TUKWILA WA $19.84 CR";
         final Map<String, String> result = parsePattern5ViaReflection(line, 2024);
         assertNotNull(result, "Should parse Pattern 5 with CR");
-        assertEquals("$19.84 CR", result.get("amount"));
+        assertEquals("$19.84 CR", result.get(AMOUNT));
     }
 
     @Test
     void testPattern7WithDR() {
         final String[] lines = {
-                "11/27/25* AGARWAL SUMIT KUMAR PAYMENT MADE", "JPMorgan Chase Bank, NA", "$1,957.91 DR"
+            "11/27/25* AGARWAL SUMIT KUMAR PAYMENT MADE", "JPMorgan Chase Bank, NA", "$1,957.91 DR"
         };
         final Map<String, String> result = parsePattern7ViaReflection(lines, 0, 2025);
         assertNotNull(result, "Should parse Pattern 7 with DR");
-        assertEquals("$1,957.91 DR", result.get("amount"));
+        assertEquals("$1,957.91 DR", result.get(AMOUNT));
     }
 
     @Test
     void testPattern7WithParentheses() {
         final String[] lines = {
-                "11/27/25* AGARWAL SUMIT KUMAR PAYMENT MADE", "JPMorgan Chase Bank, NA", "($1,957.91)"
+            "11/27/25* AGARWAL SUMIT KUMAR PAYMENT MADE", "JPMorgan Chase Bank, NA", "($1,957.91)"
         };
         final Map<String, String> result = parsePattern7ViaReflection(lines, 0, 2025);
         assertNotNull(result, "Should parse Pattern 7 with parentheses");
-        assertEquals("($1,957.91)", result.get("amount"));
+        assertEquals("($1,957.91)", result.get(AMOUNT));
     }
 
     /**
@@ -421,12 +423,12 @@ class PDFImportServiceUSAmountTest {
     @Test
     void testPattern7AmexVariantWithMerchantBeforeDate() {
         final String[] lines = {
-                "HUMPTY DUMPTY WALLFLOWER",
-                "Card Ending 7-31034   Monthly Spending Limit: $2,500",
-                "Amount",
-                "12/07/25 D J*BARRONS 800-544-0422 NJ",
-                "SUBSRIPTION",
-                "$4.41 ⧫"
+            "HUMPTY DUMPTY WALLFLOWER",
+            "Card Ending 7-31034   Monthly Spending Limit: $2,500",
+            "Amount",
+            "12/07/25 D J*BARRONS 800-544-0422 NJ",
+            "SUBSRIPTION",
+            "$4.41 ⧫"
         };
 
         // Try starting from line 4 (the date line, index 3) - current Pattern 7 expects date on
@@ -443,7 +445,7 @@ class PDFImportServiceUSAmountTest {
                 result.get("description").contains("D J*BARRONS")
                         || result.get("description").contains("SUBSRIPTION"),
                 "Description should contain transaction details");
-        assertEquals("$4.41", result.get("amount"), "Amount should be extracted correctly");
+        assertEquals("$4.41", result.get(AMOUNT), "Amount should be extracted correctly");
 
         // Note: Merchant name "HUMPTY DUMPTY WALLFLOWER" is NOT captured in current implementation
         // This is a limitation - Pattern 7 would need enhancement to look backwards for merchant
@@ -494,7 +496,7 @@ class PDFImportServiceUSAmountTest {
         assertNotNull(result);
         assertEquals("11/09", result.get("date"));
         assertEquals("MERCHANT NAME", result.get("description"));
-        assertEquals("$100.00", result.get("amount"));
+        assertEquals("$100.00", result.get(AMOUNT));
         assertEquals("2024", result.get("_inferredYear"));
     }
 
@@ -503,7 +505,7 @@ class PDFImportServiceUSAmountTest {
         final Map<String, String> result =
                 createTransactionRowViaReflection("11/09", "DEPOSIT", "$100.00 CR", 2024);
         assertNotNull(result);
-        assertEquals("$100.00 CR", result.get("amount"));
+        assertEquals("$100.00 CR", result.get(AMOUNT));
     }
 
     @Test
@@ -511,7 +513,7 @@ class PDFImportServiceUSAmountTest {
         final Map<String, String> result =
                 createTransactionRowViaReflection("11/09", "PAYMENT", "$100.00 DR", 2024);
         assertNotNull(result);
-        assertEquals("$100.00 DR", result.get("amount"));
+        assertEquals("$100.00 DR", result.get(AMOUNT));
     }
 
     @Test
@@ -519,7 +521,7 @@ class PDFImportServiceUSAmountTest {
         final Map<String, String> result =
                 createTransactionRowViaReflection("11/09", "PAYMENT", "($100.00)", 2024);
         assertNotNull(result);
-        assertEquals("($100.00)", result.get("amount"));
+        assertEquals("($100.00)", result.get(AMOUNT));
     }
 
     @Test
@@ -559,7 +561,8 @@ class PDFImportServiceUSAmountTest {
 
     // ========== Helper Methods for Reflection ==========
 
-    private Map<String, String> parsePattern1ViaReflection(final String line, final Integer inferredYear) {
+    private Map<String, String> parsePattern1ViaReflection(
+            final String line, final Integer inferredYear) {
         try {
             final Method method =
                     PDFImportService.class.getDeclaredMethod(
@@ -571,7 +574,8 @@ class PDFImportServiceUSAmountTest {
         }
     }
 
-    private Map<String, String> parsePattern2ViaReflection(final String line, final Integer inferredYear) {
+    private Map<String, String> parsePattern2ViaReflection(
+            final String line, final Integer inferredYear) {
         try {
             final Method method =
                     PDFImportService.class.getDeclaredMethod(
@@ -583,7 +587,8 @@ class PDFImportServiceUSAmountTest {
         }
     }
 
-    private Map<String, String> parsePattern5ViaReflection(final String line, final Integer inferredYear) {
+    private Map<String, String> parsePattern5ViaReflection(
+            final String line, final Integer inferredYear) {
         try {
             final Method method =
                     PDFImportService.class.getDeclaredMethod(
@@ -625,7 +630,10 @@ class PDFImportServiceUSAmountTest {
     }
 
     private Map<String, String> createTransactionRowViaReflection(
-            final String date, final String description, final String amount, final Integer inferredYear) {
+            final String date,
+            final String description,
+            final String amount,
+            final Integer inferredYear) {
         try {
             final Method method =
                     PDFImportService.class.getDeclaredMethod(

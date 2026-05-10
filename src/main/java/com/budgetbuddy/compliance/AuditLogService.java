@@ -1,8 +1,8 @@
 package com.budgetbuddy.compliance;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import com.budgetbuddy.repository.dynamodb.AuditLogRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.time.Instant;
 import java.util.Collections;
 import java.util.Map;
@@ -125,8 +125,10 @@ public class AuditLogService {
                 SYSTEM,
                 null,
                 Map.of(
-                        CHANGE_TYPE, changeType != null ? changeType : "",
-                        "description", description != null ? description : ""),
+                        CHANGE_TYPE,
+                        changeType != null ? changeType : "",
+                        "description",
+                        description != null ? description : ""),
                 null,
                 null);
     }
@@ -194,8 +196,10 @@ public class AuditLogService {
                 "CHANGE",
                 changeId,
                 Map.of(
-                        CHANGE_TYPE, changeType != null ? changeType : "",
-                        "description", description != null ? description : ""),
+                        CHANGE_TYPE,
+                        changeType != null ? changeType : "",
+                        "description",
+                        description != null ? description : ""),
                 null,
                 null);
     }
@@ -260,8 +264,10 @@ public class AuditLogService {
                 "PHI",
                 report.getPhiId(),
                 Map.of(
-                        "breachType", report.getBreachType() != null ? report.getBreachType() : "",
-                        DETAILS, report.getDetails() != null ? report.getDetails() : ""),
+                        "breachType",
+                        report.getBreachType() != null ? report.getBreachType() : "",
+                        DETAILS,
+                        report.getDetails() != null ? report.getDetails() : ""),
                 null,
                 null);
     }
@@ -393,9 +399,12 @@ public class AuditLogService {
                 "SECURITY",
                 null,
                 Map.of(
-                        "eventType", eventType != null ? eventType : "",
-                        "severity", severity != null ? severity : "",
-                        DETAILS, details != null ? details : ""),
+                        "eventType",
+                        eventType != null ? eventType : "",
+                        "severity",
+                        severity != null ? severity : "",
+                        DETAILS,
+                        details != null ? details : ""),
                 null,
                 null);
     }
@@ -447,12 +456,13 @@ public class AuditLogService {
                 null,
                 Map.of(
                         "incidentType",
-                                incident.getIncidentType() != null
-                                        ? incident.getIncidentType()
-                                        : "",
-                        "severity", incident.getSeverity() != null ? incident.getSeverity() : "",
-                        DETAILS, incident.getDetails() != null ? incident.getDetails() : "",
-                        STATUS, incident.getStatus() != null ? incident.getStatus() : ""),
+                        incident.getIncidentType() != null ? incident.getIncidentType() : "",
+                        "severity",
+                        incident.getSeverity() != null ? incident.getSeverity() : "",
+                        DETAILS,
+                        incident.getDetails() != null ? incident.getDetails() : "",
+                        STATUS,
+                        incident.getStatus() != null ? incident.getStatus() : ""),
                 null,
                 null);
     }
@@ -643,8 +653,10 @@ public class AuditLogService {
                 "COMPLIANCE",
                 null,
                 Map.of(
-                        "activityType", activityType != null ? activityType : "",
-                        DETAILS, details != null ? details : ""),
+                        "activityType",
+                        activityType != null ? activityType : "",
+                        DETAILS,
+                        details != null ? details : ""),
                 null,
                 null);
     }
@@ -676,9 +688,12 @@ public class AuditLogService {
                 "BREACH",
                 report.getPhiId(),
                 Map.of(
-                        "breachType", report.getBreachType() != null ? report.getBreachType() : "",
-                        DETAILS, report.getDetails() != null ? report.getDetails() : "",
-                        "reported", report.isReported()),
+                        "breachType",
+                        report.getBreachType() != null ? report.getBreachType() : "",
+                        DETAILS,
+                        report.getDetails() != null ? report.getDetails() : "",
+                        "reported",
+                        report.isReported()),
                 null,
                 null);
     }

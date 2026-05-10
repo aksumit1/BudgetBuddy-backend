@@ -1,7 +1,5 @@
 package com.budgetbuddy.service;
 
-
-import java.util.Locale;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -18,6 +16,7 @@ import com.budgetbuddy.model.dynamodb.AccountTable;
 import com.budgetbuddy.repository.dynamodb.AccountRepository;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
@@ -32,6 +31,10 @@ import org.mockito.junit.jupiter.MockitoExtension;
  */
 @ExtendWith(MockitoExtension.class)
 class AccountDetectionServiceTest {
+
+    private static final String CHASE = "Chase";
+    private static final String DEPOSITORY = "depository";
+    private static final String USER_123 = "user-123";
 
     @Mock private AccountRepository accountRepository;
 
@@ -57,12 +60,12 @@ class AccountDetectionServiceTest {
 
         // Then
         assertNotNull(detected);
-        assertEquals("Chase", detected.getInstitutionName());
-        assertEquals("depository", detected.getAccountType());
+        assertEquals(CHASE, detected.getInstitutionName());
+        assertEquals(DEPOSITORY, detected.getAccountType());
         assertEquals("checking", detected.getAccountSubtype());
         assertEquals("1234", detected.getAccountNumber());
         assertNotNull(detected.getAccountName());
-        assertTrue(detected.getAccountName().contains("Chase"));
+        assertTrue(detected.getAccountName().contains(CHASE));
     }
 
     @Test
@@ -95,7 +98,7 @@ class AccountDetectionServiceTest {
         // Then
         assertNotNull(detected);
         assertEquals("Wells Fargo", detected.getInstitutionName());
-        assertEquals("depository", detected.getAccountType());
+        assertEquals(DEPOSITORY, detected.getAccountType());
         assertEquals("savings", detected.getAccountSubtype());
         assertEquals("9012", detected.getAccountNumber());
     }
@@ -140,8 +143,8 @@ class AccountDetectionServiceTest {
 
         // Then
         assertNotNull(detected);
-        assertEquals("Chase", detected.getInstitutionName());
-        assertEquals("depository", detected.getAccountType());
+        assertEquals(CHASE, detected.getInstitutionName());
+        assertEquals(DEPOSITORY, detected.getAccountType());
         assertNull(detected.getAccountNumber());
     }
 
@@ -180,9 +183,9 @@ class AccountDetectionServiceTest {
 
         // Then
         assertNotNull(detected);
-        assertEquals("Chase", detected.getInstitutionName());
+        assertEquals(CHASE, detected.getInstitutionName());
         assertEquals("1234", detected.getAccountNumber());
-        assertEquals("depository", detected.getAccountType());
+        assertEquals(DEPOSITORY, detected.getAccountType());
         assertEquals("checking", detected.getAccountSubtype());
     }
 
@@ -245,7 +248,7 @@ class AccountDetectionServiceTest {
 
         // Then
         assertNotNull(detected);
-        assertEquals("Chase", detected.getInstitutionName());
+        assertEquals(CHASE, detected.getInstitutionName());
     }
 
     // ========== Header Detection Tests ==========
@@ -268,7 +271,8 @@ class AccountDetectionServiceTest {
     @Test
     void testDetectFromHeadersWithInstitutionColumnDetectsInstitution() {
         // Given
-        final List<String> headers = Arrays.asList("Date", "Description", "Amount", "Institution Name");
+        final List<String> headers =
+                Arrays.asList("Date", "Description", "Amount", "Institution Name");
 
         // When
         final AccountDetectionService.DetectedAccount detected =
@@ -291,7 +295,7 @@ class AccountDetectionServiceTest {
 
         // Then
         assertNotNull(detected);
-        assertEquals("Chase", detected.getInstitutionName());
+        assertEquals(CHASE, detected.getInstitutionName());
     }
 
     @Test
@@ -307,7 +311,9 @@ class AccountDetectionServiceTest {
         assertNotNull(detected);
         assertTrue(
                 detected.getInstitutionName() != null
-                        && detected.getInstitutionName().toLowerCase(Locale.ROOT).contains("chase"));
+                        && detected.getInstitutionName()
+                                .toLowerCase(Locale.ROOT)
+                                .contains("chase"));
     }
 
     // ========== Account Matching Tests ==========
@@ -315,19 +321,19 @@ class AccountDetectionServiceTest {
     @Test
     void testMatchToExistingAccountByAccountNumberAndInstitutionMatches() {
         // Given
-        final String userId = "user-123";
+        final String userId = USER_123;
         final AccountDetectionService.DetectedAccount detected =
                 new AccountDetectionService.DetectedAccount();
         detected.setAccountNumber("1234");
-        detected.setInstitutionName("Chase");
+        detected.setInstitutionName(CHASE);
 
         final AccountTable existingAccount = new AccountTable();
         existingAccount.setAccountId(UUID.randomUUID().toString());
         existingAccount.setAccountNumber("1234");
-        existingAccount.setInstitutionName("Chase");
+        existingAccount.setInstitutionName(CHASE);
         existingAccount.setUserId(userId);
 
-        when(accountRepository.findByAccountNumberAndInstitution("1234", "Chase", userId))
+        when(accountRepository.findByAccountNumberAndInstitution("1234", CHASE, userId))
                 .thenReturn(Optional.of(existingAccount));
 
         // When
@@ -341,7 +347,7 @@ class AccountDetectionServiceTest {
     @Test
     void testMatchToExistingAccountByAccountNumberOnlyMatches() {
         // Given
-        final String userId = "user-123";
+        final String userId = USER_123;
         final AccountDetectionService.DetectedAccount detected =
                 new AccountDetectionService.DetectedAccount();
         detected.setAccountNumber("5678");
@@ -365,16 +371,16 @@ class AccountDetectionServiceTest {
     @Test
     void testMatchToExistingAccountByInstitutionAndTypeMatches() {
         // Given
-        final String userId = "user-123";
+        final String userId = USER_123;
         final AccountDetectionService.DetectedAccount detected =
                 new AccountDetectionService.DetectedAccount();
-        detected.setInstitutionName("Chase");
-        detected.setAccountType("depository");
+        detected.setInstitutionName(CHASE);
+        detected.setAccountType(DEPOSITORY);
 
         final AccountTable existingAccount = new AccountTable();
         existingAccount.setAccountId(UUID.randomUUID().toString());
-        existingAccount.setInstitutionName("Chase");
-        existingAccount.setAccountType("depository");
+        existingAccount.setInstitutionName(CHASE);
+        existingAccount.setAccountType(DEPOSITORY);
         existingAccount.setUserId(userId);
 
         when(accountRepository.findByUserId(userId)).thenReturn(Arrays.asList(existingAccount));
@@ -390,12 +396,12 @@ class AccountDetectionServiceTest {
     @Test
     void testMatchToExistingAccountNoMatchReturnsNull() {
         // Given
-        final String userId = "user-123";
+        final String userId = USER_123;
         final AccountDetectionService.DetectedAccount detected =
                 new AccountDetectionService.DetectedAccount();
         detected.setAccountNumber("9999");
         detected.setInstitutionName("Unknown Bank");
-        detected.setAccountType("depository"); // Add account type so findByUserId is called
+        detected.setAccountType(DEPOSITORY); // Add account type so findByUserId is called
 
         when(accountRepository.findByAccountNumberAndInstitution(
                         anyString(), anyString(), eq(userId)))
@@ -436,7 +442,7 @@ class AccountDetectionServiceTest {
     @Test
     void testMatchToExistingAccountNullDetectedReturnsNull() {
         // Given
-        final String userId = "user-123";
+        final String userId = USER_123;
 
         // When
         final String matchedId = accountDetectionService.matchToExistingAccount(userId, null);

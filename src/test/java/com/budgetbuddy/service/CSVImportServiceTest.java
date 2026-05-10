@@ -1,7 +1,5 @@
 package com.budgetbuddy.service;
 
-
-import java.util.Locale;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -10,11 +8,16 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.Locale;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 /** Unit Tests for CSVImportService */
 class CSVImportServiceTest {
+
+    private static final String AMOUNT = "amount";
+    private static final String DATE = "date";
+    private static final String DESCRIPTION = "description";
 
     private CSVImportService csvImportService;
 
@@ -22,9 +25,10 @@ class CSVImportServiceTest {
     void setUp() {
         final AccountDetectionService accountDetectionService =
                 org.mockito.Mockito.mock(AccountDetectionService.class);
-        final com.budgetbuddy.service.ml.EnhancedCategoryDetectionService enhancedCategoryDetection =
-                org.mockito.Mockito.mock(
-                        com.budgetbuddy.service.ml.EnhancedCategoryDetectionService.class);
+        final com.budgetbuddy.service.ml.EnhancedCategoryDetectionService
+                enhancedCategoryDetection =
+                        org.mockito.Mockito.mock(
+                                com.budgetbuddy.service.ml.EnhancedCategoryDetectionService.class);
         final com.budgetbuddy.service.ml.FuzzyMatchingService fuzzyMatchingService =
                 org.mockito.Mockito.mock(com.budgetbuddy.service.ml.FuzzyMatchingService.class);
         final TransactionTypeCategoryService transactionTypeCategoryService =
@@ -67,7 +71,8 @@ class CSVImportServiceTest {
     @Test
     void testParseCSVWithEmptyFileReturnsGracefully() {
         // Given
-        final InputStream inputStream = new ByteArrayInputStream("".getBytes(StandardCharsets.UTF_8));
+        final InputStream inputStream =
+                new ByteArrayInputStream("".getBytes(StandardCharsets.UTF_8));
 
         // When
         final CSVImportService.ImportResult result =
@@ -78,7 +83,9 @@ class CSVImportServiceTest {
         assertEquals(0, result.getSuccessCount());
         assertEquals(0, result.getFailureCount()); // addInfo() doesn't increment failureCount
         assertTrue(result.getErrors().size() > 0); // Info message is added to errors list
-        assertTrue(result.getErrors().stream().anyMatch(e -> e.toLowerCase(Locale.ROOT).contains("empty")));
+        assertTrue(
+                result.getErrors().stream()
+                        .anyMatch(e -> e.toLowerCase(Locale.ROOT).contains("empty")));
     }
 
     @Test
@@ -151,7 +158,8 @@ class CSVImportServiceTest {
     @Test
     void testParseCSVWithInvalidAmountHandlesGracefully() {
         // Given
-        final String csvContent = "Date,Description,Amount\n" + "2024-01-15,Grocery Store,invalid-amount";
+        final String csvContent =
+                "Date,Description,Amount\n" + "2024-01-15,Grocery Store,invalid-amount";
         final InputStream inputStream =
                 new ByteArrayInputStream(csvContent.getBytes(StandardCharsets.UTF_8));
 
@@ -243,9 +251,9 @@ class CSVImportServiceTest {
     void testParseTransactionWithCreditCardAccountReversesSign() {
         // Given
         final CSVImportService.ParsedRow row = new CSVImportService.ParsedRow();
-        row.put("date", "2024-01-15");
-        row.put("description", "Grocery Store");
-        row.put("amount", "50.00");
+        row.put(DATE, "2024-01-15");
+        row.put(DESCRIPTION, "Grocery Store");
+        row.put(AMOUNT, "50.00");
 
         final AccountDetectionService.DetectedAccount creditCardAccount =
                 new AccountDetectionService.DetectedAccount();
@@ -275,9 +283,9 @@ class CSVImportServiceTest {
     void testParseTransactionWithCreditCardAccountNegativeAmountReversesToPositive() {
         // Given - Credit card payment (negative in import, should reverse to positive)
         final CSVImportService.ParsedRow row = new CSVImportService.ParsedRow();
-        row.put("date", "2024-01-15");
-        row.put("description", "Payment");
-        row.put("amount", "-100.00");
+        row.put(DATE, "2024-01-15");
+        row.put(DESCRIPTION, "Payment");
+        row.put(AMOUNT, "-100.00");
 
         final AccountDetectionService.DetectedAccount creditCardAccount =
                 new AccountDetectionService.DetectedAccount();
@@ -306,9 +314,9 @@ class CSVImportServiceTest {
     void testParseTransactionWithNonCreditCardAccountDoesNotReverseSign() {
         // Given
         final CSVImportService.ParsedRow row = new CSVImportService.ParsedRow();
-        row.put("date", "2024-01-15");
-        row.put("description", "Grocery Store");
-        row.put("amount", "50.00");
+        row.put(DATE, "2024-01-15");
+        row.put(DESCRIPTION, "Grocery Store");
+        row.put(AMOUNT, "50.00");
 
         final AccountDetectionService.DetectedAccount checkingAccount =
                 new AccountDetectionService.DetectedAccount();
@@ -337,9 +345,9 @@ class CSVImportServiceTest {
     void testParseTransactionWithNullDetectedAccountDoesNotReverseSign() {
         // Given
         final CSVImportService.ParsedRow row = new CSVImportService.ParsedRow();
-        row.put("date", "2024-01-15");
-        row.put("description", "Grocery Store");
-        row.put("amount", "50.00");
+        row.put(DATE, "2024-01-15");
+        row.put(DESCRIPTION, "Grocery Store");
+        row.put(AMOUNT, "50.00");
 
         // When - No detected account
         final CSVImportService.ParsedTransaction transaction =
@@ -364,9 +372,9 @@ class CSVImportServiceTest {
     void testParseTransactionWithNullAccountTypeDoesNotReverseSign() {
         // Given
         final CSVImportService.ParsedRow row = new CSVImportService.ParsedRow();
-        row.put("date", "2024-01-15");
-        row.put("description", "Grocery Store");
-        row.put("amount", "50.00");
+        row.put(DATE, "2024-01-15");
+        row.put(DESCRIPTION, "Grocery Store");
+        row.put(AMOUNT, "50.00");
 
         final AccountDetectionService.DetectedAccount account =
                 new AccountDetectionService.DetectedAccount();
@@ -395,9 +403,9 @@ class CSVImportServiceTest {
     void testParseTransactionWithCreditCardAccountZeroAmountRemainsZero() {
         // Given
         final CSVImportService.ParsedRow row = new CSVImportService.ParsedRow();
-        row.put("date", "2024-01-15");
-        row.put("description", "Zero Transaction");
-        row.put("amount", "0.00");
+        row.put(DATE, "2024-01-15");
+        row.put(DESCRIPTION, "Zero Transaction");
+        row.put(AMOUNT, "0.00");
 
         final AccountDetectionService.DetectedAccount creditCardAccount =
                 new AccountDetectionService.DetectedAccount();
@@ -429,15 +437,15 @@ class CSVImportServiceTest {
     void testParseTransactionWithCreditCardAccountVariousAccountTypeFormatsReversesSign() {
         // Test different credit card account type formats
         final String[] creditCardTypes = {
-                "credit", "creditCard", "credit_card", "CREDIT", "Credit Card", "CREDIT_CARD"
+            "credit", "creditCard", "credit_card", "CREDIT", "Credit Card", "CREDIT_CARD"
         };
 
         for (final String accountType : creditCardTypes) {
             // Given
             final CSVImportService.ParsedRow row = new CSVImportService.ParsedRow();
-            row.put("date", "2024-01-15");
-            row.put("description", "Test Transaction");
-            row.put("amount", "100.00");
+            row.put(DATE, "2024-01-15");
+            row.put(DESCRIPTION, "Test Transaction");
+            row.put(AMOUNT, "100.00");
 
             final AccountDetectionService.DetectedAccount account =
                     new AccountDetectionService.DetectedAccount();
@@ -471,9 +479,9 @@ class CSVImportServiceTest {
     void testParseTransactionWithCreditCardAccountContainsCreditKeywordReversesSign() {
         // Given - Account type contains "credit" keyword
         final CSVImportService.ParsedRow row = new CSVImportService.ParsedRow();
-        row.put("date", "2024-01-15");
-        row.put("description", "Test Transaction");
-        row.put("amount", "75.50");
+        row.put(DATE, "2024-01-15");
+        row.put(DESCRIPTION, "Test Transaction");
+        row.put(AMOUNT, "75.50");
 
         final AccountDetectionService.DetectedAccount account =
                 new AccountDetectionService.DetectedAccount();

@@ -15,6 +15,8 @@ import org.springframework.test.util.ReflectionTestUtils;
 @SuppressWarnings("PMD.LawOfDemeter")
 class CloudWatchAlarmsConfigTest {
 
+    private static final String GREATERTHANTHRESHOLD = "GreaterThanThreshold";
+
     private CloudWatchAlarmsConfig config;
 
     @BeforeEach
@@ -36,7 +38,7 @@ class CloudWatchAlarmsConfigTest {
         assertEquals("ErrorRate", alarmConfig.getName());
         assertEquals(10, alarmConfig.getThreshold());
         assertEquals(2, alarmConfig.getEvaluationPeriods());
-        assertEquals("GreaterThanThreshold", alarmConfig.getComparisonOperator());
+        assertEquals(GREATERTHANTHRESHOLD, alarmConfig.getComparisonOperator());
     }
 
     @Test
@@ -53,7 +55,7 @@ class CloudWatchAlarmsConfigTest {
         assertEquals("LatencyP95", alarmConfig.getName());
         assertEquals(1000, alarmConfig.getThreshold());
         assertEquals(3, alarmConfig.getEvaluationPeriods());
-        assertEquals("GreaterThanThreshold", alarmConfig.getComparisonOperator());
+        assertEquals(GREATERTHANTHRESHOLD, alarmConfig.getComparisonOperator());
     }
 
     @Test
@@ -70,7 +72,7 @@ class CloudWatchAlarmsConfigTest {
         assertEquals("LatencyP99", alarmConfig.getName());
         assertEquals(2000, alarmConfig.getThreshold());
         assertEquals(3, alarmConfig.getEvaluationPeriods());
-        assertEquals("GreaterThanThreshold", alarmConfig.getComparisonOperator());
+        assertEquals(GREATERTHANTHRESHOLD, alarmConfig.getComparisonOperator());
     }
 
     @Test
@@ -88,7 +90,7 @@ class CloudWatchAlarmsConfigTest {
         assertEquals("DatabaseConnectionPool", alarmConfig.getName());
         assertEquals(80, alarmConfig.getThreshold());
         assertEquals(2, alarmConfig.getEvaluationPeriods());
-        assertEquals("GreaterThanThreshold", alarmConfig.getComparisonOperator());
+        assertEquals(GREATERTHANTHRESHOLD, alarmConfig.getComparisonOperator());
     }
 
     @Test
@@ -105,7 +107,7 @@ class CloudWatchAlarmsConfigTest {
         assertEquals("MemoryUsage", alarmConfig.getName());
         assertEquals(85, alarmConfig.getThreshold());
         assertEquals(2, alarmConfig.getEvaluationPeriods());
-        assertEquals("GreaterThanThreshold", alarmConfig.getComparisonOperator());
+        assertEquals(GREATERTHANTHRESHOLD, alarmConfig.getComparisonOperator());
     }
 
     @Test
@@ -122,19 +124,19 @@ class CloudWatchAlarmsConfigTest {
         assertEquals("CpuUsage", alarmConfig.getName());
         assertEquals(80, alarmConfig.getThreshold());
         assertEquals(2, alarmConfig.getEvaluationPeriods());
-        assertEquals("GreaterThanThreshold", alarmConfig.getComparisonOperator());
+        assertEquals(GREATERTHANTHRESHOLD, alarmConfig.getComparisonOperator());
     }
 
     @Test
     void testAlarmConfigConstructor() {
         // When
         final CloudWatchAlarmsConfig.AlarmConfig alarmConfig =
-                new CloudWatchAlarmsConfig.AlarmConfig("TestAlarm", 50, 3, "GreaterThanThreshold");
+                new CloudWatchAlarmsConfig.AlarmConfig("TestAlarm", 50, 3, GREATERTHANTHRESHOLD);
 
         // Then
         assertEquals("TestAlarm", alarmConfig.getName());
         assertEquals(50, alarmConfig.getThreshold());
         assertEquals(3, alarmConfig.getEvaluationPeriods());
-        assertEquals("GreaterThanThreshold", alarmConfig.getComparisonOperator());
+        assertEquals(GREATERTHANTHRESHOLD, alarmConfig.getComparisonOperator());
     }
 }

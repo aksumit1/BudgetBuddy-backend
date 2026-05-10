@@ -46,6 +46,11 @@ import software.amazon.awssdk.services.dynamodb.model.UpdateTimeToLiveRequest;
 @SuppressWarnings("PMD.AvoidCatchingGenericException")
 public final class TableInitializer {
 
+    private static final String USERID = "userId";
+    private static final String UPDATEDATTIMESTAMP = "updatedAtTimestamp";
+    private static final String USERIDUPDATEDATINDEX = "UserIdUpdatedAtIndex";
+    private static final String USERIDINDEX = "UserIdIndex";
+
     private static final Logger LOGGER = LoggerFactory.getLogger(TableInitializer.class);
     private static final String TABLE_PREFIX = "TestBudgetBuddy";
 
@@ -184,14 +189,14 @@ public final class TableInitializer {
                     // Reset the flag so we can re-initialize
                     final boolean isResourceNotFound =
                             e
-                                    instanceof
-                                    software.amazon.awssdk.services.dynamodb.model
-                                            .ResourceNotFoundException
+                                            instanceof
+                                            software.amazon.awssdk.services.dynamodb.model
+                                                    .ResourceNotFoundException
                                     || (e.getCause() != null
-                                    && e.getCause()
-                                    instanceof
-                                    software.amazon.awssdk.services.dynamodb.model
-                                            .ResourceNotFoundException);
+                                            && e.getCause()
+                                                    instanceof
+                                                    software.amazon.awssdk.services.dynamodb.model
+                                                            .ResourceNotFoundException);
 
                     if (isResourceNotFound) {
                         LOGGER.warn(
@@ -237,15 +242,16 @@ public final class TableInitializer {
     }
 
     /** Verify that critical tables exist and are ACTIVE */
-    private static void verifyCriticalTablesActive(final DynamoDbClient dynamoDbClient) throws Exception {
+    private static void verifyCriticalTablesActive(final DynamoDbClient dynamoDbClient)
+            throws Exception {
         final String[] criticalTables = {
-                TABLE_PREFIX + "-Users",
-                TABLE_PREFIX + "-Accounts",
-                TABLE_PREFIX + "-Transactions",
-                TABLE_PREFIX + "-Budgets",
-                TABLE_PREFIX + "-Goals",
-                TABLE_PREFIX + "-TransactionActions",
-                TABLE_PREFIX + "-AuditLogs" // Required for DMA compliance and GDPR exports
+            TABLE_PREFIX + "-Users",
+            TABLE_PREFIX + "-Accounts",
+            TABLE_PREFIX + "-Transactions",
+            TABLE_PREFIX + "-Budgets",
+            TABLE_PREFIX + "-Goals",
+            TABLE_PREFIX + "-TransactionActions",
+            TABLE_PREFIX + "-AuditLogs" // Required for DMA compliance and GDPR exports
         };
 
         final int maxAttempts = 10;
@@ -406,7 +412,7 @@ public final class TableInitializer {
                             .billingMode(BillingMode.PAY_PER_REQUEST)
                             .attributeDefinitions(
                                     AttributeDefinition.builder()
-                                            .attributeName("userId")
+                                            .attributeName(USERID)
                                             .attributeType(ScalarAttributeType.S)
                                             .build(),
                                     AttributeDefinition.builder()
@@ -415,7 +421,7 @@ public final class TableInitializer {
                                             .build())
                             .keySchema(
                                     KeySchemaElement.builder()
-                                            .attributeName("userId")
+                                            .attributeName(USERID)
                                             .keyType(KeyType.HASH)
                                             .build())
                             .globalSecondaryIndexes(
@@ -476,7 +482,7 @@ public final class TableInitializer {
                                             .attributeType(ScalarAttributeType.S)
                                             .build(),
                                     AttributeDefinition.builder()
-                                            .attributeName("userId")
+                                            .attributeName(USERID)
                                             .attributeType(ScalarAttributeType.S)
                                             .build(),
                                     AttributeDefinition.builder()
@@ -484,7 +490,7 @@ public final class TableInitializer {
                                             .attributeType(ScalarAttributeType.S)
                                             .build(),
                                     AttributeDefinition.builder()
-                                            .attributeName("updatedAtTimestamp")
+                                            .attributeName(UPDATEDATTIMESTAMP)
                                             .attributeType(ScalarAttributeType.N)
                                             .build())
                             .keySchema(
@@ -494,10 +500,10 @@ public final class TableInitializer {
                                             .build())
                             .globalSecondaryIndexes(
                                     GlobalSecondaryIndex.builder()
-                                            .indexName("UserIdIndex")
+                                            .indexName(USERIDINDEX)
                                             .keySchema(
                                                     KeySchemaElement.builder()
-                                                            .attributeName("userId")
+                                                            .attributeName(USERID)
                                                             .keyType(KeyType.HASH)
                                                             .build())
                                             .projection(
@@ -518,14 +524,14 @@ public final class TableInitializer {
                                                             .build())
                                             .build(),
                                     GlobalSecondaryIndex.builder()
-                                            .indexName("UserIdUpdatedAtIndex")
+                                            .indexName(USERIDUPDATEDATINDEX)
                                             .keySchema(
                                                     KeySchemaElement.builder()
-                                                            .attributeName("userId")
+                                                            .attributeName(USERID)
                                                             .keyType(KeyType.HASH)
                                                             .build(),
                                                     KeySchemaElement.builder()
-                                                            .attributeName("updatedAtTimestamp")
+                                                            .attributeName(UPDATEDATTIMESTAMP)
                                                             .keyType(KeyType.RANGE)
                                                             .build())
                                             .projection(
@@ -570,8 +576,8 @@ public final class TableInitializer {
                 final List<String> existingGSINames =
                         existingTable.table().globalSecondaryIndexes() != null
                                 ? existingTable.table().globalSecondaryIndexes().stream()
-                                .map(gsi -> gsi.indexName())
-                                .collect(java.util.stream.Collectors.toList())
+                                        .map(gsi -> gsi.indexName())
+                                        .collect(java.util.stream.Collectors.toList())
                                 : new ArrayList<>();
 
                 final List<String> requiredGSIs =
@@ -579,7 +585,7 @@ public final class TableInitializer {
                                 "UserIdDateIndex",
                                 "AccountIdTransactionDateIndex",
                                 "PlaidTransactionIdIndex",
-                                "UserIdUpdatedAtIndex");
+                                USERIDUPDATEDATINDEX);
                 final List<String> missingGSIs =
                         requiredGSIs.stream()
                                 .filter(gsiName -> !existingGSINames.contains(gsiName))
@@ -616,7 +622,7 @@ public final class TableInitializer {
                                             .attributeType(ScalarAttributeType.S)
                                             .build(),
                                     AttributeDefinition.builder()
-                                            .attributeName("userId")
+                                            .attributeName(USERID)
                                             .attributeType(ScalarAttributeType.S)
                                             .build(),
                                     AttributeDefinition.builder()
@@ -632,7 +638,7 @@ public final class TableInitializer {
                                             .attributeType(ScalarAttributeType.S)
                                             .build(),
                                     AttributeDefinition.builder()
-                                            .attributeName("updatedAtTimestamp")
+                                            .attributeName(UPDATEDATTIMESTAMP)
                                             .attributeType(ScalarAttributeType.N)
                                             .build())
                             .keySchema(
@@ -645,7 +651,7 @@ public final class TableInitializer {
                                             .indexName("UserIdDateIndex")
                                             .keySchema(
                                                     KeySchemaElement.builder()
-                                                            .attributeName("userId")
+                                                            .attributeName(USERID)
                                                             .keyType(KeyType.HASH)
                                                             .build(),
                                                     KeySchemaElement.builder()
@@ -686,14 +692,14 @@ public final class TableInitializer {
                                                             .build())
                                             .build(),
                                     GlobalSecondaryIndex.builder()
-                                            .indexName("UserIdUpdatedAtIndex")
+                                            .indexName(USERIDUPDATEDATINDEX)
                                             .keySchema(
                                                     KeySchemaElement.builder()
-                                                            .attributeName("userId")
+                                                            .attributeName(USERID)
                                                             .keyType(KeyType.HASH)
                                                             .build(),
                                                     KeySchemaElement.builder()
-                                                            .attributeName("updatedAtTimestamp")
+                                                            .attributeName(UPDATEDATTIMESTAMP)
                                                             .keyType(KeyType.RANGE)
                                                             .build())
                                             .projection(
@@ -760,7 +766,7 @@ public final class TableInitializer {
                                             .attributeType(ScalarAttributeType.S)
                                             .build(),
                                     AttributeDefinition.builder()
-                                            .attributeName("userId")
+                                            .attributeName(USERID)
                                             .attributeType(ScalarAttributeType.S)
                                             .build(),
                                     AttributeDefinition.builder()
@@ -772,7 +778,7 @@ public final class TableInitializer {
                                             .attributeType(ScalarAttributeType.S)
                                             .build(),
                                     AttributeDefinition.builder()
-                                            .attributeName("updatedAtTimestamp")
+                                            .attributeName(UPDATEDATTIMESTAMP)
                                             .attributeType(ScalarAttributeType.N)
                                             .build())
                             .keySchema(
@@ -794,10 +800,10 @@ public final class TableInitializer {
                                                             .build())
                                             .build(),
                                     GlobalSecondaryIndex.builder()
-                                            .indexName("UserIdIndex")
+                                            .indexName(USERIDINDEX)
                                             .keySchema(
                                                     KeySchemaElement.builder()
-                                                            .attributeName("userId")
+                                                            .attributeName(USERID)
                                                             .keyType(KeyType.HASH)
                                                             .build())
                                             .projection(
@@ -822,14 +828,14 @@ public final class TableInitializer {
                                                             .build())
                                             .build(),
                                     GlobalSecondaryIndex.builder()
-                                            .indexName("UserIdUpdatedAtIndex")
+                                            .indexName(USERIDUPDATEDATINDEX)
                                             .keySchema(
                                                     KeySchemaElement.builder()
-                                                            .attributeName("userId")
+                                                            .attributeName(USERID)
                                                             .keyType(KeyType.HASH)
                                                             .build(),
                                                     KeySchemaElement.builder()
-                                                            .attributeName("updatedAtTimestamp")
+                                                            .attributeName(UPDATEDATTIMESTAMP)
                                                             .keyType(KeyType.RANGE)
                                                             .build())
                                             .projection(
@@ -882,7 +888,7 @@ public final class TableInitializer {
                                             .attributeType(ScalarAttributeType.S)
                                             .build(),
                                     AttributeDefinition.builder()
-                                            .attributeName("userId")
+                                            .attributeName(USERID)
                                             .attributeType(ScalarAttributeType.S)
                                             .build())
                             .keySchema(
@@ -892,10 +898,10 @@ public final class TableInitializer {
                                             .build())
                             .globalSecondaryIndexes(
                                     GlobalSecondaryIndex.builder()
-                                            .indexName("UserIdIndex")
+                                            .indexName(USERIDINDEX)
                                             .keySchema(
                                                     KeySchemaElement.builder()
-                                                            .attributeName("userId")
+                                                            .attributeName(USERID)
                                                             .keyType(KeyType.HASH)
                                                             .build())
                                             .projection(
@@ -937,7 +943,7 @@ public final class TableInitializer {
                                             .attributeType(ScalarAttributeType.S)
                                             .build(),
                                     AttributeDefinition.builder()
-                                            .attributeName("userId")
+                                            .attributeName(USERID)
                                             .attributeType(ScalarAttributeType.S)
                                             .build(),
                                     AttributeDefinition.builder()
@@ -958,7 +964,7 @@ public final class TableInitializer {
                                             .indexName("UserIdCreatedAtIndex")
                                             .keySchema(
                                                     KeySchemaElement.builder()
-                                                            .attributeName("userId")
+                                                            .attributeName(USERID)
                                                             .keyType(KeyType.HASH)
                                                             .build(),
                                                     KeySchemaElement.builder()
@@ -1046,7 +1052,7 @@ public final class TableInitializer {
                                             .attributeType(ScalarAttributeType.S)
                                             .build(),
                                     AttributeDefinition.builder()
-                                            .attributeName("userId")
+                                            .attributeName(USERID)
                                             .attributeType(ScalarAttributeType.S)
                                             .build())
                             .keySchema(
@@ -1055,7 +1061,7 @@ public final class TableInitializer {
                                             .keyType(KeyType.HASH)
                                             .build(),
                                     KeySchemaElement.builder()
-                                            .attributeName("userId")
+                                            .attributeName(USERID)
                                             .keyType(KeyType.RANGE)
                                             .build())
                             .build();
@@ -1104,7 +1110,7 @@ public final class TableInitializer {
                                             .attributeType(ScalarAttributeType.S)
                                             .build(),
                                     AttributeDefinition.builder()
-                                            .attributeName("userId")
+                                            .attributeName(USERID)
                                             .attributeType(ScalarAttributeType.S)
                                             .build())
                             .keySchema(
@@ -1114,10 +1120,10 @@ public final class TableInitializer {
                                             .build())
                             .globalSecondaryIndexes(
                                     GlobalSecondaryIndex.builder()
-                                            .indexName("UserIdIndex")
+                                            .indexName(USERIDINDEX)
                                             .keySchema(
                                                     KeySchemaElement.builder()
-                                                            .attributeName("userId")
+                                                            .attributeName(USERID)
                                                             .keyType(KeyType.HASH)
                                                             .build())
                                             .projection(
@@ -1176,7 +1182,7 @@ public final class TableInitializer {
                             .billingMode(BillingMode.PAY_PER_REQUEST)
                             .attributeDefinitions(
                                     AttributeDefinition.builder()
-                                            .attributeName("userId")
+                                            .attributeName(USERID)
                                             .attributeType(ScalarAttributeType.S)
                                             .build(),
                                     AttributeDefinition.builder()
@@ -1185,7 +1191,7 @@ public final class TableInitializer {
                                             .build())
                             .keySchema(
                                     KeySchemaElement.builder()
-                                            .attributeName("userId")
+                                            .attributeName(USERID)
                                             .keyType(KeyType.HASH)
                                             .build(),
                                     KeySchemaElement.builder()
@@ -1238,7 +1244,7 @@ public final class TableInitializer {
                             .billingMode(BillingMode.PAY_PER_REQUEST)
                             .attributeDefinitions(
                                     AttributeDefinition.builder()
-                                            .attributeName("userId")
+                                            .attributeName(USERID)
                                             .attributeType(ScalarAttributeType.S)
                                             .build(),
                                     AttributeDefinition.builder()
@@ -1247,7 +1253,7 @@ public final class TableInitializer {
                                             .build())
                             .keySchema(
                                     KeySchemaElement.builder()
-                                            .attributeName("userId")
+                                            .attributeName(USERID)
                                             .keyType(KeyType.HASH)
                                             .build(),
                                     KeySchemaElement.builder()
@@ -1311,11 +1317,11 @@ public final class TableInitializer {
                                             .attributeType(ScalarAttributeType.S)
                                             .build(),
                                     AttributeDefinition.builder()
-                                            .attributeName("userId")
+                                            .attributeName(USERID)
                                             .attributeType(ScalarAttributeType.S)
                                             .build(),
                                     AttributeDefinition.builder()
-                                            .attributeName("updatedAtTimestamp")
+                                            .attributeName(UPDATEDATTIMESTAMP)
                                             .attributeType(ScalarAttributeType.N)
                                             .build())
                             .keySchema(
@@ -1325,10 +1331,10 @@ public final class TableInitializer {
                                             .build())
                             .globalSecondaryIndexes(
                                     GlobalSecondaryIndex.builder()
-                                            .indexName("UserIdIndex")
+                                            .indexName(USERIDINDEX)
                                             .keySchema(
                                                     KeySchemaElement.builder()
-                                                            .attributeName("userId")
+                                                            .attributeName(USERID)
                                                             .keyType(KeyType.HASH)
                                                             .build())
                                             .projection(
@@ -1337,14 +1343,14 @@ public final class TableInitializer {
                                                             .build())
                                             .build(),
                                     GlobalSecondaryIndex.builder()
-                                            .indexName("UserIdUpdatedAtIndex")
+                                            .indexName(USERIDUPDATEDATINDEX)
                                             .keySchema(
                                                     KeySchemaElement.builder()
-                                                            .attributeName("userId")
+                                                            .attributeName(USERID)
                                                             .keyType(KeyType.HASH)
                                                             .build(),
                                                     KeySchemaElement.builder()
-                                                            .attributeName("updatedAtTimestamp")
+                                                            .attributeName(UPDATEDATTIMESTAMP)
                                                             .keyType(KeyType.RANGE)
                                                             .build())
                                             .projection(
@@ -1441,7 +1447,8 @@ public final class TableInitializer {
         }
     }
 
-    private static void waitForTableActive(final DynamoDbClient dynamoDbClient, final String tableName) {
+    private static void waitForTableActive(
+            final DynamoDbClient dynamoDbClient, final String tableName) {
         final int maxAttempts = 20; // Increased for CI stability
         int attempt = 0;
         while (attempt < maxAttempts) {
@@ -1465,7 +1472,8 @@ public final class TableInitializer {
                 boolean allGSIsActive = true;
                 if (table.globalSecondaryIndexes() != null
                         && !table.globalSecondaryIndexes().isEmpty()) {
-                    for (final GlobalSecondaryIndexDescription gsi : table.globalSecondaryIndexes()) {
+                    for (final GlobalSecondaryIndexDescription gsi :
+                            table.globalSecondaryIndexes()) {
                         if (gsi.indexStatus() != IndexStatus.ACTIVE) {
                             allGSIsActive = false;
                             LOGGER.debug(
@@ -1496,6 +1504,5 @@ public final class TableInitializer {
                 maxAttempts);
     }
 
-    private TableInitializer() {
-    }
+    private TableInitializer() {}
 }

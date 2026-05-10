@@ -25,6 +25,11 @@ import org.springframework.test.context.ActiveProfiles;
 @Import(AWSTestConfiguration.class)
 class AdvancedAccountDetectionIntegrationTest {
 
+    private static final String DATE = "Date";
+    private static final String DEPOSITORY = "depository";
+    private static final String AMOUNT = "Amount";
+    private static final String DESCRIPTION = "Description";
+
     @Autowired private AdvancedAccountDetectionService advancedDetectionService;
 
     @Test
@@ -32,9 +37,9 @@ class AdvancedAccountDetectionIntegrationTest {
         final String filename = "chase_checking_1234_statement_2024.csv";
         final List<String> headers =
                 Arrays.asList(
-                        "Date",
+                        DATE,
                         "Account Number ending in: 1234",
-                        "Description",
+                        DESCRIPTION,
                         "Debit",
                         "Credit",
                         "Balance");
@@ -65,12 +70,13 @@ class AdvancedAccountDetectionIntegrationTest {
         metadata.put("title", "Chase Bank Statement");
         metadata.put("institution", "JPMorgan Chase Bank");
 
-        final var result = advancedDetectionService.detectAccount(filename, headers, dataRows, metadata);
+        final var result =
+                advancedDetectionService.detectAccount(filename, headers, dataRows, metadata);
 
         assertNotNull(result);
         assertEquals("1234", result.getAccountNumber());
         assertEquals("chase", result.getInstitutionName());
-        assertEquals("depository", result.getAccountType());
+        assertEquals(DEPOSITORY, result.getAccountType());
         assertNotNull(result.getAccountName());
     }
 
@@ -79,7 +85,7 @@ class AdvancedAccountDetectionIntegrationTest {
         final String filename = "bofa_credit_card_5678.csv";
         final List<String> headers =
                 Arrays.asList(
-                        "Transaction Date", "Card Number ending in: 5678", "Merchant", "Amount");
+                        "Transaction Date", "Card Number ending in: 5678", "Merchant", AMOUNT);
         final List<List<String>> dataRows =
                 Arrays.asList(
                         Arrays.asList("2024-01-01", "****5678", "AMAZON.COM", "50.00"),
@@ -87,7 +93,8 @@ class AdvancedAccountDetectionIntegrationTest {
                         Arrays.asList("2024-01-03", "****5678", "SHELL GAS STATION", "30.00"));
         final Map<String, String> metadata = new HashMap<>();
 
-        final var result = advancedDetectionService.detectAccount(filename, headers, dataRows, metadata);
+        final var result =
+                advancedDetectionService.detectAccount(filename, headers, dataRows, metadata);
 
         assertNotNull(result);
         assertEquals("5678", result.getAccountNumber());
@@ -99,7 +106,7 @@ class AdvancedAccountDetectionIntegrationTest {
     void testUKBankHSBCCurrentAccountCSV() {
         final String filename = "hsbc_current_account_GB82WEST12345698765432.csv";
         final List<String> headers =
-                Arrays.asList("Date", "IBAN", "Description", "Debit", "Credit", "Balance");
+                Arrays.asList(DATE, "IBAN", DESCRIPTION, "Debit", "Credit", "Balance");
         final List<List<String>> dataRows =
                 Arrays.asList(
                         Arrays.asList(
@@ -118,11 +125,12 @@ class AdvancedAccountDetectionIntegrationTest {
                                 "5000.00"));
         final Map<String, String> metadata = new HashMap<>();
 
-        final var result = advancedDetectionService.detectAccount(filename, headers, dataRows, metadata);
+        final var result =
+                advancedDetectionService.detectAccount(filename, headers, dataRows, metadata);
 
         assertNotNull(result);
         assertEquals("hsbc", result.getInstitutionName());
-        assertEquals("depository", result.getAccountType());
+        assertEquals(DEPOSITORY, result.getAccountType());
     }
 
     @Test
@@ -130,7 +138,7 @@ class AdvancedAccountDetectionIntegrationTest {
         final String filename = "sbi_savings_5678_statement.csv";
         final List<String> headers =
                 Arrays.asList(
-                        "Date",
+                        DATE,
                         "Account Number",
                         "Transaction Details",
                         "Debit",
@@ -154,12 +162,13 @@ class AdvancedAccountDetectionIntegrationTest {
                                 "99500.00"));
         final Map<String, String> metadata = new HashMap<>();
 
-        final var result = advancedDetectionService.detectAccount(filename, headers, dataRows, metadata);
+        final var result =
+                advancedDetectionService.detectAccount(filename, headers, dataRows, metadata);
 
         assertNotNull(result);
         assertEquals("5678", result.getAccountNumber());
         assertEquals("state bank of india", result.getInstitutionName());
-        assertEquals("depository", result.getAccountType());
+        assertEquals(DEPOSITORY, result.getAccountType());
     }
 
     @Test
@@ -172,12 +181,13 @@ class AdvancedAccountDetectionIntegrationTest {
                         Arrays.asList("2024-01-02", "1234", "购物", "500.00", "", "19500.00"));
         final Map<String, String> metadata = new HashMap<>();
 
-        final var result = advancedDetectionService.detectAccount(filename, headers, dataRows, metadata);
+        final var result =
+                advancedDetectionService.detectAccount(filename, headers, dataRows, metadata);
 
         assertNotNull(result);
         assertEquals("1234", result.getAccountNumber());
         assertEquals("industrial and commercial bank of china", result.getInstitutionName());
-        assertEquals("depository", result.getAccountType());
+        assertEquals(DEPOSITORY, result.getAccountType());
     }
 
     @Test
@@ -190,11 +200,12 @@ class AdvancedAccountDetectionIntegrationTest {
                         Arrays.asList("2024-01-02", "1234", "買い物", "5000.00", "", "495000.00"));
         final Map<String, String> metadata = new HashMap<>();
 
-        final var result = advancedDetectionService.detectAccount(filename, headers, dataRows, metadata);
+        final var result =
+                advancedDetectionService.detectAccount(filename, headers, dataRows, metadata);
 
         assertNotNull(result);
         assertEquals("1234", result.getAccountNumber());
-        assertEquals("depository", result.getAccountType());
+        assertEquals(DEPOSITORY, result.getAccountType());
     }
 
     @Test
@@ -208,40 +219,40 @@ class AdvancedAccountDetectionIntegrationTest {
                         Arrays.asList("2024-01-02", "1234", "Einkauf", "100.00", "", "9900.00"));
         final Map<String, String> metadata = new HashMap<>();
 
-        final var result = advancedDetectionService.detectAccount(filename, headers, dataRows, metadata);
+        final var result =
+                advancedDetectionService.detectAccount(filename, headers, dataRows, metadata);
 
         assertNotNull(result);
         assertEquals("1234", result.getAccountNumber());
         assertEquals("deutsche bank", result.getInstitutionName());
-        assertEquals("depository", result.getAccountType());
+        assertEquals(DEPOSITORY, result.getAccountType());
     }
 
     @Test
     void testFrenchBankBNPParibasCompteCourantCSV() {
         final String filename = "bnp_paribas_compte_courant_1234.csv";
         final List<String> headers =
-                Arrays.asList(
-                        "Date", "Numéro de compte", "Description", "Débit", "Crédit", "Solde");
+                Arrays.asList(DATE, "Numéro de compte", DESCRIPTION, "Débit", "Crédit", "Solde");
         final List<List<String>> dataRows =
                 Arrays.asList(
                         Arrays.asList("2024-01-01", "1234", "Salaire", "", "4000.00", "8000.00"),
                         Arrays.asList("2024-01-02", "1234", "Achat", "200.00", "", "7800.00"));
         final Map<String, String> metadata = new HashMap<>();
 
-        final var result = advancedDetectionService.detectAccount(filename, headers, dataRows, metadata);
+        final var result =
+                advancedDetectionService.detectAccount(filename, headers, dataRows, metadata);
 
         assertNotNull(result);
         assertEquals("1234", result.getAccountNumber());
         assertEquals("bnp paribas", result.getInstitutionName());
-        assertEquals("depository", result.getAccountType());
+        assertEquals(DEPOSITORY, result.getAccountType());
     }
 
     @Test
     void testInvestmentAccountFidelity401kCSV() {
         final String filename = "fidelity_401k_statement.csv";
         final List<String> headers =
-                Arrays.asList(
-                        "Date", "Account Number", "Transaction Type", "Amount", "Description");
+                Arrays.asList(DATE, "Account Number", "Transaction Type", AMOUNT, DESCRIPTION);
         final List<List<String>> dataRows =
                 Arrays.asList(
                         Arrays.asList(
@@ -254,7 +265,8 @@ class AdvancedAccountDetectionIntegrationTest {
                                 "2024-01-02", "123456789", "Dividend", "50.00", "Stock Dividend"));
         final Map<String, String> metadata = new HashMap<>();
 
-        final var result = advancedDetectionService.detectAccount(filename, headers, dataRows, metadata);
+        final var result =
+                advancedDetectionService.detectAccount(filename, headers, dataRows, metadata);
 
         assertNotNull(result);
         assertEquals("fidelity", result.getInstitutionName());
@@ -265,14 +277,15 @@ class AdvancedAccountDetectionIntegrationTest {
     void testCreditCardAmericanExpressCSV() {
         final String filename = "amex_credit_card_5678.csv";
         final List<String> headers =
-                Arrays.asList("Date", "Card Number ending in: 5678", "Merchant", "Amount");
+                Arrays.asList(DATE, "Card Number ending in: 5678", "Merchant", AMOUNT);
         final List<List<String>> dataRows =
                 Arrays.asList(
                         Arrays.asList("2024-01-01", "****5678", "HOTEL RESERVATION", "200.00"),
                         Arrays.asList("2024-01-02", "****5678", "RESTAURANT", "50.00"));
         final Map<String, String> metadata = new HashMap<>();
 
-        final var result = advancedDetectionService.detectAccount(filename, headers, dataRows, metadata);
+        final var result =
+                advancedDetectionService.detectAccount(filename, headers, dataRows, metadata);
 
         assertNotNull(result);
         assertEquals("5678", result.getAccountNumber());
@@ -283,7 +296,7 @@ class AdvancedAccountDetectionIntegrationTest {
     @Test
     void testAccountDetectionFromTransactionPatterns() {
         final String filename = "statement.csv";
-        final List<String> headers = Arrays.asList("Date", "Description", "Amount");
+        final List<String> headers = Arrays.asList(DATE, DESCRIPTION, AMOUNT);
         final List<List<String>> dataRows =
                 Arrays.asList(
                         Arrays.asList("2024-01-01", "Check #1234 - Rent Payment", "1000.00"),
@@ -293,10 +306,11 @@ class AdvancedAccountDetectionIntegrationTest {
                         Arrays.asList("2024-01-05", "Debit Card Purchase", "50.00"));
         final Map<String, String> metadata = new HashMap<>();
 
-        final var result = advancedDetectionService.detectAccount(filename, headers, dataRows, metadata);
+        final var result =
+                advancedDetectionService.detectAccount(filename, headers, dataRows, metadata);
 
         assertNotNull(result);
-        assertEquals("depository", result.getAccountType());
+        assertEquals(DEPOSITORY, result.getAccountType());
     }
 
     @Test
@@ -304,48 +318,51 @@ class AdvancedAccountDetectionIntegrationTest {
         final String filename = "chase_checking_1234.csv";
         final List<String> headers =
                 Arrays.asList(
-                        "Date",
+                        DATE,
                         "Account Number ending in: 1234",
                         "Institution: JPMorgan Chase",
-                        "Amount");
+                        AMOUNT);
         final List<List<String>> dataRows =
                 Arrays.asList(Arrays.asList("2024-01-01", "****1234", "Chase Bank", "100.00"));
         final Map<String, String> metadata = new HashMap<>();
         metadata.put("title", "Chase Bank Statement");
         metadata.put("institution", "JPMorgan Chase Bank, N.A.");
 
-        final var result = advancedDetectionService.detectAccount(filename, headers, dataRows, metadata);
+        final var result =
+                advancedDetectionService.detectAccount(filename, headers, dataRows, metadata);
 
         assertNotNull(result);
         assertEquals("1234", result.getAccountNumber());
         assertEquals("chase", result.getInstitutionName());
-        assertEquals("depository", result.getAccountType());
+        assertEquals(DEPOSITORY, result.getAccountType());
     }
 
     @Test
     void testAccountDetectionEdgeCaseNoAccountNumber() {
         final String filename = "chase_checking_statement.csv";
-        final List<String> headers = Arrays.asList("Date", "Amount", "Description");
+        final List<String> headers = Arrays.asList(DATE, AMOUNT, DESCRIPTION);
         final List<List<String>> dataRows =
                 Arrays.asList(Arrays.asList("2024-01-01", "100.00", "Transaction"));
         final Map<String, String> metadata = new HashMap<>();
 
-        final var result = advancedDetectionService.detectAccount(filename, headers, dataRows, metadata);
+        final var result =
+                advancedDetectionService.detectAccount(filename, headers, dataRows, metadata);
 
         assertNotNull(result);
         assertEquals("chase", result.getInstitutionName());
-        assertEquals("depository", result.getAccountType());
+        assertEquals(DEPOSITORY, result.getAccountType());
         // Account number may be null if not found
     }
 
     @Test
     void testAccountDetectionEdgeCaseEmptyData() {
         final String filename = "statement.csv";
-        final List<String> headers = Arrays.asList("Date", "Amount", "Description");
+        final List<String> headers = Arrays.asList(DATE, AMOUNT, DESCRIPTION);
         final List<List<String>> dataRows = new ArrayList<>();
         final Map<String, String> metadata = new HashMap<>();
 
-        final var result = advancedDetectionService.detectAccount(filename, headers, dataRows, metadata);
+        final var result =
+                advancedDetectionService.detectAccount(filename, headers, dataRows, metadata);
 
         assertNotNull(result);
         // Should handle gracefully

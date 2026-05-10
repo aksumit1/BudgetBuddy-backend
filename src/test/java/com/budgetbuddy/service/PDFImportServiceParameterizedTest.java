@@ -1,10 +1,10 @@
 package com.budgetbuddy.service;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.lang.reflect.Method;
 import java.math.BigDecimal;
 import java.util.List;
@@ -32,6 +32,8 @@ import org.junit.jupiter.params.provider.ValueSource;
         justification = "JUnit idiom — test methods accept any setup exception")
 @DisplayName("PDF Import Service Parameterized Tests")
 class PDFImportServiceParameterizedTest {
+
+    private static final String DATE = "date";
 
     private PDFImportService pdfImportService;
 
@@ -149,7 +151,8 @@ class PDFImportServiceParameterizedTest {
         "31/12/2024, 2024-12-31"
     })
     @DisplayName("Parse various date formats with inferred year 2025")
-    void testParseDateVariousFormats(final String dateString, final String expectedDate) throws Exception {
+    void testParseDateVariousFormats(final String dateString, final String expectedDate)
+            throws Exception {
         final Method parseDateMethod =
                 PDFImportService.class.getDeclaredMethod("parseDate", String.class, Integer.class);
         parseDateMethod.setAccessible(true);
@@ -233,7 +236,10 @@ class PDFImportServiceParameterizedTest {
     })
     @DisplayName("Extract transaction rows with various formats")
     void testExtractRowVariousFormats(
-            final String line, final String expectedDate, final String expectedDescription, final String expectedAmount)
+            final String line,
+            final String expectedDate,
+            final String expectedDescription,
+            final String expectedAmount)
             throws Exception {
         final Method method =
                 PDFImportService.class.getDeclaredMethod(
@@ -243,13 +249,13 @@ class PDFImportServiceParameterizedTest {
                         Integer.class);
         method.setAccessible(true);
 
-        final List<String> headers = List.of("date", "date", "description", "amount");
-        @SuppressWarnings({"unchecked", "PMD.AvoidCatchingGenericException"}) final
-                Map<String, String> row =
+        final List<String> headers = List.of(DATE, DATE, "description", "amount");
+        @SuppressWarnings({"unchecked", "PMD.AvoidCatchingGenericException"})
+        final Map<String, String> row =
                 (Map<String, String>) method.invoke(pdfImportService, line, headers, 2025);
 
         assertNotNull(row, "Should extract row from: " + line);
-        assertEquals(expectedDate, row.get("date"), "Date should match");
+        assertEquals(expectedDate, row.get(DATE), "Date should match");
         assertEquals(expectedDescription, row.get("description"), "Description should match");
         assertEquals(expectedAmount, row.get("amount"), "Amount should match");
     }
@@ -290,7 +296,8 @@ class PDFImportServiceParameterizedTest {
                 PDFImportService.class.getDeclaredMethod("parseAmount", String.class);
         parseAmountMethod.setAccessible(true);
 
-        final BigDecimal result = (BigDecimal) parseAmountMethod.invoke(pdfImportService, amountString);
+        final BigDecimal result =
+                (BigDecimal) parseAmountMethod.invoke(pdfImportService, amountString);
         final BigDecimal expected = new BigDecimal(expectedValue);
 
         assertNotNull(result, "Should parse boundary amount: " + amountString);
@@ -323,9 +330,9 @@ class PDFImportServiceParameterizedTest {
                         Integer.class);
         method.setAccessible(true);
 
-        final List<String> headers = List.of("date", "date", "description", "amount");
-        @SuppressWarnings("unchecked") final
-                Map<String, String> row =
+        final List<String> headers = List.of(DATE, DATE, "description", "amount");
+        @SuppressWarnings("unchecked")
+        final Map<String, String> row =
                 (Map<String, String>) method.invoke(pdfImportService, line, headers, 2025);
 
         assertNotNull(row, "Should extract row with special characters");

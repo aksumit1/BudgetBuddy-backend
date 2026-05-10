@@ -54,8 +54,8 @@ public class CacheMetrics {
             final Cache cache = cacheManager.getCache(cacheName);
             if (cache != null
                     && cache.getNativeCache() instanceof com.github.benmanes.caffeine.cache.Cache) {
-                @SuppressWarnings("unchecked") final
-                        com.github.benmanes.caffeine.cache.Cache<Object, Object> caffeineCache =
+                @SuppressWarnings("unchecked")
+                final com.github.benmanes.caffeine.cache.Cache<Object, Object> caffeineCache =
                         (com.github.benmanes.caffeine.cache.Cache<Object, Object>)
                                 cache.getNativeCache();
 
@@ -81,8 +81,8 @@ public class CacheMetrics {
         }
 
         if (cache.getNativeCache() instanceof com.github.benmanes.caffeine.cache.Cache) {
-            @SuppressWarnings("unchecked") final
-                    com.github.benmanes.caffeine.cache.Cache<Object, Object> caffeineCache =
+            @SuppressWarnings("unchecked")
+            final com.github.benmanes.caffeine.cache.Cache<Object, Object> caffeineCache =
                     (com.github.benmanes.caffeine.cache.Cache<Object, Object>)
                             cache.getNativeCache();
 

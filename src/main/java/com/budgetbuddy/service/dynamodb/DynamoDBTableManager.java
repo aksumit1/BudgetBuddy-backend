@@ -54,7 +54,8 @@ public class DynamoDBTableManager {
 
     private static final String FAILED_TO_CREATE_TABLE = "Failed to create table {}: {}";
 
-    private static final String FAILED_TO_CREATE_TABLE_THIS_MAY_BE = "Failed to create table {}: {}. This may be expected if LocalStack is not running.";
+    private static final String FAILED_TO_CREATE_TABLE_THIS_MAY_BE =
+            "Failed to create table {}: {}. This may be expected if LocalStack is not running.";
 
     private static final String TABLE_ALREADY_EXISTS = "Table {} already exists";
 
@@ -185,10 +186,7 @@ public class DynamoDBTableManager {
         } catch (ResourceInUseException e) {
             LOGGER.debug(TABLE_ALREADY_EXISTS, tableName);
         } catch (Exception e) {
-            LOGGER.warn(
-                    FAILED_TO_CREATE_TABLE_THIS_MAY_BE,
-                    tableName,
-                    e.getMessage());
+            LOGGER.warn(FAILED_TO_CREATE_TABLE_THIS_MAY_BE, tableName, e.getMessage());
         }
     }
 
@@ -283,10 +281,7 @@ public class DynamoDBTableManager {
         } catch (ResourceInUseException e) {
             LOGGER.debug(TABLE_ALREADY_EXISTS, tableName);
         } catch (Exception e) {
-            LOGGER.warn(
-                    FAILED_TO_CREATE_TABLE_THIS_MAY_BE,
-                    tableName,
-                    e.getMessage());
+            LOGGER.warn(FAILED_TO_CREATE_TABLE_THIS_MAY_BE, tableName, e.getMessage());
         }
     }
 
@@ -413,10 +408,7 @@ public class DynamoDBTableManager {
         } catch (ResourceInUseException e) {
             LOGGER.debug(TABLE_ALREADY_EXISTS, tableName);
         } catch (Exception e) {
-            LOGGER.warn(
-                    FAILED_TO_CREATE_TABLE_THIS_MAY_BE,
-                    tableName,
-                    e.getMessage());
+            LOGGER.warn(FAILED_TO_CREATE_TABLE_THIS_MAY_BE, tableName, e.getMessage());
         }
     }
 
@@ -479,10 +471,7 @@ public class DynamoDBTableManager {
         } catch (ResourceInUseException e) {
             LOGGER.debug(TABLE_ALREADY_EXISTS, tableName);
         } catch (Exception e) {
-            LOGGER.warn(
-                    FAILED_TO_CREATE_TABLE_THIS_MAY_BE,
-                    tableName,
-                    e.getMessage());
+            LOGGER.warn(FAILED_TO_CREATE_TABLE_THIS_MAY_BE, tableName, e.getMessage());
         }
     }
 
@@ -545,10 +534,7 @@ public class DynamoDBTableManager {
         } catch (ResourceInUseException e) {
             LOGGER.debug(TABLE_ALREADY_EXISTS, tableName);
         } catch (Exception e) {
-            LOGGER.warn(
-                    FAILED_TO_CREATE_TABLE_THIS_MAY_BE,
-                    tableName,
-                    e.getMessage());
+            LOGGER.warn(FAILED_TO_CREATE_TABLE_THIS_MAY_BE, tableName, e.getMessage());
         }
     }
 
@@ -765,10 +751,7 @@ public class DynamoDBTableManager {
         } catch (ResourceInUseException e) {
             LOGGER.debug(TABLE_ALREADY_EXISTS, tableName);
         } catch (Exception e) {
-            LOGGER.warn(
-                    FAILED_TO_CREATE_TABLE_THIS_MAY_BE,
-                    tableName,
-                    e.getMessage());
+            LOGGER.warn(FAILED_TO_CREATE_TABLE_THIS_MAY_BE, tableName, e.getMessage());
         }
     }
 
@@ -1218,10 +1201,7 @@ public class DynamoDBTableManager {
         } catch (ResourceInUseException e) {
             LOGGER.debug(TABLE_ALREADY_EXISTS, tableName);
         } catch (Exception e) {
-            LOGGER.warn(
-                    FAILED_TO_CREATE_TABLE_THIS_MAY_BE,
-                    tableName,
-                    e.getMessage());
+            LOGGER.warn(FAILED_TO_CREATE_TABLE_THIS_MAY_BE, tableName, e.getMessage());
         }
     }
 
@@ -1264,10 +1244,7 @@ public class DynamoDBTableManager {
         } catch (ResourceInUseException e) {
             LOGGER.debug(TABLE_ALREADY_EXISTS, tableName);
         } catch (Exception e) {
-            LOGGER.warn(
-                    FAILED_TO_CREATE_TABLE_THIS_MAY_BE,
-                    tableName,
-                    e.getMessage());
+            LOGGER.warn(FAILED_TO_CREATE_TABLE_THIS_MAY_BE, tableName, e.getMessage());
         }
     }
 }

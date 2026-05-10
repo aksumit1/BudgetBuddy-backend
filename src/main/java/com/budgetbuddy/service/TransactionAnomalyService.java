@@ -1,12 +1,10 @@
 package com.budgetbuddy.service;
 
-
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import java.util.Locale;
 import com.budgetbuddy.exception.AppException;
 import com.budgetbuddy.exception.ErrorCode;
 import com.budgetbuddy.model.dynamodb.TransactionTable;
 import com.budgetbuddy.repository.dynamodb.TransactionRepository;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
@@ -16,6 +14,7 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -441,7 +440,8 @@ public class TransactionAnomalyService {
 
         // Check recent transactions for unknown merchants
         for (final TransactionTable tx : recentExpenses) {
-            final String merchant = normalizeMerchantName(tx.getMerchantName(), tx.getDescription());
+            final String merchant =
+                    normalizeMerchantName(tx.getMerchantName(), tx.getDescription());
             if (merchant == null || merchant.isEmpty()) {
                 continue;
             }
@@ -482,7 +482,8 @@ public class TransactionAnomalyService {
         final Map<String, List<TransactionTable>> byMerchantAndAmount = new HashMap<>();
 
         for (final TransactionTable tx : recentExpenses) {
-            final String merchant = normalizeMerchantName(tx.getMerchantName(), tx.getDescription());
+            final String merchant =
+                    normalizeMerchantName(tx.getMerchantName(), tx.getDescription());
             if (merchant == null || merchant.isEmpty()) {
                 continue;
             }

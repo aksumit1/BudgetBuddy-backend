@@ -1,9 +1,8 @@
 package com.budgetbuddy.compliance;
 
-
-import java.util.Locale;
 import com.budgetbuddy.model.dynamodb.UserTable;
 import com.budgetbuddy.service.UserService;
+import java.util.Locale;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.core.Authentication;
@@ -70,7 +69,9 @@ public class MutationAuditInterceptor {
             details.put("verb", verb);
             auditLogService.logAction(
                     userId,
-                    "DATA_" + verb.toUpperCase(Locale.ROOT), // DATA_CREATE / DATA_UPDATE / DATA_DELETE
+                    "DATA_"
+                            + verb.toUpperCase(
+                                    Locale.ROOT), // DATA_CREATE / DATA_UPDATE / DATA_DELETE
                     entityType,
                     entityId,
                     details,

@@ -33,6 +33,11 @@ import org.springframework.test.context.ActiveProfiles;
 @Import(AWSTestConfiguration.class)
 class TransactionTypeAndCategoryComprehensiveTest {
 
+    private static final String INTEREST = "interest";
+    private static final String SALARY = "salary";
+    private static final String GROCERIES = "groceries";
+    private static final String DINING = "dining";
+
     @Autowired private TransactionTypeCategoryService service;
 
     private AccountTable checkingAccount;
@@ -102,12 +107,12 @@ class TransactionTypeAndCategoryComprehensiveTest {
                         null,
                         null,
                         "PLAID" // Import source = PLAID triggers PlaidCategoryMapper
-                );
+                        );
 
         // Then - Should be dining (PlaidCategoryMapper should map FOOD_AND_DRINK/RESTAURANTS to
         // dining)
         assertEquals(
-                "dining",
+                DINING,
                 categoryResult.getCategoryPrimary(),
                 "KFC transaction should be categorized as dining, got: "
                         + categoryResult.getCategoryPrimary());
@@ -133,11 +138,11 @@ class TransactionTypeAndCategoryComprehensiveTest {
                         null,
                         null,
                         "PLAID" // Import source = PLAID triggers PlaidCategoryMapper
-                );
+                        );
 
         // Then - Should be dining
         assertEquals(
-                "dining",
+                DINING,
                 categoryResult.getCategoryPrimary(),
                 "KFC lowercase should be categorized as dining, got: "
                         + categoryResult.getCategoryPrimary());
@@ -182,11 +187,11 @@ class TransactionTypeAndCategoryComprehensiveTest {
     @DisplayName("Autopayment variations should NOT be categorized as income")
     void testAutopaymentVariationsNotCategorizedAsIncome() {
         final String[] variations = {
-                "AUTOPAYMENT - Rent",
-                "Auto Payment - Credit Card",
-                "Automatic Payment",
-                "AUTO-PAYMENT Utilities",
-                "Recurring Payment - Subscription"
+            "AUTOPAYMENT - Rent",
+            "Auto Payment - Credit Card",
+            "Automatic Payment",
+            "AUTO-PAYMENT Utilities",
+            "Recurring Payment - Subscription"
         };
 
         for (final String description : variations) {
@@ -220,7 +225,8 @@ class TransactionTypeAndCategoryComprehensiveTest {
         // Given - Salary transaction
         final String description = "Direct Deposit - Salary";
         final String merchantName = "EMPLOYER CORP";
-        final BigDecimal amount = new BigDecimal("-5000.00"); // Negative from Plaid = positive income
+        final BigDecimal amount =
+                new BigDecimal("-5000.00"); // Negative from Plaid = positive income
 
         // When - Determine category (using PLAID source to trigger category mapping)
         final TransactionTypeCategoryService.CategoryResult categoryResult =
@@ -234,13 +240,13 @@ class TransactionTypeAndCategoryComprehensiveTest {
                         null,
                         null,
                         "PLAID" // Import source = PLAID triggers PlaidCategoryMapper
-                );
+                        );
 
         // Then - Should be income (PlaidCategoryMapper maps TRANSFER_IN/DEPOSIT to income)
-        // The backend should also detect "salary" keywords from description
+        // The backend should also detect SALARY keywords from description
         assertTrue(
                 "income".equals(categoryResult.getCategoryPrimary())
-                        || "salary".equals(categoryResult.getCategoryPrimary())
+                        || SALARY.equals(categoryResult.getCategoryPrimary())
                         || "deposit".equals(categoryResult.getCategoryPrimary()),
                 "Salary transaction should be income, salary, or deposit, got: "
                         + categoryResult.getCategoryPrimary());
@@ -256,7 +262,7 @@ class TransactionTypeAndCategoryComprehensiveTest {
         // When - Determine type
         final TransactionTypeCategoryService.TypeResult typeResult =
                 service.determineTransactionType(
-                        checkingAccount, "dining", "dining", amount, null, description, null);
+                        checkingAccount, DINING, DINING, amount, null, description, null);
 
         // Then - Should be EXPENSE type
         assertEquals(
@@ -304,11 +310,11 @@ class TransactionTypeAndCategoryComprehensiveTest {
                         null,
                         null,
                         "PLAID" // Import source = PLAID triggers PlaidCategoryMapper
-                );
+                        );
 
         // Then - Should be dining
         assertEquals(
-                "dining",
+                DINING,
                 categoryResult.getCategoryPrimary(),
                 "Chicken restaurant should be categorized as dining, got: "
                         + categoryResult.getCategoryPrimary());
@@ -416,7 +422,7 @@ class TransactionTypeAndCategoryComprehensiveTest {
         // When - Determine type
         final TransactionTypeCategoryService.TypeResult typeResult =
                 service.determineTransactionType(
-                        checkingAccount, "groceries", "groceries", amount, null, description, null);
+                        checkingAccount, GROCERIES, GROCERIES, amount, null, description, null);
 
         // Then - Should be EXPENSE type
         assertEquals(
@@ -435,7 +441,7 @@ class TransactionTypeAndCategoryComprehensiveTest {
         // When - Determine type
         final TransactionTypeCategoryService.TypeResult typeResult =
                 service.determineTransactionType(
-                        checkingAccount, "income", "salary", amount, null, description, null);
+                        checkingAccount, "income", SALARY, amount, null, description, null);
 
         // Then - Should be INCOME type
         assertEquals(
@@ -716,7 +722,8 @@ class TransactionTypeAndCategoryComprehensiveTest {
         // Given - ACH credit with salary keywords
         final String description = "ACH Credit - Salary Payment";
         final String merchantName = "Employer Corp";
-        final BigDecimal amount = new BigDecimal("-5000.00"); // Negative from Plaid = positive income
+        final BigDecimal amount =
+                new BigDecimal("-5000.00"); // Negative from Plaid = positive income
 
         // When - Determine category
         final TransactionTypeCategoryService.CategoryResult categoryResult =
@@ -733,9 +740,9 @@ class TransactionTypeAndCategoryComprehensiveTest {
 
         // Then - Should be salary (may be in primary or detailed, or income if not detected)
         assertTrue(
-                "salary".equals(categoryResult.getCategoryPrimary())
+                SALARY.equals(categoryResult.getCategoryPrimary())
                         || "income".equals(categoryResult.getCategoryPrimary())
-                        || "salary".equals(categoryResult.getCategoryDetailed()),
+                        || SALARY.equals(categoryResult.getCategoryDetailed()),
                 "ACH credit with salary keywords should be salary or income, got primary: "
                         + categoryResult.getCategoryPrimary()
                         + ", detailed: "
@@ -761,14 +768,14 @@ class TransactionTypeAndCategoryComprehensiveTest {
                         "ach",
                         null,
                         "CSV" // CSV import source
-                );
+                        );
 
         // Then - Should be salary (description contains "payroll" which should trigger salary
         // detection)
         // Note: The backend's determineIncomeCategoryFromDescription logic should detect "payroll"
         // keyword
         assertTrue(
-                "salary".equals(categoryResult.getCategoryPrimary())
+                SALARY.equals(categoryResult.getCategoryPrimary())
                         || "income".equals(categoryResult.getCategoryPrimary())
                         || "deposit".equals(categoryResult.getCategoryPrimary()),
                 "ACH credit with payroll keywords should be salary, income, or deposit, got: "
@@ -786,7 +793,7 @@ class TransactionTypeAndCategoryComprehensiveTest {
         final TransactionTypeCategoryService.CategoryResult categoryResult =
                 service.determineCategory(
                         "income",
-                        "interest",
+                        INTEREST,
                         checkingAccount,
                         null,
                         description,
@@ -797,9 +804,9 @@ class TransactionTypeAndCategoryComprehensiveTest {
 
         // Then - Should be interest (may be in primary or detailed, or income if not detected)
         assertTrue(
-                "interest".equals(categoryResult.getCategoryPrimary())
+                INTEREST.equals(categoryResult.getCategoryPrimary())
                         || "income".equals(categoryResult.getCategoryPrimary())
-                        || "interest".equals(categoryResult.getCategoryDetailed()),
+                        || INTEREST.equals(categoryResult.getCategoryDetailed()),
                 "INTRST payment should be detected as interest or income, got primary: "
                         + categoryResult.getCategoryPrimary()
                         + ", detailed: "
@@ -817,7 +824,7 @@ class TransactionTypeAndCategoryComprehensiveTest {
         final TransactionTypeCategoryService.CategoryResult categoryResult =
                 service.determineCategory(
                         "income",
-                        "interest",
+                        INTEREST,
                         checkingAccount,
                         null,
                         description,
@@ -828,9 +835,9 @@ class TransactionTypeAndCategoryComprehensiveTest {
 
         // Then - Should be interest (may be in primary or detailed, or income if not detected)
         assertTrue(
-                "interest".equals(categoryResult.getCategoryPrimary())
+                INTEREST.equals(categoryResult.getCategoryPrimary())
                         || "income".equals(categoryResult.getCategoryPrimary())
-                        || "interest".equals(categoryResult.getCategoryDetailed()),
+                        || INTEREST.equals(categoryResult.getCategoryDetailed()),
                 "INTR payment should be detected as interest or income, got primary: "
                         + categoryResult.getCategoryPrimary()
                         + ", detailed: "
@@ -848,7 +855,7 @@ class TransactionTypeAndCategoryComprehensiveTest {
         final TransactionTypeCategoryService.CategoryResult categoryResult =
                 service.determineCategory(
                         "income",
-                        "interest",
+                        INTEREST,
                         checkingAccount,
                         null,
                         description,
@@ -859,9 +866,9 @@ class TransactionTypeAndCategoryComprehensiveTest {
 
         // Then - Should be interest (may be in primary or detailed, or income if not detected)
         assertTrue(
-                "interest".equals(categoryResult.getCategoryPrimary())
+                INTEREST.equals(categoryResult.getCategoryPrimary())
                         || "income".equals(categoryResult.getCategoryPrimary())
-                        || "interest".equals(categoryResult.getCategoryDetailed()),
+                        || INTEREST.equals(categoryResult.getCategoryDetailed()),
                 "Interest payment should be detected as interest or income, got primary: "
                         + categoryResult.getCategoryPrimary()
                         + ", detailed: "
@@ -899,13 +906,7 @@ class TransactionTypeAndCategoryComprehensiveTest {
         // When - Determine type
         final TransactionTypeCategoryService.TypeResult result =
                 service.determineTransactionType(
-                        creditCardAccount,
-                        "groceries",
-                        "groceries",
-                        amount,
-                        null,
-                        description,
-                        null);
+                        creditCardAccount, GROCERIES, GROCERIES, amount, null, description, null);
 
         // Then - Should be EXPENSE
         assertEquals(
@@ -1019,7 +1020,7 @@ class TransactionTypeAndCategoryComprehensiveTest {
         // When - Determine type
         final TransactionTypeCategoryService.TypeResult result =
                 service.determineTransactionType(
-                        checkingAccount, "income", "salary", amount, null, description, null);
+                        checkingAccount, "income", SALARY, amount, null, description, null);
 
         // Then - Should be INCOME
         assertEquals(
@@ -1038,7 +1039,7 @@ class TransactionTypeAndCategoryComprehensiveTest {
         // When - Determine type
         final TransactionTypeCategoryService.TypeResult result =
                 service.determineTransactionType(
-                        checkingAccount, "groceries", "groceries", amount, null, description, null);
+                        checkingAccount, GROCERIES, GROCERIES, amount, null, description, null);
 
         // Then - Should be EXPENSE
         assertEquals(

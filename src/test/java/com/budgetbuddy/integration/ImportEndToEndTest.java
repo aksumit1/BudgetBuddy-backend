@@ -1,7 +1,5 @@
 package com.budgetbuddy.integration;
 
-
-import java.nio.charset.StandardCharsets;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -16,6 +14,7 @@ import com.budgetbuddy.repository.dynamodb.AccountRepository;
 import com.budgetbuddy.service.AuthService;
 import com.budgetbuddy.service.UserService;
 import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
@@ -46,6 +45,9 @@ import org.springframework.test.web.servlet.MockMvc;
 @ActiveProfiles("test")
 class ImportEndToEndTest {
 
+    private static final String FILE = "file";
+    private static final String AUTHORIZATION = "Authorization";
+
     @Autowired private MockMvc mockMvc;
 
     // ObjectMapper not currently used but may be needed for future test enhancements
@@ -68,7 +70,9 @@ class ImportEndToEndTest {
     void setUp() {
         SecurityContextHolder.clearContext();
         testEmail = "test-import-" + UUID.randomUUID() + "@example.com";
-        testPasswordHash = Base64.getEncoder().encodeToString("hashed-password".getBytes(StandardCharsets.UTF_8));
+        testPasswordHash =
+                Base64.getEncoder()
+                        .encodeToString("hashed-password".getBytes(StandardCharsets.UTF_8));
 
         // Create test user
         testUser = userService.createUserSecure(testEmail, testPasswordHash, "Test", "User");
@@ -101,12 +105,13 @@ class ImportEndToEndTest {
         final String csvContent =
                 "Date,Amount,Description\n2024-01-15,-50.00,Grocery Store\n2024-01-16,-25.50,Coffee Shop";
         final MockMultipartFile file =
-                new MockMultipartFile("file", "test.csv", "text/csv", csvContent.getBytes(StandardCharsets.UTF_8));
+                new MockMultipartFile(
+                        FILE, "test.csv", "text/csv", csvContent.getBytes(StandardCharsets.UTF_8));
 
         mockMvc.perform(
                         multipart("/api/transactions/import-csv/preview")
                                 .file(file)
-                                .header("Authorization", "Bearer " + authToken))
+                                .header(AUTHORIZATION, "Bearer " + authToken))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.transactions").isArray())
                 .andExpect(jsonPath("$.transactions.length()").value(2))
@@ -120,13 +125,14 @@ class ImportEndToEndTest {
         // Test CSV import endpoint
         final String csvContent = "Date,Amount,Description\n2024-01-15,-50.00,Grocery Store";
         final MockMultipartFile file =
-                new MockMultipartFile("file", "test.csv", "text/csv", csvContent.getBytes(StandardCharsets.UTF_8));
+                new MockMultipartFile(
+                        FILE, "test.csv", "text/csv", csvContent.getBytes(StandardCharsets.UTF_8));
 
         mockMvc.perform(
                         multipart("/api/transactions/import-csv")
                                 .file(file)
                                 .param("accountId", testAccount.getAccountId())
-                                .header("Authorization", "Bearer " + authToken))
+                                .header(AUTHORIZATION, "Bearer " + authToken))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.successful").exists())
                 .andExpect(jsonPath("$.failed").exists());
@@ -140,7 +146,7 @@ class ImportEndToEndTest {
         final String excelContent = "Date\tAmount\tDescription\n2024-01-15\t-50.00\tGrocery Store";
         final MockMultipartFile file =
                 new MockMultipartFile(
-                        "file",
+                        FILE,
                         "test.xlsx",
                         "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                         excelContent.getBytes(StandardCharsets.UTF_8));
@@ -151,9 +157,9 @@ class ImportEndToEndTest {
         // format)
         final var result =
                 mockMvc.perform(
-                        multipart("/api/transactions/import-excel/preview")
-                                .file(file)
-                                .header("Authorization", "Bearer " + authToken))
+                                multipart("/api/transactions/import-excel/preview")
+                                        .file(file)
+                                        .header(AUTHORIZATION, "Bearer " + authToken))
                         .andReturn();
 
         final int status = result.getResponse().getStatus();
@@ -170,7 +176,11 @@ class ImportEndToEndTest {
         final String pdfContent =
                 "Statement Period: 01/01/2024 - 01/31/2024\nDate\tAmount\tDescription\n01/15/2024\t-50.00\tGrocery Store";
         final MockMultipartFile file =
-                new MockMultipartFile("file", "test.pdf", "application/pdf", pdfContent.getBytes(StandardCharsets.UTF_8));
+                new MockMultipartFile(
+                        FILE,
+                        "test.pdf",
+                        "application/pdf",
+                        pdfContent.getBytes(StandardCharsets.UTF_8));
 
         // Note: This test may fail if backend requires actual PDF format
         // The endpoint should handle invalid PDF files gracefully
@@ -178,9 +188,9 @@ class ImportEndToEndTest {
         // format)
         final var result =
                 mockMvc.perform(
-                        multipart("/api/transactions/import-pdf/preview")
-                                .file(file)
-                                .header("Authorization", "Bearer " + authToken))
+                                multipart("/api/transactions/import-pdf/preview")
+                                        .file(file)
+                                        .header(AUTHORIZATION, "Bearer " + authToken))
                         .andReturn();
 
         final int status = result.getResponse().getStatus();
@@ -197,13 +207,13 @@ class ImportEndToEndTest {
         java.util.Arrays.fill(largeContent, (byte) 'A');
 
         final MockMultipartFile file =
-                new MockMultipartFile("file", "large.csv", "text/csv", largeContent);
+                new MockMultipartFile(FILE, "large.csv", "text/csv", largeContent);
 
         final var result =
                 mockMvc.perform(
-                        multipart("/api/transactions/import-csv/preview")
-                                .file(file)
-                                .header("Authorization", "Bearer " + authToken))
+                                multipart("/api/transactions/import-csv/preview")
+                                        .file(file)
+                                        .header(AUTHORIZATION, "Bearer " + authToken))
                         .andReturn();
 
         final int status = result.getResponse().getStatus();
@@ -217,12 +227,15 @@ class ImportEndToEndTest {
         // Test that invalid file types are rejected
         final MockMultipartFile file =
                 new MockMultipartFile(
-                        "file", "test.txt", "text/plain", "This is not a CSV file".getBytes(StandardCharsets.UTF_8));
+                        FILE,
+                        "test.txt",
+                        "text/plain",
+                        "This is not a CSV file".getBytes(StandardCharsets.UTF_8));
 
         mockMvc.perform(
                         multipart("/api/transactions/import-csv/preview")
                                 .file(file)
-                                .header("Authorization", "Bearer " + authToken))
+                                .header(AUTHORIZATION, "Bearer " + authToken))
                 .andExpect(status().isBadRequest());
     }
 
@@ -231,7 +244,8 @@ class ImportEndToEndTest {
         // Test that unauthenticated requests are rejected
         final String csvContent = "Date,Amount,Description\n2024-01-15,-50.00,Grocery Store";
         final MockMultipartFile file =
-                new MockMultipartFile("file", "test.csv", "text/csv", csvContent.getBytes(StandardCharsets.UTF_8));
+                new MockMultipartFile(
+                        FILE, "test.csv", "text/csv", csvContent.getBytes(StandardCharsets.UTF_8));
 
         mockMvc.perform(multipart("/api/transactions/import-csv/preview").file(file))
                 .andExpect(status().isUnauthorized());
@@ -242,13 +256,14 @@ class ImportEndToEndTest {
         // Test that CSV preview returns consistent response format
         final String csvContent = "Date,Amount,Description\n2024-01-15,-50.00,Grocery Store";
         final MockMultipartFile file =
-                new MockMultipartFile("file", "test.csv", "text/csv", csvContent.getBytes(StandardCharsets.UTF_8));
+                new MockMultipartFile(
+                        FILE, "test.csv", "text/csv", csvContent.getBytes(StandardCharsets.UTF_8));
 
         final String response =
                 mockMvc.perform(
-                        multipart("/api/transactions/import-csv/preview")
-                                .file(file)
-                                .header("Authorization", "Bearer " + authToken))
+                                multipart("/api/transactions/import-csv/preview")
+                                        .file(file)
+                                        .header(AUTHORIZATION, "Bearer " + authToken))
                         .andExpect(status().isOk())
                         .andExpect(jsonPath("$.transactions").exists())
                         .andReturn()

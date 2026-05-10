@@ -33,6 +33,9 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class TransactionActionReminderValidationTest {
 
+    private static final String TRANSACTION_123 = "transaction-123";
+    private static final String ACTION_123 = "action-123";
+
     @Mock private TransactionActionRepository actionRepository;
 
     @Mock private TransactionRepository transactionRepository;
@@ -51,7 +54,7 @@ class TransactionActionReminderValidationTest {
         testUser.setEmail("test@example.com");
 
         testTransaction = new TransactionTable();
-        testTransaction.setTransactionId("transaction-123");
+        testTransaction.setTransactionId(TRANSACTION_123);
         testTransaction.setUserId("user-123");
         testTransaction.setAmount(new BigDecimal("100.0"));
         testTransaction.setTransactionDate("2024-12-01");
@@ -63,7 +66,7 @@ class TransactionActionReminderValidationTest {
         final String dueDate = "2024-12-31";
         final String reminderDate = "2024-12-30T10:00:00Z";
 
-        when(transactionRepository.findById("transaction-123"))
+        when(transactionRepository.findById(TRANSACTION_123))
                 .thenReturn(Optional.of(testTransaction));
         lenient().when(actionRepository.findById(any())).thenReturn(Optional.empty());
         doAnswer(
@@ -78,7 +81,7 @@ class TransactionActionReminderValidationTest {
         final TransactionActionTable action =
                 transactionActionService.createAction(
                         testUser,
-                        "transaction-123",
+                        TRANSACTION_123,
                         "Test Action",
                         "Test Description",
                         dueDate,
@@ -97,7 +100,7 @@ class TransactionActionReminderValidationTest {
         // Given: Action with only reminder date (no due date)
         final String reminderDate = "2024-12-30T10:00:00Z";
 
-        when(transactionRepository.findById("transaction-123"))
+        when(transactionRepository.findById(TRANSACTION_123))
                 .thenReturn(Optional.of(testTransaction));
         lenient().when(actionRepository.findById(any())).thenReturn(Optional.empty());
         doAnswer(
@@ -112,7 +115,7 @@ class TransactionActionReminderValidationTest {
         final TransactionActionTable action =
                 transactionActionService.createAction(
                         testUser,
-                        "transaction-123",
+                        TRANSACTION_123,
                         "Test Action",
                         "Test Description",
                         null, // No due date
@@ -131,7 +134,7 @@ class TransactionActionReminderValidationTest {
         // Given: Action with only due date (no reminder date)
         final String dueDate = "2024-12-31";
 
-        when(transactionRepository.findById("transaction-123"))
+        when(transactionRepository.findById(TRANSACTION_123))
                 .thenReturn(Optional.of(testTransaction));
         lenient().when(actionRepository.findById(any())).thenReturn(Optional.empty());
         doAnswer(
@@ -146,7 +149,7 @@ class TransactionActionReminderValidationTest {
         final TransactionActionTable action =
                 transactionActionService.createAction(
                         testUser,
-                        "transaction-123",
+                        TRANSACTION_123,
                         "Test Action",
                         "Test Description",
                         dueDate,
@@ -164,7 +167,7 @@ class TransactionActionReminderValidationTest {
     void testUpdateActionWithBothDatesValidatesReminderDate() {
         // Given: Existing action and update with both dates
         final TransactionActionTable existingAction = new TransactionActionTable();
-        existingAction.setActionId("action-123");
+        existingAction.setActionId(ACTION_123);
         existingAction.setUserId("user-123");
         existingAction.setTitle("Existing Action");
         existingAction.setDueDate("2024-12-31");
@@ -173,7 +176,7 @@ class TransactionActionReminderValidationTest {
         final String newDueDate = "2024-12-31";
         final String newReminderDate = "2024-12-29T10:00:00Z";
 
-        when(actionRepository.findById("action-123")).thenReturn(Optional.of(existingAction));
+        when(actionRepository.findById(ACTION_123)).thenReturn(Optional.of(existingAction));
         doAnswer(
                         invocation -> {
                             final TransactionActionTable action = invocation.getArgument(0);
@@ -186,7 +189,7 @@ class TransactionActionReminderValidationTest {
         final TransactionActionTable updatedAction =
                 transactionActionService.updateAction(
                         testUser,
-                        "action-123",
+                        ACTION_123,
                         null,
                         null,
                         newDueDate,
@@ -207,14 +210,14 @@ class TransactionActionReminderValidationTest {
     void testUpdateActionWithReminderDateAfterDueDateStillValidates() {
         // Given: Reminder date after due date (user's choice, but not ideal)
         final TransactionActionTable existingAction = new TransactionActionTable();
-        existingAction.setActionId("action-123");
+        existingAction.setActionId(ACTION_123);
         existingAction.setUserId("user-123");
         existingAction.setTitle("Existing Action");
 
         final String dueDate = "2024-12-31";
         final String reminderDate = "2025-01-01T10:00:00Z"; // After due date
 
-        when(actionRepository.findById("action-123")).thenReturn(Optional.of(existingAction));
+        when(actionRepository.findById(ACTION_123)).thenReturn(Optional.of(existingAction));
         doAnswer(
                         invocation -> {
                             final TransactionActionTable action = invocation.getArgument(0);
@@ -226,15 +229,7 @@ class TransactionActionReminderValidationTest {
         // When: Update action
         final TransactionActionTable updatedAction =
                 transactionActionService.updateAction(
-                        testUser,
-                        "action-123",
-                        null,
-                        null,
-                        dueDate,
-                        reminderDate,
-                        null,
-                        null,
-                        null);
+                        testUser, ACTION_123, null, null, dueDate, reminderDate, null, null, null);
 
         // Then: Validation should still be called (logs warning but allows it)
         verify(reminderNotificationService, times(1)).validateReminderDate(reminderDate, dueDate);

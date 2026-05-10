@@ -15,6 +15,9 @@ import org.springframework.test.util.ReflectionTestUtils;
 /** Unit Tests for PaginationHelper */
 class PaginationHelperTest {
 
+    private static final String ITEM2 = "item2";
+    private static final String ITEM1 = "item1";
+
     @BeforeEach
     void setUp() {
         // Reset static fields to defaults
@@ -121,7 +124,7 @@ class PaginationHelperTest {
     @Test
     void testCreateResultWithValidInputsCreatesCorrectResult() {
         // Given
-        final List<String> items = Arrays.asList("item1", "item2", "item3");
+        final List<String> items = Arrays.asList(ITEM1, ITEM2, "item3");
         final int page = 1;
         final int pageSize = 20;
         final int totalItems = 50;
@@ -143,7 +146,7 @@ class PaginationHelperTest {
     @Test
     void testCreateResultWithLastPageHasNoNext() {
         // Given
-        final List<String> items = Arrays.asList("item1", "item2");
+        final List<String> items = Arrays.asList(ITEM1, ITEM2);
         final int page = 3;
         final int pageSize = 20;
         final int totalItems = 50;
@@ -160,7 +163,7 @@ class PaginationHelperTest {
     @Test
     void testCreateResultWithFirstPageHasNoPrevious() {
         // Given
-        final List<String> items = Arrays.asList("item1", "item2");
+        final List<String> items = Arrays.asList(ITEM1, ITEM2);
         final int page = 1;
         final int pageSize = 20;
         final int totalItems = 50;
@@ -196,7 +199,7 @@ class PaginationHelperTest {
     @Test
     void testPaginationResultGetTotalPagesCalculatesCorrectly() {
         // Given
-        final List<String> items = Arrays.asList("item1", "item2");
+        final List<String> items = Arrays.asList(ITEM1, ITEM2);
         final int page = 1;
         final int pageSize = 20;
         final int totalItems = 50;
@@ -212,7 +215,7 @@ class PaginationHelperTest {
     @Test
     void testPaginationResultGetTotalPagesWithExactDivisionCalculatesCorrectly() {
         // Given
-        final List<String> items = Arrays.asList("item1", "item2");
+        final List<String> items = Arrays.asList(ITEM1, ITEM2);
         final int page = 1;
         final int pageSize = 20;
         final int totalItems = 40;
@@ -228,7 +231,7 @@ class PaginationHelperTest {
     @Test
     void testPaginationResultGetTotalPagesWithRemainderRoundsUp() {
         // Given
-        final List<String> items = Arrays.asList("item1", "item2");
+        final List<String> items = Arrays.asList(ITEM1, ITEM2);
         final int page = 1;
         final int pageSize = 20;
         final int totalItems = 45;

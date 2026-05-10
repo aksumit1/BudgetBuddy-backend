@@ -1,6 +1,5 @@
 package com.budgetbuddy.plaid;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -11,6 +10,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import com.budgetbuddy.compliance.pcidss.PCIDSSComplianceService;
 import com.budgetbuddy.exception.AppException;
 import com.budgetbuddy.exception.ErrorCode;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -29,6 +29,15 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 @org.mockito.junit.jupiter.MockitoSettings(strictness = org.mockito.quality.Strictness.LENIENT)
 class PlaidServiceTest {
+
+    private static final String TEST_CLIENT_ID = "test-client-id";
+    private static final String TEST_SECRET = "test-secret";
+    private static final String ERRORCODE = "errorCode";
+    private static final String ERRORMESSAGE = "errorMessage";
+    private static final String REQUESTID = "requestId";
+    private static final String ERRORTYPE = "errorType";
+    private static final String PARSEPLAIDERRORRESPONSE = "parsePlaidErrorResponse";
+    private static final String ACCESS_TOKEN = "access-token";
 
     @Mock private PCIDSSComplianceService pciDSSComplianceService;
 
@@ -141,8 +150,8 @@ class PlaidServiceTest {
         assertDoesNotThrow(
                 () -> {
                     new PlaidService(
-                            "test-client-id",
-                            "test-secret",
+                            TEST_CLIENT_ID,
+                            TEST_SECRET,
                             "sandbox",
                             "https://app.budgetbuddy.com/plaid/callback",
                             "https://api.budgetbuddy.com/api/plaid/webhooks",
@@ -174,8 +183,8 @@ class PlaidServiceTest {
         // Given
         plaidService =
                 new PlaidService(
-                        "test-client-id",
-                        "test-secret",
+                        TEST_CLIENT_ID,
+                        TEST_SECRET,
                         "sandbox",
                         "https://app.budgetbuddy.com/plaid/callback",
                         "",
@@ -195,8 +204,8 @@ class PlaidServiceTest {
         // Given
         plaidService =
                 new PlaidService(
-                        "test-client-id",
-                        "test-secret",
+                        TEST_CLIENT_ID,
+                        TEST_SECRET,
                         "sandbox",
                         "https://app.budgetbuddy.com/plaid/callback",
                         "",
@@ -215,8 +224,8 @@ class PlaidServiceTest {
         // Given
         plaidService =
                 new PlaidService(
-                        "test-client-id",
-                        "test-secret",
+                        TEST_CLIENT_ID,
+                        TEST_SECRET,
                         "sandbox",
                         "https://app.budgetbuddy.com/plaid/callback",
                         "",
@@ -235,8 +244,8 @@ class PlaidServiceTest {
         // Given
         plaidService =
                 new PlaidService(
-                        "test-client-id",
-                        "test-secret",
+                        TEST_CLIENT_ID,
+                        TEST_SECRET,
                         "sandbox",
                         "https://app.budgetbuddy.com/plaid/callback",
                         "",
@@ -280,8 +289,8 @@ class PlaidServiceTest {
         // Given
         plaidService =
                 new PlaidService(
-                        "test-client-id",
-                        "test-secret",
+                        TEST_CLIENT_ID,
+                        TEST_SECRET,
                         "sandbox",
                         "https://app.budgetbuddy.com/plaid/callback",
                         "",
@@ -299,8 +308,8 @@ class PlaidServiceTest {
         // Given
         plaidService =
                 new PlaidService(
-                        "test-client-id",
-                        "test-secret",
+                        TEST_CLIENT_ID,
+                        TEST_SECRET,
                         "sandbox",
                         "https://app.budgetbuddy.com/plaid/callback",
                         "",
@@ -318,8 +327,8 @@ class PlaidServiceTest {
         // Given
         plaidService =
                 new PlaidService(
-                        "test-client-id",
-                        "test-secret",
+                        TEST_CLIENT_ID,
+                        TEST_SECRET,
                         "sandbox",
                         "https://app.budgetbuddy.com/plaid/callback",
                         "",
@@ -337,8 +346,8 @@ class PlaidServiceTest {
         // Given
         plaidService =
                 new PlaidService(
-                        "test-client-id",
-                        "test-secret",
+                        TEST_CLIENT_ID,
+                        TEST_SECRET,
                         "sandbox",
                         "https://app.budgetbuddy.com/plaid/callback",
                         "",
@@ -356,8 +365,8 @@ class PlaidServiceTest {
         // Given
         plaidService =
                 new PlaidService(
-                        "test-client-id",
-                        "test-secret",
+                        TEST_CLIENT_ID,
+                        TEST_SECRET,
                         "sandbox",
                         "https://app.budgetbuddy.com/plaid/callback",
                         "",
@@ -377,8 +386,8 @@ class PlaidServiceTest {
         // Given
         plaidService =
                 new PlaidService(
-                        "test-client-id",
-                        "test-secret",
+                        TEST_CLIENT_ID,
+                        TEST_SECRET,
                         "sandbox",
                         "https://app.budgetbuddy.com/plaid/callback",
                         "",
@@ -398,8 +407,8 @@ class PlaidServiceTest {
         // Given
         plaidService =
                 new PlaidService(
-                        "test-client-id",
-                        "test-secret",
+                        TEST_CLIENT_ID,
+                        TEST_SECRET,
                         "sandbox",
                         "https://app.budgetbuddy.com/plaid/callback",
                         "",
@@ -410,7 +419,7 @@ class PlaidServiceTest {
         final AppException exception =
                 assertThrows(
                         AppException.class,
-                        () -> plaidService.getTransactions("access-token", null, "2024-01-31"));
+                        () -> plaidService.getTransactions(ACCESS_TOKEN, null, "2024-01-31"));
         assertEquals(ErrorCode.INVALID_INPUT, exception.getErrorCode());
     }
 
@@ -419,8 +428,8 @@ class PlaidServiceTest {
         // Given
         plaidService =
                 new PlaidService(
-                        "test-client-id",
-                        "test-secret",
+                        TEST_CLIENT_ID,
+                        TEST_SECRET,
                         "sandbox",
                         "https://app.budgetbuddy.com/plaid/callback",
                         "",
@@ -431,7 +440,7 @@ class PlaidServiceTest {
         final AppException exception =
                 assertThrows(
                         AppException.class,
-                        () -> plaidService.getTransactions("access-token", "2024-01-01", null));
+                        () -> plaidService.getTransactions(ACCESS_TOKEN, "2024-01-01", null));
         assertEquals(ErrorCode.INVALID_INPUT, exception.getErrorCode());
     }
 
@@ -440,8 +449,8 @@ class PlaidServiceTest {
         // Given
         plaidService =
                 new PlaidService(
-                        "test-client-id",
-                        "test-secret",
+                        TEST_CLIENT_ID,
+                        TEST_SECRET,
                         "sandbox",
                         "https://app.budgetbuddy.com/plaid/callback",
                         "",
@@ -459,8 +468,8 @@ class PlaidServiceTest {
         // Given
         plaidService =
                 new PlaidService(
-                        "test-client-id",
-                        "test-secret",
+                        TEST_CLIENT_ID,
+                        TEST_SECRET,
                         "sandbox",
                         "https://app.budgetbuddy.com/plaid/callback",
                         "",
@@ -478,8 +487,8 @@ class PlaidServiceTest {
         // Given
         plaidService =
                 new PlaidService(
-                        "test-client-id",
-                        "test-secret",
+                        TEST_CLIENT_ID,
+                        TEST_SECRET,
                         "sandbox",
                         "https://app.budgetbuddy.com/plaid/callback",
                         "",
@@ -497,8 +506,8 @@ class PlaidServiceTest {
         // Given
         plaidService =
                 new PlaidService(
-                        "test-client-id",
-                        "test-secret",
+                        TEST_CLIENT_ID,
+                        TEST_SECRET,
                         "sandbox",
                         "https://app.budgetbuddy.com/plaid/callback",
                         "",
@@ -516,8 +525,8 @@ class PlaidServiceTest {
         // Given
         plaidService =
                 new PlaidService(
-                        "test-client-id",
-                        "test-secret",
+                        TEST_CLIENT_ID,
+                        TEST_SECRET,
                         "sandbox",
                         "https://app.budgetbuddy.com/plaid/callback",
                         "",
@@ -528,7 +537,7 @@ class PlaidServiceTest {
         final AppException exception =
                 assertThrows(
                         AppException.class,
-                        () -> plaidService.getTransactions("access-token", "", "2024-01-31"));
+                        () -> plaidService.getTransactions(ACCESS_TOKEN, "", "2024-01-31"));
         assertEquals(ErrorCode.INVALID_INPUT, exception.getErrorCode());
     }
 
@@ -537,8 +546,8 @@ class PlaidServiceTest {
         // Given
         plaidService =
                 new PlaidService(
-                        "test-client-id",
-                        "test-secret",
+                        TEST_CLIENT_ID,
+                        TEST_SECRET,
                         "sandbox",
                         "https://app.budgetbuddy.com/plaid/callback",
                         "",
@@ -549,7 +558,7 @@ class PlaidServiceTest {
         final AppException exception =
                 assertThrows(
                         AppException.class,
-                        () -> plaidService.getTransactions("access-token", "2024-01-01", ""));
+                        () -> plaidService.getTransactions(ACCESS_TOKEN, "2024-01-01", ""));
         assertEquals(ErrorCode.INVALID_INPUT, exception.getErrorCode());
     }
 
@@ -558,8 +567,8 @@ class PlaidServiceTest {
         // Given
         plaidService =
                 new PlaidService(
-                        "test-client-id",
-                        "test-secret",
+                        TEST_CLIENT_ID,
+                        TEST_SECRET,
                         "sandbox",
                         "https://app.budgetbuddy.com/plaid/callback",
                         "",
@@ -572,7 +581,7 @@ class PlaidServiceTest {
                         AppException.class,
                         () ->
                                 plaidService.getTransactions(
-                                        "access-token", "2024-01-31", "2024-01-01"));
+                                        ACCESS_TOKEN, "2024-01-31", "2024-01-01"));
         assertEquals(ErrorCode.INVALID_INPUT, exception.getErrorCode());
         assertTrue(exception.getMessage().contains("Start date"));
     }
@@ -582,8 +591,8 @@ class PlaidServiceTest {
         // Given
         plaidService =
                 new PlaidService(
-                        "test-client-id",
-                        "test-secret",
+                        TEST_CLIENT_ID,
+                        TEST_SECRET,
                         "sandbox",
                         "https://app.budgetbuddy.com/plaid/callback",
                         "",
@@ -607,8 +616,8 @@ class PlaidServiceTest {
         assertDoesNotThrow(
                 () -> {
                     new PlaidService(
-                            "test-client-id",
-                            "test-secret",
+                            TEST_CLIENT_ID,
+                            TEST_SECRET,
                             "production",
                             "https://app.budgetbuddy.com/plaid/callback",
                             "https://api.budgetbuddy.com/api/plaid/webhooks",
@@ -624,8 +633,8 @@ class PlaidServiceTest {
         assertDoesNotThrow(
                 () -> {
                     new PlaidService(
-                            "test-client-id",
-                            "test-secret",
+                            TEST_CLIENT_ID,
+                            TEST_SECRET,
                             "development",
                             "https://app.budgetbuddy.com/plaid/callback",
                             "https://api.budgetbuddy.com/api/plaid/webhooks",
@@ -658,7 +667,7 @@ class PlaidServiceTest {
         assertDoesNotThrow(
                 () -> {
                     new PlaidService(
-                            "test-client-id",
+                            TEST_CLIENT_ID,
                             "placeholder-secret",
                             "sandbox",
                             "",
@@ -675,8 +684,8 @@ class PlaidServiceTest {
         assertDoesNotThrow(
                 () -> {
                     new PlaidService(
-                            "test-client-id",
-                            "test-secret",
+                            TEST_CLIENT_ID,
+                            TEST_SECRET,
                             "sandbox",
                             "",
                             "",
@@ -692,8 +701,8 @@ class PlaidServiceTest {
         assertDoesNotThrow(
                 () -> {
                     new PlaidService(
-                            "test-client-id",
-                            "test-secret",
+                            TEST_CLIENT_ID,
+                            TEST_SECRET,
                             "unknown",
                             "",
                             "",
@@ -709,8 +718,8 @@ class PlaidServiceTest {
         assertDoesNotThrow(
                 () -> {
                     new PlaidService(
-                            "test-client-id",
-                            "test-secret",
+                            TEST_CLIENT_ID,
+                            TEST_SECRET,
                             "sandbox",
                             "",
                             "",
@@ -726,8 +735,8 @@ class PlaidServiceTest {
         assertDoesNotThrow(
                 () -> {
                     new PlaidService(
-                            "test-client-id",
-                            "test-secret",
+                            TEST_CLIENT_ID,
+                            TEST_SECRET,
                             "sandbox",
                             "https://app.budgetbuddy.com/plaid/callback",
                             "",
@@ -742,8 +751,8 @@ class PlaidServiceTest {
         // Given - Date range > 2 years
         plaidService =
                 new PlaidService(
-                        "test-client-id",
-                        "test-secret",
+                        TEST_CLIENT_ID,
+                        TEST_SECRET,
                         "sandbox",
                         "https://app.budgetbuddy.com/plaid/callback",
                         "",
@@ -763,8 +772,8 @@ class PlaidServiceTest {
         // Given
         plaidService =
                 new PlaidService(
-                        "test-client-id",
-                        "test-secret",
+                        TEST_CLIENT_ID,
+                        TEST_SECRET,
                         "sandbox",
                         "https://app.budgetbuddy.com/plaid/callback",
                         "",
@@ -782,8 +791,8 @@ class PlaidServiceTest {
         assertDoesNotThrow(
                 () -> {
                     new PlaidService(
-                            "test-client-id",
-                            "test-secret",
+                            TEST_CLIENT_ID,
+                            TEST_SECRET,
                             "sandbox",
                             null,
                             "",
@@ -799,8 +808,8 @@ class PlaidServiceTest {
         assertDoesNotThrow(
                 () -> {
                     new PlaidService(
-                            "test-client-id",
-                            "test-secret",
+                            TEST_CLIENT_ID,
+                            TEST_SECRET,
                             "sandbox",
                             "https://app.budgetbuddy.com/plaid/callback",
                             null,
@@ -815,8 +824,8 @@ class PlaidServiceTest {
         // Given
         plaidService =
                 new PlaidService(
-                        "test-client-id",
-                        "test-secret",
+                        TEST_CLIENT_ID,
+                        TEST_SECRET,
                         "sandbox",
                         "https://app.budgetbuddy.com/plaid/callback",
                         "",
@@ -829,7 +838,7 @@ class PlaidServiceTest {
                         AppException.class,
                         () ->
                                 plaidService.getTransactions(
-                                        "access-token", "invalid-date", "2024-01-31"));
+                                        ACCESS_TOKEN, "invalid-date", "2024-01-31"));
         assertEquals(ErrorCode.INVALID_INPUT, exception.getErrorCode());
         assertTrue(exception.getMessage().contains("Invalid date format"));
     }
@@ -839,8 +848,8 @@ class PlaidServiceTest {
         // Given
         plaidService =
                 new PlaidService(
-                        "test-client-id",
-                        "test-secret",
+                        TEST_CLIENT_ID,
+                        TEST_SECRET,
                         "sandbox",
                         "https://app.budgetbuddy.com/plaid/callback",
                         "",
@@ -853,7 +862,7 @@ class PlaidServiceTest {
                         AppException.class,
                         () ->
                                 plaidService.getTransactions(
-                                        "access-token", "2024-01-01", "invalid-date"));
+                                        ACCESS_TOKEN, "2024-01-01", "invalid-date"));
         assertEquals(ErrorCode.INVALID_INPUT, exception.getErrorCode());
         assertTrue(exception.getMessage().contains("Invalid date format"));
     }
@@ -863,8 +872,8 @@ class PlaidServiceTest {
         // Given
         plaidService =
                 new PlaidService(
-                        "test-client-id",
-                        "test-secret",
+                        TEST_CLIENT_ID,
+                        TEST_SECRET,
                         "sandbox",
                         "https://app.budgetbuddy.com/plaid/callback",
                         "",
@@ -882,8 +891,8 @@ class PlaidServiceTest {
         assertDoesNotThrow(
                 () -> {
                     new PlaidService(
-                            "test-client-id",
-                            "test-secret",
+                            TEST_CLIENT_ID,
+                            TEST_SECRET,
                             "SANDBOX",
                             "https://app.budgetbuddy.com/plaid/callback",
                             "",
@@ -895,8 +904,8 @@ class PlaidServiceTest {
         assertDoesNotThrow(
                 () -> {
                     new PlaidService(
-                            "test-client-id",
-                            "test-secret",
+                            TEST_CLIENT_ID,
+                            TEST_SECRET,
                             "Production",
                             "https://app.budgetbuddy.com/plaid/callback",
                             "",
@@ -911,8 +920,8 @@ class PlaidServiceTest {
         // Given - Date range > 2 years (731 days)
         plaidService =
                 new PlaidService(
-                        "test-client-id",
-                        "test-secret",
+                        TEST_CLIENT_ID,
+                        TEST_SECRET,
                         "sandbox",
                         "https://app.budgetbuddy.com/plaid/callback",
                         "",
@@ -929,8 +938,8 @@ class PlaidServiceTest {
         // Given - Date range exactly 2 years (730 days)
         plaidService =
                 new PlaidService(
-                        "test-client-id",
-                        "test-secret",
+                        TEST_CLIENT_ID,
+                        TEST_SECRET,
                         "sandbox",
                         "https://app.budgetbuddy.com/plaid/callback",
                         "",
@@ -948,8 +957,8 @@ class PlaidServiceTest {
         assertDoesNotThrow(
                 () -> {
                     new PlaidService(
-                            "test-client-id",
-                            "test-secret",
+                            TEST_CLIENT_ID,
+                            TEST_SECRET,
                             "sandbox",
                             "https://app.budgetbuddy.com/plaid/callback",
                             "https://api.budgetbuddy.com/api/plaid/webhooks",
@@ -965,8 +974,8 @@ class PlaidServiceTest {
         assertDoesNotThrow(
                 () -> {
                     new PlaidService(
-                            "test-client-id",
-                            "test-secret",
+                            TEST_CLIENT_ID,
+                            TEST_SECRET,
                             "sandbox",
                             "",
                             "",
@@ -978,8 +987,8 @@ class PlaidServiceTest {
         assertDoesNotThrow(
                 () -> {
                     new PlaidService(
-                            "test-client-id",
-                            "test-secret",
+                            TEST_CLIENT_ID,
+                            TEST_SECRET,
                             "development",
                             "",
                             "",
@@ -991,8 +1000,8 @@ class PlaidServiceTest {
         assertDoesNotThrow(
                 () -> {
                     new PlaidService(
-                            "test-client-id",
-                            "test-secret",
+                            TEST_CLIENT_ID,
+                            TEST_SECRET,
                             "production",
                             "",
                             "",
@@ -1007,8 +1016,8 @@ class PlaidServiceTest {
         // Given
         plaidService =
                 new PlaidService(
-                        "test-client-id",
-                        "test-secret",
+                        TEST_CLIENT_ID,
+                        TEST_SECRET,
                         "sandbox",
                         "https://app.budgetbuddy.com/plaid/callback",
                         "",
@@ -1026,8 +1035,8 @@ class PlaidServiceTest {
         assertDoesNotThrow(
                 () -> {
                     new PlaidService(
-                            "test-client-id",
-                            "test-secret",
+                            TEST_CLIENT_ID,
+                            TEST_SECRET,
                             "sandbox",
                             "https://app.budgetbuddy.com/plaid/callback",
                             "https://api.budgetbuddy.com/api/plaid/webhooks",
@@ -1043,8 +1052,8 @@ class PlaidServiceTest {
         assertDoesNotThrow(
                 () -> {
                     new PlaidService(
-                            "test-client-id",
-                            "test-secret",
+                            TEST_CLIENT_ID,
+                            TEST_SECRET,
                             "production",
                             "https://app.budgetbuddy.com/plaid/callback",
                             "https://api.budgetbuddy.com/api/plaid/webhooks",
@@ -1060,8 +1069,8 @@ class PlaidServiceTest {
         assertDoesNotThrow(
                 () -> {
                     new PlaidService(
-                            "test-client-id",
-                            "test-secret",
+                            TEST_CLIENT_ID,
+                            TEST_SECRET,
                             "production",
                             "",
                             "",
@@ -1077,8 +1086,8 @@ class PlaidServiceTest {
         assertDoesNotThrow(
                 () -> {
                     new PlaidService(
-                            "test-client-id",
-                            "test-secret",
+                            TEST_CLIENT_ID,
+                            TEST_SECRET,
                             "development",
                             "",
                             "",
@@ -1094,8 +1103,8 @@ class PlaidServiceTest {
         assertDoesNotThrow(
                 () -> {
                     new PlaidService(
-                            "test-client-id",
-                            "test-secret",
+                            TEST_CLIENT_ID,
+                            TEST_SECRET,
                             "sandbox",
                             "",
                             "",
@@ -1112,8 +1121,8 @@ class PlaidServiceTest {
         assertDoesNotThrow(
                 () -> {
                     new PlaidService(
-                            "test-client-id",
-                            "test-secret",
+                            TEST_CLIENT_ID,
+                            TEST_SECRET,
                             "sandbox",
                             "https://app.budgetbuddy.com/plaid/callback",
                             "https://api.budgetbuddy.com/api/plaid/webhooks",
@@ -1138,8 +1147,8 @@ class PlaidServiceTest {
         // Given - One day range
         plaidService =
                 new PlaidService(
-                        "test-client-id",
-                        "test-secret",
+                        TEST_CLIENT_ID,
+                        TEST_SECRET,
                         "sandbox",
                         "https://app.budgetbuddy.com/plaid/callback",
                         "",
@@ -1155,8 +1164,8 @@ class PlaidServiceTest {
         // Given - Zero day range (same start and end date)
         plaidService =
                 new PlaidService(
-                        "test-client-id",
-                        "test-secret",
+                        TEST_CLIENT_ID,
+                        TEST_SECRET,
                         "sandbox",
                         "https://app.budgetbuddy.com/plaid/callback",
                         "",
@@ -1173,8 +1182,8 @@ class PlaidServiceTest {
         assertDoesNotThrow(
                 () -> {
                     new PlaidService(
-                            "test-client-id",
-                            "test-secret",
+                            TEST_CLIENT_ID,
+                            TEST_SECRET,
                             "SANDBOX",
                             "",
                             "",
@@ -1185,8 +1194,8 @@ class PlaidServiceTest {
         assertDoesNotThrow(
                 () -> {
                     new PlaidService(
-                            "test-client-id",
-                            "test-secret",
+                            TEST_CLIENT_ID,
+                            TEST_SECRET,
                             "SandBox",
                             "",
                             "",
@@ -1197,8 +1206,8 @@ class PlaidServiceTest {
         assertDoesNotThrow(
                 () -> {
                     new PlaidService(
-                            "test-client-id",
-                            "test-secret",
+                            TEST_CLIENT_ID,
+                            TEST_SECRET,
                             "DEVELOPMENT",
                             "",
                             "",
@@ -1209,8 +1218,8 @@ class PlaidServiceTest {
         assertDoesNotThrow(
                 () -> {
                     new PlaidService(
-                            "test-client-id",
-                            "test-secret",
+                            TEST_CLIENT_ID,
+                            TEST_SECRET,
                             "PRODUCTION",
                             "",
                             "",
@@ -1241,8 +1250,8 @@ class PlaidServiceTest {
         // Given - Date range exactly 730 days (2 years)
         plaidService =
                 new PlaidService(
-                        "test-client-id",
-                        "test-secret",
+                        TEST_CLIENT_ID,
+                        TEST_SECRET,
                         "sandbox",
                         "https://app.budgetbuddy.com/plaid/callback",
                         "",
@@ -1259,8 +1268,8 @@ class PlaidServiceTest {
         // Given - Date range 731 days (> 2 years)
         plaidService =
                 new PlaidService(
-                        "test-client-id",
-                        "test-secret",
+                        TEST_CLIENT_ID,
+                        TEST_SECRET,
                         "sandbox",
                         "https://app.budgetbuddy.com/plaid/callback",
                         "",
@@ -1278,8 +1287,8 @@ class PlaidServiceTest {
         assertDoesNotThrow(
                 () -> {
                     new PlaidService(
-                            "test-client-id",
-                            "test-secret",
+                            TEST_CLIENT_ID,
+                            TEST_SECRET,
                             "",
                             "https://app.budgetbuddy.com/plaid/callback",
                             "",
@@ -1295,8 +1304,8 @@ class PlaidServiceTest {
         assertDoesNotThrow(
                 () -> {
                     new PlaidService(
-                            "test-client-id",
-                            "test-secret",
+                            TEST_CLIENT_ID,
+                            TEST_SECRET,
                             "   ",
                             "https://app.budgetbuddy.com/plaid/callback",
                             "",
@@ -1349,8 +1358,8 @@ class PlaidServiceTest {
         assertDoesNotThrow(
                 () -> {
                     new PlaidService(
-                            "test-client-id",
-                            "test-secret",
+                            TEST_CLIENT_ID,
+                            TEST_SECRET,
                             "sandbox",
                             "https://app.budgetbuddy.com/plaid/callback",
                             "https://api.budgetbuddy.com/api/plaid/webhooks",
@@ -1367,8 +1376,8 @@ class PlaidServiceTest {
         assertDoesNotThrow(
                 () -> {
                     new PlaidService(
-                            "test-client-id",
-                            "test-secret",
+                            TEST_CLIENT_ID,
+                            TEST_SECRET,
                             "sandbox",
                             "",
                             "",
@@ -1385,8 +1394,8 @@ class PlaidServiceTest {
         assertDoesNotThrow(
                 () -> {
                     new PlaidService(
-                            "test-client-id",
-                            "test-secret",
+                            TEST_CLIENT_ID,
+                            TEST_SECRET,
                             "sandbox",
                             "https://app.budgetbuddy.com/plaid/callback",
                             "https://api.budgetbuddy.com/api/plaid/webhooks",
@@ -1403,8 +1412,8 @@ class PlaidServiceTest {
         assertDoesNotThrow(
                 () -> {
                     new PlaidService(
-                            "test-client-id",
-                            "test-secret",
+                            TEST_CLIENT_ID,
+                            TEST_SECRET,
                             "sandbox",
                             "",
                             "",
@@ -1421,8 +1430,8 @@ class PlaidServiceTest {
         assertDoesNotThrow(
                 () -> {
                     new PlaidService(
-                            "test-client-id",
-                            "test-secret",
+                            TEST_CLIENT_ID,
+                            TEST_SECRET,
                             "sandbox",
                             "",
                             "",
@@ -1445,8 +1454,8 @@ class PlaidServiceTest {
             assertDoesNotThrow(
                     () -> {
                         new PlaidService(
-                                "test-client-id",
-                                "test-secret",
+                                TEST_CLIENT_ID,
+                                TEST_SECRET,
                                 env,
                                 "",
                                 "",
@@ -1462,8 +1471,8 @@ class PlaidServiceTest {
             assertDoesNotThrow(
                     () -> {
                         new PlaidService(
-                                "test-client-id",
-                                "test-secret",
+                                TEST_CLIENT_ID,
+                                TEST_SECRET,
                                 "sandbox",
                                 redirectUri,
                                 "",
@@ -1479,8 +1488,8 @@ class PlaidServiceTest {
             assertDoesNotThrow(
                     () -> {
                         new PlaidService(
-                                "test-client-id",
-                                "test-secret",
+                                TEST_CLIENT_ID,
+                                TEST_SECRET,
                                 "sandbox",
                                 "",
                                 webhookUrl,
@@ -1497,8 +1506,8 @@ class PlaidServiceTest {
         assertDoesNotThrow(
                 () -> {
                     new PlaidService(
-                            "test-client-id",
-                            "test-secret",
+                            TEST_CLIENT_ID,
+                            TEST_SECRET,
                             null,
                             "https://app.budgetbuddy.com/plaid/callback",
                             "",
@@ -1514,8 +1523,8 @@ class PlaidServiceTest {
         assertDoesNotThrow(
                 () -> {
                     new PlaidService(
-                            "test-client-id",
-                            "test-secret",
+                            TEST_CLIENT_ID,
+                            TEST_SECRET,
                             "invalid-env",
                             "https://app.budgetbuddy.com/plaid/callback",
                             "",
@@ -1531,8 +1540,8 @@ class PlaidServiceTest {
         assertDoesNotThrow(
                 () -> {
                     new PlaidService(
-                            "test-client-id",
-                            "test-secret",
+                            TEST_CLIENT_ID,
+                            TEST_SECRET,
                             "SaNdBoX",
                             "https://app.budgetbuddy.com/plaid/callback",
                             "",
@@ -1545,12 +1554,13 @@ class PlaidServiceTest {
     @Test
     void testPlaidServiceConstructorWithVeryLongRedirectUriHandlesGracefully() {
         // When/Then - Very long redirect URI should be handled
-        final String longRedirectUri = "https://app.budgetbuddy.com/plaid/callback?" + "a".repeat(1000);
+        final String longRedirectUri =
+                "https://app.budgetbuddy.com/plaid/callback?" + "a".repeat(1000);
         assertDoesNotThrow(
                 () -> {
                     new PlaidService(
-                            "test-client-id",
-                            "test-secret",
+                            TEST_CLIENT_ID,
+                            TEST_SECRET,
                             "sandbox",
                             longRedirectUri,
                             "",
@@ -1568,8 +1578,8 @@ class PlaidServiceTest {
         assertDoesNotThrow(
                 () -> {
                     new PlaidService(
-                            "test-client-id",
-                            "test-secret",
+                            TEST_CLIENT_ID,
+                            TEST_SECRET,
                             "sandbox",
                             "",
                             longWebhookUrl,
@@ -1597,8 +1607,8 @@ class PlaidServiceTest {
         assertDoesNotThrow(
                 () -> {
                     new PlaidService(
-                            "test-client-id",
-                            "test-secret",
+                            TEST_CLIENT_ID,
+                            TEST_SECRET,
                             "sandbox",
                             "",
                             "",
@@ -1616,7 +1626,7 @@ class PlaidServiceTest {
                         IllegalArgumentException.class,
                         () -> {
                             new PlaidService(
-                                    "test-client-id", "test-secret", "sandbox", "", "", true, null);
+                                    TEST_CLIENT_ID, TEST_SECRET, "sandbox", "", "", true, null);
                         },
                         "Should throw IllegalArgumentException when PCI-DSS service is null");
         assertEquals("PCIDSSComplianceService cannot be null", exception.getMessage());
@@ -1629,8 +1639,8 @@ class PlaidServiceTest {
         assertDoesNotThrow(
                 () -> {
                     new PlaidService(
-                            "test-client-id",
-                            "test-secret",
+                            TEST_CLIENT_ID,
+                            TEST_SECRET,
                             "sandbox",
                             "",
                             "",
@@ -1647,8 +1657,8 @@ class PlaidServiceTest {
         assertDoesNotThrow(
                 () -> {
                     new PlaidService(
-                            "test-client-id",
-                            "test-secret",
+                            TEST_CLIENT_ID,
+                            TEST_SECRET,
                             "sandbox",
                             "",
                             "",
@@ -1665,8 +1675,8 @@ class PlaidServiceTest {
         assertDoesNotThrow(
                 () -> {
                     new PlaidService(
-                            "test-client-id",
-                            "test-secret",
+                            TEST_CLIENT_ID,
+                            TEST_SECRET,
                             "sandbox",
                             "",
                             "",
@@ -1683,8 +1693,8 @@ class PlaidServiceTest {
         assertDoesNotThrow(
                 () -> {
                     new PlaidService(
-                            "test-client-id",
-                            "test-secret",
+                            TEST_CLIENT_ID,
+                            TEST_SECRET,
                             "sandbox",
                             "",
                             "",
@@ -1701,8 +1711,8 @@ class PlaidServiceTest {
         assertDoesNotThrow(
                 () -> {
                     new PlaidService(
-                            "test-client-id",
-                            "test-secret",
+                            TEST_CLIENT_ID,
+                            TEST_SECRET,
                             "sandbox",
                             "",
                             "",
@@ -1719,8 +1729,8 @@ class PlaidServiceTest {
         assertDoesNotThrow(
                 () -> {
                     new PlaidService(
-                            "test-client-id",
-                            "test-secret",
+                            TEST_CLIENT_ID,
+                            TEST_SECRET,
                             "sandbox",
                             "",
                             "",
@@ -1735,8 +1745,8 @@ class PlaidServiceTest {
         // Given
         plaidService =
                 new PlaidService(
-                        "test-client-id",
-                        "test-secret",
+                        TEST_CLIENT_ID,
+                        TEST_SECRET,
                         "sandbox",
                         "",
                         "",
@@ -1747,7 +1757,7 @@ class PlaidServiceTest {
 
         // When - Use reflection to access private method
         final java.lang.reflect.Method method =
-                PlaidService.class.getDeclaredMethod("parsePlaidErrorResponse", String.class);
+                PlaidService.class.getDeclaredMethod(PARSEPLAIDERRORRESPONSE, String.class);
         method.setAccessible(true);
         final Object errorObj = method.invoke(plaidService, errorBody);
         // Use reflection to access private inner class fields
@@ -1755,14 +1765,17 @@ class PlaidServiceTest {
             assertNull(errorObj);
             return;
         }
-        final java.lang.reflect.Field errorCodeField = errorObj.getClass().getDeclaredField("errorCode");
+        final java.lang.reflect.Field errorCodeField =
+                errorObj.getClass().getDeclaredField(ERRORCODE);
         errorCodeField.setAccessible(true);
-        final java.lang.reflect.Field errorTypeField = errorObj.getClass().getDeclaredField("errorType");
+        final java.lang.reflect.Field errorTypeField =
+                errorObj.getClass().getDeclaredField(ERRORTYPE);
         errorTypeField.setAccessible(true);
         final java.lang.reflect.Field errorMessageField =
-                errorObj.getClass().getDeclaredField("errorMessage");
+                errorObj.getClass().getDeclaredField(ERRORMESSAGE);
         errorMessageField.setAccessible(true);
-        final java.lang.reflect.Field requestIdField = errorObj.getClass().getDeclaredField("requestId");
+        final java.lang.reflect.Field requestIdField =
+                errorObj.getClass().getDeclaredField(REQUESTID);
         requestIdField.setAccessible(true);
 
         final String errorCode = (String) errorCodeField.get(errorObj);
@@ -1783,8 +1796,8 @@ class PlaidServiceTest {
         // Given
         plaidService =
                 new PlaidService(
-                        "test-client-id",
-                        "test-secret",
+                        TEST_CLIENT_ID,
+                        TEST_SECRET,
                         "sandbox",
                         "",
                         "",
@@ -1794,7 +1807,7 @@ class PlaidServiceTest {
 
         // When - Use reflection to access private method
         final java.lang.reflect.Method method =
-                PlaidService.class.getDeclaredMethod("parsePlaidErrorResponse", String.class);
+                PlaidService.class.getDeclaredMethod(PARSEPLAIDERRORRESPONSE, String.class);
         method.setAccessible(true);
         final Object errorObj = method.invoke(plaidService, errorBody);
         // Use reflection to access private inner class fields
@@ -1802,14 +1815,17 @@ class PlaidServiceTest {
             assertNull(errorObj);
             return;
         }
-        final java.lang.reflect.Field errorCodeField = errorObj.getClass().getDeclaredField("errorCode");
+        final java.lang.reflect.Field errorCodeField =
+                errorObj.getClass().getDeclaredField(ERRORCODE);
         errorCodeField.setAccessible(true);
-        final java.lang.reflect.Field errorTypeField = errorObj.getClass().getDeclaredField("errorType");
+        final java.lang.reflect.Field errorTypeField =
+                errorObj.getClass().getDeclaredField(ERRORTYPE);
         errorTypeField.setAccessible(true);
         final java.lang.reflect.Field errorMessageField =
-                errorObj.getClass().getDeclaredField("errorMessage");
+                errorObj.getClass().getDeclaredField(ERRORMESSAGE);
         errorMessageField.setAccessible(true);
-        final java.lang.reflect.Field requestIdField = errorObj.getClass().getDeclaredField("requestId");
+        final java.lang.reflect.Field requestIdField =
+                errorObj.getClass().getDeclaredField(REQUESTID);
         requestIdField.setAccessible(true);
 
         final String errorCode = (String) errorCodeField.get(errorObj);
@@ -1826,8 +1842,8 @@ class PlaidServiceTest {
         // Given
         plaidService =
                 new PlaidService(
-                        "test-client-id",
-                        "test-secret",
+                        TEST_CLIENT_ID,
+                        TEST_SECRET,
                         "sandbox",
                         "",
                         "",
@@ -1837,7 +1853,7 @@ class PlaidServiceTest {
 
         // When - Use reflection to access private method
         final java.lang.reflect.Method method =
-                PlaidService.class.getDeclaredMethod("parsePlaidErrorResponse", String.class);
+                PlaidService.class.getDeclaredMethod(PARSEPLAIDERRORRESPONSE, String.class);
         method.setAccessible(true);
         final Object errorObj = method.invoke(plaidService, errorBody);
         // Use reflection to access private inner class fields
@@ -1845,14 +1861,17 @@ class PlaidServiceTest {
             assertNull(errorObj);
             return;
         }
-        final java.lang.reflect.Field errorCodeField = errorObj.getClass().getDeclaredField("errorCode");
+        final java.lang.reflect.Field errorCodeField =
+                errorObj.getClass().getDeclaredField(ERRORCODE);
         errorCodeField.setAccessible(true);
-        final java.lang.reflect.Field errorTypeField = errorObj.getClass().getDeclaredField("errorType");
+        final java.lang.reflect.Field errorTypeField =
+                errorObj.getClass().getDeclaredField(ERRORTYPE);
         errorTypeField.setAccessible(true);
         final java.lang.reflect.Field errorMessageField =
-                errorObj.getClass().getDeclaredField("errorMessage");
+                errorObj.getClass().getDeclaredField(ERRORMESSAGE);
         errorMessageField.setAccessible(true);
-        final java.lang.reflect.Field requestIdField = errorObj.getClass().getDeclaredField("requestId");
+        final java.lang.reflect.Field requestIdField =
+                errorObj.getClass().getDeclaredField(REQUESTID);
         requestIdField.setAccessible(true);
 
         final String errorCode = (String) errorCodeField.get(errorObj);
@@ -1869,8 +1888,8 @@ class PlaidServiceTest {
         // Given
         plaidService =
                 new PlaidService(
-                        "test-client-id",
-                        "test-secret",
+                        TEST_CLIENT_ID,
+                        TEST_SECRET,
                         "sandbox",
                         "",
                         "",
@@ -1880,7 +1899,7 @@ class PlaidServiceTest {
 
         // When - Use reflection to access private method
         final java.lang.reflect.Method method =
-                PlaidService.class.getDeclaredMethod("parsePlaidErrorResponse", String.class);
+                PlaidService.class.getDeclaredMethod(PARSEPLAIDERRORRESPONSE, String.class);
         method.setAccessible(true);
         final Object errorObj = method.invoke(plaidService, errorBody);
 
@@ -1894,8 +1913,8 @@ class PlaidServiceTest {
         // Given
         plaidService =
                 new PlaidService(
-                        "test-client-id",
-                        "test-secret",
+                        TEST_CLIENT_ID,
+                        TEST_SECRET,
                         "sandbox",
                         "",
                         "",
@@ -1905,7 +1924,7 @@ class PlaidServiceTest {
 
         // When - Use reflection to access private method
         final java.lang.reflect.Method method =
-                PlaidService.class.getDeclaredMethod("parsePlaidErrorResponse", String.class);
+                PlaidService.class.getDeclaredMethod(PARSEPLAIDERRORRESPONSE, String.class);
         method.setAccessible(true);
         final Object errorObj = method.invoke(plaidService, errorBody);
         // Use reflection to access private inner class fields
@@ -1913,14 +1932,17 @@ class PlaidServiceTest {
             assertNull(errorObj);
             return;
         }
-        final java.lang.reflect.Field errorCodeField = errorObj.getClass().getDeclaredField("errorCode");
+        final java.lang.reflect.Field errorCodeField =
+                errorObj.getClass().getDeclaredField(ERRORCODE);
         errorCodeField.setAccessible(true);
-        final java.lang.reflect.Field errorTypeField = errorObj.getClass().getDeclaredField("errorType");
+        final java.lang.reflect.Field errorTypeField =
+                errorObj.getClass().getDeclaredField(ERRORTYPE);
         errorTypeField.setAccessible(true);
         final java.lang.reflect.Field errorMessageField =
-                errorObj.getClass().getDeclaredField("errorMessage");
+                errorObj.getClass().getDeclaredField(ERRORMESSAGE);
         errorMessageField.setAccessible(true);
-        final java.lang.reflect.Field requestIdField = errorObj.getClass().getDeclaredField("requestId");
+        final java.lang.reflect.Field requestIdField =
+                errorObj.getClass().getDeclaredField(REQUESTID);
         requestIdField.setAccessible(true);
 
         final String errorCode = (String) errorCodeField.get(errorObj);
@@ -1939,8 +1961,8 @@ class PlaidServiceTest {
         // Given
         plaidService =
                 new PlaidService(
-                        "test-client-id",
-                        "test-secret",
+                        TEST_CLIENT_ID,
+                        TEST_SECRET,
                         "sandbox",
                         "",
                         "",
@@ -1951,7 +1973,7 @@ class PlaidServiceTest {
 
         // When - Use reflection to access private method
         final java.lang.reflect.Method method =
-                PlaidService.class.getDeclaredMethod("parsePlaidErrorResponse", String.class);
+                PlaidService.class.getDeclaredMethod(PARSEPLAIDERRORRESPONSE, String.class);
         method.setAccessible(true);
         final Object errorObj = method.invoke(plaidService, errorBody);
         // Use reflection to access private inner class fields
@@ -1959,14 +1981,17 @@ class PlaidServiceTest {
             assertNull(errorObj);
             return;
         }
-        final java.lang.reflect.Field errorCodeField = errorObj.getClass().getDeclaredField("errorCode");
+        final java.lang.reflect.Field errorCodeField =
+                errorObj.getClass().getDeclaredField(ERRORCODE);
         errorCodeField.setAccessible(true);
-        final java.lang.reflect.Field errorTypeField = errorObj.getClass().getDeclaredField("errorType");
+        final java.lang.reflect.Field errorTypeField =
+                errorObj.getClass().getDeclaredField(ERRORTYPE);
         errorTypeField.setAccessible(true);
         final java.lang.reflect.Field errorMessageField =
-                errorObj.getClass().getDeclaredField("errorMessage");
+                errorObj.getClass().getDeclaredField(ERRORMESSAGE);
         errorMessageField.setAccessible(true);
-        final java.lang.reflect.Field requestIdField = errorObj.getClass().getDeclaredField("requestId");
+        final java.lang.reflect.Field requestIdField =
+                errorObj.getClass().getDeclaredField(REQUESTID);
         requestIdField.setAccessible(true);
 
         final String errorCode = (String) errorCodeField.get(errorObj);
@@ -1976,8 +2001,8 @@ class PlaidServiceTest {
 
         // Then
         assertNotNull(errorObj);
-        assertEquals("TEST", getErrorField(errorObj, "errorCode"));
-        assertEquals("Test message", getErrorField(errorObj, "errorMessage"));
+        assertEquals("TEST", getErrorField(errorObj, ERRORCODE));
+        assertEquals("Test message", getErrorField(errorObj, ERRORMESSAGE));
     }
 
     @Test
@@ -1985,8 +2010,8 @@ class PlaidServiceTest {
         // Given
         plaidService =
                 new PlaidService(
-                        "test-client-id",
-                        "test-secret",
+                        TEST_CLIENT_ID,
+                        TEST_SECRET,
                         "sandbox",
                         "",
                         "",
@@ -1997,7 +2022,7 @@ class PlaidServiceTest {
 
         // When - Use reflection to access private method
         final java.lang.reflect.Method method =
-                PlaidService.class.getDeclaredMethod("parsePlaidErrorResponse", String.class);
+                PlaidService.class.getDeclaredMethod(PARSEPLAIDERRORRESPONSE, String.class);
         method.setAccessible(true);
         final Object errorObj = method.invoke(plaidService, errorBody);
         // Use reflection to access private inner class fields
@@ -2005,14 +2030,17 @@ class PlaidServiceTest {
             assertNull(errorObj);
             return;
         }
-        final java.lang.reflect.Field errorCodeField = errorObj.getClass().getDeclaredField("errorCode");
+        final java.lang.reflect.Field errorCodeField =
+                errorObj.getClass().getDeclaredField(ERRORCODE);
         errorCodeField.setAccessible(true);
-        final java.lang.reflect.Field errorTypeField = errorObj.getClass().getDeclaredField("errorType");
+        final java.lang.reflect.Field errorTypeField =
+                errorObj.getClass().getDeclaredField(ERRORTYPE);
         errorTypeField.setAccessible(true);
         final java.lang.reflect.Field errorMessageField =
-                errorObj.getClass().getDeclaredField("errorMessage");
+                errorObj.getClass().getDeclaredField(ERRORMESSAGE);
         errorMessageField.setAccessible(true);
-        final java.lang.reflect.Field requestIdField = errorObj.getClass().getDeclaredField("requestId");
+        final java.lang.reflect.Field requestIdField =
+                errorObj.getClass().getDeclaredField(REQUESTID);
         requestIdField.setAccessible(true);
 
         final String errorCode = (String) errorCodeField.get(errorObj);
@@ -2022,7 +2050,7 @@ class PlaidServiceTest {
 
         // Then
         assertNotNull(errorObj);
-        assertEquals("TEST", getErrorField(errorObj, "errorCode"));
+        assertEquals("TEST", getErrorField(errorObj, ERRORCODE));
         // The string manipulation might not handle escaped quotes perfectly, but should extract
         // something
     }
@@ -2032,8 +2060,8 @@ class PlaidServiceTest {
         // Given
         plaidService =
                 new PlaidService(
-                        "test-client-id",
-                        "test-secret",
+                        TEST_CLIENT_ID,
+                        TEST_SECRET,
                         "sandbox",
                         "",
                         "",
@@ -2045,7 +2073,7 @@ class PlaidServiceTest {
 
         // When - Use reflection to access private method
         final java.lang.reflect.Method method =
-                PlaidService.class.getDeclaredMethod("parsePlaidErrorResponse", String.class);
+                PlaidService.class.getDeclaredMethod(PARSEPLAIDERRORRESPONSE, String.class);
         method.setAccessible(true);
         final Object errorObj = method.invoke(plaidService, errorBody);
         // Use reflection to access private inner class fields
@@ -2053,14 +2081,17 @@ class PlaidServiceTest {
             assertNull(errorObj);
             return;
         }
-        final java.lang.reflect.Field errorCodeField = errorObj.getClass().getDeclaredField("errorCode");
+        final java.lang.reflect.Field errorCodeField =
+                errorObj.getClass().getDeclaredField(ERRORCODE);
         errorCodeField.setAccessible(true);
-        final java.lang.reflect.Field errorTypeField = errorObj.getClass().getDeclaredField("errorType");
+        final java.lang.reflect.Field errorTypeField =
+                errorObj.getClass().getDeclaredField(ERRORTYPE);
         errorTypeField.setAccessible(true);
         final java.lang.reflect.Field errorMessageField =
-                errorObj.getClass().getDeclaredField("errorMessage");
+                errorObj.getClass().getDeclaredField(ERRORMESSAGE);
         errorMessageField.setAccessible(true);
-        final java.lang.reflect.Field requestIdField = errorObj.getClass().getDeclaredField("requestId");
+        final java.lang.reflect.Field requestIdField =
+                errorObj.getClass().getDeclaredField(REQUESTID);
         requestIdField.setAccessible(true);
 
         final String errorCode = (String) errorCodeField.get(errorObj);
@@ -2071,7 +2102,7 @@ class PlaidServiceTest {
         // Then
         assertNotNull(errorObj);
         // Should extract the first occurrence
-        assertTrue(getErrorField(errorObj, "errorCode") != null);
+        assertTrue(getErrorField(errorObj, ERRORCODE) != null);
     }
 
     @Test
@@ -2079,8 +2110,8 @@ class PlaidServiceTest {
         // Given
         plaidService =
                 new PlaidService(
-                        "test-client-id",
-                        "test-secret",
+                        TEST_CLIENT_ID,
+                        TEST_SECRET,
                         "sandbox",
                         "",
                         "",
@@ -2090,7 +2121,7 @@ class PlaidServiceTest {
 
         // When - Use reflection to access private method
         final java.lang.reflect.Method method =
-                PlaidService.class.getDeclaredMethod("parsePlaidErrorResponse", String.class);
+                PlaidService.class.getDeclaredMethod(PARSEPLAIDERRORRESPONSE, String.class);
         method.setAccessible(true);
         final Object errorObj = method.invoke(plaidService, errorBody);
         // Use reflection to access private inner class fields
@@ -2098,14 +2129,17 @@ class PlaidServiceTest {
             assertNull(errorObj);
             return;
         }
-        final java.lang.reflect.Field errorCodeField = errorObj.getClass().getDeclaredField("errorCode");
+        final java.lang.reflect.Field errorCodeField =
+                errorObj.getClass().getDeclaredField(ERRORCODE);
         errorCodeField.setAccessible(true);
-        final java.lang.reflect.Field errorTypeField = errorObj.getClass().getDeclaredField("errorType");
+        final java.lang.reflect.Field errorTypeField =
+                errorObj.getClass().getDeclaredField(ERRORTYPE);
         errorTypeField.setAccessible(true);
         final java.lang.reflect.Field errorMessageField =
-                errorObj.getClass().getDeclaredField("errorMessage");
+                errorObj.getClass().getDeclaredField(ERRORMESSAGE);
         errorMessageField.setAccessible(true);
-        final java.lang.reflect.Field requestIdField = errorObj.getClass().getDeclaredField("requestId");
+        final java.lang.reflect.Field requestIdField =
+                errorObj.getClass().getDeclaredField(REQUESTID);
         requestIdField.setAccessible(true);
 
         final String errorCode = (String) errorCodeField.get(errorObj);
@@ -2136,8 +2170,8 @@ class PlaidServiceTest {
         // Given
         plaidService =
                 new PlaidService(
-                        "test-client-id",
-                        "test-secret",
+                        TEST_CLIENT_ID,
+                        TEST_SECRET,
                         "sandbox",
                         "",
                         "",
@@ -2147,7 +2181,7 @@ class PlaidServiceTest {
 
         // When - Use reflection to access private method
         final java.lang.reflect.Method method =
-                PlaidService.class.getDeclaredMethod("parsePlaidErrorResponse", String.class);
+                PlaidService.class.getDeclaredMethod(PARSEPLAIDERRORRESPONSE, String.class);
         method.setAccessible(true);
         final Object errorObj = method.invoke(plaidService, errorBody);
         // Use reflection to access private inner class fields
@@ -2155,14 +2189,17 @@ class PlaidServiceTest {
             assertNull(errorObj);
             return;
         }
-        final java.lang.reflect.Field errorCodeField = errorObj.getClass().getDeclaredField("errorCode");
+        final java.lang.reflect.Field errorCodeField =
+                errorObj.getClass().getDeclaredField(ERRORCODE);
         errorCodeField.setAccessible(true);
-        final java.lang.reflect.Field errorTypeField = errorObj.getClass().getDeclaredField("errorType");
+        final java.lang.reflect.Field errorTypeField =
+                errorObj.getClass().getDeclaredField(ERRORTYPE);
         errorTypeField.setAccessible(true);
         final java.lang.reflect.Field errorMessageField =
-                errorObj.getClass().getDeclaredField("errorMessage");
+                errorObj.getClass().getDeclaredField(ERRORMESSAGE);
         errorMessageField.setAccessible(true);
-        final java.lang.reflect.Field requestIdField = errorObj.getClass().getDeclaredField("requestId");
+        final java.lang.reflect.Field requestIdField =
+                errorObj.getClass().getDeclaredField(REQUESTID);
         requestIdField.setAccessible(true);
 
         final String errorCode = (String) errorCodeField.get(errorObj);
@@ -2172,10 +2209,10 @@ class PlaidServiceTest {
 
         // Then
         assertNotNull(errorObj);
-        assertEquals("TEST_ERROR", getErrorField(errorObj, "errorCode"));
-        assertNull(getErrorField(errorObj, "errorMessage"));
-        assertNull(getErrorField(errorObj, "errorType"));
-        assertNull(getErrorField(errorObj, "requestId"));
+        assertEquals("TEST_ERROR", getErrorField(errorObj, ERRORCODE));
+        assertNull(getErrorField(errorObj, ERRORMESSAGE));
+        assertNull(getErrorField(errorObj, ERRORTYPE));
+        assertNull(getErrorField(errorObj, REQUESTID));
     }
 
     @Test
@@ -2184,8 +2221,8 @@ class PlaidServiceTest {
         // Given
         plaidService =
                 new PlaidService(
-                        "test-client-id",
-                        "test-secret",
+                        TEST_CLIENT_ID,
+                        TEST_SECRET,
                         "sandbox",
                         "",
                         "",
@@ -2195,7 +2232,7 @@ class PlaidServiceTest {
 
         // When - Use reflection to access private method
         final java.lang.reflect.Method method =
-                PlaidService.class.getDeclaredMethod("parsePlaidErrorResponse", String.class);
+                PlaidService.class.getDeclaredMethod(PARSEPLAIDERRORRESPONSE, String.class);
         method.setAccessible(true);
         final Object errorObj = method.invoke(plaidService, errorBody);
         // Use reflection to access private inner class fields
@@ -2203,14 +2240,17 @@ class PlaidServiceTest {
             assertNull(errorObj);
             return;
         }
-        final java.lang.reflect.Field errorCodeField = errorObj.getClass().getDeclaredField("errorCode");
+        final java.lang.reflect.Field errorCodeField =
+                errorObj.getClass().getDeclaredField(ERRORCODE);
         errorCodeField.setAccessible(true);
-        final java.lang.reflect.Field errorTypeField = errorObj.getClass().getDeclaredField("errorType");
+        final java.lang.reflect.Field errorTypeField =
+                errorObj.getClass().getDeclaredField(ERRORTYPE);
         errorTypeField.setAccessible(true);
         final java.lang.reflect.Field errorMessageField =
-                errorObj.getClass().getDeclaredField("errorMessage");
+                errorObj.getClass().getDeclaredField(ERRORMESSAGE);
         errorMessageField.setAccessible(true);
-        final java.lang.reflect.Field requestIdField = errorObj.getClass().getDeclaredField("requestId");
+        final java.lang.reflect.Field requestIdField =
+                errorObj.getClass().getDeclaredField(REQUESTID);
         requestIdField.setAccessible(true);
 
         final String errorCode = (String) errorCodeField.get(errorObj);
@@ -2220,8 +2260,8 @@ class PlaidServiceTest {
 
         // Then
         assertNotNull(errorObj);
-        assertEquals("Test error message", getErrorField(errorObj, "errorMessage"));
-        assertNull(getErrorField(errorObj, "errorCode"));
+        assertEquals("Test error message", getErrorField(errorObj, ERRORMESSAGE));
+        assertNull(getErrorField(errorObj, ERRORCODE));
     }
 
     @Test
@@ -2229,8 +2269,8 @@ class PlaidServiceTest {
         // Given
         plaidService =
                 new PlaidService(
-                        "test-client-id",
-                        "test-secret",
+                        TEST_CLIENT_ID,
+                        TEST_SECRET,
                         "sandbox",
                         "",
                         "",
@@ -2240,7 +2280,7 @@ class PlaidServiceTest {
 
         // When - Use reflection to access private method
         final java.lang.reflect.Method method =
-                PlaidService.class.getDeclaredMethod("parsePlaidErrorResponse", String.class);
+                PlaidService.class.getDeclaredMethod(PARSEPLAIDERRORRESPONSE, String.class);
         method.setAccessible(true);
         final Object errorObj = method.invoke(plaidService, errorBody);
         // Use reflection to access private inner class fields
@@ -2248,14 +2288,17 @@ class PlaidServiceTest {
             assertNull(errorObj);
             return;
         }
-        final java.lang.reflect.Field errorCodeField = errorObj.getClass().getDeclaredField("errorCode");
+        final java.lang.reflect.Field errorCodeField =
+                errorObj.getClass().getDeclaredField(ERRORCODE);
         errorCodeField.setAccessible(true);
-        final java.lang.reflect.Field errorTypeField = errorObj.getClass().getDeclaredField("errorType");
+        final java.lang.reflect.Field errorTypeField =
+                errorObj.getClass().getDeclaredField(ERRORTYPE);
         errorTypeField.setAccessible(true);
         final java.lang.reflect.Field errorMessageField =
-                errorObj.getClass().getDeclaredField("errorMessage");
+                errorObj.getClass().getDeclaredField(ERRORMESSAGE);
         errorMessageField.setAccessible(true);
-        final java.lang.reflect.Field requestIdField = errorObj.getClass().getDeclaredField("requestId");
+        final java.lang.reflect.Field requestIdField =
+                errorObj.getClass().getDeclaredField(REQUESTID);
         requestIdField.setAccessible(true);
 
         final String errorCode = (String) errorCodeField.get(errorObj);
@@ -2265,8 +2308,8 @@ class PlaidServiceTest {
 
         // Then
         assertNotNull(errorObj);
-        assertEquals("req-123-456", getErrorField(errorObj, "requestId"));
-        assertNull(getErrorField(errorObj, "errorCode"));
+        assertEquals("req-123-456", getErrorField(errorObj, REQUESTID));
+        assertNull(getErrorField(errorObj, ERRORCODE));
     }
 
     @Test
@@ -2274,8 +2317,8 @@ class PlaidServiceTest {
         // Given
         plaidService =
                 new PlaidService(
-                        "test-client-id",
-                        "test-secret",
+                        TEST_CLIENT_ID,
+                        TEST_SECRET,
                         "sandbox",
                         "",
                         "",
@@ -2285,7 +2328,7 @@ class PlaidServiceTest {
 
         // When - Use reflection to access private method
         final java.lang.reflect.Method method =
-                PlaidService.class.getDeclaredMethod("parsePlaidErrorResponse", String.class);
+                PlaidService.class.getDeclaredMethod(PARSEPLAIDERRORRESPONSE, String.class);
         method.setAccessible(true);
         final Object errorObj = method.invoke(plaidService, errorBody);
         // Use reflection to access private inner class fields
@@ -2293,14 +2336,17 @@ class PlaidServiceTest {
             assertNull(errorObj);
             return;
         }
-        final java.lang.reflect.Field errorCodeField = errorObj.getClass().getDeclaredField("errorCode");
+        final java.lang.reflect.Field errorCodeField =
+                errorObj.getClass().getDeclaredField(ERRORCODE);
         errorCodeField.setAccessible(true);
-        final java.lang.reflect.Field errorTypeField = errorObj.getClass().getDeclaredField("errorType");
+        final java.lang.reflect.Field errorTypeField =
+                errorObj.getClass().getDeclaredField(ERRORTYPE);
         errorTypeField.setAccessible(true);
         final java.lang.reflect.Field errorMessageField =
-                errorObj.getClass().getDeclaredField("errorMessage");
+                errorObj.getClass().getDeclaredField(ERRORMESSAGE);
         errorMessageField.setAccessible(true);
-        final java.lang.reflect.Field requestIdField = errorObj.getClass().getDeclaredField("requestId");
+        final java.lang.reflect.Field requestIdField =
+                errorObj.getClass().getDeclaredField(REQUESTID);
         requestIdField.setAccessible(true);
 
         final String errorCode = (String) errorCodeField.get(errorObj);
@@ -2310,8 +2356,8 @@ class PlaidServiceTest {
 
         // Then
         assertNotNull(errorObj);
-        assertEquals("TEST", getErrorField(errorObj, "errorCode"));
-        assertEquals("错误消息", getErrorField(errorObj, "errorMessage"));
+        assertEquals("TEST", getErrorField(errorObj, ERRORCODE));
+        assertEquals("错误消息", getErrorField(errorObj, ERRORMESSAGE));
     }
 
     @Test
@@ -2319,19 +2365,20 @@ class PlaidServiceTest {
         // Given
         plaidService =
                 new PlaidService(
-                        "test-client-id",
-                        "test-secret",
+                        TEST_CLIENT_ID,
+                        TEST_SECRET,
                         "sandbox",
                         "",
                         "",
                         true,
                         pciDSSComplianceService);
         final String longMessage = "a".repeat(10_000);
-        final String errorBody = "{\"error_code\":\"TEST\",\"error_message\":\"" + longMessage + "\"}";
+        final String errorBody =
+                "{\"error_code\":\"TEST\",\"error_message\":\"" + longMessage + "\"}";
 
         // When - Use reflection to access private method
         final java.lang.reflect.Method method =
-                PlaidService.class.getDeclaredMethod("parsePlaidErrorResponse", String.class);
+                PlaidService.class.getDeclaredMethod(PARSEPLAIDERRORRESPONSE, String.class);
         method.setAccessible(true);
         final Object errorObj = method.invoke(plaidService, errorBody);
         // Use reflection to access private inner class fields
@@ -2339,14 +2386,17 @@ class PlaidServiceTest {
             assertNull(errorObj);
             return;
         }
-        final java.lang.reflect.Field errorCodeField = errorObj.getClass().getDeclaredField("errorCode");
+        final java.lang.reflect.Field errorCodeField =
+                errorObj.getClass().getDeclaredField(ERRORCODE);
         errorCodeField.setAccessible(true);
-        final java.lang.reflect.Field errorTypeField = errorObj.getClass().getDeclaredField("errorType");
+        final java.lang.reflect.Field errorTypeField =
+                errorObj.getClass().getDeclaredField(ERRORTYPE);
         errorTypeField.setAccessible(true);
         final java.lang.reflect.Field errorMessageField =
-                errorObj.getClass().getDeclaredField("errorMessage");
+                errorObj.getClass().getDeclaredField(ERRORMESSAGE);
         errorMessageField.setAccessible(true);
-        final java.lang.reflect.Field requestIdField = errorObj.getClass().getDeclaredField("requestId");
+        final java.lang.reflect.Field requestIdField =
+                errorObj.getClass().getDeclaredField(REQUESTID);
         requestIdField.setAccessible(true);
 
         final String errorCode = (String) errorCodeField.get(errorObj);
@@ -2356,8 +2406,8 @@ class PlaidServiceTest {
 
         // Then
         assertNotNull(errorObj);
-        assertEquals("TEST", getErrorField(errorObj, "errorCode"));
-        assertEquals(longMessage, getErrorField(errorObj, "errorMessage"));
+        assertEquals("TEST", getErrorField(errorObj, ERRORCODE));
+        assertEquals(longMessage, getErrorField(errorObj, ERRORMESSAGE));
     }
 
     @Test
@@ -2366,8 +2416,8 @@ class PlaidServiceTest {
         // Given
         plaidService =
                 new PlaidService(
-                        "test-client-id",
-                        "test-secret",
+                        TEST_CLIENT_ID,
+                        TEST_SECRET,
                         "sandbox",
                         "",
                         "",
@@ -2378,7 +2428,7 @@ class PlaidServiceTest {
 
         // When - Use reflection to access private method
         final java.lang.reflect.Method method =
-                PlaidService.class.getDeclaredMethod("parsePlaidErrorResponse", String.class);
+                PlaidService.class.getDeclaredMethod(PARSEPLAIDERRORRESPONSE, String.class);
         method.setAccessible(true);
         final Object errorObj = method.invoke(plaidService, errorBody);
         // Use reflection to access private inner class fields
@@ -2386,14 +2436,17 @@ class PlaidServiceTest {
             assertNull(errorObj);
             return;
         }
-        final java.lang.reflect.Field errorCodeField = errorObj.getClass().getDeclaredField("errorCode");
+        final java.lang.reflect.Field errorCodeField =
+                errorObj.getClass().getDeclaredField(ERRORCODE);
         errorCodeField.setAccessible(true);
-        final java.lang.reflect.Field errorTypeField = errorObj.getClass().getDeclaredField("errorType");
+        final java.lang.reflect.Field errorTypeField =
+                errorObj.getClass().getDeclaredField(ERRORTYPE);
         errorTypeField.setAccessible(true);
         final java.lang.reflect.Field errorMessageField =
-                errorObj.getClass().getDeclaredField("errorMessage");
+                errorObj.getClass().getDeclaredField(ERRORMESSAGE);
         errorMessageField.setAccessible(true);
-        final java.lang.reflect.Field requestIdField = errorObj.getClass().getDeclaredField("requestId");
+        final java.lang.reflect.Field requestIdField =
+                errorObj.getClass().getDeclaredField(REQUESTID);
         requestIdField.setAccessible(true);
 
         final String errorCode = (String) errorCodeField.get(errorObj);
@@ -2403,8 +2456,8 @@ class PlaidServiceTest {
 
         // Then
         assertNotNull(errorObj);
-        assertEquals("TEST_123", getErrorField(errorObj, "errorCode"));
-        assertEquals("Error: test@example.com failed", getErrorField(errorObj, "errorMessage"));
+        assertEquals("TEST_123", getErrorField(errorObj, ERRORCODE));
+        assertEquals("Error: test@example.com failed", getErrorField(errorObj, ERRORMESSAGE));
     }
 
     @Test
@@ -2412,18 +2465,19 @@ class PlaidServiceTest {
         // Given
         plaidService =
                 new PlaidService(
-                        "test-client-id",
-                        "test-secret",
+                        TEST_CLIENT_ID,
+                        TEST_SECRET,
                         "sandbox",
                         "",
                         "",
                         true,
                         pciDSSComplianceService);
-        final String errorBody = "{\"error_code\":null,\"error_message\":\"Test\",\"request_id\":null}";
+        final String errorBody =
+                "{\"error_code\":null,\"error_message\":\"Test\",\"request_id\":null}";
 
         // When - Use reflection to access private method
         final java.lang.reflect.Method method =
-                PlaidService.class.getDeclaredMethod("parsePlaidErrorResponse", String.class);
+                PlaidService.class.getDeclaredMethod(PARSEPLAIDERRORRESPONSE, String.class);
         method.setAccessible(true);
         final Object errorObj = method.invoke(plaidService, errorBody);
         // Use reflection to access private inner class fields
@@ -2431,14 +2485,17 @@ class PlaidServiceTest {
             assertNull(errorObj);
             return;
         }
-        final java.lang.reflect.Field errorCodeField = errorObj.getClass().getDeclaredField("errorCode");
+        final java.lang.reflect.Field errorCodeField =
+                errorObj.getClass().getDeclaredField(ERRORCODE);
         errorCodeField.setAccessible(true);
-        final java.lang.reflect.Field errorTypeField = errorObj.getClass().getDeclaredField("errorType");
+        final java.lang.reflect.Field errorTypeField =
+                errorObj.getClass().getDeclaredField(ERRORTYPE);
         errorTypeField.setAccessible(true);
         final java.lang.reflect.Field errorMessageField =
-                errorObj.getClass().getDeclaredField("errorMessage");
+                errorObj.getClass().getDeclaredField(ERRORMESSAGE);
         errorMessageField.setAccessible(true);
-        final java.lang.reflect.Field requestIdField = errorObj.getClass().getDeclaredField("requestId");
+        final java.lang.reflect.Field requestIdField =
+                errorObj.getClass().getDeclaredField(REQUESTID);
         requestIdField.setAccessible(true);
 
         final String errorCode = (String) errorCodeField.get(errorObj);
@@ -2449,7 +2506,7 @@ class PlaidServiceTest {
         // Then
         assertNotNull(errorObj);
         // String manipulation might extract "null" as string or handle it differently
-        assertEquals("Test", getErrorField(errorObj, "errorMessage"));
+        assertEquals("Test", getErrorField(errorObj, ERRORMESSAGE));
     }
 
     @Test
@@ -2457,8 +2514,8 @@ class PlaidServiceTest {
         // Given
         plaidService =
                 new PlaidService(
-                        "test-client-id",
-                        "test-secret",
+                        TEST_CLIENT_ID,
+                        TEST_SECRET,
                         "sandbox",
                         "",
                         "",
@@ -2468,7 +2525,7 @@ class PlaidServiceTest {
 
         // When - Use reflection to access private method
         final java.lang.reflect.Method method =
-                PlaidService.class.getDeclaredMethod("parsePlaidErrorResponse", String.class);
+                PlaidService.class.getDeclaredMethod(PARSEPLAIDERRORRESPONSE, String.class);
         method.setAccessible(true);
         final Object errorObj = method.invoke(plaidService, errorBody);
         // Use reflection to access private inner class fields
@@ -2476,14 +2533,17 @@ class PlaidServiceTest {
             assertNull(errorObj);
             return;
         }
-        final java.lang.reflect.Field errorCodeField = errorObj.getClass().getDeclaredField("errorCode");
+        final java.lang.reflect.Field errorCodeField =
+                errorObj.getClass().getDeclaredField(ERRORCODE);
         errorCodeField.setAccessible(true);
-        final java.lang.reflect.Field errorTypeField = errorObj.getClass().getDeclaredField("errorType");
+        final java.lang.reflect.Field errorTypeField =
+                errorObj.getClass().getDeclaredField(ERRORTYPE);
         errorTypeField.setAccessible(true);
         final java.lang.reflect.Field errorMessageField =
-                errorObj.getClass().getDeclaredField("errorMessage");
+                errorObj.getClass().getDeclaredField(ERRORMESSAGE);
         errorMessageField.setAccessible(true);
-        final java.lang.reflect.Field requestIdField = errorObj.getClass().getDeclaredField("requestId");
+        final java.lang.reflect.Field requestIdField =
+                errorObj.getClass().getDeclaredField(REQUESTID);
         requestIdField.setAccessible(true);
 
         final String errorCode = (String) errorCodeField.get(errorObj);
@@ -2493,7 +2553,7 @@ class PlaidServiceTest {
 
         // Then
         assertNotNull(errorObj);
-        assertEquals("TEST", getErrorField(errorObj, "errorCode"));
+        assertEquals("TEST", getErrorField(errorObj, ERRORCODE));
         // Should not crash on array values
     }
 
@@ -2502,8 +2562,8 @@ class PlaidServiceTest {
         // Given
         plaidService =
                 new PlaidService(
-                        "test-client-id",
-                        "test-secret",
+                        TEST_CLIENT_ID,
+                        TEST_SECRET,
                         "sandbox",
                         "",
                         "",
@@ -2513,7 +2573,7 @@ class PlaidServiceTest {
 
         // When - Use reflection to access private method
         final java.lang.reflect.Method method =
-                PlaidService.class.getDeclaredMethod("parsePlaidErrorResponse", String.class);
+                PlaidService.class.getDeclaredMethod(PARSEPLAIDERRORRESPONSE, String.class);
         method.setAccessible(true);
         final Object errorObj = method.invoke(plaidService, errorBody);
         // Use reflection to access private inner class fields
@@ -2521,14 +2581,17 @@ class PlaidServiceTest {
             assertNull(errorObj);
             return;
         }
-        final java.lang.reflect.Field errorCodeField = errorObj.getClass().getDeclaredField("errorCode");
+        final java.lang.reflect.Field errorCodeField =
+                errorObj.getClass().getDeclaredField(ERRORCODE);
         errorCodeField.setAccessible(true);
-        final java.lang.reflect.Field errorTypeField = errorObj.getClass().getDeclaredField("errorType");
+        final java.lang.reflect.Field errorTypeField =
+                errorObj.getClass().getDeclaredField(ERRORTYPE);
         errorTypeField.setAccessible(true);
         final java.lang.reflect.Field errorMessageField =
-                errorObj.getClass().getDeclaredField("errorMessage");
+                errorObj.getClass().getDeclaredField(ERRORMESSAGE);
         errorMessageField.setAccessible(true);
-        final java.lang.reflect.Field requestIdField = errorObj.getClass().getDeclaredField("requestId");
+        final java.lang.reflect.Field requestIdField =
+                errorObj.getClass().getDeclaredField(REQUESTID);
         requestIdField.setAccessible(true);
 
         final String errorCode = (String) errorCodeField.get(errorObj);
@@ -2538,7 +2601,7 @@ class PlaidServiceTest {
 
         // Then
         assertNotNull(errorObj);
-        assertEquals("TEST", getErrorField(errorObj, "errorCode"));
+        assertEquals("TEST", getErrorField(errorObj, ERRORCODE));
         // Should handle boolean values without crashing
     }
 
@@ -2547,8 +2610,8 @@ class PlaidServiceTest {
         // Given
         plaidService =
                 new PlaidService(
-                        "test-client-id",
-                        "test-secret",
+                        TEST_CLIENT_ID,
+                        TEST_SECRET,
                         "sandbox",
                         "",
                         "",
@@ -2558,7 +2621,7 @@ class PlaidServiceTest {
 
         // When - Use reflection to access private method
         final java.lang.reflect.Method method =
-                PlaidService.class.getDeclaredMethod("parsePlaidErrorResponse", String.class);
+                PlaidService.class.getDeclaredMethod(PARSEPLAIDERRORRESPONSE, String.class);
         method.setAccessible(true);
         final Object errorObj = method.invoke(plaidService, errorBody);
         // Use reflection to access private inner class fields
@@ -2566,14 +2629,17 @@ class PlaidServiceTest {
             assertNull(errorObj);
             return;
         }
-        final java.lang.reflect.Field errorCodeField = errorObj.getClass().getDeclaredField("errorCode");
+        final java.lang.reflect.Field errorCodeField =
+                errorObj.getClass().getDeclaredField(ERRORCODE);
         errorCodeField.setAccessible(true);
-        final java.lang.reflect.Field errorTypeField = errorObj.getClass().getDeclaredField("errorType");
+        final java.lang.reflect.Field errorTypeField =
+                errorObj.getClass().getDeclaredField(ERRORTYPE);
         errorTypeField.setAccessible(true);
         final java.lang.reflect.Field errorMessageField =
-                errorObj.getClass().getDeclaredField("errorMessage");
+                errorObj.getClass().getDeclaredField(ERRORMESSAGE);
         errorMessageField.setAccessible(true);
-        final java.lang.reflect.Field requestIdField = errorObj.getClass().getDeclaredField("requestId");
+        final java.lang.reflect.Field requestIdField =
+                errorObj.getClass().getDeclaredField(REQUESTID);
         requestIdField.setAccessible(true);
 
         final String errorCode = (String) errorCodeField.get(errorObj);
@@ -2583,7 +2649,7 @@ class PlaidServiceTest {
 
         // Then
         assertNotNull(errorObj);
-        assertEquals("TEST", getErrorField(errorObj, "errorCode"));
+        assertEquals("TEST", getErrorField(errorObj, ERRORCODE));
         // Should handle numeric values without crashing
     }
 }

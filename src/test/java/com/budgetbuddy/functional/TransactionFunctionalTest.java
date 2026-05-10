@@ -1,8 +1,5 @@
 package com.budgetbuddy.functional;
 
-
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import java.nio.charset.StandardCharsets;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -12,13 +9,14 @@ import com.budgetbuddy.model.dynamodb.UserTable;
 import com.budgetbuddy.service.UserService;
 import com.budgetbuddy.util.TableInitializer;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -74,7 +72,9 @@ class TransactionFunctionalTest {
         final String email = "test-" + UUID.randomUUID() + "@example.com";
         final String passwordHash =
                 java.util.Base64.getEncoder()
-                        .encodeToString(("hashed-password-" + UUID.randomUUID()).getBytes(StandardCharsets.UTF_8));
+                        .encodeToString(
+                                ("hashed-password-" + UUID.randomUUID())
+                                        .getBytes(StandardCharsets.UTF_8));
 
         // Create test user - tables should be initialized before tests run
         // BREAKING CHANGE: firstName and lastName are optional (can be null)

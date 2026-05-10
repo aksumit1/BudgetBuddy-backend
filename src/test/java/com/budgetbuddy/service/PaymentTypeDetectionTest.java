@@ -1,10 +1,10 @@
 package com.budgetbuddy.service;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.math.BigDecimal;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -19,6 +19,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
         justification = "Tests deliberately exercise null-input paths")
 @ExtendWith(MockitoExtension.class)
 class PaymentTypeDetectionTest {
+
+    private static final String PAYMENT = "payment";
 
     @InjectMocks private PlaidCategoryMapper categoryMapper;
 
@@ -37,8 +39,8 @@ class PaymentTypeDetectionTest {
 
         // Then
         assertNotNull(mapping);
-        assertEquals("payment", mapping.getPrimary());
-        assertEquals("payment", mapping.getDetailed());
+        assertEquals(PAYMENT, mapping.getPrimary());
+        assertEquals(PAYMENT, mapping.getDetailed());
     }
 
     @Test
@@ -56,7 +58,7 @@ class PaymentTypeDetectionTest {
 
         // Then
         assertNotNull(mapping);
-        assertEquals("payment", mapping.getPrimary());
+        assertEquals(PAYMENT, mapping.getPrimary());
     }
 
     @Test
@@ -74,8 +76,8 @@ class PaymentTypeDetectionTest {
 
         // Then
         assertNotNull(mapping);
-        assertEquals("payment", mapping.getPrimary());
-        assertEquals("payment", mapping.getDetailed());
+        assertEquals(PAYMENT, mapping.getPrimary());
+        assertEquals(PAYMENT, mapping.getDetailed());
     }
 
     @Test
@@ -93,7 +95,7 @@ class PaymentTypeDetectionTest {
 
         // Then
         assertNotNull(mapping);
-        assertEquals("payment", mapping.getPrimary());
+        assertEquals(PAYMENT, mapping.getPrimary());
     }
 
     @Test
@@ -111,7 +113,7 @@ class PaymentTypeDetectionTest {
 
         // Then
         assertNotNull(mapping);
-        assertEquals("payment", mapping.getPrimary());
+        assertEquals(PAYMENT, mapping.getPrimary());
     }
 
     @Test
@@ -129,7 +131,7 @@ class PaymentTypeDetectionTest {
 
         // Then: Should not be payment (no payment channel or keywords)
         assertNotNull(mapping);
-        assertNotEquals("payment", mapping.getPrimary());
+        assertNotEquals(PAYMENT, mapping.getPrimary());
     }
 
     @Test
@@ -147,7 +149,7 @@ class PaymentTypeDetectionTest {
 
         // Then: Should be income, not payment
         assertNotNull(mapping);
-        assertNotEquals("payment", mapping.getPrimary());
+        assertNotEquals(PAYMENT, mapping.getPrimary());
         assertEquals("income", mapping.getPrimary()); // ACH credit should be income
     }
 
@@ -171,6 +173,6 @@ class PaymentTypeDetectionTest {
 
         // Then: Payment should override other categories
         assertNotNull(mapping);
-        assertEquals("payment", mapping.getPrimary());
+        assertEquals(PAYMENT, mapping.getPrimary());
     }
 }

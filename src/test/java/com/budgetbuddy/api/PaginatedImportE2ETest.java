@@ -1,8 +1,5 @@
 package com.budgetbuddy.api;
 
-
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import java.util.Locale;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -18,12 +15,14 @@ import com.budgetbuddy.model.dynamodb.UserTable;
 import com.budgetbuddy.repository.dynamodb.AccountRepository;
 import com.budgetbuddy.repository.dynamodb.TransactionRepository;
 import com.budgetbuddy.service.UserService;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
@@ -72,6 +71,10 @@ import org.springframework.test.web.servlet.MockMvc;
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class PaginatedImportE2ETest {
 
+    private static final String SIZE = "size";
+    private static final String PAGE = "page";
+    private static final String FILE = "file";
+
     private static final Logger LOGGER = LoggerFactory.getLogger(PaginatedImportE2ETest.class);
 
     @Autowired private MockMvc mockMvc;
@@ -96,7 +99,8 @@ class PaginatedImportE2ETest {
         // hash)
         // This must be the same for both createUserSecure and authenticate
         final String passwordHash =
-                java.util.Base64.getEncoder().encodeToString("testPassword123".getBytes(StandardCharsets.UTF_8));
+                java.util.Base64.getEncoder()
+                        .encodeToString("testPassword123".getBytes(StandardCharsets.UTF_8));
         testUser = userService.createUserSecure(testEmail, passwordHash, "Test", "User");
 
         // Wait a bit for DynamoDB eventual consistency
@@ -148,19 +152,19 @@ class PaginatedImportE2ETest {
         // Given: Empty CSV file
         final MockMultipartFile file =
                 new MockMultipartFile(
-                        "file",
+                        FILE,
                         "empty.csv",
                         "text/csv",
                         "Date,Description,Amount\n"
                                 .getBytes(StandardCharsets.UTF_8) // Header only, no data
-                );
+                        );
 
         // When: Importing chunk 0
         mockMvc.perform(
                         multipart("/api/transactions/import-csv/chunk")
                                 .file(file)
-                                .param("page", "0")
-                                .param("size", "100")
+                                .param(PAGE, "0")
+                                .param(SIZE, "100")
                                 .with(user(userDetails)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.total").value(0))
@@ -174,7 +178,7 @@ class PaginatedImportE2ETest {
         final String csvContent = createCSVContent(1);
         final MockMultipartFile file =
                 new MockMultipartFile(
-                        "file",
+                        FILE,
                         "single.csv",
                         "text/csv",
                         csvContent.getBytes(StandardCharsets.UTF_8));
@@ -183,8 +187,8 @@ class PaginatedImportE2ETest {
         mockMvc.perform(
                         multipart("/api/transactions/import-csv/chunk")
                                 .file(file)
-                                .param("page", "0")
-                                .param("size", "100")
+                                .param(PAGE, "0")
+                                .param(SIZE, "100")
                                 .with(user(userDetails)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.total").value(1))
@@ -205,7 +209,7 @@ class PaginatedImportE2ETest {
         final String csvContent = createCSVContent(100);
         final MockMultipartFile file =
                 new MockMultipartFile(
-                        "file",
+                        FILE,
                         "exact100.csv",
                         "text/csv",
                         csvContent.getBytes(StandardCharsets.UTF_8));
@@ -214,8 +218,8 @@ class PaginatedImportE2ETest {
         mockMvc.perform(
                         multipart("/api/transactions/import-csv/chunk")
                                 .file(file)
-                                .param("page", "0")
-                                .param("size", "100")
+                                .param(PAGE, "0")
+                                .param(SIZE, "100")
                                 .with(user(userDetails)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.total").value(100))
@@ -236,7 +240,7 @@ class PaginatedImportE2ETest {
         final String csvContent = createCSVContent(101);
         final MockMultipartFile file =
                 new MockMultipartFile(
-                        "file",
+                        FILE,
                         "exact101.csv",
                         "text/csv",
                         csvContent.getBytes(StandardCharsets.UTF_8));
@@ -245,8 +249,8 @@ class PaginatedImportE2ETest {
         mockMvc.perform(
                         multipart("/api/transactions/import-csv/chunk")
                                 .file(file)
-                                .param("page", "0")
-                                .param("size", "100")
+                                .param(PAGE, "0")
+                                .param(SIZE, "100")
                                 .with(user(userDetails)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.total").value(101))
@@ -259,8 +263,8 @@ class PaginatedImportE2ETest {
         mockMvc.perform(
                         multipart("/api/transactions/import-csv/chunk")
                                 .file(file)
-                                .param("page", "1")
-                                .param("size", "100")
+                                .param(PAGE, "1")
+                                .param(SIZE, "100")
                                 .with(user(userDetails)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.total").value(101))
@@ -292,7 +296,7 @@ class PaginatedImportE2ETest {
         final String csvContent = createCSVContent(476);
         final MockMultipartFile file =
                 new MockMultipartFile(
-                        "file",
+                        FILE,
                         "large476.csv",
                         "text/csv",
                         csvContent.getBytes(StandardCharsets.UTF_8));
@@ -305,8 +309,8 @@ class PaginatedImportE2ETest {
             mockMvc.perform(
                             multipart("/api/transactions/import-csv/chunk")
                                     .file(file)
-                                    .param("page", String.valueOf(i))
-                                    .param("size", String.valueOf(size))
+                                    .param(PAGE, String.valueOf(i))
+                                    .param(SIZE, String.valueOf(size))
                                     .with(user(userDetails)))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.total").value(476))
@@ -338,17 +342,14 @@ class PaginatedImportE2ETest {
         final String csvContent = createCSVContent(100);
         final MockMultipartFile file =
                 new MockMultipartFile(
-                        "file",
-                        "test.csv",
-                        "text/csv",
-                        csvContent.getBytes(StandardCharsets.UTF_8));
+                        FILE, "test.csv", "text/csv", csvContent.getBytes(StandardCharsets.UTF_8));
 
         // When: Importing page 1 (out of range - only 1 page exists)
         mockMvc.perform(
                         multipart("/api/transactions/import-csv/chunk")
                                 .file(file)
-                                .param("page", "1")
-                                .param("size", "100")
+                                .param(PAGE, "1")
+                                .param(SIZE, "100")
                                 .with(user(userDetails)))
                 .andExpect(status().isBadRequest());
     }
@@ -359,17 +360,14 @@ class PaginatedImportE2ETest {
         final String csvContent = createCSVContent(10);
         final MockMultipartFile file =
                 new MockMultipartFile(
-                        "file",
-                        "test.csv",
-                        "text/csv",
-                        csvContent.getBytes(StandardCharsets.UTF_8));
+                        FILE, "test.csv", "text/csv", csvContent.getBytes(StandardCharsets.UTF_8));
 
         // When: Importing with size > 500 (max allowed)
         mockMvc.perform(
                         multipart("/api/transactions/import-csv/chunk")
                                 .file(file)
-                                .param("page", "0")
-                                .param("size", "501")
+                                .param(PAGE, "0")
+                                .param(SIZE, "501")
                                 .with(user(userDetails)))
                 .andExpect(status().isBadRequest());
 
@@ -377,8 +375,8 @@ class PaginatedImportE2ETest {
         mockMvc.perform(
                         multipart("/api/transactions/import-csv/chunk")
                                 .file(file)
-                                .param("page", "0")
-                                .param("size", "0")
+                                .param(PAGE, "0")
+                                .param(SIZE, "0")
                                 .with(user(userDetails)))
                 .andExpect(status().isBadRequest());
     }
@@ -389,17 +387,14 @@ class PaginatedImportE2ETest {
         final String csvContent = createCSVContent(10);
         final MockMultipartFile file =
                 new MockMultipartFile(
-                        "file",
-                        "test.csv",
-                        "text/csv",
-                        csvContent.getBytes(StandardCharsets.UTF_8));
+                        FILE, "test.csv", "text/csv", csvContent.getBytes(StandardCharsets.UTF_8));
 
         // When: Importing with negative page
         mockMvc.perform(
                         multipart("/api/transactions/import-csv/chunk")
                                 .file(file)
-                                .param("page", "-1")
-                                .param("size", "100")
+                                .param(PAGE, "-1")
+                                .param(SIZE, "100")
                                 .with(user(userDetails)))
                 .andExpect(status().isBadRequest());
     }
@@ -410,7 +405,7 @@ class PaginatedImportE2ETest {
         final String csvContent = createCSVContent(250);
         final MockMultipartFile file =
                 new MockMultipartFile(
-                        "file",
+                        FILE,
                         "test250.csv",
                         "text/csv",
                         csvContent.getBytes(StandardCharsets.UTF_8));
@@ -423,8 +418,8 @@ class PaginatedImportE2ETest {
             mockMvc.perform(
                             multipart("/api/transactions/import-csv/chunk")
                                     .file(file)
-                                    .param("page", String.valueOf(page))
-                                    .param("size", String.valueOf(size))
+                                    .param(PAGE, String.valueOf(page))
+                                    .param(SIZE, String.valueOf(size))
                                     .with(user(userDetails)))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.total").value(250))
@@ -456,7 +451,7 @@ class PaginatedImportE2ETest {
         final String csvContent = createCSVContent(200);
         final MockMultipartFile file =
                 new MockMultipartFile(
-                        "file",
+                        FILE,
                         "concurrent.csv",
                         "text/csv",
                         csvContent.getBytes(StandardCharsets.UTF_8));
@@ -472,11 +467,11 @@ class PaginatedImportE2ETest {
                             () -> {
                                 try {
                                     mockMvc.perform(
-                                            multipart("/api/transactions/import-csv/chunk")
-                                                    .file(file)
-                                                    .param("page", String.valueOf(pageNum))
-                                                    .param("size", "100")
-                                                    .with(user(userDetails)))
+                                                    multipart("/api/transactions/import-csv/chunk")
+                                                            .file(file)
+                                                            .param(PAGE, String.valueOf(pageNum))
+                                                            .param(SIZE, "100")
+                                                            .with(user(userDetails)))
                                             .andExpect(status().isOk());
                                 } catch (Exception e) {
                                     throw new RuntimeException(e);
@@ -515,7 +510,7 @@ class PaginatedImportE2ETest {
         final String csvContent = createCSVContent(300);
         final MockMultipartFile file =
                 new MockMultipartFile(
-                        "file",
+                        FILE,
                         "outoforder.csv",
                         "text/csv",
                         csvContent.getBytes(StandardCharsets.UTF_8));
@@ -524,8 +519,8 @@ class PaginatedImportE2ETest {
         mockMvc.perform(
                         multipart("/api/transactions/import-csv/chunk")
                                 .file(file)
-                                .param("page", "2")
-                                .param("size", "100")
+                                .param(PAGE, "2")
+                                .param(SIZE, "100")
                                 .with(user(userDetails)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.page").value(2))
@@ -534,8 +529,8 @@ class PaginatedImportE2ETest {
         mockMvc.perform(
                         multipart("/api/transactions/import-csv/chunk")
                                 .file(file)
-                                .param("page", "1")
-                                .param("size", "100")
+                                .param(PAGE, "1")
+                                .param(SIZE, "100")
                                 .with(user(userDetails)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.page").value(1))
@@ -544,8 +539,8 @@ class PaginatedImportE2ETest {
         mockMvc.perform(
                         multipart("/api/transactions/import-csv/chunk")
                                 .file(file)
-                                .param("page", "0")
-                                .param("size", "100")
+                                .param(PAGE, "0")
+                                .param(SIZE, "100")
                                 .with(user(userDetails)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.page").value(0))
@@ -574,7 +569,7 @@ class PaginatedImportE2ETest {
         final String csvContent = createCSVContent(1000);
         final MockMultipartFile file =
                 new MockMultipartFile(
-                        "file",
+                        FILE,
                         "maxsize.csv",
                         "text/csv",
                         csvContent.getBytes(StandardCharsets.UTF_8));
@@ -583,8 +578,8 @@ class PaginatedImportE2ETest {
         mockMvc.perform(
                         multipart("/api/transactions/import-csv/chunk")
                                 .file(file)
-                                .param("page", "0")
-                                .param("size", "500")
+                                .param(PAGE, "0")
+                                .param(SIZE, "500")
                                 .with(user(userDetails)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.total").value(1000))
@@ -598,8 +593,8 @@ class PaginatedImportE2ETest {
         mockMvc.perform(
                         multipart("/api/transactions/import-csv/chunk")
                                 .file(file)
-                                .param("page", "1")
-                                .param("size", "500")
+                                .param(PAGE, "1")
+                                .param(SIZE, "500")
                                 .with(user(userDetails)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.page").value(1))
@@ -629,7 +624,7 @@ class PaginatedImportE2ETest {
         final String csvContent = createCSVContent(50);
         final MockMultipartFile file =
                 new MockMultipartFile(
-                        "file",
+                        FILE,
                         "structure.csv",
                         "text/csv",
                         csvContent.getBytes(StandardCharsets.UTF_8));
@@ -638,8 +633,8 @@ class PaginatedImportE2ETest {
         mockMvc.perform(
                         multipart("/api/transactions/import-csv/chunk")
                                 .file(file)
-                                .param("page", "0")
-                                .param("size", "100")
+                                .param(PAGE, "0")
+                                .param(SIZE, "100")
                                 .with(user(userDetails)))
                 .andExpect(status().isOk())
                 // Verify ChunkImportResponse structure
@@ -664,7 +659,7 @@ class PaginatedImportE2ETest {
         final String csvContent = createCSVContent(10);
         final MockMultipartFile file =
                 new MockMultipartFile(
-                        "file",
+                        FILE,
                         "preview-test.csv",
                         "text/csv",
                         csvContent.getBytes(StandardCharsets.UTF_8));
@@ -673,8 +668,8 @@ class PaginatedImportE2ETest {
         mockMvc.perform(
                         multipart("/api/transactions/import-csv/preview")
                                 .file(file)
-                                .param("page", "0")
-                                .param("size", "100")
+                                .param(PAGE, "0")
+                                .param(SIZE, "100")
                                 .with(user(userDetails)))
                 .andExpect(status().isOk())
                 // Verify preview response structure
@@ -694,7 +689,7 @@ class PaginatedImportE2ETest {
         final String csvContent = createCSVContent(5);
         final MockMultipartFile file =
                 new MockMultipartFile(
-                        "file",
+                        FILE,
                         "preview-with-account.csv",
                         "text/csv",
                         csvContent.getBytes(StandardCharsets.UTF_8));
@@ -717,8 +712,8 @@ class PaginatedImportE2ETest {
                         multipart("/api/transactions/import-csv/preview")
                                 .file(file)
                                 .param("accountId", existingAccount.getAccountId())
-                                .param("page", "0")
-                                .param("size", "100")
+                                .param(PAGE, "0")
+                                .param(SIZE, "100")
                                 .with(user(userDetails)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.totalParsed").value(5))
@@ -734,7 +729,7 @@ class PaginatedImportE2ETest {
         final String csvContent = createCSVContent(50);
         final MockMultipartFile file =
                 new MockMultipartFile(
-                        "file",
+                        FILE,
                         "selected-account.csv",
                         "text/csv",
                         csvContent.getBytes(StandardCharsets.UTF_8));
@@ -756,8 +751,8 @@ class PaginatedImportE2ETest {
         mockMvc.perform(
                         multipart("/api/transactions/import-csv/chunk")
                                 .file(file)
-                                .param("page", "0")
-                                .param("size", "100")
+                                .param(PAGE, "0")
+                                .param(SIZE, "100")
                                 .param("accountId", existingAccount.getAccountId())
                                 .with(user(userDetails)))
                 .andExpect(status().isOk())
@@ -782,7 +777,7 @@ class PaginatedImportE2ETest {
         final String csvContent = createCSVContent(150);
         final MockMultipartFile file =
                 new MockMultipartFile(
-                        "file",
+                        FILE,
                         "account-reuse.csv",
                         "text/csv",
                         csvContent.getBytes(StandardCharsets.UTF_8));
@@ -791,8 +786,8 @@ class PaginatedImportE2ETest {
         mockMvc.perform(
                         multipart("/api/transactions/import-csv/chunk")
                                 .file(file)
-                                .param("page", "0")
-                                .param("size", "100")
+                                .param(PAGE, "0")
+                                .param(SIZE, "100")
                                 .with(user(userDetails)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.importResponse.created").value(100));
@@ -846,8 +841,8 @@ class PaginatedImportE2ETest {
         mockMvc.perform(
                         multipart("/api/transactions/import-csv/chunk")
                                 .file(file)
-                                .param("page", "1")
-                                .param("size", "100")
+                                .param(PAGE, "1")
+                                .param(SIZE, "100")
                                 .with(user(userDetails)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.importResponse.created").value(50));
@@ -921,7 +916,7 @@ class PaginatedImportE2ETest {
         // Use a filename that might trigger account detection
         final MockMultipartFile file =
                 new MockMultipartFile(
-                        "file",
+                        FILE,
                         "Chase_Checking_1234_Statement.csv", // Filename suggests account info
                         "text/csv",
                         csvContent.getBytes(StandardCharsets.UTF_8));
@@ -930,8 +925,8 @@ class PaginatedImportE2ETest {
         mockMvc.perform(
                         multipart("/api/transactions/import-csv/chunk")
                                 .file(file)
-                                .param("page", "0")
-                                .param("size", "100")
+                                .param(PAGE, "0")
+                                .param(SIZE, "100")
                                 .with(user(userDetails)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.importResponse.created").value(25));
@@ -955,7 +950,7 @@ class PaginatedImportE2ETest {
         final String csvContent = createCSVContent(10);
         final MockMultipartFile file =
                 new MockMultipartFile(
-                        "file",
+                        FILE,
                         "BankOfAmerica_Checking_5678.csv", // Filename suggests account info
                         "text/csv",
                         csvContent.getBytes(StandardCharsets.UTF_8));
@@ -964,8 +959,8 @@ class PaginatedImportE2ETest {
         mockMvc.perform(
                         multipart("/api/transactions/import-csv/preview")
                                 .file(file)
-                                .param("page", "0")
-                                .param("size", "100")
+                                .param(PAGE, "0")
+                                .param(SIZE, "100")
                                 .with(user(userDetails)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.detectedAccount").exists())
@@ -996,7 +991,7 @@ class PaginatedImportE2ETest {
         final String csvContent = createCSVContent(30);
         final MockMultipartFile file =
                 new MockMultipartFile(
-                        "file",
+                        FILE,
                         "Chase_Checking_1234567890_Statement.csv", // Filename suggests same account
                         "text/csv",
                         csvContent.getBytes(StandardCharsets.UTF_8));
@@ -1005,8 +1000,8 @@ class PaginatedImportE2ETest {
         mockMvc.perform(
                         multipart("/api/transactions/import-csv/chunk")
                                 .file(file)
-                                .param("page", "0")
-                                .param("size", "100")
+                                .param(PAGE, "0")
+                                .param(SIZE, "100")
                                 .with(user(userDetails)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.importResponse.created").value(30));

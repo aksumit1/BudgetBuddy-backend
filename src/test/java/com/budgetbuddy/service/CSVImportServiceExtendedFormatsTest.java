@@ -28,9 +28,10 @@ class CSVImportServiceExtendedFormatsTest {
     void setUp() {
         final AccountDetectionService accountDetectionService =
                 org.mockito.Mockito.mock(AccountDetectionService.class);
-        final com.budgetbuddy.service.ml.EnhancedCategoryDetectionService enhancedCategoryDetection =
-                org.mockito.Mockito.mock(
-                        com.budgetbuddy.service.ml.EnhancedCategoryDetectionService.class);
+        final com.budgetbuddy.service.ml.EnhancedCategoryDetectionService
+                enhancedCategoryDetection =
+                        org.mockito.Mockito.mock(
+                                com.budgetbuddy.service.ml.EnhancedCategoryDetectionService.class);
         final com.budgetbuddy.service.ml.FuzzyMatchingService fuzzyMatchingService =
                 org.mockito.Mockito.mock(com.budgetbuddy.service.ml.FuzzyMatchingService.class);
         csvImportService =

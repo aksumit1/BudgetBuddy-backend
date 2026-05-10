@@ -70,7 +70,8 @@ class AccountIntegrationTest {
         accountRepository.save(account);
 
         // When
-        final java.util.Optional<AccountTable> found = accountRepository.findById(account.getAccountId());
+        final java.util.Optional<AccountTable> found =
+                accountRepository.findById(account.getAccountId());
 
         // Then
         assertTrue(found.isPresent());

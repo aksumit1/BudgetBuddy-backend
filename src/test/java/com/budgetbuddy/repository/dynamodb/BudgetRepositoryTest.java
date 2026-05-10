@@ -162,7 +162,8 @@ class BudgetRepositoryTest {
         // When
         final List<BudgetTable> result1 =
                 budgetRepository.findByUserIdAndUpdatedAfter(null, Instant.now().getEpochSecond());
-        final List<BudgetTable> result2 = budgetRepository.findByUserIdAndUpdatedAfter(testUserId, null);
+        final List<BudgetTable> result2 =
+                budgetRepository.findByUserIdAndUpdatedAfter(testUserId, null);
         final List<BudgetTable> result3 =
                 budgetRepository.findByUserIdAndUpdatedAfter("", Instant.now().getEpochSecond());
 

@@ -1,11 +1,11 @@
 package com.budgetbuddy.service;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -20,6 +20,12 @@ import org.mockito.junit.jupiter.MockitoExtension;
         justification = "Tests deliberately exercise null-input paths")
 @ExtendWith(MockitoExtension.class)
 class PlaidCategoryMapperTest {
+
+    private static final String TRAVEL = "travel";
+    private static final String DINING = "dining";
+    private static final String SHOPPING = "shopping";
+    private static final String INTEREST = "interest";
+    private static final String PAYMENT = "payment";
 
     @InjectMocks private PlaidCategoryMapper plaidCategoryMapper;
 
@@ -61,8 +67,8 @@ class PlaidCategoryMapperTest {
 
         // Then
         assertNotNull(result);
-        assertEquals("dining", result.getPrimary());
-        assertEquals("dining", result.getDetailed());
+        assertEquals(DINING, result.getPrimary());
+        assertEquals(DINING, result.getDetailed());
     }
 
     @Test
@@ -114,7 +120,7 @@ class PlaidCategoryMapperTest {
 
         // Then
         assertNotNull(result);
-        assertEquals("dining", result.getDetailed());
+        assertEquals(DINING, result.getDetailed());
     }
 
     @Test
@@ -134,7 +140,7 @@ class PlaidCategoryMapperTest {
         // Target can be categorized as either groceries or shopping depending on context
         // Both are valid categorizations for a store that sells both
         assertTrue(
-                "groceries".equals(result.getDetailed()) || "shopping".equals(result.getDetailed()),
+                "groceries".equals(result.getDetailed()) || SHOPPING.equals(result.getDetailed()),
                 "Expected groceries or shopping but got: " + result.getDetailed());
     }
 
@@ -194,7 +200,7 @@ class PlaidCategoryMapperTest {
         assertNotNull(result);
         assertEquals("income", result.getPrimary());
         assertEquals(
-                "interest", result.getDetailed(), "INTRST payment should be detected as interest");
+                INTEREST, result.getDetailed(), "INTRST payment should be detected as interest");
     }
 
     @Test
@@ -212,8 +218,7 @@ class PlaidCategoryMapperTest {
         // Then
         assertNotNull(result);
         assertEquals("income", result.getPrimary());
-        assertEquals(
-                "interest", result.getDetailed(), "INTR payment should be detected as interest");
+        assertEquals(INTEREST, result.getDetailed(), "INTR payment should be detected as interest");
     }
 
     @Test
@@ -232,7 +237,7 @@ class PlaidCategoryMapperTest {
         assertNotNull(result);
         assertEquals("income", result.getPrimary());
         assertEquals(
-                "interest", result.getDetailed(), "INTREST payment should be detected as interest");
+                INTEREST, result.getDetailed(), "INTREST payment should be detected as interest");
     }
 
     @Test
@@ -251,7 +256,7 @@ class PlaidCategoryMapperTest {
         assertNotNull(result);
         assertEquals("income", result.getPrimary());
         assertEquals(
-                "interest", result.getDetailed(), "INTRST payment should be detected as interest");
+                INTEREST, result.getDetailed(), "INTRST payment should be detected as interest");
     }
 
     @Test
@@ -290,7 +295,7 @@ class PlaidCategoryMapperTest {
         assertEquals(
                 "income", result.getPrimary(), "INTRST PYMNT should override primary to income");
         assertEquals(
-                "interest",
+                INTEREST,
                 result.getDetailed(),
                 "INTRST PYMNT should override detailed to interest");
     }
@@ -314,7 +319,7 @@ class PlaidCategoryMapperTest {
                 result.getPrimary(),
                 "INTRST PYMNT should override UNKNOWN_CATEGORY to income");
         assertEquals(
-                "interest",
+                INTEREST,
                 result.getDetailed(),
                 "INTRST PYMNT should override UNKNOWN_CATEGORY to interest");
     }
@@ -341,7 +346,7 @@ class PlaidCategoryMapperTest {
     void testApplyOverrideWithValidOverrideReturnsOverriddenMapping() {
         // Given
         final PlaidCategoryMapper.CategoryMapping original =
-                new PlaidCategoryMapper.CategoryMapping("dining", "restaurants", false);
+                new PlaidCategoryMapper.CategoryMapping(DINING, "restaurants", false);
         final String overridePrimary = "groceries";
         final String overrideDetailed = "supermarket";
 
@@ -360,7 +365,7 @@ class PlaidCategoryMapperTest {
     void testApplyOverrideWithPartialOverrideUsesOriginalForMissing() {
         // Given
         final PlaidCategoryMapper.CategoryMapping original =
-                new PlaidCategoryMapper.CategoryMapping("dining", "restaurants", false);
+                new PlaidCategoryMapper.CategoryMapping(DINING, "restaurants", false);
         final String overridePrimary = "groceries";
         final String overrideDetailed = null; // No detailed override
 
@@ -379,7 +384,7 @@ class PlaidCategoryMapperTest {
     void testApplyOverrideWithEmptyOverrideUsesOriginal() {
         // Given
         final PlaidCategoryMapper.CategoryMapping original =
-                new PlaidCategoryMapper.CategoryMapping("dining", "restaurants", false);
+                new PlaidCategoryMapper.CategoryMapping(DINING, "restaurants", false);
         final String overridePrimary = "";
         final String overrideDetailed = "";
 
@@ -389,7 +394,7 @@ class PlaidCategoryMapperTest {
 
         // Then
         assertNotNull(result);
-        assertEquals("dining", result.getPrimary());
+        assertEquals(DINING, result.getPrimary());
         assertEquals("restaurants", result.getDetailed());
         assertTrue(result.isOverridden());
     }
@@ -412,10 +417,9 @@ class PlaidCategoryMapperTest {
 
         // Then
         assertNotNull(result);
+        assertEquals(TRAVEL, result.getPrimary(), "Delta Airlines should be travel, not utilities");
         assertEquals(
-                "travel", result.getPrimary(), "Delta Airlines should be travel, not utilities");
-        assertEquals(
-                "travel", result.getDetailed(), "Delta Airlines should be travel, not utilities");
+                TRAVEL, result.getDetailed(), "Delta Airlines should be travel, not utilities");
     }
 
     @Test
@@ -435,9 +439,9 @@ class PlaidCategoryMapperTest {
         // Then
         assertNotNull(result);
         assertEquals(
-                "travel", result.getPrimary(), "Alaska Airlines should be travel, not utilities");
+                TRAVEL, result.getPrimary(), "Alaska Airlines should be travel, not utilities");
         assertEquals(
-                "travel", result.getDetailed(), "Alaska Airlines should be travel, not utilities");
+                TRAVEL, result.getDetailed(), "Alaska Airlines should be travel, not utilities");
     }
 
     @Test
@@ -454,8 +458,8 @@ class PlaidCategoryMapperTest {
 
         // Then
         assertNotNull(result);
-        assertEquals("travel", result.getPrimary(), "United Airlines should be travel");
-        assertEquals("travel", result.getDetailed(), "United Airlines should be travel");
+        assertEquals(TRAVEL, result.getPrimary(), "United Airlines should be travel");
+        assertEquals(TRAVEL, result.getDetailed(), "United Airlines should be travel");
     }
 
     // ========== Shopping Transaction Tests ==========
@@ -477,13 +481,9 @@ class PlaidCategoryMapperTest {
         // Then
         assertNotNull(result);
         assertEquals(
-                "shopping",
-                result.getPrimary(),
-                "Lululemon should be shopping, not transportation");
+                SHOPPING, result.getPrimary(), "Lululemon should be shopping, not transportation");
         assertEquals(
-                "shopping",
-                result.getDetailed(),
-                "Lululemon should be shopping, not transportation");
+                SHOPPING, result.getDetailed(), "Lululemon should be shopping, not transportation");
     }
 
     @Test
@@ -500,8 +500,8 @@ class PlaidCategoryMapperTest {
 
         // Then
         assertNotNull(result);
-        assertEquals("shopping", result.getPrimary(), "Nike should be shopping");
-        assertEquals("shopping", result.getDetailed(), "Nike should be shopping");
+        assertEquals(SHOPPING, result.getPrimary(), "Nike should be shopping");
+        assertEquals(SHOPPING, result.getDetailed(), "Nike should be shopping");
     }
 
     @Test
@@ -518,8 +518,8 @@ class PlaidCategoryMapperTest {
 
         // Then
         assertNotNull(result);
-        assertEquals("shopping", result.getPrimary(), "Nordstrom should be shopping");
-        assertEquals("shopping", result.getDetailed(), "Nordstrom should be shopping");
+        assertEquals(SHOPPING, result.getPrimary(), "Nordstrom should be shopping");
+        assertEquals(SHOPPING, result.getDetailed(), "Nordstrom should be shopping");
     }
 
     // ========== Movie Theater/Entertainment Tests ==========
@@ -599,11 +599,11 @@ class PlaidCategoryMapperTest {
         // Then
         assertNotNull(result);
         assertEquals(
-                "travel",
+                TRAVEL,
                 result.getPrimary(),
                 "AXP Centurion Lounge should be travel, not utilities");
         assertEquals(
-                "travel",
+                TRAVEL,
                 result.getDetailed(),
                 "AXP Centurion Lounge should be travel, not utilities");
     }
@@ -622,8 +622,8 @@ class PlaidCategoryMapperTest {
 
         // Then
         assertNotNull(result);
-        assertEquals("travel", result.getPrimary(), "Priority Pass should be travel");
-        assertEquals("travel", result.getDetailed(), "Priority Pass should be travel");
+        assertEquals(TRAVEL, result.getPrimary(), "Priority Pass should be travel");
+        assertEquals(TRAVEL, result.getDetailed(), "Priority Pass should be travel");
     }
 
     @Test
@@ -640,8 +640,8 @@ class PlaidCategoryMapperTest {
 
         // Then
         assertNotNull(result);
-        assertEquals("travel", result.getPrimary(), "Delta Sky Club should be travel");
-        assertEquals("travel", result.getDetailed(), "Delta Sky Club should be travel");
+        assertEquals(TRAVEL, result.getPrimary(), "Delta Sky Club should be travel");
+        assertEquals(TRAVEL, result.getDetailed(), "Delta Sky Club should be travel");
     }
 
     // ========== Direct Payment Tests ==========
@@ -666,8 +666,8 @@ class PlaidCategoryMapperTest {
 
         // Then
         assertNotNull(result);
-        assertEquals("payment", result.getPrimary(), "DIRECTPAY should be payment, not other");
-        assertEquals("payment", result.getDetailed(), "DIRECTPAY should be payment, not other");
+        assertEquals(PAYMENT, result.getPrimary(), "DIRECTPAY should be payment, not other");
+        assertEquals(PAYMENT, result.getDetailed(), "DIRECTPAY should be payment, not other");
     }
 
     @Test
@@ -684,8 +684,8 @@ class PlaidCategoryMapperTest {
 
         // Then
         assertNotNull(result);
-        assertEquals("payment", result.getPrimary(), "Direct payment should be payment");
-        assertEquals("payment", result.getDetailed(), "Direct payment should be payment");
+        assertEquals(PAYMENT, result.getPrimary(), "Direct payment should be payment");
+        assertEquals(PAYMENT, result.getDetailed(), "Direct payment should be payment");
     }
 
     @Test
@@ -702,8 +702,8 @@ class PlaidCategoryMapperTest {
 
         // Then
         assertNotNull(result);
-        assertEquals("payment", result.getPrimary(), "Automatyment should be payment");
-        assertEquals("payment", result.getDetailed(), "Automatyment should be payment");
+        assertEquals(PAYMENT, result.getPrimary(), "Automatyment should be payment");
+        assertEquals(PAYMENT, result.getDetailed(), "Automatyment should be payment");
     }
 
     // ========== Holdings Company Tests ==========

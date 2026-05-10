@@ -38,7 +38,8 @@ public class OAuth2Config {
     /** JWT Authentication Converter Extracts authorities from JWT claims */
     @Bean
     public JwtAuthenticationConverter jwtAuthenticationConverter() {
-        final JwtGrantedAuthoritiesConverter authoritiesConverter = new JwtGrantedAuthoritiesConverter();
+        final JwtGrantedAuthoritiesConverter authoritiesConverter =
+                new JwtGrantedAuthoritiesConverter();
         authoritiesConverter.setAuthorityPrefix("ROLE_");
         authoritiesConverter.setAuthoritiesClaimName("authorities");
 

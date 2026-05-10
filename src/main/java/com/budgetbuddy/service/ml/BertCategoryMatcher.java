@@ -1,14 +1,13 @@
 package com.budgetbuddy.service.ml;
 
-
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import java.util.Locale;
 import jakarta.annotation.PostConstruct;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import org.slf4j.Logger;
@@ -89,7 +88,8 @@ public class BertCategoryMatcher {
             return;
         }
 
-        final Map<String, Set<String>> clusters = merchantCategoryDataService.getCategoryToKeywordsMap();
+        final Map<String, Set<String>> clusters =
+                merchantCategoryDataService.getCategoryToKeywordsMap();
         if (clusters == null || clusters.isEmpty()) {
             LOGGER.warn(
                     "BertCategoryMatcher: MerchantCategoryDataService returned no clusters — matcher disabled.");

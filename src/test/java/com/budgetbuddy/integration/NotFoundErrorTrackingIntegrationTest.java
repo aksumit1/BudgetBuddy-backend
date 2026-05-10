@@ -1,8 +1,5 @@
 package com.budgetbuddy.integration;
 
-
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import java.nio.charset.StandardCharsets;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
@@ -20,6 +17,8 @@ import com.budgetbuddy.security.ddos.NotFoundErrorTrackingService;
 import com.budgetbuddy.service.AuthService;
 import com.budgetbuddy.service.UserService;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.UUID;
 import org.hamcrest.core.StringContains;
@@ -64,6 +63,8 @@ import org.springframework.test.web.servlet.MockMvc;
         })
 class NotFoundErrorTrackingIntegrationTest {
 
+    private static final String X_FORWARDED_FOR = "X-Forwarded-For";
+
     @Autowired private MockMvc mockMvc;
 
     @Autowired private NotFoundErrorTrackingService notFoundTrackingService;
@@ -94,8 +95,11 @@ class NotFoundErrorTrackingIntegrationTest {
 
         // Create test user and authenticate for protected endpoint tests
         final String testEmail = "test-404-" + UUID.randomUUID() + "@example.com";
-        final String passwordHash = Base64.getEncoder().encodeToString("hashed-password".getBytes(StandardCharsets.UTF_8));
-        final String clientSalt = Base64.getEncoder().encodeToString("client-salt".getBytes(StandardCharsets.UTF_8));
+        final String passwordHash =
+                Base64.getEncoder()
+                        .encodeToString("hashed-password".getBytes(StandardCharsets.UTF_8));
+        final String clientSalt =
+                Base64.getEncoder().encodeToString("client-salt".getBytes(StandardCharsets.UTF_8));
 
         testUser = userService.createUserSecure(testEmail, passwordHash, "Test", "User");
 
@@ -107,7 +111,8 @@ class NotFoundErrorTrackingIntegrationTest {
 
     /** Helper method to add JWT token to request */
     private org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder withAuth(
-            final org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder builder) {
+            final org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder
+                    builder) {
         return builder.header("Authorization", "Bearer " + authToken);
     }
 
@@ -120,9 +125,9 @@ class NotFoundErrorTrackingIntegrationTest {
         // When - Making a request to non-existent transaction (this endpoint returns 404)
         final int status =
                 mockMvc.perform(
-                        withAuth(get("/api/transactions/" + nonExistentTransactionId))
-                                .header("X-Forwarded-For", uniqueIp)
-                                .contentType(MediaType.APPLICATION_JSON))
+                                withAuth(get("/api/transactions/" + nonExistentTransactionId))
+                                        .header(X_FORWARDED_FOR, uniqueIp)
+                                        .contentType(MediaType.APPLICATION_JSON))
                         .andReturn()
                         .getResponse()
                         .getStatus();
@@ -151,9 +156,9 @@ class NotFoundErrorTrackingIntegrationTest {
         for (int i = 0; i < requests; i++) {
             final int status =
                     mockMvc.perform(
-                            withAuth(get("/api/transactions/" + UUID.randomUUID()))
-                                    .header("X-Forwarded-For", uniqueIp)
-                                    .contentType(MediaType.APPLICATION_JSON))
+                                    withAuth(get("/api/transactions/" + UUID.randomUUID()))
+                                            .header(X_FORWARDED_FOR, uniqueIp)
+                                            .contentType(MediaType.APPLICATION_JSON))
                             .andReturn()
                             .getResponse()
                             .getStatus();
@@ -188,7 +193,7 @@ class NotFoundErrorTrackingIntegrationTest {
         for (int i = 0; i < threshold; i++) {
             mockMvc.perform(
                             withAuth(get("/api/transactions/" + UUID.randomUUID()))
-                                    .header("X-Forwarded-For", testIp1)
+                                    .header(X_FORWARDED_FOR, testIp1)
                                     .contentType(MediaType.APPLICATION_JSON))
                     .andExpect(status().isNotFound());
         }
@@ -204,9 +209,9 @@ class NotFoundErrorTrackingIntegrationTest {
         // blocking is detected)
         final var result =
                 mockMvc.perform(
-                        withAuth(get("/api/transactions/" + UUID.randomUUID()))
-                                .header("X-Forwarded-For", testIp1)
-                                .contentType(MediaType.APPLICATION_JSON))
+                                withAuth(get("/api/transactions/" + UUID.randomUUID()))
+                                        .header(X_FORWARDED_FOR, testIp1)
+                                        .contentType(MediaType.APPLICATION_JSON))
                         .andReturn();
 
         final int status = result.getResponse().getStatus();
@@ -227,7 +232,7 @@ class NotFoundErrorTrackingIntegrationTest {
         // And - Subsequent requests should return 429
         mockMvc.perform(
                         withAuth(get("/api/transactions/" + UUID.randomUUID()))
-                                .header("X-Forwarded-For", testIp1)
+                                .header(X_FORWARDED_FOR, testIp1)
                                 .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isTooManyRequests())
                 .andExpect(jsonPath("$.errorCode").value("RATE_LIMIT_EXCEEDED"))
@@ -278,7 +283,7 @@ class NotFoundErrorTrackingIntegrationTest {
         for (int i = 0; i < testRequests; i++) {
             mockMvc.perform(
                             withAuth(get("/api/transactions/" + UUID.randomUUID()))
-                                    .header("X-Forwarded-For", uniqueIp)
+                                    .header(X_FORWARDED_FOR, uniqueIp)
                                     .contentType(MediaType.APPLICATION_JSON))
                     .andExpect(status().isNotFound());
         }
@@ -315,7 +320,7 @@ class NotFoundErrorTrackingIntegrationTest {
         for (int i = 0; i < threshold; i++) {
             mockMvc.perform(
                             withAuth(get("/api/transactions/" + UUID.randomUUID()))
-                                    .header("X-Forwarded-For", testIp1)
+                                    .header(X_FORWARDED_FOR, testIp1)
                                     .contentType(MediaType.APPLICATION_JSON))
                     .andExpect(status().isNotFound());
         }
@@ -324,9 +329,9 @@ class NotFoundErrorTrackingIntegrationTest {
         // detected)
         final var result =
                 mockMvc.perform(
-                        withAuth(get("/api/transactions/" + UUID.randomUUID()))
-                                .header("X-Forwarded-For", testIp1)
-                                .contentType(MediaType.APPLICATION_JSON))
+                                withAuth(get("/api/transactions/" + UUID.randomUUID()))
+                                        .header(X_FORWARDED_FOR, testIp1)
+                                        .contentType(MediaType.APPLICATION_JSON))
                         .andReturn();
 
         final int status = result.getResponse().getStatus();
@@ -351,7 +356,7 @@ class NotFoundErrorTrackingIntegrationTest {
         // And - IP2 can still make requests
         mockMvc.perform(
                         withAuth(get("/api/transactions/" + UUID.randomUUID()))
-                                .header("X-Forwarded-For", testIp2)
+                                .header(X_FORWARDED_FOR, testIp2)
                                 .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isNotFound());
     }
@@ -370,7 +375,7 @@ class NotFoundErrorTrackingIntegrationTest {
         for (int i = 0; i < threshold; i++) {
             mockMvc.perform(
                             withAuth(get("/api/transactions/" + UUID.randomUUID()))
-                                    .header("X-Forwarded-For", testIp1)
+                                    .header(X_FORWARDED_FOR, testIp1)
                                     .contentType(MediaType.APPLICATION_JSON))
                     .andExpect(status().isNotFound());
         }
@@ -379,9 +384,9 @@ class NotFoundErrorTrackingIntegrationTest {
         // detected)
         final var result =
                 mockMvc.perform(
-                        withAuth(get("/api/transactions/" + UUID.randomUUID()))
-                                .header("X-Forwarded-For", testIp1)
-                                .contentType(MediaType.APPLICATION_JSON))
+                                withAuth(get("/api/transactions/" + UUID.randomUUID()))
+                                        .header(X_FORWARDED_FOR, testIp1)
+                                        .contentType(MediaType.APPLICATION_JSON))
                         .andReturn();
 
         final int status = result.getResponse().getStatus();
@@ -398,7 +403,7 @@ class NotFoundErrorTrackingIntegrationTest {
         // Then - Should return 429 Too Many Requests
         mockMvc.perform(
                         withAuth(get("/api/transactions"))
-                                .header("X-Forwarded-For", testIp1)
+                                .header(X_FORWARDED_FOR, testIp1)
                                 .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isTooManyRequests())
                 .andExpect(jsonPath("$.errorCode").value("RATE_LIMIT_EXCEEDED"))
@@ -426,7 +431,7 @@ class NotFoundErrorTrackingIntegrationTest {
         // Valid request (should not count) - authenticated request should return 200
         mockMvc.perform(
                         withAuth(get(validPath))
-                                .header("X-Forwarded-For", uniqueIp)
+                                .header(X_FORWARDED_FOR, uniqueIp)
                                 .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk());
 
@@ -434,9 +439,9 @@ class NotFoundErrorTrackingIntegrationTest {
         for (int i = 0; i < threshold; i++) {
             final int status =
                     mockMvc.perform(
-                            withAuth(get("/api/transactions/" + UUID.randomUUID()))
-                                    .header("X-Forwarded-For", uniqueIp)
-                                    .contentType(MediaType.APPLICATION_JSON))
+                                    withAuth(get("/api/transactions/" + UUID.randomUUID()))
+                                            .header(X_FORWARDED_FOR, uniqueIp)
+                                            .contentType(MediaType.APPLICATION_JSON))
                             .andReturn()
                             .getResponse()
                             .getStatus();
@@ -450,9 +455,9 @@ class NotFoundErrorTrackingIntegrationTest {
         // One more 404 to trigger blocking (if not already blocked)
         final int finalStatus =
                 mockMvc.perform(
-                        withAuth(get("/api/transactions/" + UUID.randomUUID()))
-                                .header("X-Forwarded-For", uniqueIp)
-                                .contentType(MediaType.APPLICATION_JSON))
+                                withAuth(get("/api/transactions/" + UUID.randomUUID()))
+                                        .header(X_FORWARDED_FOR, uniqueIp)
+                                        .contentType(MediaType.APPLICATION_JSON))
                         .andReturn()
                         .getResponse()
                         .getStatus();
@@ -483,9 +488,9 @@ class NotFoundErrorTrackingIntegrationTest {
             // Transaction endpoint
             final int status1 =
                     mockMvc.perform(
-                            withAuth(get("/api/transactions/" + UUID.randomUUID()))
-                                    .header("X-Forwarded-For", testIp1)
-                                    .contentType(MediaType.APPLICATION_JSON))
+                                    withAuth(get("/api/transactions/" + UUID.randomUUID()))
+                                            .header(X_FORWARDED_FOR, testIp1)
+                                            .contentType(MediaType.APPLICATION_JSON))
                             .andReturn()
                             .getResponse()
                             .getStatus();
@@ -496,9 +501,9 @@ class NotFoundErrorTrackingIntegrationTest {
             // Account endpoint
             final int status2 =
                     mockMvc.perform(
-                            withAuth(get("/api/accounts/" + UUID.randomUUID()))
-                                    .header("X-Forwarded-For", testIp1)
-                                    .contentType(MediaType.APPLICATION_JSON))
+                                    withAuth(get("/api/accounts/" + UUID.randomUUID()))
+                                            .header(X_FORWARDED_FOR, testIp1)
+                                            .contentType(MediaType.APPLICATION_JSON))
                             .andReturn()
                             .getResponse()
                             .getStatus();
@@ -550,9 +555,9 @@ class NotFoundErrorTrackingIntegrationTest {
         // it will return 429. Both behaviors are valid.
         final var result =
                 mockMvc.perform(
-                        withAuth(get("/api/transactions/" + UUID.randomUUID()))
-                                .header("X-Real-IP", testIp1)
-                                .contentType(MediaType.APPLICATION_JSON))
+                                withAuth(get("/api/transactions/" + UUID.randomUUID()))
+                                        .header("X-Real-IP", testIp1)
+                                        .contentType(MediaType.APPLICATION_JSON))
                         .andReturn();
 
         final int status = result.getResponse().getStatus();
@@ -598,8 +603,8 @@ class NotFoundErrorTrackingIntegrationTest {
         for (int i = 0; i < requests; i++) {
             final int status =
                     mockMvc.perform(
-                            withAuth(get("/api/transactions/" + UUID.randomUUID()))
-                                    .contentType(MediaType.APPLICATION_JSON))
+                                    withAuth(get("/api/transactions/" + UUID.randomUUID()))
+                                            .contentType(MediaType.APPLICATION_JSON))
                             .andReturn()
                             .getResponse()
                             .getStatus();
@@ -642,7 +647,7 @@ class NotFoundErrorTrackingIntegrationTest {
         for (int i = 0; i < threshold; i++) {
             mockMvc.perform(
                             withAuth(get("/api/transactions/" + UUID.randomUUID()))
-                                    .header("X-Forwarded-For", testIp1)
+                                    .header(X_FORWARDED_FOR, testIp1)
                                     .contentType(MediaType.APPLICATION_JSON))
                     .andExpect(status().isNotFound());
         }
@@ -651,9 +656,9 @@ class NotFoundErrorTrackingIntegrationTest {
         // detected)
         final var blockingResult =
                 mockMvc.perform(
-                        withAuth(get("/api/transactions/" + UUID.randomUUID()))
-                                .header("X-Forwarded-For", testIp1)
-                                .contentType(MediaType.APPLICATION_JSON))
+                                withAuth(get("/api/transactions/" + UUID.randomUUID()))
+                                        .header(X_FORWARDED_FOR, testIp1)
+                                        .contentType(MediaType.APPLICATION_JSON))
                         .andReturn();
 
         final int blockingStatus = blockingResult.getResponse().getStatus();
@@ -670,7 +675,7 @@ class NotFoundErrorTrackingIntegrationTest {
         // Then - Error response should have correct format
         mockMvc.perform(
                         withAuth(get("/api/transactions"))
-                                .header("X-Forwarded-For", testIp1)
+                                .header(X_FORWARDED_FOR, testIp1)
                                 .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isTooManyRequests())
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
@@ -701,7 +706,7 @@ class NotFoundErrorTrackingIntegrationTest {
                             // blocking
                             mockMvc.perform(
                                             withAuth(get("/api/transactions/" + UUID.randomUUID()))
-                                                    .header("X-Forwarded-For", testIp1)
+                                                    .header(X_FORWARDED_FOR, testIp1)
                                                     .contentType(MediaType.APPLICATION_JSON))
                                     .andReturn();
                         } catch (Exception e) {

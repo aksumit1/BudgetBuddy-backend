@@ -32,6 +32,8 @@ import org.springframework.security.core.userdetails.UserDetails;
 @ExtendWith(MockitoExtension.class)
 class BudgetControllerTest {
 
+    private static final String BUDGET_1 = "budget-1";
+
     @Mock private BudgetService budgetService;
 
     @Mock private UserService userService;
@@ -81,7 +83,7 @@ class BudgetControllerTest {
     void testGetBudgetsWithValidUserReturnsBudgets() {
         // Given
         final List<BudgetTable> mockBudgets =
-                Arrays.asList(createBudget("budget-1"), createBudget("budget-2"));
+                Arrays.asList(createBudget(BUDGET_1), createBudget("budget-2"));
         when(userDetails.getUsername()).thenReturn("test@example.com");
         when(userService.findByEmail("test@example.com"))
                 .thenReturn(java.util.Optional.of(testUser));
@@ -124,11 +126,12 @@ class BudgetControllerTest {
     @Test
     void testCreateOrUpdateBudgetWithValidDataCreatesBudget() {
         // Given
-        final BudgetController.CreateBudgetRequest request = new BudgetController.CreateBudgetRequest();
+        final BudgetController.CreateBudgetRequest request =
+                new BudgetController.CreateBudgetRequest();
         request.setCategory("FOOD");
         request.setMonthlyLimit(BigDecimal.valueOf(1000.00));
 
-        final BudgetTable mockBudget = createBudget("budget-1");
+        final BudgetTable mockBudget = createBudget(BUDGET_1);
         when(userDetails.getUsername()).thenReturn("test@example.com");
         when(userService.findByEmail("test@example.com"))
                 .thenReturn(java.util.Optional.of(testUser));
@@ -179,7 +182,8 @@ class BudgetControllerTest {
     @Test
     void testCreateOrUpdateBudgetWithNullLimitThrowsException() {
         // Given
-        final BudgetController.CreateBudgetRequest request = new BudgetController.CreateBudgetRequest();
+        final BudgetController.CreateBudgetRequest request =
+                new BudgetController.CreateBudgetRequest();
         request.setCategory("FOOD");
         request.setMonthlyLimit(null);
         when(userDetails.getUsername()).thenReturn("test@example.com");
@@ -197,13 +201,14 @@ class BudgetControllerTest {
     @Test
     void testCreateOrUpdateBudgetWithZeroLimitAllowsZero() {
         // Given - Zero budgets are allowed for zero-based budgeting support
-        final BudgetController.CreateBudgetRequest request = new BudgetController.CreateBudgetRequest();
+        final BudgetController.CreateBudgetRequest request =
+                new BudgetController.CreateBudgetRequest();
         request.setCategory("FOOD");
         request.setMonthlyLimit(BigDecimal.ZERO);
         when(userDetails.getUsername()).thenReturn("test@example.com");
         when(userService.findByEmail("test@example.com"))
                 .thenReturn(java.util.Optional.of(testUser));
-        final BudgetTable zeroBudget = createBudget("budget-1");
+        final BudgetTable zeroBudget = createBudget(BUDGET_1);
         when(budgetService.createOrUpdateBudget(
                         eq(testUser),
                         eq("FOOD"),
@@ -230,7 +235,8 @@ class BudgetControllerTest {
     @Test
     void testCreateOrUpdateBudgetWithNegativeLimitThrowsException() {
         // Given
-        final BudgetController.CreateBudgetRequest request = new BudgetController.CreateBudgetRequest();
+        final BudgetController.CreateBudgetRequest request =
+                new BudgetController.CreateBudgetRequest();
         request.setCategory("FOOD");
         request.setMonthlyLimit(BigDecimal.valueOf(-100));
         when(userDetails.getUsername()).thenReturn("test@example.com");
@@ -248,7 +254,8 @@ class BudgetControllerTest {
     @Test
     void testCreateOrUpdateBudgetWithNullCategoryThrowsException() {
         // Given
-        final BudgetController.CreateBudgetRequest request = new BudgetController.CreateBudgetRequest();
+        final BudgetController.CreateBudgetRequest request =
+                new BudgetController.CreateBudgetRequest();
         request.setCategory(null);
         request.setMonthlyLimit(BigDecimal.valueOf(1000.00));
         when(userDetails.getUsername()).thenReturn("test@example.com");
@@ -266,7 +273,8 @@ class BudgetControllerTest {
     @Test
     void testCreateOrUpdateBudgetWithEmptyCategoryThrowsException() {
         // Given
-        final BudgetController.CreateBudgetRequest request = new BudgetController.CreateBudgetRequest();
+        final BudgetController.CreateBudgetRequest request =
+                new BudgetController.CreateBudgetRequest();
         request.setCategory("");
         request.setMonthlyLimit(BigDecimal.valueOf(1000.00));
         when(userDetails.getUsername()).thenReturn("test@example.com");
@@ -287,14 +295,14 @@ class BudgetControllerTest {
         when(userDetails.getUsername()).thenReturn("test@example.com");
         when(userService.findByEmail("test@example.com"))
                 .thenReturn(java.util.Optional.of(testUser));
-        doNothing().when(budgetService).deleteBudget(testUser, "budget-1");
+        doNothing().when(budgetService).deleteBudget(testUser, BUDGET_1);
 
         // When
-        final ResponseEntity<Void> response = budgetController.deleteBudget(userDetails, "budget-1");
+        final ResponseEntity<Void> response = budgetController.deleteBudget(userDetails, BUDGET_1);
 
         // Then
         assertEquals(HttpStatus.NO_CONTENT, response.getStatusCode());
-        verify(budgetService).deleteBudget(testUser, "budget-1");
+        verify(budgetService).deleteBudget(testUser, BUDGET_1);
     }
 
     @Test
@@ -331,7 +339,7 @@ class BudgetControllerTest {
         final com.budgetbuddy.exception.AppException exception =
                 assertThrows(
                         com.budgetbuddy.exception.AppException.class,
-                        () -> budgetController.deleteBudget(null, "budget-1"));
+                        () -> budgetController.deleteBudget(null, BUDGET_1));
         assertEquals(
                 com.budgetbuddy.exception.ErrorCode.UNAUTHORIZED_ACCESS, exception.getErrorCode());
     }

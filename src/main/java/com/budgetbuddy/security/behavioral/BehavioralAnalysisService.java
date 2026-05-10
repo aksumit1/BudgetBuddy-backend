@@ -30,7 +30,8 @@ import org.springframework.stereotype.Service;
 // callers — defensive-copying it would break dependency injection.
 @SuppressFBWarnings(
         value = {"EI_EXPOSE_REP", "EI_EXPOSE_REP2"},
-        justification = "JSON DTO / DynamoDB entity getters expose lists by reference; "
+        justification =
+                "JSON DTO / DynamoDB entity getters expose lists by reference; "
                         + "the design is value-semantic and Jackson creates fresh instances; Spring constructor injection — beans are shared by design")
 @SuppressWarnings({"PMD.LawOfDemeter", "PMD.DataClass", "PMD.OnlyOneReturn"})
 @Service
@@ -164,7 +165,8 @@ public class BehavioralAnalysisService {
             return anomalies; // No profile yet, no anomalies
         }
 
-        final List<Activity> recent = recentActivities.getOrDefault(userId, Collections.emptyList());
+        final List<Activity> recent =
+                recentActivities.getOrDefault(userId, Collections.emptyList());
         if (recent.isEmpty()) {
             return anomalies;
         }
@@ -274,7 +276,8 @@ public class BehavioralAnalysisService {
             return 0;
         }
 
-        final List<Activity> recent = recentActivities.getOrDefault(userId, Collections.emptyList());
+        final List<Activity> recent =
+                recentActivities.getOrDefault(userId, Collections.emptyList());
         final Instant windowStart = Instant.now().minusSeconds(ANOMALY_DETECTION_WINDOW_SECONDS);
         final long recentCount =
                 recent.stream().filter(a -> a.getTimestamp().isAfter(windowStart)).count();
@@ -621,7 +624,8 @@ public class BehavioralAnalysisService {
 
         public double getActivityFrequencyAtHour(final int hour) {
             final int count = hourlyActivityCounts.getOrDefault(hour, 0);
-            final int total = hourlyActivityCounts.values().stream().mapToInt(Integer::intValue).sum();
+            final int total =
+                    hourlyActivityCounts.values().stream().mapToInt(Integer::intValue).sum();
             return total > 0 ? (double) count / total : 0.0;
         }
 
@@ -633,7 +637,8 @@ public class BehavioralAnalysisService {
 
         public double getResourceFrequency(final String resource) {
             final int count = resourceAccessCounts.getOrDefault(resource, 0);
-            final int total = resourceAccessCounts.values().stream().mapToInt(Integer::intValue).sum();
+            final int total =
+                    resourceAccessCounts.values().stream().mapToInt(Integer::intValue).sum();
             return total > 0 ? (double) count / total : 0.0;
         }
 

@@ -73,7 +73,8 @@ class ComplianceReportingControllerTest {
         when(userService.findByEmail("admin@example.com")).thenReturn(Optional.of(adminUser));
         when(userDetails.getUsername()).thenReturn("admin@example.com");
 
-        final SOC2ComplianceService.SystemHealth health = mock(SOC2ComplianceService.SystemHealth.class);
+        final SOC2ComplianceService.SystemHealth health =
+                mock(SOC2ComplianceService.SystemHealth.class);
         when(soc2ComplianceService.checkSystemHealth()).thenReturn(health);
 
         // When
@@ -201,7 +202,8 @@ class ComplianceReportingControllerTest {
                 .thenReturn(Optional.of(complianceUser));
         when(userDetails.getUsername()).thenReturn("compliance@example.com");
 
-        final SOC2ComplianceService.SystemHealth health = mock(SOC2ComplianceService.SystemHealth.class);
+        final SOC2ComplianceService.SystemHealth health =
+                mock(SOC2ComplianceService.SystemHealth.class);
         when(soc2ComplianceService.checkSystemHealth()).thenReturn(health);
 
         // When

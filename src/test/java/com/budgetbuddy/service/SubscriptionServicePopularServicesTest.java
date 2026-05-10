@@ -1,9 +1,5 @@
 package com.budgetbuddy.service;
 
-
-
-import java.nio.charset.StandardCharsets;
-import java.util.Locale;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -18,8 +14,10 @@ import com.budgetbuddy.repository.dynamodb.SubscriptionRepository;
 import com.budgetbuddy.repository.dynamodb.TransactionRepository;
 import com.budgetbuddy.util.TableInitializer;
 import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Locale;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -39,6 +37,9 @@ import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 @Import(AWSTestConfiguration.class)
 @org.junit.jupiter.api.Tag("integration")
 public class SubscriptionServicePopularServicesTest {
+
+    private static final String STREAMING = "streaming";
+    private static final String ENTERTAINMENT = "entertainment";
 
     @Autowired private SubscriptionService subscriptionService;
 
@@ -62,7 +63,8 @@ public class SubscriptionServicePopularServicesTest {
 
         final String testUserEmail = "test-popular-" + UUID.randomUUID() + "@example.com";
         final String base64PasswordHash =
-                java.util.Base64.getEncoder().encodeToString("test-password".getBytes(StandardCharsets.UTF_8));
+                java.util.Base64.getEncoder()
+                        .encodeToString("test-password".getBytes(StandardCharsets.UTF_8));
         testUser = userService.createUserSecure(testUserEmail, base64PasswordHash, "Test", "User");
         testUserId = testUser.getUserId();
 
@@ -119,7 +121,8 @@ public class SubscriptionServicePopularServicesTest {
         }
 
         // When: Detect subscriptions
-        final List<Subscription> subscriptions = subscriptionService.detectSubscriptions(testUserId);
+        final List<Subscription> subscriptions =
+                subscriptionService.detectSubscriptions(testUserId);
 
         // Then: Should detect OpenAI subscription
         final Subscription openai =
@@ -128,11 +131,11 @@ public class SubscriptionServicePopularServicesTest {
                                 s ->
                                         s.getMerchantName() != null
                                                 && (s.getMerchantName()
-                                                .toLowerCase(Locale.ROOT)
-                                                .contains("openai")
-                                                || s.getMerchantName()
-                                                .toLowerCase(Locale.ROOT)
-                                                .contains("chatgpt")))
+                                                                .toLowerCase(Locale.ROOT)
+                                                                .contains("openai")
+                                                        || s.getMerchantName()
+                                                                .toLowerCase(Locale.ROOT)
+                                                                .contains("chatgpt")))
                         .findFirst()
                         .orElse(null);
 
@@ -165,13 +168,14 @@ public class SubscriptionServicePopularServicesTest {
                             "HULU.COM/BILL CA",
                             new BigDecimal("-14.99"),
                             baseDate.plusMonths(i),
-                            "entertainment",
-                            "streaming");
+                            ENTERTAINMENT,
+                            STREAMING);
             transactionRepository.save(tx);
         }
 
         // When: Detect subscriptions
-        final List<Subscription> subscriptions = subscriptionService.detectSubscriptions(testUserId);
+        final List<Subscription> subscriptions =
+                subscriptionService.detectSubscriptions(testUserId);
 
         // Then: Should detect Hulu subscription
         final Subscription hulu =
@@ -180,8 +184,8 @@ public class SubscriptionServicePopularServicesTest {
                                 s ->
                                         s.getMerchantName() != null
                                                 && s.getMerchantName()
-                                                .toLowerCase(Locale.ROOT)
-                                                .contains("hulu"))
+                                                        .toLowerCase(Locale.ROOT)
+                                                        .contains("hulu"))
                         .findFirst()
                         .orElse(null);
 
@@ -191,7 +195,7 @@ public class SubscriptionServicePopularServicesTest {
                 hulu.getFrequency(),
                 "Hulu should be detected as monthly subscription");
         assertEquals(
-                "streaming",
+                STREAMING,
                 hulu.getSubscriptionType(),
                 "Hulu should be detected as streaming subscription");
         assertTrue(
@@ -219,7 +223,8 @@ public class SubscriptionServicePopularServicesTest {
         }
 
         // When: Detect subscriptions
-        final List<Subscription> subscriptions = subscriptionService.detectSubscriptions(testUserId);
+        final List<Subscription> subscriptions =
+                subscriptionService.detectSubscriptions(testUserId);
 
         // Then: Should detect Uber One subscription
         final Subscription uber =
@@ -228,12 +233,12 @@ public class SubscriptionServicePopularServicesTest {
                                 s ->
                                         s.getMerchantName() != null
                                                 && (s.getMerchantName()
-                                                .toLowerCase(Locale.ROOT)
-                                                .contains("uber")
-                                                || (s.getDescription() != null
-                                                && s.getDescription()
-                                                .toLowerCase(Locale.ROOT)
-                                                .contains("uber one"))))
+                                                                .toLowerCase(Locale.ROOT)
+                                                                .contains("uber")
+                                                        || (s.getDescription() != null
+                                                                && s.getDescription()
+                                                                        .toLowerCase(Locale.ROOT)
+                                                                        .contains("uber one"))))
                         .findFirst()
                         .orElse(null);
 
@@ -261,13 +266,14 @@ public class SubscriptionServicePopularServicesTest {
                             "NETFLIX.COM",
                             new BigDecimal("-15.99"),
                             baseDate.plusMonths(i),
-                            "entertainment",
-                            "streaming");
+                            ENTERTAINMENT,
+                            STREAMING);
             transactionRepository.save(tx);
         }
 
         // When: Detect subscriptions
-        final List<Subscription> subscriptions = subscriptionService.detectSubscriptions(testUserId);
+        final List<Subscription> subscriptions =
+                subscriptionService.detectSubscriptions(testUserId);
 
         // Then: Should detect Netflix subscription
         final Subscription netflix =
@@ -276,14 +282,14 @@ public class SubscriptionServicePopularServicesTest {
                                 s ->
                                         s.getMerchantName() != null
                                                 && s.getMerchantName()
-                                                .toLowerCase(Locale.ROOT)
-                                                .contains("netflix"))
+                                                        .toLowerCase(Locale.ROOT)
+                                                        .contains("netflix"))
                         .findFirst()
                         .orElse(null);
 
         assertNotNull(netflix, "Netflix subscription should be detected");
         assertEquals(Subscription.SubscriptionFrequency.MONTHLY, netflix.getFrequency());
-        assertEquals("streaming", netflix.getSubscriptionType());
+        assertEquals(STREAMING, netflix.getSubscriptionType());
     }
 
     @Test
@@ -298,13 +304,14 @@ public class SubscriptionServicePopularServicesTest {
                             "SPOTIFY USA",
                             new BigDecimal("-9.99"),
                             baseDate.plusMonths(i),
-                            "entertainment",
-                            "streaming");
+                            ENTERTAINMENT,
+                            STREAMING);
             transactionRepository.save(tx);
         }
 
         // When: Detect subscriptions
-        final List<Subscription> subscriptions = subscriptionService.detectSubscriptions(testUserId);
+        final List<Subscription> subscriptions =
+                subscriptionService.detectSubscriptions(testUserId);
 
         // Then: Should detect Spotify subscription
         final Subscription spotify =
@@ -313,14 +320,14 @@ public class SubscriptionServicePopularServicesTest {
                                 s ->
                                         s.getMerchantName() != null
                                                 && s.getMerchantName()
-                                                .toLowerCase(Locale.ROOT)
-                                                .contains("spotify"))
+                                                        .toLowerCase(Locale.ROOT)
+                                                        .contains("spotify"))
                         .findFirst()
                         .orElse(null);
 
         assertNotNull(spotify, "Spotify subscription should be detected");
         assertEquals(Subscription.SubscriptionFrequency.MONTHLY, spotify.getFrequency());
-        assertEquals("streaming", spotify.getSubscriptionType());
+        assertEquals(STREAMING, spotify.getSubscriptionType());
     }
 
     @Test
@@ -341,7 +348,8 @@ public class SubscriptionServicePopularServicesTest {
         }
 
         // When: Detect subscriptions
-        final List<Subscription> subscriptions = subscriptionService.detectSubscriptions(testUserId);
+        final List<Subscription> subscriptions =
+                subscriptionService.detectSubscriptions(testUserId);
 
         // Then: Should detect Amazon Prime subscription
         final Subscription prime =
@@ -350,11 +358,11 @@ public class SubscriptionServicePopularServicesTest {
                                 s ->
                                         s.getMerchantName() != null
                                                 && (s.getMerchantName()
-                                                .toLowerCase(Locale.ROOT)
-                                                .contains("amazon")
-                                                || s.getMerchantName()
-                                                .toLowerCase(Locale.ROOT)
-                                                .contains("prime")))
+                                                                .toLowerCase(Locale.ROOT)
+                                                                .contains("amazon")
+                                                        || s.getMerchantName()
+                                                                .toLowerCase(Locale.ROOT)
+                                                                .contains("prime")))
                         .findFirst()
                         .orElse(null);
 
@@ -374,13 +382,14 @@ public class SubscriptionServicePopularServicesTest {
                             "DISNEY+ SUBSCRIPTION",
                             new BigDecimal("-10.99"),
                             baseDate.plusMonths(i),
-                            "entertainment",
-                            "streaming");
+                            ENTERTAINMENT,
+                            STREAMING);
             transactionRepository.save(tx);
         }
 
         // When: Detect subscriptions
-        final List<Subscription> subscriptions = subscriptionService.detectSubscriptions(testUserId);
+        final List<Subscription> subscriptions =
+                subscriptionService.detectSubscriptions(testUserId);
 
         // Then: Should detect Disney+ subscription
         final Subscription disney =
@@ -389,18 +398,18 @@ public class SubscriptionServicePopularServicesTest {
                                 s ->
                                         s.getMerchantName() != null
                                                 && (s.getMerchantName()
-                                                .toLowerCase(Locale.ROOT)
-                                                .contains("disney")
-                                                || s.getDescription() != null
-                                                && s.getDescription()
-                                                .toLowerCase(Locale.ROOT)
-                                                .contains("disney")))
+                                                                .toLowerCase(Locale.ROOT)
+                                                                .contains("disney")
+                                                        || s.getDescription() != null
+                                                                && s.getDescription()
+                                                                        .toLowerCase(Locale.ROOT)
+                                                                        .contains("disney")))
                         .findFirst()
                         .orElse(null);
 
         assertNotNull(disney, "Disney+ subscription should be detected");
         assertEquals(Subscription.SubscriptionFrequency.MONTHLY, disney.getFrequency());
-        assertEquals("streaming", disney.getSubscriptionType());
+        assertEquals(STREAMING, disney.getSubscriptionType());
     }
 
     @Test
@@ -415,13 +424,14 @@ public class SubscriptionServicePopularServicesTest {
                             "APPLE MUSIC SUBSCRIPTION",
                             new BigDecimal("-10.99"),
                             baseDate.plusMonths(i),
-                            "entertainment",
-                            "streaming");
+                            ENTERTAINMENT,
+                            STREAMING);
             transactionRepository.save(tx);
         }
 
         // When: Detect subscriptions
-        final List<Subscription> subscriptions = subscriptionService.detectSubscriptions(testUserId);
+        final List<Subscription> subscriptions =
+                subscriptionService.detectSubscriptions(testUserId);
 
         // Then: Should detect Apple Music subscription
         final Subscription apple =
@@ -430,12 +440,12 @@ public class SubscriptionServicePopularServicesTest {
                                 s ->
                                         s.getMerchantName() != null
                                                 && (s.getMerchantName()
-                                                .toLowerCase(Locale.ROOT)
-                                                .contains("apple")
-                                                || (s.getDescription() != null
-                                                && s.getDescription()
-                                                .toLowerCase(Locale.ROOT)
-                                                .contains("apple music"))))
+                                                                .toLowerCase(Locale.ROOT)
+                                                                .contains("apple")
+                                                        || (s.getDescription() != null
+                                                                && s.getDescription()
+                                                                        .toLowerCase(Locale.ROOT)
+                                                                        .contains("apple music"))))
                         .findFirst()
                         .orElse(null);
 
@@ -469,8 +479,8 @@ public class SubscriptionServicePopularServicesTest {
                             "HULU.COM/BILL",
                             new BigDecimal("-14.99"),
                             baseDate.plusMonths(i),
-                            "entertainment",
-                            "streaming"));
+                            ENTERTAINMENT,
+                            STREAMING));
         }
 
         // Netflix
@@ -481,12 +491,13 @@ public class SubscriptionServicePopularServicesTest {
                             "NETFLIX.COM",
                             new BigDecimal("-15.99"),
                             baseDate.plusMonths(i),
-                            "entertainment",
-                            "streaming"));
+                            ENTERTAINMENT,
+                            STREAMING));
         }
 
         // When: Detect subscriptions
-        final List<Subscription> subscriptions = subscriptionService.detectSubscriptions(testUserId);
+        final List<Subscription> subscriptions =
+                subscriptionService.detectSubscriptions(testUserId);
 
         // Then: Should detect all three subscriptions
         assertTrue(
@@ -499,8 +510,8 @@ public class SubscriptionServicePopularServicesTest {
                                 s ->
                                         s.getMerchantName() != null
                                                 && s.getMerchantName()
-                                                .toLowerCase(Locale.ROOT)
-                                                .contains("openai"))
+                                                        .toLowerCase(Locale.ROOT)
+                                                        .contains("openai"))
                         .count();
         final long huluCount =
                 subscriptions.stream()
@@ -508,8 +519,8 @@ public class SubscriptionServicePopularServicesTest {
                                 s ->
                                         s.getMerchantName() != null
                                                 && s.getMerchantName()
-                                                .toLowerCase(Locale.ROOT)
-                                                .contains("hulu"))
+                                                        .toLowerCase(Locale.ROOT)
+                                                        .contains("hulu"))
                         .count();
         final long netflixCount =
                 subscriptions.stream()
@@ -517,8 +528,8 @@ public class SubscriptionServicePopularServicesTest {
                                 s ->
                                         s.getMerchantName() != null
                                                 && s.getMerchantName()
-                                                .toLowerCase(Locale.ROOT)
-                                                .contains("netflix"))
+                                                        .toLowerCase(Locale.ROOT)
+                                                        .contains("netflix"))
                         .count();
 
         assertTrue(openaiCount >= 1, "Should detect OpenAI subscription");

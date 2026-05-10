@@ -142,7 +142,8 @@ class UserRepositoryCacheTest {
         // Act & Assert - Should not throw SpelEvaluationException
         assertDoesNotThrow(
                 () -> {
-                    final Optional<UserTable> result = userRepository.findByEmail("test@example.com");
+                    final Optional<UserTable> result =
+                            userRepository.findByEmail("test@example.com");
                     assertTrue(result.isPresent());
                 },
                 "Should not throw SpelEvaluationException with fixed cache annotation");

@@ -1,11 +1,10 @@
 package com.budgetbuddy.service;
 
-
-import java.util.Locale;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -111,7 +110,11 @@ public class FormFieldDetectionService {
         private double confidence;
         private int lineNumber;
 
-        public FormField(final String label, final String value, final double confidence, final int lineNumber) {
+        public FormField(
+                final String label,
+                final String value,
+                final double confidence,
+                final int lineNumber) {
             this.label = label;
             this.value = value;
             this.confidence = confidence;
@@ -252,7 +255,8 @@ public class FormFieldDetectionService {
     }
 
     /** Detect multiline form field (label on one line, value on next) */
-    private FormField detectMultilineField(final String labelLine, final String valueLine, final int lineNumber) {
+    private FormField detectMultilineField(
+            final String labelLine, final String valueLine, final int lineNumber) {
         final String labelLower = labelLine.toLowerCase(Locale.ROOT);
 
         // Check if label line contains form field keywords

@@ -1,7 +1,5 @@
 package com.budgetbuddy.service;
 
-
-import java.util.Locale;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -10,6 +8,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import com.budgetbuddy.model.dynamodb.AccountTable;
 import com.budgetbuddy.service.plaid.PlaidDataExtractor;
 import java.math.BigDecimal;
+import java.util.Locale;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -25,6 +24,8 @@ import org.mockito.quality.Strictness;
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
 class TransactionSignReversalIntegrationTest {
+
+    private static final String CHECKING = "checking";
 
     @Mock private com.budgetbuddy.repository.dynamodb.AccountRepository accountRepository;
 
@@ -47,7 +48,7 @@ class TransactionSignReversalIntegrationTest {
         final BigDecimal plaidIncome = new BigDecimal("-5000.00");
 
         // Test all account types
-        final String[] accountTypes = {"checking", "savings", "credit", "loan", "investment", null};
+        final String[] accountTypes = {CHECKING, "savings", "credit", "loan", "investment", null};
 
         for (final String accountType : accountTypes) {
             AccountTable account = null;
@@ -78,7 +79,7 @@ class TransactionSignReversalIntegrationTest {
     @Test
     void testPlaidSignReversalEdgeCasesHandlesCorrectly() {
         final AccountTable account = new AccountTable();
-        account.setAccountType("checking");
+        account.setAccountType(CHECKING);
 
         // Null amount
         assertNull(plaidDataExtractor.normalizePlaidAmount(null, account));
@@ -110,14 +111,14 @@ class TransactionSignReversalIntegrationTest {
     @Test
     void testCreditCardAccountTypeDetectionVariousFormatsAllDetected() {
         final String[] creditCardTypes = {
-                "credit",
-                "creditCard",
-                "credit_card",
-                "CREDIT",
-                "Credit Card",
-                "CREDIT_CARD",
-                "credit_line", // Contains "credit"
-                "creditcardaccount" // Contains "creditcard"
+            "credit",
+            "creditCard",
+            "credit_card",
+            "CREDIT",
+            "Credit Card",
+            "CREDIT_CARD",
+            "credit_line", // Contains "credit"
+            "creditcardaccount" // Contains "creditcard"
         };
 
         for (final String accountType : creditCardTypes) {
@@ -141,7 +142,7 @@ class TransactionSignReversalIntegrationTest {
     @Test
     void testNonCreditCardAccountTypesNotReversed() {
         final String[] nonCreditCardTypes = {
-                "checking", "savings", "loan", "investment", "depository", "mortgage", "autoLoan"
+            CHECKING, "savings", "loan", "investment", "depository", "mortgage", "autoLoan"
         };
 
         for (final String accountType : nonCreditCardTypes) {
@@ -166,7 +167,7 @@ class TransactionSignReversalIntegrationTest {
     @Test
     void testPlaidSignReversalConcurrentAccessThreadSafe() throws InterruptedException {
         final AccountTable account = new AccountTable();
-        account.setAccountType("checking");
+        account.setAccountType(CHECKING);
         final BigDecimal testAmount = new BigDecimal("100.00");
 
         final int threadCount = 10;
@@ -226,7 +227,7 @@ class TransactionSignReversalIntegrationTest {
     @Test
     void testZeroAmountHandlingAllMethodsConsistent() {
         final AccountTable account = new AccountTable();
-        account.setAccountType("checking");
+        account.setAccountType(CHECKING);
 
         // Plaid: Zero should remain zero
         assertEquals(
@@ -239,16 +240,18 @@ class TransactionSignReversalIntegrationTest {
     @Test
     void testBoundaryConditionsExtremeValuesHandlesCorrectly() {
         final AccountTable account = new AccountTable();
-        account.setAccountType("checking");
+        account.setAccountType(CHECKING);
 
         // Test with very large positive value
         final BigDecimal maxPositive = new BigDecimal("999999999999999.99");
-        final BigDecimal normalizedMax = plaidDataExtractor.normalizePlaidAmount(maxPositive, account);
+        final BigDecimal normalizedMax =
+                plaidDataExtractor.normalizePlaidAmount(maxPositive, account);
         assertEquals(maxPositive.negate(), normalizedMax);
 
         // Test with very large negative value
         final BigDecimal maxNegative = new BigDecimal("-999999999999999.99");
-        final BigDecimal normalizedMin = plaidDataExtractor.normalizePlaidAmount(maxNegative, account);
+        final BigDecimal normalizedMin =
+                plaidDataExtractor.normalizePlaidAmount(maxNegative, account);
         assertEquals(maxNegative.negate(), normalizedMin);
     }
 }

@@ -78,13 +78,13 @@ public class CloudWatchService {
         final List<Dimension> dims =
                 dimensions != null
                         ? dimensions.entrySet().stream()
-                        .map(
-                                e ->
-                                        Dimension.builder()
-                                                .name(e.getKey())
-                                                .value(e.getValue())
-                                                .build())
-                        .collect(Collectors.toList())
+                                .map(
+                                        e ->
+                                                Dimension.builder()
+                                                        .name(e.getKey())
+                                                        .value(e.getValue())
+                                                        .build())
+                                .collect(Collectors.toList())
                         : List.of();
 
         putMetricWithDimensions(metricName, value, StandardUnit.COUNT.toString(), dims);
@@ -99,13 +99,13 @@ public class CloudWatchService {
         final List<Dimension> dims =
                 dimensions != null
                         ? dimensions.entrySet().stream()
-                        .map(
-                                e ->
-                                        Dimension.builder()
-                                                .name(e.getKey())
-                                                .value(e.getValue())
-                                                .build())
-                        .collect(Collectors.toList())
+                                .map(
+                                        e ->
+                                                Dimension.builder()
+                                                        .name(e.getKey())
+                                                        .value(e.getValue())
+                                                        .build())
+                                .collect(Collectors.toList())
                         : List.of();
 
         putMetricWithDimensions(metricName, value, unit.toString(), dims);

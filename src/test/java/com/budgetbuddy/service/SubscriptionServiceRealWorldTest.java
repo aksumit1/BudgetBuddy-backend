@@ -1,9 +1,5 @@
 package com.budgetbuddy.service;
 
-
-
-import java.nio.charset.StandardCharsets;
-import java.util.Locale;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -19,8 +15,10 @@ import com.budgetbuddy.repository.dynamodb.SubscriptionRepository;
 import com.budgetbuddy.repository.dynamodb.TransactionRepository;
 import com.budgetbuddy.util.TableInitializer;
 import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Locale;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -40,6 +38,10 @@ import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 @Import(AWSTestConfiguration.class)
 @org.junit.jupiter.api.Tag("integration")
 public class SubscriptionServiceRealWorldTest {
+
+    private static final String SUBSCRIPTIONS = "subscriptions";
+    private static final String EDUCATION = "education";
+    private static final String MEMBERSHIP = "membership";
 
     @Autowired private SubscriptionService subscriptionService;
 
@@ -63,7 +65,8 @@ public class SubscriptionServiceRealWorldTest {
 
         final String testUserEmail = "test-realworld-" + UUID.randomUUID() + "@example.com";
         final String base64PasswordHash =
-                java.util.Base64.getEncoder().encodeToString("test-password".getBytes(StandardCharsets.UTF_8));
+                java.util.Base64.getEncoder()
+                        .encodeToString("test-password".getBytes(StandardCharsets.UTF_8));
         testUser = userService.createUserSecure(testUserEmail, base64PasswordHash, "Test", "User");
         testUserId = testUser.getUserId();
 
@@ -113,12 +116,13 @@ public class SubscriptionServiceRealWorldTest {
                             "WSJ Subscription",
                             new BigDecimal("-19.99"),
                             baseDate.plusMonths(i),
-                            "education",
-                            "education");
+                            EDUCATION,
+                            EDUCATION);
             transactionRepository.save(tx);
         }
 
-        final List<Subscription> subscriptions = subscriptionService.detectSubscriptions(testUserId);
+        final List<Subscription> subscriptions =
+                subscriptionService.detectSubscriptions(testUserId);
         assertFalse(subscriptions.isEmpty(), "Should detect WSJ subscription");
 
         final Subscription wsj =
@@ -127,8 +131,8 @@ public class SubscriptionServiceRealWorldTest {
                                 s ->
                                         s.getMerchantName() != null
                                                 && s.getMerchantName()
-                                                .toLowerCase(Locale.ROOT)
-                                                .contains("wsj"))
+                                                        .toLowerCase(Locale.ROOT)
+                                                        .contains("wsj"))
                         .findFirst()
                         .orElse(null);
         assertNotNull(wsj, "WSJ subscription should be detected");
@@ -149,9 +153,9 @@ public class SubscriptionServiceRealWorldTest {
                             "D J*BARRONS 800-544-0422 NJ SUBSRIPTION",
                             new BigDecimal("-4.19"),
                             baseDate.plusMonths(i),
-                            "education", // Barrons is categorized as education, but should still be
+                            EDUCATION, // Barrons is categorized as education, but should still be
                             // detected as subscription
-                            "education");
+                            EDUCATION);
             transactionRepository.save(tx);
 
             // Create credit transaction (positive amount) - should NOT be matched
@@ -161,13 +165,14 @@ public class SubscriptionServiceRealWorldTest {
                             "Platinum Digital Entertainment Credit D J*BARRONS",
                             new BigDecimal("4.19"),
                             baseDate.plusMonths(i).plusDays(1),
-                            "education",
-                            "education");
+                            EDUCATION,
+                            EDUCATION);
             transactionRepository.save(credit);
         }
 
         // When: Detect subscriptions
-        final List<Subscription> subscriptions = subscriptionService.detectSubscriptions(testUserId);
+        final List<Subscription> subscriptions =
+                subscriptionService.detectSubscriptions(testUserId);
 
         // Then: Should detect Barrons subscription
         final Subscription barrons =
@@ -176,11 +181,11 @@ public class SubscriptionServiceRealWorldTest {
                                 s ->
                                         s.getMerchantName() != null
                                                 && (s.getMerchantName()
-                                                .toLowerCase(Locale.ROOT)
-                                                .contains("barrons")
-                                                || s.getMerchantName()
-                                                .toLowerCase(Locale.ROOT)
-                                                .contains("dj")))
+                                                                .toLowerCase(Locale.ROOT)
+                                                                .contains("barrons")
+                                                        || s.getMerchantName()
+                                                                .toLowerCase(Locale.ROOT)
+                                                                .contains("dj")))
                         .findFirst()
                         .orElse(null);
 
@@ -215,8 +220,8 @@ public class SubscriptionServiceRealWorldTest {
                         "Costco Membership",
                         new BigDecimal("-60.00"),
                         baseDate,
-                        "subscriptions", // Use subscriptions category for better detection
-                        "membership");
+                        SUBSCRIPTIONS, // Use subscriptions category for better detection
+                        MEMBERSHIP);
         transactionRepository.save(tx1);
 
         final TransactionTable tx2 =
@@ -225,8 +230,8 @@ public class SubscriptionServiceRealWorldTest {
                         "Costco Annual Membership",
                         new BigDecimal("-60.00"),
                         baseDate.plusYears(1),
-                        "subscriptions", // Use subscriptions category for better detection
-                        "membership");
+                        SUBSCRIPTIONS, // Use subscriptions category for better detection
+                        MEMBERSHIP);
         transactionRepository.save(tx2);
 
         // Add a third transaction to strengthen the pattern (even if it's in the future)
@@ -236,24 +241,25 @@ public class SubscriptionServiceRealWorldTest {
                         "Costco Annual Membership Renewal",
                         new BigDecimal("-60.00"),
                         baseDate.plusYears(2),
-                        "subscriptions",
-                        "membership");
+                        SUBSCRIPTIONS,
+                        MEMBERSHIP);
         transactionRepository.save(tx3);
 
-        final List<Subscription> subscriptions = subscriptionService.detectSubscriptions(testUserId);
+        final List<Subscription> subscriptions =
+                subscriptionService.detectSubscriptions(testUserId);
         final Subscription costco =
                 subscriptions.stream()
                         .filter(
                                 s ->
                                         s.getMerchantName() != null
                                                 && s.getMerchantName()
-                                                .toLowerCase(Locale.ROOT)
-                                                .contains("costco"))
+                                                        .toLowerCase(Locale.ROOT)
+                                                        .contains("costco"))
                         .findFirst()
                         .orElse(null);
         assertNotNull(costco, "Costco membership should be detected");
         assertEquals(Subscription.SubscriptionFrequency.ANNUAL, costco.getFrequency());
-        assertEquals("membership", costco.getSubscriptionType());
+        assertEquals(MEMBERSHIP, costco.getSubscriptionType());
     }
 
     @Test
@@ -272,19 +278,20 @@ public class SubscriptionServiceRealWorldTest {
             transactionRepository.save(tx);
         }
 
-        final List<Subscription> subscriptions = subscriptionService.detectSubscriptions(testUserId);
+        final List<Subscription> subscriptions =
+                subscriptionService.detectSubscriptions(testUserId);
         final Subscription gym =
                 subscriptions.stream()
                         .filter(
                                 s ->
                                         s.getMerchantName() != null
                                                 && s.getMerchantName()
-                                                .toLowerCase(Locale.ROOT)
-                                                .contains("planet"))
+                                                        .toLowerCase(Locale.ROOT)
+                                                        .contains("planet"))
                         .findFirst()
                         .orElse(null);
         assertNotNull(gym, "Gym membership should be detected");
-        assertEquals("membership", gym.getSubscriptionType());
+        assertEquals(MEMBERSHIP, gym.getSubscriptionType());
     }
 
     @Test
@@ -303,15 +310,16 @@ public class SubscriptionServiceRealWorldTest {
             transactionRepository.save(tx);
         }
 
-        final List<Subscription> subscriptions = subscriptionService.detectSubscriptions(testUserId);
+        final List<Subscription> subscriptions =
+                subscriptionService.detectSubscriptions(testUserId);
         final Subscription insurance =
                 subscriptions.stream()
                         .filter(
                                 s ->
                                         s.getMerchantName() != null
                                                 && s.getMerchantName()
-                                                .toLowerCase(Locale.ROOT)
-                                                .contains("state farm"))
+                                                        .toLowerCase(Locale.ROOT)
+                                                        .contains("state farm"))
                         .findFirst()
                         .orElse(null);
         assertNotNull(insurance, "Insurance subscription should be detected");
@@ -333,15 +341,16 @@ public class SubscriptionServiceRealWorldTest {
             transactionRepository.save(tx);
         }
 
-        final List<Subscription> subscriptions = subscriptionService.detectSubscriptions(testUserId);
+        final List<Subscription> subscriptions =
+                subscriptionService.detectSubscriptions(testUserId);
         final Subscription ytMusic =
                 subscriptions.stream()
                         .filter(
                                 s ->
                                         s.getDescription() != null
                                                 && s.getDescription()
-                                                .toLowerCase(Locale.ROOT)
-                                                .contains("youtube music"))
+                                                        .toLowerCase(Locale.ROOT)
+                                                        .contains("youtube music"))
                         .findFirst()
                         .orElse(null);
         assertNotNull(ytMusic, "YouTube Music subscription should be detected");
@@ -364,15 +373,16 @@ public class SubscriptionServiceRealWorldTest {
             transactionRepository.save(tx);
         }
 
-        final List<Subscription> subscriptions = subscriptionService.detectSubscriptions(testUserId);
+        final List<Subscription> subscriptions =
+                subscriptionService.detectSubscriptions(testUserId);
         final Subscription cursor =
                 subscriptions.stream()
                         .filter(
                                 s ->
                                         s.getMerchantName() != null
                                                 && s.getMerchantName()
-                                                .toLowerCase(Locale.ROOT)
-                                                .contains("cursor"))
+                                                        .toLowerCase(Locale.ROOT)
+                                                        .contains("cursor"))
                         .findFirst()
                         .orElse(null);
         assertNotNull(cursor, "Cursor AI subscription should be detected");
@@ -392,12 +402,13 @@ public class SubscriptionServiceRealWorldTest {
                             "Monthly Subscription",
                             new BigDecimal("-25.00"),
                             date,
-                            "subscriptions",
-                            "subscriptions");
+                            SUBSCRIPTIONS,
+                            SUBSCRIPTIONS);
             transactionRepository.save(tx);
         }
 
-        final List<Subscription> subscriptions = subscriptionService.detectSubscriptions(testUserId);
+        final List<Subscription> subscriptions =
+                subscriptionService.detectSubscriptions(testUserId);
         assertFalse(
                 subscriptions.isEmpty(), "Should detect subscription with day-of-month pattern");
     }
@@ -413,20 +424,21 @@ public class SubscriptionServiceRealWorldTest {
                             "Weekly Subscription",
                             new BigDecimal("-5.99"),
                             baseDate.plusWeeks(i),
-                            "subscriptions",
-                            "subscriptions");
+                            SUBSCRIPTIONS,
+                            SUBSCRIPTIONS);
             transactionRepository.save(tx);
         }
 
-        final List<Subscription> subscriptions = subscriptionService.detectSubscriptions(testUserId);
+        final List<Subscription> subscriptions =
+                subscriptionService.detectSubscriptions(testUserId);
         final Subscription weekly =
                 subscriptions.stream()
                         .filter(
                                 s ->
                                         s.getMerchantName() != null
                                                 && s.getMerchantName()
-                                                .toLowerCase(Locale.ROOT)
-                                                .contains("weekly"))
+                                                        .toLowerCase(Locale.ROOT)
+                                                        .contains("weekly"))
                         .findFirst()
                         .orElse(null);
         if (weekly != null) {

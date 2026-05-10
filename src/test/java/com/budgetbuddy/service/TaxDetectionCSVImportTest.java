@@ -1,15 +1,14 @@
 package com.budgetbuddy.service;
 
-
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import java.util.Locale;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.budgetbuddy.service.CSVImportService.ParsedTransaction;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.math.BigDecimal;
+import java.util.Locale;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -32,9 +31,10 @@ class TaxDetectionCSVImportTest {
     void setUp() {
         final AccountDetectionService accountDetectionService =
                 org.mockito.Mockito.mock(AccountDetectionService.class);
-        final com.budgetbuddy.service.ml.EnhancedCategoryDetectionService enhancedCategoryDetection =
-                org.mockito.Mockito.mock(
-                        com.budgetbuddy.service.ml.EnhancedCategoryDetectionService.class);
+        final com.budgetbuddy.service.ml.EnhancedCategoryDetectionService
+                enhancedCategoryDetection =
+                        org.mockito.Mockito.mock(
+                                com.budgetbuddy.service.ml.EnhancedCategoryDetectionService.class);
         final com.budgetbuddy.service.ml.FuzzyMatchingService fuzzyMatchingService =
                 org.mockito.Mockito.mock(com.budgetbuddy.service.ml.FuzzyMatchingService.class);
         csvImportService =

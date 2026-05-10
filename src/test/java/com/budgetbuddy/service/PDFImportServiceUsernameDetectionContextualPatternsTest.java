@@ -1,9 +1,9 @@
 package com.budgetbuddy.service;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.lang.reflect.Method;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
@@ -22,6 +22,8 @@ import org.junit.jupiter.api.Test;
 @DisplayName("PDFImportService Username Detection - Contextual Patterns Test")
 public class PDFImportServiceUsernameDetectionContextualPatternsTest {
 
+    private static final String UNCHECKED = "unchecked";
+
     private PDFImportService pdfImportService;
     private Method findUsernameCandidates;
 
@@ -39,14 +41,14 @@ public class PDFImportServiceUsernameDetectionContextualPatternsTest {
     @DisplayName("Should detect all-caps name followed by address with ZIP code")
     void testAllCapsNameBeforeAddressWithZip() throws Exception {
         final String[] lines = {
-                "ASHTON BASHTON HASHTON",
-                "73529 NE 43ST ST",
-                "SEATTLE WA 98119-3579",
-                "Date Description Amount"
+            "ASHTON BASHTON HASHTON",
+            "73529 NE 43ST ST",
+            "SEATTLE WA 98119-3579",
+            "Date Description Amount"
         };
 
-        @SuppressWarnings("unchecked") final
-                List<String> candidates =
+        @SuppressWarnings(UNCHECKED)
+        final List<String> candidates =
                 (List<String>) findUsernameCandidates.invoke(pdfImportService, lines, 3, 1, 6);
 
         assertNotNull(candidates, "Should return candidates");
@@ -59,11 +61,11 @@ public class PDFImportServiceUsernameDetectionContextualPatternsTest {
     @DisplayName("Should detect all-caps name followed by account ending pattern")
     void testAllCapsNameBeforeAccountEnding() throws Exception {
         final String[] lines = {
-                "ROGER PHILIPS FERNANDES", "Account Ending 1-23456", "Date Description Amount"
+            "ROGER PHILIPS FERNANDES", "Account Ending 1-23456", "Date Description Amount"
         };
 
-        @SuppressWarnings("unchecked") final
-                List<String> candidates =
+        @SuppressWarnings(UNCHECKED)
+        final List<String> candidates =
                 (List<String>) findUsernameCandidates.invoke(pdfImportService, lines, 2, 1, 6);
 
         assertNotNull(candidates, "Should return candidates");
@@ -77,8 +79,8 @@ public class PDFImportServiceUsernameDetectionContextualPatternsTest {
     void testAllCapsNameBeforeCardNumber() throws Exception {
         final String[] lines = {"JANE SMITH", "Card ending in 5678", "Date Description Amount"};
 
-        @SuppressWarnings("unchecked") final
-                List<String> candidates =
+        @SuppressWarnings(UNCHECKED)
+        final List<String> candidates =
                 (List<String>) findUsernameCandidates.invoke(pdfImportService, lines, 2, 1, 6);
 
         assertNotNull(candidates, "Should return candidates");
@@ -92,14 +94,14 @@ public class PDFImportServiceUsernameDetectionContextualPatternsTest {
             "Should detect all-caps name in 3-line address format (name, street, city state ZIP)")
     void testAllCapsNameIn3LineAddressFormat() throws Exception {
         final String[] lines = {
-                "ROGER A FERNANDES",
-                "12345 NE 17ST ST",
-                "SEATTLE WA 91114-3211",
-                "Date Description Amount"
+            "ROGER A FERNANDES",
+            "12345 NE 17ST ST",
+            "SEATTLE WA 91114-3211",
+            "Date Description Amount"
         };
 
-        @SuppressWarnings("unchecked") final
-                List<String> candidates =
+        @SuppressWarnings(UNCHECKED)
+        final List<String> candidates =
                 (List<String>) findUsernameCandidates.invoke(pdfImportService, lines, 3, 1, 6);
 
         assertNotNull(candidates, "Should return candidates");
@@ -111,10 +113,12 @@ public class PDFImportServiceUsernameDetectionContextualPatternsTest {
     @Test
     @DisplayName("Should detect all-caps name followed by 'Account ending in' pattern")
     void testAllCapsNameBeforeAccountEndingIn() throws Exception {
-        final String[] lines = {"MARY JANE WATSON", "Account ending in: 1234", "Date Description Amount"};
+        final String[] lines = {
+            "MARY JANE WATSON", "Account ending in: 1234", "Date Description Amount"
+        };
 
-        @SuppressWarnings("unchecked") final
-                List<String> candidates =
+        @SuppressWarnings(UNCHECKED)
+        final List<String> candidates =
                 (List<String>) findUsernameCandidates.invoke(pdfImportService, lines, 2, 1, 6);
 
         assertNotNull(candidates, "Should return candidates");
@@ -128,8 +132,8 @@ public class PDFImportServiceUsernameDetectionContextualPatternsTest {
     void testAllCapsNameBeforeCardNumberEnding() throws Exception {
         final String[] lines = {"JOHN DOE", "Card number ending 7890", "Date Description Amount"};
 
-        @SuppressWarnings("unchecked") final
-                List<String> candidates =
+        @SuppressWarnings(UNCHECKED)
+        final List<String> candidates =
                 (List<String>) findUsernameCandidates.invoke(pdfImportService, lines, 2, 1, 6);
 
         assertNotNull(candidates, "Should return candidates");
@@ -143,13 +147,13 @@ public class PDFImportServiceUsernameDetectionContextualPatternsTest {
             "Should detect all-caps name followed by 'Closing Date ... Account Ending' pattern")
     void testAllCapsNameBeforeClosingDateAccountEnding() throws Exception {
         final String[] lines = {
-                "SAKINA PHILIPS AHMED",
-                "Closing Date 12/12/25 Account Ending 1-23456",
-                "Date Description Amount"
+            "SAKINA PHILIPS AHMED",
+            "Closing Date 12/12/25 Account Ending 1-23456",
+            "Date Description Amount"
         };
 
-        @SuppressWarnings("unchecked") final
-                List<String> candidates =
+        @SuppressWarnings(UNCHECKED)
+        final List<String> candidates =
                 (List<String>) findUsernameCandidates.invoke(pdfImportService, lines, 2, 1, 6);
 
         assertNotNull(candidates, "Should return candidates");
@@ -161,10 +165,12 @@ public class PDFImportServiceUsernameDetectionContextualPatternsTest {
     @Test
     @DisplayName("Should not detect non-all-caps name followed by address (lower priority)")
     void testNonAllCapsNameBeforeAddress() throws Exception {
-        final String[] lines = {"John Doe", "123 Main St", "Seattle WA 98101", "Date Description Amount"};
+        final String[] lines = {
+            "John Doe", "123 Main St", "Seattle WA 98101", "Date Description Amount"
+        };
 
-        @SuppressWarnings("unchecked") final
-                List<String> candidates =
+        @SuppressWarnings(UNCHECKED)
+        final List<String> candidates =
                 (List<String>) findUsernameCandidates.invoke(pdfImportService, lines, 3, 1, 6);
 
         assertNotNull(candidates, "Should return candidates");

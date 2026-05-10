@@ -1,7 +1,5 @@
 package com.budgetbuddy.api;
 
-
-import java.util.Locale;
 import com.budgetbuddy.compliance.dma.DMAComplianceService;
 import com.budgetbuddy.exception.AppException;
 import com.budgetbuddy.exception.ErrorCode;
@@ -10,6 +8,7 @@ import com.budgetbuddy.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

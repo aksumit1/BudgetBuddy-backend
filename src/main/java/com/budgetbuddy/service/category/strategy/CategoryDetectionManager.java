@@ -25,7 +25,9 @@ public class CategoryDetectionManager {
      * @return Detected category or null
      */
     public String detectCategory(
-            final String normalizedMerchantName, final String descriptionLower, final String merchantName) {
+            final String normalizedMerchantName,
+            final String descriptionLower,
+            final String merchantName) {
         for (final CategoryDetectionStrategy strategy : strategies) {
             final String category =
                     strategy.detectCategory(normalizedMerchantName, descriptionLower, merchantName);

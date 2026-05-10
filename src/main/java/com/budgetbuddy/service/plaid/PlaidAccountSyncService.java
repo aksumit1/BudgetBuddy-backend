@@ -1,8 +1,5 @@
 package com.budgetbuddy.service.plaid;
 
-
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import java.util.Locale;
 import com.budgetbuddy.exception.AppException;
 import com.budgetbuddy.exception.ErrorCode;
 import com.budgetbuddy.model.dynamodb.AccountTable;
@@ -12,7 +9,9 @@ import com.budgetbuddy.repository.dynamodb.AccountRepository;
 import com.budgetbuddy.service.PlaidCategoryMapper;
 import com.budgetbuddy.service.correctness.BalanceReconciliationService;
 import com.budgetbuddy.util.IdGenerator;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -121,8 +120,8 @@ public class PlaidAccountSyncService {
                             existing.getAccountNumber()
                                     + ":"
                                     + (existing.getInstitutionName() != null
-                                    ? existing.getInstitutionName()
-                                    : "");
+                                            ? existing.getInstitutionName()
+                                            : "");
                     accountsByNumber.put(key, existing);
                 }
             }
@@ -252,7 +251,8 @@ public class PlaidAccountSyncService {
                                                 account.getInstitutionName(), accountId);
                                 // CRITICAL FIX: Normalize generated account ID to lowercase for
                                 // consistency
-                                final String normalizedId = IdGenerator.normalizeUUID(generatedAccountId);
+                                final String normalizedId =
+                                        IdGenerator.normalizeUUID(generatedAccountId);
                                 account.setAccountId(normalizedId);
                             } catch (IllegalArgumentException e) {
                                 LOGGER.warn(
@@ -261,12 +261,20 @@ public class PlaidAccountSyncService {
                                 // CRITICAL FIX: Normalize generated UUID to lowercase for
                                 // consistency
                                 account.setAccountId(
-                                        java.util.UUID.randomUUID().toString().toLowerCase(Locale.ROOT));
+                                        java.util
+                                                .UUID
+                                                .randomUUID()
+                                                .toString()
+                                                .toLowerCase(Locale.ROOT));
                             }
                         } else {
                             // CRITICAL FIX: Normalize generated UUID to lowercase for consistency
                             account.setAccountId(
-                                    java.util.UUID.randomUUID().toString().toLowerCase(Locale.ROOT));
+                                    java.util
+                                            .UUID
+                                            .randomUUID()
+                                            .toString()
+                                            .toLowerCase(Locale.ROOT));
                         }
 
                         ensureAccountRequiredFields(account);
@@ -293,8 +301,8 @@ public class PlaidAccountSyncService {
                                     account.getAccountNumber()
                                             + ":"
                                             + (account.getInstitutionName() != null
-                                            ? account.getInstitutionName()
-                                            : "");
+                                                    ? account.getInstitutionName()
+                                                    : "");
                             accountsByNumber.put(key, account);
                         }
                         // Collect for batch save

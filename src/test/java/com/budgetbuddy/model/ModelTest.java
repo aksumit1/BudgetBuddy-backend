@@ -14,6 +14,8 @@ import org.junit.jupiter.api.Test;
 /** Comprehensive tests for model classes Tests getters, setters, constructors, and validation */
 class ModelTest {
 
+    private static final String PASSWORD = "password";
+
     @Test
     void testUserDefaultConstructorCreatesEmptyUser() {
         // When
@@ -129,7 +131,7 @@ class ModelTest {
     @Test
     void testAccountConstructorWithUserAndNameSetsFields() {
         // Given
-        final User user = new User("test@example.com", "password");
+        final User user = new User("test@example.com", PASSWORD);
         final String accountName = "Checking Account";
         final Account.AccountType accountType = Account.AccountType.CHECKING;
 
@@ -148,7 +150,7 @@ class ModelTest {
         // Given
         final Account account = new Account();
         final Long id = 1L;
-        final User user = new User("test@example.com", "password");
+        final User user = new User("test@example.com", PASSWORD);
         final String accountName = "Savings Account";
         final String institutionName = "Chase Bank";
         final Account.AccountType accountType = Account.AccountType.SAVINGS;
@@ -213,7 +215,7 @@ class ModelTest {
     @Test
     void testTransactionConstructorWithRequiredFieldsSetsFields() {
         // Given
-        final User user = new User("test@example.com", "password");
+        final User user = new User("test@example.com", PASSWORD);
         final Account account = new Account(user, "Checking", Account.AccountType.CHECKING);
         final BigDecimal amount = new BigDecimal("-50.00");
         final LocalDate transactionDate = LocalDate.now();
@@ -233,12 +235,13 @@ class ModelTest {
         // Given
         final Transaction transaction = new Transaction();
         final Long id = 1L;
-        final User user = new User("test@example.com", "password");
+        final User user = new User("test@example.com", PASSWORD);
         final Account account = new Account(user, "Checking", Account.AccountType.CHECKING);
         final BigDecimal amount = new BigDecimal("-50.00");
         final String description = "Grocery Store";
         final String merchantName = "Whole Foods";
-        final Transaction.TransactionCategory category = Transaction.TransactionCategory.FOOD_DINING;
+        final Transaction.TransactionCategory category =
+                Transaction.TransactionCategory.FOOD_DINING;
         final LocalDate transactionDate = LocalDate.now();
         final String currencyCode = "EUR";
         final String plaidTransactionId = "txn_123";
@@ -302,8 +305,9 @@ class ModelTest {
     @Test
     void testBudgetConstructorWithRequiredFieldsSetsFields() {
         // Given
-        final User user = new User("test@example.com", "password");
-        final Transaction.TransactionCategory category = Transaction.TransactionCategory.FOOD_DINING;
+        final User user = new User("test@example.com", PASSWORD);
+        final Transaction.TransactionCategory category =
+                Transaction.TransactionCategory.FOOD_DINING;
         final BigDecimal monthlyLimit = new BigDecimal("500.00");
 
         // When
@@ -320,8 +324,9 @@ class ModelTest {
         // Given
         final Budget budget = new Budget();
         final Long id = 1L;
-        final User user = new User("test@example.com", "password");
-        final Transaction.TransactionCategory category = Transaction.TransactionCategory.FOOD_DINING;
+        final User user = new User("test@example.com", PASSWORD);
+        final Transaction.TransactionCategory category =
+                Transaction.TransactionCategory.FOOD_DINING;
         final BigDecimal monthlyLimit = new BigDecimal("500.00");
         final BigDecimal currentSpent = new BigDecimal("250.00");
         final String currencyCode = "EUR";
@@ -366,7 +371,7 @@ class ModelTest {
     @Test
     void testGoalConstructorWithRequiredFieldsSetsFields() {
         // Given
-        final User user = new User("test@example.com", "password");
+        final User user = new User("test@example.com", PASSWORD);
         final String name = "Vacation Fund";
         final BigDecimal targetAmount = new BigDecimal("5000.00");
         final LocalDate targetDate = LocalDate.now().plusMonths(6);
@@ -386,7 +391,7 @@ class ModelTest {
         // Given
         final Goal goal = new Goal();
         final Long id = 1L;
-        final User user = new User("test@example.com", "password");
+        final User user = new User("test@example.com", PASSWORD);
         final String name = "Emergency Fund";
         final String description = "Save for emergencies";
         final BigDecimal targetAmount = new BigDecimal("10000.00");

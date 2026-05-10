@@ -1,20 +1,19 @@
 package com.budgetbuddy.service;
 
-
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import java.util.Locale;
 import com.budgetbuddy.exception.AppException;
 import com.budgetbuddy.exception.ErrorCode;
 import com.budgetbuddy.model.dynamodb.AccountTable;
 import com.budgetbuddy.model.dynamodb.TransactionTable;
 import com.budgetbuddy.repository.dynamodb.AccountRepository;
 import com.budgetbuddy.repository.dynamodb.TransactionRepository;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -98,7 +97,8 @@ public class HighInterestDetectionService {
         final LocalDate endDate = LocalDate.now();
         final LocalDate startDate = endDate.minusDays(ANALYSIS_WINDOW_DAYS);
 
-        final String startDateStr = startDate.format(java.time.format.DateTimeFormatter.ISO_LOCAL_DATE);
+        final String startDateStr =
+                startDate.format(java.time.format.DateTimeFormatter.ISO_LOCAL_DATE);
         final String endDateStr = endDate.format(java.time.format.DateTimeFormatter.ISO_LOCAL_DATE);
 
         final List<TransactionTable> transactions =
@@ -115,7 +115,8 @@ public class HighInterestDetectionService {
                                                     : "";
                                     final String category =
                                             tx.getCategoryPrimary() != null
-                                                    ? tx.getCategoryPrimary().toLowerCase(Locale.ROOT)
+                                                    ? tx.getCategoryPrimary()
+                                                            .toLowerCase(Locale.ROOT)
                                                     : "";
                                     return desc.contains("interest")
                                             || desc.contains("finance charge")
@@ -170,8 +171,8 @@ public class HighInterestDetectionService {
                             estimatedRate >= VERY_HIGH_INTEREST_RATE_THRESHOLD
                                     ? Severity.HIGH
                                     : estimatedRate >= HIGH_INTEREST_RATE_THRESHOLD
-                                    ? Severity.MEDIUM
-                                    : Severity.LOW;
+                                            ? Severity.MEDIUM
+                                            : Severity.LOW;
 
                     if (estimatedRate >= HIGH_INTEREST_RATE_THRESHOLD) {
                         alerts.add(
@@ -217,7 +218,8 @@ public class HighInterestDetectionService {
             final double interestRate = 0.20; // Default assumption
 
             // Calculate interest if only making minimum payments
-            final BigDecimal monthlyInterest = balance.multiply(BigDecimal.valueOf(interestRate / 12));
+            final BigDecimal monthlyInterest =
+                    balance.multiply(BigDecimal.valueOf(interestRate / 12));
             final BigDecimal annualInterest = monthlyInterest.multiply(BigDecimal.valueOf(12));
 
             if (interestRate >= HIGH_INTEREST_RATE_THRESHOLD
@@ -268,7 +270,8 @@ public class HighInterestDetectionService {
 
             // Estimate interest rate based on loan type
             final double interestRate = estimateLoanInterestRate(account.getAccountType());
-            final BigDecimal monthlyInterest = balance.multiply(BigDecimal.valueOf(interestRate / 12));
+            final BigDecimal monthlyInterest =
+                    balance.multiply(BigDecimal.valueOf(interestRate / 12));
             final BigDecimal annualInterest = monthlyInterest.multiply(BigDecimal.valueOf(12));
 
             if (interestRate >= HIGH_INTEREST_RATE_THRESHOLD

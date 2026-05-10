@@ -1,11 +1,11 @@
 package com.budgetbuddy.service.correctness;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import com.budgetbuddy.model.dynamodb.AccountTable;
 import com.budgetbuddy.model.dynamodb.TransactionTable;
 import com.budgetbuddy.repository.dynamodb.AccountRepository;
 import com.budgetbuddy.repository.dynamodb.TransactionRepository;
 import com.budgetbuddy.service.aws.CloudWatchService;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Instant;
@@ -149,7 +149,8 @@ public class BalanceReconciliationService {
 
             // Drift = how much of the balance change isn't explained by the
             // transactions we ingested. Zero = perfect agreement.
-            final BigDecimal drift = plaidDelta.subtract(derivedDelta).setScale(2, RoundingMode.HALF_UP);
+            final BigDecimal drift =
+                    plaidDelta.subtract(derivedDelta).setScale(2, RoundingMode.HALF_UP);
             final BigDecimal absDrift = drift.abs();
 
             recordMetric(account, absDrift);

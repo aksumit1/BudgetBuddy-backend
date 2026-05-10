@@ -57,7 +57,8 @@ class UserControllerTest {
         when(userService.findByEmail("test@example.com")).thenReturn(Optional.of(testUser));
 
         // When
-        final ResponseEntity<Map<String, Object>> response = userController.getCurrentUser(userDetails);
+        final ResponseEntity<Map<String, Object>> response =
+                userController.getCurrentUser(userDetails);
 
         // Then
         assertEquals(HttpStatus.OK, response.getStatusCode());
@@ -145,7 +146,8 @@ class UserControllerTest {
         when(userService.findByEmail("test@example.com")).thenReturn(Optional.of(testUser));
 
         // When
-        final ResponseEntity<Map<String, Object>> response = userController.getCurrentUser(userDetails);
+        final ResponseEntity<Map<String, Object>> response =
+                userController.getCurrentUser(userDetails);
 
         // Then
         assertEquals(HttpStatus.OK, response.getStatusCode());

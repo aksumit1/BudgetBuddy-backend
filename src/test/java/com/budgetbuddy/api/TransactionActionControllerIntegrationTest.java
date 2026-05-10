@@ -1,7 +1,5 @@
 package com.budgetbuddy.api;
 
-
-import java.nio.charset.StandardCharsets;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -27,6 +25,7 @@ import com.budgetbuddy.service.TransactionService;
 import com.budgetbuddy.service.UserService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.UUID;
@@ -53,6 +52,8 @@ import org.springframework.test.web.servlet.MockMvc;
 @ActiveProfiles("test")
 @Import(AWSTestConfiguration.class)
 class TransactionActionControllerIntegrationTest {
+
+    private static final String AUTHORIZATION = "Authorization";
 
     @Autowired private MockMvc mockMvc;
 
@@ -98,7 +99,8 @@ class TransactionActionControllerIntegrationTest {
 
         // Create test user - BREAKING CHANGE: Client salt removed
         final String base64PasswordHash =
-                java.util.Base64.getEncoder().encodeToString("hashed-password".getBytes(StandardCharsets.UTF_8));
+                java.util.Base64.getEncoder()
+                        .encodeToString("hashed-password".getBytes(StandardCharsets.UTF_8));
         // BREAKING CHANGE: Client salt removed - backend handles salt management
         testUser = userService.createUserSecure(testEmail, base64PasswordHash, "Test", "User");
 
@@ -148,7 +150,7 @@ class TransactionActionControllerIntegrationTest {
                         post(
                                         "/api/transactions/{transactionId}/actions",
                                         testTransaction.getTransactionId())
-                                .header("Authorization", "Bearer " + accessToken)
+                                .header(AUTHORIZATION, "Bearer " + accessToken)
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isCreated())
@@ -170,7 +172,7 @@ class TransactionActionControllerIntegrationTest {
                         post(
                                         "/api/transactions/{transactionId}/actions",
                                         testTransaction.getTransactionId())
-                                .header("Authorization", "Bearer " + accessToken)
+                                .header(AUTHORIZATION, "Bearer " + accessToken)
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest());
@@ -188,7 +190,7 @@ class TransactionActionControllerIntegrationTest {
                         post(
                                         "/api/transactions/{transactionId}/actions",
                                         testTransaction.getTransactionId())
-                                .header("Authorization", "Bearer " + accessToken)
+                                .header(AUTHORIZATION, "Bearer " + accessToken)
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(createRequest)))
                 .andExpect(status().isCreated());
@@ -198,7 +200,7 @@ class TransactionActionControllerIntegrationTest {
                         get(
                                         "/api/transactions/{transactionId}/actions",
                                         testTransaction.getTransactionId())
-                                .header("Authorization", "Bearer " + accessToken)
+                                .header(AUTHORIZATION, "Bearer " + accessToken)
                                 .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$").isArray())
@@ -215,12 +217,12 @@ class TransactionActionControllerIntegrationTest {
 
         final String createResponse =
                 mockMvc.perform(
-                        post(
-                                "/api/transactions/{transactionId}/actions",
-                                testTransaction.getTransactionId())
-                                .header("Authorization", "Bearer " + accessToken)
-                                .contentType(MediaType.APPLICATION_JSON)
-                                .content(objectMapper.writeValueAsString(createRequest)))
+                                post(
+                                                "/api/transactions/{transactionId}/actions",
+                                                testTransaction.getTransactionId())
+                                        .header(AUTHORIZATION, "Bearer " + accessToken)
+                                        .contentType(MediaType.APPLICATION_JSON)
+                                        .content(objectMapper.writeValueAsString(createRequest)))
                         .andExpect(status().isCreated())
                         .andReturn()
                         .getResponse()
@@ -242,7 +244,7 @@ class TransactionActionControllerIntegrationTest {
                                         "/api/transactions/{transactionId}/actions/{actionId}",
                                         testTransaction.getTransactionId(),
                                         createdAction.getActionId())
-                                .header("Authorization", "Bearer " + accessToken)
+                                .header(AUTHORIZATION, "Bearer " + accessToken)
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(updateRequest)))
                 .andExpect(status().isOk())
@@ -261,12 +263,12 @@ class TransactionActionControllerIntegrationTest {
 
         final String createResponse =
                 mockMvc.perform(
-                        post(
-                                "/api/transactions/{transactionId}/actions",
-                                testTransaction.getTransactionId())
-                                .header("Authorization", "Bearer " + accessToken)
-                                .contentType(MediaType.APPLICATION_JSON)
-                                .content(objectMapper.writeValueAsString(createRequest)))
+                                post(
+                                                "/api/transactions/{transactionId}/actions",
+                                                testTransaction.getTransactionId())
+                                        .header(AUTHORIZATION, "Bearer " + accessToken)
+                                        .contentType(MediaType.APPLICATION_JSON)
+                                        .content(objectMapper.writeValueAsString(createRequest)))
                         .andExpect(status().isCreated())
                         .andReturn()
                         .getResponse()
@@ -281,7 +283,7 @@ class TransactionActionControllerIntegrationTest {
                                         "/api/transactions/{transactionId}/actions/{actionId}",
                                         testTransaction.getTransactionId(),
                                         createdAction.getActionId())
-                                .header("Authorization", "Bearer " + accessToken))
+                                .header(AUTHORIZATION, "Bearer " + accessToken))
                 .andExpect(status().isNoContent());
 
         // Verify action is deleted
@@ -289,7 +291,7 @@ class TransactionActionControllerIntegrationTest {
                         get(
                                         "/api/transactions/{transactionId}/actions",
                                         testTransaction.getTransactionId())
-                                .header("Authorization", "Bearer " + accessToken)
+                                .header(AUTHORIZATION, "Bearer " + accessToken)
                                 .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$").isArray())
@@ -322,7 +324,7 @@ class TransactionActionControllerIntegrationTest {
                         post(
                                         "/api/transactions/{transactionId}/actions",
                                         UUID.randomUUID().toString())
-                                .header("Authorization", "Bearer " + accessToken)
+                                .header(AUTHORIZATION, "Bearer " + accessToken)
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isNotFound());

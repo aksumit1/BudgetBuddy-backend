@@ -48,11 +48,13 @@ public class BenchmarkRepository {
         }
         final List<BenchmarkTable> out = new ArrayList<>();
         try {
-            final SdkIterable<software.amazon.awssdk.enhanced.dynamodb.model.Page<BenchmarkTable>> pages =
-                    table.query(
-                            QueryConditional.keyEqualTo(
-                                    Key.builder().partitionValue(bucketId).build()));
-            for (final software.amazon.awssdk.enhanced.dynamodb.model.Page<BenchmarkTable> page : pages) {
+            final SdkIterable<software.amazon.awssdk.enhanced.dynamodb.model.Page<BenchmarkTable>>
+                    pages =
+                            table.query(
+                                    QueryConditional.keyEqualTo(
+                                            Key.builder().partitionValue(bucketId).build()));
+            for (final software.amazon.awssdk.enhanced.dynamodb.model.Page<BenchmarkTable> page :
+                    pages) {
                 out.addAll(page.items());
             }
         } catch (ResourceNotFoundException e) {

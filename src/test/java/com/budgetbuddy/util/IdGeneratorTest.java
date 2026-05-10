@@ -1,7 +1,5 @@
 package com.budgetbuddy.util;
 
-
-import java.util.Locale;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
@@ -11,17 +9,21 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.math.BigDecimal;
+import java.util.Locale;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 
 /** Unit Tests for IdGenerator */
 class IdGeneratorTest {
 
+    private static final String USER_123 = "user-123";
+    private static final String ACC_123 = "acc-123";
+
     @Test
     void testGenerateAccountIdWithValidInputsReturnsDeterministicUUID() {
         // Given
         final String institutionName = "Chase Bank";
-        final String plaidAccountId = "acc-123";
+        final String plaidAccountId = ACC_123;
 
         // When
         final String id1 = IdGenerator.generateAccountId(institutionName, plaidAccountId);
@@ -38,18 +40,17 @@ class IdGeneratorTest {
     void testGenerateAccountIdWithNullInstitutionNameThrowsException() {
         // When/Then
         assertThrows(
-                IllegalArgumentException.class,
-                () -> IdGenerator.generateAccountId(null, "acc-123"));
+                IllegalArgumentException.class, () -> IdGenerator.generateAccountId(null, ACC_123));
     }
 
     @Test
     void testGenerateAccountIdWithEmptyInstitutionNameThrowsException() {
         // When/Then
         assertThrows(
-                IllegalArgumentException.class, () -> IdGenerator.generateAccountId("", "acc-123"));
+                IllegalArgumentException.class, () -> IdGenerator.generateAccountId("", ACC_123));
         assertThrows(
                 IllegalArgumentException.class,
-                () -> IdGenerator.generateAccountId("   ", "acc-123"));
+                () -> IdGenerator.generateAccountId("   ", ACC_123));
     }
 
     @Test
@@ -63,7 +64,7 @@ class IdGeneratorTest {
     void testGenerateAccountIdWithWhitespaceTrimsInput() {
         // Given
         final String id1 = IdGenerator.generateAccountId("  Chase  ", "  acc-123  ");
-        final String id2 = IdGenerator.generateAccountId("Chase", "acc-123");
+        final String id2 = IdGenerator.generateAccountId("Chase", ACC_123);
 
         // Then
         assertEquals(id1, id2, "Should handle whitespace by trimming");
@@ -105,7 +106,7 @@ class IdGeneratorTest {
     @Test
     void testGenerateBudgetIdWithValidInputsReturnsDeterministicUUID() {
         // Given
-        final String userId = "user-123";
+        final String userId = USER_123;
         final String category = "FOOD_AND_DRINK";
 
         // When
@@ -131,7 +132,7 @@ class IdGeneratorTest {
     @Test
     void testGenerateGoalIdWithValidInputsReturnsDeterministicUUID() {
         // Given
-        final String userId = "user-123";
+        final String userId = USER_123;
         final String goalName = "Save for Vacation";
 
         // When
@@ -156,7 +157,7 @@ class IdGeneratorTest {
     @Test
     void testGenerateSubscriptionIdWithValidInputsReturnsDeterministicUUID() {
         // Given
-        final String userId = "user-123";
+        final String userId = USER_123;
         final String merchantName = "Netflix";
         final BigDecimal amount = new BigDecimal("9.99");
 
@@ -189,7 +190,7 @@ class IdGeneratorTest {
     @Test
     void testGenerateSubscriptionIdWithDifferentAmountPrecisionHandlesCorrectly() {
         // Given
-        final String userId = "user-123";
+        final String userId = USER_123;
         final String merchantName = "Netflix";
         final BigDecimal amount1 = new BigDecimal("9.99");
         final BigDecimal amount2 = new BigDecimal("10.00");
@@ -205,7 +206,7 @@ class IdGeneratorTest {
     @Test
     void testGenerateSubscriptionIdWithSameAmountAfterRoundingGeneratesSameId() {
         // Given - These will round to the same value (10.00)
-        final String userId = "user-123";
+        final String userId = USER_123;
         final String merchantName = "Netflix";
         final BigDecimal amount1 = new BigDecimal("9.999");
         final BigDecimal amount2 = new BigDecimal("10.001");

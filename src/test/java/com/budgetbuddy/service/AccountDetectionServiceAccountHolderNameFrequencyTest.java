@@ -1,15 +1,14 @@
 package com.budgetbuddy.service;
 
-
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import java.util.Locale;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.budgetbuddy.repository.dynamodb.AccountRepository;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.lang.reflect.Method;
+import java.util.Locale;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -193,7 +192,8 @@ class AccountDetectionServiceAccountHolderNameFrequencyTest {
     @Test
     void testExtractAccountHolderNameEmptyTextReturnsNull() throws Exception {
         // When
-        final String name = (String) extractAccountHolderNameFromPDF.invoke(accountDetectionService, "");
+        final String name =
+                (String) extractAccountHolderNameFromPDF.invoke(accountDetectionService, "");
 
         // Then
         assertNull(name);
@@ -410,8 +410,7 @@ class AccountDetectionServiceAccountHolderNameFrequencyTest {
     }
 
     @Test
-    void testExtractAccountHolderNameMultipleNamesDifferentPatternsSelectsBest()
-            throws Exception {
+    void testExtractAccountHolderNameMultipleNamesDifferentPatternsSelectsBest() throws Exception {
         // Given - Multiple names in different patterns
         final String headerText =
                 "Card Member: John Doe\n"

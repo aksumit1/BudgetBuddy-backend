@@ -14,6 +14,8 @@ import org.junit.jupiter.api.Test;
 /** Comprehensive tests for BehavioralAnalysisService */
 class BehavioralAnalysisServiceTest {
 
+    private static final String USER_123 = "user-123";
+
     private BehavioralAnalysisService behavioralAnalysisService;
 
     @BeforeEach
@@ -25,7 +27,7 @@ class BehavioralAnalysisServiceTest {
     @DisplayName("Should record activity successfully")
     void testRecordActivity() {
         // Given
-        final String userId = "user-123";
+        final String userId = USER_123;
         final BehavioralAnalysisService.ActivityType type =
                 BehavioralAnalysisService.ActivityType.AUTHENTICATION;
         final String resource = "/api/auth/login";
@@ -61,7 +63,7 @@ class BehavioralAnalysisServiceTest {
     @DisplayName("Should calculate risk score")
     void testCalculateRiskScore() {
         // Given
-        final String userId = "user-123";
+        final String userId = USER_123;
         final BehavioralAnalysisService.ActivityType type =
                 BehavioralAnalysisService.ActivityType.AUTHENTICATION;
         final String resource = "/api/transactions";
@@ -83,7 +85,7 @@ class BehavioralAnalysisServiceTest {
     @DisplayName("Should calculate higher risk for sensitive resources")
     void testCalculateRiskScoreSensitiveResource() {
         // Given
-        final String userId = "user-123";
+        final String userId = USER_123;
         final BehavioralAnalysisService.ActivityType type =
                 BehavioralAnalysisService.ActivityType.DATA_ACCESS;
         final String resource = "/api/admin/users";
@@ -104,7 +106,7 @@ class BehavioralAnalysisServiceTest {
     @DisplayName("Should detect anomalies")
     void testDetectAnomalies() {
         // Given
-        final String userId = "user-123";
+        final String userId = USER_123;
         // Record normal activities first
         for (int i = 0; i < 5; i++) {
             behavioralAnalysisService.recordActivity(
@@ -127,7 +129,7 @@ class BehavioralAnalysisServiceTest {
     @DisplayName("Should return empty result for user with no activities")
     void testDetectAnomaliesNoActivities() {
         // Given
-        final String userId = "user-123";
+        final String userId = USER_123;
 
         // When
         final java.util.List<BehavioralAnalysisService.Anomaly> anomalies =

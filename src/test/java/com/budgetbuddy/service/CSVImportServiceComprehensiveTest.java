@@ -1,7 +1,5 @@
 package com.budgetbuddy.service;
 
-
-import java.util.Locale;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -29,6 +27,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -50,6 +49,9 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @org.mockito.junit.jupiter.MockitoSettings(strictness = org.mockito.quality.Strictness.LENIENT)
 @DisplayName("CSVImportService Comprehensive Tests")
 class CSVImportServiceComprehensiveTest {
+
+    private static final String USER_123 = "user-123";
+    private static final String CHASE = "Chase";
 
     @Mock private AccountDetectionService accountDetectionService;
 
@@ -83,7 +85,7 @@ class CSVImportServiceComprehensiveTest {
         assertThrows(
                 Exception.class,
                 () -> {
-                    csvImportService.parseCSV(null, "test.csv", "user-123", null);
+                    csvImportService.parseCSV(null, "test.csv", USER_123, null);
                 });
     }
 
@@ -102,7 +104,7 @@ class CSVImportServiceComprehensiveTest {
         when(accountDetectionService.matchToExistingAccount(anyString(), any())).thenReturn(null);
 
         final CSVImportService.ImportResult result =
-                csvImportService.parseCSV(inputStream, null, "user-123", null);
+                csvImportService.parseCSV(inputStream, null, USER_123, null);
         assertNotNull(result);
     }
 
@@ -129,7 +131,7 @@ class CSVImportServiceComprehensiveTest {
         // CRITICAL: Empty file should return gracefully (not throw exception)
         // Should return ImportResult with 0 transactions and an error message
         final CSVImportService.ImportResult result =
-                csvImportService.parseCSV(inputStream, "test.csv", "user-123", null);
+                csvImportService.parseCSV(inputStream, "test.csv", USER_123, null);
         assertNotNull(result);
         assertEquals(0, result.getSuccessCount());
         assertEquals(0, result.getFailureCount());
@@ -156,7 +158,7 @@ class CSVImportServiceComprehensiveTest {
         when(accountDetectionService.matchToExistingAccount(anyString(), any())).thenReturn(null);
 
         final CSVImportService.ImportResult result =
-                csvImportService.parseCSV(inputStream, "test.csv", "user-123", null);
+                csvImportService.parseCSV(inputStream, "test.csv", USER_123, null);
         assertNotNull(result);
         assertEquals(0, result.getSuccessCount());
     }
@@ -179,7 +181,7 @@ class CSVImportServiceComprehensiveTest {
         when(accountDetectionService.matchToExistingAccount(anyString(), any())).thenReturn(null);
 
         final CSVImportService.ImportResult result =
-                csvImportService.parseCSV(inputStream, "test.csv", "user-123", null);
+                csvImportService.parseCSV(inputStream, "test.csv", USER_123, null);
         assertNotNull(result);
         // Should parse valid rows and handle invalid ones
         assertTrue(result.getSuccessCount() >= 2);
@@ -213,7 +215,7 @@ class CSVImportServiceComprehensiveTest {
         when(accountDetectionService.matchToExistingAccount(anyString(), any())).thenReturn(null);
 
         final CSVImportService.ImportResult result =
-                csvImportService.parseCSV(inputStream, "test.csv", "user-123", null);
+                csvImportService.parseCSV(inputStream, "test.csv", USER_123, null);
         assertNotNull(result);
         assertTrue(result.getSuccessCount() > 0);
     }
@@ -237,7 +239,7 @@ class CSVImportServiceComprehensiveTest {
         when(accountDetectionService.matchToExistingAccount(anyString(), any())).thenReturn(null);
 
         final CSVImportService.ImportResult result =
-                csvImportService.parseCSV(inputStream, "test.csv", "user-123", null);
+                csvImportService.parseCSV(inputStream, "test.csv", USER_123, null);
         assertNotNull(result);
         // Should handle special characters without crashing
     }
@@ -261,7 +263,7 @@ class CSVImportServiceComprehensiveTest {
         when(accountDetectionService.matchToExistingAccount(anyString(), any())).thenReturn(null);
 
         final CSVImportService.ImportResult result =
-                csvImportService.parseCSV(inputStream, "test.csv", "user-123", null);
+                csvImportService.parseCSV(inputStream, "test.csv", USER_123, null);
         assertNotNull(result);
         assertTrue(result.getSuccessCount() > 0);
     }
@@ -272,7 +274,8 @@ class CSVImportServiceComprehensiveTest {
         // CSV with UTF-8 BOM
         final byte[] bom = {(byte) 0xEF, (byte) 0xBB, (byte) 0xBF};
         final String csvContent = "Date,Description,Amount\n2025-01-15,Grocery Store,50.00";
-        final byte[] csvBytes = new byte[bom.length + csvContent.getBytes(StandardCharsets.UTF_8).length];
+        final byte[] csvBytes =
+                new byte[bom.length + csvContent.getBytes(StandardCharsets.UTF_8).length];
         System.arraycopy(bom, 0, csvBytes, 0, bom.length);
         System.arraycopy(
                 csvContent.getBytes(StandardCharsets.UTF_8),
@@ -290,7 +293,7 @@ class CSVImportServiceComprehensiveTest {
         when(accountDetectionService.matchToExistingAccount(anyString(), any())).thenReturn(null);
 
         final CSVImportService.ImportResult result =
-                csvImportService.parseCSV(inputStream, "test.csv", "user-123", null);
+                csvImportService.parseCSV(inputStream, "test.csv", USER_123, null);
         assertNotNull(result);
         assertTrue(result.getSuccessCount() > 0);
     }
@@ -312,7 +315,7 @@ class CSVImportServiceComprehensiveTest {
         when(accountDetectionService.matchToExistingAccount(anyString(), any())).thenReturn(null);
 
         final CSVImportService.ImportResult result =
-                csvImportService.parseCSV(inputStream, "test.csv", "user-123", null);
+                csvImportService.parseCSV(inputStream, "test.csv", USER_123, null);
         assertNotNull(result);
         // Should handle duplicate headers without crashing
     }
@@ -336,7 +339,7 @@ class CSVImportServiceComprehensiveTest {
         when(accountDetectionService.matchToExistingAccount(anyString(), any())).thenReturn(null);
 
         final CSVImportService.ImportResult result =
-                csvImportService.parseCSV(inputStream, "test.csv", "user-123", null);
+                csvImportService.parseCSV(inputStream, "test.csv", USER_123, null);
         assertNotNull(result);
         // Should handle mismatched columns without crashing
     }
@@ -369,7 +372,7 @@ class CSVImportServiceComprehensiveTest {
         when(accountDetectionService.matchToExistingAccount(anyString(), any())).thenReturn(null);
 
         final CSVImportService.ImportResult result =
-                csvImportService.parseCSV(inputStream, "test.csv", "user-123", null);
+                csvImportService.parseCSV(inputStream, "test.csv", USER_123, null);
         assertNotNull(result);
         assertEquals(20, result.getSuccessCount());
     }
@@ -400,7 +403,7 @@ class CSVImportServiceComprehensiveTest {
         when(accountDetectionService.matchToExistingAccount(anyString(), any())).thenReturn(null);
 
         final CSVImportService.ImportResult result =
-                csvImportService.parseCSV(inputStream, "test.csv", "user-123", null);
+                csvImportService.parseCSV(inputStream, "test.csv", USER_123, null);
         assertNotNull(result);
         assertEquals(10_000, result.getSuccessCount());
         assertTrue(
@@ -435,7 +438,7 @@ class CSVImportServiceComprehensiveTest {
         when(accountDetectionService.matchToExistingAccount(anyString(), any())).thenReturn(null);
 
         final CSVImportService.ImportResult result =
-                csvImportService.parseCSV(inputStream, "test.csv", "user-123", null);
+                csvImportService.parseCSV(inputStream, "test.csv", USER_123, null);
         assertNotNull(result);
         assertEquals(10_000, result.getSuccessCount());
         assertTrue(result.getErrors().stream().anyMatch(e -> e.contains("limit exceeded")));
@@ -455,7 +458,7 @@ class CSVImportServiceComprehensiveTest {
 
         final AccountDetectionService.DetectedAccount detectedAccount =
                 new AccountDetectionService.DetectedAccount();
-        detectedAccount.setInstitutionName("Chase"); // From filename
+        detectedAccount.setInstitutionName(CHASE); // From filename
         detectedAccount.setAccountNumber("3100"); // From filename
 
         when(accountDetectionService.isTransactionTableHeaders(anyList())).thenReturn(true);
@@ -464,7 +467,7 @@ class CSVImportServiceComprehensiveTest {
         when(accountDetectionService.matchToExistingAccount(anyString(), any())).thenReturn(null);
 
         final CSVImportService.ImportResult result =
-                csvImportService.parseCSV(inputStream, "Chase3100_Activity.csv", "user-123", null);
+                csvImportService.parseCSV(inputStream, "Chase3100_Activity.csv", USER_123, null);
         assertNotNull(result);
         assertEquals(2, result.getSuccessCount());
 
@@ -488,7 +491,7 @@ class CSVImportServiceComprehensiveTest {
 
         final AccountDetectionService.DetectedAccount detectedAccount =
                 new AccountDetectionService.DetectedAccount();
-        detectedAccount.setInstitutionName("Chase");
+        detectedAccount.setInstitutionName(CHASE);
         detectedAccount.setAccountNumber("3100");
         // Account type should be null initially, then inferred from patterns
 
@@ -498,7 +501,7 @@ class CSVImportServiceComprehensiveTest {
         when(accountDetectionService.matchToExistingAccount(anyString(), any())).thenReturn(null);
 
         final CSVImportService.ImportResult result =
-                csvImportService.parseCSV(inputStream, "Chase3100_Activity.csv", "user-123", null);
+                csvImportService.parseCSV(inputStream, "Chase3100_Activity.csv", USER_123, null);
         assertNotNull(result);
         assertEquals(3, result.getSuccessCount());
 
@@ -531,7 +534,7 @@ class CSVImportServiceComprehensiveTest {
         when(accountDetectionService.getAccountTypeKeywords()).thenReturn(List.of("account type"));
 
         final CSVImportService.ImportResult result =
-                csvImportService.parseCSV(inputStream, "test.csv", "user-123", null);
+                csvImportService.parseCSV(inputStream, "test.csv", USER_123, null);
         assertNotNull(result);
         // Should extract account info from data rows
     }
@@ -554,7 +557,7 @@ class CSVImportServiceComprehensiveTest {
 
         final AccountDetectionService.DetectedAccount detectedAccount =
                 new AccountDetectionService.DetectedAccount();
-        detectedAccount.setInstitutionName("Chase");
+        detectedAccount.setInstitutionName(CHASE);
         detectedAccount.setAccountNumber("3100");
         // Account type is null - should be inferred
 
@@ -564,7 +567,7 @@ class CSVImportServiceComprehensiveTest {
         when(accountDetectionService.matchToExistingAccount(anyString(), any())).thenReturn(null);
 
         final CSVImportService.ImportResult result =
-                csvImportService.parseCSV(inputStream, "Chase3100_Activity.csv", "user-123", null);
+                csvImportService.parseCSV(inputStream, "Chase3100_Activity.csv", USER_123, null);
         assertNotNull(result);
         assertEquals(5, result.getSuccessCount());
 
@@ -586,7 +589,7 @@ class CSVImportServiceComprehensiveTest {
 
         final AccountDetectionService.DetectedAccount detectedAccount =
                 new AccountDetectionService.DetectedAccount();
-        detectedAccount.setInstitutionName("Chase");
+        detectedAccount.setInstitutionName(CHASE);
         detectedAccount.setAccountNumber("3100");
         detectedAccount.setAccountType(
                 "depository"); // Extracted from transaction "type" column (wrong!)
@@ -597,7 +600,7 @@ class CSVImportServiceComprehensiveTest {
         when(accountDetectionService.matchToExistingAccount(anyString(), any())).thenReturn(null);
 
         final CSVImportService.ImportResult result =
-                csvImportService.parseCSV(inputStream, "Chase3100_Activity.csv", "user-123", null);
+                csvImportService.parseCSV(inputStream, "Chase3100_Activity.csv", USER_123, null);
         assertNotNull(result);
         assertEquals(2, result.getSuccessCount());
 
@@ -660,7 +663,7 @@ class CSVImportServiceComprehensiveTest {
                                             csvImportService.parseCSV(
                                                     inputStream,
                                                     "test" + index + ".csv",
-                                                    "user-123",
+                                                    USER_123,
                                                     null);
                                     if (result != null) {
                                         results.add(result);
@@ -726,7 +729,7 @@ class CSVImportServiceComprehensiveTest {
 
         final long startTime = System.currentTimeMillis();
         final CSVImportService.ImportResult result =
-                csvImportService.parseCSV(inputStream, "test.csv", "user-123", null);
+                csvImportService.parseCSV(inputStream, "test.csv", USER_123, null);
         final long endTime = System.currentTimeMillis();
         final long duration = endTime - startTime;
 
@@ -751,7 +754,7 @@ class CSVImportServiceComprehensiveTest {
 
         final AccountDetectionService.DetectedAccount detectedAccount =
                 new AccountDetectionService.DetectedAccount();
-        detectedAccount.setInstitutionName("Chase");
+        detectedAccount.setInstitutionName(CHASE);
         detectedAccount.setAccountNumber("3100");
 
         when(accountDetectionService.isTransactionTableHeaders(anyList())).thenReturn(true);
@@ -762,10 +765,10 @@ class CSVImportServiceComprehensiveTest {
 
         final CSVImportService.ImportResult result =
                 csvImportService.parseCSV(
-                        inputStream, "Chase3100_Activity_20251221.csv", "user-123", null);
+                        inputStream, "Chase3100_Activity_20251221.csv", USER_123, null);
         assertNotNull(result);
         assertNotNull(result.getDetectedAccount());
-        assertEquals("Chase", result.getDetectedAccount().getInstitutionName());
+        assertEquals(CHASE, result.getDetectedAccount().getInstitutionName());
         assertEquals("3100", result.getDetectedAccount().getAccountNumber());
     }
 
@@ -782,7 +785,7 @@ class CSVImportServiceComprehensiveTest {
 
         final AccountDetectionService.DetectedAccount detectedAccount =
                 new AccountDetectionService.DetectedAccount();
-        detectedAccount.setInstitutionName("Chase"); // From filename
+        detectedAccount.setInstitutionName(CHASE); // From filename
         detectedAccount.setAccountNumber("3100"); // From filename
 
         when(accountDetectionService.isTransactionTableHeaders(anyList())).thenReturn(true);
@@ -792,12 +795,12 @@ class CSVImportServiceComprehensiveTest {
         when(accountDetectionService.getInstitutionKeywords()).thenReturn(List.of("institution"));
 
         final CSVImportService.ImportResult result =
-                csvImportService.parseCSV(inputStream, "Chase3100_Activity.csv", "user-123", null);
+                csvImportService.parseCSV(inputStream, "Chase3100_Activity.csv", USER_123, null);
         assertNotNull(result);
         assertEquals(1, result.getSuccessCount());
 
-        // Institution should remain "Chase" from filename, not "CITI" from transaction description
+        // Institution should remain CHASE from filename, not "CITI" from transaction description
         assertNotNull(result.getDetectedAccount());
-        assertEquals("Chase", result.getDetectedAccount().getInstitutionName());
+        assertEquals(CHASE, result.getDetectedAccount().getInstitutionName());
     }
 }

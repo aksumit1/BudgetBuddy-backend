@@ -30,7 +30,8 @@ public final class ControllerErrorHandler {
      * @return AppException (never returns, always throws)
      * @throws AppException Always throws
      */
-    public static AppException handleError(final String operation, final Logger logger, final Exception exception) {
+    public static AppException handleError(
+            final String operation, final Logger logger, final Exception exception) {
         if (exception instanceof AppException appException) {
             // Re-throw AppException as-is (already properly formatted)
             return appException;
@@ -59,7 +60,9 @@ public final class ControllerErrorHandler {
      * @throws AppException If operation fails
      */
     public static <T> T executeWithErrorHandling(
-            final String operation, final Logger logger, final java.util.function.Supplier<T> operationCode) {
+            final String operation,
+            final Logger logger,
+            final java.util.function.Supplier<T> operationCode) {
         try {
             return operationCode.get();
         } catch (AppException e) {

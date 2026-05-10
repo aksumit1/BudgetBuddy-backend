@@ -1,11 +1,11 @@
 package com.budgetbuddy.service;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.lang.reflect.Method;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -68,10 +68,10 @@ public class PDFImportServiceUsernameDetectionRealWorldTest {
     @DisplayName("Amex: Card Member format")
     void testAmexCardMember() throws Exception {
         final String[] lines = {
-                "Statement Period: 12/01/25 - 12/31/25",
-                "Card Member: JOHN M DOE",
-                "Account: XXXX-XXXXXX-12345",
-                "Date Description Amount"
+            "Statement Period: 12/01/25 - 12/31/25",
+            "Card Member: JOHN M DOE",
+            "Account: XXXX-XXXXXX-12345",
+            "Date Description Amount"
         };
 
         final AccountDetectionService.DetectedAccount account =
@@ -88,10 +88,10 @@ public class PDFImportServiceUsernameDetectionRealWorldTest {
     @DisplayName("Chase: Cardmember format (no space)")
     void testChaseCardmember() throws Exception {
         final String[] lines = {
-                "CHASE SAPPHIRE PREFERRED",
-                "Cardmember: JANE SMITH",
-                "Account ending in 1234",
-                "Transaction Date Description Amount"
+            "CHASE SAPPHIRE PREFERRED",
+            "Cardmember: JANE SMITH",
+            "Account ending in 1234",
+            "Transaction Date Description Amount"
         };
 
         final AccountDetectionService.DetectedAccount account =
@@ -109,10 +109,10 @@ public class PDFImportServiceUsernameDetectionRealWorldTest {
     @DisplayName("Citi: Name format")
     void testCitiNameFormat() throws Exception {
         final String[] lines = {
-                "CITI DOUBLE CASH CARD",
-                "Name: ROBERT J WILSON",
-                "Account: ****5678",
-                "Date Merchant Amount"
+            "CITI DOUBLE CASH CARD",
+            "Name: ROBERT J WILSON",
+            "Account: ****5678",
+            "Date Merchant Amount"
         };
 
         final AccountDetectionService.DetectedAccount account =
@@ -129,10 +129,10 @@ public class PDFImportServiceUsernameDetectionRealWorldTest {
     @DisplayName("Capital One: Cardholder format")
     void testCapitalOneCardholder() throws Exception {
         final String[] lines = {
-                "CAPITAL ONE VENTURE",
-                "Cardholder: SARAH O'CONNOR",
-                "Account #: XXXX-XXXX-XXXX-9012",
-                "Transaction Date Description Amount"
+            "CAPITAL ONE VENTURE",
+            "Cardholder: SARAH O'CONNOR",
+            "Account #: XXXX-XXXX-XXXX-9012",
+            "Transaction Date Description Amount"
         };
 
         final AccountDetectionService.DetectedAccount account =
@@ -150,10 +150,10 @@ public class PDFImportServiceUsernameDetectionRealWorldTest {
     @DisplayName("Discover: Standalone name format")
     void testDiscoverStandaloneName() throws Exception {
         final String[] lines = {
-                "DISCOVER IT CASH BACK",
-                "MICHAEL T JOHNSON",
-                "Account Ending 3456",
-                "Date Description Amount"
+            "DISCOVER IT CASH BACK",
+            "MICHAEL T JOHNSON",
+            "Account Ending 3456",
+            "Date Description Amount"
         };
 
         final AccountDetectionService.DetectedAccount account =
@@ -172,10 +172,10 @@ public class PDFImportServiceUsernameDetectionRealWorldTest {
     @DisplayName("Bank of America: Account Holder format")
     void testBankOfAmericaAccountHolder() throws Exception {
         final String[] lines = {
-                "Bank of America Checking Account",
-                "Account Holder: LISA MARTINEZ",
-                "Account Number: XXXX-XXXX-XXXX-7890",
-                "Date Description Amount Balance"
+            "Bank of America Checking Account",
+            "Account Holder: LISA MARTINEZ",
+            "Account Number: XXXX-XXXX-XXXX-7890",
+            "Date Description Amount Balance"
         };
 
         final AccountDetectionService.DetectedAccount account =
@@ -193,10 +193,10 @@ public class PDFImportServiceUsernameDetectionRealWorldTest {
     @DisplayName("Wells Fargo: Primary Account Holder")
     void testWellsFargoPrimaryAccountHolder() throws Exception {
         final String[] lines = {
-                "WELLS FARGO CHECKING",
-                "Primary Account Holder: DAVID CHEN",
-                "Account: XXXX5678",
-                "Date Description Debits Credits Balance"
+            "WELLS FARGO CHECKING",
+            "Primary Account Holder: DAVID CHEN",
+            "Account: XXXX5678",
+            "Date Description Debits Credits Balance"
         };
 
         final AccountDetectionService.DetectedAccount account =
@@ -214,10 +214,10 @@ public class PDFImportServiceUsernameDetectionRealWorldTest {
     @DisplayName("Chase Bank: Joint Account format")
     void testChaseBankJointAccount() throws Exception {
         final String[] lines = {
-                "CHASE TOTAL CHECKING",
-                "Account Holder: JOHN & MARY DOE",
-                "Account: XXXX-1234",
-                "Date Description Amount Balance"
+            "CHASE TOTAL CHECKING",
+            "Account Holder: JOHN & MARY DOE",
+            "Account: XXXX-1234",
+            "Date Description Amount Balance"
         };
 
         final AccountDetectionService.DetectedAccount account =
@@ -318,10 +318,10 @@ public class PDFImportServiceUsernameDetectionRealWorldTest {
     @DisplayName("Fidelity: Account Owner format")
     void testFidelityAccountOwner() throws Exception {
         final String[] lines = {
-                "FIDELITY INVESTMENTS",
-                "Account Owner: Thomas Anderson",
-                "Account: XXXX-123456",
-                "Date Transaction Description Amount"
+            "FIDELITY INVESTMENTS",
+            "Account Owner: Thomas Anderson",
+            "Account: XXXX-123456",
+            "Date Transaction Description Amount"
         };
 
         final AccountDetectionService.DetectedAccount account =
@@ -339,10 +339,10 @@ public class PDFImportServiceUsernameDetectionRealWorldTest {
     @DisplayName("Vanguard: Beneficiary format")
     void testVanguardBeneficiary() throws Exception {
         final String[] lines = {
-                "VANGUARD INVESTMENTS",
-                "Beneficiary: Patricia Williams",
-                "Account Number: XXXX-789012",
-                "Date Description Shares Price Amount"
+            "VANGUARD INVESTMENTS",
+            "Beneficiary: Patricia Williams",
+            "Account Number: XXXX-789012",
+            "Date Description Shares Price Amount"
         };
 
         final AccountDetectionService.DetectedAccount account =
@@ -361,10 +361,10 @@ public class PDFImportServiceUsernameDetectionRealWorldTest {
     @DisplayName("Mortgage: Borrower format")
     void testMortgageBorrower() throws Exception {
         final String[] lines = {
-                "CHASE MORTGAGE",
-                "Borrower: Richard & Susan Brown",
-                "Loan Number: XXXX-9876",
-                "Payment Date Description Principal Interest Balance"
+            "CHASE MORTGAGE",
+            "Borrower: Richard & Susan Brown",
+            "Loan Number: XXXX-9876",
+            "Payment Date Description Principal Interest Balance"
         };
 
         final AccountDetectionService.DetectedAccount account =
@@ -382,13 +382,13 @@ public class PDFImportServiceUsernameDetectionRealWorldTest {
     @DisplayName("Family account: Multiple names, detect individual")
     void testFamilyAccountMultipleNames() throws Exception {
         final String[] lines = {
-                "Card Member: JOHN DOE",
-                "Date Description Amount",
-                "12/25/25 AMAZON $100.00",
-                "",
-                "Card Member: JANE DOE",
-                "Date Description Amount",
-                "12/26/25 TARGET $50.00"
+            "Card Member: JOHN DOE",
+            "Date Description Amount",
+            "12/25/25 AMAZON $100.00",
+            "",
+            "Card Member: JANE DOE",
+            "Date Description Amount",
+            "12/26/25 TARGET $50.00"
         };
 
         final AccountDetectionService.DetectedAccount account =
@@ -415,7 +415,7 @@ public class PDFImportServiceUsernameDetectionRealWorldTest {
     @DisplayName("Family account: Abbreviated name matching")
     void testFamilyAccountAbbreviatedName() throws Exception {
         final String[] lines = {
-                "Card Member: J. DOE", "Date Description Amount", "12/25/25 STORE $100.00"
+            "Card Member: J. DOE", "Date Description Amount", "12/25/25 STORE $100.00"
         };
 
         final AccountDetectionService.DetectedAccount account =
@@ -476,7 +476,8 @@ public class PDFImportServiceUsernameDetectionRealWorldTest {
 
         // Business names should likely be rejected or handled differently
         // Current logic might accept them, which could be a false positive
-        final boolean isValid = (Boolean) isValidNameFormat.invoke(pdfImportService, "ABC Company LLC");
+        final boolean isValid =
+                (Boolean) isValidNameFormat.invoke(pdfImportService, "ABC Company LLC");
         // "LLC" contains all caps which should pass validation
         // But business names might need special handling
     }
@@ -506,8 +507,8 @@ public class PDFImportServiceUsernameDetectionRealWorldTest {
     @DisplayName("Name with multiple spaces")
     void testNameMultipleSpaces() throws Exception {
         final String[] lines = {
-                "Card Member: JOHN  MICHAEL  DOE", // Multiple spaces
-                "Date Description Amount"
+            "Card Member: JOHN  MICHAEL  DOE", // Multiple spaces
+            "Date Description Amount"
         };
 
         final AccountDetectionService.DetectedAccount account =
@@ -527,11 +528,11 @@ public class PDFImportServiceUsernameDetectionRealWorldTest {
     @DisplayName("Name 4 lines before transaction (max range)")
     void testNameFourLinesBefore() throws Exception {
         final String[] lines = {
-                "Card Member: JOHN DOE",
-                "Account Summary",
-                "Statement Period: 12/01/25 - 12/31/25",
-                "Date Description Amount",
-                "12/25/25 STORE $100.00"
+            "Card Member: JOHN DOE",
+            "Account Summary",
+            "Statement Period: 12/01/25 - 12/31/25",
+            "Date Description Amount",
+            "12/25/25 STORE $100.00"
         };
 
         final AccountDetectionService.DetectedAccount account =
@@ -567,7 +568,7 @@ public class PDFImportServiceUsernameDetectionRealWorldTest {
     @DisplayName("Should not match transaction descriptions as names")
     void testFalsePositiveTransactionDescription() throws Exception {
         final String[] lines = {
-                "AMAZON PAY JOHN DOE 12345", "Date Description Amount", "12/25/25 AMAZON $100.00"
+            "AMAZON PAY JOHN DOE 12345", "Date Description Amount", "12/25/25 AMAZON $100.00"
         };
 
         final AccountDetectionService.DetectedAccount account =
@@ -583,7 +584,9 @@ public class PDFImportServiceUsernameDetectionRealWorldTest {
     @Test
     @DisplayName("Should not match addresses as names")
     void testFalsePositiveAddress() throws Exception {
-        final String[] lines = {"123 Main Street", "Date Description Amount", "12/25/25 STORE $100.00"};
+        final String[] lines = {
+            "123 Main Street", "Date Description Amount", "12/25/25 STORE $100.00"
+        };
 
         final String username =
                 (String) detectUsernameBeforeHeader.invoke(pdfImportService, lines, 1, null);
@@ -594,7 +597,9 @@ public class PDFImportServiceUsernameDetectionRealWorldTest {
     @Test
     @DisplayName("Should not match phone numbers as names")
     void testFalsePositivePhoneNumber() throws Exception {
-        final String[] lines = {"1-800-555-1234", "Date Description Amount", "12/25/25 STORE $100.00"};
+        final String[] lines = {
+            "1-800-555-1234", "Date Description Amount", "12/25/25 STORE $100.00"
+        };
 
         final String username =
                 (String) detectUsernameBeforeHeader.invoke(pdfImportService, lines, 1, null);
@@ -608,7 +613,7 @@ public class PDFImportServiceUsernameDetectionRealWorldTest {
     @DisplayName("Should handle missing account holder name gracefully")
     void testExtensibilityMissingAccountHolderName() throws Exception {
         final String[] lines = {
-                "Card Member: JOHN DOE", "Date Description Amount", "12/25/25 STORE $100.00"
+            "Card Member: JOHN DOE", "Date Description Amount", "12/25/25 STORE $100.00"
         };
 
         // No account holder name available
@@ -624,7 +629,7 @@ public class PDFImportServiceUsernameDetectionRealWorldTest {
     @DisplayName("Should handle mismatched account holder name (reject invalid)")
     void testExtensibilityMismatchedAccountHolderName() throws Exception {
         final String[] lines = {
-                "Card Member: Jane Smith", "Date Description Amount", "12/25/25 STORE $100.00"
+            "Card Member: Jane Smith", "Date Description Amount", "12/25/25 STORE $100.00"
         };
 
         final AccountDetectionService.DetectedAccount account =
@@ -641,7 +646,7 @@ public class PDFImportServiceUsernameDetectionRealWorldTest {
     @DisplayName("Should handle empty lines between name and transaction")
     void testExtensibilityEmptyLines() throws Exception {
         final String[] lines = {
-                "Card Member: JOHN DOE", "", "   ", "Date Description Amount", "12/25/25 STORE $100.00"
+            "Card Member: JOHN DOE", "", "   ", "Date Description Amount", "12/25/25 STORE $100.00"
         };
 
         final AccountDetectionService.DetectedAccount account =
@@ -659,10 +664,10 @@ public class PDFImportServiceUsernameDetectionRealWorldTest {
     @DisplayName("Should prioritize closer name over farther name")
     void testExtensibilityMultipleCandidates() throws Exception {
         final String[] lines = {
-                "Card Member: OLD NAME",
-                "Card Member: NEW NAME",
-                "Date Description Amount",
-                "12/25/25 STORE $100.00"
+            "Card Member: OLD NAME",
+            "Card Member: NEW NAME",
+            "Date Description Amount",
+            "12/25/25 STORE $100.00"
         };
 
         final AccountDetectionService.DetectedAccount account =

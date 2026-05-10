@@ -1,6 +1,5 @@
 package com.budgetbuddy.service;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import com.budgetbuddy.compliance.AuditLogService;
 import com.budgetbuddy.exception.AppException;
 import com.budgetbuddy.exception.ErrorCode;
@@ -17,6 +16,7 @@ import com.budgetbuddy.repository.dynamodb.SubscriptionRepository;
 import com.budgetbuddy.repository.dynamodb.TransactionActionRepository;
 import com.budgetbuddy.repository.dynamodb.TransactionRepository;
 import com.budgetbuddy.repository.dynamodb.UserRepository;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.time.Instant;
 import java.util.HashSet;
 import java.util.List;
@@ -399,7 +399,8 @@ public class UserDeletionService {
 
         // Use batch delete for efficiency
         if (!accounts.isEmpty()) {
-            final List<String> accountIds = accounts.stream().map(AccountTable::getAccountId).toList();
+            final List<String> accountIds =
+                    accounts.stream().map(AccountTable::getAccountId).toList();
 
             try {
                 accountRepository.batchDelete(accountIds);
@@ -438,7 +439,8 @@ public class UserDeletionService {
 
     /** Delete all goals for a user */
     private void deleteGoalsForUser(final String userId) {
-        final List<com.budgetbuddy.model.dynamodb.GoalTable> goals = goalRepository.findByUserId(userId);
+        final List<com.budgetbuddy.model.dynamodb.GoalTable> goals =
+                goalRepository.findByUserId(userId);
 
         for (final com.budgetbuddy.model.dynamodb.GoalTable goal : goals) {
             try {
@@ -500,7 +502,8 @@ public class UserDeletionService {
      * when just deleting data)
      */
     private void deleteFIDO2CredentialsForUser(final String userId) {
-        final List<FIDO2CredentialTable> credentials = fido2CredentialRepository.findByUserId(userId);
+        final List<FIDO2CredentialTable> credentials =
+                fido2CredentialRepository.findByUserId(userId);
 
         for (final FIDO2CredentialTable credential : credentials) {
             try {
@@ -592,7 +595,8 @@ public class UserDeletionService {
             // already deleted)
             for (final String accountId : accountIds) {
                 try {
-                    final String accountPrefix = String.format("accounts/%s/%s/", userId, accountId);
+                    final String accountPrefix =
+                            String.format("accounts/%s/%s/", userId, accountId);
                     final int deletedCount = s3Service.deleteFilesByPrefix(accountPrefix);
                     totalDeleted += deletedCount;
                     if (deletedCount > 0) {
@@ -658,18 +662,18 @@ public class UserDeletionService {
         try {
             // Evict all caches that might contain user data
             final String[] cacheNames = {
-                    "users",
-                    "userProfiles",
-                    "accounts",
-                    "accountBalances",
-                    "transactions",
-                    "transactionSummaries",
-                    "budgets",
-                    "goals",
-                    "transactionActions",
-                    "subscriptions",
-                    "fido2Credentials",
-                    "analytics"
+                "users",
+                "userProfiles",
+                "accounts",
+                "accountBalances",
+                "transactions",
+                "transactionSummaries",
+                "budgets",
+                "goals",
+                "transactionActions",
+                "subscriptions",
+                "fido2Credentials",
+                "analytics"
             };
 
             for (final String cacheName : cacheNames) {

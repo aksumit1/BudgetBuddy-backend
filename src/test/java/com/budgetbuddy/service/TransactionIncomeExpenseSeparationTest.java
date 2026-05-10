@@ -1,6 +1,5 @@
 package com.budgetbuddy.service;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -25,6 +24,7 @@ import com.budgetbuddy.repository.dynamodb.TransactionRepository;
 import com.budgetbuddy.service.plaid.PlaidSyncOrchestrator;
 import com.plaid.client.model.Transaction;
 import com.plaid.client.model.TransactionsGetResponse;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.Arrays;
@@ -57,6 +57,9 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 @org.mockito.junit.jupiter.MockitoSettings(strictness = org.mockito.quality.Strictness.LENIENT)
 class TransactionIncomeExpenseSeparationTest {
+
+    private static final String OTHER = "other";
+    private static final String ACCESS_TOKEN = "access-token";
 
     @Mock private PlaidService plaidService;
 
@@ -159,7 +162,7 @@ class TransactionIncomeExpenseSeparationTest {
                         new BigDecimal("-5000.00"), // Negative = income in Plaid
                         Arrays.asList("Transfer", "Deposit"),
                         checkingAccount.getPlaidAccountId() // Use plaidAccountId for grouping
-                );
+                        );
 
         final TransactionsGetResponse mockResponse = new TransactionsGetResponse();
         mockResponse.setTransactions(Arrays.asList(plaidTransaction));
@@ -234,7 +237,7 @@ class TransactionIncomeExpenseSeparationTest {
                                 } else {
                                     categoryMapping =
                                             new PlaidCategoryMapper.CategoryMapping(
-                                                    "other", "other", false);
+                                                    OTHER, OTHER, false);
                                 }
 
                                 txTable.setImporterCategoryPrimary(plaidCategoryPrimary);
@@ -254,10 +257,11 @@ class TransactionIncomeExpenseSeparationTest {
                 .thenReturn(true);
 
         // When
-        plaidSyncService.syncTransactions(testUser, "access-token");
+        plaidSyncService.syncTransactions(testUser, ACCESS_TOKEN);
 
         // Then - Verify amount is stored correctly (iOS app will convert to positive)
-        final ArgumentCaptor<TransactionTable> captor = ArgumentCaptor.forClass(TransactionTable.class);
+        final ArgumentCaptor<TransactionTable> captor =
+                ArgumentCaptor.forClass(TransactionTable.class);
         verify(transactionRepository, atLeastOnce())
                 .saveIfPlaidTransactionNotExists(captor.capture());
 
@@ -280,7 +284,7 @@ class TransactionIncomeExpenseSeparationTest {
                         new BigDecimal("5.50"), // Positive = expense in Plaid
                         Arrays.asList("Food and Drink", "Restaurants"),
                         checkingAccount.getPlaidAccountId() // Use plaidAccountId for grouping
-                );
+                        );
 
         final TransactionsGetResponse mockResponse = new TransactionsGetResponse();
         mockResponse.setTransactions(Arrays.asList(plaidTransaction));
@@ -355,7 +359,7 @@ class TransactionIncomeExpenseSeparationTest {
                                 } else {
                                     categoryMapping =
                                             new PlaidCategoryMapper.CategoryMapping(
-                                                    "other", "other", false);
+                                                    OTHER, OTHER, false);
                                 }
 
                                 txTable.setImporterCategoryPrimary(plaidCategoryPrimary);
@@ -375,10 +379,11 @@ class TransactionIncomeExpenseSeparationTest {
                 .thenReturn(true);
 
         // When
-        plaidSyncService.syncTransactions(testUser, "access-token");
+        plaidSyncService.syncTransactions(testUser, ACCESS_TOKEN);
 
         // Then - Verify amount is stored correctly (iOS app will convert to negative)
-        final ArgumentCaptor<TransactionTable> captor = ArgumentCaptor.forClass(TransactionTable.class);
+        final ArgumentCaptor<TransactionTable> captor =
+                ArgumentCaptor.forClass(TransactionTable.class);
         verify(transactionRepository, atLeastOnce())
                 .saveIfPlaidTransactionNotExists(captor.capture());
 
@@ -400,7 +405,7 @@ class TransactionIncomeExpenseSeparationTest {
                         new BigDecimal("200.00"), // Positive = payment to credit card
                         Arrays.asList("Transfer"),
                         creditCardAccount.getPlaidAccountId() // Use plaidAccountId for grouping
-                );
+                        );
 
         final TransactionsGetResponse mockResponse = new TransactionsGetResponse();
         mockResponse.setTransactions(Arrays.asList(plaidTransaction));
@@ -477,7 +482,7 @@ class TransactionIncomeExpenseSeparationTest {
                                 } else {
                                     categoryMapping =
                                             new PlaidCategoryMapper.CategoryMapping(
-                                                    "other", "other", false);
+                                                    OTHER, OTHER, false);
                                 }
 
                                 txTable.setImporterCategoryPrimary(plaidCategoryPrimary);
@@ -497,10 +502,11 @@ class TransactionIncomeExpenseSeparationTest {
                 .thenReturn(true);
 
         // When
-        plaidSyncService.syncTransactions(testUser, "access-token");
+        plaidSyncService.syncTransactions(testUser, ACCESS_TOKEN);
 
         // Then - Verify payment is stored (iOS app will exclude it from expenses)
-        final ArgumentCaptor<TransactionTable> captor = ArgumentCaptor.forClass(TransactionTable.class);
+        final ArgumentCaptor<TransactionTable> captor =
+                ArgumentCaptor.forClass(TransactionTable.class);
         verify(transactionRepository, atLeastOnce())
                 .saveIfPlaidTransactionNotExists(captor.capture());
 
@@ -523,7 +529,7 @@ class TransactionIncomeExpenseSeparationTest {
                         new BigDecimal("10.00"), // Positive = expense in Plaid
                         Arrays.asList("Food and Drink", "Restaurants"),
                         creditCardAccount.getPlaidAccountId() // Use plaidAccountId for grouping
-                );
+                        );
 
         final TransactionsGetResponse mockResponse = new TransactionsGetResponse();
         mockResponse.setTransactions(Arrays.asList(plaidTransaction));
@@ -600,7 +606,7 @@ class TransactionIncomeExpenseSeparationTest {
                                 } else {
                                     categoryMapping =
                                             new PlaidCategoryMapper.CategoryMapping(
-                                                    "other", "other", false);
+                                                    OTHER, OTHER, false);
                                 }
 
                                 txTable.setImporterCategoryPrimary(plaidCategoryPrimary);
@@ -620,10 +626,11 @@ class TransactionIncomeExpenseSeparationTest {
                 .thenReturn(true);
 
         // When
-        plaidSyncService.syncTransactions(testUser, "access-token");
+        plaidSyncService.syncTransactions(testUser, ACCESS_TOKEN);
 
         // Then - Verify expense is stored (iOS app will include it in expenses)
-        final ArgumentCaptor<TransactionTable> captor = ArgumentCaptor.forClass(TransactionTable.class);
+        final ArgumentCaptor<TransactionTable> captor =
+                ArgumentCaptor.forClass(TransactionTable.class);
         verify(transactionRepository, atLeastOnce())
                 .saveIfPlaidTransactionNotExists(captor.capture());
 
@@ -646,7 +653,7 @@ class TransactionIncomeExpenseSeparationTest {
                         new BigDecimal("-5000.00"),
                         Arrays.asList("Transfer", "Deposit"),
                         checkingAccount.getPlaidAccountId() // Use plaidAccountId for grouping
-                );
+                        );
 
         final Transaction expense =
                 createMockPlaidTransaction(
@@ -656,7 +663,7 @@ class TransactionIncomeExpenseSeparationTest {
                         new BigDecimal("100.00"),
                         Arrays.asList("Food and Drink", "Groceries"),
                         checkingAccount.getPlaidAccountId() // Use plaidAccountId for grouping
-                );
+                        );
 
         final Transaction ccPayment =
                 createMockPlaidTransaction(
@@ -666,7 +673,7 @@ class TransactionIncomeExpenseSeparationTest {
                         new BigDecimal("200.00"),
                         Arrays.asList("Transfer"),
                         creditCardAccount.getPlaidAccountId() // Use plaidAccountId for grouping
-                );
+                        );
 
         final Transaction ccExpense =
                 createMockPlaidTransaction(
@@ -676,7 +683,7 @@ class TransactionIncomeExpenseSeparationTest {
                         new BigDecimal("50.00"),
                         Arrays.asList("Food and Drink", "Restaurants"),
                         creditCardAccount.getPlaidAccountId() // Use plaidAccountId for grouping
-                );
+                        );
 
         final TransactionsGetResponse mockResponse = new TransactionsGetResponse();
         mockResponse.setTransactions(Arrays.asList(income, expense, ccPayment, ccExpense));
@@ -753,7 +760,7 @@ class TransactionIncomeExpenseSeparationTest {
                                 } else {
                                     categoryMapping =
                                             new PlaidCategoryMapper.CategoryMapping(
-                                                    "other", "other", false);
+                                                    OTHER, OTHER, false);
                                 }
 
                                 txTable.setImporterCategoryPrimary(plaidCategoryPrimary);
@@ -777,12 +784,13 @@ class TransactionIncomeExpenseSeparationTest {
                 .thenReturn(true);
 
         // When
-        plaidSyncService.syncTransactions(testUser, "access-token");
+        plaidSyncService.syncTransactions(testUser, ACCESS_TOKEN);
 
         // Then - Verify all transactions are stored with correct amounts
         // Note: Since we have 2 accounts, transactions may be processed multiple times
         // We verify that at least the expected transactions are saved
-        final ArgumentCaptor<TransactionTable> captor = ArgumentCaptor.forClass(TransactionTable.class);
+        final ArgumentCaptor<TransactionTable> captor =
+                ArgumentCaptor.forClass(TransactionTable.class);
         verify(transactionRepository, atLeast(4)).saveIfPlaidTransactionNotExists(captor.capture());
 
         final List<TransactionTable> savedTransactions = captor.getAllValues();

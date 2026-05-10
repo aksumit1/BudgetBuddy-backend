@@ -1,8 +1,5 @@
 package com.budgetbuddy.service;
 
-
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import java.util.Locale;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -26,11 +23,13 @@ import com.budgetbuddy.repository.dynamodb.TransactionRepository;
 import com.budgetbuddy.service.plaid.PlaidSyncOrchestrator;
 import com.plaid.client.model.Transaction;
 import com.plaid.client.model.TransactionsGetResponse;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
@@ -60,6 +59,9 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @org.mockito.junit.jupiter.MockitoSettings(strictness = org.mockito.quality.Strictness.LENIENT)
 class PlaidSyncServiceTransactionCategorizationTest {
 
+    private static final String OTHER = "other";
+    private static final String PLAID_ACCOUNT_1 = "plaid-account-1";
+
     @Mock private PlaidService plaidService;
 
     @Mock private AccountRepository accountRepository;
@@ -86,7 +88,7 @@ class PlaidSyncServiceTransactionCategorizationTest {
         testAccount = new AccountTable();
         testAccount.setAccountId(UUID.randomUUID().toString());
         testAccount.setUserId(testUser.getUserId());
-        testAccount.setPlaidAccountId("plaid-account-1");
+        testAccount.setPlaidAccountId(PLAID_ACCOUNT_1);
         testAccount.setLastSyncedAt(null); // First sync - ensure sync isn't skipped
         testAccount.setActive(true);
 
@@ -140,7 +142,7 @@ class PlaidSyncServiceTransactionCategorizationTest {
         when(plaidService.getTransactions(anyString(), anyString(), anyString()))
                 .thenReturn(mockResponse);
         // Mock dataExtractor to return account ID for transaction grouping and transaction ID
-        when(dataExtractor.extractAccountIdFromTransaction(any())).thenReturn("plaid-account-1");
+        when(dataExtractor.extractAccountIdFromTransaction(any())).thenReturn(PLAID_ACCOUNT_1);
         when(dataExtractor.extractTransactionId(any()))
                 .thenAnswer(
                         invocation -> {
@@ -198,7 +200,7 @@ class PlaidSyncServiceTransactionCategorizationTest {
                                 } else {
                                     categoryMapping =
                                             new PlaidCategoryMapper.CategoryMapping(
-                                                    "other", "other", false);
+                                                    OTHER, OTHER, false);
                                 }
 
                                 txTable.setImporterCategoryPrimary(plaidCategoryPrimary);
@@ -219,7 +221,8 @@ class PlaidSyncServiceTransactionCategorizationTest {
         plaidSyncService.syncTransactions(testUser, "access-token");
 
         // Then - Verify merchant name is stored
-        final ArgumentCaptor<TransactionTable> captor = ArgumentCaptor.forClass(TransactionTable.class);
+        final ArgumentCaptor<TransactionTable> captor =
+                ArgumentCaptor.forClass(TransactionTable.class);
         verify(transactionRepository, atLeastOnce())
                 .saveIfPlaidTransactionNotExists(captor.capture());
 
@@ -256,7 +259,7 @@ class PlaidSyncServiceTransactionCategorizationTest {
         when(plaidService.getTransactions(anyString(), anyString(), anyString()))
                 .thenReturn(mockResponse);
         // Mock dataExtractor to return account ID for transaction grouping and transaction ID
-        when(dataExtractor.extractAccountIdFromTransaction(any())).thenReturn("plaid-account-1");
+        when(dataExtractor.extractAccountIdFromTransaction(any())).thenReturn(PLAID_ACCOUNT_1);
         when(dataExtractor.extractTransactionId(any()))
                 .thenAnswer(
                         invocation -> {
@@ -314,7 +317,7 @@ class PlaidSyncServiceTransactionCategorizationTest {
                                 } else {
                                     categoryMapping =
                                             new PlaidCategoryMapper.CategoryMapping(
-                                                    "other", "other", false);
+                                                    OTHER, OTHER, false);
                                 }
 
                                 txTable.setImporterCategoryPrimary(plaidCategoryPrimary);
@@ -335,7 +338,8 @@ class PlaidSyncServiceTransactionCategorizationTest {
         plaidSyncService.syncTransactions(testUser, "access-token");
 
         // Then - Verify autopayment is stored with correct category (NOT income)
-        final ArgumentCaptor<TransactionTable> captor = ArgumentCaptor.forClass(TransactionTable.class);
+        final ArgumentCaptor<TransactionTable> captor =
+                ArgumentCaptor.forClass(TransactionTable.class);
         verify(transactionRepository, atLeastOnce())
                 .saveIfPlaidTransactionNotExists(captor.capture());
 
@@ -343,10 +347,11 @@ class PlaidSyncServiceTransactionCategorizationTest {
         assertNotNull(savedTransaction);
         assertEquals("AUTOPAYMENT", savedTransaction.getMerchantName());
         // Category should NOT be income - it should be utilities or other
-        assertFalse(savedTransaction.getCategoryPrimary().toLowerCase(Locale.ROOT).contains("income"));
+        assertFalse(
+                savedTransaction.getCategoryPrimary().toLowerCase(Locale.ROOT).contains("income"));
         assertTrue(
                 savedTransaction.getCategoryPrimary().contains("utilities")
-                        || savedTransaction.getCategoryPrimary().contains("other"));
+                        || savedTransaction.getCategoryPrimary().contains(OTHER));
     }
 
     @Test
@@ -359,7 +364,7 @@ class PlaidSyncServiceTransactionCategorizationTest {
                         "Transaction Description",
                         new BigDecimal("50.00"),
                         null // Null category
-                );
+                        );
 
         final TransactionsGetResponse mockResponse = new TransactionsGetResponse();
         mockResponse.setTransactions(Arrays.asList(plaidTransaction));
@@ -370,7 +375,7 @@ class PlaidSyncServiceTransactionCategorizationTest {
         when(plaidService.getTransactions(anyString(), anyString(), anyString()))
                 .thenReturn(mockResponse);
         // Mock dataExtractor to return account ID for transaction grouping and transaction ID
-        when(dataExtractor.extractAccountIdFromTransaction(any())).thenReturn("plaid-account-1");
+        when(dataExtractor.extractAccountIdFromTransaction(any())).thenReturn(PLAID_ACCOUNT_1);
         when(dataExtractor.extractTransactionId(any()))
                 .thenAnswer(
                         invocation -> {
@@ -428,7 +433,7 @@ class PlaidSyncServiceTransactionCategorizationTest {
                                 } else {
                                     categoryMapping =
                                             new PlaidCategoryMapper.CategoryMapping(
-                                                    "other", "other", false);
+                                                    OTHER, OTHER, false);
                                 }
 
                                 txTable.setImporterCategoryPrimary(plaidCategoryPrimary);
@@ -449,14 +454,15 @@ class PlaidSyncServiceTransactionCategorizationTest {
         plaidSyncService.syncTransactions(testUser, "access-token");
 
         // Then - Verify category defaults to "Other"
-        final ArgumentCaptor<TransactionTable> captor = ArgumentCaptor.forClass(TransactionTable.class);
+        final ArgumentCaptor<TransactionTable> captor =
+                ArgumentCaptor.forClass(TransactionTable.class);
         verify(transactionRepository, atLeastOnce())
                 .saveIfPlaidTransactionNotExists(captor.capture());
 
         final TransactionTable savedTransaction = captor.getValue();
         assertNotNull(savedTransaction);
-        assertEquals("other", savedTransaction.getCategoryPrimary());
-        assertEquals("other", savedTransaction.getCategoryDetailed());
+        assertEquals(OTHER, savedTransaction.getCategoryPrimary());
+        assertEquals(OTHER, savedTransaction.getCategoryDetailed());
     }
 
     @Test
@@ -479,7 +485,7 @@ class PlaidSyncServiceTransactionCategorizationTest {
         when(plaidService.getTransactions(anyString(), anyString(), anyString()))
                 .thenReturn(mockResponse);
         // Mock dataExtractor to return account ID for transaction grouping and transaction ID
-        when(dataExtractor.extractAccountIdFromTransaction(any())).thenReturn("plaid-account-1");
+        when(dataExtractor.extractAccountIdFromTransaction(any())).thenReturn(PLAID_ACCOUNT_1);
         when(dataExtractor.extractTransactionId(any()))
                 .thenAnswer(
                         invocation -> {
@@ -537,7 +543,7 @@ class PlaidSyncServiceTransactionCategorizationTest {
                                 } else {
                                     categoryMapping =
                                             new PlaidCategoryMapper.CategoryMapping(
-                                                    "other", "other", false);
+                                                    OTHER, OTHER, false);
                                 }
 
                                 txTable.setImporterCategoryPrimary(plaidCategoryPrimary);
@@ -558,7 +564,8 @@ class PlaidSyncServiceTransactionCategorizationTest {
         plaidSyncService.syncTransactions(testUser, "access-token");
 
         // Then - Verify income transaction is stored
-        final ArgumentCaptor<TransactionTable> captor = ArgumentCaptor.forClass(TransactionTable.class);
+        final ArgumentCaptor<TransactionTable> captor =
+                ArgumentCaptor.forClass(TransactionTable.class);
         verify(transactionRepository, atLeastOnce())
                 .saveIfPlaidTransactionNotExists(captor.capture());
 
@@ -584,7 +591,7 @@ class PlaidSyncServiceTransactionCategorizationTest {
         transaction.setCategory(categories);
         transaction.setDate(LocalDate.now());
         // CRITICAL: Set accountId to match testAccount's plaidAccountId for grouping
-        transaction.setAccountId("plaid-account-1");
+        transaction.setAccountId(PLAID_ACCOUNT_1);
         transaction.setPending(false);
         return transaction;
     }

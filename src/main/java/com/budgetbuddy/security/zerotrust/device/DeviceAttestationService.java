@@ -88,7 +88,8 @@ public class DeviceAttestationService {
                     && !attestationToken.isEmpty()
                     && platform != null
                     && !platform.isEmpty()) {
-                final boolean tokenValid = verifyAttestationToken(attestationToken, platform, userId);
+                final boolean tokenValid =
+                        verifyAttestationToken(attestationToken, platform, userId);
                 if (!tokenValid) {
                     LOGGER.warn(
                             "Device attestation token verification failed for device: {} user: {}",
@@ -110,13 +111,9 @@ public class DeviceAttestationService {
                                     .key(
                                             Map.of(
                                                     DEVICE_ID,
-                                                    AttributeValue.builder()
-                                                            .s(deviceId)
-                                                            .build(),
+                                                    AttributeValue.builder().s(deviceId).build(),
                                                     USER_ID,
-                                                    AttributeValue.builder()
-                                                            .s(userId)
-                                                            .build()))
+                                                    AttributeValue.builder().s(userId).build()))
                                     .build());
 
             if (response.item() != null && !response.item().isEmpty()) {
@@ -311,8 +308,7 @@ public class DeviceAttestationService {
                             .tableName(tableName)
                             .key(
                                     Map.of(
-                                            DEVICE_ID,
-                                                    AttributeValue.builder().s(deviceId).build(),
+                                            DEVICE_ID, AttributeValue.builder().s(deviceId).build(),
                                             USER_ID, AttributeValue.builder().s(userId).build()))
                             .updateExpression("SET lastVerified = :timestamp")
                             .expressionAttributeValues(

@@ -5,7 +5,6 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.List;
-import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 /**
@@ -138,7 +137,8 @@ public class GoalMilestoneService {
      * Check if a new milestone was just reached Compares current progress with previous progress to
      * detect milestone crossing
      */
-    public Milestone checkNewMilestoneReached(final GoalTable goal, final BigDecimal previousAmount) {
+    public Milestone checkNewMilestoneReached(
+            final GoalTable goal, final BigDecimal previousAmount) {
         if (goal == null || goal.getTargetAmount() == null) {
             return null;
         }

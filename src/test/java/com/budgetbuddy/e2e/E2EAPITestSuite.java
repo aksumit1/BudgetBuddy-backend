@@ -1,6 +1,5 @@
 package com.budgetbuddy.e2e;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -21,6 +20,7 @@ import com.budgetbuddy.repository.dynamodb.TransactionRepository;
 import com.budgetbuddy.repository.dynamodb.UserRepository;
 import com.budgetbuddy.service.AuthService;
 import com.budgetbuddy.util.TableInitializer;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
@@ -75,6 +75,9 @@ import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @DisplayName("E2E API Test Suite")
 public class E2EAPITestSuite {
+
+    private static final String AUTHORIZATION = "Authorization";
+    private static final String CONTENT_TYPE = "Content-Type";
 
     private static final Logger LOGGER = LoggerFactory.getLogger(E2EAPITestSuite.class);
 
@@ -142,8 +145,8 @@ public class E2EAPITestSuite {
                         .formatted(testAccount.getAccountId());
 
         final HttpHeaders headers = new HttpHeaders();
-        headers.set("Authorization", "Bearer " + authToken);
-        headers.set("Content-Type", "application/json");
+        headers.set(AUTHORIZATION, "Bearer " + authToken);
+        headers.set(CONTENT_TYPE, "application/json");
         final HttpEntity<String> entity = new HttpEntity<>(requestBody, headers);
 
         final ResponseEntity<Map<String, Object>> response =
@@ -152,8 +155,7 @@ public class E2EAPITestSuite {
                         HttpMethod.POST,
                         entity,
                         new org.springframework.core.ParameterizedTypeReference<
-                                Map<String, Object>>() {
-                        });
+                                Map<String, Object>>() {});
 
         assertEquals(HttpStatus.CREATED, response.getStatusCode());
         assertNotNull(response.getBody());
@@ -169,7 +171,7 @@ public class E2EAPITestSuite {
         final TransactionTable transaction = createTestTransaction(testUser, testAccount);
 
         final HttpHeaders headers = new HttpHeaders();
-        headers.set("Authorization", "Bearer " + authToken);
+        headers.set(AUTHORIZATION, "Bearer " + authToken);
         final HttpEntity<String> entity = new HttpEntity<>(headers);
 
         final ResponseEntity<Map<String, Object>> response =
@@ -181,8 +183,7 @@ public class E2EAPITestSuite {
                         HttpMethod.GET,
                         entity,
                         new org.springframework.core.ParameterizedTypeReference<
-                                Map<String, Object>>() {
-                        });
+                                Map<String, Object>>() {});
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertNotNull(response.getBody());
@@ -207,8 +208,8 @@ public class E2EAPITestSuite {
                         """;
 
         final HttpHeaders headers = new HttpHeaders();
-        headers.set("Authorization", "Bearer " + authToken);
-        headers.set("Content-Type", "application/json");
+        headers.set(AUTHORIZATION, "Bearer " + authToken);
+        headers.set(CONTENT_TYPE, "application/json");
         HttpEntity<String> entity = new HttpEntity<>(requestBody, headers);
 
         ResponseEntity<Map<String, Object>> response =
@@ -226,7 +227,7 @@ public class E2EAPITestSuite {
         if (response.getStatusCode() == HttpStatus.UNAUTHORIZED) {
             LOGGER.warn("Received 401, refreshing token and retrying...");
             authToken = generateAuthToken(testUser);
-            headers.set("Authorization", "Bearer " + authToken);
+            headers.set(AUTHORIZATION, "Bearer " + authToken);
             entity = new HttpEntity<>(requestBody, headers);
             response =
                     restTemplate.exchange(
@@ -258,7 +259,7 @@ public class E2EAPITestSuite {
         final TransactionTable transaction = createTestTransaction(testUser, testAccount);
 
         final HttpHeaders headers = new HttpHeaders();
-        headers.set("Authorization", "Bearer " + authToken);
+        headers.set(AUTHORIZATION, "Bearer " + authToken);
         final HttpEntity<String> entity = new HttpEntity<>(headers);
 
         final ResponseEntity<Void> deleteResponse =
@@ -283,8 +284,7 @@ public class E2EAPITestSuite {
                         HttpMethod.GET,
                         entity,
                         new org.springframework.core.ParameterizedTypeReference<
-                                Map<String, Object>>() {
-                        });
+                                Map<String, Object>>() {});
 
         assertEquals(HttpStatus.NOT_FOUND, getResponse.getStatusCode());
     }
@@ -295,7 +295,7 @@ public class E2EAPITestSuite {
     @DisplayName("Read Account - GET /api/accounts/{id}")
     void testReadAccount() throws Exception {
         final HttpHeaders headers = new HttpHeaders();
-        headers.set("Authorization", "Bearer " + authToken);
+        headers.set(AUTHORIZATION, "Bearer " + authToken);
         final HttpEntity<String> entity = new HttpEntity<>(headers);
 
         final ResponseEntity<Map<String, Object>> response =
@@ -304,8 +304,7 @@ public class E2EAPITestSuite {
                         HttpMethod.GET,
                         entity,
                         new org.springframework.core.ParameterizedTypeReference<
-                                Map<String, Object>>() {
-                        });
+                                Map<String, Object>>() {});
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertNotNull(response.getBody());
@@ -317,7 +316,7 @@ public class E2EAPITestSuite {
     @DisplayName("List Accounts - GET /api/accounts")
     void testListAccounts() throws Exception {
         final HttpHeaders headers = new HttpHeaders();
-        headers.set("Authorization", "Bearer " + authToken);
+        headers.set(AUTHORIZATION, "Bearer " + authToken);
         final HttpEntity<String> entity = new HttpEntity<>(headers);
 
         final ResponseEntity<List<Map<String, Object>>> response =
@@ -326,8 +325,7 @@ public class E2EAPITestSuite {
                         HttpMethod.GET,
                         entity,
                         new org.springframework.core.ParameterizedTypeReference<
-                                List<Map<String, Object>>>() {
-                        });
+                                List<Map<String, Object>>>() {});
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertNotNull(response.getBody());
@@ -351,8 +349,8 @@ public class E2EAPITestSuite {
                         """;
 
         final HttpHeaders headers = new HttpHeaders();
-        headers.set("Authorization", "Bearer " + authToken);
-        headers.set("Content-Type", "application/json");
+        headers.set(AUTHORIZATION, "Bearer " + authToken);
+        headers.set(CONTENT_TYPE, "application/json");
         final HttpEntity<String> entity = new HttpEntity<>(requestBody, headers);
 
         final ResponseEntity<Map<String, Object>> response =
@@ -361,8 +359,7 @@ public class E2EAPITestSuite {
                         HttpMethod.POST,
                         entity,
                         new org.springframework.core.ParameterizedTypeReference<
-                                Map<String, Object>>() {
-                        });
+                                Map<String, Object>>() {});
 
         assertEquals(HttpStatus.CREATED, response.getStatusCode());
         assertNotNull(response.getBody());
@@ -388,8 +385,8 @@ public class E2EAPITestSuite {
                         .formatted(budget.getBudgetId());
 
         final HttpHeaders headers = new HttpHeaders();
-        headers.set("Authorization", "Bearer " + authToken);
-        headers.set("Content-Type", "application/json");
+        headers.set(AUTHORIZATION, "Bearer " + authToken);
+        headers.set(CONTENT_TYPE, "application/json");
         final HttpEntity<String> entity = new HttpEntity<>(requestBody, headers);
 
         final ResponseEntity<Map<String, Object>> response =
@@ -398,8 +395,7 @@ public class E2EAPITestSuite {
                         HttpMethod.POST,
                         entity,
                         new org.springframework.core.ParameterizedTypeReference<
-                                Map<String, Object>>() {
-                        });
+                                Map<String, Object>>() {});
 
         assertEquals(HttpStatus.CREATED, response.getStatusCode());
         assertNotNull(response.getBody());
@@ -413,7 +409,7 @@ public class E2EAPITestSuite {
         final BudgetTable budget = createTestBudget(testUser);
 
         final HttpHeaders headers = new HttpHeaders();
-        headers.set("Authorization", "Bearer " + authToken);
+        headers.set(AUTHORIZATION, "Bearer " + authToken);
         final HttpEntity<String> entity = new HttpEntity<>(headers);
 
         final ResponseEntity<Void> response =
@@ -442,8 +438,8 @@ public class E2EAPITestSuite {
                         """;
 
         final HttpHeaders headers = new HttpHeaders();
-        headers.set("Authorization", "Bearer " + authToken);
-        headers.set("Content-Type", "application/json");
+        headers.set(AUTHORIZATION, "Bearer " + authToken);
+        headers.set(CONTENT_TYPE, "application/json");
         final HttpEntity<String> entity = new HttpEntity<>(requestBody, headers);
 
         final ResponseEntity<Map<String, Object>> response =
@@ -452,8 +448,7 @@ public class E2EAPITestSuite {
                         HttpMethod.POST,
                         entity,
                         new org.springframework.core.ParameterizedTypeReference<
-                                Map<String, Object>>() {
-                        });
+                                Map<String, Object>>() {});
 
         assertEquals(HttpStatus.CREATED, response.getStatusCode());
         assertNotNull(response.getBody());
@@ -477,8 +472,8 @@ public class E2EAPITestSuite {
                         """;
 
         final HttpHeaders headers = new HttpHeaders();
-        headers.set("Authorization", "Bearer " + authToken);
-        headers.set("Content-Type", "application/json");
+        headers.set(AUTHORIZATION, "Bearer " + authToken);
+        headers.set(CONTENT_TYPE, "application/json");
         final HttpEntity<String> entity = new HttpEntity<>(requestBody, headers);
 
         final ResponseEntity<Map<String, Object>> response =
@@ -487,8 +482,7 @@ public class E2EAPITestSuite {
                         HttpMethod.PUT,
                         entity,
                         new org.springframework.core.ParameterizedTypeReference<
-                                Map<String, Object>>() {
-                        });
+                                Map<String, Object>>() {});
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertNotNull(response.getBody());
@@ -513,8 +507,8 @@ public class E2EAPITestSuite {
                         """;
 
         final HttpHeaders headers = new HttpHeaders();
-        headers.set("Authorization", "Bearer " + authToken);
-        headers.set("Content-Type", "application/json");
+        headers.set(AUTHORIZATION, "Bearer " + authToken);
+        headers.set(CONTENT_TYPE, "application/json");
         final HttpEntity<String> entity = new HttpEntity<>(requestBody, headers);
 
         final ResponseEntity<Map<String, Object>> response =
@@ -527,8 +521,7 @@ public class E2EAPITestSuite {
                         HttpMethod.POST,
                         entity,
                         new org.springframework.core.ParameterizedTypeReference<
-                                Map<String, Object>>() {
-                        });
+                                Map<String, Object>>() {});
 
         assertEquals(HttpStatus.CREATED, response.getStatusCode());
         assertNotNull(response.getBody());
@@ -544,7 +537,7 @@ public class E2EAPITestSuite {
         createTestTransactionAction(testUser, transaction);
 
         final HttpHeaders headers = new HttpHeaders();
-        headers.set("Authorization", "Bearer " + authToken);
+        headers.set(AUTHORIZATION, "Bearer " + authToken);
         final HttpEntity<String> entity = new HttpEntity<>(headers);
 
         final ResponseEntity<List<Map<String, Object>>> response =
@@ -557,8 +550,7 @@ public class E2EAPITestSuite {
                         HttpMethod.GET,
                         entity,
                         new org.springframework.core.ParameterizedTypeReference<
-                                List<Map<String, Object>>>() {
-                        });
+                                List<Map<String, Object>>>() {});
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertNotNull(response.getBody());
@@ -598,7 +590,8 @@ public class E2EAPITestSuite {
         return account;
     }
 
-    private TransactionTable createTestTransaction(final UserTable user, final AccountTable account) {
+    private TransactionTable createTestTransaction(
+            final UserTable user, final AccountTable account) {
         final TransactionTable transaction = new TransactionTable();
         transaction.setTransactionId(UUID.randomUUID().toString());
         transaction.setUserId(user.getUserId());

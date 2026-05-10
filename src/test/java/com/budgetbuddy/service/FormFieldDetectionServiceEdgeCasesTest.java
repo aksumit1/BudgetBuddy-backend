@@ -1,7 +1,5 @@
 package com.budgetbuddy.service;
 
-
-import java.util.Locale;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -9,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.BeforeEach;
@@ -47,7 +46,8 @@ class FormFieldDetectionServiceEdgeCasesTest {
     @Test
     @Timeout(value = 5, unit = TimeUnit.SECONDS)
     void testDetectFormFieldsWhitespaceOnly() {
-        final List<FormFieldDetectionService.FormField> fields = service.detectFormFields("   \n\t  ");
+        final List<FormFieldDetectionService.FormField> fields =
+                service.detectFormFields("   \n\t  ");
         assertNotNull(fields);
         assertTrue(fields.isEmpty());
     }
@@ -103,7 +103,9 @@ class FormFieldDetectionServiceEdgeCasesTest {
                 fields.stream()
                         .anyMatch(
                                 f ->
-                                        f.getLabel().toLowerCase(Locale.ROOT).contains("account number")
+                                        f.getLabel()
+                                                        .toLowerCase(Locale.ROOT)
+                                                        .contains("account number")
                                                 && f.getValue().contains("1234"));
         assertTrue(foundAccountNumber, "Should detect account number");
     }
@@ -219,7 +221,11 @@ class FormFieldDetectionServiceEdgeCasesTest {
         // Should have at most one "Account Number" field
         final long accountNumberCount =
                 fields.stream()
-                        .filter(f -> f.getLabel().toLowerCase(Locale.ROOT).contains("account number"))
+                        .filter(
+                                f ->
+                                        f.getLabel()
+                                                .toLowerCase(Locale.ROOT)
+                                                .contains("account number"))
                         .count();
         assertTrue(accountNumberCount <= 1, "Should deduplicate account number fields");
     }

@@ -1,8 +1,8 @@
 package com.budgetbuddy.notification;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import com.budgetbuddy.exception.AppException;
 import com.budgetbuddy.exception.ErrorCode;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
@@ -31,9 +31,15 @@ import software.amazon.awssdk.services.sns.model.PublishResponse;
 // callers — defensive-copying it would break dependency injection.
 @SuppressFBWarnings(
         value = {"EI_EXPOSE_REP", "EI_EXPOSE_REP2"},
-        justification = "JSON DTO / DynamoDB entity getters expose lists by reference; "
+        justification =
+                "JSON DTO / DynamoDB entity getters expose lists by reference; "
                         + "the design is value-semantic and Jackson creates fresh instances; Spring constructor injection — beans are shared by design")
-@SuppressWarnings({"PMD.LawOfDemeter", "PMD.AvoidCatchingGenericException", "PMD.DataClass", "PMD.OnlyOneReturn"})
+@SuppressWarnings({
+    "PMD.LawOfDemeter",
+    "PMD.AvoidCatchingGenericException",
+    "PMD.DataClass",
+    "PMD.OnlyOneReturn"
+})
 @Service
 public class NotificationService {
 
@@ -115,7 +121,8 @@ public class NotificationService {
         }
 
         // Determine overall success
-        final boolean overallSuccess = channelResults.values().stream().anyMatch(Boolean::booleanValue);
+        final boolean overallSuccess =
+                channelResults.values().stream().anyMatch(Boolean::booleanValue);
         result.setSuccess(overallSuccess);
         result.setChannelResults(channelResults);
 

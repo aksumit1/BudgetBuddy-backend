@@ -15,29 +15,34 @@ import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
  */
 class DynamoDBConfigTest {
 
+    private static final String US_EAST_1 = "us-east-1";
+    private static final String TIMEOUTSECONDS = "timeoutSeconds";
+    private static final String DYNAMODBENDPOINT = "dynamoDbEndpoint";
+    private static final String AWSREGION = "awsRegion";
+
     private DynamoDBConfig dynamoDBConfig = new DynamoDBConfig();
 
     @Test
     void testDynamoDbClientWithDefaultRegion() {
         // Given
-        ReflectionTestUtils.setField(dynamoDBConfig, "awsRegion", "us-east-1");
-        ReflectionTestUtils.setField(dynamoDBConfig, "dynamoDbEndpoint", "");
-        ReflectionTestUtils.setField(dynamoDBConfig, "timeoutSeconds", 10);
+        ReflectionTestUtils.setField(dynamoDBConfig, AWSREGION, US_EAST_1);
+        ReflectionTestUtils.setField(dynamoDBConfig, DYNAMODBENDPOINT, "");
+        ReflectionTestUtils.setField(dynamoDBConfig, TIMEOUTSECONDS, 10);
 
         // When
         final DynamoDbClient client = dynamoDBConfig.dynamoDbClient();
 
         // Then
         assertNotNull(client);
-        assertEquals("us-east-1", client.serviceClientConfiguration().region().id());
+        assertEquals(US_EAST_1, client.serviceClientConfiguration().region().id());
     }
 
     @Test
     void testDynamoDbClientWithLocalStackEndpoint() {
         // Given
-        ReflectionTestUtils.setField(dynamoDBConfig, "awsRegion", "us-east-1");
-        ReflectionTestUtils.setField(dynamoDBConfig, "dynamoDbEndpoint", "http://localhost:8000");
-        ReflectionTestUtils.setField(dynamoDBConfig, "timeoutSeconds", 10);
+        ReflectionTestUtils.setField(dynamoDBConfig, AWSREGION, US_EAST_1);
+        ReflectionTestUtils.setField(dynamoDBConfig, DYNAMODBENDPOINT, "http://localhost:8000");
+        ReflectionTestUtils.setField(dynamoDBConfig, TIMEOUTSECONDS, 10);
 
         // When
         final DynamoDbClient client = dynamoDBConfig.dynamoDbClient();
@@ -52,9 +57,9 @@ class DynamoDBConfigTest {
     @Test
     void testDynamoDbClientWithCustomTimeout() {
         // Given
-        ReflectionTestUtils.setField(dynamoDBConfig, "awsRegion", "us-east-1");
-        ReflectionTestUtils.setField(dynamoDBConfig, "dynamoDbEndpoint", "");
-        ReflectionTestUtils.setField(dynamoDBConfig, "timeoutSeconds", 30);
+        ReflectionTestUtils.setField(dynamoDBConfig, AWSREGION, US_EAST_1);
+        ReflectionTestUtils.setField(dynamoDBConfig, DYNAMODBENDPOINT, "");
+        ReflectionTestUtils.setField(dynamoDBConfig, TIMEOUTSECONDS, 30);
 
         // When
         final DynamoDbClient client = dynamoDBConfig.dynamoDbClient();
@@ -62,15 +67,15 @@ class DynamoDBConfigTest {
         // Then
         assertNotNull(client);
         // Verify timeout is configured (can't directly check, but client should be created)
-        assertEquals("us-east-1", client.serviceClientConfiguration().region().id());
+        assertEquals(US_EAST_1, client.serviceClientConfiguration().region().id());
     }
 
     @Test
     void testDynamoDbEnhancedClientIsCreated() {
         // Given
-        ReflectionTestUtils.setField(dynamoDBConfig, "awsRegion", "us-east-1");
-        ReflectionTestUtils.setField(dynamoDBConfig, "dynamoDbEndpoint", "");
-        ReflectionTestUtils.setField(dynamoDBConfig, "timeoutSeconds", 10);
+        ReflectionTestUtils.setField(dynamoDBConfig, AWSREGION, US_EAST_1);
+        ReflectionTestUtils.setField(dynamoDBConfig, DYNAMODBENDPOINT, "");
+        ReflectionTestUtils.setField(dynamoDBConfig, TIMEOUTSECONDS, 10);
         final DynamoDbClient dynamoDbClient = dynamoDBConfig.dynamoDbClient();
 
         // When
@@ -86,9 +91,9 @@ class DynamoDBConfigTest {
     @Test
     void testDynamoDbClientWithDifferentRegion() {
         // Given
-        ReflectionTestUtils.setField(dynamoDBConfig, "awsRegion", "us-west-2");
-        ReflectionTestUtils.setField(dynamoDBConfig, "dynamoDbEndpoint", "");
-        ReflectionTestUtils.setField(dynamoDBConfig, "timeoutSeconds", 10);
+        ReflectionTestUtils.setField(dynamoDBConfig, AWSREGION, "us-west-2");
+        ReflectionTestUtils.setField(dynamoDBConfig, DYNAMODBENDPOINT, "");
+        ReflectionTestUtils.setField(dynamoDBConfig, TIMEOUTSECONDS, 10);
 
         // When
         final DynamoDbClient client = dynamoDBConfig.dynamoDbClient();

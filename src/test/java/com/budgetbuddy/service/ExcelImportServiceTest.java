@@ -1,7 +1,5 @@
 package com.budgetbuddy.service;
 
-
-import java.nio.charset.StandardCharsets;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -11,6 +9,7 @@ import com.budgetbuddy.exception.AppException;
 import com.budgetbuddy.exception.ErrorCode;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -49,7 +48,8 @@ class ExcelImportServiceTest {
 
     @Test
     void testParseExcelInvalidFileThrowsException() {
-        final InputStream invalidStream = new ByteArrayInputStream("Not an Excel file".getBytes(StandardCharsets.UTF_8));
+        final InputStream invalidStream =
+                new ByteArrayInputStream("Not an Excel file".getBytes(StandardCharsets.UTF_8));
 
         final AppException exception =
                 assertThrows(

@@ -30,6 +30,9 @@ import org.springframework.data.redis.core.script.DefaultRedisScript;
 /** Comprehensive tests for DistributedLock utility */
 class DistributedLockTest {
 
+    private static final String TEST_KEY = "test-key";
+    private static final String SUCCESS = "success";
+
     @Mock private StringRedisTemplate redisTemplate;
 
     @Mock private ValueOperations<String, String> valueOperations;
@@ -52,7 +55,7 @@ class DistributedLockTest {
         distributedLock = new DistributedLock(redisTemplate);
 
         // When
-        final DistributedLock.LockResult result = distributedLock.acquireLock("test-key");
+        final DistributedLock.LockResult result = distributedLock.acquireLock(TEST_KEY);
 
         // Then
         assertTrue(result.isAcquired());
@@ -70,7 +73,7 @@ class DistributedLockTest {
         distributedLock = new DistributedLock(redisTemplate);
 
         // When
-        final DistributedLock.LockResult result = distributedLock.acquireLock("test-key");
+        final DistributedLock.LockResult result = distributedLock.acquireLock(TEST_KEY);
 
         // Then
         assertFalse(result.isAcquired());
@@ -84,7 +87,7 @@ class DistributedLockTest {
         distributedLock = new DistributedLock(null);
 
         // When
-        final DistributedLock.LockResult result = distributedLock.acquireLock("test-key");
+        final DistributedLock.LockResult result = distributedLock.acquireLock(TEST_KEY);
 
         // Then
         assertTrue(result.isAcquired());
@@ -118,7 +121,7 @@ class DistributedLockTest {
 
         // When
         final DistributedLock.LockResult result =
-                distributedLock.acquireLock("test-key", Duration.ofSeconds(60));
+                distributedLock.acquireLock(TEST_KEY, Duration.ofSeconds(60));
 
         // Then
         assertTrue(result.isAcquired());
@@ -135,7 +138,7 @@ class DistributedLockTest {
         distributedLock = new DistributedLock(redisTemplate);
 
         // When
-        final boolean released = distributedLock.releaseLock("test-key", "lock-value");
+        final boolean released = distributedLock.releaseLock(TEST_KEY, "lock-value");
 
         // Then
         assertTrue(released);
@@ -152,7 +155,7 @@ class DistributedLockTest {
         distributedLock = new DistributedLock(redisTemplate);
 
         // When
-        final boolean released = distributedLock.releaseLock("test-key", "wrong-value");
+        final boolean released = distributedLock.releaseLock(TEST_KEY, "wrong-value");
 
         // Then
         assertFalse(released);
@@ -167,7 +170,7 @@ class DistributedLockTest {
         distributedLock = new DistributedLock(redisTemplate);
 
         // When
-        final boolean released = distributedLock.releaseLock("test-key", "lock-value");
+        final boolean released = distributedLock.releaseLock(TEST_KEY, "lock-value");
 
         // Then - Should return true to allow operation to continue
         assertTrue(released);
@@ -180,7 +183,7 @@ class DistributedLockTest {
         distributedLock = new DistributedLock(null);
 
         // When
-        final boolean released = distributedLock.releaseLock("test-key", "lock-value");
+        final boolean released = distributedLock.releaseLock(TEST_KEY, "lock-value");
 
         // Then
         assertTrue(released);
@@ -217,11 +220,10 @@ class DistributedLockTest {
 
         // When
         final String result =
-                distributedLock.executeWithLock(
-                        "test-key", Duration.ofSeconds(30), () -> "success");
+                distributedLock.executeWithLock(TEST_KEY, Duration.ofSeconds(30), () -> SUCCESS);
 
         // Then
-        assertEquals("success", result);
+        assertEquals(SUCCESS, result);
         verify(valueOperations).setIfAbsent(anyString(), anyString(), any(Duration.class));
         verify(redisTemplate)
                 .execute(any(DefaultRedisScript.class), any(java.util.List.class), any());
@@ -240,7 +242,7 @@ class DistributedLockTest {
                 DistributedLock.LockAcquisitionException.class,
                 () -> {
                     distributedLock.executeWithLock(
-                            "test-key", Duration.ofSeconds(30), () -> "success");
+                            TEST_KEY, Duration.ofSeconds(30), () -> SUCCESS);
                 });
     }
 
@@ -259,7 +261,7 @@ class DistributedLockTest {
                 RuntimeException.class,
                 () -> {
                     distributedLock.executeWithLock(
-                            "test-key",
+                            TEST_KEY,
                             Duration.ofSeconds(30),
                             () -> {
                                 throw new RuntimeException("Operation failed");
@@ -281,8 +283,7 @@ class DistributedLockTest {
 
         // When
         final Optional<String> result =
-                distributedLock.tryExecuteWithLock(
-                        "test-key", Duration.ofSeconds(30), () -> "success");
+                distributedLock.tryExecuteWithLock(TEST_KEY, Duration.ofSeconds(30), () -> SUCCESS);
 
         // Then
         assertTrue(result.isEmpty());
@@ -300,12 +301,11 @@ class DistributedLockTest {
 
         // When
         final Optional<String> result =
-                distributedLock.tryExecuteWithLock(
-                        "test-key", Duration.ofSeconds(30), () -> "success");
+                distributedLock.tryExecuteWithLock(TEST_KEY, Duration.ofSeconds(30), () -> SUCCESS);
 
         // Then
         assertTrue(result.isPresent());
-        assertEquals("success", result.get());
+        assertEquals(SUCCESS, result.get());
     }
 
     @Test
@@ -317,7 +317,7 @@ class DistributedLockTest {
         distributedLock = new DistributedLock(redisTemplate);
 
         // When
-        final DistributedLock.LockResult result = distributedLock.acquireLock("test-key");
+        final DistributedLock.LockResult result = distributedLock.acquireLock(TEST_KEY);
 
         // Then - Should fall back to local lock
         assertTrue(result.isAcquired());

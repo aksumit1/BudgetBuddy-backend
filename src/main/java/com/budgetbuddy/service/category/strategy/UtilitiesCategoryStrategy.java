@@ -1,6 +1,5 @@
 package com.budgetbuddy.service.category.strategy;
 
-
 import java.util.Locale;
 import org.springframework.stereotype.Component;
 
@@ -27,7 +26,9 @@ public class UtilitiesCategoryStrategy extends BaseCategoryStrategy {
 
     @Override
     public String detectCategory(
-            final String normalizedMerchantName, final String descriptionLower, final String merchantName) {
+            final String normalizedMerchantName,
+            final String descriptionLower,
+            final String merchantName) {
         if (normalizedMerchantName == null || normalizedMerchantName.isBlank()) {
             return null;
         }
@@ -47,44 +48,44 @@ public class UtilitiesCategoryStrategy extends BaseCategoryStrategy {
 
         // Common utility company patterns
         final String[] utilityCompanies = {
-                "puget sound energy",
-                "pse",
-                "pacific gas",
-                "pg&e",
-                "pge",
-                "southern california edison",
-                "sce",
-                "san diego gas",
-                "sdge",
-                "edison",
-                "con edison",
-                "coned",
-                "duke energy",
-                "dukeenergy",
-                "dominion energy",
-                "dominionenergy",
-                "exelon",
-                "first energy",
-                "firstenergy",
-                "american electric",
-                "aep",
-                "southern company",
-                "southerncompany",
-                "next era",
-                "nextera",
-                "xcel energy",
-                "xcelenergy",
-                "centerpoint",
-                "center point",
-                "entergy",
-                "entergy",
-                "evergy",
-                "evergy",
-                "pacificorp",
-                "pacific corp",
-                "pge",
-                "portland general",
-                "portlandgeneral"
+            "puget sound energy",
+            "pse",
+            "pacific gas",
+            "pg&e",
+            "pge",
+            "southern california edison",
+            "sce",
+            "san diego gas",
+            "sdge",
+            "edison",
+            "con edison",
+            "coned",
+            "duke energy",
+            "dukeenergy",
+            "dominion energy",
+            "dominionenergy",
+            "exelon",
+            "first energy",
+            "firstenergy",
+            "american electric",
+            "aep",
+            "southern company",
+            "southerncompany",
+            "next era",
+            "nextera",
+            "xcel energy",
+            "xcelenergy",
+            "centerpoint",
+            "center point",
+            "entergy",
+            "entergy",
+            "evergy",
+            "evergy",
+            "pacificorp",
+            "pacific corp",
+            "pge",
+            "portland general",
+            "portlandgeneral"
         };
         for (final String company : utilityCompanies) {
             if (normalizedMerchantName.contains(company) || descriptionLower.contains(company)) {
@@ -150,32 +151,32 @@ public class UtilitiesCategoryStrategy extends BaseCategoryStrategy {
         // CRITICAL: Cable/Internet Providers - Must come BEFORE transportation
         // Comcast, Xfinity, Spectrum, Charter, Cox, etc.
         final String[] cableInternetProviders = {
-                "comcast",
-                "xfinity",
-                "xfinity mobile",
-                "xfinitymobile",
-                "spectrum",
-                "charter",
-                "charter spectrum",
-                "cox",
-                "cox communications",
-                "optimum",
-                "altice",
-                "frontier",
-                "frontier communications",
-                "centurylink",
-                "century link",
-                "windstream",
-                "suddenlink",
-                "mediacom",
-                "dish",
-                "dish network",
-                "directv",
-                "direct tv",
-                "att u-verse",
-                "att uverse",
-                "fios",
-                "verizon fios"
+            "comcast",
+            "xfinity",
+            "xfinity mobile",
+            "xfinitymobile",
+            "spectrum",
+            "charter",
+            "charter spectrum",
+            "cox",
+            "cox communications",
+            "optimum",
+            "altice",
+            "frontier",
+            "frontier communications",
+            "centurylink",
+            "century link",
+            "windstream",
+            "suddenlink",
+            "mediacom",
+            "dish",
+            "dish network",
+            "directv",
+            "direct tv",
+            "att u-verse",
+            "att uverse",
+            "fios",
+            "verizon fios"
         };
         for (final String provider : cableInternetProviders) {
             if (normalizedMerchantName.contains(provider) || descriptionLower.contains(provider)) {
@@ -191,34 +192,34 @@ public class UtilitiesCategoryStrategy extends BaseCategoryStrategy {
         // Verizon Wireless, AT&T, T-Mobile, etc. (excluding Xfinity Mobile which is already covered
         // above)
         final String[] phoneProviders = {
-                "verizon wireless",
-                "verizonwireless",
-                "verizon",
-                "at&t",
-                "att",
-                "at and t",
-                "t-mobile",
-                "tmobile",
-                "t mobile",
-                "sprint",
-                "us cellular",
-                "uscellular",
-                "cricket",
-                "cricket wireless",
-                "boost mobile",
-                "boostmobile",
-                "metropcs",
-                "metro pcs",
-                "metropcs",
-                "mint mobile",
-                "mintmobile",
-                "google fi",
-                "googlefi",
-                "visible",
-                "straight talk",
-                "straighttalk",
-                "us mobile",
-                "usmobile"
+            "verizon wireless",
+            "verizonwireless",
+            "verizon",
+            "at&t",
+            "att",
+            "at and t",
+            "t-mobile",
+            "tmobile",
+            "t mobile",
+            "sprint",
+            "us cellular",
+            "uscellular",
+            "cricket",
+            "cricket wireless",
+            "boost mobile",
+            "boostmobile",
+            "metropcs",
+            "metro pcs",
+            "metropcs",
+            "mint mobile",
+            "mintmobile",
+            "google fi",
+            "googlefi",
+            "visible",
+            "straight talk",
+            "straighttalk",
+            "us mobile",
+            "usmobile"
         };
         for (final String provider : phoneProviders) {
             if (normalizedMerchantName.contains(provider) || descriptionLower.contains(provider)) {
@@ -236,8 +237,10 @@ public class UtilitiesCategoryStrategy extends BaseCategoryStrategy {
                 || normalizedMerchantName.contains(PAYBYPHONE)
                 || descriptionLower.contains(PAY_BY_PHONE)
                 || descriptionLower.contains(PAYBYPHONE)
-                || (merchantName != null && merchantName.toUpperCase(Locale.ROOT).contains("PAY BY PHONE"))
-                || (merchantName != null && merchantName.toUpperCase(Locale.ROOT).contains("PAYBYPHONE"))) {
+                || (merchantName != null
+                        && merchantName.toUpperCase(Locale.ROOT).contains("PAY BY PHONE"))
+                || (merchantName != null
+                        && merchantName.toUpperCase(Locale.ROOT).contains("PAYBYPHONE"))) {
             LOGGER.debug(
                     "🏷️ detectCategoryFromMerchantName: Detected Pay by Phone (parking) → 'transportation'");
             return "transportation";
@@ -248,7 +251,8 @@ public class UtilitiesCategoryStrategy extends BaseCategoryStrategy {
                 || normalizedMerchantName.contains("s dot")
                 || normalizedMerchantName.contains("seattle dot")
                 || descriptionLower.contains("sdot")
-                || (merchantName != null && merchantName.toUpperCase(Locale.ROOT).contains("SDOT"))) {
+                || (merchantName != null
+                        && merchantName.toUpperCase(Locale.ROOT).contains("SDOT"))) {
             LOGGER.debug(
                     "🏷️ detectCategoryFromMerchantName: Detected SDOT (parking/toll) → 'transportation'");
             return "transportation";
@@ -257,7 +261,8 @@ public class UtilitiesCategoryStrategy extends BaseCategoryStrategy {
         // IMPARK - parking service
         if (normalizedMerchantName.contains("impark")
                 || descriptionLower.contains("impark")
-                || (merchantName != null && merchantName.toUpperCase(Locale.ROOT).contains("IMPARK"))) {
+                || (merchantName != null
+                        && merchantName.toUpperCase(Locale.ROOT).contains("IMPARK"))) {
             LOGGER.debug(
                     "🏷️ detectCategoryFromMerchantName: Detected Impark parking → 'transportation'");
             return "transportation";
@@ -284,43 +289,43 @@ public class UtilitiesCategoryStrategy extends BaseCategoryStrategy {
         }
 
         final String[] transportationServices = {
-                "uber",
-                "lyft",
-                "taxi",
-                "rapido",
-                "cab",
-                "rideshare",
-                "parkmobile",
-                "didi",
-                "grab",
-                "ola",
-                "careem",
-                "gett",
-                "bolt",
-                "amtrak",
-                "greyhound",
-                "bus ",
-                "transit",
-                "metro",
-                PARKING,
-                "parking meter",
-                "parkingmeter",
-                "garage",
-                "gojek",
-                "cabify",
-                "blablacar",
-                "Indrive",
-                "Waymo",
-                "Chauffeur",
-                "zoox",
-                "yellow cab",
-                "checkers cab",
-                "black cab",
-                "ticket machine",
-                "ticketmachine",
-                "lul",
-                "london underground",
-                "underground"
+            "uber",
+            "lyft",
+            "taxi",
+            "rapido",
+            "cab",
+            "rideshare",
+            "parkmobile",
+            "didi",
+            "grab",
+            "ola",
+            "careem",
+            "gett",
+            "bolt",
+            "amtrak",
+            "greyhound",
+            "bus ",
+            "transit",
+            "metro",
+            PARKING,
+            "parking meter",
+            "parkingmeter",
+            "garage",
+            "gojek",
+            "cabify",
+            "blablacar",
+            "Indrive",
+            "Waymo",
+            "Chauffeur",
+            "zoox",
+            "yellow cab",
+            "checkers cab",
+            "black cab",
+            "ticket machine",
+            "ticketmachine",
+            "lul",
+            "london underground",
+            "underground"
         };
         for (final String service : transportationServices) {
             if (normalizedMerchantName.contains(service) || descriptionLower.contains(service)) {
@@ -334,122 +339,122 @@ public class UtilitiesCategoryStrategy extends BaseCategoryStrategy {
         // State Department of Transportation (DOT) patterns - Toll roads, highway authorities
         // Pattern: [State] DOT, [State] Department of Transportation, State Toll Authority
         final String[] stateDOTPatterns = {
-                // Washington State
-                "wsdot",
-                "washington state dot",
-                "washington state department of transportation",
-                "goodtogo",
-                "good to go",
-                "good-to-go",
-                // California
-                "caltrans",
-                "cal trans",
-                "california dot",
-                "california department of transportation",
-                "fastrak",
-                "fastrak",
-                "fast trak",
-                "ez pass california",
-                // New York
-                "nysdot",
-                "ny dot",
-                "new york state dot",
-                "new york state department of transportation",
-                "ez pass",
-                "ezpass",
-                "e-zpass",
-                "new york thruway",
-                // Texas
-                "txdot",
-                "texas dot",
-                "texas department of transportation",
-                "ez tag",
-                "eztag",
-                "txtag",
-                "tx tag",
-                "dallas north tollway",
-                // Florida
-                "fdot",
-                "florida dot",
-                "florida department of transportation",
-                "sunpass",
-                "sun pass",
-                "epass",
-                "e pass",
-                "leeway",
-                "lee way",
-                // Illinois
-                "idot",
-                "illinois dot",
-                "illinois department of transportation",
-                "ipass",
-                "i-pass",
-                "illinois tollway",
-                // Massachusetts
-                "massdot",
-                "mass dot",
-                "massachusetts dot",
-                "massachusetts department of transportation",
-                "e-zpass ma",
-                "ezpass ma",
-                "mass pike",
-                // Pennsylvania
-                "penn dot",
-                "penndot",
-                "pennsylvania dot",
-                "pennsylvania department of transportation",
-                "e-zpass pa",
-                "ezpass pa",
-                "pa turnpike",
-                "pennsylvania turnpike",
-                // New Jersey
-                "njdot",
-                "nj dot",
-                "new jersey dot",
-                "new jersey department of transportation",
-                "e-zpass nj",
-                "ezpass nj",
-                "garden state parkway",
-                "new jersey turnpike",
-                // Maryland
-                "mdot",
-                "md dot",
-                "maryland dot",
-                "maryland department of transportation",
-                "e-zpass md",
-                "ezpass md",
-                "maryland transportation authority",
-                // Virginia
-                "vdot",
-                "va dot",
-                "virginia dot",
-                "virginia department of transportation",
-                "ez-pass va",
-                "ezpass va",
-                "virginia transportation authority",
-                // General patterns
-                "state dot",
-                "state department of transportation",
-                "department of transportation",
-                "dot toll",
-                "toll road",
-                "tollway",
-                "toll authority",
-                "toll plaza",
-                "highway authority",
-                "transportation authority",
-                "turnpike authority",
-                // Additional toll patterns
-                "eractoll",
-                "era toll",
-                "toll payment",
-                "toll charge",
-                "toll fee",
-                "road toll",
-                "bridge toll",
-                "tunnel toll",
-                "highway toll",
-                "expressway toll"
+            // Washington State
+            "wsdot",
+            "washington state dot",
+            "washington state department of transportation",
+            "goodtogo",
+            "good to go",
+            "good-to-go",
+            // California
+            "caltrans",
+            "cal trans",
+            "california dot",
+            "california department of transportation",
+            "fastrak",
+            "fastrak",
+            "fast trak",
+            "ez pass california",
+            // New York
+            "nysdot",
+            "ny dot",
+            "new york state dot",
+            "new york state department of transportation",
+            "ez pass",
+            "ezpass",
+            "e-zpass",
+            "new york thruway",
+            // Texas
+            "txdot",
+            "texas dot",
+            "texas department of transportation",
+            "ez tag",
+            "eztag",
+            "txtag",
+            "tx tag",
+            "dallas north tollway",
+            // Florida
+            "fdot",
+            "florida dot",
+            "florida department of transportation",
+            "sunpass",
+            "sun pass",
+            "epass",
+            "e pass",
+            "leeway",
+            "lee way",
+            // Illinois
+            "idot",
+            "illinois dot",
+            "illinois department of transportation",
+            "ipass",
+            "i-pass",
+            "illinois tollway",
+            // Massachusetts
+            "massdot",
+            "mass dot",
+            "massachusetts dot",
+            "massachusetts department of transportation",
+            "e-zpass ma",
+            "ezpass ma",
+            "mass pike",
+            // Pennsylvania
+            "penn dot",
+            "penndot",
+            "pennsylvania dot",
+            "pennsylvania department of transportation",
+            "e-zpass pa",
+            "ezpass pa",
+            "pa turnpike",
+            "pennsylvania turnpike",
+            // New Jersey
+            "njdot",
+            "nj dot",
+            "new jersey dot",
+            "new jersey department of transportation",
+            "e-zpass nj",
+            "ezpass nj",
+            "garden state parkway",
+            "new jersey turnpike",
+            // Maryland
+            "mdot",
+            "md dot",
+            "maryland dot",
+            "maryland department of transportation",
+            "e-zpass md",
+            "ezpass md",
+            "maryland transportation authority",
+            // Virginia
+            "vdot",
+            "va dot",
+            "virginia dot",
+            "virginia department of transportation",
+            "ez-pass va",
+            "ezpass va",
+            "virginia transportation authority",
+            // General patterns
+            "state dot",
+            "state department of transportation",
+            "department of transportation",
+            "dot toll",
+            "toll road",
+            "tollway",
+            "toll authority",
+            "toll plaza",
+            "highway authority",
+            "transportation authority",
+            "turnpike authority",
+            // Additional toll patterns
+            "eractoll",
+            "era toll",
+            "toll payment",
+            "toll charge",
+            "toll fee",
+            "road toll",
+            "bridge toll",
+            "tunnel toll",
+            "highway toll",
+            "expressway toll"
         };
         for (final String dot : stateDOTPatterns) {
             if (normalizedMerchantName.contains(dot) || descriptionLower.contains(dot)) {

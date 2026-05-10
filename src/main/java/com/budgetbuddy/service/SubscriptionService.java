@@ -1,8 +1,5 @@
 package com.budgetbuddy.service;
 
-
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import java.util.Locale;
 import com.budgetbuddy.model.Subscription;
 import com.budgetbuddy.model.dynamodb.SubscriptionTable;
 import com.budgetbuddy.model.dynamodb.TransactionTable;
@@ -12,6 +9,7 @@ import com.budgetbuddy.service.ml.EnhancedCategoryDetectionService;
 import com.budgetbuddy.service.ml.FuzzyMatchingService;
 import com.budgetbuddy.util.IdGenerator;
 import com.budgetbuddy.util.StringUtils;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
@@ -19,6 +17,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -44,6 +43,14 @@ import org.springframework.stereotype.Service;
 @Service
 public class SubscriptionService {
 
+    private static final String MEMBERSHIP = "membership";
+    private static final String SUBSCRIPTION = "subscription";
+    private static final String RECURRING = "recurring";
+    private static final String SUBSCRIPTIONS = "subscriptions";
+    private static final String INSURANCE = "insurance";
+    private static final String STREAMING = "streaming";
+    private static final String SOFTWARE = "software";
+
     private static final Logger LOGGER = LoggerFactory.getLogger(SubscriptionService.class);
     private static final DateTimeFormatter DATE_FORMATTER =
             DateTimeFormatter.ofPattern("yyyy-MM-dd");
@@ -56,18 +63,18 @@ public class SubscriptionService {
     // Subscription-related categories from merchant database
     private static final Set<String> SUBSCRIPTION_CATEGORIES =
             Set.of(
-                    "subscriptions",
-                    "streaming",
-                    "software",
-                    "membership",
+                    SUBSCRIPTIONS,
+                    STREAMING,
+                    SOFTWARE,
+                    MEMBERSHIP,
                     "cloud_storage",
                     "tech",
                     "entertainment",
                     "health",
-                    "insurance",
+                    INSURANCE,
                     "education");
 
-    // HARD EXCLUSIONS — Plaid taxonomies that look "recurring" because the
+    // HARD EXCLUSIONS — Plaid taxonomies that look RECURRING because the
     // user pays them every month, but are NOT subscriptions in any
     // user-facing sense (you can't cancel, downgrade, or substitute
     // them). Detector skips these before any inclusion logic runs.
@@ -122,7 +129,7 @@ public class SubscriptionService {
 
     /**
      * Checks whether a transaction is a recurring movement of money the user shouldn't see in a
-     * "subscriptions" list — credit-card payments, loan repayments, account transfers. We OR three
+     * SUBSCRIPTIONS list — credit-card payments, loan repayments, account transfers. We OR three
      * signals (primary category, detailed category, merchant name) because each source can be
      * missing or generic on its own. Returning {@code true} here removes the candidate from
      * subscription detection entirely.
@@ -222,17 +229,15 @@ public class SubscriptionService {
 
                                     // Include transactions that match subscription indicators
                                     // 1. Already categorized as subscription
-                                    if (("subscriptions"
-                                            .equalsIgnoreCase(categoryPrimary))
-                                            || ("subscriptions"
-                                            .equalsIgnoreCase(categoryDetailed))) {
+                                    if ((SUBSCRIPTIONS.equalsIgnoreCase(categoryPrimary))
+                                            || (SUBSCRIPTIONS.equalsIgnoreCase(categoryDetailed))) {
                                         return true;
                                     }
 
                                     // 2. Category matches subscription-related categories
                                     if (categoryPrimary != null
                                             && SUBSCRIPTION_CATEGORIES.contains(
-                                            categoryPrimary.toLowerCase(Locale.ROOT))) {
+                                                    categoryPrimary.toLowerCase(Locale.ROOT))) {
                                         return true;
                                     }
 
@@ -243,12 +248,13 @@ public class SubscriptionService {
 
                                     // 4. Category detailed contains subscription keywords
                                     if (categoryDetailed != null) {
-                                        final String detailedLower = categoryDetailed.toLowerCase(Locale.ROOT);
-                                        if (detailedLower.contains("subscription")
-                                                || detailedLower.contains("membership")
-                                                || detailedLower.contains("recurring")
-                                                || detailedLower.contains("streaming")
-                                                || detailedLower.contains("software")
+                                        final String detailedLower =
+                                                categoryDetailed.toLowerCase(Locale.ROOT);
+                                        if (detailedLower.contains(SUBSCRIPTION)
+                                                || detailedLower.contains(MEMBERSHIP)
+                                                || detailedLower.contains(RECURRING)
+                                                || detailedLower.contains(STREAMING)
+                                                || detailedLower.contains(SOFTWARE)
                                                 || detailedLower.contains("cloud")) {
                                             return true;
                                         }
@@ -261,10 +267,11 @@ public class SubscriptionService {
                                     // groceries, gas) that happened to fall on a regular
                                     // cadence and was the dominant source of false positives.
                                     if (description != null) {
-                                        final String descLower = description.toLowerCase(Locale.ROOT);
-                                        if (descLower.contains("subscription")
-                                                || descLower.contains("membership")
-                                                || descLower.contains("recurring")
+                                        final String descLower =
+                                                description.toLowerCase(Locale.ROOT);
+                                        if (descLower.contains(SUBSCRIPTION)
+                                                || descLower.contains(MEMBERSHIP)
+                                                || descLower.contains(RECURRING)
                                                 || descLower.contains("monthly")
                                                 || descLower.contains("annual")
                                                 || descLower.contains("yearly")) {
@@ -287,7 +294,8 @@ public class SubscriptionService {
 
         final List<Subscription> detectedSubscriptions = new ArrayList<>();
 
-        for (final Map.Entry<String, List<TransactionTable>> entry : transactionsByMerchant.entrySet()) {
+        for (final Map.Entry<String, List<TransactionTable>> entry :
+                transactionsByMerchant.entrySet()) {
             final String merchant = entry.getKey();
             final List<TransactionTable> merchantTransactions = entry.getValue();
 
@@ -380,7 +388,8 @@ public class SubscriptionService {
                         // duplication
                         final String description = firstTransaction.getDescription();
                         if (description != null && !description.isBlank()) {
-                            final String normalizedDesc = StringUtils.normalizeMerchantName(description);
+                            final String normalizedDesc =
+                                    StringUtils.normalizeMerchantName(description);
                             final String normalizedMerchant =
                                     StringUtils.normalizeMerchantName(actualMerchantName);
                             // Only set description if it's different from merchantName
@@ -404,7 +413,8 @@ public class SubscriptionService {
                         // This ensures active subscriptions show up correctly
                         final TransactionTable lastTransaction =
                                 sameAmountTransactions.get(sameAmountTransactions.size() - 1);
-                        final LocalDate lastPaymentDate = parseDate(lastTransaction.getTransactionDate());
+                        final LocalDate lastPaymentDate =
+                                parseDate(lastTransaction.getTransactionDate());
                         if (lastPaymentDate != null) {
                             subscription.setLastPaymentDate(lastPaymentDate);
                             // Calculate nextPaymentDate from lastPaymentDate (more accurate for
@@ -426,34 +436,36 @@ public class SubscriptionService {
                         }
 
                         // Preserve original category information
-                        final String originalCategoryPrimary = firstTransaction.getCategoryPrimary();
-                        final String originalCategoryDetailed = firstTransaction.getCategoryDetailed();
+                        final String originalCategoryPrimary =
+                                firstTransaction.getCategoryPrimary();
+                        final String originalCategoryDetailed =
+                                firstTransaction.getCategoryDetailed();
                         subscription.setOriginalCategoryPrimary(originalCategoryPrimary);
                         subscription.setOriginalCategoryDetailed(originalCategoryDetailed);
 
-                        // Set category - use detailed if it's "subscriptions", otherwise use
-                        // "subscriptions" as default
+                        // Set category - use detailed if it's SUBSCRIPTIONS, otherwise use
+                        // SUBSCRIPTIONS as default
                         // CRITICAL FIX: Even if categorized as "education" (like Barrons), still
                         // mark as subscription
                         // The category field is for transaction categorization, but subscription
                         // detection is independent
-                        if ("subscriptions".equalsIgnoreCase(originalCategoryDetailed)) {
+                        if (SUBSCRIPTIONS.equalsIgnoreCase(originalCategoryDetailed)) {
                             subscription.setCategory(originalCategoryDetailed);
-                        } else if ("subscriptions".equalsIgnoreCase(originalCategoryPrimary)) {
+                        } else if (SUBSCRIPTIONS.equalsIgnoreCase(originalCategoryPrimary)) {
                             subscription.setCategory(originalCategoryPrimary);
                         } else {
-                            subscription.setCategory("subscriptions");
+                            subscription.setCategory(SUBSCRIPTIONS);
                         }
 
                         // Infer subscription type from categoryDetailed and merchant
                         final String subscriptionType = inferSubscriptionType(firstTransaction);
                         subscription.setSubscriptionType(subscriptionType);
 
-                        // CRITICAL FIX: Determine subscriptionCategory: "subscription" vs
-                        // "recurring"
-                        // "subscription" = merchant-based recurring payments (Netflix, Spotify, gym
+                        // CRITICAL FIX: Determine subscriptionCategory: SUBSCRIPTION vs
+                        // RECURRING
+                        // SUBSCRIPTION = merchant-based recurring payments (Netflix, Spotify, gym
                         // memberships)
-                        // "recurring" = bills, loans, mortgage, utilities (contract-based or
+                        // RECURRING = bills, loans, mortgage, utilities (contract-based or
                         // necessary expenses)
                         final String subscriptionCategory =
                                 determineSubscriptionCategory(
@@ -569,19 +581,19 @@ public class SubscriptionService {
                 // groups)
                 final boolean bothFromMerchant =
                         entry.getValue().stream()
-                                .allMatch(
-                                        tx ->
-                                                tx.getMerchantName() != null
-                                                        && !tx.getMerchantName()
-                                                        .trim()
-                                                        .isEmpty())
+                                        .allMatch(
+                                                tx ->
+                                                        tx.getMerchantName() != null
+                                                                && !tx.getMerchantName()
+                                                                        .trim()
+                                                                        .isEmpty())
                                 && otherEntry.getValue().stream()
-                                .allMatch(
-                                        tx ->
-                                                tx.getMerchantName() != null
-                                                        && !tx.getMerchantName()
-                                                        .trim()
-                                                        .isEmpty());
+                                        .allMatch(
+                                                tx ->
+                                                        tx.getMerchantName() != null
+                                                                && !tx.getMerchantName()
+                                                                        .trim()
+                                                                        .isEmpty());
 
                 // Only merge if both are merchantName-based OR fuzzy match is very high
                 if (bothFromMerchant && areMerchantsSimilar(key, otherKey)) {
@@ -832,7 +844,8 @@ public class SubscriptionService {
         // Group by similar amounts (within 5% tolerance) and similar descriptions
         final Map<BigDecimal, List<TransactionTable>> byAmount = groupByAmount(expenses);
 
-        for (final Map.Entry<BigDecimal, List<TransactionTable>> amountEntry : byAmount.entrySet()) {
+        for (final Map.Entry<BigDecimal, List<TransactionTable>> amountEntry :
+                byAmount.entrySet()) {
             final List<TransactionTable> sameAmountTxs = amountEntry.getValue();
 
             if (sameAmountTxs.size() < 2) {
@@ -845,7 +858,8 @@ public class SubscriptionService {
             for (final TransactionTable tx : sameAmountTxs) {
                 final String merchant = tx.getMerchantName() != null ? tx.getMerchantName() : "";
                 final String description = tx.getDescription() != null ? tx.getDescription() : "";
-                final String combined = (merchant + " " + description).toLowerCase(Locale.ROOT).trim();
+                final String combined =
+                        (merchant + " " + description).toLowerCase(Locale.ROOT).trim();
 
                 // Find similar existing group (fuzzy match)
                 String matchedKey = null;
@@ -1003,7 +1017,8 @@ public class SubscriptionService {
         long totalDays = 0;
         int intervals = 0;
         for (int i = 1; i < dates.size(); i++) {
-            final long days = java.time.temporal.ChronoUnit.DAYS.between(dates.get(i - 1), dates.get(i));
+            final long days =
+                    java.time.temporal.ChronoUnit.DAYS.between(dates.get(i - 1), dates.get(i));
             totalDays += days;
             intervals++;
         }
@@ -1046,7 +1061,8 @@ public class SubscriptionService {
 
         // ENHANCED: Check for day-of-month patterns (1st, 15th, last day of month)
         // This handles cases where transactions occur on specific days each month
-        final Subscription.SubscriptionFrequency dayOfMonthFrequency = detectDayOfMonthPattern(dates);
+        final Subscription.SubscriptionFrequency dayOfMonthFrequency =
+                detectDayOfMonthPattern(dates);
         if (dayOfMonthFrequency != null) {
             return dayOfMonthFrequency;
         }
@@ -1146,17 +1162,17 @@ public class SubscriptionService {
         final BigDecimal amount = tx.getAmount();
 
         // 1. Direct subscription category (highest confidence)
-        if (("subscriptions".equalsIgnoreCase(categoryPrimary))
-                || ("subscriptions".equalsIgnoreCase(categoryDetailed))) {
+        if ((SUBSCRIPTIONS.equalsIgnoreCase(categoryPrimary))
+                || (SUBSCRIPTIONS.equalsIgnoreCase(categoryDetailed))) {
             return true;
         }
 
         // 2. Check categoryDetailed for subscription indicators
         if (categoryDetailed != null) {
             final String detailedLower = categoryDetailed.toLowerCase(Locale.ROOT);
-            if (detailedLower.contains("subscription")
-                    || detailedLower.contains("membership")
-                    || detailedLower.contains("recurring")) {
+            if (detailedLower.contains(SUBSCRIPTION)
+                    || detailedLower.contains(MEMBERSHIP)
+                    || detailedLower.contains(RECURRING)) {
                 return true;
             }
         }
@@ -1167,7 +1183,8 @@ public class SubscriptionService {
                         merchantName, description, amount, null, null, null, null);
         if (detectionResult != null
                 && detectionResult.category != null
-                && SUBSCRIPTION_CATEGORIES.contains(detectionResult.category.toLowerCase(Locale.ROOT))) {
+                && SUBSCRIPTION_CATEGORIES.contains(
+                        detectionResult.category.toLowerCase(Locale.ROOT))) {
             return true;
         }
 
@@ -1178,18 +1195,18 @@ public class SubscriptionService {
         }
 
         // 5. Insurance is typically recurring
-        if ("insurance".equalsIgnoreCase(categoryPrimary)
+        if (INSURANCE.equalsIgnoreCase(categoryPrimary)
                 || (categoryDetailed != null
-                        && categoryDetailed.toLowerCase(Locale.ROOT).contains("insurance"))) {
+                        && categoryDetailed.toLowerCase(Locale.ROOT).contains(INSURANCE))) {
             return true;
         }
 
         // 6. Check for subscription keywords in description
         if (description != null) {
             final String descLower = description.toLowerCase(Locale.ROOT);
-            if (descLower.contains("subscription")
-                    || descLower.contains("membership")
-                    || descLower.contains("recurring")
+            if (descLower.contains(SUBSCRIPTION)
+                    || descLower.contains(MEMBERSHIP)
+                    || descLower.contains(RECURRING)
                     || descLower.contains("premium")) {
                 return true;
             }
@@ -1219,31 +1236,31 @@ public class SubscriptionService {
 
         final String combined =
                 ((merchantName != null ? merchantName : "")
-                        + " "
-                        + (description != null ? description : ""))
+                                + " "
+                                + (description != null ? description : ""))
                         .toLowerCase(Locale.ROOT);
 
         // Check for explicit subscription keywords (including abbreviations)
-        if (combined.contains("subscription")
+        if (combined.contains(SUBSCRIPTION)
                 || combined.contains("subscr")
                 || // Common abbreviation (SUBSCR)
                 combined.contains("monthly")
                 || combined.contains("annual")
-                || combined.contains("recurring")
-                || combined.contains("membership")
+                || combined.contains(RECURRING)
+                || combined.contains(MEMBERSHIP)
                 || combined.contains("premium")) {
             // CRITICAL: Exclude false positives
             // Don't match if it's a ride-sharing service without subscription keywords
             if (combined.contains("lyft")
                     && !combined.contains("pink")
-                    && !combined.contains("subscription")
-                    && !combined.contains("membership")) {
+                    && !combined.contains(SUBSCRIPTION)
+                    && !combined.contains(MEMBERSHIP)) {
                 return false; // Regular Lyft ride, not subscription
             }
             if (combined.contains("uber")
                     && !combined.contains("one")
-                    && !combined.contains("subscription")
-                    && !combined.contains("membership")) {
+                    && !combined.contains(SUBSCRIPTION)
+                    && !combined.contains(MEMBERSHIP)) {
                 return false; // Regular Uber ride, not subscription
             }
             return true;
@@ -1262,14 +1279,14 @@ public class SubscriptionService {
 
         final String combined =
                 ((merchant != null ? merchant : "")
-                        + " "
-                        + (description != null ? description : ""))
+                                + " "
+                                + (description != null ? description : ""))
                         .toLowerCase(Locale.ROOT);
 
         // Streaming services
         if ("entertainment".equalsIgnoreCase(categoryPrimary)
                 || (categoryDetailed != null
-                        && categoryDetailed.toLowerCase(Locale.ROOT).contains("streaming"))) {
+                        && categoryDetailed.toLowerCase(Locale.ROOT).contains(STREAMING))) {
             if (combined.contains("netflix")
                     || combined.contains("hulu")
                     || combined.contains("disney")
@@ -1288,18 +1305,18 @@ public class SubscriptionService {
                     || combined.contains("starz")
                     || combined.contains("crunchyroll")
                     || combined.contains("funimation")) {
-                return "streaming";
+                return STREAMING;
             }
         }
 
         // Also check for YouTube Music even if category doesn't match
         if (combined.contains("youtube music") || combined.contains("youtubemusic")) {
-            return "streaming";
+            return STREAMING;
         }
 
         // AI services — check BEFORE generic software so Cursor / ChatGPT /
         // Claude / Anthropic surface as "ai_service" even when the importer
-        // labelled them "tech" / "software".
+        // labelled them "tech" / SOFTWARE.
         if (combined.contains("openai")
                 || combined.contains("chatgpt")
                 || combined.contains("cursor")
@@ -1312,7 +1329,7 @@ public class SubscriptionService {
         // Software subscriptions
         if ("tech".equalsIgnoreCase(categoryPrimary)
                 || (categoryDetailed != null
-                        && (categoryDetailed.toLowerCase(Locale.ROOT).contains("software")
+                        && (categoryDetailed.toLowerCase(Locale.ROOT).contains(SOFTWARE)
                                 || categoryDetailed.toLowerCase(Locale.ROOT).contains("saas")))) {
             if (combined.contains("adobe")
                     || combined.contains("microsoft 365")
@@ -1322,7 +1339,7 @@ public class SubscriptionService {
                     || combined.contains("grammarly")
                     || combined.contains("notion")
                     || combined.contains("evernote")) {
-                return "software";
+                return SOFTWARE;
             }
         }
 
@@ -1358,14 +1375,14 @@ public class SubscriptionService {
                 || combined.contains("target circle")
                 || combined.contains("best buy totaltech")
                 || combined.contains("best buy membership")) {
-            return "membership";
+            return MEMBERSHIP;
         }
 
         // Insurance
-        if (combined.contains("insurance")
+        if (combined.contains(INSURANCE)
                 || combined.contains("premium")
                 || (categoryPrimary != null
-                        && categoryPrimary.toLowerCase(Locale.ROOT).contains("insurance"))) {
+                        && categoryPrimary.toLowerCase(Locale.ROOT).contains(INSURANCE))) {
             return "other"; // Insurance is a separate category
         }
 
@@ -1374,7 +1391,7 @@ public class SubscriptionService {
                 || combined.contains("spothero")
                 || combined.contains("parkmobile")
                 || combined.contains("parkwhiz")) {
-            return "membership";
+            return MEMBERSHIP;
         }
 
         // Health & Fitness
@@ -1392,11 +1409,12 @@ public class SubscriptionService {
                 || combined.contains("yoga")
                 || combined.contains("pilates")
                 || combined.contains("barre")) {
-            return "membership";
+            return MEMBERSHIP;
         }
 
         // Cloud storage
-        if (categoryDetailed != null && categoryDetailed.toLowerCase(Locale.ROOT).contains("cloud")) {
+        if (categoryDetailed != null
+                && categoryDetailed.toLowerCase(Locale.ROOT).contains("cloud")) {
             if (combined.contains("dropbox")
                     || combined.contains("icloud")
                     || combined.contains("google drive")
@@ -1416,7 +1434,7 @@ public class SubscriptionService {
                     || combined.contains("fitness")
                     || combined.contains("peloton")
                     || combined.contains("classpass")) {
-                return "membership";
+                return MEMBERSHIP;
             }
         }
 
@@ -1424,12 +1442,12 @@ public class SubscriptionService {
         if (combined.contains("nordvpn")
                 || combined.contains("expressvpn")
                 || combined.contains("surfshark")) {
-            return "software"; // VPN is software
+            return SOFTWARE; // VPN is software
         }
 
         // Ride-sharing subscriptions (Lyft Pink, Uber One)
         if (combined.contains("lyft pink") || combined.contains("uber one")) {
-            return "membership";
+            return MEMBERSHIP;
         }
 
         // Default
@@ -1437,9 +1455,9 @@ public class SubscriptionService {
     }
 
     /**
-     * Determines subscriptionCategory: "subscription" vs "recurring" "subscription" =
-     * merchant-based recurring payments (Netflix, Spotify, gym memberships, software) "recurring" =
-     * bills, loans, mortgage, utilities (contract-based or necessary expenses)
+     * Determines subscriptionCategory: SUBSCRIPTION vs RECURRING SUBSCRIPTION = merchant-based
+     * recurring payments (Netflix, Spotify, gym memberships, software) RECURRING = bills, loans,
+     * mortgage, utilities (contract-based or necessary expenses)
      */
     private String determineSubscriptionCategory(
             final TransactionTable tx, final String merchantName, final String subscriptionType) {
@@ -1449,26 +1467,26 @@ public class SubscriptionService {
         final BigDecimal amount = tx.getAmount();
         final String combined =
                 ((merchantName != null ? merchantName : "")
-                        + " "
-                        + (description != null ? description : ""))
+                                + " "
+                                + (description != null ? description : ""))
                         .toLowerCase(Locale.ROOT);
 
-        // 1. Known subscription merchants (Netflix, Spotify, etc.) = "subscription"
+        // 1. Known subscription merchants (Netflix, Spotify, etc.) = SUBSCRIPTION
         if (isKnownSubscriptionMerchant(merchantName, description)) {
-            return "subscription";
+            return SUBSCRIPTION;
         }
 
-        // 2. Subscription-related categories = "subscription"
-        if ("subscriptions".equalsIgnoreCase(categoryDetailed)) {
-            return "subscription";
+        // 2. Subscription-related categories = SUBSCRIPTION
+        if (SUBSCRIPTIONS.equalsIgnoreCase(categoryDetailed)) {
+            return SUBSCRIPTION;
         }
         if (categoryPrimary != null
                 && SUBSCRIPTION_CATEGORIES.contains(categoryPrimary.toLowerCase(Locale.ROOT))) {
             // But exclude insurance and loans
-            if (!"insurance".equalsIgnoreCase(categoryPrimary)
+            if (!INSURANCE.equalsIgnoreCase(categoryPrimary)
                     && !"loans".equalsIgnoreCase(categoryPrimary)
                     && !"mortgage".equalsIgnoreCase(categoryPrimary)) {
-                return "subscription";
+                return SUBSCRIPTION;
             }
         }
 
@@ -1476,10 +1494,10 @@ public class SubscriptionService {
         if (subscriptionType != null && !"other".equalsIgnoreCase(subscriptionType)) {
             // If we identified it as streaming, software, membership, cloud_storage, it's a
             // subscription
-            return "subscription";
+            return SUBSCRIPTION;
         }
 
-        // 4. Large recurring payments (likely mortgage, loans) = "recurring"
+        // 4. Large recurring payments (likely mortgage, loans) = RECURRING
         if (amount != null && amount.abs().compareTo(new BigDecimal("500")) > 0) {
             // Check if it's from a bank/financial institution (likely loan/mortgage)
             if (combined.contains("mortgage")
@@ -1492,16 +1510,16 @@ public class SubscriptionService {
                             && ("loans".equalsIgnoreCase(categoryPrimary)
                                     || "mortgage".equalsIgnoreCase(categoryPrimary)
                                     || "payment".equalsIgnoreCase(categoryPrimary))) {
-                return "recurring";
+                return RECURRING;
             }
         }
 
-        // 5. Utilities and bills = "recurring"
+        // 5. Utilities and bills = RECURRING
         if (categoryPrimary != null
                 && ("utilities".equalsIgnoreCase(categoryPrimary)
                         || "bills".equalsIgnoreCase(categoryPrimary)
-                        || "insurance".equalsIgnoreCase(categoryPrimary))) {
-            return "recurring";
+                        || INSURANCE.equalsIgnoreCase(categoryPrimary))) {
+            return RECURRING;
         }
 
         if (combined.contains("electric")
@@ -1512,19 +1530,19 @@ public class SubscriptionService {
                 || combined.contains("internet")
                 || combined.contains("phone")
                 || combined.contains("cable")
-                || combined.contains("insurance")
+                || combined.contains(INSURANCE)
                 || combined.contains("premium")) {
-            return "recurring";
+            return RECURRING;
         }
 
         // 6. Default: If subscriptionType was identified (not "other"), it's likely a subscription
         // Otherwise, treat as recurring (safer default)
         if (subscriptionType != null && !"other".equalsIgnoreCase(subscriptionType)) {
-            return "subscription";
+            return SUBSCRIPTION;
         }
 
-        // Default to "recurring" for unknown patterns (safer than assuming subscription)
-        return "recurring";
+        // Default to RECURRING for unknown patterns (safer than assuming subscription)
+        return RECURRING;
     }
 
     /**

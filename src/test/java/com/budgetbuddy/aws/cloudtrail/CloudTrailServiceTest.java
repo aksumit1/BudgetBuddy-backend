@@ -102,7 +102,8 @@ class CloudTrailServiceTest {
     void testGetTrailStatusSuccess() {
         // Given
         final String trailName = "test-trail";
-        final GetTrailStatusResponse response = GetTrailStatusResponse.builder().isLogging(true).build();
+        final GetTrailStatusResponse response =
+                GetTrailStatusResponse.builder().isLogging(true).build();
 
         when(cloudTrailClient.getTrailStatus(any(GetTrailStatusRequest.class)))
                 .thenReturn(response);

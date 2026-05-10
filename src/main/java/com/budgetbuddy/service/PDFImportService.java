@@ -1,8 +1,8 @@
 package com.budgetbuddy.service;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import com.budgetbuddy.exception.AppException;
 import com.budgetbuddy.exception.ErrorCode;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.IOException;
 import java.io.InputStream;
 import java.math.BigDecimal;
@@ -44,11 +44,22 @@ import org.springframework.stereotype.Service;
 // callers — defensive-copying it would break dependency injection.
 @SuppressFBWarnings(
         value = {"EI_EXPOSE_REP", "EI_EXPOSE_REP2"},
-        justification = "JSON DTO / DynamoDB entity getters expose lists by reference; "
+        justification =
+                "JSON DTO / DynamoDB entity getters expose lists by reference; "
                         + "the design is value-semantic and Jackson creates fresh instances; Spring constructor injection — beans are shared by design")
 @SuppressWarnings({"PMD.AvoidCatchingGenericException", "PMD.LawOfDemeter", "PMD.OnlyOneReturn"})
 @Service
 public class PDFImportService {
+
+    private static final String TRANSACTION = "transaction";
+    private static final String USER = "user";
+    private static final String DETAILS = "details";
+    private static final String MERCHANT = "merchant";
+    private static final String LOCATION = "location";
+    private static final String APR = "apr";
+    private static final String STATEMENT = "statement";
+    private static final String MEMO = "memo";
+    private static final String PAYEE = "payee";
 
     private static final Logger LOGGER = LoggerFactory.getLogger(PDFImportService.class);
 
@@ -109,9 +120,13 @@ public class PDFImportService {
             final ImportCategoryParser importCategoryParser,
             final EnhancedPatternMatcher enhancedPatternMatcher,
             @Autowired(required = false) final RewardExtractor rewardExtractor,
-            @Autowired(required = false) final com.budgetbuddy.service.ocr.PdfOcrService pdfOcrService,
-            @Autowired(required = false) final com.budgetbuddy.service.pdf.PdfTemplateRegistry pdfTemplateRegistry,
-            @Autowired(required = false) final com.budgetbuddy.service.pdf.PdfTemplateMissTracker pdfTemplateMissTracker) {
+            @Autowired(required = false)
+                    final com.budgetbuddy.service.ocr.PdfOcrService pdfOcrService,
+            @Autowired(required = false)
+                    final com.budgetbuddy.service.pdf.PdfTemplateRegistry pdfTemplateRegistry,
+            @Autowired(required = false)
+                    final com.budgetbuddy.service.pdf.PdfTemplateMissTracker
+                            pdfTemplateMissTracker) {
         this.accountDetectionService = accountDetectionService;
         this.importCategoryParser = importCategoryParser;
         this.enhancedPatternMatcher = enhancedPatternMatcher;
@@ -279,7 +294,8 @@ public class PDFImportService {
             return detectedAccount;
         }
 
-        public void setDetectedAccount(final AccountDetectionService.DetectedAccount detectedAccount) {
+        public void setDetectedAccount(
+                final AccountDetectionService.DetectedAccount detectedAccount) {
             this.detectedAccount = detectedAccount;
         }
 
@@ -500,7 +516,10 @@ public class PDFImportService {
      * @param password Optional password for password-protected PDFs
      */
     public ImportResult parsePDF(
-            final InputStream inputStream, String fileName, final String userId, final String password) {
+            final InputStream inputStream,
+            String fileName,
+            final String userId,
+            final String password) {
         final ImportResult result = new ImportResult();
 
         // Read all bytes from input stream
@@ -976,7 +995,8 @@ public class PDFImportService {
      * Extract year from closing date or statement date Patterns: "Closing Date: 11/30/2024",
      * "Statement Date: December 1, 2024", etc.
      */
-    private Integer extractYearFromClosingOrStatementDate(final String text, final String lowerText) {
+    private Integer extractYearFromClosingOrStatementDate(
+            final String text, final String lowerText) {
         // Patterns for closing date / statement date
         final List<Pattern> patterns =
                 Arrays.asList(
@@ -1159,7 +1179,8 @@ public class PDFImportService {
         }
     }
 
-    private Integer extractYearFromOpeningClosingDateRange(final String text, final String lowerText) {
+    private Integer extractYearFromOpeningClosingDateRange(
+            final String text, final String lowerText) {
         // Patterns for date ranges - capture the closing date (second date)
         final List<Pattern> patterns =
                 Arrays.asList(
@@ -1241,7 +1262,8 @@ public class PDFImportService {
      * due date may point to next year (January) - For January statements, payment due date should
      * use previous year
      */
-    private Integer extractYearFromPaymentDueDate(final String text, final String lowerText, final int currentYear) {
+    private Integer extractYearFromPaymentDueDate(
+            final String text, final String lowerText, final int currentYear) {
         // Patterns for payment due date (use DOTALL to match across newlines)
         final List<Pattern> patterns =
                 Arrays.asList(
@@ -1461,7 +1483,7 @@ public class PDFImportService {
         if (lower.startsWith("mar")) {
             return 3;
         }
-        if (lower.startsWith("apr")) {
+        if (lower.startsWith(APR)) {
             return 4;
         }
         if (lower.startsWith("may")) {
@@ -1598,16 +1620,16 @@ public class PDFImportService {
                         "credit",
                         "sale",
                         "account",
-                        "transaction",
-                        "statement",
+                        TRANSACTION,
+                        STATEMENT,
                         "summary",
-                        "details",
+                        DETAILS,
                         "charges",
                         "fees",
                         "amount",
                         "interest",
                         "rate",
-                        "apr",
+                        APR,
                         "adjustment",
                         "deposit",
                         "withdrawal",
@@ -1622,7 +1644,8 @@ public class PDFImportService {
                         "receipt");
 
         // Conjunctions (connecting words - unlikely to start names)
-        final List<String> conjunctions = Arrays.asList("and", "or", "but", "nor", "for", "so", "yet");
+        final List<String> conjunctions =
+                Arrays.asList("and", "or", "but", "nor", "for", "so", "yet");
 
         // Prepositions (relational words - unlikely to start names)
         final List<String> prepositions =
@@ -1650,7 +1673,7 @@ public class PDFImportService {
         // This prevents "Standard Purchases", "Credits Amount", etc. from being detected as names
         final List<String> excludedWords =
                 Arrays.asList(
-                        "transaction",
+                        TRANSACTION,
                         "account",
                         "promo",
                         "phone",
@@ -1659,7 +1682,7 @@ public class PDFImportService {
                         "amount",
                         "amounts",
                         "balance",
-                        "statement",
+                        STATEMENT,
                         "period",
                         "page",
                         "card",
@@ -1667,14 +1690,14 @@ public class PDFImportService {
                         "holder",
                         "cardholder",
                         "summary",
-                        "details",
+                        DETAILS,
                         "information",
                         "sale",
                         "post",
                         "charges",
                         "payment",
                         "history",
-                        "apr",
+                        APR,
                         "variable",
                         "interest",
                         "fee",
@@ -1717,7 +1740,7 @@ public class PDFImportService {
                         "debits",
                         "deposits",
                         "withdrawals",
-                        "merchant",
+                        MERCHANT,
                         "description",
                         "vendor",
                         "store",
@@ -1754,14 +1777,14 @@ public class PDFImportService {
                         "cardmember agreement",
                         "cardholder agreement",
                         "agreement",
-                        "details",
+                        DETAILS,
                         "description",
                         "balance",
                         "interest rate",
                         "pay over time limit",
                         "available pay over time",
                         "annual percentage rate",
-                        "apr",
+                        APR,
                         "trailing interest",
                         "transactions dated",
                         "continued on next page",
@@ -1784,8 +1807,8 @@ public class PDFImportService {
                         "rewards summary",
                         "summary",
                         "news" // Reject section headers like "Wells Fargo Rewards Summary", "Wells
-                // Fargo News"
-                );
+                        // Fargo News"
+                        );
         for (final String phrase : headerPhrases) {
             if (lowerTrimmed.equals(phrase) || lowerTrimmed.contains(phrase)) {
                 return false; // Reject common header phrases (exact match or contains match)
@@ -1811,7 +1834,9 @@ public class PDFImportService {
                     try {
                         final Pattern bankPattern =
                                 Pattern.compile(
-                                        "\\b" + Pattern.quote(bankName.toLowerCase(Locale.ROOT)) + "\\b",
+                                        "\\b"
+                                                + Pattern.quote(bankName.toLowerCase(Locale.ROOT))
+                                                + "\\b",
                                         Pattern.CASE_INSENSITIVE);
                         if (bankPattern.matcher(lowerTrimmed).find()) {
                             // Rejected name candidate - contains bank/institution name
@@ -1835,7 +1860,7 @@ public class PDFImportService {
                         "platinum card",
                         "gold card",
                         "silver card" // Card types not in INSTITUTION_KEYWORDS
-                );
+                        );
         for (final String company : companyNames) {
             // Use word boundaries for consistency
             final Pattern companyPattern =
@@ -1961,14 +1986,16 @@ public class PDFImportService {
                 if (part.isEmpty()) {
                     continue; // Skip empty parts from consecutive hyphens/apostrophes
 
-                    // Remove trailing period (common in abbreviations like "J." or suffixes like "Jr.")
+                    // Remove trailing period (common in abbreviations like "J." or suffixes like
+                    // "Jr.")
                     // But keep the period for validation - we'll check the base part
                 }
                 final String partWithoutPeriod = part.replaceAll("\\.$", "");
                 if (partWithoutPeriod.isEmpty()) {
                     continue; // Part is only a period
 
-                    // Check if part (without trailing period) is ALL CAPS (must contain at least one
+                    // Check if part (without trailing period) is ALL CAPS (must contain at least
+                    // one
                     // letter and all letters uppercase)
                 }
                 if (!partWithoutPeriod.matches(".*[A-Z].*")
@@ -2046,7 +2073,7 @@ public class PDFImportService {
                         "CHN",
                         "INT",
                         "INTERNATIONAL" // Common in airport codes and transaction descriptions
-                );
+                        );
 
         // Reject names containing common 2-letter codes that appear in transaction
         // descriptions/airport codes
@@ -2063,7 +2090,7 @@ public class PDFImportService {
                         "LA",
                         "TX",
                         "FL" // Common airport/state/country codes
-                );
+                        );
 
         // Reject common airline/merchant names that appear in transaction descriptions
         final List<String> airlineMerchantNames =
@@ -2112,14 +2139,16 @@ public class PDFImportService {
         // Guard against empty array (shouldn't happen due to earlier checks, but defensive)
         if (nameWords.length > 0) {
             final boolean isAllCaps =
-                    trimmed.equals(trimmed.toUpperCase(Locale.ROOT)) && trimmed.matches(".*[A-Z].*");
+                    trimmed.equals(trimmed.toUpperCase(Locale.ROOT))
+                            && trimmed.matches(".*[A-Z].*");
 
             for (final String word : nameWords) {
                 if (word == null || word.isBlank()) {
                     continue; // Skip null or empty words
                 }
                 // Remove punctuation for comparison (e.g., "WA," -> "WA")
-                final String cleanWord = word.replaceAll("[.,;:]+$", "").trim().toUpperCase(Locale.ROOT);
+                final String cleanWord =
+                        word.replaceAll("[.,;:]+$", "").trim().toUpperCase(Locale.ROOT);
                 if (cleanWord.isEmpty()) {
                     continue;
                 }
@@ -2182,7 +2211,8 @@ public class PDFImportService {
      * Check if a candidate username matches account holder name (partial/fuzzy matching) Compares
      * first, middle, last name components
      */
-    private boolean matchesAccountHolderName(final String candidate, final String accountHolderName) {
+    private boolean matchesAccountHolderName(
+            final String candidate, final String accountHolderName) {
         if (candidate == null || accountHolderName == null) {
             return false;
         }
@@ -2388,7 +2418,10 @@ public class PDFImportService {
      * transaction lines to avoid picking merchant names or transaction descriptions
      */
     private List<String> findUsernameCandidates(
-            final String[] lines, final int transactionLineIndex, final int minLinesBefore, final int maxLinesBefore) {
+            final String[] lines,
+            final int transactionLineIndex,
+            final int minLinesBefore,
+            final int maxLinesBefore) {
         final List<String> candidates = new ArrayList<>();
 
         // Guard against null or invalid inputs
@@ -2523,7 +2556,8 @@ public class PDFImportService {
             // isValidNameFormat AND is backed by a real contextual anchor (address
             // line + ZIP within the next 2 lines). That combination makes false-
             // matching a merchant name extremely unlikely.
-            final boolean allCaps = line.equals(line.toUpperCase(Locale.ROOT)) && line.matches(".*[A-Z].*");
+            final boolean allCaps =
+                    line.equals(line.toUpperCase(Locale.ROOT)) && line.matches(".*[A-Z].*");
             final boolean titleCase = !allCaps && looksLikeTitleCaseName(line);
             if ((allCaps || titleCase) && isValidNameFormat(line)) {
                 // Check following lines (up to 2 lines ahead) for contextual patterns
@@ -2553,7 +2587,8 @@ public class PDFImportService {
                                 || nextNextLine.matches(".*\\b\\d{5}\\s+\\d{4}\\b.*")) {
                             // Also check if middle line (i+1) looks like street address
                             if (i + 1 < lines.length && i + 1 < transactionLineIndex) {
-                                final String middleLine = lines[i + 1] != null ? lines[i + 1].trim() : "";
+                                final String middleLine =
+                                        lines[i + 1] != null ? lines[i + 1].trim() : "";
                                 if (!middleLine.isEmpty()
                                         && (middleLine.matches("^\\d+\\s+.*")
                                                 || middleLine
@@ -2684,7 +2719,8 @@ public class PDFImportService {
         // mixed-case set is intentionally not retained.
         final List<String> allCapsCandidates = new ArrayList<>();
         for (final String candidate : validCandidates) {
-            if (candidate.equals(candidate.toUpperCase(Locale.ROOT)) && candidate.matches(".*[A-Z].*")) {
+            if (candidate.equals(candidate.toUpperCase(Locale.ROOT))
+                    && candidate.matches(".*[A-Z].*")) {
                 allCapsCandidates.add(candidate);
             }
         }
@@ -2863,7 +2899,8 @@ public class PDFImportService {
             return primary;
         }
         final Set<String> seen = new HashSet<>();
-        final List<Map<String, String>> merged = new ArrayList<>(primary.size() + additional.size());
+        final List<Map<String, String>> merged =
+                new ArrayList<>(primary.size() + additional.size());
         for (final Map<String, String> row : primary) {
             seen.add(dedupeKey(row));
             merged.add(row);
@@ -2899,7 +2936,8 @@ public class PDFImportService {
      * @param pageCount Total pages, for sizing up the "is this a long statement or a short
      *     receipt?" hypothesis.
      */
-    private String pdfDiagnosticMessage(final String fullText, final int textLength, final int pageCount) {
+    private String pdfDiagnosticMessage(
+            final String fullText, final int textLength, final int pageCount) {
         // Empty or near-empty extraction → almost certainly a scanned PDF.
         // 200 chars is a conservative floor: a page of real statement text
         // runs thousands of characters.
@@ -2912,8 +2950,8 @@ public class PDFImportService {
         // statement (cover letter, disclosure document) or we missed the layout.
         final String lower = fullText.toLowerCase(Locale.ROOT);
         final boolean looksLikeStatement =
-                lower.contains("transaction")
-                        || lower.contains("statement")
+                lower.contains(TRANSACTION)
+                        || lower.contains(STATEMENT)
                         || lower.contains("balance")
                         || lower.contains("available credit")
                         || lower.contains("posting date");
@@ -3063,21 +3101,21 @@ public class PDFImportService {
         final List<List<String>> transactionHeaderPatterns =
                 Arrays.asList(
                         // 4-column patterns (Date, User, Description, Amount)
-                        Arrays.asList("date", "user", "description", "amount"),
+                        Arrays.asList("date", USER, "description", "amount"),
                         Arrays.asList("date", "user name", "description", "amount"),
-                        Arrays.asList("transaction date", "user", "description", "amount"),
-                        Arrays.asList("date", "user", "details", "amount"),
-                        Arrays.asList("date", "user", "memo", "amount"),
+                        Arrays.asList("transaction date", USER, "description", "amount"),
+                        Arrays.asList("date", USER, DETAILS, "amount"),
+                        Arrays.asList("date", USER, MEMO, "amount"),
                         // 3-column patterns (Date, Description, Amount)
                         Arrays.asList("date", "description", "amount"),
                         Arrays.asList("transaction date", "description", "amount"),
                         Arrays.asList("trans date", "post date", "description", "amount"),
                         Arrays.asList("transaction date", "post date", "description", "amount"),
                         Arrays.asList("posting date", "description", "amount"),
-                        Arrays.asList("date", "transaction", "amount"),
-                        Arrays.asList("date", "details", "amount"),
-                        Arrays.asList("date", "memo", "amount"),
-                        Arrays.asList("date", "payee", "amount"),
+                        Arrays.asList("date", TRANSACTION, "amount"),
+                        Arrays.asList("date", DETAILS, "amount"),
+                        Arrays.asList("date", MEMO, "amount"),
+                        Arrays.asList("date", PAYEE, "amount"),
                         Arrays.asList("posted date", "description", "amount"),
                         Arrays.asList("settlement date", "description", "amount"));
 
@@ -3157,7 +3195,8 @@ public class PDFImportService {
                     // we detect one, update currentUsername so subsequent rows in
                     // this section attribute to the new cardholder. Non-Amex
                     // family cards (Chase, BoA, Wells) use this shape.
-                    final String inlineCardholder = detectInlineCardholderSection(line, detectedAccount);
+                    final String inlineCardholder =
+                            detectInlineCardholderSection(line, detectedAccount);
                     if (inlineCardholder != null) {
                         currentUsername = inlineCardholder;
                         LOGGER.info(
@@ -3198,10 +3237,10 @@ public class PDFImportService {
                                             && line.length() > 50)
                                     || (lineLower.contains("closing date")
                                             && line.length() > 50
-                                            && !lineLower.contains("transaction"))
+                                            && !lineLower.contains(TRANSACTION))
                                     || (lineLower.contains("statement date")
                                             && line.length() > 50
-                                            && !lineLower.contains("transaction")))) {
+                                            && !lineLower.contains(TRANSACTION)))) {
                         continue;
                     }
 
@@ -3230,11 +3269,11 @@ public class PDFImportService {
                             findField(
                                     row,
                                     "description",
-                                    "details",
-                                    "memo",
-                                    "payee",
-                                    "transaction",
-                                    "merchant");
+                                    DETAILS,
+                                    MEMO,
+                                    PAYEE,
+                                    TRANSACTION,
+                                    MERCHANT);
 
                     // CRITICAL: All three fields (date, description, amount) must be present and
                     // valid
@@ -3285,20 +3324,21 @@ public class PDFImportService {
                     // family accounts)
                     // Names like "TOM TRACKER" and "ROGER BRANDON" may appear after header but
                     // before transaction lines
-                    final String detectedUsername = detectUsernameBeforeHeader(lines, i, detectedAccount);
+                    final String detectedUsername =
+                            detectUsernameBeforeHeader(lines, i, detectedAccount);
                     if (detectedUsername != null) {
                         currentUsername = detectedUsername;
                         // Detected username before transaction
                     }
 
                     // If user field exists in row, preserve it (it overrides detected username)
-                    final String userStr = findField(row, "user", "user name", "user_name");
+                    final String userStr = findField(row, USER, "user name", "user_name");
                     if (userStr != null && !userStr.isBlank()) {
-                        row.put("user", userStr.trim());
+                        row.put(USER, userStr.trim());
                     } else if (currentUsername != null) {
                         // Apply detected username (either from before header or before this
                         // transaction)
-                        row.put("user", currentUsername);
+                        row.put(USER, currentUsername);
                         LOGGER.info(
                                 "Applied detected username '{}' to transaction at line {}",
                                 currentUsername,
@@ -3366,7 +3406,8 @@ public class PDFImportService {
             // LOGGER.debug("SUM Line = {}", line);
 
             // Detect username from lines before this transaction (1-4 lines before)
-            final String detectedUsername = detectUsernameBeforeHeader(lines, lineIdx, detectedAccount);
+            final String detectedUsername =
+                    detectUsernameBeforeHeader(lines, lineIdx, detectedAccount);
             if (detectedUsername != null) {
                 currentUsername = detectedUsername;
                 // Detected username for transaction
@@ -3406,7 +3447,8 @@ public class PDFImportService {
 
                             if (linesProcessedStr != null && amountLineIndexStr != null) {
                                 try {
-                                    final int amountLineIndex = Integer.parseInt(amountLineIndexStr);
+                                    final int amountLineIndex =
+                                            Integer.parseInt(amountLineIndexStr);
                                     // Mark all lines from date line (lineIdx) to amount line
                                     // (amountLineIndex) as processed
                                     for (int i = lineIdx; i <= amountLineIndex; i++) {
@@ -3483,9 +3525,9 @@ public class PDFImportService {
                     || lineLower.contains("cash advances")
                     || lineLower.contains("interest rate")
                     ||
-                    // Only reject "apr" if it's clearly informational (e.g., "annual percentage
+                    // Only reject APR if it's clearly informational (e.g., "annual percentage
                     // rate"), not transaction descriptions
-                    (lineLower.contains("apr")
+                    (lineLower.contains(APR)
                             && (lineLower.contains("annual percentage rate")
                                     || lineLower.contains("interest rate")))
                     || lineLower.contains("annual percentage rate")
@@ -3506,10 +3548,10 @@ public class PDFImportService {
                                     && line.length() > 50)
                             || (lineLower.contains("closing date")
                                     && line.length() > 50
-                                    && !lineLower.contains("transaction"))
+                                    && !lineLower.contains(TRANSACTION))
                             || (lineLower.contains("statement date")
                                     && line.length() > 50
-                                    && !lineLower.contains("transaction"))
+                                    && !lineLower.contains(TRANSACTION))
                             ||
                             // Filter "Open to Close Date" headers (false positive - informational
                             // line)
@@ -3600,7 +3642,7 @@ public class PDFImportService {
                 final String afterMatch =
                         dateEnd < line.length()
                                 ? line.substring(dateEnd, Math.min(dateEnd + 20, line.length()))
-                                .toLowerCase(Locale.ROOT)
+                                        .toLowerCase(Locale.ROOT)
                                 : "";
                 if (afterMatch.matches("^\\s*\\-?\\s*days?.*")
                         || afterMatch.matches("^\\s*to\\s+\\d+\\s+days?.*")) {
@@ -3873,7 +3915,7 @@ public class PDFImportService {
 
                 // Apply detected username if available (for multi-card family accounts)
                 if (currentUsername != null) {
-                    row.put("user", currentUsername);
+                    row.put(USER, currentUsername);
                 }
 
                 // Store inferred year for date parsing
@@ -3944,9 +3986,9 @@ public class PDFImportService {
                 || lineLower.contains("cash advances")
                 || lineLower.contains("interest rate")
                 ||
-                // Only reject "apr" if it's clearly informational (e.g., "annual percentage rate"),
+                // Only reject APR if it's clearly informational (e.g., "annual percentage rate"),
                 // not transaction descriptions
-                (lineLower.contains("apr")
+                (lineLower.contains(APR)
                         && (lineLower.contains("annual percentage rate")
                                 || lineLower.contains("interest rate")))
                 || lineLower.contains("annual percentage rate")
@@ -3968,8 +4010,8 @@ public class PDFImportService {
                 ||
                 // Filter "Closing Date" and "Statement Date" headers (any length, unless clearly a
                 // transaction)
-                (lineLower.contains("closing date") && !lineLower.contains("transaction"))
-                || (lineLower.contains("statement date") && !lineLower.contains("transaction"))
+                (lineLower.contains("closing date") && !lineLower.contains(TRANSACTION))
+                || (lineLower.contains("statement date") && !lineLower.contains(TRANSACTION))
                 ||
                 // Filter "Open to Close Date" headers (false positive - informational line)
                 lineLower.contains("open to close date")
@@ -4005,7 +4047,7 @@ public class PDFImportService {
                 (lineLower.contains("account ending")
                         && !lineLower.contains("fees")
                         && !lineLower.contains("amount")
-                        && !lineLower.contains("transaction"))
+                        && !lineLower.contains(TRANSACTION))
                 ||
                 // Filter lines that start with a number (reference/account number) followed by date
                 // and name (no amount)
@@ -4018,7 +4060,7 @@ public class PDFImportService {
                 // Filter informational text about charts/statements
                 lineLower.contains("chart will be shown")
                 || (lineLower.contains("every")
-                        && lineLower.contains("statement")
+                        && lineLower.contains(STATEMENT)
                         && lineLower.contains("months"))
                 ||
                 // Filter phone number lines with informational keywords
@@ -4109,7 +4151,7 @@ public class PDFImportService {
             final String afterMatch =
                     dateEnd < line.length()
                             ? line.substring(dateEnd, Math.min(dateEnd + 20, line.length()))
-                            .toLowerCase(Locale.ROOT)
+                                    .toLowerCase(Locale.ROOT)
                             : "";
             if (afterMatch.matches("^\\s*\\-?\\s*days?.*")
                     || afterMatch.matches("^\\s*to\\s+\\d+\\s+days?.*")) {
@@ -4337,7 +4379,7 @@ public class PDFImportService {
                     row.put("amount", value);
                 } else if (header.contains("date") && isDateString(value)) {
                     row.put("date", value);
-                } else if (header.contains("description") || header.contains("details")) {
+                } else if (header.contains("description") || header.contains(DETAILS)) {
                     // Combine description columns until amount
                     final StringBuilder desc = new StringBuilder();
                     for (int k = j;
@@ -4365,16 +4407,10 @@ public class PDFImportService {
                             "posting date",
                             "posted date",
                             "post date");
-            final String amountStr = findField(row, "amount", "transaction amount", "debit", "credit");
+            final String amountStr =
+                    findField(row, "amount", "transaction amount", "debit", "credit");
             final String description =
-                    findField(
-                            row,
-                            "description",
-                            "details",
-                            "memo",
-                            "payee",
-                            "transaction",
-                            "merchant");
+                    findField(row, "description", DETAILS, MEMO, PAYEE, TRANSACTION, MERCHANT);
 
             // Only validate and return null if ALL required fields are missing AND row is
             // completely empty
@@ -4598,10 +4634,10 @@ public class PDFImportService {
 
         // Common date patterns
         final String[] datePatterns = {
-                "\\d{1,2}[/-]\\d{1,2}[/-]\\d{2,4}", // MM/DD/YYYY or MM-DD-YYYY
-                "\\d{4}[/-]\\d{1,2}[/-]\\d{1,2}", // YYYY/MM/DD
-                "[A-Z][a-z]{2}\\s+\\d{1,2},?\\s+\\d{4}", // Mon DD, YYYY
-                "^\\d{1,2}[/-]\\d{1,2}$" // MM/DD or M/D (common in credit card statements)
+            "\\d{1,2}[/-]\\d{1,2}[/-]\\d{2,4}", // MM/DD/YYYY or MM-DD-YYYY
+            "\\d{4}[/-]\\d{1,2}[/-]\\d{1,2}", // YYYY/MM/DD
+            "[A-Z][a-z]{2}\\s+\\d{1,2},?\\s+\\d{4}", // Mon DD, YYYY
+            "^\\d{1,2}[/-]\\d{1,2}$" // MM/DD or M/D (common in credit card statements)
         };
 
         for (final String pattern : datePatterns) {
@@ -4744,15 +4780,10 @@ public class PDFImportService {
             // Priority: DR > Parentheses > CR > explicit -/+
             // DR = debit = negative (money going out)
             // CR = credit = positive (money coming in)
-            // Parentheses = negative (accounting convention, takes precedence over CR)
-            if (isDebit) {
-                amount = amount.negate();
-            } else if (hasParentheses) {
-                // Parentheses always mean negative, even with CR
-                amount = amount.negate();
-            } else if (isCredit) {
-                // Already positive
-            } else if (isNegative) {
+            // Parentheses = negative (accounting convention, takes precedence over CR).
+            // isCredit branch is deliberately a no-op (already positive); collapse the
+            // chain to avoid an empty else-if.
+            if (isDebit || hasParentheses || (isNegative && !isCredit)) {
                 amount = amount.negate();
             }
 
@@ -4912,7 +4943,8 @@ public class PDFImportService {
      * @param position The start position of the match in the line
      * @return true if valid amount, false otherwise
      */
-    private boolean isValidAmountMatch(final String amountMatch, final String line, final int position) {
+    private boolean isValidAmountMatch(
+            final String amountMatch, final String line, final int position) {
         if (amountMatch == null || amountMatch.isBlank()) {
             return false;
         }
@@ -4959,7 +4991,8 @@ public class PDFImportService {
                 // text
                 final int checkStart = Math.max(0, position - 10);
                 final int checkEnd = Math.min(line.length(), position + amountMatch.length() + 10);
-                final String checkWindow = line.substring(checkStart, checkEnd).toLowerCase(Locale.ROOT);
+                final String checkWindow =
+                        line.substring(checkStart, checkEnd).toLowerCase(Locale.ROOT);
                 // Pattern: digit(s)-digitdigitdigitdigit (account number format like "8-41007")
                 // Match patterns like: "8-41007", "1234-5678", etc.
                 if (checkWindow.matches(".*\\b\\d{1,9}\\s*-\\s*\\d{4,6}\\b.*")) {
@@ -4995,7 +5028,10 @@ public class PDFImportService {
      * @return Map with transaction data, or null if validation fails
      */
     private Map<String, String> createTransactionRow(
-            final String date, final String description, final String amount, final Integer inferredYear) {
+            final String date,
+            final String description,
+            final String amount,
+            final Integer inferredYear) {
         return createTransactionRow(
                 date, description, amount, null, inferredYear); // Default userName to null
     }
@@ -5011,7 +5047,11 @@ public class PDFImportService {
      * @return Map with transaction data, or null if validation fails
      */
     private Map<String, String> createTransactionRow(
-            final String date, final String description, final String amount, final String userName, final Integer inferredYear) {
+            final String date,
+            final String description,
+            final String amount,
+            final String userName,
+            final Integer inferredYear) {
         if (date == null
                 || date.isBlank()
                 || !isValidDescription(description)
@@ -5025,7 +5065,7 @@ public class PDFImportService {
         row.put("amount", amount.trim());
 
         if (userName != null && !userName.isBlank()) {
-            row.put("user", userName.trim());
+            row.put(USER, userName.trim());
         }
 
         if (inferredYear != null) {
@@ -5263,7 +5303,7 @@ public class PDFImportService {
                     createTransactionRow(
                             dateStr, description, amountWithSymbol, null, inferredYear);
             if (!location.isBlank()) {
-                row.put("location", location.trim());
+                row.put(LOCATION, location.trim());
             }
             if (cardLastFour != null) {
                 row.put("cardLastFour", cardLastFour);
@@ -5309,7 +5349,7 @@ public class PDFImportService {
             final Map<String, String> row =
                     createTransactionRow(dateStr, merchant, amountStr, null, inferredYear);
             if (!location.isBlank()) {
-                row.put("location", location.trim());
+                row.put(LOCATION, location.trim());
             }
             return row;
         }
@@ -5345,7 +5385,10 @@ public class PDFImportService {
      * WILMINGTON\n Amex Credit offer\n -$25.00 ⧫
      */
     private Map<String, String> parsePattern7(
-            final String[] lines, final int startIndex, final Integer inferredYear, final String currentUsername) {
+            final String[] lines,
+            final int startIndex,
+            final Integer inferredYear,
+            final String currentUsername) {
         // Boundary checks - need at least 3 lines (date, description, amount)
         if (lines == null || startIndex < 0 || startIndex + 2 >= lines.length) {
             return null;
@@ -5387,7 +5430,7 @@ public class PDFImportService {
         if (!beforeDate.isEmpty() && beforeDate.length() > 3) {
             final String beforeDateLower = beforeDate.toLowerCase(Locale.ROOT);
             if (beforeDateLower.contains("closing")
-                    || beforeDateLower.contains("statement")
+                    || beforeDateLower.contains(STATEMENT)
                     || beforeDateLower.contains("account ending")
                     || beforeDateLower.contains("date")) {
                 // Pattern 7: Rejecting line with header text before date
@@ -5428,7 +5471,8 @@ public class PDFImportService {
             // the start of a new transaction
             // This prevents combining multiple transactions when they're back-to-back
             // Pattern 7 transactions should not have a date in the middle (only at the start)
-            final Pattern datePattern = Pattern.compile("^\\d{1,2}[/-]\\d{1,2}(?:[/-]\\d{2,4})?\\*?\\s+");
+            final Pattern datePattern =
+                    Pattern.compile("^\\d{1,2}[/-]\\d{1,2}(?:[/-]\\d{2,4})?\\*?\\s+");
             if (datePattern.matcher(candidateLine).find()) {
                 // This line starts with a date - it's likely the start of a new transaction
                 // Stop searching for amount and use the last found amount (if any)
@@ -5484,21 +5528,14 @@ public class PDFImportService {
                         foundAmount = null;
                     } else if (beforeAmount.length() > 0) {
                         // Check if text before amount ends with separator characters (|, -, spaces,
-                        // etc.)
-                        // This handles cases like "budgetbuddy-backend  | $14.27" where "|" is a
-                        // separator
+                        // etc.) e.g. "budgetbuddy-backend  | $14.27" where "|" is a separator.
+                        // Only-punctuation prefixes ("·", whitespace) and very-short fragments are
+                        // acceptable too. Reject only when prefix is substantial alphanumeric text
+                        // without a trailing separator — that's a description line, not an amount.
                         final boolean endsWithSeparator = beforeAmount.matches(".*[|\\-\\s]+$");
-
-                        if (endsWithSeparator) {
-                            // Ends with separator - likely acceptable (e.g., "text | $amount")
-                            // Allow it
-                        } else if (beforeAmount.matches("^[^a-zA-Z0-9]*$")) {
-                            // Only punctuation/spaces - likely a separator, accept it
-                        } else if (beforeAmount.length() > 5) {
-                            // Has substantial alphanumeric text that doesn't end with separator
-                            // This is likely descriptive text, reject it
+                        final boolean punctuationOnly = beforeAmount.matches("^[^a-zA-Z0-9]*$");
+                        if (!endsWithSeparator && !punctuationOnly && beforeAmount.length() > 5) {
                             foundAmount = null;
-                            // Very short text - might be a code or short identifier, accept it
                         }
                     }
                 }
@@ -5560,17 +5597,14 @@ public class PDFImportService {
                 // This prevents false positives where description lines from previous transactions
                 // are detected as usernames
                 if (currentUsername != null && !currentUsername.isBlank()) {
-                    // Provided username takes precedence - use it
+                    // Provided username takes precedence — use it.
                     usernameToUse = currentUsername;
-                    currentUsername.equals(detectedUsername);
                 } else {
-                    // No provided username - use detected one
+                    // No provided username — use the detected one.
                     usernameToUse = detectedUsername;
-                    // Pattern 7: Using detected username
                 }
-            } else if (usernameToUse == null || usernameToUse.isBlank()) {
-                // Pattern 7: No username detected, using provided username
             }
+            // If neither path produced a username, usernameToUse stays as it was.
         }
 
         // Extract description from line1 (after date), removing username if present
@@ -5696,7 +5730,7 @@ public class PDFImportService {
                 }
                 // If location is present, keep it separate and remove trailing location from
                 // description
-                final String location = fields.get("location");
+                final String location = fields.get(LOCATION);
                 if (location != null && !location.isBlank()) {
                     final String locTrimmed = location.trim();
                     description =
@@ -5709,18 +5743,18 @@ public class PDFImportService {
             if (fields.containsKey("amount")) {
                 result.put("amount", fields.get("amount"));
             }
-            if (fields.containsKey("location")) {
-                result.put("location", fields.get("location"));
+            if (fields.containsKey(LOCATION)) {
+                result.put(LOCATION, fields.get(LOCATION));
             }
-            if (fields.containsKey("merchant")) {
-                result.put("merchant", fields.get("merchant"));
+            if (fields.containsKey(MERCHANT)) {
+                result.put(MERCHANT, fields.get(MERCHANT));
             }
             if (inferredYear != null) {
                 result.put("_inferredYear", String.valueOf(inferredYear));
             }
             // Add username if provided (for multi-card family accounts)
             if (currentUsername != null && !currentUsername.isBlank()) {
-                result.put("user", currentUsername.trim());
+                result.put(USER, currentUsername.trim());
             }
             // Validate that we have at least date, description, and amount
             if (result.containsKey("date")
@@ -5738,7 +5772,7 @@ public class PDFImportService {
             if (result != null) {
                 // Add username if provided (for multi-card family accounts)
                 if (currentUsername != null && !currentUsername.isBlank()) {
-                    result.put("user", currentUsername.trim());
+                    result.put(USER, currentUsername.trim());
                 }
                 return result;
             }
@@ -5792,7 +5826,8 @@ public class PDFImportService {
         transaction.setDate(date);
 
         // Parse amount - reuse CSVImportService logic
-        final String amountString = findField(row, "amount", "transaction amount", "debit", "credit");
+        final String amountString =
+                findField(row, "amount", "transaction amount", "debit", "credit");
 
         if (amountString == null || amountString.isEmpty()) {
             // parseTransaction: Amount string is null or empty
@@ -5816,8 +5851,7 @@ public class PDFImportService {
         // Parse description early - needed for Wells Fargo payment pattern detection in sign
         // reversal
         final String description =
-                findField(
-                        row, "description", "details", "memo", "payee", "transaction", "merchant");
+                findField(row, "description", DETAILS, MEMO, PAYEE, TRANSACTION, MERCHANT);
 
         // Validate description is not empty (required field for valid transaction)
         if (description == null || description.isBlank()) {
@@ -5895,19 +5929,19 @@ public class PDFImportService {
 
         // Parse user name (card/account user - family member who made the transaction)
         // This is from the User field in 4-column format: Date, User, Description, Amount
-        final String userName = findField(row, "user", "user name", "user_name");
-        transaction.setUserName(
-                userName != null && !userName.isBlank() ? userName.trim() : null);
+        final String userName = findField(row, USER, "user name", "user_name");
+        transaction.setUserName(userName != null && !userName.isBlank() ? userName.trim() : null);
 
         // Parse location (if provided separately by pattern matcher)
-        final String location = findField(row, "location", "store", "city", "state", "branch", "address");
-        transaction.setLocation(
-                location != null && !location.isBlank() ? location.trim() : null);
+        final String location =
+                findField(row, LOCATION, "store", "city", "state", "branch", "address");
+        transaction.setLocation(location != null && !location.isBlank() ? location.trim() : null);
 
         // Card last-4 (populated by Pattern 4 and any Amex family-card header
         // logic that recognises "Card ending in XXXX"). Null when the source
         // doesn't identify a specific card.
-        final String cardLastFour = findField(row, "cardLastFour", "card last four", "cardlastfour");
+        final String cardLastFour =
+                findField(row, "cardLastFour", "card last four", "cardlastfour");
         if (cardLastFour != null
                 && cardLastFour.trim().length() == 4
                 && cardLastFour.trim().matches("\\d{4}")) {
@@ -5925,7 +5959,7 @@ public class PDFImportService {
 
         // Parse merchant name - extract from merchant field or description (NOT from user field)
         // Merchant is where the purchase was made (e.g., "Amazon", "Starbucks")
-        String merchantName = findField(row, "merchant", "merchant name", "payee");
+        String merchantName = findField(row, MERCHANT, "merchant name", PAYEE);
         if (merchantName == null || merchantName.isBlank()) {
             // If no explicit merchant field, try to extract from description
             // For now, use description as fallback (could be enhanced with merchant extraction
@@ -5936,8 +5970,7 @@ public class PDFImportService {
         if (cleanedMerchantName == null || cleanedMerchantName.isEmpty()) {
             cleanedMerchantName = merchantName;
         }
-        String resolvedMerchant =
-                cleanedMerchantName;
+        String resolvedMerchant = cleanedMerchantName;
 
         // Prefer Amex Pattern 7's per-line structure when available. The row
         // keys _amexMerchantLine / _amexCityLine / _amexCountryLine are
@@ -5983,7 +6016,8 @@ public class PDFImportService {
         transaction.setCurrencyCode(currencyCode);
 
         // Parse payment channel
-        final String paymentChannel = findField(row, "payment channel", "payment method", "channel");
+        final String paymentChannel =
+                findField(row, "payment channel", "payment method", "channel");
         transaction.setPaymentChannel(paymentChannel);
 
         // Category detection - use import parser (determination happens on creation)
@@ -6042,8 +6076,8 @@ public class PDFImportService {
                                 "(AUTOMATIC|CHECK|CASH|TRANSFER|PHONE|CALL|RECEIVED)\\s+"
                                 + // Payment type
                                 "PAYMENT\\s*-\\s*THANK\\s+YOU" // "PAYMENT - THANK YOU" (with
-                // flexible whitespace/dash)
-                );
+                        // flexible whitespace/dash)
+                        );
 
         return wellsFargoPaymentPattern.matcher(trimmed).find();
     }
@@ -6079,7 +6113,9 @@ public class PDFImportService {
      *     content unchanged
      */
     private String extractDescriptionRemovingUsername(
-            final String line1Content, final String currentUsername, final String detectedUsername) {
+            final String line1Content,
+            final String currentUsername,
+            final String detectedUsername) {
         if (line1Content == null || line1Content.isBlank()) {
             return "";
         }
@@ -6202,7 +6238,8 @@ public class PDFImportService {
      * @param detectedUsername Detected username to check for removal
      * @return Text with detectedUsername removed if present, otherwise original text
      */
-    private String removeDetectedUsernameIfPresent(final String remainingText, final String detectedUsername) {
+    private String removeDetectedUsernameIfPresent(
+            final String remainingText, final String detectedUsername) {
         if (remainingText == null
                 || remainingText.isBlank()
                 || detectedUsername == null
@@ -6257,7 +6294,8 @@ public class PDFImportService {
      * @param inferredYear Optional year inferred from PDF context
      * @param isUSLocale If true, uses MM/DD format; if false, uses DD/MM format
      */
-    private LocalDate parseDate(final String dateString, final Integer inferredYear, final boolean isUSLocale) {
+    private LocalDate parseDate(
+            final String dateString, final Integer inferredYear, final boolean isUSLocale) {
         if (dateString == null || dateString.isBlank()) {
             return null;
         }
@@ -6309,7 +6347,8 @@ public class PDFImportService {
             }
         }
 
-        final Pattern mmddPattern = Pattern.compile("^(\\d{1,2})[/-](\\d{1,2})(?:[/-](\\d{2,4}))?$");
+        final Pattern mmddPattern =
+                Pattern.compile("^(\\d{1,2})[/-](\\d{1,2})(?:[/-](\\d{2,4}))?$");
         final Matcher mmddMatcher = mmddPattern.matcher(trimmed);
 
         if (mmddMatcher.matches()) {
@@ -6445,7 +6484,10 @@ public class PDFImportService {
      * points
      */
     private void extractCreditCardMetadata(
-            final String fullText, final ImportResult result, final Integer inferredYear, final boolean isUSLocale) {
+            final String fullText,
+            final ImportResult result,
+            final Integer inferredYear,
+            final boolean isUSLocale) {
         if (fullText == null || fullText.isBlank()) {
             // Credit Card Metadata: Cannot extract metadata - fullText is null or empty
             return;
@@ -6497,21 +6539,21 @@ public class PDFImportService {
             final String[] lines, final Integer inferredYear, final boolean isUSLocale) {
         // Normalized patterns for payment due date
         final Pattern[] dueDatePatterns = {
-                // "Payment due date: MM/DD/YYYY" or "Payment due date MM/DD/YYYY"
-                Pattern.compile(
-                        "(?i)payment\\s+due\\s+date[\\s:]*([\\d]{1,2}[/-][\\d]{1,2}(?:[/-][\\d]{2,4})?)"),
-                // "Due date: MM/DD/YYYY" or "Due date MM/DD/YYYY"
-                Pattern.compile("(?i)due\\s+date[\\s:]*([\\d]{1,2}[/-][\\d]{1,2}(?:[/-][\\d]{2,4})?)"),
-                // "Payment due: MM/DD/YYYY"
-                Pattern.compile(
-                        "(?i)payment\\s+due[\\s:]*([\\d]{1,2}[/-][\\d]{1,2}(?:[/-][\\d]{2,4})?)"),
-                // "Due: MM/DD/YYYY"
-                Pattern.compile("(?i)due[\\s:]+([\\d]{1,2}[/-][\\d]{1,2}(?:[/-][\\d]{2,4})?)"),
-                // "Payment due on MM/DD/YYYY"
-                Pattern.compile(
-                        "(?i)payment\\s+due\\s+on[\\s:]*([\\d]{1,2}[/-][\\d]{1,2}(?:[/-][\\d]{2,4})?)"),
-                // "Due on MM/DD/YYYY"
-                Pattern.compile("(?i)due\\s+on[\\s:]*([\\d]{1,2}[/-][\\d]{1,2}(?:[/-][\\d]{2,4})?)")
+            // "Payment due date: MM/DD/YYYY" or "Payment due date MM/DD/YYYY"
+            Pattern.compile(
+                    "(?i)payment\\s+due\\s+date[\\s:]*([\\d]{1,2}[/-][\\d]{1,2}(?:[/-][\\d]{2,4})?)"),
+            // "Due date: MM/DD/YYYY" or "Due date MM/DD/YYYY"
+            Pattern.compile("(?i)due\\s+date[\\s:]*([\\d]{1,2}[/-][\\d]{1,2}(?:[/-][\\d]{2,4})?)"),
+            // "Payment due: MM/DD/YYYY"
+            Pattern.compile(
+                    "(?i)payment\\s+due[\\s:]*([\\d]{1,2}[/-][\\d]{1,2}(?:[/-][\\d]{2,4})?)"),
+            // "Due: MM/DD/YYYY"
+            Pattern.compile("(?i)due[\\s:]+([\\d]{1,2}[/-][\\d]{1,2}(?:[/-][\\d]{2,4})?)"),
+            // "Payment due on MM/DD/YYYY"
+            Pattern.compile(
+                    "(?i)payment\\s+due\\s+on[\\s:]*([\\d]{1,2}[/-][\\d]{1,2}(?:[/-][\\d]{2,4})?)"),
+            // "Due on MM/DD/YYYY"
+            Pattern.compile("(?i)due\\s+on[\\s:]*([\\d]{1,2}[/-][\\d]{1,2}(?:[/-][\\d]{2,4})?)")
         };
 
         for (final String line : lines) {
@@ -6543,16 +6585,16 @@ public class PDFImportService {
     private BigDecimal extractMinimumPaymentDue(final String[] lines) {
         // Normalized patterns for minimum payment due
         final Pattern[] minPaymentPatterns = {
-                // "Minimum Payment Due: $123.45" or "Minimum Payment Due $123.45"
-                Pattern.compile("(?i)minimum\\s+payment\\s+due[\\s:]*" + US_AMOUNT_PATTERN_STR),
-                // "Min Payment Due: $123.45"
-                Pattern.compile("(?i)min(?:imum)?\\s+payment\\s+due[\\s:]*" + US_AMOUNT_PATTERN_STR),
-                // "Minimum Payment: $123.45"
-                Pattern.compile("(?i)minimum\\s+payment[\\s:]*" + US_AMOUNT_PATTERN_STR),
-                // "Min Payment: $123.45"
-                Pattern.compile("(?i)min(?:imum)?\\s+payment[\\s:]*" + US_AMOUNT_PATTERN_STR),
-                // "Payment Due: $123.45" (when context suggests minimum)
-                Pattern.compile("(?i)payment\\s+due[\\s:]*" + US_AMOUNT_PATTERN_STR)
+            // "Minimum Payment Due: $123.45" or "Minimum Payment Due $123.45"
+            Pattern.compile("(?i)minimum\\s+payment\\s+due[\\s:]*" + US_AMOUNT_PATTERN_STR),
+            // "Min Payment Due: $123.45"
+            Pattern.compile("(?i)min(?:imum)?\\s+payment\\s+due[\\s:]*" + US_AMOUNT_PATTERN_STR),
+            // "Minimum Payment: $123.45"
+            Pattern.compile("(?i)minimum\\s+payment[\\s:]*" + US_AMOUNT_PATTERN_STR),
+            // "Min Payment: $123.45"
+            Pattern.compile("(?i)min(?:imum)?\\s+payment[\\s:]*" + US_AMOUNT_PATTERN_STR),
+            // "Payment Due: $123.45" (when context suggests minimum)
+            Pattern.compile("(?i)payment\\s+due[\\s:]*" + US_AMOUNT_PATTERN_STR)
         };
 
         for (final String line : lines) {
@@ -6606,7 +6648,7 @@ public class PDFImportService {
                         "(?i)(?:points|pts|rewards\\s+points|membership\\s+rewards\\s+points|thank\\s+you\\s+points|citi\\s+thank\\s+you\\s+points)"
                                 + "\\s+as\\s+of\\s+\\d{1,2}/\\d{1,2}/\\d{2,4}[\\s:]+"
                                 + "(\\d{1,7}(?:,\\d{3})*)" // Number after date and colon
-                );
+                        );
 
         // Pattern 2: "Points: 5,000" or "Points 5,000" (standard format)
         final Pattern pointsPattern =
@@ -6616,8 +6658,8 @@ public class PDFImportService {
                                 + "(?![\\d/]{1,2}/[\\d/]{1,2}/[\\d]{2,4})"
                                 + // Negative lookahead: don't match dates immediately after
                                 "(\\d{1,7}(?:,\\d{3})*)" // Number with optional thousands
-                // separators (0 to 10 million)
-                );
+                        // separators (0 to 10 million)
+                        );
 
         // Pattern 2a: "Total points transferred to [Partner] 8,733" (e.g., "Total points
         // transferred to Marriott 8,733")
@@ -6625,8 +6667,8 @@ public class PDFImportService {
                 Pattern.compile(
                         "(?i)total\\s+points\\s+transferred\\s+to\\s+[a-z]+\\s+"
                                 + "(\\d{1,7}(?:,\\d{3})*)" // Number with optional thousands
-                // separators
-                );
+                        // separators
+                        );
 
         // Pattern 3: Simpler pattern for "Points" or "Pts" followed by number
         final Pattern simplePointsPattern =
@@ -6635,8 +6677,8 @@ public class PDFImportService {
                                 + "(?![\\d/]{1,2}/[\\d/]{1,2}/[\\d]{2,4})"
                                 + // Negative lookahead: don't match dates
                                 "(\\d{1,7}(?:,\\d{3})*)" // Number with optional thousands
-                // separators
-                );
+                        // separators
+                        );
 
         // Try single-line extraction first
         for (final String line : lines) {

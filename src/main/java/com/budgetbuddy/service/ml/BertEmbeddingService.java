@@ -263,7 +263,8 @@ public class BertEmbeddingService {
     }
 
     /** Attention-masked mean pooling + L2 normalization (sentence-transformers standard). */
-    private static float[] meanPoolAndNormalize(final float[][] tokenOutputs, final long[] attentionMask) {
+    private static float[] meanPoolAndNormalize(
+            final float[][] tokenOutputs, final long[] attentionMask) {
         final int seqLen = tokenOutputs.length;
         final int hiddenDim = tokenOutputs[0].length;
         final float[] sum = new float[hiddenDim];

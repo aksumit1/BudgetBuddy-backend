@@ -91,7 +91,8 @@ class FIDO2CredentialRepositoryTest {
                 .thenReturn(testCredential);
 
         // When
-        final Optional<FIDO2CredentialTable> result = repository.findByCredentialId(testCredentialId);
+        final Optional<FIDO2CredentialTable> result =
+                repository.findByCredentialId(testCredentialId);
 
         // Then
         assertTrue(result.isPresent());
@@ -126,7 +127,8 @@ class FIDO2CredentialRepositoryTest {
                 .thenReturn(null);
 
         // When
-        final Optional<FIDO2CredentialTable> result = repository.findByCredentialId(testCredentialId);
+        final Optional<FIDO2CredentialTable> result =
+                repository.findByCredentialId(testCredentialId);
 
         // Then
         assertFalse(result.isPresent());

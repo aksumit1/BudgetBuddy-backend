@@ -1,15 +1,13 @@
 package com.budgetbuddy.service;
 
-
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import java.nio.charset.StandardCharsets;
 import com.budgetbuddy.model.dynamodb.GoalTable;
 import com.budgetbuddy.model.dynamodb.TransactionTable;
 import com.budgetbuddy.repository.dynamodb.GoalRepository;
 import com.budgetbuddy.repository.dynamodb.TransactionRepository;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.util.List;
+import java.nio.charset.StandardCharsets;
 import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -163,7 +161,7 @@ public class GoalRoundUpService {
     /** Get total round-up contributions for a goal in a time period */
     public BigDecimal getRoundUpTotal(final GoalTable goal, final String userId, final int days) {
         // Get all transactions assigned to goal
-                transactionRepository.findByUserIdAndGoalId(userId, goal.getGoalId());
+        transactionRepository.findByUserIdAndGoalId(userId, goal.getGoalId());
 
         // Calculate total round-ups (simplified - would need to track round-up transactions
         // separately)

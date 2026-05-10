@@ -1,6 +1,5 @@
 package com.budgetbuddy.plaid;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -31,6 +30,7 @@ import com.budgetbuddy.repository.dynamodb.TransactionRepository;
 import com.budgetbuddy.repository.dynamodb.UserRepository;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Base64;
@@ -64,6 +64,15 @@ import org.slf4j.LoggerFactory;
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
 class PlaidWebhookServiceTest {
+
+    private static final String ITEM_123 = "item-123";
+    private static final String USER_123 = "user-123";
+    private static final String WEBHOOK_CODE = "webhook_code";
+    private static final String ITEM_ID = "item_id";
+    private static final String TXN_123 = "txn-123";
+    private static final String REMOVED_TRANSACTIONS = "removed_transactions";
+    private static final String ACCOUNT_123 = "account-123";
+    private static final String SUCCESS = "success";
 
     @Mock private UserRepository userRepository;
 
@@ -110,8 +119,8 @@ class PlaidWebhookServiceTest {
     void testVerifyWebhookSignatureWithValidSignatureReturnsTrue() throws Exception {
         // Given
         final Map<String, Object> payload = new HashMap<>();
-        payload.put("webhook_code", "INITIAL_UPDATE");
-        payload.put("item_id", "item-123");
+        payload.put(WEBHOOK_CODE, "INITIAL_UPDATE");
+        payload.put(ITEM_ID, ITEM_123);
 
         final String payloadJson = "{\"webhook_code\":\"INITIAL_UPDATE\",\"item_id\":\"item-123\"}";
         when(objectMapper.writeValueAsString(payload)).thenReturn(payloadJson);
@@ -135,7 +144,7 @@ class PlaidWebhookServiceTest {
     void testVerifyWebhookSignatureWithInvalidSignatureReturnsFalse() throws Exception {
         // Given
         final Map<String, Object> payload = new HashMap<>();
-        payload.put("webhook_code", "INITIAL_UPDATE");
+        payload.put(WEBHOOK_CODE, "INITIAL_UPDATE");
 
         final String payloadJson = "{\"webhook_code\":\"INITIAL_UPDATE\"}";
         when(objectMapper.writeValueAsString(payload)).thenReturn(payloadJson);
@@ -186,20 +195,20 @@ class PlaidWebhookServiceTest {
     void testHandleTransactionWebhookWithInitialUpdateCallsSyncTransactions() {
         // Given
         final Map<String, Object> payload = new HashMap<>();
-        payload.put("webhook_code", "INITIAL_UPDATE");
-        payload.put("item_id", "item-123");
+        payload.put(WEBHOOK_CODE, "INITIAL_UPDATE");
+        payload.put(ITEM_ID, ITEM_123);
 
         final UserTable user = new UserTable();
-        user.setUserId("user-123");
+        user.setUserId(USER_123);
         user.setEmail("test@example.com");
 
         final AccountTable account = new AccountTable();
-        account.setAccountId("account-123");
-        account.setUserId("user-123");
-        account.setPlaidItemId("item-123");
+        account.setAccountId(ACCOUNT_123);
+        account.setUserId(USER_123);
+        account.setPlaidItemId(ITEM_123);
 
-        when(accountRepository.findByPlaidItemId("item-123")).thenReturn(List.of(account));
-        when(userRepository.findById("user-123")).thenReturn(Optional.of(user));
+        when(accountRepository.findByPlaidItemId(ITEM_123)).thenReturn(List.of(account));
+        when(userRepository.findById(USER_123)).thenReturn(Optional.of(user));
 
         // When
         service.handleTransactionWebhook(payload);
@@ -215,8 +224,8 @@ class PlaidWebhookServiceTest {
     void testHandleTransactionWebhookWithHistoricalUpdateCallsSyncTransactions() {
         // Given
         final Map<String, Object> payload = new HashMap<>();
-        payload.put("webhook_code", "HISTORICAL_UPDATE");
-        payload.put("item_id", "item-123");
+        payload.put(WEBHOOK_CODE, "HISTORICAL_UPDATE");
+        payload.put(ITEM_ID, ITEM_123);
 
         // When/Then
         assertDoesNotThrow(
@@ -229,8 +238,8 @@ class PlaidWebhookServiceTest {
     void testHandleTransactionWebhookWithDefaultUpdateCallsSyncNewTransactions() {
         // Given
         final Map<String, Object> payload = new HashMap<>();
-        payload.put("webhook_code", "DEFAULT_UPDATE");
-        payload.put("item_id", "item-123");
+        payload.put(WEBHOOK_CODE, "DEFAULT_UPDATE");
+        payload.put(ITEM_ID, ITEM_123);
 
         // When/Then
         assertDoesNotThrow(
@@ -243,24 +252,24 @@ class PlaidWebhookServiceTest {
     void testHandleTransactionWebhookWithTransactionsRemovedHandlesRemoval() {
         // Given
         final Map<String, Object> payload = new HashMap<>();
-        payload.put("webhook_code", "TRANSACTIONS_REMOVED");
-        payload.put("item_id", "item-123");
-        payload.put("removed_transactions", List.of("txn-123", "txn-456"));
+        payload.put(WEBHOOK_CODE, "TRANSACTIONS_REMOVED");
+        payload.put(ITEM_ID, ITEM_123);
+        payload.put(REMOVED_TRANSACTIONS, List.of(TXN_123, "txn-456"));
 
         final UserTable user = new UserTable();
-        user.setUserId("user-123");
+        user.setUserId(USER_123);
 
         final AccountTable account = new AccountTable();
-        account.setUserId("user-123");
+        account.setUserId(USER_123);
 
         final TransactionTable transaction = new TransactionTable();
-        transaction.setTransactionId("txn-123");
-        transaction.setUserId("user-123");
-        transaction.setPlaidTransactionId("txn-123");
+        transaction.setTransactionId(TXN_123);
+        transaction.setUserId(USER_123);
+        transaction.setPlaidTransactionId(TXN_123);
 
-        when(accountRepository.findByPlaidItemId("item-123")).thenReturn(List.of(account));
-        when(userRepository.findById("user-123")).thenReturn(Optional.of(user));
-        when(transactionRepository.findByPlaidTransactionId("txn-123"))
+        when(accountRepository.findByPlaidItemId(ITEM_123)).thenReturn(List.of(account));
+        when(userRepository.findById(USER_123)).thenReturn(Optional.of(user));
+        when(transactionRepository.findByPlaidTransactionId(TXN_123))
                 .thenReturn(Optional.of(transaction));
         when(transactionRepository.findByPlaidTransactionId("txn-456"))
                 .thenReturn(Optional.empty());
@@ -276,23 +285,23 @@ class PlaidWebhookServiceTest {
     void testHandleItemWebhookWithErrorHandlesError() {
         // Given
         final Map<String, Object> payload = new HashMap<>();
-        payload.put("webhook_code", "ERROR");
-        payload.put("item_id", "item-123");
+        payload.put(WEBHOOK_CODE, "ERROR");
+        payload.put(ITEM_ID, ITEM_123);
         payload.put("error_code", "ITEM_LOGIN_REQUIRED");
         payload.put("error_message", "User needs to re-authenticate");
 
         final UserTable user = new UserTable();
-        user.setUserId("user-123");
+        user.setUserId(USER_123);
         user.setEmail("test@example.com");
 
         final AccountTable account = new AccountTable();
-        account.setUserId("user-123");
+        account.setUserId(USER_123);
 
-        when(accountRepository.findByPlaidItemId("item-123")).thenReturn(List.of(account));
-        when(userRepository.findById("user-123")).thenReturn(Optional.of(user));
+        when(accountRepository.findByPlaidItemId(ITEM_123)).thenReturn(List.of(account));
+        when(userRepository.findById(USER_123)).thenReturn(Optional.of(user));
         when(notificationService.sendNotification(
                         any(NotificationService.NotificationRequest.class)))
-                .thenReturn(new NotificationService.NotificationResult(true, "success"));
+                .thenReturn(new NotificationService.NotificationResult(true, SUCCESS));
 
         // When
         service.handleItemWebhook(payload);
@@ -306,21 +315,21 @@ class PlaidWebhookServiceTest {
     void testHandleItemWebhookWithPendingExpirationHandlesExpiration() {
         // Given
         final Map<String, Object> payload = new HashMap<>();
-        payload.put("webhook_code", "PENDING_EXPIRATION");
-        payload.put("item_id", "item-123");
+        payload.put(WEBHOOK_CODE, "PENDING_EXPIRATION");
+        payload.put(ITEM_ID, ITEM_123);
 
         final UserTable user = new UserTable();
-        user.setUserId("user-123");
+        user.setUserId(USER_123);
         user.setEmail("test@example.com");
 
         final AccountTable account = new AccountTable();
-        account.setUserId("user-123");
+        account.setUserId(USER_123);
 
-        when(accountRepository.findByPlaidItemId("item-123")).thenReturn(List.of(account));
-        when(userRepository.findById("user-123")).thenReturn(Optional.of(user));
+        when(accountRepository.findByPlaidItemId(ITEM_123)).thenReturn(List.of(account));
+        when(userRepository.findById(USER_123)).thenReturn(Optional.of(user));
         when(notificationService.sendNotification(
                         any(NotificationService.NotificationRequest.class)))
-                .thenReturn(new NotificationService.NotificationResult(true, "success"));
+                .thenReturn(new NotificationService.NotificationResult(true, SUCCESS));
 
         // When
         service.handleItemWebhook(payload);
@@ -334,23 +343,23 @@ class PlaidWebhookServiceTest {
     void testHandleItemWebhookWithPermissionRevokedDeactivatesAccounts() {
         // Given
         final Map<String, Object> payload = new HashMap<>();
-        payload.put("webhook_code", "USER_PERMISSION_REVOKED");
-        payload.put("item_id", "item-123");
+        payload.put(WEBHOOK_CODE, "USER_PERMISSION_REVOKED");
+        payload.put(ITEM_ID, ITEM_123);
 
         final UserTable user = new UserTable();
-        user.setUserId("user-123");
+        user.setUserId(USER_123);
         user.setEmail("test@example.com");
 
         final AccountTable account = new AccountTable();
-        account.setAccountId("account-123");
-        account.setUserId("user-123");
+        account.setAccountId(ACCOUNT_123);
+        account.setUserId(USER_123);
         account.setActive(true);
 
-        when(accountRepository.findByPlaidItemId("item-123")).thenReturn(List.of(account));
-        when(userRepository.findById("user-123")).thenReturn(Optional.of(user));
+        when(accountRepository.findByPlaidItemId(ITEM_123)).thenReturn(List.of(account));
+        when(userRepository.findById(USER_123)).thenReturn(Optional.of(user));
         when(notificationService.sendNotification(
                         any(NotificationService.NotificationRequest.class)))
-                .thenReturn(new NotificationService.NotificationResult(true, "success"));
+                .thenReturn(new NotificationService.NotificationResult(true, SUCCESS));
 
         // When
         service.handleItemWebhook(payload);
@@ -365,8 +374,8 @@ class PlaidWebhookServiceTest {
     void testHandleAuthWebhookLogsEvent() {
         // Given
         final Map<String, Object> payload = new HashMap<>();
-        payload.put("webhook_code", "AUTH");
-        payload.put("item_id", "item-123");
+        payload.put(WEBHOOK_CODE, "AUTH");
+        payload.put(ITEM_ID, ITEM_123);
 
         // When/Then
         assertDoesNotThrow(
@@ -379,8 +388,8 @@ class PlaidWebhookServiceTest {
     void testHandleIncomeWebhookLogsEvent() {
         // Given
         final Map<String, Object> payload = new HashMap<>();
-        payload.put("webhook_code", "INCOME");
-        payload.put("item_id", "item-123");
+        payload.put(WEBHOOK_CODE, "INCOME");
+        payload.put(ITEM_ID, ITEM_123);
 
         // When/Then
         assertDoesNotThrow(
@@ -393,7 +402,7 @@ class PlaidWebhookServiceTest {
     void testHandleTransactionWebhookWithMissingItemIdHandlesGracefully() {
         // Given
         final Map<String, Object> payload = new HashMap<>();
-        payload.put("webhook_code", "INITIAL_UPDATE");
+        payload.put(WEBHOOK_CODE, "INITIAL_UPDATE");
         // Missing item_id
 
         // When/Then
@@ -407,8 +416,8 @@ class PlaidWebhookServiceTest {
     void testHandleTransactionWebhookWithUnknownCodeLogsWarning() {
         // Given
         final Map<String, Object> payload = new HashMap<>();
-        payload.put("webhook_code", "UNKNOWN_CODE");
-        payload.put("item_id", "item-123");
+        payload.put(WEBHOOK_CODE, "UNKNOWN_CODE");
+        payload.put(ITEM_ID, ITEM_123);
 
         // When/Then
         assertDoesNotThrow(
@@ -421,7 +430,7 @@ class PlaidWebhookServiceTest {
     void testHandleItemWebhookWithMissingItemIdHandlesGracefully() {
         // Given
         final Map<String, Object> payload = new HashMap<>();
-        payload.put("webhook_code", "ERROR");
+        payload.put(WEBHOOK_CODE, "ERROR");
         // Missing item_id
 
         // When/Then
@@ -435,8 +444,8 @@ class PlaidWebhookServiceTest {
     void testHandleItemWebhookWithUnknownCodeLogsWarning() {
         // Given
         final Map<String, Object> payload = new HashMap<>();
-        payload.put("webhook_code", "UNKNOWN_ITEM_CODE");
-        payload.put("item_id", "item-123");
+        payload.put(WEBHOOK_CODE, "UNKNOWN_ITEM_CODE");
+        payload.put(ITEM_ID, ITEM_123);
 
         // When/Then
         assertDoesNotThrow(
@@ -449,18 +458,18 @@ class PlaidWebhookServiceTest {
     void testHandleTransactionsRemovedWithEmptyListHandlesGracefully() {
         // Given
         final Map<String, Object> payload = new HashMap<>();
-        payload.put("webhook_code", "TRANSACTIONS_REMOVED");
-        payload.put("item_id", "item-123");
-        payload.put("removed_transactions", new ArrayList<>());
+        payload.put(WEBHOOK_CODE, "TRANSACTIONS_REMOVED");
+        payload.put(ITEM_ID, ITEM_123);
+        payload.put(REMOVED_TRANSACTIONS, new ArrayList<>());
 
         final UserTable user = new UserTable();
-        user.setUserId("user-123");
+        user.setUserId(USER_123);
 
         final AccountTable account = new AccountTable();
-        account.setUserId("user-123");
+        account.setUserId(USER_123);
 
-        when(accountRepository.findByPlaidItemId("item-123")).thenReturn(List.of(account));
-        when(userRepository.findById("user-123")).thenReturn(Optional.of(user));
+        when(accountRepository.findByPlaidItemId(ITEM_123)).thenReturn(List.of(account));
+        when(userRepository.findById(USER_123)).thenReturn(Optional.of(user));
 
         // When/Then
         assertDoesNotThrow(
@@ -473,9 +482,9 @@ class PlaidWebhookServiceTest {
     void testHandleTransactionsRemovedWithNullListHandlesGracefully() {
         // Given
         final Map<String, Object> payload = new HashMap<>();
-        payload.put("webhook_code", "TRANSACTIONS_REMOVED");
-        payload.put("item_id", "item-123");
-        payload.put("removed_transactions", null);
+        payload.put(WEBHOOK_CODE, "TRANSACTIONS_REMOVED");
+        payload.put(ITEM_ID, ITEM_123);
+        payload.put(REMOVED_TRANSACTIONS, null);
 
         // When/Then
         assertDoesNotThrow(
@@ -488,24 +497,24 @@ class PlaidWebhookServiceTest {
     void testHandleTransactionsRemovedWithTransactionNotBelongingToUserSkipsDeletion() {
         // Given
         final Map<String, Object> payload = new HashMap<>();
-        payload.put("webhook_code", "TRANSACTIONS_REMOVED");
-        payload.put("item_id", "item-123");
-        payload.put("removed_transactions", List.of("txn-123"));
+        payload.put(WEBHOOK_CODE, "TRANSACTIONS_REMOVED");
+        payload.put(ITEM_ID, ITEM_123);
+        payload.put(REMOVED_TRANSACTIONS, List.of(TXN_123));
 
         final UserTable user = new UserTable();
-        user.setUserId("user-123");
+        user.setUserId(USER_123);
 
         final AccountTable account = new AccountTable();
-        account.setUserId("user-123");
+        account.setUserId(USER_123);
 
         final TransactionTable transaction = new TransactionTable();
-        transaction.setTransactionId("txn-123");
+        transaction.setTransactionId(TXN_123);
         transaction.setUserId("different-user"); // Different user
-        transaction.setPlaidTransactionId("txn-123");
+        transaction.setPlaidTransactionId(TXN_123);
 
-        when(accountRepository.findByPlaidItemId("item-123")).thenReturn(List.of(account));
-        when(userRepository.findById("user-123")).thenReturn(Optional.of(user));
-        when(transactionRepository.findByPlaidTransactionId("txn-123"))
+        when(accountRepository.findByPlaidItemId(ITEM_123)).thenReturn(List.of(account));
+        when(userRepository.findById(USER_123)).thenReturn(Optional.of(user));
+        when(transactionRepository.findByPlaidTransactionId(TXN_123))
                 .thenReturn(Optional.of(transaction));
 
         // When
@@ -519,12 +528,12 @@ class PlaidWebhookServiceTest {
     void testHandleItemErrorWithMissingUserHandlesGracefully() {
         // Given
         final Map<String, Object> payload = new HashMap<>();
-        payload.put("webhook_code", "ERROR");
-        payload.put("item_id", "item-123");
+        payload.put(WEBHOOK_CODE, "ERROR");
+        payload.put(ITEM_ID, ITEM_123);
         payload.put("error_code", "ITEM_LOGIN_REQUIRED");
         payload.put("error_message", "User needs to re-authenticate");
 
-        when(accountRepository.findByPlaidItemId("item-123")).thenReturn(Collections.emptyList());
+        when(accountRepository.findByPlaidItemId(ITEM_123)).thenReturn(Collections.emptyList());
 
         // When/Then
         assertDoesNotThrow(
@@ -537,10 +546,10 @@ class PlaidWebhookServiceTest {
     void testHandlePendingExpirationWithMissingUserHandlesGracefully() {
         // Given
         final Map<String, Object> payload = new HashMap<>();
-        payload.put("webhook_code", "PENDING_EXPIRATION");
-        payload.put("item_id", "item-123");
+        payload.put(WEBHOOK_CODE, "PENDING_EXPIRATION");
+        payload.put(ITEM_ID, ITEM_123);
 
-        when(accountRepository.findByPlaidItemId("item-123")).thenReturn(Collections.emptyList());
+        when(accountRepository.findByPlaidItemId(ITEM_123)).thenReturn(Collections.emptyList());
 
         // When/Then
         assertDoesNotThrow(
@@ -553,10 +562,10 @@ class PlaidWebhookServiceTest {
     void testHandlePermissionRevokedWithMissingUserHandlesGracefully() {
         // Given
         final Map<String, Object> payload = new HashMap<>();
-        payload.put("webhook_code", "USER_PERMISSION_REVOKED");
-        payload.put("item_id", "item-123");
+        payload.put(WEBHOOK_CODE, "USER_PERMISSION_REVOKED");
+        payload.put(ITEM_ID, ITEM_123);
 
-        when(accountRepository.findByPlaidItemId("item-123")).thenReturn(Collections.emptyList());
+        when(accountRepository.findByPlaidItemId(ITEM_123)).thenReturn(Collections.emptyList());
 
         // When/Then
         assertDoesNotThrow(
@@ -569,18 +578,18 @@ class PlaidWebhookServiceTest {
     void testHandlePermissionRevokedWithNoAccountsHandlesGracefully() {
         // Given
         final Map<String, Object> payload = new HashMap<>();
-        payload.put("webhook_code", "USER_PERMISSION_REVOKED");
-        payload.put("item_id", "item-123");
+        payload.put(WEBHOOK_CODE, "USER_PERMISSION_REVOKED");
+        payload.put(ITEM_ID, ITEM_123);
 
         final UserTable user = new UserTable();
-        user.setUserId("user-123");
+        user.setUserId(USER_123);
         user.setEmail("test@example.com");
 
         final AccountTable account = new AccountTable();
-        account.setUserId("user-123");
+        account.setUserId(USER_123);
 
-        when(accountRepository.findByPlaidItemId("item-123")).thenReturn(Collections.emptyList());
-        when(userRepository.findById("user-123")).thenReturn(Optional.of(user));
+        when(accountRepository.findByPlaidItemId(ITEM_123)).thenReturn(Collections.emptyList());
+        when(userRepository.findById(USER_123)).thenReturn(Optional.of(user));
 
         // When/Then
         assertDoesNotThrow(
@@ -593,10 +602,10 @@ class PlaidWebhookServiceTest {
     void testSyncTransactionsForItemWithNoAccountsHandlesGracefully() {
         // Given
         final Map<String, Object> payload = new HashMap<>();
-        payload.put("webhook_code", "INITIAL_UPDATE");
-        payload.put("item_id", "item-123");
+        payload.put(WEBHOOK_CODE, "INITIAL_UPDATE");
+        payload.put(ITEM_ID, ITEM_123);
 
-        when(accountRepository.findByPlaidItemId("item-123")).thenReturn(Collections.emptyList());
+        when(accountRepository.findByPlaidItemId(ITEM_123)).thenReturn(Collections.emptyList());
 
         // When/Then
         assertDoesNotThrow(
@@ -609,10 +618,10 @@ class PlaidWebhookServiceTest {
     void testSyncNewTransactionsForItemWithNoAccountsHandlesGracefully() {
         // Given
         final Map<String, Object> payload = new HashMap<>();
-        payload.put("webhook_code", "DEFAULT_UPDATE");
-        payload.put("item_id", "item-123");
+        payload.put(WEBHOOK_CODE, "DEFAULT_UPDATE");
+        payload.put(ITEM_ID, ITEM_123);
 
-        when(accountRepository.findByPlaidItemId("item-123")).thenReturn(Collections.emptyList());
+        when(accountRepository.findByPlaidItemId(ITEM_123)).thenReturn(Collections.emptyList());
 
         // When/Then
         assertDoesNotThrow(
@@ -625,7 +634,7 @@ class PlaidWebhookServiceTest {
     void testVerifyWebhookSignatureWithSignatureLengthMismatchReturnsFalse() throws Exception {
         // Given
         final Map<String, Object> payload = new HashMap<>();
-        payload.put("webhook_code", "INITIAL_UPDATE");
+        payload.put(WEBHOOK_CODE, "INITIAL_UPDATE");
 
         final String payloadJson = "{\"webhook_code\":\"INITIAL_UPDATE\"}";
         when(objectMapper.writeValueAsString(payload)).thenReturn(payloadJson);
@@ -660,8 +669,8 @@ class PlaidWebhookServiceTest {
                                 event ->
                                         event.getLevel() == Level.WARN
                                                 && event.getMessage()
-                                                .contains(
-                                                        "Error verifying webhook signature"))
+                                                        .contains(
+                                                                "Error verifying webhook signature"))
                         .count();
 
         assertEquals(
@@ -676,8 +685,8 @@ class PlaidWebhookServiceTest {
                                 event ->
                                         event.getLevel() == Level.WARN
                                                 && event.getMessage()
-                                                .contains(
-                                                        "Error verifying webhook signature")
+                                                        .contains(
+                                                                "Error verifying webhook signature")
                                                 && event.getMessage().contains("Error"));
         assertTrue(foundWarnLog, "Should log WARN with exception message");
     }
@@ -686,20 +695,20 @@ class PlaidWebhookServiceTest {
     void testHandleItemErrorWithNotificationFailureHandlesGracefully() {
         // Given
         final Map<String, Object> payload = new HashMap<>();
-        payload.put("webhook_code", "ERROR");
-        payload.put("item_id", "item-123");
+        payload.put(WEBHOOK_CODE, "ERROR");
+        payload.put(ITEM_ID, ITEM_123);
         payload.put("error_code", "ITEM_LOGIN_REQUIRED");
         payload.put("error_message", "User needs to re-authenticate");
 
         final UserTable user = new UserTable();
-        user.setUserId("user-123");
+        user.setUserId(USER_123);
         user.setEmail("test@example.com");
 
         final AccountTable account = new AccountTable();
-        account.setUserId("user-123");
+        account.setUserId(USER_123);
 
-        when(accountRepository.findByPlaidItemId("item-123")).thenReturn(List.of(account));
-        when(userRepository.findById("user-123")).thenReturn(Optional.of(user));
+        when(accountRepository.findByPlaidItemId(ITEM_123)).thenReturn(List.of(account));
+        when(userRepository.findById(USER_123)).thenReturn(Optional.of(user));
         when(notificationService.sendNotification(
                         any(NotificationService.NotificationRequest.class)))
                 .thenReturn(new NotificationService.NotificationResult(false, "failed"));
@@ -715,8 +724,8 @@ class PlaidWebhookServiceTest {
     void testFindUserByItemIdWithNullItemIdReturnsEmpty() {
         // Given - This tests the private findUserByItemId method indirectly
         final Map<String, Object> payload = new HashMap<>();
-        payload.put("webhook_code", "INITIAL_UPDATE");
-        payload.put("item_id", null); // Null item ID
+        payload.put(WEBHOOK_CODE, "INITIAL_UPDATE");
+        payload.put(ITEM_ID, null); // Null item ID
 
         // When/Then - Should handle gracefully
         assertDoesNotThrow(
@@ -729,8 +738,8 @@ class PlaidWebhookServiceTest {
     void testFindUserByItemIdWithEmptyItemIdReturnsEmpty() {
         // Given - This tests the private findUserByItemId method indirectly
         final Map<String, Object> payload = new HashMap<>();
-        payload.put("webhook_code", "INITIAL_UPDATE");
-        payload.put("item_id", ""); // Empty item ID
+        payload.put(WEBHOOK_CODE, "INITIAL_UPDATE");
+        payload.put(ITEM_ID, ""); // Empty item ID
 
         // When/Then - Should handle gracefully
         assertDoesNotThrow(
@@ -743,14 +752,14 @@ class PlaidWebhookServiceTest {
     void testFindUserByItemIdWithAccountHavingNullUserIdReturnsEmpty() {
         // Given - Account exists but has null userId
         final Map<String, Object> payload = new HashMap<>();
-        payload.put("webhook_code", "INITIAL_UPDATE");
-        payload.put("item_id", "item-123");
+        payload.put(WEBHOOK_CODE, "INITIAL_UPDATE");
+        payload.put(ITEM_ID, ITEM_123);
 
         final AccountTable account = new AccountTable();
-        account.setAccountId("account-123");
+        account.setAccountId(ACCOUNT_123);
         account.setUserId(null); // Null userId
 
-        when(accountRepository.findByPlaidItemId("item-123")).thenReturn(List.of(account));
+        when(accountRepository.findByPlaidItemId(ITEM_123)).thenReturn(List.of(account));
 
         // When/Then - Should handle gracefully
         assertDoesNotThrow(
@@ -763,14 +772,14 @@ class PlaidWebhookServiceTest {
     void testFindUserByItemIdWithAccountHavingEmptyUserIdReturnsEmpty() {
         // Given - Account exists but has empty userId
         final Map<String, Object> payload = new HashMap<>();
-        payload.put("webhook_code", "INITIAL_UPDATE");
-        payload.put("item_id", "item-123");
+        payload.put(WEBHOOK_CODE, "INITIAL_UPDATE");
+        payload.put(ITEM_ID, ITEM_123);
 
         final AccountTable account = new AccountTable();
-        account.setAccountId("account-123");
+        account.setAccountId(ACCOUNT_123);
         account.setUserId(""); // Empty userId
 
-        when(accountRepository.findByPlaidItemId("item-123")).thenReturn(List.of(account));
+        when(accountRepository.findByPlaidItemId(ITEM_123)).thenReturn(List.of(account));
 
         // When/Then - Should handle gracefully
         assertDoesNotThrow(
@@ -783,10 +792,10 @@ class PlaidWebhookServiceTest {
     void testFindUserByItemIdWithRepositoryExceptionHandlesGracefully() {
         // Given - Repository throws exception
         final Map<String, Object> payload = new HashMap<>();
-        payload.put("webhook_code", "INITIAL_UPDATE");
-        payload.put("item_id", "item-123");
+        payload.put(WEBHOOK_CODE, "INITIAL_UPDATE");
+        payload.put(ITEM_ID, ITEM_123);
 
-        when(accountRepository.findByPlaidItemId("item-123"))
+        when(accountRepository.findByPlaidItemId(ITEM_123))
                 .thenThrow(new RuntimeException("Database error"));
 
         // When/Then - Should handle gracefully
@@ -800,26 +809,26 @@ class PlaidWebhookServiceTest {
     void testHandlePermissionRevokedWithAccountSaveExceptionHandlesGracefully() {
         // Given
         final Map<String, Object> payload = new HashMap<>();
-        payload.put("webhook_code", "USER_PERMISSION_REVOKED");
-        payload.put("item_id", "item-123");
+        payload.put(WEBHOOK_CODE, "USER_PERMISSION_REVOKED");
+        payload.put(ITEM_ID, ITEM_123);
 
         final UserTable user = new UserTable();
-        user.setUserId("user-123");
+        user.setUserId(USER_123);
         user.setEmail("test@example.com");
 
         final AccountTable account = new AccountTable();
-        account.setAccountId("account-123");
-        account.setUserId("user-123");
+        account.setAccountId(ACCOUNT_123);
+        account.setUserId(USER_123);
         account.setActive(true);
 
-        when(accountRepository.findByPlaidItemId("item-123")).thenReturn(List.of(account));
-        when(userRepository.findById("user-123")).thenReturn(Optional.of(user));
+        when(accountRepository.findByPlaidItemId(ITEM_123)).thenReturn(List.of(account));
+        when(userRepository.findById(USER_123)).thenReturn(Optional.of(user));
         doThrow(new RuntimeException("Save failed"))
                 .when(accountRepository)
                 .save(any(AccountTable.class));
         when(notificationService.sendNotification(
                         any(NotificationService.NotificationRequest.class)))
-                .thenReturn(new NotificationService.NotificationResult(true, "success"));
+                .thenReturn(new NotificationService.NotificationResult(true, SUCCESS));
 
         // When/Then - Should handle save exception gracefully
         assertDoesNotThrow(
@@ -832,19 +841,19 @@ class PlaidWebhookServiceTest {
     void testHandleTransactionsRemovedWithTransactionRepositoryExceptionHandlesGracefully() {
         // Given
         final Map<String, Object> payload = new HashMap<>();
-        payload.put("webhook_code", "TRANSACTIONS_REMOVED");
-        payload.put("item_id", "item-123");
-        payload.put("removed_transactions", List.of("txn-123"));
+        payload.put(WEBHOOK_CODE, "TRANSACTIONS_REMOVED");
+        payload.put(ITEM_ID, ITEM_123);
+        payload.put(REMOVED_TRANSACTIONS, List.of(TXN_123));
 
         final UserTable user = new UserTable();
-        user.setUserId("user-123");
+        user.setUserId(USER_123);
 
         final AccountTable account = new AccountTable();
-        account.setUserId("user-123");
+        account.setUserId(USER_123);
 
-        when(accountRepository.findByPlaidItemId("item-123")).thenReturn(List.of(account));
-        when(userRepository.findById("user-123")).thenReturn(Optional.of(user));
-        when(transactionRepository.findByPlaidTransactionId("txn-123"))
+        when(accountRepository.findByPlaidItemId(ITEM_123)).thenReturn(List.of(account));
+        when(userRepository.findById(USER_123)).thenReturn(Optional.of(user));
+        when(transactionRepository.findByPlaidTransactionId(TXN_123))
                 .thenThrow(new RuntimeException("Repository error"));
 
         // When/Then - Should handle exception gracefully
@@ -858,7 +867,7 @@ class PlaidWebhookServiceTest {
     void testVerifyWebhookSignatureWithInvalidKeyExceptionReturnsFalse() throws Exception {
         // Given
         final Map<String, Object> payload = new HashMap<>();
-        payload.put("webhook_code", "INITIAL_UPDATE");
+        payload.put(WEBHOOK_CODE, "INITIAL_UPDATE");
 
         final String payloadJson = "{\"webhook_code\":\"INITIAL_UPDATE\"}";
         when(objectMapper.writeValueAsString(payload)).thenReturn(payloadJson);
@@ -896,10 +905,10 @@ class PlaidWebhookServiceTest {
     void testSyncTransactionsForItemWithExceptionHandlesGracefully() {
         // Given - Repository throws exception during sync
         final Map<String, Object> payload = new HashMap<>();
-        payload.put("webhook_code", "INITIAL_UPDATE");
-        payload.put("item_id", "item-123");
+        payload.put(WEBHOOK_CODE, "INITIAL_UPDATE");
+        payload.put(ITEM_ID, ITEM_123);
 
-        when(accountRepository.findByPlaidItemId("item-123"))
+        when(accountRepository.findByPlaidItemId(ITEM_123))
                 .thenThrow(new RuntimeException("Database connection failed"));
 
         // When/Then - Should handle exception gracefully
@@ -913,10 +922,10 @@ class PlaidWebhookServiceTest {
     void testSyncNewTransactionsForItemWithExceptionHandlesGracefully() {
         // Given - Repository throws exception during sync
         final Map<String, Object> payload = new HashMap<>();
-        payload.put("webhook_code", "DEFAULT_UPDATE");
-        payload.put("item_id", "item-123");
+        payload.put(WEBHOOK_CODE, "DEFAULT_UPDATE");
+        payload.put(ITEM_ID, ITEM_123);
 
-        when(accountRepository.findByPlaidItemId("item-123"))
+        when(accountRepository.findByPlaidItemId(ITEM_123))
                 .thenThrow(new RuntimeException("Database connection failed"));
 
         // When/Then - Should handle exception gracefully
@@ -930,17 +939,17 @@ class PlaidWebhookServiceTest {
     void testSyncTransactionsForItemWithUserFoundButExceptionHandlesGracefully() {
         // Given
         final Map<String, Object> payload = new HashMap<>();
-        payload.put("webhook_code", "HISTORICAL_UPDATE");
-        payload.put("item_id", "item-123");
+        payload.put(WEBHOOK_CODE, "HISTORICAL_UPDATE");
+        payload.put(ITEM_ID, ITEM_123);
 
         final UserTable user = new UserTable();
-        user.setUserId("user-123");
+        user.setUserId(USER_123);
 
         final AccountTable account = new AccountTable();
-        account.setUserId("user-123");
+        account.setUserId(USER_123);
 
-        when(accountRepository.findByPlaidItemId("item-123")).thenReturn(List.of(account));
-        when(userRepository.findById("user-123"))
+        when(accountRepository.findByPlaidItemId(ITEM_123)).thenReturn(List.of(account));
+        when(userRepository.findById(USER_123))
                 .thenThrow(new RuntimeException("User lookup failed"));
 
         // When/Then - Should handle exception gracefully
@@ -954,28 +963,26 @@ class PlaidWebhookServiceTest {
     void testHandleTransactionsRemovedWithDeleteExceptionHandlesGracefully() {
         // Given
         final Map<String, Object> payload = new HashMap<>();
-        payload.put("webhook_code", "TRANSACTIONS_REMOVED");
-        payload.put("item_id", "item-123");
-        payload.put("removed_transactions", List.of("txn-123"));
+        payload.put(WEBHOOK_CODE, "TRANSACTIONS_REMOVED");
+        payload.put(ITEM_ID, ITEM_123);
+        payload.put(REMOVED_TRANSACTIONS, List.of(TXN_123));
 
         final UserTable user = new UserTable();
-        user.setUserId("user-123");
+        user.setUserId(USER_123);
 
         final AccountTable account = new AccountTable();
-        account.setUserId("user-123");
+        account.setUserId(USER_123);
 
         final TransactionTable transaction = new TransactionTable();
-        transaction.setTransactionId("txn-123");
-        transaction.setUserId("user-123");
-        transaction.setPlaidTransactionId("txn-123");
+        transaction.setTransactionId(TXN_123);
+        transaction.setUserId(USER_123);
+        transaction.setPlaidTransactionId(TXN_123);
 
-        when(accountRepository.findByPlaidItemId("item-123")).thenReturn(List.of(account));
-        when(userRepository.findById("user-123")).thenReturn(Optional.of(user));
-        when(transactionRepository.findByPlaidTransactionId("txn-123"))
+        when(accountRepository.findByPlaidItemId(ITEM_123)).thenReturn(List.of(account));
+        when(userRepository.findById(USER_123)).thenReturn(Optional.of(user));
+        when(transactionRepository.findByPlaidTransactionId(TXN_123))
                 .thenReturn(Optional.of(transaction));
-        doThrow(new RuntimeException("Delete failed"))
-                .when(transactionRepository)
-                .delete("txn-123");
+        doThrow(new RuntimeException("Delete failed")).when(transactionRepository).delete(TXN_123);
 
         // When/Then - Should handle delete exception gracefully
         assertDoesNotThrow(
@@ -988,20 +995,20 @@ class PlaidWebhookServiceTest {
     void testHandleItemErrorWithNotificationExceptionHandlesGracefully() {
         // Given
         final Map<String, Object> payload = new HashMap<>();
-        payload.put("webhook_code", "ERROR");
-        payload.put("item_id", "item-123");
+        payload.put(WEBHOOK_CODE, "ERROR");
+        payload.put(ITEM_ID, ITEM_123);
         payload.put("error_code", "ITEM_LOGIN_REQUIRED");
         payload.put("error_message", "User needs to re-authenticate");
 
         final UserTable user = new UserTable();
-        user.setUserId("user-123");
+        user.setUserId(USER_123);
         user.setEmail("test@example.com");
 
         final AccountTable account = new AccountTable();
-        account.setUserId("user-123");
+        account.setUserId(USER_123);
 
-        when(accountRepository.findByPlaidItemId("item-123")).thenReturn(List.of(account));
-        when(userRepository.findById("user-123")).thenReturn(Optional.of(user));
+        when(accountRepository.findByPlaidItemId(ITEM_123)).thenReturn(List.of(account));
+        when(userRepository.findById(USER_123)).thenReturn(Optional.of(user));
         when(notificationService.sendNotification(
                         any(NotificationService.NotificationRequest.class)))
                 .thenThrow(new RuntimeException("Notification service unavailable"));
@@ -1017,18 +1024,18 @@ class PlaidWebhookServiceTest {
     void testHandlePendingExpirationWithNotificationExceptionHandlesGracefully() {
         // Given
         final Map<String, Object> payload = new HashMap<>();
-        payload.put("webhook_code", "PENDING_EXPIRATION");
-        payload.put("item_id", "item-123");
+        payload.put(WEBHOOK_CODE, "PENDING_EXPIRATION");
+        payload.put(ITEM_ID, ITEM_123);
 
         final UserTable user = new UserTable();
-        user.setUserId("user-123");
+        user.setUserId(USER_123);
         user.setEmail("test@example.com");
 
         final AccountTable account = new AccountTable();
-        account.setUserId("user-123");
+        account.setUserId(USER_123);
 
-        when(accountRepository.findByPlaidItemId("item-123")).thenReturn(List.of(account));
-        when(userRepository.findById("user-123")).thenReturn(Optional.of(user));
+        when(accountRepository.findByPlaidItemId(ITEM_123)).thenReturn(List.of(account));
+        when(userRepository.findById(USER_123)).thenReturn(Optional.of(user));
         when(notificationService.sendNotification(
                         any(NotificationService.NotificationRequest.class)))
                 .thenThrow(new RuntimeException("Notification service unavailable"));
@@ -1044,20 +1051,20 @@ class PlaidWebhookServiceTest {
     void testHandlePermissionRevokedWithNotificationExceptionHandlesGracefully() {
         // Given
         final Map<String, Object> payload = new HashMap<>();
-        payload.put("webhook_code", "USER_PERMISSION_REVOKED");
-        payload.put("item_id", "item-123");
+        payload.put(WEBHOOK_CODE, "USER_PERMISSION_REVOKED");
+        payload.put(ITEM_ID, ITEM_123);
 
         final UserTable user = new UserTable();
-        user.setUserId("user-123");
+        user.setUserId(USER_123);
         user.setEmail("test@example.com");
 
         final AccountTable account = new AccountTable();
-        account.setAccountId("account-123");
-        account.setUserId("user-123");
+        account.setAccountId(ACCOUNT_123);
+        account.setUserId(USER_123);
         account.setActive(true);
 
-        when(accountRepository.findByPlaidItemId("item-123")).thenReturn(List.of(account));
-        when(userRepository.findById("user-123")).thenReturn(Optional.of(user));
+        when(accountRepository.findByPlaidItemId(ITEM_123)).thenReturn(List.of(account));
+        when(userRepository.findById(USER_123)).thenReturn(Optional.of(user));
         when(notificationService.sendNotification(
                         any(NotificationService.NotificationRequest.class)))
                 .thenThrow(new RuntimeException("Notification service unavailable"));
@@ -1073,29 +1080,28 @@ class PlaidWebhookServiceTest {
     void testHandlePermissionRevokedWithMultipleAccountsDeactivatesAll() {
         // Given
         final Map<String, Object> payload = new HashMap<>();
-        payload.put("webhook_code", "USER_PERMISSION_REVOKED");
-        payload.put("item_id", "item-123");
+        payload.put(WEBHOOK_CODE, "USER_PERMISSION_REVOKED");
+        payload.put(ITEM_ID, ITEM_123);
 
         final UserTable user = new UserTable();
-        user.setUserId("user-123");
+        user.setUserId(USER_123);
         user.setEmail("test@example.com");
 
         final AccountTable account1 = new AccountTable();
         account1.setAccountId("account-1");
-        account1.setUserId("user-123");
+        account1.setUserId(USER_123);
         account1.setActive(true);
 
         final AccountTable account2 = new AccountTable();
         account2.setAccountId("account-2");
-        account2.setUserId("user-123");
+        account2.setUserId(USER_123);
         account2.setActive(true);
 
-        when(accountRepository.findByPlaidItemId("item-123"))
-                .thenReturn(List.of(account1, account2));
-        when(userRepository.findById("user-123")).thenReturn(Optional.of(user));
+        when(accountRepository.findByPlaidItemId(ITEM_123)).thenReturn(List.of(account1, account2));
+        when(userRepository.findById(USER_123)).thenReturn(Optional.of(user));
         when(notificationService.sendNotification(
                         any(NotificationService.NotificationRequest.class)))
-                .thenReturn(new NotificationService.NotificationResult(true, "success"));
+                .thenReturn(new NotificationService.NotificationResult(true, SUCCESS));
 
         // When
         service.handleItemWebhook(payload);

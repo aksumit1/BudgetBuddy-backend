@@ -1,16 +1,15 @@
 package com.budgetbuddy.service;
 
-
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import java.util.Locale;
 import com.budgetbuddy.model.dynamodb.AccountTable;
 import com.budgetbuddy.repository.dynamodb.AccountRepository;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -36,9 +35,19 @@ import org.springframework.stereotype.Service;
 @SuppressFBWarnings(
         value = "EI_EXPOSE_REP2",
         justification = "Spring constructor injection — beans are shared by design")
-@SuppressWarnings({"PMD.LawOfDemeter", "PMD.AvoidCatchingGenericException", "PMD.DataClass", "PMD.OnlyOneReturn"})
+@SuppressWarnings({
+    "PMD.LawOfDemeter",
+    "PMD.AvoidCatchingGenericException",
+    "PMD.DataClass",
+    "PMD.OnlyOneReturn"
+})
 @Service
 public class AccountDetectionService {
+
+    private static final String LOAN = "loan";
+    private static final String CARD = "card";
+    private static final String AMEX = "amex";
+    private static final String GOLD = "gold";
 
     private static final String A_Z = ".*[A-Z].*";
 
@@ -238,7 +247,7 @@ public class AccountDetectionService {
                     "synchrony",
                     "visa",
                     MASTERCARD,
-                    "amex",
+                    AMEX,
                     "jpmorgan",
                     "jpm",
                     "jpmc",
@@ -617,7 +626,7 @@ public class AccountDetectionService {
                     MASTERCARD,
                     "visa",
                     AMERICAN_EXPRESS,
-                    "amex",
+                    AMEX,
                     DISCOVER,
                     "jcb",
                     "unionpay",
@@ -698,35 +707,35 @@ public class AccountDetectionService {
         ACCOUNT_TYPE_PATTERNS.put("mm", DEPOSITORY); // Money market abbreviation
         // Credit Cards
         ACCOUNT_TYPE_PATTERNS.put(CREDIT, CREDIT);
-        ACCOUNT_TYPE_PATTERNS.put("card", CREDIT);
+        ACCOUNT_TYPE_PATTERNS.put(CARD, CREDIT);
         ACCOUNT_TYPE_PATTERNS.put("creditcard", CREDIT);
         ACCOUNT_TYPE_PATTERNS.put(CREDIT_CARD, CREDIT);
         ACCOUNT_TYPE_PATTERNS.put("citi cash card", CREDIT); // Cash card is a type of credit card
         ACCOUNT_TYPE_PATTERNS.put("Citi cashcard", CREDIT);
         ACCOUNT_TYPE_PATTERNS.put("visa", CREDIT);
         ACCOUNT_TYPE_PATTERNS.put(MASTERCARD, CREDIT);
-        ACCOUNT_TYPE_PATTERNS.put("amex", CREDIT);
+        ACCOUNT_TYPE_PATTERNS.put(AMEX, CREDIT);
         ACCOUNT_TYPE_PATTERNS.put(AMERICAN_EXPRESS, CREDIT);
         // Loans - Global variations
-        ACCOUNT_TYPE_PATTERNS.put("loan", "loan");
-        ACCOUNT_TYPE_PATTERNS.put("mortgage", "loan");
-        ACCOUNT_TYPE_PATTERNS.put("home loan", "loan"); // India/Australia
-        ACCOUNT_TYPE_PATTERNS.put("housing loan", "loan"); // India/Asia
-        ACCOUNT_TYPE_PATTERNS.put("auto", "loan");
-        ACCOUNT_TYPE_PATTERNS.put("car loan", "loan");
-        ACCOUNT_TYPE_PATTERNS.put("vehicle loan", "loan"); // India/Asia
-        ACCOUNT_TYPE_PATTERNS.put("student", "loan");
-        ACCOUNT_TYPE_PATTERNS.put("education loan", "loan"); // India/Asia
-        ACCOUNT_TYPE_PATTERNS.put("personal", "loan");
-        ACCOUNT_TYPE_PATTERNS.put("business loan", "loan");
-        ACCOUNT_TYPE_PATTERNS.put("commercial loan", "loan");
-        ACCOUNT_TYPE_PATTERNS.put("line of credit", "loan");
-        ACCOUNT_TYPE_PATTERNS.put("loc", "loan"); // Line of credit
-        ACCOUNT_TYPE_PATTERNS.put("overdraft", "loan"); // OD - India/UK
-        ACCOUNT_TYPE_PATTERNS.put("od", "loan"); // Overdraft abbreviation
-        ACCOUNT_TYPE_PATTERNS.put("credit line", "loan");
-        ACCOUNT_TYPE_PATTERNS.put("heloc", "loan"); // Home equity line of credit
-        ACCOUNT_TYPE_PATTERNS.put("home equity", "loan");
+        ACCOUNT_TYPE_PATTERNS.put(LOAN, LOAN);
+        ACCOUNT_TYPE_PATTERNS.put("mortgage", LOAN);
+        ACCOUNT_TYPE_PATTERNS.put("home loan", LOAN); // India/Australia
+        ACCOUNT_TYPE_PATTERNS.put("housing loan", LOAN); // India/Asia
+        ACCOUNT_TYPE_PATTERNS.put("auto", LOAN);
+        ACCOUNT_TYPE_PATTERNS.put("car loan", LOAN);
+        ACCOUNT_TYPE_PATTERNS.put("vehicle loan", LOAN); // India/Asia
+        ACCOUNT_TYPE_PATTERNS.put("student", LOAN);
+        ACCOUNT_TYPE_PATTERNS.put("education loan", LOAN); // India/Asia
+        ACCOUNT_TYPE_PATTERNS.put("personal", LOAN);
+        ACCOUNT_TYPE_PATTERNS.put("business loan", LOAN);
+        ACCOUNT_TYPE_PATTERNS.put("commercial loan", LOAN);
+        ACCOUNT_TYPE_PATTERNS.put("line of credit", LOAN);
+        ACCOUNT_TYPE_PATTERNS.put("loc", LOAN); // Line of credit
+        ACCOUNT_TYPE_PATTERNS.put("overdraft", LOAN); // OD - India/UK
+        ACCOUNT_TYPE_PATTERNS.put("od", LOAN); // Overdraft abbreviation
+        ACCOUNT_TYPE_PATTERNS.put("credit line", LOAN);
+        ACCOUNT_TYPE_PATTERNS.put("heloc", LOAN); // Home equity line of credit
+        ACCOUNT_TYPE_PATTERNS.put("home equity", LOAN);
         // Investment Accounts - Global variations
         ACCOUNT_TYPE_PATTERNS.put(INVESTMENT, INVESTMENT);
         ACCOUNT_TYPE_PATTERNS.put("brokerage", INVESTMENT);
@@ -1159,8 +1168,7 @@ public class AccountDetectionService {
             if (DEPOSITORY.equals(accountType)) {
                 if (nameWithoutExt.contains(CHECKING) || nameWithoutExt.contains(CHECK)) {
                     detected.setAccountSubtype(CHECKING);
-                } else if (nameWithoutExt.contains(SAVINGS)
-                        || nameWithoutExt.contains("saving")) {
+                } else if (nameWithoutExt.contains(SAVINGS) || nameWithoutExt.contains("saving")) {
                     detected.setAccountSubtype(SAVINGS);
                 }
             } else if (CREDIT.equals(accountType)) {
@@ -1177,7 +1185,8 @@ public class AccountDetectionService {
         String accountNum = null;
 
         // Pattern 1: 4 digits directly after letters (e.g., "Chase3100")
-        final Pattern pattern1 = Pattern.compile("([a-z]+)(\\d{4})(?:_|\\s|$)", Pattern.CASE_INSENSITIVE);
+        final Pattern pattern1 =
+                Pattern.compile("([a-z]+)(\\d{4})(?:_|\\s|$)", Pattern.CASE_INSENSITIVE);
         final Matcher matcher1 = pattern1.matcher(nameWithoutExt);
         if (matcher1.find()) {
             accountNum = matcher1.group(2);
@@ -1298,8 +1307,8 @@ public class AccountDetectionService {
             detected.setAccountType(DEPOSITORY);
             detected.setAccountSubtype(SAVINGS);
             LOGGER.info("✓ Detected savings account type from PDF content");
-        } else if (lowerHeader.contains("loan") || lowerHeader.contains("mortgage")) {
-            detected.setAccountType("loan");
+        } else if (lowerHeader.contains(LOAN) || lowerHeader.contains("mortgage")) {
+            detected.setAccountType(LOAN);
             LOGGER.info("✓ Detected loan account type from PDF content");
         }
 
@@ -1565,7 +1574,8 @@ public class AccountDetectionService {
 
         // Extract balance from headers (if account type is known or can be inferred)
         final String detectedAccountType = detected.getAccountType();
-        final java.math.BigDecimal balance = extractBalanceFromHeaders(headers, detectedAccountType);
+        final java.math.BigDecimal balance =
+                extractBalanceFromHeaders(headers, detectedAccountType);
         if (balance != null) {
             detected.setBalance(balance);
             LOGGER.info("✓ Extracted balance from headers: {}", balance);
@@ -1888,8 +1898,7 @@ public class AccountDetectionService {
                 for (final AccountTable account : userAccounts) {
                     // CRITICAL FIX: Handle null institution name in account
                     final String accountInstitutionName = account.getInstitutionName();
-                    if (detected.getInstitutionName()
-                                    .equalsIgnoreCase(accountInstitutionName)
+                    if (detected.getInstitutionName().equalsIgnoreCase(accountInstitutionName)
                             && detected.getAccountType().equals(account.getAccountType())) {
                         // If we have account number (not null and not empty), prefer exact match
                         // (with normalization)
@@ -1899,15 +1908,14 @@ public class AccountDetectionService {
                         boolean accountNumberMatches =
                                 true; // Default to true if no account number to match
 
-                        if (detectedAccountNumber != null
-                                && !detectedAccountNumber.isBlank()) {
+                        if (detectedAccountNumber != null && !detectedAccountNumber.isBlank()) {
                             // We have an account number - must match
                             final String normalizedDetected =
                                     normalizeAccountNumberForMatching(detectedAccountNumber);
                             final String normalizedExisting =
                                     account.getAccountNumber() != null
                                             ? normalizeAccountNumberForMatching(
-                                            account.getAccountNumber())
+                                                    account.getAccountNumber())
                                             : "";
                             accountNumberMatches = normalizedDetected.equals(normalizedExisting);
                         } else {
@@ -1985,7 +1993,8 @@ public class AccountDetectionService {
         for (final String keyword : INSTITUTION_KEYWORDS) {
             if (keyword != null) {
                 // Check if normalized filename contains the keyword (with spaces normalized)
-                final String normalizedKeyword = keyword.toLowerCase(Locale.ROOT).replaceAll("[_\\-]", " ");
+                final String normalizedKeyword =
+                        keyword.toLowerCase(Locale.ROOT).replaceAll("[_\\-]", " ");
                 if (lower.contains(normalizedKeyword)) {
                     // Normalize institution name
                     return normalizeInstitutionName(keyword);
@@ -2358,7 +2367,7 @@ public class AccountDetectionService {
         normalizations.put("capital one", CAPITAL_ONE);
         normalizations.put("jpm", "JPMorgan Chase");
         normalizations.put("jpmorgan", "JPMorgan Chase");
-        normalizations.put("amex", "American Express");
+        normalizations.put(AMEX, "American Express");
         normalizations.put(AMERICAN_EXPRESS, "American Express");
         normalizations.put("chase", "Chase");
         normalizations.put("citi", CITIBANK);
@@ -2399,7 +2408,7 @@ public class AccountDetectionService {
 
         // CRITICAL: Prioritize credit card patterns over checking/savings patterns
         // Check credit card patterns first (more specific)
-        final String[] creditCardPatterns = {CREDIT_CARD, "creditcard", "card"};
+        final String[] creditCardPatterns = {CREDIT_CARD, "creditcard", CARD};
         for (final String pattern : creditCardPatterns) {
             if (lower.contains(pattern)) {
                 return "credit";
@@ -2410,7 +2419,8 @@ public class AccountDetectionService {
         for (final Map.Entry<String, String> entry : ACCOUNT_TYPE_PATTERNS.entrySet()) {
             if (entry.getKey() != null) {
                 // Normalize pattern key for matching
-                final String normalizedKey = entry.getKey().toLowerCase(Locale.ROOT).replaceAll("[_\\-]", " ");
+                final String normalizedKey =
+                        entry.getKey().toLowerCase(Locale.ROOT).replaceAll("[_\\-]", " ");
                 if (lower.contains(normalizedKey)) {
                     return entry.getValue();
                 }
@@ -2420,7 +2430,10 @@ public class AccountDetectionService {
     }
 
     private String generateAccountName(
-            final String institution, final String type, final String subtype, final String accountNumber) {
+            final String institution,
+            final String type,
+            final String subtype,
+            final String accountNumber) {
         final StringBuilder name = new StringBuilder();
 
         // CRITICAL FIX: Handle null/empty values safely
@@ -2498,10 +2511,10 @@ public class AccountDetectionService {
         // Common card product keywords (works for all issuers globally)
         final List<String> cardProductKeywords =
                 Arrays.asList(
-                        "card",
+                        CARD,
                         REWARDS,
                         PLATINUM,
-                        "gold",
+                        GOLD,
                         SILVER,
                         PREFERRED,
                         SIGNATURE,
@@ -2715,7 +2728,7 @@ public class AccountDetectionService {
             }
         }
 
-        // Pattern 1: Look for lines containing institution keyword + product name + "card"
+        // Pattern 1: Look for lines containing institution keyword + product name + CARD
         // This works for any institution in our keyword list
         // CRITICAL: Process lines and collect potential matches, then prioritize by specificity
         final String[] lines = headerText.split("\n");
@@ -2812,7 +2825,7 @@ public class AccountDetectionService {
                                 MARRIOTT,
                                 BONVOY,
                                 PLATINUM,
-                                "gold",
+                                GOLD,
                                 SILVER,
                                 "titanium",
                                 SIGNATURE,
@@ -2833,7 +2846,7 @@ public class AccountDetectionService {
                                 TRAVEL,
                                 BUSINESS,
                                 REWARDS,
-                                "card",
+                                CARD,
                                 "®",
                                 "™");
 
@@ -2880,7 +2893,7 @@ public class AccountDetectionService {
                                 ".*\\b(?:chase|wells\\s*fargo|bankofamerica|citibank|americanexpress|amex)\\s*\\.\\s*com\\b.*");
 
                 // CRITICAL: Define strong product indicators BEFORE using them
-                // Strong indicators are specific card names, not generic terms like "card"
+                // Strong indicators are specific card names, not generic terms like CARD
                 final List<String> strongProductIndicators =
                         Arrays.asList(
                                 // Amazon/Prime Cards (highest priority - very specific)
@@ -3064,7 +3077,8 @@ public class AccountDetectionService {
 
                 boolean matchesBlacklist = false;
                 for (final String blacklistPattern : blacklistPatterns) {
-                    final Pattern pattern = Pattern.compile(blacklistPattern, Pattern.CASE_INSENSITIVE);
+                    final Pattern pattern =
+                            Pattern.compile(blacklistPattern, Pattern.CASE_INSENSITIVE);
                     if (pattern.matcher(trimmedLine).find()) {
                         matchesBlacklist = true;
                         // Skipping line matching blacklist pattern
@@ -3198,7 +3212,7 @@ public class AccountDetectionService {
                             UNLIMITED,
                             EVERYDAY,
                             PLATINUM,
-                            "gold",
+                            GOLD,
                             SILVER,
                             SIGNATURE,
                             WORLD,
@@ -3217,7 +3231,9 @@ public class AccountDetectionService {
                     final String matchedIndicator = entry.getValue();
                     final String lowerCandidate = candidate.toLowerCase(Locale.ROOT);
                     final String lowerMatchedIndicator =
-                            matchedIndicator != null ? matchedIndicator.toLowerCase(Locale.ROOT) : "";
+                            matchedIndicator != null
+                                    ? matchedIndicator.toLowerCase(Locale.ROOT)
+                                    : "";
 
                     // Check if the matched indicator or candidate contains the specific card name
                     if (lowerMatchedIndicator.contains(cardName.toLowerCase(Locale.ROOT))
@@ -3273,7 +3289,8 @@ public class AccountDetectionService {
         }
         institutionPattern.append(")\\s+([A-Z][A-Za-z0-9\\s®™©]+?)\\s*(?:card|®|™)");
 
-        final Pattern pattern = Pattern.compile(institutionPattern.toString(), Pattern.CASE_INSENSITIVE);
+        final Pattern pattern =
+                Pattern.compile(institutionPattern.toString(), Pattern.CASE_INSENSITIVE);
         final Matcher matcher = pattern.matcher(headerText);
         if (matcher.find()) {
             String productName = matcher.group(0).trim();
@@ -3337,11 +3354,11 @@ public class AccountDetectionService {
                         "prime",
                         "visa",
                         MASTERCARD,
-                        "amex",
+                        AMEX,
                         AMERICAN_EXPRESS,
                         DISCOVER,
                         PLATINUM,
-                        "gold",
+                        GOLD,
                         SILVER,
                         SIGNATURE,
                         WORLD,
@@ -3365,7 +3382,7 @@ public class AccountDetectionService {
                         REWARDS,
                         MILES,
                         POINTS,
-                        "card");
+                        CARD);
 
         for (final String keyword : cardKeywords) {
             if (lower.contains(keyword)) {
@@ -3425,13 +3442,14 @@ public class AccountDetectionService {
                     // Check if word is all lowercase and longer than 4 characters (should be
                     // capitalized)
                     // Exception: allow if it's a known card product name
-                    if (cleanWord.equals(cleanWord.toLowerCase(Locale.ROOT)) && cleanWord.length() > 4) {
+                    if (cleanWord.equals(cleanWord.toLowerCase(Locale.ROOT))
+                            && cleanWord.length() > 4) {
                         // Check if it's a known card product keyword (these are sometimes lowercase
                         // in statements)
                         final List<String> lowercaseCardKeywords =
                                 Arrays.asList(
                                         PLATINUM,
-                                        "gold",
+                                        GOLD,
                                         SILVER,
                                         SIGNATURE,
                                         WORLD,
@@ -3686,22 +3704,22 @@ public class AccountDetectionService {
 
         // Patterns to match account holder name directly
         final Pattern[] directPatterns = {
-                // Pattern 1: "Card Member: John Doe" or "Cardmember: John Doe"
-                Pattern.compile("(?i)card\\s*member\\s*:?\\s*(.+)"),
-                // Pattern 2: "Name: John Doe" or "User: John Doe" or "Cardholder:" or "Holder:"
-                Pattern.compile("(?i)(?:name|user|cardholder|holder)\\s*:?\\s*(.+)"),
-                // Pattern 3: "Account Holder: John Doe"
-                Pattern.compile("(?i)account\\s*holder\\s*:?\\s*(.+)"),
-                // Pattern 4: "Primary Account Holder: John Doe"
-                Pattern.compile("(?i)primary\\s+account\\s+holder\\s*:?\\s*(.+)"),
-                // Pattern 5: "Primary Cardholder: John Doe"
-                Pattern.compile("(?i)primary\\s+cardholder\\s*:?\\s*(.+)"),
-                // Pattern 6: "Account Owner: John Doe" (for investment accounts)
-                Pattern.compile("(?i)account\\s+owner\\s*:?\\s*(.+)"),
-                // Pattern 7: "Beneficial Owner: John Doe" (for trust/beneficiary accounts)
-                Pattern.compile("(?i)beneficial\\s+owner\\s*:?\\s*(.+)"),
-                // Pattern 8: "Beneficiary: John Doe"
-                Pattern.compile("(?i)beneficiary\\s*:?\\s*(.+)")
+            // Pattern 1: "Card Member: John Doe" or "Cardmember: John Doe"
+            Pattern.compile("(?i)card\\s*member\\s*:?\\s*(.+)"),
+            // Pattern 2: "Name: John Doe" or "User: John Doe" or "Cardholder:" or "Holder:"
+            Pattern.compile("(?i)(?:name|user|cardholder|holder)\\s*:?\\s*(.+)"),
+            // Pattern 3: "Account Holder: John Doe"
+            Pattern.compile("(?i)account\\s*holder\\s*:?\\s*(.+)"),
+            // Pattern 4: "Primary Account Holder: John Doe"
+            Pattern.compile("(?i)primary\\s+account\\s+holder\\s*:?\\s*(.+)"),
+            // Pattern 5: "Primary Cardholder: John Doe"
+            Pattern.compile("(?i)primary\\s+cardholder\\s*:?\\s*(.+)"),
+            // Pattern 6: "Account Owner: John Doe" (for investment accounts)
+            Pattern.compile("(?i)account\\s+owner\\s*:?\\s*(.+)"),
+            // Pattern 7: "Beneficial Owner: John Doe" (for trust/beneficiary accounts)
+            Pattern.compile("(?i)beneficial\\s+owner\\s*:?\\s*(.+)"),
+            // Pattern 8: "Beneficiary: John Doe"
+            Pattern.compile("(?i)beneficiary\\s*:?\\s*(.+)")
         };
 
         // STEP 1: Collect all candidates from direct patterns (priority 100)
@@ -3771,7 +3789,8 @@ public class AccountDetectionService {
                             || rawName.contains("Account Ending")
                             || rawName.contains("Card Ending")) {
                         // Extract only the part before the context marker
-                        final String[] parts = rawName.split("(?:Account|Card)\\s+(?:Number|Ending)", 2);
+                        final String[] parts =
+                                rawName.split("(?:Account|Card)\\s+(?:Number|Ending)", 2);
                         rawName = parts[0].trim();
                     }
                     // CRITICAL: Remove any remaining pattern prefixes (e.g., "Name:" if it wasn't
@@ -3982,7 +4001,8 @@ public class AccountDetectionService {
                             Pattern.CASE_INSENSITIVE);
             Matcher nameMatcher = nameBeforeAccountPattern.matcher(currentLine);
             if (nameMatcher.find()) {
-                final String name = extractAndValidateName(nameMatcher.group(1).trim(), excludedWords);
+                final String name =
+                        extractAndValidateName(nameMatcher.group(1).trim(), excludedWords);
                 if (name != null) {
                     final boolean isAllCaps =
                             name.equals(name.toUpperCase(Locale.ROOT)) && name.matches(A_Z);
@@ -4008,7 +4028,8 @@ public class AccountDetectionService {
                             Pattern.CASE_INSENSITIVE);
             nameMatcher = nameBeforeCardPattern.matcher(currentLine);
             if (nameMatcher.find()) {
-                final String name = extractAndValidateName(nameMatcher.group(1).trim(), excludedWords);
+                final String name =
+                        extractAndValidateName(nameMatcher.group(1).trim(), excludedWords);
                 if (name != null) {
                     final boolean isAllCaps =
                             name.equals(name.toUpperCase(Locale.ROOT)) && name.matches(A_Z);
@@ -4042,7 +4063,8 @@ public class AccountDetectionService {
                             Pattern.CASE_INSENSITIVE);
             Matcher nameMatcher = nameBeforeAccountPattern.matcher(trimmed);
             if (nameMatcher.find()) {
-                final String name = extractAndValidateName(nameMatcher.group(1).trim(), excludedWords);
+                final String name =
+                        extractAndValidateName(nameMatcher.group(1).trim(), excludedWords);
                 if (name != null) {
                     final boolean isAllCaps =
                             name.equals(name.toUpperCase(Locale.ROOT)) && name.matches(A_Z);
@@ -4070,7 +4092,8 @@ public class AccountDetectionService {
                             Pattern.CASE_INSENSITIVE);
             nameMatcher = nameBeforeCardPattern.matcher(trimmed);
             if (nameMatcher.find()) {
-                final String name = extractAndValidateName(nameMatcher.group(1).trim(), excludedWords);
+                final String name =
+                        extractAndValidateName(nameMatcher.group(1).trim(), excludedWords);
                 if (name != null) {
                     final boolean isAllCaps =
                             name.equals(name.toUpperCase(Locale.ROOT)) && name.matches(A_Z);
@@ -4145,7 +4168,8 @@ public class AccountDetectionService {
             boolean containsStateAbbreviation = false;
             for (final String word : words) {
                 // Remove punctuation for comparison (e.g., "WA," -> "WA")
-                final String cleanWord = word.replaceAll("[.,;:]+$", "").trim().toUpperCase(Locale.ROOT);
+                final String cleanWord =
+                        word.replaceAll("[.,;:]+$", "").trim().toUpperCase(Locale.ROOT);
                 if (usStateAbbreviations.contains(cleanWord)) {
                     containsStateAbbreviation = true;
                     LOGGER.debug(
@@ -4238,7 +4262,8 @@ public class AccountDetectionService {
      * Extract and validate name from a candidate string Filters out names containing excluded words
      * and validates format
      */
-    private String extractAndValidateName(final String candidate, final List<String> excludedWords) {
+    private String extractAndValidateName(
+            final String candidate, final List<String> excludedWords) {
         if (candidate == null || candidate.isBlank()) {
             LOGGER.debug("extractAndValidateName: Candidate is null or empty");
             return null;

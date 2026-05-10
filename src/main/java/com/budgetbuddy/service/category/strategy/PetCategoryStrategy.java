@@ -1,6 +1,5 @@
 package com.budgetbuddy.service.category.strategy;
 
-
 import java.util.Locale;
 import org.springframework.stereotype.Component;
 
@@ -11,22 +10,26 @@ import org.springframework.stereotype.Component;
 @Component
 public class PetCategoryStrategy extends BaseCategoryStrategy {
 
+    private static final String PET = "pet";
+
     private static final String BARRON = "barron";
 
     private static final String BARRONS = "barrons";
 
     @Override
     public String detectCategory(
-            final String normalizedMerchantName, final String descriptionLower, final String merchantName) {
+            final String normalizedMerchantName,
+            final String descriptionLower,
+            final String merchantName) {
         if (normalizedMerchantName == null || normalizedMerchantName.isBlank()) {
             return null;
         }
 
         if (normalizedMerchantName.contains("petsmart") || descriptionLower.contains("petsmart")) {
-            return "pet";
+            return PET;
         }
         if (normalizedMerchantName.contains("petco") || descriptionLower.contains("petco")) {
-            return "pet";
+            return PET;
         }
         // SP Farmers Fetch Bones
         if (normalizedMerchantName.contains("sp farmers")
@@ -37,19 +40,19 @@ public class PetCategoryStrategy extends BaseCategoryStrategy {
                 || descriptionLower.contains("fetchbones")) {
             LOGGER.debug(
                     "🏷️ detectCategoryFromMerchantName: Detected SP Farmers Fetch Bones → 'pet'");
-            return "pet";
+            return PET;
         }
         if (normalizedMerchantName.contains("pet supplies")
                 || normalizedMerchantName.contains("petsupplies")
                 || normalizedMerchantName.contains("pet supply")
                 || descriptionLower.contains("pet supplies")) {
-            return "pet";
+            return PET;
         }
         if (normalizedMerchantName.contains("petcare")
                 || normalizedMerchantName.contains("pet care")
                 || descriptionLower.contains("petcare")
                 || descriptionLower.contains("pet care")) {
-            return "pet";
+            return PET;
         }
         if (normalizedMerchantName.contains("pet clinic")
                 || normalizedMerchantName.contains("petclinic")
@@ -58,7 +61,7 @@ public class PetCategoryStrategy extends BaseCategoryStrategy {
                 || normalizedMerchantName.contains("animal hospital")
                 || descriptionLower.contains("pet clinic")
                 || descriptionLower.contains("veterinary")) {
-            return "pet";
+            return PET;
         }
 
         // Pet insurance (PETS BEST INSURANCE)
@@ -68,53 +71,55 @@ public class PetCategoryStrategy extends BaseCategoryStrategy {
                 || normalizedMerchantName.contains("petsbest")
                 || descriptionLower.contains("pets best insurance")
                 || descriptionLower.contains("pets best")
-                || (merchantName != null && merchantName.toUpperCase(Locale.ROOT).contains("PETS BEST"))) {
+                || (merchantName != null
+                        && merchantName.toUpperCase(Locale.ROOT).contains("PETS BEST"))) {
             LOGGER.debug(
                     "🏷️ detectCategoryFromMerchantName: Detected Pets Best Insurance → 'pet'");
-            return "pet";
+            return PET;
         }
 
         // ========== SUBSCRIPTIONS (News/Investment Journals) ==========
         // CRITICAL: Must come BEFORE tech to prevent "J*Barrons" from matching tech patterns
         // Check both normalizedMerchantName and original strings for asterisks and special
         // characters
-        final String merchantLower = merchantName != null ? merchantName.toLowerCase(Locale.ROOT) : "";
+        final String merchantLower =
+                merchantName != null ? merchantName.toLowerCase(Locale.ROOT) : "";
         final String descLowerForJournals = descriptionLower != null ? descriptionLower : "";
 
         final String[] newsJournals = {
-                BARRONS,
-                "barron's",
-                BARRON,
-                "new york times",
-                "nytimes",
-                "ny times",
-                "the new york times",
-                "wall street journal",
-                "wsj",
-                "the wall street journal",
-                "financial times",
-                "ft.com",
-                "the financial times",
-                "economist",
-                "the economist",
-                "bloomberg",
-                "bloomberg news",
-                "reuters",
-                "reuters news",
-                "cnn",
-                "cnn news",
-                "bbc",
-                "bbc news",
-                "washington post",
-                "wapo",
-                "the washington post",
-                "usa today",
-                "usatoday",
-                "los angeles times",
-                "latimes",
-                "chicago tribune",
-                "boston globe",
-                "the boston globe"
+            BARRONS,
+            "barron's",
+            BARRON,
+            "new york times",
+            "nytimes",
+            "ny times",
+            "the new york times",
+            "wall street journal",
+            "wsj",
+            "the wall street journal",
+            "financial times",
+            "ft.com",
+            "the financial times",
+            "economist",
+            "the economist",
+            "bloomberg",
+            "bloomberg news",
+            "reuters",
+            "reuters news",
+            "cnn",
+            "cnn news",
+            "bbc",
+            "bbc news",
+            "washington post",
+            "wapo",
+            "the washington post",
+            "usa today",
+            "usatoday",
+            "los angeles times",
+            "latimes",
+            "chicago tribune",
+            "boston globe",
+            "the boston globe"
         };
         for (final String journal : newsJournals) {
             if (normalizedMerchantName.contains(journal)

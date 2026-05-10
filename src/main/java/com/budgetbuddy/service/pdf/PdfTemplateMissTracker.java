@@ -9,7 +9,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
-import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 /**
@@ -195,7 +194,11 @@ public class PdfTemplateMissTracker {
         final int textLength;
         final int fallbackRows;
 
-        MissEvent(final Instant at, final int pageCount, final int textLength, final int fallbackRows) {
+        MissEvent(
+                final Instant at,
+                final int pageCount,
+                final int textLength,
+                final int fallbackRows) {
             this.at = at;
             this.pageCount = pageCount;
             this.textLength = textLength;

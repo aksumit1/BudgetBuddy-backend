@@ -1,7 +1,7 @@
 package com.budgetbuddy.exception;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import com.budgetbuddy.util.MessageUtil;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.time.Instant;
 import java.util.HashMap;
 import java.util.Locale;
@@ -34,7 +34,8 @@ import org.springframework.web.context.request.WebRequest;
 @SuppressWarnings({"PMD.DataClass", "PMD.OnlyOneReturn"})
 @SuppressFBWarnings(
         value = {"EI_EXPOSE_REP", "EI_EXPOSE_REP2"},
-        justification = "JSON DTO / DynamoDB entity getters expose lists by reference; "
+        justification =
+                "JSON DTO / DynamoDB entity getters expose lists by reference; "
                         + "the design is value-semantic and Jackson creates fresh instances; Spring constructor injection — beans are shared by design")
 @RestControllerAdvice
 public class EnhancedGlobalExceptionHandler {
@@ -53,11 +54,12 @@ public class EnhancedGlobalExceptionHandler {
     }
 
     @ExceptionHandler(AppException.class)
-    public ResponseEntity<ErrorResponse> handleAppException(final AppException ex, final WebRequest request) {
+    public ResponseEntity<ErrorResponse> handleAppException(
+            final AppException ex, final WebRequest request) {
         final String correlationId = MDC.get(CORRELATION_ID);
         // Locale retrieved but not currently used - kept for potential future localization
-        @SuppressWarnings("unused") final
-        Locale locale = request.getLocale();
+        @SuppressWarnings("unused")
+        final Locale locale = request.getLocale();
 
         String localizedMessage = messageUtil.getErrorMessage(ex.getErrorCode().name());
         if (localizedMessage.equals(
@@ -73,12 +75,13 @@ public class EnhancedGlobalExceptionHandler {
         final Map<String, Object> technicalDetails =
                 ex.getCause() != null
                         ? Map.of(
-                        "cause",
-                        ex.getCause().getClass().getSimpleName(),
-                        "message",
-                        ex.getCause().getMessage())
+                                "cause",
+                                ex.getCause().getClass().getSimpleName(),
+                                "message",
+                                ex.getCause().getMessage())
                         : Map.of();
-        final Map<String, Object> sanitizedTechnicalDetails = sanitizeTechnicalDetails(technicalDetails);
+        final Map<String, Object> sanitizedTechnicalDetails =
+                sanitizeTechnicalDetails(technicalDetails);
 
         final ErrorResponse errorResponse =
                 ErrorResponse.builder()
@@ -124,8 +127,7 @@ public class EnhancedGlobalExceptionHandler {
                 supported == null
                         ? "(unknown)"
                         : String.join(
-                                ", ",
-                                supported.stream().map(method -> method.name()).toList());
+                                ", ", supported.stream().map(method -> method.name()).toList());
 
         final ErrorResponse errorResponse =
                 ErrorResponse.builder()
@@ -154,8 +156,8 @@ public class EnhancedGlobalExceptionHandler {
             final MethodArgumentNotValidException ex, final WebRequest request) {
         final String correlationId = MDC.get(CORRELATION_ID);
         // Locale retrieved but not currently used - kept for potential future localization
-        @SuppressWarnings("unused") final
-        Locale locale = request.getLocale();
+        @SuppressWarnings("unused")
+        final Locale locale = request.getLocale();
 
         final Map<String, String> validationErrors = new HashMap<>();
         ex.getBindingResult()
@@ -167,7 +169,10 @@ public class EnhancedGlobalExceptionHandler {
                                 final String fieldName = fieldError.getField();
                                 String errorMessage = messageUtil.getValidationMessage(fieldName);
                                 final String validationKey =
-                                        "validation." + fieldName.toLowerCase(Locale.ROOT).replace("_", ".");
+                                        "validation."
+                                                + fieldName
+                                                        .toLowerCase(Locale.ROOT)
+                                                        .replace("_", ".");
                                 // Check if errorMessage is null before calling equals()
                                 if (errorMessage != null && errorMessage.equals(validationKey)) {
                                     errorMessage = error.getDefaultMessage();
@@ -263,10 +268,10 @@ public class EnhancedGlobalExceptionHandler {
         final String supportedTypes =
                 ex.getSupportedMediaTypes() != null && !ex.getSupportedMediaTypes().isEmpty()
                         ? String.join(
-                        ", ",
-                        ex.getSupportedMediaTypes().stream()
-                                .map(mediaType -> mediaType.toString())
-                                .toList())
+                                ", ",
+                                ex.getSupportedMediaTypes().stream()
+                                        .map(mediaType -> mediaType.toString())
+                                        .toList())
                         : "application/json";
 
         final ErrorResponse errorResponse =
@@ -317,7 +322,8 @@ public class EnhancedGlobalExceptionHandler {
      */
     @ExceptionHandler(org.springframework.web.multipart.MultipartException.class)
     public ResponseEntity<ErrorResponse> handleMultipartException(
-            final org.springframework.web.multipart.MultipartException ex, final WebRequest request) {
+            final org.springframework.web.multipart.MultipartException ex,
+            final WebRequest request) {
         final String correlationId = MDC.get(CORRELATION_ID);
 
         // Check if this is caused by a client abort
@@ -325,9 +331,9 @@ public class EnhancedGlobalExceptionHandler {
         final boolean isClientAbort =
                 rootCause instanceof org.apache.catalina.connector.ClientAbortException
                         || (rootCause != null
-                        && rootCause.getCause()
-                        instanceof
-                        org.apache.catalina.connector.ClientAbortException)
+                                && rootCause.getCause()
+                                        instanceof
+                                        org.apache.catalina.connector.ClientAbortException)
                         || (rootCause != null && rootCause instanceof java.io.EOFException);
 
         final String errorCode = isClientAbort ? "CLIENT_ABORTED_REQUEST" : "FILE_UPLOAD_FAILED";
@@ -392,7 +398,8 @@ public class EnhancedGlobalExceptionHandler {
     }
 
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<ErrorResponse> handleGenericException(final Exception ex, final WebRequest request) {
+    public ResponseEntity<ErrorResponse> handleGenericException(
+            final Exception ex, final WebRequest request) {
         final String correlationId = MDC.get(CORRELATION_ID);
 
         // Check if this is a method not supported exception that wasn't caught by the specific
@@ -485,7 +492,8 @@ public class EnhancedGlobalExceptionHandler {
     }
 
     /** Sanitize technical details map */
-    private Map<String, Object> sanitizeTechnicalDetails(final Map<String, Object> technicalDetails) {
+    private Map<String, Object> sanitizeTechnicalDetails(
+            final Map<String, Object> technicalDetails) {
         if (technicalDetails == null || technicalDetails.isEmpty()) {
             return null;
         }

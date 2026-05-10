@@ -2,8 +2,8 @@ package com.budgetbuddy.service.aws;
 
 import com.budgetbuddy.exception.AppException;
 import com.budgetbuddy.exception.ErrorCode;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import com.budgetbuddy.security.FileSecurityValidator;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.InputStream;
 import java.util.List;
 import org.slf4j.Logger;
@@ -175,7 +175,8 @@ public class S3Service {
                 return key; // Return key anyway for compatibility
             }
             LOGGER.error("Error uploading file to S3: {}", e.getMessage(), e);
-            throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to upload file to S3", e);
+            throw new AppException(
+                    ErrorCode.INTERNAL_SERVER_ERROR, "Failed to upload file to S3", e);
         }
     }
 
@@ -224,7 +225,8 @@ public class S3Service {
                 return key; // Return key anyway for compatibility
             }
             LOGGER.error("Error uploading file to S3: {}", e.getMessage(), e);
-            throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to upload file to S3", e);
+            throw new AppException(
+                    ErrorCode.INTERNAL_SERVER_ERROR, "Failed to upload file to S3", e);
         }
     }
 
@@ -309,7 +311,8 @@ public class S3Service {
                 return; // Non-fatal - file/bucket doesn't exist, nothing to delete
             }
             LOGGER.error("Error deleting file from S3: {}", e.getMessage(), e);
-            throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to delete file from S3", e);
+            throw new AppException(
+                    ErrorCode.INTERNAL_SERVER_ERROR, "Failed to delete file from S3", e);
         }
     }
 
@@ -407,7 +410,8 @@ public class S3Service {
             }
             LOGGER.error(
                     "Error deleting files from S3 with prefix {}: {}", prefix, e.getMessage(), e);
-            throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to delete files from S3", e);
+            throw new AppException(
+                    ErrorCode.INTERNAL_SERVER_ERROR, "Failed to delete files from S3", e);
         }
     }
 
@@ -415,7 +419,9 @@ public class S3Service {
     public String getPresignedUrl(final String key, final int expirationMinutes) {
         if (!isS3Available()) {
             LOGGER.warn("S3 not available - cannot generate presigned URL for key: {}", key);
-            throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR, "S3 is not configured - cannot generate presigned URL");
+            throw new AppException(
+                    ErrorCode.INTERNAL_SERVER_ERROR,
+                    "S3 is not configured - cannot generate presigned URL");
         }
 
         // SECURITY: Validate S3 key to prevent path traversal attacks
@@ -429,7 +435,7 @@ public class S3Service {
                     s3Presigner.presignGetObject(
                             r ->
                                     r.signatureDuration(
-                                            java.time.Duration.ofMinutes(expirationMinutes))
+                                                    java.time.Duration.ofMinutes(expirationMinutes))
                                             .getObjectRequest(getObjectRequest));
 
             return presignedRequest.url().toString();
@@ -439,8 +445,10 @@ public class S3Service {
                         "S3 not available - cannot generate presigned URL for key {}: {}",
                         key,
                         e.getMessage());
-                throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR, 
-                        "S3 is not available - cannot generate presigned URL", e);
+                throw new AppException(
+                        ErrorCode.INTERNAL_SERVER_ERROR,
+                        "S3 is not available - cannot generate presigned URL",
+                        e);
             }
             if (isBucketNotFoundError(e)) {
                 LOGGER.warn(
@@ -448,11 +456,14 @@ public class S3Service {
                         bucketName,
                         key,
                         e.getMessage());
-                throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR, 
-                        "S3 bucket does not exist - cannot generate presigned URL", e);
+                throw new AppException(
+                        ErrorCode.INTERNAL_SERVER_ERROR,
+                        "S3 bucket does not exist - cannot generate presigned URL",
+                        e);
             }
             LOGGER.error("Error generating presigned URL: {}", e.getMessage(), e);
-            throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to generate presigned URL", e);
+            throw new AppException(
+                    ErrorCode.INTERNAL_SERVER_ERROR, "Failed to generate presigned URL", e);
         }
     }
 }

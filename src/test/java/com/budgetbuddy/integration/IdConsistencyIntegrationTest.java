@@ -1,7 +1,5 @@
 package com.budgetbuddy.integration;
 
-
-import java.nio.charset.StandardCharsets;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -25,6 +23,7 @@ import com.budgetbuddy.service.TransactionService;
 import com.budgetbuddy.service.UserService;
 import com.budgetbuddy.util.IdGenerator;
 import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.Base64;
@@ -88,7 +87,9 @@ class IdConsistencyIntegrationTest {
 
         // Create test user
         final String testEmail = "id-test-" + UUID.randomUUID() + "@example.com";
-        final String testPasswordHash = Base64.getEncoder().encodeToString("hashed-password".getBytes(StandardCharsets.UTF_8));
+        final String testPasswordHash =
+                Base64.getEncoder()
+                        .encodeToString("hashed-password".getBytes(StandardCharsets.UTF_8));
 
         testUser = userService.createUserSecure(testEmail, testPasswordHash, "ID", "Test");
 
@@ -119,7 +120,8 @@ class IdConsistencyIntegrationTest {
         final String plaidAccountId = "plaid_acc_456";
 
         // When - Generate ID using IdGenerator
-        final String generatedAccountId = IdGenerator.generateAccountId(institutionName, plaidAccountId);
+        final String generatedAccountId =
+                IdGenerator.generateAccountId(institutionName, plaidAccountId);
 
         // Then - Should be valid UUID
         assertTrue(
@@ -127,7 +129,8 @@ class IdConsistencyIntegrationTest {
                 "Generated account ID should be valid UUID");
 
         // When - Generate again with same inputs
-        final String generatedAccountId2 = IdGenerator.generateAccountId(institutionName, plaidAccountId);
+        final String generatedAccountId2 =
+                IdGenerator.generateAccountId(institutionName, plaidAccountId);
 
         // Then - Should be identical
         assertEquals(
@@ -180,7 +183,7 @@ class IdConsistencyIntegrationTest {
                         "Test Transaction",
                         "FOOD",
                         null // Let backend generate
-                );
+                        );
 
         // Note: Since we're not providing the Plaid transaction ID in createTransaction,
         // the backend will generate a random UUID. This test verifies the ID generation works.
@@ -204,7 +207,7 @@ class IdConsistencyIntegrationTest {
                         category,
                         BigDecimal.valueOf(500.00),
                         expectedBudgetId // App-provided ID
-                );
+                        );
 
         // Then - Should use the provided ID
         assertEquals(expectedBudgetId, budget.getBudgetId(), "Budget should use provided ID");
@@ -222,7 +225,7 @@ class IdConsistencyIntegrationTest {
         final BudgetTable budget =
                 budgetService.createOrUpdateBudget(
                         testUser, category, BigDecimal.valueOf(300.00), null // Let backend generate
-                );
+                        );
 
         // Then - Should generate deterministic ID matching our expectation
         assertEquals(
@@ -249,7 +252,7 @@ class IdConsistencyIntegrationTest {
                         expectedGoalId, // App-provided ID
                         null, // currentAmount
                         null // accountIds
-                );
+                        );
 
         // Then - Should use the provided ID
         assertEquals(expectedGoalId, goal.getGoalId(), "Goal should use provided ID");
@@ -275,7 +278,7 @@ class IdConsistencyIntegrationTest {
                         null, // Let backend generate
                         null, // currentAmount
                         null // accountIds
-                );
+                        );
 
         // Then - Should generate deterministic ID matching our expectation
         assertEquals(expectedGoalId, goal.getGoalId(), "Goal should generate deterministic ID");
@@ -289,10 +292,12 @@ class IdConsistencyIntegrationTest {
         final String plaidAccountId = "plaid_acc_app_test";
 
         // When - App generates ID (simulated)
-        final String appGeneratedId = IdGenerator.generateAccountId(institutionName, plaidAccountId);
+        final String appGeneratedId =
+                IdGenerator.generateAccountId(institutionName, plaidAccountId);
 
         // When - Backend generates ID (same logic)
-        final String backendGeneratedId = IdGenerator.generateAccountId(institutionName, plaidAccountId);
+        final String backendGeneratedId =
+                IdGenerator.generateAccountId(institutionName, plaidAccountId);
 
         // Then - Should be identical
         assertEquals(
@@ -408,7 +413,7 @@ class IdConsistencyIntegrationTest {
                         goalId,
                         null, // currentAmount
                         null // accountIds
-                );
+                        );
 
         // Then - Should succeed
         assertNotNull(goal1, "First goal should be created");

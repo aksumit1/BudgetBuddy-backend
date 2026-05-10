@@ -94,7 +94,8 @@ class AuthServiceUserDetailsTest {
         doNothing().when(userRepository).save(any(UserTable.class));
 
         // Capture the Authentication object passed to generateToken
-        final ArgumentCaptor<Authentication> authCaptor = ArgumentCaptor.forClass(Authentication.class);
+        final ArgumentCaptor<Authentication> authCaptor =
+                ArgumentCaptor.forClass(Authentication.class);
 
         // Act
         authService.authenticate(request);
@@ -137,7 +138,8 @@ class AuthServiceUserDetailsTest {
                 .thenReturn(new java.util.Date());
         doNothing().when(userRepository).save(any(UserTable.class));
 
-        final ArgumentCaptor<Authentication> authCaptor = ArgumentCaptor.forClass(Authentication.class);
+        final ArgumentCaptor<Authentication> authCaptor =
+                ArgumentCaptor.forClass(Authentication.class);
 
         // Act
         authService.authenticate(request);

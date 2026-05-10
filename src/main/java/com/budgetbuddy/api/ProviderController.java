@@ -1,11 +1,11 @@
 package com.budgetbuddy.api;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import com.budgetbuddy.exception.AppException;
 import com.budgetbuddy.exception.ErrorCode;
 import com.budgetbuddy.model.dynamodb.UserTable;
 import com.budgetbuddy.service.ProviderService;
 import com.budgetbuddy.service.UserService;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
@@ -122,7 +122,8 @@ public class ProviderController {
         @ApiResponse(responseCode = "404", description = "Provider not found")
     })
     public ResponseEntity<ProviderHealthResponse> getProviderHealth(
-            @AuthenticationPrincipal final UserDetails userDetails, @PathVariable final String providerId) {
+            @AuthenticationPrincipal final UserDetails userDetails,
+            @PathVariable final String providerId) {
 
         if (userDetails == null
                 || userDetails.getUsername() == null
@@ -238,7 +239,8 @@ public class ProviderController {
             description =
                     "Marks a provider connection as stale, indicating it needs re-authentication")
     public ResponseEntity<ProviderHealthResponse> markProviderAsStale(
-            @AuthenticationPrincipal final UserDetails userDetails, @PathVariable final String providerId) {
+            @AuthenticationPrincipal final UserDetails userDetails,
+            @PathVariable final String providerId) {
 
         if (userDetails == null
                 || userDetails.getUsername() == null
@@ -283,7 +285,8 @@ public class ProviderController {
             summary = "Clear Stale Status",
             description = "Clears stale status after successful re-authentication")
     public ResponseEntity<ProviderHealthResponse> clearStaleStatus(
-            @AuthenticationPrincipal final UserDetails userDetails, @PathVariable final String providerId) {
+            @AuthenticationPrincipal final UserDetails userDetails,
+            @PathVariable final String providerId) {
 
         if (userDetails == null
                 || userDetails.getUsername() == null

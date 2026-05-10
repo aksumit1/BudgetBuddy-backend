@@ -11,6 +11,9 @@ import org.springframework.test.util.ReflectionTestUtils;
 /** Unit Tests for XRayConfig */
 class XRayConfigTest {
 
+    private static final String SAMPLINGRATE = "samplingRate";
+    private static final String XRAYENABLED = "xrayEnabled";
+
     private XRayConfig config;
 
     @BeforeEach
@@ -21,32 +24,32 @@ class XRayConfigTest {
     @Test
     void testXRayEnabledTrue() {
         // Given
-        ReflectionTestUtils.setField(config, "xrayEnabled", true);
-        ReflectionTestUtils.setField(config, "samplingRate", 0.1);
+        ReflectionTestUtils.setField(config, XRAYENABLED, true);
+        ReflectionTestUtils.setField(config, SAMPLINGRATE, 0.1);
 
         // When & Then - verify fields are set
-        assertTrue((Boolean) ReflectionTestUtils.getField(config, "xrayEnabled"));
-        assertEquals(0.1, (Double) ReflectionTestUtils.getField(config, "samplingRate"));
+        assertTrue((Boolean) ReflectionTestUtils.getField(config, XRAYENABLED));
+        assertEquals(0.1, (Double) ReflectionTestUtils.getField(config, SAMPLINGRATE));
     }
 
     @Test
     void testXRayEnabledFalse() {
         // Given
-        ReflectionTestUtils.setField(config, "xrayEnabled", false);
-        ReflectionTestUtils.setField(config, "samplingRate", 0.0);
+        ReflectionTestUtils.setField(config, XRAYENABLED, false);
+        ReflectionTestUtils.setField(config, SAMPLINGRATE, 0.0);
 
         // When & Then - verify fields are set
-        assertFalse((Boolean) ReflectionTestUtils.getField(config, "xrayEnabled"));
-        assertEquals(0.0, (Double) ReflectionTestUtils.getField(config, "samplingRate"));
+        assertFalse((Boolean) ReflectionTestUtils.getField(config, XRAYENABLED));
+        assertEquals(0.0, (Double) ReflectionTestUtils.getField(config, SAMPLINGRATE));
     }
 
     @Test
     void testSamplingRateCanBeSet() {
         // Given
-        ReflectionTestUtils.setField(config, "xrayEnabled", true);
-        ReflectionTestUtils.setField(config, "samplingRate", 0.5);
+        ReflectionTestUtils.setField(config, XRAYENABLED, true);
+        ReflectionTestUtils.setField(config, SAMPLINGRATE, 0.5);
 
         // When & Then
-        assertEquals(0.5, (Double) ReflectionTestUtils.getField(config, "samplingRate"));
+        assertEquals(0.5, (Double) ReflectionTestUtils.getField(config, SAMPLINGRATE));
     }
 }

@@ -51,7 +51,8 @@ public class FileIntegrityService {
             return Base64.getEncoder().encodeToString(hashBytes);
         } catch (Exception e) {
             LOGGER.error("Failed to calculate checksum: {}", e.getMessage(), e);
-            throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to calculate file checksum", e);
+            throw new AppException(
+                    ErrorCode.INTERNAL_SERVER_ERROR, "Failed to calculate file checksum", e);
         }
     }
 
@@ -63,7 +64,9 @@ public class FileIntegrityService {
      * @param metadata Optional metadata (file size, upload time, etc.)
      */
     public void storeChecksum(
-            final String fileId, final String checksum, final java.util.Map<String, Object> metadata) {
+            final String fileId,
+            final String checksum,
+            final java.util.Map<String, Object> metadata) {
         final ChecksumRecord record =
                 new ChecksumRecord(fileId, checksum, metadata, System.currentTimeMillis());
         checksumStore.put(fileId, record);

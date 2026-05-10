@@ -20,6 +20,9 @@ import org.junit.jupiter.params.provider.CsvSource;
 @DisplayName("Enhanced Pattern Matcher Tests")
 class EnhancedPatternMatcherTest {
 
+    private static final String DESCRIPTION = "description";
+    private static final String AMOUNT = "amount";
+
     private EnhancedPatternMatcher matcher;
 
     @BeforeEach
@@ -33,14 +36,15 @@ class EnhancedPatternMatcherTest {
     @DisplayName("Pattern 1: Standard transaction with dollar amount")
     void testPattern1StandardTransaction() {
         final String line = "11/09 AUTOMATIC PAYMENT - THANK YOU $458.40";
-        final EnhancedPatternMatcher.MatchResult result = matcher.matchTransactionLine(line, 2024, true);
+        final EnhancedPatternMatcher.MatchResult result =
+                matcher.matchTransactionLine(line, 2024, true);
 
         assertTrue(result.isMatched(), "Should match standard transaction");
         assertEquals("Pattern1", result.getPatternUsed());
         final Map<String, String> fields = result.getFields();
         assertEquals("11/09", fields.get("date"));
-        assertTrue(fields.get("description").contains("AUTOMATIC PAYMENT"));
-        assertTrue(fields.get("amount").contains("458.40"));
+        assertTrue(fields.get(DESCRIPTION).contains("AUTOMATIC PAYMENT"));
+        assertTrue(fields.get(AMOUNT).contains("458.40"));
         assertTrue(result.getConfidence() > 0.8, "Should have high confidence");
     }
 
@@ -48,12 +52,13 @@ class EnhancedPatternMatcherTest {
     @DisplayName("Pattern 1: Transaction with negative amount")
     void testPattern1NegativeAmount() {
         final String line = "11/09 PAYMENT MADE -$458.40";
-        final EnhancedPatternMatcher.MatchResult result = matcher.matchTransactionLine(line, 2024, true);
+        final EnhancedPatternMatcher.MatchResult result =
+                matcher.matchTransactionLine(line, 2024, true);
 
         // Should match - negative amounts are valid
         // The pattern matcher should handle this via fuzzy matching if exact pattern doesn't match
         assertTrue(result.isMatched(), "Should match negative amount transaction: " + line);
-        final String amount = result.getFields().get("amount");
+        final String amount = result.getFields().get(AMOUNT);
         assertNotNull(amount, "Amount should not be null");
         // Amount should contain either the negative sign or the full amount value
         // The amount should be "-$458.40" or similar, not just "11" (which would be from the date)
@@ -77,19 +82,21 @@ class EnhancedPatternMatcherTest {
     @DisplayName("Pattern 1: Transaction with CR indicator")
     void testPattern1WithCR() {
         final String line = "11/09 DEPOSIT RECEIVED $1,234.56 CR";
-        final EnhancedPatternMatcher.MatchResult result = matcher.matchTransactionLine(line, 2024, true);
+        final EnhancedPatternMatcher.MatchResult result =
+                matcher.matchTransactionLine(line, 2024, true);
 
         assertTrue(result.isMatched());
         assertTrue(
-                result.getFields().get("amount").contains("1,234.56")
-                        || result.getFields().get("amount").contains("1234.56"));
+                result.getFields().get(AMOUNT).contains("1,234.56")
+                        || result.getFields().get(AMOUNT).contains("1234.56"));
     }
 
     @Test
     @DisplayName("Pattern 1: Transaction with DR indicator")
     void testPattern1WithDR() {
         final String line = "11/09 PAYMENT MADE $458.40 DR";
-        final EnhancedPatternMatcher.MatchResult result = matcher.matchTransactionLine(line, 2024, true);
+        final EnhancedPatternMatcher.MatchResult result =
+                matcher.matchTransactionLine(line, 2024, true);
 
         assertTrue(result.isMatched());
     }
@@ -98,19 +105,21 @@ class EnhancedPatternMatcherTest {
     @DisplayName("Pattern 1: Transaction with parentheses (negative)")
     void testPattern1WithParentheses() {
         final String line = "11/09 PAYMENT MADE ($458.40)";
-        final EnhancedPatternMatcher.MatchResult result = matcher.matchTransactionLine(line, 2024, true);
+        final EnhancedPatternMatcher.MatchResult result =
+                matcher.matchTransactionLine(line, 2024, true);
 
         assertTrue(result.isMatched());
         assertTrue(
-                result.getFields().get("amount").contains("458.40")
-                        || result.getFields().get("amount").contains("("));
+                result.getFields().get(AMOUNT).contains("458.40")
+                        || result.getFields().get(AMOUNT).contains("("));
     }
 
     @Test
     @DisplayName("Pattern 1: Transaction with extra whitespace")
     void testPattern1ExtraWhitespace() {
         final String line = "11/09     MERCHANT NAME     $100.00";
-        final EnhancedPatternMatcher.MatchResult result = matcher.matchTransactionLine(line, 2024, true);
+        final EnhancedPatternMatcher.MatchResult result =
+                matcher.matchTransactionLine(line, 2024, true);
 
         assertTrue(result.isMatched(), "Should handle extra whitespace");
     }
@@ -119,7 +128,8 @@ class EnhancedPatternMatcherTest {
     @DisplayName("Pattern 1: Transaction with tabs")
     void testPattern1WithTabs() {
         final String line = "11/09\tMERCHANT NAME\t$100.00";
-        final EnhancedPatternMatcher.MatchResult result = matcher.matchTransactionLine(line, 2024, true);
+        final EnhancedPatternMatcher.MatchResult result =
+                matcher.matchTransactionLine(line, 2024, true);
 
         assertTrue(result.isMatched(), "Should handle tabs");
     }
@@ -130,7 +140,8 @@ class EnhancedPatternMatcherTest {
     @DisplayName("Pattern 2: Transaction with prefix text")
     void testPattern2WithPrefix() {
         final String line = "Some prefix text 10/12 MERCHANT NAME $25.00";
-        final EnhancedPatternMatcher.MatchResult result = matcher.matchTransactionLine(line, 2024, true);
+        final EnhancedPatternMatcher.MatchResult result =
+                matcher.matchTransactionLine(line, 2024, true);
 
         assertTrue(result.isMatched());
         assertEquals("Pattern2", result.getPatternUsed());
@@ -140,16 +151,17 @@ class EnhancedPatternMatcherTest {
     @DisplayName("Pattern 2: Allow cashback bonus transactions with percentage")
     void testPattern2AllowCashbackWithPercentage() {
         final String line = "1% Cashback Bonus 10/06 DIRECTPAY FULL BALANCE -$11.74";
-        final EnhancedPatternMatcher.MatchResult result = matcher.matchTransactionLine(line, 2024, true);
+        final EnhancedPatternMatcher.MatchResult result =
+                matcher.matchTransactionLine(line, 2024, true);
 
         // Should match - cashback bonus is a valid transaction description
         assertTrue(result.isMatched());
         // The "-" is part of the amount "-$11.74", not the description, so description should not
         // have trailing "-"
         assertEquals(
-                "1% Cashback Bonus DIRECTPAY FULL BALANCE", result.getFields().get("description"));
+                "1% Cashback Bonus DIRECTPAY FULL BALANCE", result.getFields().get(DESCRIPTION));
         // Amount format may vary, so check it contains the value
-        assertTrue(result.getFields().get("amount").contains("11.74"));
+        assertTrue(result.getFields().get(AMOUNT).contains("11.74"));
     }
 
     // ========== Pattern 3 Tests: Date Date Description Amount ==========
@@ -158,7 +170,8 @@ class EnhancedPatternMatcherTest {
     @DisplayName("Pattern 3: Transaction with two dates")
     void testPattern3TwoDates() {
         final String line = "10/08 10/08 DOLLAR TREE TUKWILA WA $19.84";
-        final EnhancedPatternMatcher.MatchResult result = matcher.matchTransactionLine(line, 2024, true);
+        final EnhancedPatternMatcher.MatchResult result =
+                matcher.matchTransactionLine(line, 2024, true);
 
         assertTrue(result.isMatched());
         // Should use second date (posting date)
@@ -170,12 +183,14 @@ class EnhancedPatternMatcherTest {
     @Test
     @DisplayName("Pattern 4: Transaction with card number and location")
     void testPattern4WithCardAndLocation() {
-        final String line = "6779 11/17 11/18 2424052A2G30JEWD5 WSDOT-GOODTOGO ONLINE RENTON WA 73.45";
-        final EnhancedPatternMatcher.MatchResult result = matcher.matchTransactionLine(line, 2024, true);
+        final String line =
+                "6779 11/17 11/18 2424052A2G30JEWD5 WSDOT-GOODTOGO ONLINE RENTON WA 73.45";
+        final EnhancedPatternMatcher.MatchResult result =
+                matcher.matchTransactionLine(line, 2024, true);
 
         assertTrue(result.isMatched());
-        assertTrue(result.getFields().get("description").contains("WSDOT"));
-        assertTrue(result.getFields().get("description").contains("RENTON"));
+        assertTrue(result.getFields().get(DESCRIPTION).contains("WSDOT"));
+        assertTrue(result.getFields().get(DESCRIPTION).contains("RENTON"));
     }
 
     // ========== Pattern 5 Tests: Date Date Merchant Location Amount ==========
@@ -184,11 +199,12 @@ class EnhancedPatternMatcherTest {
     @DisplayName("Pattern 5: Transaction with merchant and location")
     void testPattern5MerchantAndLocation() {
         final String line = "10/08 10/08 DOLLAR TREE TUKWILA WA $19.84";
-        final EnhancedPatternMatcher.MatchResult result = matcher.matchTransactionLine(line, 2024, true);
+        final EnhancedPatternMatcher.MatchResult result =
+                matcher.matchTransactionLine(line, 2024, true);
 
         assertTrue(result.isMatched());
-        assertTrue(result.getFields().get("description").contains("DOLLAR TREE"));
-        assertTrue(result.getFields().get("description").contains("TUKWILA"));
+        assertTrue(result.getFields().get(DESCRIPTION).contains("DOLLAR TREE"));
+        assertTrue(result.getFields().get(DESCRIPTION).contains("TUKWILA"));
     }
 
     // ========== Edge Cases and Boundary Conditions ==========
@@ -197,7 +213,8 @@ class EnhancedPatternMatcherTest {
     @DisplayName("Edge Case: Very long description")
     void testEdgeCaseVeryLongDescription() {
         final String line = "11/09 " + "A".repeat(300) + " $100.00";
-        final EnhancedPatternMatcher.MatchResult result = matcher.matchTransactionLine(line, 2024, true);
+        final EnhancedPatternMatcher.MatchResult result =
+                matcher.matchTransactionLine(line, 2024, true);
 
         // Should still match but with lower confidence
         assertTrue(result.isMatched());
@@ -210,7 +227,8 @@ class EnhancedPatternMatcherTest {
     @DisplayName("Edge Case: Very short description")
     void testEdgeCaseVeryShortDescription() {
         final String line = "11/09 AB $100.00";
-        final EnhancedPatternMatcher.MatchResult result = matcher.matchTransactionLine(line, 2024, true);
+        final EnhancedPatternMatcher.MatchResult result =
+                matcher.matchTransactionLine(line, 2024, true);
 
         // Should still match but with lower confidence
         assertTrue(result.isMatched());
@@ -223,7 +241,8 @@ class EnhancedPatternMatcherTest {
     @DisplayName("Edge Case: Zero amount")
     void testEdgeCaseZeroAmount() {
         final String line = "11/09 MERCHANT NAME $0.00";
-        final EnhancedPatternMatcher.MatchResult result = matcher.matchTransactionLine(line, 2024, true);
+        final EnhancedPatternMatcher.MatchResult result =
+                matcher.matchTransactionLine(line, 2024, true);
 
         // Zero amounts might still match but with lower confidence
         if (result.isMatched()) {
@@ -236,7 +255,8 @@ class EnhancedPatternMatcherTest {
     @DisplayName("Edge Case: Very large amount")
     void testEdgeCaseVeryLargeAmount() {
         final String line = "11/09 MERCHANT NAME $999,999.99";
-        final EnhancedPatternMatcher.MatchResult result = matcher.matchTransactionLine(line, 2024, true);
+        final EnhancedPatternMatcher.MatchResult result =
+                matcher.matchTransactionLine(line, 2024, true);
 
         assertTrue(result.isMatched());
     }
@@ -245,7 +265,8 @@ class EnhancedPatternMatcherTest {
     @DisplayName("Edge Case: Date far in the future")
     void testEdgeCaseFutureDate() {
         final String line = "12/31/2050 MERCHANT NAME $100.00";
-        final EnhancedPatternMatcher.MatchResult result = matcher.matchTransactionLine(line, 2050, true);
+        final EnhancedPatternMatcher.MatchResult result =
+                matcher.matchTransactionLine(line, 2050, true);
 
         assertTrue(result.isMatched());
         // Should have reduced confidence for far future dates
@@ -256,7 +277,8 @@ class EnhancedPatternMatcherTest {
     @DisplayName("Edge Case: Date far in the past")
     void testEdgeCasePastDate() {
         final String line = "01/01/2000 MERCHANT NAME $100.00";
-        final EnhancedPatternMatcher.MatchResult result = matcher.matchTransactionLine(line, 2000, true);
+        final EnhancedPatternMatcher.MatchResult result =
+                matcher.matchTransactionLine(line, 2000, true);
 
         assertTrue(result.isMatched());
         // Should have reduced confidence for far past dates
@@ -267,7 +289,8 @@ class EnhancedPatternMatcherTest {
     @DisplayName("Edge Case: Missing year in date")
     void testEdgeCaseMissingYear() {
         final String line = "11/09 MERCHANT NAME $100.00";
-        final EnhancedPatternMatcher.MatchResult result = matcher.matchTransactionLine(line, 2024, true);
+        final EnhancedPatternMatcher.MatchResult result =
+                matcher.matchTransactionLine(line, 2024, true);
 
         assertTrue(result.isMatched(), "Should infer year from context");
     }
@@ -276,7 +299,8 @@ class EnhancedPatternMatcherTest {
     @DisplayName("Edge Case: European date format")
     void testEdgeCaseEuropeanDateFormat() {
         final String line = "09/11 MERCHANT NAME $100.00";
-        final EnhancedPatternMatcher.MatchResult result = matcher.matchTransactionLine(line, 2024, false);
+        final EnhancedPatternMatcher.MatchResult result =
+                matcher.matchTransactionLine(line, 2024, false);
 
         assertTrue(result.isMatched());
         // Should interpret as DD/MM format
@@ -286,7 +310,8 @@ class EnhancedPatternMatcherTest {
     @DisplayName("Edge Case: Amount without currency symbol")
     void testEdgeCaseAmountWithoutCurrency() {
         final String line = "11/09 MERCHANT NAME 100.00";
-        final EnhancedPatternMatcher.MatchResult result = matcher.matchTransactionLine(line, 2024, true);
+        final EnhancedPatternMatcher.MatchResult result =
+                matcher.matchTransactionLine(line, 2024, true);
 
         assertTrue(result.isMatched());
     }
@@ -295,7 +320,8 @@ class EnhancedPatternMatcherTest {
     @DisplayName("Edge Case: Amount with comma as thousands separator")
     void testEdgeCaseAmountWithCommas() {
         final String line = "11/09 MERCHANT NAME $1,234.56";
-        final EnhancedPatternMatcher.MatchResult result = matcher.matchTransactionLine(line, 2024, true);
+        final EnhancedPatternMatcher.MatchResult result =
+                matcher.matchTransactionLine(line, 2024, true);
 
         assertTrue(result.isMatched());
     }
@@ -304,7 +330,8 @@ class EnhancedPatternMatcherTest {
     @DisplayName("Edge Case: Amount with spaces as thousands separator")
     void testEdgeCaseAmountWithSpaces() {
         final String line = "11/09 MERCHANT NAME $1 234.56";
-        final EnhancedPatternMatcher.MatchResult result = matcher.matchTransactionLine(line, 2024, true);
+        final EnhancedPatternMatcher.MatchResult result =
+                matcher.matchTransactionLine(line, 2024, true);
 
         assertTrue(result.isMatched());
     }
@@ -312,7 +339,8 @@ class EnhancedPatternMatcherTest {
     @Test
     @DisplayName("Edge Case: Empty line")
     void testEdgeCaseEmptyLine() {
-        final EnhancedPatternMatcher.MatchResult result = matcher.matchTransactionLine("", 2024, true);
+        final EnhancedPatternMatcher.MatchResult result =
+                matcher.matchTransactionLine("", 2024, true);
 
         assertFalse(result.isMatched());
     }
@@ -320,7 +348,8 @@ class EnhancedPatternMatcherTest {
     @Test
     @DisplayName("Edge Case: Null line")
     void testEdgeCaseNullLine() {
-        final EnhancedPatternMatcher.MatchResult result = matcher.matchTransactionLine(null, 2024, true);
+        final EnhancedPatternMatcher.MatchResult result =
+                matcher.matchTransactionLine(null, 2024, true);
 
         assertFalse(result.isMatched());
     }
@@ -338,7 +367,8 @@ class EnhancedPatternMatcherTest {
     @DisplayName("Edge Case: Informational line with Pay Over Time and zero amount")
     void testEdgeCaseInformationalLine() {
         final String line = "11/09 Pay Over Time 12/30/2022 19.49% (v) $0.00 $0.00";
-        final EnhancedPatternMatcher.MatchResult result = matcher.matchTransactionLine(line, 2024, true);
+        final EnhancedPatternMatcher.MatchResult result =
+                matcher.matchTransactionLine(line, 2024, true);
 
         // Should NOT match - zero amounts are now rejected in fuzzy matching
         // Also contains "Pay Over Time" which is filtered by early filtering
@@ -358,8 +388,10 @@ class EnhancedPatternMatcherTest {
     @Test
     @DisplayName("Edge Case: Payment due date line (should be skipped)")
     void testEdgeCasePaymentDueDate() {
-        final String line = "12/27/25. This date may not be the same date your bank will debit your";
-        final EnhancedPatternMatcher.MatchResult result = matcher.matchTransactionLine(line, 2024, true);
+        final String line =
+                "12/27/25. This date may not be the same date your bank will debit your";
+        final EnhancedPatternMatcher.MatchResult result =
+                matcher.matchTransactionLine(line, 2024, true);
 
         // Should not match payment due date lines - these are informational
         // The description validation should reject this
@@ -372,11 +404,12 @@ class EnhancedPatternMatcherTest {
     @DisplayName("Real-World: Chase credit card statement format")
     void testRealWorldChaseFormat() {
         final String line = "11/09     AUTOMATIC PAYMENT - THANK YOU -458.40";
-        final EnhancedPatternMatcher.MatchResult result = matcher.matchTransactionLine(line, 2024, true);
+        final EnhancedPatternMatcher.MatchResult result =
+                matcher.matchTransactionLine(line, 2024, true);
 
         assertTrue(result.isMatched());
         assertEquals("11/09", result.getFields().get("date"));
-        assertTrue(result.getFields().get("description").contains("AUTOMATIC PAYMENT"));
+        assertTrue(result.getFields().get(DESCRIPTION).contains("AUTOMATIC PAYMENT"));
     }
 
     @Test
@@ -385,7 +418,8 @@ class EnhancedPatternMatcherTest {
         final String line = "11/27/25* AGARWAL SUMIT KUMAR AUTOPAY PAYMENT RECEIVED - THANK YOU";
         // This is line 1 of Pattern 7, would need multi-line handling
         // For now, test single line
-        final EnhancedPatternMatcher.MatchResult result = matcher.matchTransactionLine(line, 2025, true);
+        final EnhancedPatternMatcher.MatchResult result =
+                matcher.matchTransactionLine(line, 2025, true);
 
         // May or may not match depending on implementation
         // The key is it doesn't crash
@@ -395,8 +429,10 @@ class EnhancedPatternMatcherTest {
     @Test
     @DisplayName("Real-World: Wells Fargo statement format")
     void testRealWorldWellsFargoFormat() {
-        final String line = "6779 11/17 11/18 2424052A2G30JEWD5 WSDOT-GOODTOGO ONLINE RENTON  WA 73.45";
-        final EnhancedPatternMatcher.MatchResult result = matcher.matchTransactionLine(line, 2024, true);
+        final String line =
+                "6779 11/17 11/18 2424052A2G30JEWD5 WSDOT-GOODTOGO ONLINE RENTON  WA 73.45";
+        final EnhancedPatternMatcher.MatchResult result =
+                matcher.matchTransactionLine(line, 2024, true);
 
         assertTrue(result.isMatched());
     }
@@ -405,10 +441,11 @@ class EnhancedPatternMatcherTest {
     @DisplayName("Real-World: Bank of America statement format")
     void testRealWorldBOFAFormat() {
         final String line = "10/08 10/08 COSTCO WHSE #0002        PORTLAND     OR $7.78";
-        final EnhancedPatternMatcher.MatchResult result = matcher.matchTransactionLine(line, 2024, true);
+        final EnhancedPatternMatcher.MatchResult result =
+                matcher.matchTransactionLine(line, 2024, true);
 
         assertTrue(result.isMatched());
-        assertTrue(result.getFields().get("description").contains("COSTCO"));
+        assertTrue(result.getFields().get(DESCRIPTION).contains("COSTCO"));
     }
 
     // ========== Fuzzy Matching Tests ==========
@@ -417,7 +454,8 @@ class EnhancedPatternMatcherTest {
     @DisplayName("Fuzzy Match: Malformed but recognizable transaction")
     void testFuzzyMatchMalformedTransaction() {
         final String line = "11-09  MERCHANT  NAME  100.00"; // Missing $, different date separator
-        final EnhancedPatternMatcher.MatchResult result = matcher.matchTransactionLine(line, 2024, true);
+        final EnhancedPatternMatcher.MatchResult result =
+                matcher.matchTransactionLine(line, 2024, true);
 
         // Should match with fuzzy matching if all components can be extracted
         // Note: This might not match if the date format with dash isn't recognized
@@ -435,7 +473,8 @@ class EnhancedPatternMatcherTest {
     @DisplayName("Fuzzy Match: Transaction with special characters")
     void testFuzzyMatchSpecialCharacters() {
         final String line = "11/09 MERCHANT-NAME & CO. $100.00";
-        final EnhancedPatternMatcher.MatchResult result = matcher.matchTransactionLine(line, 2024, true);
+        final EnhancedPatternMatcher.MatchResult result =
+                matcher.matchTransactionLine(line, 2024, true);
 
         assertTrue(result.isMatched());
     }
@@ -444,7 +483,8 @@ class EnhancedPatternMatcherTest {
     @DisplayName("Fuzzy Match: Transaction with unicode characters")
     void testFuzzyMatchUnicodeCharacters() {
         final String line = "11/09 CAFÉ & RESTAURANT $100.00";
-        final EnhancedPatternMatcher.MatchResult result = matcher.matchTransactionLine(line, 2024, true);
+        final EnhancedPatternMatcher.MatchResult result =
+                matcher.matchTransactionLine(line, 2024, true);
 
         assertTrue(result.isMatched());
     }
@@ -461,7 +501,8 @@ class EnhancedPatternMatcherTest {
     })
     @DisplayName("Parameterized: Multiple pattern types")
     void testParameterizedMultiplePatterns(final String line, final String expectedPattern) {
-        final EnhancedPatternMatcher.MatchResult result = matcher.matchTransactionLine(line, 2024, true);
+        final EnhancedPatternMatcher.MatchResult result =
+                matcher.matchTransactionLine(line, 2024, true);
 
         assertTrue(result.isMatched(), "Should match: " + line);
         // Note: Pattern might differ due to confidence scoring
@@ -474,7 +515,8 @@ class EnhancedPatternMatcherTest {
     @DisplayName("Confidence: High confidence for well-formed transaction")
     void testConfidenceWellFormed() {
         final String line = "11/09 MERCHANT NAME $100.00";
-        final EnhancedPatternMatcher.MatchResult result = matcher.matchTransactionLine(line, 2024, true);
+        final EnhancedPatternMatcher.MatchResult result =
+                matcher.matchTransactionLine(line, 2024, true);
 
         assertTrue(result.isMatched());
         assertTrue(
@@ -488,7 +530,8 @@ class EnhancedPatternMatcherTest {
         // Use a format that won't match exact patterns but has extractable components
         // The date format "11-09" might match, so use a more malformed example
         final String line = "11-09-2024 MERCHANT NAME 100.00"; // Different date format, missing $
-        final EnhancedPatternMatcher.MatchResult result = matcher.matchTransactionLine(line, 2024, true);
+        final EnhancedPatternMatcher.MatchResult result =
+                matcher.matchTransactionLine(line, 2024, true);
 
         // Fuzzy matching may or may not succeed - that's acceptable
         // The key is that if it matches, it should have lower confidence than exact matches
@@ -528,7 +571,8 @@ class EnhancedPatternMatcherTest {
         final String line =
                 " $0 - $612.54 will be deducted from your account and credited as your automatic payment on 01/12/26.  The automatic paymen";
 
-        final EnhancedPatternMatcher.MatchResult result = matcher.matchTransactionLine(line, 2025, true);
+        final EnhancedPatternMatcher.MatchResult result =
+                matcher.matchTransactionLine(line, 2025, true);
 
         // Should NOT match - this is an informational line, not a transaction
         // Position validation should reject it because amount is before date
@@ -543,7 +587,8 @@ class EnhancedPatternMatcherTest {
         // Informational line with amount range appearing before date
         final String line = "Amount range $100.00 - $500.00 will be processed on 12/31/25";
 
-        final EnhancedPatternMatcher.MatchResult result = matcher.matchTransactionLine(line, 2025, true);
+        final EnhancedPatternMatcher.MatchResult result =
+                matcher.matchTransactionLine(line, 2025, true);
 
         assertFalse(result.isMatched(), "Line with amount range before date should not match");
     }
@@ -554,7 +599,8 @@ class EnhancedPatternMatcherTest {
         // Notification about future payment
         final String line = "Payment of $250.00 scheduled for 01/15/26";
 
-        final EnhancedPatternMatcher.MatchResult result = matcher.matchTransactionLine(line, 2025, true);
+        final EnhancedPatternMatcher.MatchResult result =
+                matcher.matchTransactionLine(line, 2025, true);
 
         assertFalse(
                 result.isMatched(),
@@ -568,7 +614,8 @@ class EnhancedPatternMatcherTest {
         // This pattern is unusual for transactions - usually date comes first
         final String line = "Your payment of $250.00 has been processed successfully on 12/31/25";
 
-        final EnhancedPatternMatcher.MatchResult result = matcher.matchTransactionLine(line, 2025, true);
+        final EnhancedPatternMatcher.MatchResult result =
+                matcher.matchTransactionLine(line, 2025, true);
 
         // Should NOT match - amount before date is suspicious for informational lines
         // Even though technically amount could be considered "after" if we look at positions,
@@ -586,10 +633,11 @@ class EnhancedPatternMatcherTest {
         // Standard transaction format - amount at end after date
         final String line = "12/25/25 AMAZON.COM $99.99";
 
-        final EnhancedPatternMatcher.MatchResult result = matcher.matchTransactionLine(line, 2025, true);
+        final EnhancedPatternMatcher.MatchResult result =
+                matcher.matchTransactionLine(line, 2025, true);
 
         assertTrue(result.isMatched(), "Standard transaction with amount at end should match");
-        assertTrue(result.getFields().get("amount").contains("99.99"));
+        assertTrue(result.getFields().get(AMOUNT).contains("99.99"));
     }
 
     @Test
@@ -598,7 +646,8 @@ class EnhancedPatternMatcherTest {
         // Amount is after date and within last 50 chars (has trailing text)
         final String line = "12/25/25 AUTOPAY $100.00 - THANK YOU";
 
-        final EnhancedPatternMatcher.MatchResult result = matcher.matchTransactionLine(line, 2025, true);
+        final EnhancedPatternMatcher.MatchResult result =
+                matcher.matchTransactionLine(line, 2025, true);
 
         assertTrue(
                 result.isMatched(),
@@ -611,7 +660,8 @@ class EnhancedPatternMatcherTest {
         // Valid transaction where description mentions amounts but transaction amount is at end
         final String line = "12/25/25 REFUND FOR ITEM $50.00 TOTAL $25.00";
 
-        final EnhancedPatternMatcher.MatchResult result = matcher.matchTransactionLine(line, 2025, true);
+        final EnhancedPatternMatcher.MatchResult result =
+                matcher.matchTransactionLine(line, 2025, true);
 
         // Should match - amount at end is the transaction amount
         assertTrue(
@@ -625,7 +675,8 @@ class EnhancedPatternMatcherTest {
         // Standard format: date, description, amount (all in correct order)
         final String line = "11/09 AUTOMATIC PAYMENT - THANK YOU $458.40";
 
-        final EnhancedPatternMatcher.MatchResult result = matcher.matchTransactionLine(line, 2025, true);
+        final EnhancedPatternMatcher.MatchResult result =
+                matcher.matchTransactionLine(line, 2025, true);
 
         assertTrue(
                 result.isMatched(), "Transaction with date-description-amount order should match");
@@ -638,7 +689,8 @@ class EnhancedPatternMatcherTest {
         // Negative amount at end after date
         final String line = "12/25/25 PAYMENT -$250.00";
 
-        final EnhancedPatternMatcher.MatchResult result = matcher.matchTransactionLine(line, 2025, true);
+        final EnhancedPatternMatcher.MatchResult result =
+                matcher.matchTransactionLine(line, 2025, true);
 
         assertTrue(result.isMatched(), "Transaction with negative amount at end should match");
     }
@@ -649,7 +701,8 @@ class EnhancedPatternMatcherTest {
         // Amount in parentheses (negative) at end after date
         final String line = "12/25/25 PAYMENT ($250.00)";
 
-        final EnhancedPatternMatcher.MatchResult result = matcher.matchTransactionLine(line, 2025, true);
+        final EnhancedPatternMatcher.MatchResult result =
+                matcher.matchTransactionLine(line, 2025, true);
 
         assertTrue(
                 result.isMatched(), "Transaction with amount in parentheses at end should match");
@@ -663,7 +716,8 @@ class EnhancedPatternMatcherTest {
         // Section header with date and zero amount - exact false positive case
         final String line = "Pay Over Time 12/30/2022 19.49% (v) $0.00 $0.00";
 
-        final EnhancedPatternMatcher.MatchResult result = matcher.matchTransactionLine(line, 2025, true);
+        final EnhancedPatternMatcher.MatchResult result =
+                matcher.matchTransactionLine(line, 2025, true);
 
         // Should NOT match - should be filtered by:
         // 1. Early filtering (contains "pay over time") - primary defense
@@ -679,7 +733,8 @@ class EnhancedPatternMatcherTest {
         // Section header with date and zero amount - exact false positive case
         final String line = "Cash Advances 12/30/2022 28.74% (v) $0.00 $0.00";
 
-        final EnhancedPatternMatcher.MatchResult result = matcher.matchTransactionLine(line, 2025, true);
+        final EnhancedPatternMatcher.MatchResult result =
+                matcher.matchTransactionLine(line, 2025, true);
 
         // Should NOT match - should be filtered by:
         // 1. Early filtering (contains "cash advances") - primary defense
@@ -695,7 +750,8 @@ class EnhancedPatternMatcherTest {
         // Section header with zero amount but no date
         final String line = "Cash Advances % (v) $0.00 $0.00";
 
-        final EnhancedPatternMatcher.MatchResult result = matcher.matchTransactionLine(line, 2025, true);
+        final EnhancedPatternMatcher.MatchResult result =
+                matcher.matchTransactionLine(line, 2025, true);
 
         // Should NOT match - should be filtered by early filtering
         assertFalse(result.isMatched(), "Cash Advances line without date should not match");
@@ -707,7 +763,8 @@ class EnhancedPatternMatcherTest {
         // Section header that might have dates and amounts
         final String line = "Balance Transfers 12/30/2022 15.99% (v) $0.00 $0.00";
 
-        final EnhancedPatternMatcher.MatchResult result = matcher.matchTransactionLine(line, 2025, true);
+        final EnhancedPatternMatcher.MatchResult result =
+                matcher.matchTransactionLine(line, 2025, true);
 
         // Should NOT match - invalid prefix "balance transfers"
         assertFalse(result.isMatched(), "Balance Transfers header should not match");
@@ -719,7 +776,8 @@ class EnhancedPatternMatcherTest {
         // Section header that might have dates and amounts
         final String line = "Interest Charges 12/30/2022 18.24% (v) $0.00 $0.00";
 
-        final EnhancedPatternMatcher.MatchResult result = matcher.matchTransactionLine(line, 2025, true);
+        final EnhancedPatternMatcher.MatchResult result =
+                matcher.matchTransactionLine(line, 2025, true);
 
         // Should NOT match - invalid prefix "interest charges"
         assertFalse(result.isMatched(), "Interest Charges header should not match");
@@ -731,7 +789,8 @@ class EnhancedPatternMatcherTest {
         // Header line with amount
         final String line = "Minimum Payment Due: $25.00";
 
-        final EnhancedPatternMatcher.MatchResult result = matcher.matchTransactionLine(line, 2025, true);
+        final EnhancedPatternMatcher.MatchResult result =
+                matcher.matchTransactionLine(line, 2025, true);
 
         // Should NOT match - invalid prefix "minimum payment"
         assertFalse(result.isMatched(), "Minimum Payment header should not match");
@@ -743,7 +802,8 @@ class EnhancedPatternMatcherTest {
         // Date not at start without known valid prefix
         final String line = "Some unknown prefix text 12/25/25 MERCHANT $100.00";
 
-        final EnhancedPatternMatcher.MatchResult result = matcher.matchTransactionLine(line, 2025, true);
+        final EnhancedPatternMatcher.MatchResult result =
+                matcher.matchTransactionLine(line, 2025, true);
 
         // Should NOT match via fuzzy - date not at start and no valid prefix
         if (result.isMatched() && "FuzzyMatch".equals(result.getPatternUsed())) {
@@ -758,7 +818,8 @@ class EnhancedPatternMatcherTest {
         // Valid cashback transaction - date not at start but has valid prefix "1%"
         final String line = "1% Cashback Bonus 10/06 DIRECTPAY FULL BALANCE -$11.74";
 
-        final EnhancedPatternMatcher.MatchResult result = matcher.matchTransactionLine(line, 2025, true);
+        final EnhancedPatternMatcher.MatchResult result =
+                matcher.matchTransactionLine(line, 2025, true);
 
         // Should match - has valid prefix "1%" even though date is not at start
         assertTrue(
@@ -772,7 +833,8 @@ class EnhancedPatternMatcherTest {
         // Standard transaction - date at position 0 (at start)
         final String line = "12/25/25 AMAZON.COM $99.99";
 
-        final EnhancedPatternMatcher.MatchResult result = matcher.matchTransactionLine(line, 2025, true);
+        final EnhancedPatternMatcher.MatchResult result =
+                matcher.matchTransactionLine(line, 2025, true);
 
         assertTrue(result.isMatched(), "Standard transaction with date at start should match");
     }

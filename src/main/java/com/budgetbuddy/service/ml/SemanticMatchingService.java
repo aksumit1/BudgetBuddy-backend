@@ -1,13 +1,12 @@
 package com.budgetbuddy.service.ml;
 
-
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import java.util.Locale;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -1185,7 +1184,7 @@ public class SemanticMatchingService {
                                 "mcc4814", // Telecommunications Equipment and Telephone Sales
                                 "mcc 4816",
                                 "mcc4816" // Computer Network/Information Services
-                        ));
+                                ));
         categorySemanticClusters.put(UTILITIES, utilities);
 
         // Healthcare cluster - EXPANDED (includes MCC codes and health/fitness facilities)
@@ -1264,7 +1263,7 @@ public class SemanticMatchingService {
                                 "mcc8043", // Opticians, Optical Goods and Eyeglasses
                                 "mcc 8062",
                                 "mcc8062" // Hospitals
-                        ));
+                                ));
         categorySemanticClusters.put(HEALTHCARE, healthcare);
 
         // Insurance cluster - NEW
@@ -1486,9 +1485,9 @@ public class SemanticMatchingService {
                                 "state tax refund",
                                 "internal revenue service",
                                 "irs"
-                        // Major Employers (Fortune 500)
+                                // Major Employers (Fortune 500)
 
-                        ));
+                                ));
         categorySemanticClusters.put(INCOME, income);
 
         // Deposit cluster - EXPANDED (includes BAI2 deposit codes, ISO 20022, ACH)
@@ -1672,7 +1671,7 @@ public class SemanticMatchingService {
                                 "mcc7832", // Motion Picture Theaters
                                 "mcc 7922",
                                 "mcc7922" // Theatrical Producers and Ticket Agencies
-                        ));
+                                ));
         categorySemanticClusters.put(ENTERTAINMENT, entertainment);
 
         // Subscriptions cluster - NEW (separate from entertainment for better categorization)
@@ -2719,9 +2718,9 @@ public class SemanticMatchingService {
                                 "non profit",
                                 "go fund me",
                                 "gofundme"
-                        // NOTE: School-related terms removed - they are now in education
-                        // cluster
-                        ));
+                                // NOTE: School-related terms removed - they are now in education
+                                // cluster
+                                ));
         categorySemanticClusters.put("charity", charity);
 
         // Check cluster - NEW
@@ -2766,7 +2765,8 @@ public class SemanticMatchingService {
      * @param description Transaction description
      * @return SemanticMatchResult with best match and confidence, or null if no good match
      */
-    public SemanticMatchResult findBestSemanticMatch(final String merchantName, final String description) {
+    public SemanticMatchResult findBestSemanticMatch(
+            final String merchantName, final String description) {
         return findBestSemanticMatchWithContext(merchantName, description, null, null, null, null);
     }
 
@@ -2873,7 +2873,8 @@ public class SemanticMatchingService {
                         combinedText);
             } else {
                 // Combine both when available
-                combinedText = (safeMerchantName + " " + safeDescription).trim().toLowerCase(Locale.ROOT);
+                combinedText =
+                        (safeMerchantName + " " + safeDescription).trim().toLowerCase(Locale.ROOT);
                 LOGGER.debug("Semantic matching: Using combined text: '{}'", combinedText);
             }
 
@@ -2968,7 +2969,8 @@ public class SemanticMatchingService {
                 final double rawContextBoost =
                         calculateContextBoost(
                                 category, amount, paymentChannel, accountType, accountSubtype);
-                final double contextBoost = Math.min(MAX_CONTEXT_BOOST, Math.max(0.0, rawContextBoost));
+                final double contextBoost =
+                        Math.min(MAX_CONTEXT_BOOST, Math.max(0.0, rawContextBoost));
 
                 double similarity = Math.min(1.0, baseSimilarity + contextBoost);
 
@@ -3368,7 +3370,7 @@ public class SemanticMatchingService {
                         final double similarity =
                                 0.85
                                         + (phraseLength - 2)
-                                        * 0.05; // 0.85 for 2 words, 0.90 for 3, 0.95 for 4,
+                                                * 0.05; // 0.85 for 2 words, 0.90 for 3, 0.95 for 4,
                         // etc.
                         return Math.min(0.95, similarity); // Cap at 0.95
                     }
@@ -3380,7 +3382,8 @@ public class SemanticMatchingService {
             // Reconstruct the original phrase from tokens (sorted for consistency)
             final List<String> sortedTokens = new ArrayList<>(tokensCopy);
             Collections.sort(sortedTokens);
-            final String reconstructedPhrase = String.join(" ", sortedTokens).toLowerCase(Locale.ROOT);
+            final String reconstructedPhrase =
+                    String.join(" ", sortedTokens).toLowerCase(Locale.ROOT);
 
             // Check if exact phrase exists in cluster (case-insensitive)
             boolean exactPhraseMatch = false;
@@ -3618,7 +3621,8 @@ public class SemanticMatchingService {
         public final double similarity;
         public final String method;
 
-        public SemanticMatchResult(final String category, final double similarity, final String method) {
+        public SemanticMatchResult(
+                final String category, final double similarity, final String method) {
             this.category = category;
             this.similarity = similarity;
             this.method = method;
@@ -3700,7 +3704,11 @@ public class SemanticMatchingService {
         final java.math.BigDecimal amount;
 
         CategorizationContext(
-                final String text, final String type, final String sub, final String channel, final java.math.BigDecimal amount) {
+                final String text,
+                final String type,
+                final String sub,
+                final String channel,
+                final java.math.BigDecimal amount) {
             this.textLower = text;
             this.accountTypeLower = type;
             this.accountSubtypeLower = sub;
@@ -3766,10 +3774,8 @@ public class SemanticMatchingService {
     private static final Set<String> INVESTMENT_ACCOUNT_KEYWORDS =
             Set.of(INVESTMENT, BROKERAGE, "ira", "401k", "cd");
 
-    private static final Set<String> LOAN_ACCOUNT_KEYWORDS =
-            Set.of("loan", MORTGAGE);
-    private static final Set<String> CREDIT_ACCOUNT_KEYWORDS =
-            Set.of(CREDIT, "credit card");
+    private static final Set<String> LOAN_ACCOUNT_KEYWORDS = Set.of("loan", MORTGAGE);
+    private static final Set<String> CREDIT_ACCOUNT_KEYWORDS = Set.of(CREDIT, "credit card");
 
     /** Merchant archetype keyword groups. */
     private static final Set<String> GROCERY_KEYWORDS =
@@ -3887,10 +3893,7 @@ public class SemanticMatchingService {
                                                                             10))
                                                     < 0),
                     new ContextRule(
-                            "CONTEXT_ACH",
-                            UTILITIES,
-                            0.65,
-                            ctx -> "ach".equals(ctx.channelLower)),
+                            "CONTEXT_ACH", UTILITIES, 0.65, ctx -> "ach".equals(ctx.channelLower)),
                     new ContextRule(
                             "CONTEXT_POS",
                             SHOPPING,

@@ -102,7 +102,8 @@ public class PdfTemplateRegistry {
         }
 
         for (final Resource resource : resources) {
-            final String name = resource.getFilename() != null ? resource.getFilename() : "(unnamed)";
+            final String name =
+                    resource.getFilename() != null ? resource.getFilename() : "(unnamed)";
             try (InputStream in = resource.getInputStream()) {
                 final PdfTemplate template = yamlMapper.readValue(in, PdfTemplate.class);
                 if (template.validate()) {

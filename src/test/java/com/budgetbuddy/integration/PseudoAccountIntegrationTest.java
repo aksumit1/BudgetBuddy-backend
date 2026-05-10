@@ -1,7 +1,5 @@
 package com.budgetbuddy.integration;
 
-
-import java.nio.charset.StandardCharsets;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -19,6 +17,7 @@ import com.budgetbuddy.service.TransactionService;
 import com.budgetbuddy.service.UserService;
 import com.budgetbuddy.util.TableInitializer;
 import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.Base64;
@@ -29,7 +28,6 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
@@ -71,7 +69,8 @@ class PseudoAccountIntegrationTest {
         final String email = "test-pseudo-" + UUID.randomUUID() + "@example.com";
         // Password hash must be base64 encoded
         final String password = "testpassword123";
-        final String passwordHash = Base64.getEncoder().encodeToString(password.getBytes(StandardCharsets.UTF_8));
+        final String passwordHash =
+                Base64.getEncoder().encodeToString(password.getBytes(StandardCharsets.UTF_8));
 
         testUser = userService.createUserSecure(email, passwordHash, "Test", "User");
         assertNotNull(testUser);
@@ -121,7 +120,7 @@ class PseudoAccountIntegrationTest {
                         null, // importSource
                         null, // importBatchId
                         null // importFileName
-                );
+                        );
 
         // Then - Should use pseudo account
         assertNotNull(transaction);
@@ -160,7 +159,7 @@ class PseudoAccountIntegrationTest {
                         null, // importSource
                         null, // importBatchId
                         null // importFileName
-                );
+                        );
 
         // Then - Should use provided account, NOT pseudo account
         assertNotNull(transaction);
@@ -216,7 +215,7 @@ class PseudoAccountIntegrationTest {
                         null, // importSource
                         null, // importBatchId
                         null // importFileName
-                );
+                        );
 
         // Then - Should use Plaid account, NOT pseudo account
         assertNotNull(transaction);
@@ -229,10 +228,12 @@ class PseudoAccountIntegrationTest {
     @Test
     void testGetOrCreatePseudoAccountIsIdempotent() {
         // Given
-        final AccountTable firstCall = accountRepository.getOrCreatePseudoAccount(testUser.getUserId());
+        final AccountTable firstCall =
+                accountRepository.getOrCreatePseudoAccount(testUser.getUserId());
 
         // When - Call again
-        final AccountTable secondCall = accountRepository.getOrCreatePseudoAccount(testUser.getUserId());
+        final AccountTable secondCall =
+                accountRepository.getOrCreatePseudoAccount(testUser.getUserId());
 
         // Then - Should return same account
         assertEquals(firstCall.getAccountId(), secondCall.getAccountId());
@@ -254,7 +255,8 @@ class PseudoAccountIntegrationTest {
         accountRepository.save(realAccount);
 
         // When - Get all accounts for user
-        final List<AccountTable> userAccounts = accountRepository.findByUserId(testUser.getUserId());
+        final List<AccountTable> userAccounts =
+                accountRepository.findByUserId(testUser.getUserId());
 
         // Then - Should include real account, but pseudo account should be filtered out by client
         // (Note: Repository returns all accounts, filtering happens in client)

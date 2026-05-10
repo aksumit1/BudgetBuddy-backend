@@ -56,7 +56,8 @@ public class CloudTrailService {
     }
 
     /** Lookup CloudTrail events */
-    public List<Event> lookupEvents(final String userId, final Instant startTime, final Instant endTime) {
+    public List<Event> lookupEvents(
+            final String userId, final Instant startTime, final Instant endTime) {
         try {
             final LookupEventsResponse response =
                     cloudTrailClient.lookupEvents(

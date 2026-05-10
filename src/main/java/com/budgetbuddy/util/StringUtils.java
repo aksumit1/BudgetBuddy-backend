@@ -1,7 +1,7 @@
 package com.budgetbuddy.util;
 
-
 import java.util.Locale;
+
 /** String utility methods for transaction processing */
 // PMD's OnlyOneReturn fights guard-clause idiom — the codebase intentionally
 // uses early returns for clarity (validation guards, fail-fast patterns).

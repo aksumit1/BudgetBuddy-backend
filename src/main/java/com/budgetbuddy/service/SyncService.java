@@ -1,6 +1,5 @@
 package com.budgetbuddy.service;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import com.budgetbuddy.dto.IncrementalSyncResponse;
 import com.budgetbuddy.dto.SyncAllResponse;
 import com.budgetbuddy.dto.SyncStatusResponse;
@@ -16,6 +15,7 @@ import com.budgetbuddy.repository.dynamodb.BudgetRepository;
 import com.budgetbuddy.repository.dynamodb.GoalRepository;
 import com.budgetbuddy.repository.dynamodb.TransactionActionRepository;
 import com.budgetbuddy.repository.dynamodb.TransactionRepository;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.time.Instant;
 import java.util.List;
 import org.slf4j.Logger;
@@ -164,7 +164,8 @@ public class SyncService {
 
             final List<BudgetTable> budgets = budgetRepository.findByUserId(userId);
             final List<GoalTable> goals = goalRepository.findByUserId(userId);
-            final List<TransactionActionTable> actions = transactionActionRepository.findByUserId(userId);
+            final List<TransactionActionTable> actions =
+                    transactionActionRepository.findByUserId(userId);
 
             final Long syncTimestamp = Instant.now().getEpochSecond();
 
@@ -283,7 +284,7 @@ public class SyncService {
         try {
             // Get data counts
             final List<AccountTable> accounts = accountRepository.findByUserId(userId);
-                    transactionRepository.findByUserId(userId, 0, 1); // Just count
+            transactionRepository.findByUserId(userId, 0, 1); // Just count
             final List<BudgetTable> budgets = budgetRepository.findByUserId(userId);
             final List<GoalTable> goals = goalRepository.findByUserId(userId);
 
@@ -369,7 +370,7 @@ public class SyncService {
                             SyncStatusResponse.SyncStatus.IDLE,
                             dataCounts,
                             Instant.now().getEpochSecond() // serverTime
-                    );
+                            );
 
             LOGGER.info(
                     "Sync status for user {}: {} accounts, {} transactions, {} budgets, {} goals, lastSync: {}",

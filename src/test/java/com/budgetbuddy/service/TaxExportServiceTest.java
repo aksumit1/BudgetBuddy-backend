@@ -32,6 +32,9 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @DisplayName("Tax Export Service Tests")
 class TaxExportServiceTest {
 
+    private static final String USER123 = "user123";
+    private static final String OTHER = "other";
+
     @Mock private TransactionRepository transactionRepository;
 
     @InjectMocks private TaxExportService taxExportService;
@@ -73,7 +76,7 @@ class TaxExportServiceTest {
                         "Donation to Red Cross",
                         "Red Cross",
                         new BigDecimal("-100.00"),
-                        "other",
+                        OTHER,
                         null);
 
         rsuTransaction =
@@ -93,7 +96,7 @@ class TaxExportServiceTest {
                         "University Tuition Fee",
                         "Stanford University",
                         new BigDecimal("-5000.00"),
-                        "other",
+                        OTHER,
                         null);
 
         propertyTaxTransaction =
@@ -103,7 +106,7 @@ class TaxExportServiceTest {
                         "Property Tax Payment",
                         "County Assessor",
                         new BigDecimal("-2500.00"),
-                        "other",
+                        OTHER,
                         null);
     }
 
@@ -111,7 +114,7 @@ class TaxExportServiceTest {
     @DisplayName("Should generate tax export with categorized transactions")
     void testGenerateTaxExportCategorizesTransactions() {
         // Given
-        final String userId = "user123";
+        final String userId = USER123;
         final int year = 2024;
         final List<TransactionTable> transactions =
                 Arrays.asList(
@@ -148,7 +151,7 @@ class TaxExportServiceTest {
     @DisplayName("Should calculate summary totals correctly")
     void testGenerateTaxExportCalculatesSummaryTotals() {
         // Given
-        final String userId = "user123";
+        final String userId = USER123;
         final int year = 2024;
         final List<TransactionTable> transactions =
                 Arrays.asList(
@@ -183,9 +186,10 @@ class TaxExportServiceTest {
     @DisplayName("Should export to CSV format")
     void testExportToCSVGeneratesValidCSV() {
         // Given
-        final String userId = "user123";
+        final String userId = USER123;
         final int year = 2024;
-        final List<TransactionTable> transactions = Arrays.asList(salaryTransaction, interestTransaction);
+        final List<TransactionTable> transactions =
+                Arrays.asList(salaryTransaction, interestTransaction);
 
         when(transactionRepository.findByUserIdAndDateRange(
                         eq(userId), eq("2024-01-01"), eq("2024-12-31")))
@@ -211,9 +215,10 @@ class TaxExportServiceTest {
     @DisplayName("Should export to JSON format")
     void testExportToJSONGeneratesValidJSON() {
         // Given
-        final String userId = "user123";
+        final String userId = USER123;
         final int year = 2024;
-        final List<TransactionTable> transactions = Arrays.asList(salaryTransaction, interestTransaction);
+        final List<TransactionTable> transactions =
+                Arrays.asList(salaryTransaction, interestTransaction);
 
         when(transactionRepository.findByUserIdAndDateRange(
                         eq(userId), eq("2024-01-01"), eq("2024-12-31")))
@@ -238,7 +243,7 @@ class TaxExportServiceTest {
     @DisplayName("Should handle empty transaction list")
     void testGenerateTaxExportEmptyTransactions() {
         // Given
-        final String userId = "user123";
+        final String userId = USER123;
         final int year = 2024;
 
         when(transactionRepository.findByUserIdAndDateRange(
@@ -263,7 +268,7 @@ class TaxExportServiceTest {
     @DisplayName("Should detect DMV fees")
     void testGenerateTaxExportDetectsDMVFees() {
         // Given
-        final String userId = "user123";
+        final String userId = USER123;
         final int year = 2024;
         final TransactionTable dmvTransaction =
                 createTransaction(
@@ -272,7 +277,7 @@ class TaxExportServiceTest {
                         "Vehicle Registration Renewal",
                         "DMV",
                         new BigDecimal("-150.00"),
-                        "other",
+                        OTHER,
                         null);
         final List<TransactionTable> transactions = Arrays.asList(dmvTransaction);
 
@@ -293,7 +298,7 @@ class TaxExportServiceTest {
     @DisplayName("Should detect CPA fees")
     void testGenerateTaxExportDetectsCPAFees() {
         // Given
-        final String userId = "user123";
+        final String userId = USER123;
         final int year = 2024;
         final TransactionTable cpaTransaction =
                 createTransaction(
@@ -302,7 +307,7 @@ class TaxExportServiceTest {
                         "Tax Preparation Fee",
                         "John Smith CPA",
                         new BigDecimal("-300.00"),
-                        "other",
+                        OTHER,
                         null);
         final List<TransactionTable> transactions = Arrays.asList(cpaTransaction);
 
@@ -323,7 +328,7 @@ class TaxExportServiceTest {
     @DisplayName("Should detect state and local taxes")
     void testGenerateTaxExportDetectsStateLocalTaxes() {
         // Given
-        final String userId = "user123";
+        final String userId = USER123;
         final int year = 2024;
         final TransactionTable stateTaxTransaction =
                 createTransaction(
@@ -332,7 +337,7 @@ class TaxExportServiceTest {
                         "State Income Tax Payment",
                         "Franchise Tax Board",
                         new BigDecimal("-1500.00"),
-                        "other",
+                        OTHER,
                         null);
         final TransactionTable localTaxTransaction =
                 createTransaction(
@@ -341,7 +346,7 @@ class TaxExportServiceTest {
                         "City Tax Payment",
                         "City Tax Office",
                         new BigDecimal("-500.00"),
-                        "other",
+                        OTHER,
                         null);
         final List<TransactionTable> transactions =
                 Arrays.asList(stateTaxTransaction, localTaxTransaction);
@@ -365,7 +370,7 @@ class TaxExportServiceTest {
     @DisplayName("Should detect mortgage interest")
     void testGenerateTaxExportDetectsMortgageInterest() {
         // Given
-        final String userId = "user123";
+        final String userId = USER123;
         final int year = 2024;
         final TransactionTable mortgageTransaction =
                 createTransaction(
@@ -374,7 +379,7 @@ class TaxExportServiceTest {
                         "Mortgage Interest Payment",
                         "Bank",
                         new BigDecimal("-800.00"),
-                        "other",
+                        OTHER,
                         null);
         final List<TransactionTable> transactions = Arrays.asList(mortgageTransaction);
 
@@ -395,7 +400,7 @@ class TaxExportServiceTest {
     @DisplayName("Should detect capital gains and losses")
     void testGenerateTaxExportDetectsCapitalGainsLosses() {
         // Given
-        final String userId = "user123";
+        final String userId = USER123;
         final int year = 2024;
         final TransactionTable gainTransaction =
                 createTransaction(
@@ -436,7 +441,7 @@ class TaxExportServiceTest {
     @DisplayName("Should use current year when year is 0")
     void testGenerateTaxExportCurrentYear() {
         // Given
-        final String userId = "user123";
+        final String userId = USER123;
         final int currentYear = LocalDate.now().getYear();
         final List<TransactionTable> transactions = Arrays.asList(salaryTransaction);
 
@@ -466,7 +471,7 @@ class TaxExportServiceTest {
             final String paymentChannel) {
         final TransactionTable transaction = new TransactionTable();
         transaction.setTransactionId(transactionId);
-        transaction.setUserId("user123");
+        transaction.setUserId(USER123);
         transaction.setTransactionDate(date);
         transaction.setDescription(description);
         transaction.setMerchantName(merchantName);

@@ -105,7 +105,8 @@ class CacheWarmingServiceTest {
 
     @Test
     void testWarmCacheForUsersMultipleUsers() {
-        final List<String> userIds = List.of(UUID.randomUUID().toString(), UUID.randomUUID().toString());
+        final List<String> userIds =
+                List.of(UUID.randomUUID().toString(), UUID.randomUUID().toString());
 
         // Mock repository responses
         userIds.forEach(

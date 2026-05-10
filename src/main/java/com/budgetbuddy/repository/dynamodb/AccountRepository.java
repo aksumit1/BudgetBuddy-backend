@@ -1,15 +1,14 @@
 package com.budgetbuddy.repository.dynamodb;
 
-
 import com.budgetbuddy.exception.AppException;
 import com.budgetbuddy.exception.ErrorCode;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import java.util.Locale;
 import com.budgetbuddy.model.dynamodb.AccountTable;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
@@ -50,6 +49,8 @@ import software.amazon.awssdk.services.dynamodb.model.WriteRequest;
 @Repository
 public class AccountRepository {
 
+    private static final String ACCOUNTS = "accounts";
+
     private final DynamoDbTable<AccountTable> accountTable;
     private final DynamoDbIndex<AccountTable> userIdIndex;
     private final DynamoDbIndex<AccountTable> plaidAccountIdIndex;
@@ -74,7 +75,7 @@ public class AccountRepository {
         this.dynamoDbClient = dynamoDbClient;
     }
 
-    @CacheEvict(value = "accounts", key = "#account.userId")
+    @CacheEvict(value = ACCOUNTS, key = "#account.userId")
     public void save(final AccountTable account) {
         // CRITICAL FIX: Add retry logic for DynamoDB throttling and transient errors
         com.budgetbuddy.util.RetryHelper.executeDynamoDbWithRetry(
@@ -92,7 +93,7 @@ public class AccountRepository {
      * @throws OptimisticLockHelper.OptimisticLockException if another writer beat us — caller
      *     should re-read and retry, or surface 409.
      */
-    @CacheEvict(value = "accounts", key = "#account.userId")
+    @CacheEvict(value = ACCOUNTS, key = "#account.userId")
     public AccountTable saveWithLock(final AccountTable account) {
         return OptimisticLockHelper.saveWithLock(
                 accountTable,
@@ -124,7 +125,8 @@ public class AccountRepository {
                 UUID.fromString("6ba7b815-9dad-11d1-80b4-00c04fd430c8"); // Pseudo account namespace
         final String pseudoAccountId =
                 com.budgetbuddy.util.IdGenerator.generateDeterministicUUID(
-                        pseudoAccountNamespace, "pseudo-account:" + userId.toLowerCase(Locale.ROOT));
+                        pseudoAccountNamespace,
+                        "pseudo-account:" + userId.toLowerCase(Locale.ROOT));
 
         // Try to find existing pseudo account
         final Optional<AccountTable> existing = findById(pseudoAccountId);
@@ -199,7 +201,7 @@ public class AccountRepository {
         return Optional.ofNullable(account);
     }
 
-    @Cacheable(value = "accounts", key = "#userId", unless = "#result == null || #result.isEmpty()")
+    @Cacheable(value = ACCOUNTS, key = "#userId", unless = "#result == null || #result.isEmpty()")
     public List<AccountTable> findByUserId(final String userId) {
         // CRITICAL: Return empty list early if userId is null or empty
         if (userId == null || userId.isEmpty()) {
@@ -373,7 +375,8 @@ public class AccountRepository {
      * Find account by account number only (fallback when institution name is missing) Used for
      * deduplication when plaidAccountId is not available and institutionName is null
      */
-    public Optional<AccountTable> findByAccountNumber(final String accountNumber, final String userId) {
+    public Optional<AccountTable> findByAccountNumber(
+            final String accountNumber, final String userId) {
         if (accountNumber == null || accountNumber.isEmpty()) {
             return Optional.empty();
         }
@@ -407,7 +410,7 @@ public class AccountRepository {
      * all accounts associated with a Plaid item
      */
     @Cacheable(
-            value = "accounts",
+            value = ACCOUNTS,
             key = "'plaidItem:' + #plaidItemId",
             unless = "#result == null || #result.isEmpty()")
     public List<AccountTable> findByPlaidItemId(final String plaidItemId) {
@@ -488,12 +491,14 @@ public class AccountRepository {
             // sort key)
             // Query all items for user, then filter in application code
             // This is still efficient because we're using the GSI partition key
-            final SdkIterable<software.amazon.awssdk.enhanced.dynamodb.model.Page<AccountTable>> pages =
-                    userIdUpdatedAtIndex.query(
-                            QueryConditional.keyEqualTo(
-                                    Key.builder().partitionValue(userId).build()));
+            final SdkIterable<software.amazon.awssdk.enhanced.dynamodb.model.Page<AccountTable>>
+                    pages =
+                            userIdUpdatedAtIndex.query(
+                                    QueryConditional.keyEqualTo(
+                                            Key.builder().partitionValue(userId).build()));
 
-            for (final software.amazon.awssdk.enhanced.dynamodb.model.Page<AccountTable> page : pages) {
+            for (final software.amazon.awssdk.enhanced.dynamodb.model.Page<AccountTable> page :
+                    pages) {
                 for (final AccountTable account : page.items()) {
                     // Filter in application code: updatedAtTimestamp >= updatedAfterTimestamp
                     // Use >= to include items updated exactly at the timestamp
@@ -543,7 +548,7 @@ public class AccountRepository {
         return results;
     }
 
-    @CacheEvict(value = "accounts", allEntries = true)
+    @CacheEvict(value = ACCOUNTS, allEntries = true)
     public void delete(final String accountId) {
         if (accountId == null || accountId.isEmpty()) {
             throw new IllegalArgumentException("Account ID cannot be null or empty");
@@ -583,7 +588,7 @@ public class AccountRepository {
      * Batch save accounts using BatchWriteItem (cost-optimized) DynamoDB allows up to 25 items per
      * batch
      */
-    @CacheEvict(value = "accounts", allEntries = true)
+    @CacheEvict(value = ACCOUNTS, allEntries = true)
     public void batchSave(final List<AccountTable> accounts) {
         if (accounts == null || accounts.isEmpty()) {
             return;
@@ -628,11 +633,14 @@ public class AccountRepository {
 
             com.budgetbuddy.util.RetryHelper.executeWithRetry(
                     () -> {
-                        final BatchWriteItemResponse resp = dynamoDbClient.batchWriteItem(batchRequest);
+                        final BatchWriteItemResponse resp =
+                                dynamoDbClient.batchWriteItem(batchRequest);
 
                         // Retry if there are unprocessed items
                         if (!resp.unprocessedItems().isEmpty()) {
-                            throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR, "Unprocessed items in batch write");
+                            throw new AppException(
+                                    ErrorCode.INTERNAL_SERVER_ERROR,
+                                    "Unprocessed items in batch write");
                         }
 
                         return resp;
@@ -643,7 +651,7 @@ public class AccountRepository {
     }
 
     /** Batch delete accounts using BatchWriteItem */
-    @CacheEvict(value = "accounts", allEntries = true)
+    @CacheEvict(value = ACCOUNTS, allEntries = true)
     public void batchDelete(final List<String> accountIds) {
         if (accountIds == null || accountIds.isEmpty()) {
             return;
@@ -651,7 +659,8 @@ public class AccountRepository {
 
         final int batchSize = 25;
         for (int i = 0; i < accountIds.size(); i += batchSize) {
-            final List<String> batch = accountIds.subList(i, Math.min(i + batchSize, accountIds.size()));
+            final List<String> batch =
+                    accountIds.subList(i, Math.min(i + batchSize, accountIds.size()));
 
             final List<WriteRequest> writeRequests =
                     batch.stream()

@@ -1,7 +1,5 @@
 package com.budgetbuddy.service;
 
-
-import java.util.Locale;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -19,6 +17,7 @@ import com.budgetbuddy.util.TableInitializer;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Locale;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -47,6 +46,11 @@ import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 @Tag("integration")
 public class SubscriptionServiceRealWorldScenariosTest {
 
+    private static final String SUBSCRIPTIONS = "subscriptions";
+    private static final String SOFTWARE = "software";
+    private static final String MEMBERSHIP = "membership";
+    private static final String STREAMING = "streaming";
+
     @Autowired private SubscriptionService subscriptionService;
 
     @Autowired private SubscriptionRepository subscriptionRepository;
@@ -67,7 +71,8 @@ public class SubscriptionServiceRealWorldScenariosTest {
     void setUp() {
         TableInitializer.ensureTablesInitializedAndVerified(dynamoDbClient);
 
-        final String testUserEmail = "test-realworld-scenarios-" + UUID.randomUUID() + "@example.com";
+        final String testUserEmail =
+                "test-realworld-scenarios-" + UUID.randomUUID() + "@example.com";
         testUser =
                 userRepository
                         .findByEmail(testUserEmail)
@@ -141,8 +146,8 @@ public class SubscriptionServiceRealWorldScenariosTest {
                             new BigDecimal("-15.99"),
                             baseDate.plusMonths(i),
                             "Netflix Monthly Subscription",
-                            "subscriptions",
-                            "streaming"));
+                            SUBSCRIPTIONS,
+                            STREAMING));
         }
 
         // Next 3 months at $17.99 (price increase)
@@ -153,12 +158,13 @@ public class SubscriptionServiceRealWorldScenariosTest {
                             new BigDecimal("-17.99"),
                             baseDate.plusMonths(i),
                             "Netflix Monthly Subscription",
-                            "subscriptions",
-                            "streaming"));
+                            SUBSCRIPTIONS,
+                            STREAMING));
         }
 
         // When: Detect subscriptions
-        final List<Subscription> subscriptions = subscriptionService.detectSubscriptions(testUserId);
+        final List<Subscription> subscriptions =
+                subscriptionService.detectSubscriptions(testUserId);
 
         // Then: Should detect at least 1 Netflix subscription
         // Note: Price increase may result in 2 subscriptions or 1 if amount tolerance allows
@@ -166,7 +172,11 @@ public class SubscriptionServiceRealWorldScenariosTest {
 
         final Subscription netflix =
                 subscriptions.stream()
-                        .filter(s -> s.getMerchantName().toLowerCase(Locale.ROOT).contains("netflix"))
+                        .filter(
+                                s ->
+                                        s.getMerchantName()
+                                                .toLowerCase(Locale.ROOT)
+                                                .contains("netflix"))
                         .findFirst()
                         .orElse(null);
         assertNotNull(netflix, "Netflix subscription should be detected");
@@ -186,17 +196,22 @@ public class SubscriptionServiceRealWorldScenariosTest {
                             new BigDecimal("-29.97"),
                             baseDate.plusMonths(i * 3),
                             "Spotify Family Plan",
-                            "subscriptions",
-                            "streaming"));
+                            SUBSCRIPTIONS,
+                            STREAMING));
         }
 
         // When: Detect subscriptions
-        final List<Subscription> subscriptions = subscriptionService.detectSubscriptions(testUserId);
+        final List<Subscription> subscriptions =
+                subscriptionService.detectSubscriptions(testUserId);
 
         // Then: Should detect quarterly subscription
         final Subscription spotify =
                 subscriptions.stream()
-                        .filter(s -> s.getMerchantName().toLowerCase(Locale.ROOT).contains("spotify"))
+                        .filter(
+                                s ->
+                                        s.getMerchantName()
+                                                .toLowerCase(Locale.ROOT)
+                                                .contains("spotify"))
                         .findFirst()
                         .orElse(null);
         assertNotNull(spotify, "Spotify subscription should be detected");
@@ -218,27 +233,28 @@ public class SubscriptionServiceRealWorldScenariosTest {
                         new BigDecimal("-599.88"),
                         year1,
                         "Adobe Creative Cloud Annual",
-                        "subscriptions",
-                        "software"));
+                        SUBSCRIPTIONS,
+                        SOFTWARE));
         transactionRepository.save(
                 createTransaction(
                         "ADOBE SYSTEMS",
                         new BigDecimal("-599.88"),
                         year2,
                         "Adobe Creative Cloud Annual",
-                        "subscriptions",
-                        "software"));
+                        SUBSCRIPTIONS,
+                        SOFTWARE));
         transactionRepository.save(
                 createTransaction(
                         "ADOBE.COM",
                         new BigDecimal("-599.88"),
                         year3,
                         "Adobe Creative Cloud Annual",
-                        "subscriptions",
-                        "software"));
+                        SUBSCRIPTIONS,
+                        SOFTWARE));
 
         // When: Detect subscriptions
-        final List<Subscription> subscriptions = subscriptionService.detectSubscriptions(testUserId);
+        final List<Subscription> subscriptions =
+                subscriptionService.detectSubscriptions(testUserId);
 
         // Then: Should detect annual subscription (fuzzy matching should group different merchant
         // names)
@@ -268,12 +284,17 @@ public class SubscriptionServiceRealWorldScenariosTest {
         }
 
         // When: Detect subscriptions
-        final List<Subscription> subscriptions = subscriptionService.detectSubscriptions(testUserId);
+        final List<Subscription> subscriptions =
+                subscriptionService.detectSubscriptions(testUserId);
 
         // Then: Should detect bi-weekly subscription
         final Subscription gym =
                 subscriptions.stream()
-                        .filter(s -> s.getMerchantName().toLowerCase(Locale.ROOT).contains("planet"))
+                        .filter(
+                                s ->
+                                        s.getMerchantName()
+                                                .toLowerCase(Locale.ROOT)
+                                                .contains("planet"))
                         .findFirst()
                         .orElse(null);
         assertNotNull(gym, "Gym subscription should be detected");
@@ -297,7 +318,8 @@ public class SubscriptionServiceRealWorldScenariosTest {
         }
 
         // When: Detect subscriptions
-        final List<Subscription> subscriptions = subscriptionService.detectSubscriptions(testUserId);
+        final List<Subscription> subscriptions =
+                subscriptionService.detectSubscriptions(testUserId);
 
         // Then: Should detect news media subscription
         final Subscription wsj =
@@ -324,32 +346,37 @@ public class SubscriptionServiceRealWorldScenariosTest {
                         new BigDecimal("-60.00"),
                         year1,
                         "Costco Annual Membership",
-                        "subscriptions",
-                        "membership"));
+                        SUBSCRIPTIONS,
+                        MEMBERSHIP));
         transactionRepository.save(
                 createTransaction(
                         "COSTCO",
                         new BigDecimal("-60.00"),
                         year2,
                         "Costco Annual Membership Renewal",
-                        "subscriptions",
-                        "membership"));
+                        SUBSCRIPTIONS,
+                        MEMBERSHIP));
         transactionRepository.save(
                 createTransaction(
                         "COSTCO WHOLESALE #123",
                         new BigDecimal("-60.00"),
                         year3,
                         "Costco Annual Membership",
-                        "subscriptions",
-                        "membership"));
+                        SUBSCRIPTIONS,
+                        MEMBERSHIP));
 
         // When: Detect subscriptions
-        final List<Subscription> subscriptions = subscriptionService.detectSubscriptions(testUserId);
+        final List<Subscription> subscriptions =
+                subscriptionService.detectSubscriptions(testUserId);
 
         // Then: Should detect annual subscription
         final Subscription costco =
                 subscriptions.stream()
-                        .filter(s -> s.getMerchantName().toLowerCase(Locale.ROOT).contains("costco"))
+                        .filter(
+                                s ->
+                                        s.getMerchantName()
+                                                .toLowerCase(Locale.ROOT)
+                                                .contains("costco"))
                         .findFirst()
                         .orElse(null);
         assertNotNull(costco, "Costco membership should be detected");
@@ -373,7 +400,8 @@ public class SubscriptionServiceRealWorldScenariosTest {
         }
 
         // When: Detect subscriptions
-        final List<Subscription> subscriptions = subscriptionService.detectSubscriptions(testUserId);
+        final List<Subscription> subscriptions =
+                subscriptionService.detectSubscriptions(testUserId);
 
         // Then: Should detect monthly subscription with day-of-month pattern
         final Subscription insurance =
@@ -402,12 +430,17 @@ public class SubscriptionServiceRealWorldScenariosTest {
         }
 
         // When: Detect subscriptions
-        final List<Subscription> subscriptions = subscriptionService.detectSubscriptions(testUserId);
+        final List<Subscription> subscriptions =
+                subscriptionService.detectSubscriptions(testUserId);
 
         // Then: Should detect monthly subscription
         final Subscription parking =
                 subscriptions.stream()
-                        .filter(s -> s.getMerchantName().toLowerCase(Locale.ROOT).contains("spothero"))
+                        .filter(
+                                s ->
+                                        s.getMerchantName()
+                                                .toLowerCase(Locale.ROOT)
+                                                .contains("spothero"))
                         .findFirst()
                         .orElse(null);
         assertNotNull(parking, "Parking subscription should be detected");
@@ -428,8 +461,8 @@ public class SubscriptionServiceRealWorldScenariosTest {
                             new BigDecimal("-15.99"),
                             baseDate.plusMonths(i),
                             "Netflix",
-                            "subscriptions",
-                            "streaming"));
+                            SUBSCRIPTIONS,
+                            STREAMING));
         }
 
         // Hulu - 4 months
@@ -440,8 +473,8 @@ public class SubscriptionServiceRealWorldScenariosTest {
                             new BigDecimal("-12.99"),
                             baseDate.plusMonths(i),
                             "Hulu Subscription",
-                            "subscriptions",
-                            "streaming"));
+                            SUBSCRIPTIONS,
+                            STREAMING));
         }
 
         // Disney+ - 4 months
@@ -452,25 +485,38 @@ public class SubscriptionServiceRealWorldScenariosTest {
                             new BigDecimal("-10.99"),
                             baseDate.plusMonths(i),
                             "Disney+ Subscription",
-                            "subscriptions",
-                            "streaming"));
+                            SUBSCRIPTIONS,
+                            STREAMING));
         }
 
         // When: Detect subscriptions
-        final List<Subscription> subscriptions = subscriptionService.detectSubscriptions(testUserId);
+        final List<Subscription> subscriptions =
+                subscriptionService.detectSubscriptions(testUserId);
 
         // Then: Should detect all 3 streaming subscriptions
         assertEquals(3, subscriptions.size(), "Should detect 3 streaming subscriptions");
 
         assertTrue(
                 subscriptions.stream()
-                        .anyMatch(s -> s.getMerchantName().toLowerCase(Locale.ROOT).contains("netflix")));
+                        .anyMatch(
+                                s ->
+                                        s.getMerchantName()
+                                                .toLowerCase(Locale.ROOT)
+                                                .contains("netflix")));
         assertTrue(
                 subscriptions.stream()
-                        .anyMatch(s -> s.getMerchantName().toLowerCase(Locale.ROOT).contains("hulu")));
+                        .anyMatch(
+                                s ->
+                                        s.getMerchantName()
+                                                .toLowerCase(Locale.ROOT)
+                                                .contains("hulu")));
         assertTrue(
                 subscriptions.stream()
-                        .anyMatch(s -> s.getMerchantName().toLowerCase(Locale.ROOT).contains("disney")));
+                        .anyMatch(
+                                s ->
+                                        s.getMerchantName()
+                                                .toLowerCase(Locale.ROOT)
+                                                .contains("disney")));
     }
 
     @Test
@@ -487,27 +533,28 @@ public class SubscriptionServiceRealWorldScenariosTest {
                         new BigDecimal("-139.00"),
                         year1,
                         "Amazon Prime Annual Membership",
-                        "subscriptions",
-                        "membership"));
+                        SUBSCRIPTIONS,
+                        MEMBERSHIP));
         transactionRepository.save(
                 createTransaction(
                         "AMAZON.COM PRIME",
                         new BigDecimal("-139.00"),
                         year2,
                         "Amazon Prime Membership",
-                        "subscriptions",
-                        "membership"));
+                        SUBSCRIPTIONS,
+                        MEMBERSHIP));
         transactionRepository.save(
                 createTransaction(
                         "AMZN.COM/PRIME",
                         new BigDecimal("-139.00"),
                         year3,
                         "Prime Annual",
-                        "subscriptions",
-                        "membership"));
+                        SUBSCRIPTIONS,
+                        MEMBERSHIP));
 
         // When: Detect subscriptions
-        final List<Subscription> subscriptions = subscriptionService.detectSubscriptions(testUserId);
+        final List<Subscription> subscriptions =
+                subscriptionService.detectSubscriptions(testUserId);
 
         // Then: Should detect annual subscription (fuzzy matching should group)
         // Note: May detect multiple subscriptions if fuzzy matching doesn't group all variations
@@ -515,7 +562,9 @@ public class SubscriptionServiceRealWorldScenariosTest {
                 subscriptions.stream()
                         .filter(
                                 s ->
-                                        s.getMerchantName().toLowerCase(Locale.ROOT).contains("amazon")
+                                        s.getMerchantName()
+                                                        .toLowerCase(Locale.ROOT)
+                                                        .contains("amazon")
                                                 || s.getMerchantName()
                                                         .toLowerCase(Locale.ROOT)
                                                         .contains("amzn")
@@ -555,16 +604,21 @@ public class SubscriptionServiceRealWorldScenariosTest {
                             baseDate.plusMonths(i),
                             "Cursor AI Pro",
                             "tech",
-                            "software"));
+                            SOFTWARE));
         }
 
         // When: Detect subscriptions
-        final List<Subscription> subscriptions = subscriptionService.detectSubscriptions(testUserId);
+        final List<Subscription> subscriptions =
+                subscriptionService.detectSubscriptions(testUserId);
 
         // Then: Should detect AI service subscription
         final Subscription cursor =
                 subscriptions.stream()
-                        .filter(s -> s.getMerchantName().toLowerCase(Locale.ROOT).contains("cursor"))
+                        .filter(
+                                s ->
+                                        s.getMerchantName()
+                                                .toLowerCase(Locale.ROOT)
+                                                .contains("cursor"))
                         .findFirst()
                         .orElse(null);
         assertNotNull(cursor, "Cursor AI subscription should be detected");
@@ -584,12 +638,13 @@ public class SubscriptionServiceRealWorldScenariosTest {
                             new BigDecimal("-9.99"),
                             baseDate.plusMonths(i),
                             "Uber One Membership",
-                            "subscriptions",
-                            "membership"));
+                            SUBSCRIPTIONS,
+                            MEMBERSHIP));
         }
 
         // When: Detect subscriptions
-        final List<Subscription> subscriptions = subscriptionService.detectSubscriptions(testUserId);
+        final List<Subscription> subscriptions =
+                subscriptionService.detectSubscriptions(testUserId);
 
         // Then: Should detect membership subscription
         final Subscription uber =
@@ -618,12 +673,17 @@ public class SubscriptionServiceRealWorldScenariosTest {
         }
 
         // When: Detect subscriptions
-        final List<Subscription> subscriptions = subscriptionService.detectSubscriptions(testUserId);
+        final List<Subscription> subscriptions =
+                subscriptionService.detectSubscriptions(testUserId);
 
         // Then: Should detect health/fitness subscription
         final Subscription peloton =
                 subscriptions.stream()
-                        .filter(s -> s.getMerchantName().toLowerCase(Locale.ROOT).contains("peloton"))
+                        .filter(
+                                s ->
+                                        s.getMerchantName()
+                                                .toLowerCase(Locale.ROOT)
+                                                .contains("peloton"))
                         .findFirst()
                         .orElse(null);
         assertNotNull(peloton, "Peloton subscription should be detected");
@@ -649,15 +709,20 @@ public class SubscriptionServiceRealWorldScenariosTest {
         }
 
         // When: Detect subscriptions
-        final List<Subscription> subscriptions = subscriptionService.detectSubscriptions(testUserId);
+        final List<Subscription> subscriptions =
+                subscriptionService.detectSubscriptions(testUserId);
 
         // Then: Should detect news media subscription
         final Subscription nyt =
                 subscriptions.stream()
                         .filter(
                                 s ->
-                                        s.getMerchantName().toLowerCase(Locale.ROOT).contains("times")
-                                                || s.getMerchantName().toLowerCase(Locale.ROOT).contains("ny"))
+                                        s.getMerchantName()
+                                                        .toLowerCase(Locale.ROOT)
+                                                        .contains("times")
+                                                || s.getMerchantName()
+                                                        .toLowerCase(Locale.ROOT)
+                                                        .contains("ny"))
                         .findFirst()
                         .orElse(null);
         assertNotNull(nyt, "NY Times subscription should be detected");
@@ -680,37 +745,40 @@ public class SubscriptionServiceRealWorldScenariosTest {
                         new BigDecimal("-99.99"),
                         year1,
                         "Microsoft 365 Personal Annual",
-                        "subscriptions",
-                        "software"));
+                        SUBSCRIPTIONS,
+                        SOFTWARE));
         transactionRepository.save(
                 createTransaction(
                         "MICROSOFT",
                         new BigDecimal("-99.99"),
                         year2,
                         "Microsoft 365 Annual",
-                        "subscriptions",
-                        "software"));
+                        SUBSCRIPTIONS,
+                        SOFTWARE));
         transactionRepository.save(
                 createTransaction(
                         "MSFT 365",
                         new BigDecimal("-99.99"),
                         year3,
                         "Microsoft 365",
-                        "subscriptions",
-                        "software"));
+                        SUBSCRIPTIONS,
+                        SOFTWARE));
 
         // When: Detect subscriptions
-        final List<Subscription> subscriptions = subscriptionService.detectSubscriptions(testUserId);
+        final List<Subscription> subscriptions =
+                subscriptionService.detectSubscriptions(testUserId);
 
         // Then: Should detect annual software subscription
         final Subscription ms365 =
                 subscriptions.stream()
                         .filter(
                                 s ->
-                                        s.getMerchantName().toLowerCase(Locale.ROOT).contains("microsoft")
+                                        s.getMerchantName()
+                                                        .toLowerCase(Locale.ROOT)
+                                                        .contains("microsoft")
                                                 || s.getMerchantName()
-                                                .toLowerCase(Locale.ROOT)
-                                                .contains("msft"))
+                                                        .toLowerCase(Locale.ROOT)
+                                                        .contains("msft"))
                         .findFirst()
                         .orElse(null);
         assertNotNull(ms365, "Microsoft 365 subscription should be detected");
@@ -729,17 +797,22 @@ public class SubscriptionServiceRealWorldScenariosTest {
                             new BigDecimal("-11.99"),
                             baseDate.plusMonths(i),
                             "Dropbox Plus",
-                            "subscriptions",
+                            SUBSCRIPTIONS,
                             "cloud_storage"));
         }
 
         // When: Detect subscriptions
-        final List<Subscription> subscriptions = subscriptionService.detectSubscriptions(testUserId);
+        final List<Subscription> subscriptions =
+                subscriptionService.detectSubscriptions(testUserId);
 
         // Then: Should detect cloud storage subscription
         final Subscription dropbox =
                 subscriptions.stream()
-                        .filter(s -> s.getMerchantName().toLowerCase(Locale.ROOT).contains("dropbox"))
+                        .filter(
+                                s ->
+                                        s.getMerchantName()
+                                                .toLowerCase(Locale.ROOT)
+                                                .contains("dropbox"))
                         .findFirst()
                         .orElse(null);
         assertNotNull(dropbox, "Dropbox subscription should be detected");
@@ -761,8 +834,8 @@ public class SubscriptionServiceRealWorldScenariosTest {
                             new BigDecimal("-15.99"),
                             baseDate.plusMonths(i),
                             "Netflix",
-                            "subscriptions",
-                            "streaming"));
+                            SUBSCRIPTIONS,
+                            STREAMING));
         }
 
         // Spotify (monthly)
@@ -773,8 +846,8 @@ public class SubscriptionServiceRealWorldScenariosTest {
                             new BigDecimal("-9.99"),
                             baseDate.plusMonths(i),
                             "Spotify Premium",
-                            "subscriptions",
-                            "streaming"));
+                            SUBSCRIPTIONS,
+                            STREAMING));
         }
 
         // Adobe (annual - 3 years)
@@ -784,24 +857,24 @@ public class SubscriptionServiceRealWorldScenariosTest {
                         new BigDecimal("-599.88"),
                         baseDate.minusYears(2),
                         "Adobe Annual",
-                        "subscriptions",
-                        "software"));
+                        SUBSCRIPTIONS,
+                        SOFTWARE));
         transactionRepository.save(
                 createTransaction(
                         "ADOBE",
                         new BigDecimal("-599.88"),
                         baseDate.minusYears(1),
                         "Adobe Annual",
-                        "subscriptions",
-                        "software"));
+                        SUBSCRIPTIONS,
+                        SOFTWARE));
         transactionRepository.save(
                 createTransaction(
                         "ADOBE",
                         new BigDecimal("-599.88"),
                         baseDate,
                         "Adobe Annual",
-                        "subscriptions",
-                        "software"));
+                        SUBSCRIPTIONS,
+                        SOFTWARE));
 
         // Costco (annual - 3 years)
         transactionRepository.save(
@@ -810,24 +883,24 @@ public class SubscriptionServiceRealWorldScenariosTest {
                         new BigDecimal("-60.00"),
                         baseDate.minusYears(2),
                         "Costco Membership",
-                        "subscriptions",
-                        "membership"));
+                        SUBSCRIPTIONS,
+                        MEMBERSHIP));
         transactionRepository.save(
                 createTransaction(
                         "COSTCO",
                         new BigDecimal("-60.00"),
                         baseDate.minusYears(1),
                         "Costco Membership",
-                        "subscriptions",
-                        "membership"));
+                        SUBSCRIPTIONS,
+                        MEMBERSHIP));
         transactionRepository.save(
                 createTransaction(
                         "COSTCO",
                         new BigDecimal("-60.00"),
                         baseDate,
                         "Costco Membership",
-                        "subscriptions",
-                        "membership"));
+                        SUBSCRIPTIONS,
+                        MEMBERSHIP));
 
         // Planet Fitness (monthly)
         for (int i = 0; i < 6; i++) {
@@ -862,7 +935,7 @@ public class SubscriptionServiceRealWorldScenariosTest {
                             baseDate.plusMonths(i),
                             "ChatGPT Plus",
                             "tech",
-                            "software"));
+                            SOFTWARE));
         }
 
         // Uber One (monthly)
@@ -873,8 +946,8 @@ public class SubscriptionServiceRealWorldScenariosTest {
                             new BigDecimal("-9.99"),
                             baseDate.plusMonths(i),
                             "Uber One",
-                            "subscriptions",
-                            "membership"));
+                            SUBSCRIPTIONS,
+                            MEMBERSHIP));
         }
 
         // Dropbox (monthly)
@@ -885,7 +958,7 @@ public class SubscriptionServiceRealWorldScenariosTest {
                             new BigDecimal("-11.99"),
                             baseDate.plusMonths(i),
                             "Dropbox Plus",
-                            "subscriptions",
+                            SUBSCRIPTIONS,
                             "cloud_storage"));
         }
 
@@ -896,27 +969,28 @@ public class SubscriptionServiceRealWorldScenariosTest {
                         new BigDecimal("-99.99"),
                         baseDate.minusYears(2),
                         "Microsoft 365",
-                        "subscriptions",
-                        "software"));
+                        SUBSCRIPTIONS,
+                        SOFTWARE));
         transactionRepository.save(
                 createTransaction(
                         "MICROSOFT 365",
                         new BigDecimal("-99.99"),
                         baseDate.minusYears(1),
                         "Microsoft 365",
-                        "subscriptions",
-                        "software"));
+                        SUBSCRIPTIONS,
+                        SOFTWARE));
         transactionRepository.save(
                 createTransaction(
                         "MICROSOFT 365",
                         new BigDecimal("-99.99"),
                         baseDate,
                         "Microsoft 365",
-                        "subscriptions",
-                        "software"));
+                        SUBSCRIPTIONS,
+                        SOFTWARE));
 
         // When: Detect subscriptions
-        final List<Subscription> subscriptions = subscriptionService.detectSubscriptions(testUserId);
+        final List<Subscription> subscriptions =
+                subscriptionService.detectSubscriptions(testUserId);
 
         // Then: Should detect multiple subscriptions
         assertTrue(
@@ -926,19 +1000,35 @@ public class SubscriptionServiceRealWorldScenariosTest {
         // Verify key subscriptions are detected
         assertTrue(
                 subscriptions.stream()
-                        .anyMatch(s -> s.getMerchantName().toLowerCase(Locale.ROOT).contains("netflix")),
+                        .anyMatch(
+                                s ->
+                                        s.getMerchantName()
+                                                .toLowerCase(Locale.ROOT)
+                                                .contains("netflix")),
                 "Netflix should be detected");
         assertTrue(
                 subscriptions.stream()
-                        .anyMatch(s -> s.getMerchantName().toLowerCase(Locale.ROOT).contains("spotify")),
+                        .anyMatch(
+                                s ->
+                                        s.getMerchantName()
+                                                .toLowerCase(Locale.ROOT)
+                                                .contains("spotify")),
                 "Spotify should be detected");
         assertTrue(
                 subscriptions.stream()
-                        .anyMatch(s -> s.getMerchantName().toLowerCase(Locale.ROOT).contains("adobe")),
+                        .anyMatch(
+                                s ->
+                                        s.getMerchantName()
+                                                .toLowerCase(Locale.ROOT)
+                                                .contains("adobe")),
                 "Adobe should be detected");
         assertTrue(
                 subscriptions.stream()
-                        .anyMatch(s -> s.getMerchantName().toLowerCase(Locale.ROOT).contains("costco")),
+                        .anyMatch(
+                                s ->
+                                        s.getMerchantName()
+                                                .toLowerCase(Locale.ROOT)
+                                                .contains("costco")),
                 "Costco should be detected");
     }
 }

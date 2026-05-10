@@ -1,9 +1,8 @@
 package com.budgetbuddy.config;
 
-
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import java.util.Locale;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Configuration;
@@ -17,7 +16,8 @@ import org.springframework.context.annotation.Configuration;
 // callers — defensive-copying it would break dependency injection.
 @SuppressFBWarnings(
         value = {"EI_EXPOSE_REP", "EI_EXPOSE_REP2"},
-        justification = "JSON DTO / DynamoDB entity getters expose lists by reference; "
+        justification =
+                "JSON DTO / DynamoDB entity getters expose lists by reference; "
                         + "the design is value-semantic and Jackson creates fresh instances; Spring constructor injection — beans are shared by design")
 @Configuration
 @ConfigurationProperties(prefix = "financial.global")
@@ -173,7 +173,8 @@ public class GlobalFinancialConfig {
         return regionCreditCardKeywords;
     }
 
-    public void setRegionCreditCardKeywords(final Map<String, List<String>> regionCreditCardKeywords) {
+    public void setRegionCreditCardKeywords(
+            final Map<String, List<String>> regionCreditCardKeywords) {
         this.regionCreditCardKeywords = regionCreditCardKeywords;
     }
 

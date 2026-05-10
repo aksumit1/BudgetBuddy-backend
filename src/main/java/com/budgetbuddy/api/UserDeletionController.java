@@ -1,11 +1,11 @@
 package com.budgetbuddy.api;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import com.budgetbuddy.exception.AppException;
 import com.budgetbuddy.exception.ErrorCode;
 import com.budgetbuddy.model.dynamodb.UserTable;
 import com.budgetbuddy.service.UserDeletionService;
 import com.budgetbuddy.service.UserService;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
@@ -44,7 +44,8 @@ import org.springframework.web.bind.annotation.RestController;
 @Tag(name = "User Deletion", description = "User data and account deletion endpoints")
 public class UserDeletionController {
 
-    private static final String CONFIRMATION_REQUIRED_SET_CONFIRM_TRUE = "Confirmation required. Set confirm=true to proceed.";
+    private static final String CONFIRMATION_REQUIRED_SET_CONFIRM_TRUE =
+            "Confirmation required. Set confirm=true to proceed.";
 
     private static final String USER_NOT_AUTHENTICATED = "User not authenticated";
 
@@ -111,9 +112,7 @@ public class UserDeletionController {
             userDeletionService.deleteAllUserData(user.getUserId());
             LOGGER.info("User {} deleted all their data", user.getUserId());
             return ResponseEntity.ok(
-                    Map.of(
-                            STATUS, SUCCESS,
-                            MESSAGE, "All user data deleted successfully"));
+                    Map.of(STATUS, SUCCESS, MESSAGE, "All user data deleted successfully"));
         } catch (Exception e) {
             LOGGER.error(
                     "Failed to delete user data for user {}: {}",
@@ -169,9 +168,7 @@ public class UserDeletionController {
             userDeletionService.deletePlaidIntegration(user.getUserId());
             LOGGER.info("User {} deleted Plaid integration", user.getUserId());
             return ResponseEntity.ok(
-                    Map.of(
-                            STATUS, SUCCESS,
-                            MESSAGE, "Plaid integration deleted successfully"));
+                    Map.of(STATUS, SUCCESS, MESSAGE, "Plaid integration deleted successfully"));
         } catch (Exception e) {
             LOGGER.error(
                     "Failed to delete Plaid integration for user {}: {}",
@@ -232,9 +229,7 @@ public class UserDeletionController {
             userDeletionService.deleteAccountCompletely(user.getUserId());
             LOGGER.info("User {} deleted their account completely", user.getUserId());
             return ResponseEntity.ok(
-                    Map.of(
-                            STATUS, SUCCESS,
-                            MESSAGE, "Account deleted successfully"));
+                    Map.of(STATUS, SUCCESS, MESSAGE, "Account deleted successfully"));
         } catch (Exception e) {
             LOGGER.error(
                     "Failed to delete account for user {}: {}",

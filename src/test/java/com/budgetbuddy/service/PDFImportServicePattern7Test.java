@@ -1,15 +1,14 @@
 package com.budgetbuddy.service;
 
-
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import java.util.Locale;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.lang.reflect.Method;
+import java.util.Locale;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -24,6 +23,8 @@ import org.junit.jupiter.api.Test;
         value = "THROWS_METHOD_THROWS_CLAUSE_BASIC_EXCEPTION",
         justification = "JUnit idiom — test methods accept any setup exception")
 class PDFImportServicePattern7Test {
+
+    private static final String DATE = "date";
 
     private PDFImportService pdfImportService;
     private Method parsePattern7Method;
@@ -56,7 +57,7 @@ class PDFImportServicePattern7Test {
     void testPattern7Type13LinesWithDiamond() throws Exception {
         // Type 1: 11/27/25 AGARWAL SUMIT KUMAR Platinum Uber One Credit\n UBER ONE\n -$9.99 ⧫
         final String[] lines = {
-                "11/27/25 AGARWAL SUMIT KUMAR Platinum Uber One Credit", "UBER ONE", "-$9.99 ⧫"
+            "11/27/25 AGARWAL SUMIT KUMAR Platinum Uber One Credit", "UBER ONE", "-$9.99 ⧫"
         };
 
         final Map<String, String> result =
@@ -64,7 +65,7 @@ class PDFImportServicePattern7Test {
                         parsePattern7Method.invoke(pdfImportService, lines, 0, 2025, null);
 
         assertNotNull(result, "Should parse 3-line transaction with diamond");
-        assertEquals("11/27/25", result.get("date"));
+        assertEquals("11/27/25", result.get(DATE));
         assertTrue(result.get("description").contains("Platinum Uber One Credit"));
         assertTrue(result.get("description").contains("UBER ONE"));
         assertEquals("-$9.99", result.get("amount"));
@@ -75,7 +76,7 @@ class PDFImportServicePattern7Test {
     void testPattern7Type23LinesPhoneNumber() throws Exception {
         // Type 2: 09/09/25 OPENAI *CHATGPT SUBSCR SAN FRANCISCO CA \n +14158799686\n $22.04
         final String[] lines = {
-                "09/09/25 OPENAI *CHATGPT SUBSCR SAN FRANCISCO CA", "+14158799686", "$22.04"
+            "09/09/25 OPENAI *CHATGPT SUBSCR SAN FRANCISCO CA", "+14158799686", "$22.04"
         };
 
         final Map<String, String> result =
@@ -83,7 +84,7 @@ class PDFImportServicePattern7Test {
                         parsePattern7Method.invoke(pdfImportService, lines, 0, 2025, null);
 
         assertNotNull(result, "Should parse 3-line transaction with phone number");
-        assertEquals("09/09/25", result.get("date"));
+        assertEquals("09/09/25", result.get(DATE));
         assertTrue(result.get("description").contains("OPENAI"));
         assertTrue(result.get("description").contains("+14158799686"));
         assertEquals("$22.04", result.get("amount"));
@@ -95,9 +96,9 @@ class PDFImportServicePattern7Test {
         // $14.27 ⧫
         // Note: The amount line has text before it, which our implementation now handles
         final String[] lines = {
-                "09/04/25 WMT PLUS SEP 2025 WALMART.COM AR",
-                "800-925-6278",
-                "budgetbuddy-backend  | $14.27 ⧫"
+            "09/04/25 WMT PLUS SEP 2025 WALMART.COM AR",
+            "800-925-6278",
+            "budgetbuddy-backend  | $14.27 ⧫"
         };
 
         final Map<String, String> result =
@@ -106,7 +107,7 @@ class PDFImportServicePattern7Test {
 
         assertNotNull(
                 result, "Should parse 3-line transaction with description and text before amount");
-        assertEquals("09/04/25", result.get("date"));
+        assertEquals("09/04/25", result.get(DATE));
         assertTrue(result.get("description").contains("WMT PLUS"));
         assertTrue(result.get("description").contains("800-925-6278"));
         // Note: "budgetbuddy-backend  |" might be in description or ignored, amount should be
@@ -119,13 +120,13 @@ class PDFImportServicePattern7Test {
         // Type 4: 08/31/25 DELTA AIR LINES ATLANTA\n DELTA AIR LINES From: To: Carrier: Class:\n
         // ...\n $269.58 ⧫
         final String[] lines = {
-                "08/31/25 DELTA AIR LINES ATLANTA",
-                "DELTA AIR LINES From: To: Carrier: Class:",
-                "NASHVILLE SEATTLE-TACOMA INT DL Q",
-                "Ticket Number: 00623608559696 Date of Departure: 09/13",
-                "Passenger Name: AGARWAL/MUDIT",
-                "Document Type: PASSENGER TICKET",
-                "$269.58 ⧫"
+            "08/31/25 DELTA AIR LINES ATLANTA",
+            "DELTA AIR LINES From: To: Carrier: Class:",
+            "NASHVILLE SEATTLE-TACOMA INT DL Q",
+            "Ticket Number: 00623608559696 Date of Departure: 09/13",
+            "Passenger Name: AGARWAL/MUDIT",
+            "Document Type: PASSENGER TICKET",
+            "$269.58 ⧫"
         };
 
         final Map<String, String> result =
@@ -133,7 +134,7 @@ class PDFImportServicePattern7Test {
                         parsePattern7Method.invoke(pdfImportService, lines, 0, 2025, null);
 
         assertNotNull(result, "Should parse 7-line transaction with flight details");
-        assertEquals("08/31/25", result.get("date"));
+        assertEquals("08/31/25", result.get(DATE));
         assertTrue(result.get("description").contains("DELTA AIR LINES"));
         assertTrue(result.get("description").contains("NASHVILLE SEATTLE-TACOMA"));
         assertTrue(result.get("description").contains("AGARWAL/MUDIT"));
@@ -146,11 +147,11 @@ class PDFImportServicePattern7Test {
         // Type 5: 08/19/25 LUL TICKET MACHINE LUL TICKET MACH - GB\n LUL TICKET MACHINE\n 14.00\n
         // Pounds Sterling\n $18.95 ⧫
         final String[] lines = {
-                "08/19/25 LUL TICKET MACHINE LUL TICKET MACH - GB",
-                "LUL TICKET MACHINE",
-                "14.00",
-                "Pounds Sterling",
-                "$18.95 ⧫"
+            "08/19/25 LUL TICKET MACHINE LUL TICKET MACH - GB",
+            "LUL TICKET MACHINE",
+            "14.00",
+            "Pounds Sterling",
+            "$18.95 ⧫"
         };
 
         final Map<String, String> result =
@@ -158,7 +159,7 @@ class PDFImportServicePattern7Test {
                         parsePattern7Method.invoke(pdfImportService, lines, 0, 2025, null);
 
         assertNotNull(result, "Should parse 5-line transaction with foreign currency");
-        assertEquals("08/19/25", result.get("date"));
+        assertEquals("08/19/25", result.get(DATE));
         assertTrue(result.get("description").contains("LUL TICKET MACHINE"));
         assertTrue(result.get("description").contains("Pounds Sterling"));
         assertEquals("$18.95", result.get("amount"));
@@ -170,10 +171,10 @@ class PDFImportServicePattern7Test {
         // Type 6: 08/19/25  AGARWAL SUMIT KUMAR CHARLES TYRWHITT SHIRTS LTD.\n WILMINGTON\n Amex
         // Credit offer\n -$25.00 ⧫
         final String[] lines = {
-                "08/19/25  AGARWAL SUMIT KUMAR CHARLES TYRWHITT SHIRTS LTD.",
-                "WILMINGTON",
-                "Amex Credit offer",
-                "-$25.00 ⧫"
+            "08/19/25  AGARWAL SUMIT KUMAR CHARLES TYRWHITT SHIRTS LTD.",
+            "WILMINGTON",
+            "Amex Credit offer",
+            "-$25.00 ⧫"
         };
 
         final Map<String, String> result =
@@ -181,7 +182,7 @@ class PDFImportServicePattern7Test {
                         parsePattern7Method.invoke(pdfImportService, lines, 0, 2025, null);
 
         assertNotNull(result, "Should parse 4-line transaction with negative amount");
-        assertEquals("08/19/25", result.get("date"));
+        assertEquals("08/19/25", result.get(DATE));
         assertTrue(result.get("description").contains("CHARLES TYRWHITT"));
         assertTrue(result.get("description").contains("WILMINGTON"));
         assertTrue(result.get("description").contains("Amex Credit offer"));
@@ -228,7 +229,7 @@ class PDFImportServicePattern7Test {
     void testPattern7Exactly7LinesValid() throws Exception {
         // Exactly 7 lines: date + 5 descriptions + amount
         final String[] lines = {
-                "11/27/25 MERCHANT", "LINE 1", "LINE 2", "LINE 3", "LINE 4", "LINE 5", "$9.99 ⧫"
+            "11/27/25 MERCHANT", "LINE 1", "LINE 2", "LINE 3", "LINE 4", "LINE 5", "$9.99 ⧫"
         };
 
         final Map<String, String> result =
@@ -243,14 +244,14 @@ class PDFImportServicePattern7Test {
     void testPattern7MoreThan7LinesRejectsAfter7() throws Exception {
         // 8 lines: should only parse first 7 (date + 5 descriptions + amount)
         final String[] lines = {
-                "11/27/25 MERCHANT",
-                "LINE 1",
-                "LINE 2",
-                "LINE 3",
-                "LINE 4",
-                "LINE 5",
-                "$9.99 ⧫",
-                "EXTRA LINE AFTER AMOUNT"
+            "11/27/25 MERCHANT",
+            "LINE 1",
+            "LINE 2",
+            "LINE 3",
+            "LINE 4",
+            "LINE 5",
+            "$9.99 ⧫",
+            "EXTRA LINE AFTER AMOUNT"
         };
 
         final Map<String, String> result =
@@ -310,10 +311,10 @@ class PDFImportServicePattern7Test {
     void testPattern7MultipleAmountLikeLinesTakesFirstValid() throws Exception {
         // Multiple lines that look like amounts - should take the first valid one
         final String[] lines = {
-                "11/27/25 MERCHANT",
-                "$100.00", // This looks like an amount but has description context
-                "DESCRIPTION",
-                "$9.99 ⧫" // This is the actual amount line
+            "11/27/25 MERCHANT",
+            "$100.00", // This looks like an amount but has description context
+            "DESCRIPTION",
+            "$9.99 ⧫" // This is the actual amount line
         };
 
         // Actually, the first "$100.00" line should NOT match because it's not "only" an amount
@@ -335,7 +336,7 @@ class PDFImportServicePattern7Test {
     void testPattern7AmountWithTextBeforeRejected() throws Exception {
         // Amount line has text before amount - should be rejected
         final String[] lines = {
-                "11/27/25 MERCHANT", "DESCRIPTION", "Total: $9.99 ⧫" // Has "Total: " before amount
+            "11/27/25 MERCHANT", "DESCRIPTION", "Total: $9.99 ⧫" // Has "Total: " before amount
         };
 
         final Map<String, String> result =
@@ -349,9 +350,9 @@ class PDFImportServicePattern7Test {
     void testPattern7AmountWithTextAfterAccepted() throws Exception {
         // Amount line has "CR" after amount - CR is part of amount pattern, so this is valid
         final String[] lines = {
-                "11/27/25 MERCHANT",
-                "DESCRIPTION",
-                "$9.99 ⧫ CR" // CR is part of US_AMOUNT_PATTERN_STR, so this is a valid amount format
+            "11/27/25 MERCHANT",
+            "DESCRIPTION",
+            "$9.99 ⧫ CR" // CR is part of US_AMOUNT_PATTERN_STR, so this is a valid amount format
         };
 
         final Map<String, String> result =
@@ -368,12 +369,12 @@ class PDFImportServicePattern7Test {
     void testPattern7VariousAmountFormatsAllValid() throws Exception {
         // Test various amount formats
         final String[][] testCases = {
-                {"11/27/25 MERCHANT", "DESC", "$9.99 ⧫"},
-                {"11/27/25 MERCHANT", "DESC", "-$9.99 ⧫"},
-                {"11/27/25 MERCHANT", "DESC", "+$9.99 ⧫"},
-                {"11/27/25 MERCHANT", "DESC", "$9.99"},
-                {"11/27/25 MERCHANT", "DESC", "($9.99) ⧫"},
-                {"11/27/25 MERCHANT", "DESC", "$1,234.56 ⧫"},
+            {"11/27/25 MERCHANT", "DESC", "$9.99 ⧫"},
+            {"11/27/25 MERCHANT", "DESC", "-$9.99 ⧫"},
+            {"11/27/25 MERCHANT", "DESC", "+$9.99 ⧫"},
+            {"11/27/25 MERCHANT", "DESC", "$9.99"},
+            {"11/27/25 MERCHANT", "DESC", "($9.99) ⧫"},
+            {"11/27/25 MERCHANT", "DESC", "$1,234.56 ⧫"},
         };
 
         for (final String[] lines : testCases) {
@@ -467,15 +468,15 @@ class PDFImportServicePattern7Test {
         // But the date validation happens in createTransactionRow, not here
         // So this test checks if the pattern matches (it will)
         if (result != null) {
-            assertEquals("99/99/99", result.get("date"));
+            assertEquals("99/99/99", result.get(DATE));
         }
     }
 
     @Test
     void testPattern7NoAmountLineFoundReturnsNull() throws Exception {
         final String[] lines = {
-                "11/27/25 MERCHANT", "DESCRIPTION LINE 1", "DESCRIPTION LINE 2", "DESCRIPTION LINE 3"
-        // No amount line
+            "11/27/25 MERCHANT", "DESCRIPTION LINE 1", "DESCRIPTION LINE 2", "DESCRIPTION LINE 3"
+            // No amount line
         };
 
         final Map<String, String> result =
@@ -511,9 +512,9 @@ class PDFImportServicePattern7Test {
     void testPattern7HeaderLineRejected() throws Exception {
         // Header lines should be rejected
         final String[][] testCases = {
-                {"Closing Date 11/27/25", "DESC", "$9.99 ⧫"},
-                {"Statement Date 11/27/25", "DESC", "$9.99 ⧫"},
-                {"Account ending in 1234 Fees 11/27/25", "DESC", "$9.99 ⧫"},
+            {"Closing Date 11/27/25", "DESC", "$9.99 ⧫"},
+            {"Statement Date 11/27/25", "DESC", "$9.99 ⧫"},
+            {"Account ending in 1234 Fees 11/27/25", "DESC", "$9.99 ⧫"},
         };
 
         for (final String[] lines : testCases) {
@@ -529,10 +530,10 @@ class PDFImportServicePattern7Test {
     void testPattern7InformationalPhrasesInDescriptionIgnored() throws Exception {
         // Informational phrases in description lines should be ignored
         final String[] lines = {
-                "11/27/25 MERCHANT",
-                "Credits Amount", // Informational phrase
-                "ACTUAL DESCRIPTION",
-                "$9.99 ⧫"
+            "11/27/25 MERCHANT",
+            "Credits Amount", // Informational phrase
+            "ACTUAL DESCRIPTION",
+            "$9.99 ⧫"
         };
 
         final Map<String, String> result =
@@ -581,10 +582,10 @@ class PDFImportServicePattern7Test {
     @Test
     void testPattern7VariousDateFormatsAllValid() throws Exception {
         final String[][] testCases = {
-                {"11/27/25 MERCHANT", "DESC", "$9.99 ⧫"}, // MM/DD/YY
-                {"11/27/2025 MERCHANT", "DESC", "$9.99 ⧫"}, // MM/DD/YYYY
-                {"11/27/25* MERCHANT", "DESC", "$9.99 ⧫"}, // With asterisk
-                {"1/5/25 MERCHANT", "DESC", "$9.99 ⧫"}, // Single digit month/day
+            {"11/27/25 MERCHANT", "DESC", "$9.99 ⧫"}, // MM/DD/YY
+            {"11/27/2025 MERCHANT", "DESC", "$9.99 ⧫"}, // MM/DD/YYYY
+            {"11/27/25* MERCHANT", "DESC", "$9.99 ⧫"}, // With asterisk
+            {"1/5/25 MERCHANT", "DESC", "$9.99 ⧫"}, // Single digit month/day
         };
 
         for (final String[] lines : testCases) {
@@ -593,7 +594,7 @@ class PDFImportServicePattern7Test {
                             parsePattern7Method.invoke(pdfImportService, lines, 0, 2025, null);
 
             assertNotNull(result, "Should parse date format: " + lines[0]);
-            assertNotNull(result.get("date"), "Date should be extracted: " + lines[0]);
+            assertNotNull(result.get(DATE), "Date should be extracted: " + lines[0]);
         }
     }
 
@@ -614,7 +615,7 @@ class PDFImportServicePattern7Test {
     @Test
     void testPattern7AmountLineIsNullReturnsNull() throws Exception {
         final String[] lines = {
-                "11/27/25 MERCHANT", "DESC", null // Amount line is null
+            "11/27/25 MERCHANT", "DESC", null // Amount line is null
         };
 
         final Map<String, String> result =
@@ -632,12 +633,12 @@ class PDFImportServicePattern7Test {
         // Transaction 1: lines 0, 1, 2
         // Transaction 2: lines 3, 4, 5
         final String[] lines = {
-                "11/27/25 MERCHANT ONE",
-                "DESCRIPTION ONE",
-                "$9.99 ⧫",
-                "11/28/25 MERCHANT TWO", // New transaction starts here
-                "DESCRIPTION TWO",
-                "$19.99 ⧫"
+            "11/27/25 MERCHANT ONE",
+            "DESCRIPTION ONE",
+            "$9.99 ⧫",
+            "11/28/25 MERCHANT TWO", // New transaction starts here
+            "DESCRIPTION TWO",
+            "$19.99 ⧫"
         };
 
         // Parse first transaction (should stop at line 2)
@@ -646,7 +647,7 @@ class PDFImportServicePattern7Test {
                         parsePattern7Method.invoke(pdfImportService, lines, 0, 2025, null);
 
         assertNotNull(result1, "Should parse first transaction");
-        assertEquals("11/27/25", result1.get("date"));
+        assertEquals("11/27/25", result1.get(DATE));
         assertTrue(result1.get("description").contains("MERCHANT ONE"));
         assertEquals("$9.99", result1.get("amount"));
         assertEquals("3", result1.get("_pattern7_lines"));
@@ -658,7 +659,7 @@ class PDFImportServicePattern7Test {
                         parsePattern7Method.invoke(pdfImportService, lines, 3, 2025, null);
 
         assertNotNull(result2, "Should parse second transaction separately");
-        assertEquals("11/28/25", result2.get("date"));
+        assertEquals("11/28/25", result2.get(DATE));
         assertTrue(result2.get("description").contains("MERCHANT TWO"));
         assertEquals("$19.99", result2.get("amount"));
         assertEquals("3", result2.get("_pattern7_lines"));
@@ -669,15 +670,15 @@ class PDFImportServicePattern7Test {
     void testPattern7ThreeBackToBackTransactionsNotCombined() throws Exception {
         // Three 3-line transactions back-to-back
         final String[] lines = {
-                "11/27/25 MERCHANT ONE",
-                "DESC ONE",
-                "$9.99 ⧫",
-                "11/28/25 MERCHANT TWO",
-                "DESC TWO",
-                "$19.99 ⧫",
-                "11/29/25 MERCHANT THREE",
-                "DESC THREE",
-                "$29.99 ⧫"
+            "11/27/25 MERCHANT ONE",
+            "DESC ONE",
+            "$9.99 ⧫",
+            "11/28/25 MERCHANT TWO",
+            "DESC TWO",
+            "$19.99 ⧫",
+            "11/29/25 MERCHANT THREE",
+            "DESC THREE",
+            "$29.99 ⧫"
         };
 
         // Parse each transaction separately
@@ -695,9 +696,9 @@ class PDFImportServicePattern7Test {
         assertNotNull(result2, "Should parse second transaction");
         assertNotNull(result3, "Should parse third transaction");
 
-        assertEquals("11/27/25", result1.get("date"));
-        assertEquals("11/28/25", result2.get("date"));
-        assertEquals("11/29/25", result3.get("date"));
+        assertEquals("11/27/25", result1.get(DATE));
+        assertEquals("11/28/25", result2.get(DATE));
+        assertEquals("11/29/25", result3.get(DATE));
 
         assertEquals("$9.99", result1.get("amount"));
         assertEquals("$19.99", result2.get("amount"));
@@ -709,11 +710,11 @@ class PDFImportServicePattern7Test {
         // If a date pattern appears in the middle of searching for amount, stop searching
         // This prevents combining transactions
         final String[] lines = {
-                "11/27/25 MERCHANT ONE",
-                "DESC ONE",
-                "11/28/25 MERCHANT TWO", // Date in middle - should stop here
-                "$9.99 ⧫" // This amount belongs to first transaction, but date pattern should stop
-        // search
+            "11/27/25 MERCHANT ONE",
+            "DESC ONE",
+            "11/28/25 MERCHANT TWO", // Date in middle - should stop here
+            "$9.99 ⧫" // This amount belongs to first transaction, but date pattern should stop
+            // search
         };
 
         // Should NOT find amount because date pattern appears first
@@ -735,14 +736,14 @@ class PDFImportServicePattern7Test {
         // Issue #2: 8-line ticket transaction should be accepted
         // Type 4 from user's examples: 08/31/25 DELTA AIR LINES ATLANTA (8 lines total)
         final String[] lines = {
-                "08/31/25 DELTA AIR LINES ATLANTA",
-                "DELTA AIR LINES From: To: Carrier: Class:",
-                "NASHVILLE SEATTLE-TACOMA INT DL Q",
-                "Ticket Number: 00623608559696 Date of Departure: 09/13",
-                "Passenger Name: AGARWAL/MUDIT",
-                "Document Type: PASSENGER TICKET",
-                "Additional Line", // 7th line
-                "$269.58 ⧫" // 8th line (amount)
+            "08/31/25 DELTA AIR LINES ATLANTA",
+            "DELTA AIR LINES From: To: Carrier: Class:",
+            "NASHVILLE SEATTLE-TACOMA INT DL Q",
+            "Ticket Number: 00623608559696 Date of Departure: 09/13",
+            "Passenger Name: AGARWAL/MUDIT",
+            "Document Type: PASSENGER TICKET",
+            "Additional Line", // 7th line
+            "$269.58 ⧫" // 8th line (amount)
         };
 
         final Map<String, String> result =
@@ -750,7 +751,7 @@ class PDFImportServicePattern7Test {
                         parsePattern7Method.invoke(pdfImportService, lines, 0, 2025, null);
 
         assertNotNull(result, "Should parse 8-line ticket transaction");
-        assertEquals("08/31/25", result.get("date"));
+        assertEquals("08/31/25", result.get(DATE));
         assertTrue(result.get("description").contains("DELTA AIR LINES"));
         assertTrue(result.get("description").contains("NASHVILLE SEATTLE-TACOMA"));
         assertTrue(result.get("description").contains("AGARWAL/MUDIT"));
@@ -764,16 +765,16 @@ class PDFImportServicePattern7Test {
     void testPattern7MoreThan8LinesStopsAt8() throws Exception {
         // More than 8 lines - should stop at 8th line (amount)
         final String[] lines = {
-                "11/27/25 MERCHANT",
-                "LINE 1",
-                "LINE 2",
-                "LINE 3",
-                "LINE 4",
-                "LINE 5",
-                "LINE 6",
-                "$9.99 ⧫", // 8th line (amount) - should stop here
-                "EXTRA LINE AFTER AMOUNT",
-                "ANOTHER EXTRA LINE"
+            "11/27/25 MERCHANT",
+            "LINE 1",
+            "LINE 2",
+            "LINE 3",
+            "LINE 4",
+            "LINE 5",
+            "LINE 6",
+            "$9.99 ⧫", // 8th line (amount) - should stop here
+            "EXTRA LINE AFTER AMOUNT",
+            "ANOTHER EXTRA LINE"
         };
 
         final Map<String, String> result =
@@ -813,7 +814,7 @@ class PDFImportServicePattern7Test {
     void testPattern7UsernameInDescriptionLineRemoved() throws Exception {
         // Username appears in description line (not just line1)
         final String[] lines = {
-                "11/27/25 MERCHANT NAME", "AGARWAL SUMIT KUMAR DESCRIPTION TEXT", "$9.99 ⧫"
+            "11/27/25 MERCHANT NAME", "AGARWAL SUMIT KUMAR DESCRIPTION TEXT", "$9.99 ⧫"
         };
 
         final Map<String, String> result =
@@ -891,12 +892,12 @@ class PDFImportServicePattern7Test {
         // Combined test: Two transactions with username, should not be combined, username should be
         // removed
         final String[] lines = {
-                "11/27/25 AGARWAL SUMIT KUMAR MERCHANT ONE",
-                "DESC ONE",
-                "$9.99 ⧫",
-                "11/28/25 AGARWAL SUMIT KUMAR MERCHANT TWO",
-                "DESC TWO",
-                "$19.99 ⧫"
+            "11/27/25 AGARWAL SUMIT KUMAR MERCHANT ONE",
+            "DESC ONE",
+            "$9.99 ⧫",
+            "11/28/25 AGARWAL SUMIT KUMAR MERCHANT TWO",
+            "DESC TWO",
+            "$19.99 ⧫"
         };
 
         final Map<String, String> result1 =
@@ -932,14 +933,14 @@ class PDFImportServicePattern7Test {
     void testPattern78LineTransactionWithUsernameUsernameRemoved() throws Exception {
         // 8-line transaction with username - should parse and remove username
         final String[] lines = {
-                "08/31/25 AGARWAL SUMIT KUMAR DELTA AIR LINES ATLANTA",
-                "DELTA AIR LINES From: To: Carrier: Class:",
-                "NASHVILLE SEATTLE-TACOMA INT DL Q",
-                "Ticket Number: 00623608559696 Date of Departure: 09/13",
-                "Passenger Name: AGARWAL/MUDIT",
-                "Document Type: PASSENGER TICKET",
-                "Additional Line",
-                "$269.58 ⧫"
+            "08/31/25 AGARWAL SUMIT KUMAR DELTA AIR LINES ATLANTA",
+            "DELTA AIR LINES From: To: Carrier: Class:",
+            "NASHVILLE SEATTLE-TACOMA INT DL Q",
+            "Ticket Number: 00623608559696 Date of Departure: 09/13",
+            "Passenger Name: AGARWAL/MUDIT",
+            "Document Type: PASSENGER TICKET",
+            "Additional Line",
+            "$269.58 ⧫"
         };
 
         final Map<String, String> result =
@@ -959,13 +960,13 @@ class PDFImportServicePattern7Test {
     void testPattern7EmptyLineBetweenTransactionsNotCombined() throws Exception {
         // Empty line between transactions should not cause them to be combined
         final String[] lines = {
-                "11/27/25 MERCHANT ONE",
-                "DESC ONE",
-                "$9.99 ⧫",
-                "", // Empty line
-                "11/28/25 MERCHANT TWO",
-                "DESC TWO",
-                "$19.99 ⧫"
+            "11/27/25 MERCHANT ONE",
+            "DESC ONE",
+            "$9.99 ⧫",
+            "", // Empty line
+            "11/28/25 MERCHANT TWO",
+            "DESC TWO",
+            "$19.99 ⧫"
         };
 
         final Map<String, String> result1 =
@@ -977,23 +978,23 @@ class PDFImportServicePattern7Test {
 
         assertNotNull(result1, "Should parse first transaction");
         assertNotNull(result2, "Should parse second transaction");
-        assertEquals("11/27/25", result1.get("date"));
-        assertEquals("11/28/25", result2.get("date"));
+        assertEquals("11/27/25", result1.get(DATE));
+        assertEquals("11/28/25", result2.get(DATE));
     }
 
     @Test
     void testPattern7MultipleEmptyLinesBetweenNotCombined() throws Exception {
         // Multiple empty lines between transactions
         final String[] lines = {
-                "11/27/25 MERCHANT ONE",
-                "DESC ONE",
-                "$9.99 ⧫",
-                "",
-                "",
-                "   ",
-                "11/28/25 MERCHANT TWO",
-                "DESC TWO",
-                "$19.99 ⧫"
+            "11/27/25 MERCHANT ONE",
+            "DESC ONE",
+            "$9.99 ⧫",
+            "",
+            "",
+            "   ",
+            "11/28/25 MERCHANT TWO",
+            "DESC TWO",
+            "$19.99 ⧫"
         };
 
         final Map<String, String> result1 =
@@ -1011,10 +1012,10 @@ class PDFImportServicePattern7Test {
     void testPattern7UsernameInMultipleDescriptionLinesAllRemoved() throws Exception {
         // Username appears in multiple description lines - all should be removed
         final String[] lines = {
-                "11/27/25 AGARWAL SUMIT KUMAR MERCHANT",
-                "AGARWAL SUMIT KUMAR DESC LINE 1",
-                "AGARWAL SUMIT KUMAR DESC LINE 2",
-                "$9.99 ⧫"
+            "11/27/25 AGARWAL SUMIT KUMAR MERCHANT",
+            "AGARWAL SUMIT KUMAR DESC LINE 1",
+            "AGARWAL SUMIT KUMAR DESC LINE 2",
+            "$9.99 ⧫"
         };
 
         final Map<String, String> result =
@@ -1025,7 +1026,8 @@ class PDFImportServicePattern7Test {
         assertNotNull(result, "Should parse transaction");
         final String description = result.get("description");
         // Count occurrences of username in description
-        final long usernameCount = description.toLowerCase(Locale.ROOT).split("agarwal sumit kumar", -1).length - 1;
+        final long usernameCount =
+                description.toLowerCase(Locale.ROOT).split("agarwal sumit kumar", -1).length - 1;
         assertEquals(0, usernameCount, "Username should be removed from all description lines");
         assertTrue(description.contains("MERCHANT"));
         assertTrue(description.contains("DESC LINE 1"));
@@ -1072,14 +1074,14 @@ class PDFImportServicePattern7Test {
     void testPattern7BoundaryConditionExactly8Lines() throws Exception {
         // Exactly 8 lines (boundary condition)
         final String[] lines = {
-                "11/27/25 MERCHANT",
-                "LINE 1",
-                "LINE 2",
-                "LINE 3",
-                "LINE 4",
-                "LINE 5",
-                "LINE 6",
-                "$9.99 ⧫" // 8th line
+            "11/27/25 MERCHANT",
+            "LINE 1",
+            "LINE 2",
+            "LINE 3",
+            "LINE 4",
+            "LINE 5",
+            "LINE 6",
+            "$9.99 ⧫" // 8th line
         };
 
         final Map<String, String> result =
@@ -1109,10 +1111,10 @@ class PDFImportServicePattern7Test {
         // If multiple lines match amount pattern, should take the last one
         // (This tests the "continue to find last" logic)
         final String[] lines = {
-                "11/27/25 MERCHANT",
-                "$100.00", // Looks like amount but might be description
-                "DESC LINE",
-                "$9.99 ⧫" // Actual amount (last match)
+            "11/27/25 MERCHANT",
+            "$100.00", // Looks like amount but might be description
+            "DESC LINE",
+            "$9.99 ⧫" // Actual amount (last match)
         };
 
         final Map<String, String> result =
@@ -1129,11 +1131,11 @@ class PDFImportServicePattern7Test {
     void testPattern7ErrorConditionNoAmountBeforeNextDateReturnsNull() throws Exception {
         // If date pattern appears before amount is found, should return null
         final String[] lines = {
-                "11/27/25 MERCHANT ONE",
-                "DESC ONE",
-                "11/28/25 MERCHANT TWO", // Date appears before amount
-                "DESC TWO",
-                "$9.99 ⧫" // Amount for second transaction
+            "11/27/25 MERCHANT ONE",
+            "DESC ONE",
+            "11/28/25 MERCHANT TWO", // Date appears before amount
+            "DESC TWO",
+            "$9.99 ⧫" // Amount for second transaction
         };
 
         // Try to parse first transaction - should fail because date appears before amount
@@ -1171,19 +1173,19 @@ class PDFImportServicePattern7Test {
     void testPattern7FlexibilityDifferentAmountFormatsAllAccepted() throws Exception {
         // Test various amount formats in 8-line transaction
         final String[][] testCases = {
-                {"11/27/25 MERCHANT", "DESC", "DESC2", "DESC3", "DESC4", "DESC5", "DESC6", "$9.99 ⧫"},
-                {"11/27/25 MERCHANT", "DESC", "DESC2", "DESC3", "DESC4", "DESC5", "DESC6", "-$9.99 ⧫"},
-                {"11/27/25 MERCHANT", "DESC", "DESC2", "DESC3", "DESC4", "DESC5", "DESC6", "($9.99) ⧫"},
-                {
-                        "11/27/25 MERCHANT",
-                        "DESC",
-                        "DESC2",
-                        "DESC3",
-                        "DESC4",
-                        "DESC5",
-                        "DESC6",
-                        "$1,234.56 ⧫"
-                },
+            {"11/27/25 MERCHANT", "DESC", "DESC2", "DESC3", "DESC4", "DESC5", "DESC6", "$9.99 ⧫"},
+            {"11/27/25 MERCHANT", "DESC", "DESC2", "DESC3", "DESC4", "DESC5", "DESC6", "-$9.99 ⧫"},
+            {"11/27/25 MERCHANT", "DESC", "DESC2", "DESC3", "DESC4", "DESC5", "DESC6", "($9.99) ⧫"},
+            {
+                "11/27/25 MERCHANT",
+                "DESC",
+                "DESC2",
+                "DESC3",
+                "DESC4",
+                "DESC5",
+                "DESC6",
+                "$1,234.56 ⧫"
+            },
         };
 
         for (final String[] lines : testCases) {
@@ -1212,7 +1214,8 @@ class PDFImportServicePattern7Test {
         assertNotNull(result, "Should parse transaction");
         // Username should be removed only once
         final String description = result.get("description");
-        final long usernameCount = description.toLowerCase(Locale.ROOT).split("agarwal sumit kumar", -1).length - 1;
+        final long usernameCount =
+                description.toLowerCase(Locale.ROOT).split("agarwal sumit kumar", -1).length - 1;
         assertEquals(0, usernameCount, "Username should be removed only once, not twice");
         assertTrue(description.contains("MERCHANT NAME"));
     }
@@ -1263,7 +1266,9 @@ class PDFImportServicePattern7Test {
     void testPattern7BothUsernamesConsecutiveRemovesBoth() throws Exception {
         // Both usernames appear consecutively - should remove both
         // This tests the removeDetectedUsernameIfPresent helper
-        final String[] lines = {"11/27/25 AGARWAL SUMIT KUMAR JOHN DOE MERCHANT NAME", "DESC", "$9.99 ⧫"};
+        final String[] lines = {
+            "11/27/25 AGARWAL SUMIT KUMAR JOHN DOE MERCHANT NAME", "DESC", "$9.99 ⧫"
+        };
 
         // Current username is "AGARWAL SUMIT KUMAR", detected would be "JOHN DOE"
         final Map<String, String> result =
@@ -1285,7 +1290,9 @@ class PDFImportServicePattern7Test {
         // Current username matches at start, detected username appears later in text - should NOT
         // remove detected
         // This ensures we only remove usernames at the START, not in the middle
-        final String[] lines = {"11/27/25 AGARWAL SUMIT KUMAR MERCHANT NAME JOHN DOE", "DESC", "$9.99 ⧫"};
+        final String[] lines = {
+            "11/27/25 AGARWAL SUMIT KUMAR MERCHANT NAME JOHN DOE", "DESC", "$9.99 ⧫"
+        };
 
         final Map<String, String> result =
                 (Map<String, String>)
@@ -1369,7 +1376,9 @@ class PDFImportServicePattern7Test {
     @Test
     void testPattern7UsernameInDescriptionLineCurrentAndDetectedBothRemoved() throws Exception {
         // Username appears in description line (not line1) - both usernames should be checked
-        final String[] lines = {"11/27/25 MERCHANT NAME", "AGARWAL SUMIT KUMAR DESC LINE", "$9.99 ⧫"};
+        final String[] lines = {
+            "11/27/25 MERCHANT NAME", "AGARWAL SUMIT KUMAR DESC LINE", "$9.99 ⧫"
+        };
 
         final Map<String, String> result =
                 (Map<String, String>)
@@ -1388,15 +1397,14 @@ class PDFImportServicePattern7Test {
     }
 
     @Test
-    void testPattern7MultipleDescriptionLinesUsernameInEachBothUsernamesChecked()
-            throws Exception {
+    void testPattern7MultipleDescriptionLinesUsernameInEachBothUsernamesChecked() throws Exception {
         // Multiple description lines, username in each - both usernames should be checked for each
         // line
         final String[] lines = {
-                "11/27/25 AGARWAL SUMIT KUMAR MERCHANT",
-                "AGARWAL SUMIT KUMAR DESC LINE 1",
-                "AGARWAL SUMIT KUMAR DESC LINE 2",
-                "$9.99 ⧫"
+            "11/27/25 AGARWAL SUMIT KUMAR MERCHANT",
+            "AGARWAL SUMIT KUMAR DESC LINE 1",
+            "AGARWAL SUMIT KUMAR DESC LINE 2",
+            "$9.99 ⧫"
         };
 
         final Map<String, String> result =
@@ -1415,8 +1423,7 @@ class PDFImportServicePattern7Test {
     }
 
     @Test
-    void testPattern7CurrentUsernameEmptyDetectedUsernameMatchesRemovesDetected()
-            throws Exception {
+    void testPattern7CurrentUsernameEmptyDetectedUsernameMatchesRemovesDetected() throws Exception {
         // Current username is empty string, detected username matches - should remove detected
         final String[] lines = {"11/27/25 JOHN DOE MERCHANT NAME", "DESC", "$9.99 ⧫"};
 
@@ -1433,8 +1440,7 @@ class PDFImportServicePattern7Test {
     }
 
     @Test
-    void testPattern7CurrentUsernameNullDetectedUsernameMatchesRemovesDetected()
-            throws Exception {
+    void testPattern7CurrentUsernameNullDetectedUsernameMatchesRemovesDetected() throws Exception {
         // Current username is null, detected username matches - should remove detected
         final String[] lines = {"11/27/25 JOHN DOE MERCHANT NAME", "DESC", "$9.99 ⧫"};
 

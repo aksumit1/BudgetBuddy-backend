@@ -1,8 +1,5 @@
 package com.budgetbuddy.service;
 
-
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import java.util.Locale;
 import com.budgetbuddy.exception.AppException;
 import com.budgetbuddy.exception.ErrorCode;
 import com.budgetbuddy.model.dynamodb.UserTable;
@@ -12,11 +9,13 @@ import com.warrenstrange.googleauth.GoogleAuthenticatorConfig;
 import com.warrenstrange.googleauth.GoogleAuthenticatorKey;
 import com.warrenstrange.googleauth.GoogleAuthenticatorQRGenerator;
 import com.warrenstrange.googleauth.KeyRepresentation;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.security.SecureRandom;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
@@ -110,7 +109,8 @@ public class MFAService {
         totpSecrets.put(userId, secret);
 
         // Generate QR code URL
-        final String qrCodeUrl = GoogleAuthenticatorQRGenerator.getOtpAuthURL(totpIssuer, email, key);
+        final String qrCodeUrl =
+                GoogleAuthenticatorQRGenerator.getOtpAuthURL(totpIssuer, email, key);
 
         LOGGER.info("TOTP secret generated for user: {}", userId);
 
@@ -231,7 +231,8 @@ public class MFAService {
 
         // Store OTP with expiration
         final String key = userId + ":" + type.name().toLowerCase(Locale.ROOT);
-        final OTPInfo otpInfo = new OTPInfo(otpCode, Instant.now().plusSeconds(otpExpirationSeconds));
+        final OTPInfo otpInfo =
+                new OTPInfo(otpCode, Instant.now().plusSeconds(otpExpirationSeconds));
         otpCodes.put(key, otpInfo);
 
         LOGGER.info(

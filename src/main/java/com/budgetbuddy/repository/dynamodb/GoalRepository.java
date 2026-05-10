@@ -1,7 +1,7 @@
 package com.budgetbuddy.repository.dynamodb;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import com.budgetbuddy.model.dynamodb.GoalTable;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -134,7 +134,8 @@ public class GoalRepository {
      * DynamoDB GSI eventual consistency. Caching empty results would prevent finding updated items
      * until cache expires.
      */
-    public List<GoalTable> findByUserIdAndUpdatedAfter(final String userId, final Long updatedAfterTimestamp) {
+    public List<GoalTable> findByUserIdAndUpdatedAfter(
+            final String userId, final Long updatedAfterTimestamp) {
         if (userId == null || userId.isEmpty() || updatedAfterTimestamp == null) {
             return List.of();
         }
@@ -145,12 +146,14 @@ public class GoalRepository {
             // sort key)
             // Query all items for user, then filter in application code
             // This is still efficient because we're using the GSI partition key
-            final SdkIterable<software.amazon.awssdk.enhanced.dynamodb.model.Page<GoalTable>> pages =
-                    userIdUpdatedAtIndex.query(
-                            QueryConditional.keyEqualTo(
-                                    Key.builder().partitionValue(userId).build()));
+            final SdkIterable<software.amazon.awssdk.enhanced.dynamodb.model.Page<GoalTable>>
+                    pages =
+                            userIdUpdatedAtIndex.query(
+                                    QueryConditional.keyEqualTo(
+                                            Key.builder().partitionValue(userId).build()));
 
-            for (final software.amazon.awssdk.enhanced.dynamodb.model.Page<GoalTable> page : pages) {
+            for (final software.amazon.awssdk.enhanced.dynamodb.model.Page<GoalTable> page :
+                    pages) {
                 for (final GoalTable goal : page.items()) {
                     // Filter in application code: updatedAtTimestamp >= updatedAfterTimestamp
                     // Use >= to include items updated exactly at the timestamp

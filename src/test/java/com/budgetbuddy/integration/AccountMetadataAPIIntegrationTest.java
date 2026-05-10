@@ -1,7 +1,5 @@
 package com.budgetbuddy.integration;
 
-
-import java.nio.charset.StandardCharsets;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -20,6 +18,7 @@ import com.budgetbuddy.service.AuthService;
 import com.budgetbuddy.service.UserService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.UUID;
@@ -50,6 +49,8 @@ import org.springframework.test.web.servlet.MvcResult;
 @Import(AWSTestConfiguration.class)
 class AccountMetadataAPIIntegrationTest {
 
+    private static final String CREDIT = "credit";
+
     @Autowired private MockMvc mockMvc;
 
     @Autowired private AccountRepository accountRepository;
@@ -72,7 +73,8 @@ class AccountMetadataAPIIntegrationTest {
         // Create test user using UserService (proper way to create users with all required fields)
         testEmail = "test-metadata@" + UUID.randomUUID().toString().substring(0, 8) + ".com";
         final String base64PasswordHash =
-                java.util.Base64.getEncoder().encodeToString("test-hash".getBytes(StandardCharsets.UTF_8));
+                java.util.Base64.getEncoder()
+                        .encodeToString("test-hash".getBytes(StandardCharsets.UTF_8));
 
         testUser = userService.createUserSecure(testEmail, base64PasswordHash, "Test", "User");
 
@@ -82,7 +84,7 @@ class AccountMetadataAPIIntegrationTest {
         testAccount.setUserId(testUser.getUserId());
         testAccount.setAccountName("Test Credit Card");
         testAccount.setInstitutionName("Test Bank");
-        testAccount.setAccountType("credit");
+        testAccount.setAccountType(CREDIT);
         testAccount.setAccountSubtype("credit card");
         testAccount.setBalance(new BigDecimal("1000.00"));
         testAccount.setCurrencyCode("USD");
@@ -106,7 +108,8 @@ class AccountMetadataAPIIntegrationTest {
 
     /** Helper method to add JWT token to request */
     private org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder withAuth(
-            final org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder builder) {
+            final org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder
+                    builder) {
         return builder.header("Authorization", "Bearer " + accessToken);
     }
 
@@ -115,8 +118,8 @@ class AccountMetadataAPIIntegrationTest {
         // When - Get accounts via API
         final MvcResult result =
                 mockMvc.perform(
-                        withAuth(get("/api/accounts"))
-                                .contentType(MediaType.APPLICATION_JSON))
+                                withAuth(get("/api/accounts"))
+                                        .contentType(MediaType.APPLICATION_JSON))
                         .andExpect(status().isOk())
                         .andExpect(jsonPath("$").isArray())
                         .andReturn();
@@ -144,8 +147,8 @@ class AccountMetadataAPIIntegrationTest {
         // When - Get account by ID via API
         final MvcResult result =
                 mockMvc.perform(
-                        withAuth(get("/api/accounts/{id}", testAccount.getAccountId()))
-                                .contentType(MediaType.APPLICATION_JSON))
+                                withAuth(get("/api/accounts/{id}", testAccount.getAccountId()))
+                                        .contentType(MediaType.APPLICATION_JSON))
                         .andExpect(status().isOk())
                         .andExpect(jsonPath("$.accountId").value(testAccount.getAccountId()))
                         .andExpect(jsonPath("$.paymentDueDate").value("2024-12-15"))
@@ -191,8 +194,8 @@ class AccountMetadataAPIIntegrationTest {
         // When - Get accounts via API
         final MvcResult result =
                 mockMvc.perform(
-                        withAuth(get("/api/accounts"))
-                                .contentType(MediaType.APPLICATION_JSON))
+                                withAuth(get("/api/accounts"))
+                                        .contentType(MediaType.APPLICATION_JSON))
                         .andExpect(status().isOk())
                         .andReturn();
 
@@ -210,8 +213,8 @@ class AccountMetadataAPIIntegrationTest {
         // When - Get account via API
         final MvcResult result =
                 mockMvc.perform(
-                        get("/api/accounts/{id}", testAccount.getAccountId())
-                                .contentType(MediaType.APPLICATION_JSON))
+                                get("/api/accounts/{id}", testAccount.getAccountId())
+                                        .contentType(MediaType.APPLICATION_JSON))
                         .andExpect(status().isOk())
                         .andReturn();
 
@@ -242,7 +245,7 @@ class AccountMetadataAPIIntegrationTest {
         accountWithMaxPoints.setUserId(testUser.getUserId());
         accountWithMaxPoints.setAccountName("Account With Max Points");
         accountWithMaxPoints.setInstitutionName("Test Bank");
-        accountWithMaxPoints.setAccountType("credit");
+        accountWithMaxPoints.setAccountType(CREDIT);
         accountWithMaxPoints.setBalance(new BigDecimal("1000.00"));
         accountWithMaxPoints.setCurrencyCode("USD");
         accountWithMaxPoints.setActive(true);
@@ -269,7 +272,7 @@ class AccountMetadataAPIIntegrationTest {
         accountWithZeroPoints.setUserId(testUser.getUserId());
         accountWithZeroPoints.setAccountName("Account With Zero Points");
         accountWithZeroPoints.setInstitutionName("Test Bank");
-        accountWithZeroPoints.setAccountType("credit");
+        accountWithZeroPoints.setAccountType(CREDIT);
         accountWithZeroPoints.setBalance(new BigDecimal("1000.00"));
         accountWithZeroPoints.setCurrencyCode("USD");
         accountWithZeroPoints.setActive(true);
@@ -296,7 +299,7 @@ class AccountMetadataAPIIntegrationTest {
         accountWithLargePayment.setUserId(testUser.getUserId());
         accountWithLargePayment.setAccountName("Account With Large Payment");
         accountWithLargePayment.setInstitutionName("Test Bank");
-        accountWithLargePayment.setAccountType("credit");
+        accountWithLargePayment.setAccountType(CREDIT);
         accountWithLargePayment.setBalance(new BigDecimal("10000.00"));
         accountWithLargePayment.setCurrencyCode("USD");
         accountWithLargePayment.setActive(true);
@@ -323,7 +326,7 @@ class AccountMetadataAPIIntegrationTest {
         accountWithSmallPayment.setUserId(testUser.getUserId());
         accountWithSmallPayment.setAccountName("Account With Small Payment");
         accountWithSmallPayment.setInstitutionName("Test Bank");
-        accountWithSmallPayment.setAccountType("credit");
+        accountWithSmallPayment.setAccountType(CREDIT);
         accountWithSmallPayment.setBalance(new BigDecimal("100.00"));
         accountWithSmallPayment.setCurrencyCode("USD");
         accountWithSmallPayment.setActive(true);
@@ -351,7 +354,7 @@ class AccountMetadataAPIIntegrationTest {
         accountWithFutureDate.setUserId(testUser.getUserId());
         accountWithFutureDate.setAccountName("Account With Future Date");
         accountWithFutureDate.setInstitutionName("Test Bank");
-        accountWithFutureDate.setAccountType("credit");
+        accountWithFutureDate.setAccountType(CREDIT);
         accountWithFutureDate.setBalance(new BigDecimal("1000.00"));
         accountWithFutureDate.setCurrencyCode("USD");
         accountWithFutureDate.setActive(true);
@@ -379,7 +382,7 @@ class AccountMetadataAPIIntegrationTest {
         accountWithPastDate.setUserId(testUser.getUserId());
         accountWithPastDate.setAccountName("Account With Past Date");
         accountWithPastDate.setInstitutionName("Test Bank");
-        accountWithPastDate.setAccountType("credit");
+        accountWithPastDate.setAccountType(CREDIT);
         accountWithPastDate.setBalance(new BigDecimal("1000.00"));
         accountWithPastDate.setCurrencyCode("USD");
         accountWithPastDate.setActive(true);

@@ -38,10 +38,13 @@ public class AuditLogRepository {
     public List<AuditLogTable> findByUserIdAndDateRange(
             final String userId, final Long startTimestamp, final Long endTimestamp) {
         final List<AuditLogTable> results = new ArrayList<>();
-        final SdkIterable<software.amazon.awssdk.enhanced.dynamodb.model.Page<AuditLogTable>> pages =
-                userIdCreatedAtIndex.query(
-                        QueryConditional.keyEqualTo(Key.builder().partitionValue(userId).build()));
-        for (final software.amazon.awssdk.enhanced.dynamodb.model.Page<AuditLogTable> page : pages) {
+        final SdkIterable<software.amazon.awssdk.enhanced.dynamodb.model.Page<AuditLogTable>>
+                pages =
+                        userIdCreatedAtIndex.query(
+                                QueryConditional.keyEqualTo(
+                                        Key.builder().partitionValue(userId).build()));
+        for (final software.amazon.awssdk.enhanced.dynamodb.model.Page<AuditLogTable> page :
+                pages) {
             for (final AuditLogTable log : page.items()) {
                 if (log.getCreatedAt() >= startTimestamp && log.getCreatedAt() <= endTimestamp) {
                     results.add(log);

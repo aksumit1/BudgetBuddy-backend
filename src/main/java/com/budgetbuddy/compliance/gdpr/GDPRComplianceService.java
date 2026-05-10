@@ -2,7 +2,6 @@ package com.budgetbuddy.compliance.gdpr;
 
 import com.budgetbuddy.exception.AppException;
 import com.budgetbuddy.exception.ErrorCode;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import com.budgetbuddy.model.dynamodb.UserTable;
 import com.budgetbuddy.repository.dynamodb.AccountRepository;
 import com.budgetbuddy.repository.dynamodb.AuditLogRepository;
@@ -11,6 +10,7 @@ import com.budgetbuddy.repository.dynamodb.GoalRepository;
 import com.budgetbuddy.repository.dynamodb.TransactionRepository;
 import com.budgetbuddy.repository.dynamodb.UserRepository;
 import com.budgetbuddy.service.aws.S3Service;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
@@ -33,7 +33,8 @@ import org.springframework.stereotype.Service;
 // callers — defensive-copying it would break dependency injection.
 @SuppressFBWarnings(
         value = {"EI_EXPOSE_REP", "EI_EXPOSE_REP2"},
-        justification = "JSON DTO / DynamoDB entity getters expose lists by reference; "
+        justification =
+                "JSON DTO / DynamoDB entity getters expose lists by reference; "
                         + "the design is value-semantic and Jackson creates fresh instances; Spring constructor injection — beans are shared by design")
 @SuppressWarnings({"PMD.AvoidCatchingGenericException", "PMD.DataClass"})
 @Service
@@ -97,11 +98,13 @@ public class GDPRComplianceService {
         export.setBudgets(budgets);
 
         // Export goals
-        final List<com.budgetbuddy.model.dynamodb.GoalTable> goals = goalRepository.findByUserId(userId);
+        final List<com.budgetbuddy.model.dynamodb.GoalTable> goals =
+                goalRepository.findByUserId(userId);
         export.setGoals(goals);
 
         // Export audit logs
-        final long startTimestamp = Instant.now().minusSeconds(31_536_000).getEpochSecond(); // Last year
+        final long startTimestamp =
+                Instant.now().minusSeconds(31_536_000).getEpochSecond(); // Last year
         final long endTimestamp = Instant.now().getEpochSecond();
         final List<com.budgetbuddy.compliance.AuditLogTable> auditLogs =
                 auditLogRepository.findByUserIdAndDateRange(userId, startTimestamp, endTimestamp);
@@ -140,7 +143,8 @@ public class GDPRComplianceService {
         budgets.forEach(b -> budgetRepository.delete(b.getBudgetId()));
 
         // Delete goals
-        final List<com.budgetbuddy.model.dynamodb.GoalTable> goals = goalRepository.findByUserId(userId);
+        final List<com.budgetbuddy.model.dynamodb.GoalTable> goals =
+                goalRepository.findByUserId(userId);
         goals.forEach(g -> goalRepository.delete(g.getGoalId()));
 
         // Anonymize user (don't delete for audit purposes, but remove PII)

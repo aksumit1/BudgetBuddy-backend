@@ -1,6 +1,5 @@
 package com.budgetbuddy.api;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import com.budgetbuddy.exception.AppException;
 import com.budgetbuddy.exception.ErrorCode;
 import com.budgetbuddy.model.dynamodb.AccountTable;
@@ -8,6 +7,7 @@ import com.budgetbuddy.model.dynamodb.UserTable;
 import com.budgetbuddy.plaid.PlaidService;
 import com.budgetbuddy.service.PlaidSyncService;
 import com.budgetbuddy.service.UserService;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -49,9 +49,15 @@ import org.springframework.web.bind.annotation.RestController;
 // callers — defensive-copying it would break dependency injection.
 @SuppressFBWarnings(
         value = {"EI_EXPOSE_REP", "EI_EXPOSE_REP2"},
-        justification = "JSON DTO / DynamoDB entity getters expose lists by reference; "
+        justification =
+                "JSON DTO / DynamoDB entity getters expose lists by reference; "
                         + "the design is value-semantic and Jackson creates fresh instances; Spring constructor injection — beans are shared by design")
-@SuppressWarnings({"PMD.LawOfDemeter", "PMD.AvoidCatchingGenericException", "PMD.DataClass", "PMD.OnlyOneReturn"})
+@SuppressWarnings({
+    "PMD.LawOfDemeter",
+    "PMD.AvoidCatchingGenericException",
+    "PMD.DataClass",
+    "PMD.OnlyOneReturn"
+})
 @RestController
 @RequestMapping("/api/plaid")
 @Tag(name = "Plaid", description = "Plaid financial data integration")
@@ -228,7 +234,8 @@ public class PlaidController {
     public ResponseEntity<AccountsResponse> getAccounts(
             @AuthenticationPrincipal final UserDetails userDetails,
             @RequestParam(required = false)
-                    @Parameter(description = "Plaid access token (optional)") final String accessToken) {
+                    @Parameter(description = "Plaid access token (optional)")
+                    final String accessToken) {
         if (userDetails == null || userDetails.getUsername() == null) {
             throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, USER_NOT_AUTHENTICATED);
         }
@@ -358,13 +365,12 @@ public class PlaidController {
                 @ApiResponse(responseCode = "400", description = "Invalid request parameters"),
                 @ApiResponse(responseCode = "500", description = "Internal server error")
             })
-    public ResponseEntity<List<com.budgetbuddy.model.dynamodb.TransactionTable>>
-            getTransactions(
-                    @AuthenticationPrincipal final UserDetails userDetails,
-                    @RequestParam(required = false)
-                            @Parameter(description = "Start date (YYYY-MM-DD)") final String start,
-                    @RequestParam(required = false)
-                            @Parameter(description = "End date (YYYY-MM-DD)") final String end) {
+    public ResponseEntity<List<com.budgetbuddy.model.dynamodb.TransactionTable>> getTransactions(
+            @AuthenticationPrincipal final UserDetails userDetails,
+            @RequestParam(required = false) @Parameter(description = "Start date (YYYY-MM-DD)")
+                    final String start,
+            @RequestParam(required = false) @Parameter(description = "End date (YYYY-MM-DD)")
+                    final String end) {
         if (userDetails == null || userDetails.getUsername() == null) {
             throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, USER_NOT_AUTHENTICATED);
         }
@@ -744,9 +750,12 @@ public class PlaidController {
                     user.getUserId());
             return ResponseEntity.ok(
                     Map.of(
-                            STATUS, SUCCESS,
-                            MESSAGE, "Sync settings updated",
-                            "accountsUpdated", String.valueOf(updatedCount)));
+                            STATUS,
+                            SUCCESS,
+                            MESSAGE,
+                            "Sync settings updated",
+                            "accountsUpdated",
+                            String.valueOf(updatedCount)));
         } catch (Exception e) {
             LOGGER.error(
                     "Failed to update account sync settings for user {}: {}",

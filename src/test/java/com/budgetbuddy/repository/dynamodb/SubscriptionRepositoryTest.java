@@ -103,7 +103,8 @@ class SubscriptionRepositoryTest {
     @Test
     void testFindByIdWithInvalidIdReturnsEmpty() {
         // When
-        final Optional<SubscriptionTable> found = subscriptionRepository.findById("non-existent-id");
+        final Optional<SubscriptionTable> found =
+                subscriptionRepository.findById("non-existent-id");
 
         // Then
         assertFalse(found.isPresent());
@@ -129,7 +130,8 @@ class SubscriptionRepositoryTest {
         subscriptionRepository.save(sub2);
 
         // When
-        final List<SubscriptionTable> subscriptions = subscriptionRepository.findByUserId(testUserId);
+        final List<SubscriptionTable> subscriptions =
+                subscriptionRepository.findByUserId(testUserId);
 
         // Then
         assertTrue(subscriptions.size() >= 2);

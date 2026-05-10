@@ -22,6 +22,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @DisplayName("Context-Aware Semantic Matching Tests")
 class ContextAwareSemanticMatchingTest {
 
+    private static final String INVESTMENT = "investment";
+
     @Mock private MerchantCategoryDataService merchantCategoryDataService;
 
     private SemanticMatchingService semanticMatchingService;
@@ -96,14 +98,12 @@ class ContextAwareSemanticMatchingTest {
                         "Stock Purchase",
                         new BigDecimal("1000.00"),
                         null,
-                        "investment",
+                        INVESTMENT,
                         null);
 
         assertNotNull(result, "Should find match with investment account context");
         assertEquals(
-                "investment",
-                result.category,
-                "Investment account should boost investment category");
+                INVESTMENT, result.category, "Investment account should boost investment category");
         assertTrue(result.similarity >= 0.6, "Should have good similarity with context boost");
     }
 
@@ -214,12 +214,12 @@ class ContextAwareSemanticMatchingTest {
                         "Fund Purchase",
                         new BigDecimal("5000.00"),
                         null,
-                        "investment",
+                        INVESTMENT,
                         "mutual_fund");
 
         assertNotNull(result, "Should find match with investment account + large amount");
         assertEquals(
-                "investment",
+                INVESTMENT,
                 result.category,
                 "Investment account + large amount should strongly boost investment");
         assertTrue(
@@ -237,7 +237,7 @@ class ContextAwareSemanticMatchingTest {
                         "BANK", "CD Interest", new BigDecimal("50.00"), null, "savings", "cd");
 
         assertNotNull(result, "Should find match with CD subtype");
-        assertEquals("investment", result.category, "CD subtype should boost investment");
+        assertEquals(INVESTMENT, result.category, "CD subtype should boost investment");
     }
 
     @Test
@@ -269,7 +269,7 @@ class ContextAwareSemanticMatchingTest {
                         "Investment",
                         new BigDecimal("10000.00"),
                         "ACH",
-                        "investment",
+                        INVESTMENT,
                         "brokerage");
 
         // Should have high similarity but not exceed 1.0

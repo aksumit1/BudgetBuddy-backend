@@ -115,7 +115,7 @@ class EnhancedGlobalExceptionHandlerTest {
                         "code",
                         null,
                         false,
-                        new String[]{"NotBlank.passwordResetRequest.code", "NotBlank.code"},
+                        new String[] {"NotBlank.passwordResetRequest.code", "NotBlank.code"},
                         null,
                         "Verification code is required");
 
@@ -176,9 +176,9 @@ class EnhancedGlobalExceptionHandlerTest {
                                 event ->
                                         event.getLevel() == Level.ERROR
                                                 && event.getFormattedMessage()
-                                                .contains("Unexpected error")
+                                                        .contains("Unexpected error")
                                                 && event.getFormattedMessage()
-                                                .contains("test-correlation-id"));
+                                                        .contains("test-correlation-id"));
         assertTrue(foundErrorLog, "Should log ERROR with exception message and correlation ID");
     }
 

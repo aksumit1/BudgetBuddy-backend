@@ -1,6 +1,5 @@
 package com.budgetbuddy.service.category.strategy;
 
-
 import java.util.Locale;
 import org.springframework.stereotype.Component;
 
@@ -11,74 +10,78 @@ import org.springframework.stereotype.Component;
 @Component
 public class DiningCategoryStrategy extends BaseCategoryStrategy {
 
+    private static final String DINING = "dining";
+
     private static final String PIZZERIA = "pizzeria";
 
     @Override
     public String detectCategory(
-            final String normalizedMerchantName, final String descriptionLower, final String merchantName) {
+            final String normalizedMerchantName,
+            final String descriptionLower,
+            final String merchantName) {
         if (normalizedMerchantName == null || normalizedMerchantName.isBlank()) {
             return null;
         }
 
         // Fast Food Chains
         if (normalizedMerchantName.contains("subway") || descriptionLower.contains("subway")) {
-            return "dining";
+            return DINING;
         }
         if (normalizedMerchantName.contains("panda express")
                 || normalizedMerchantName.contains("pandaexpress")
                 || descriptionLower.contains("panda express")) {
-            return "dining";
+            return DINING;
         }
         if (normalizedMerchantName.contains("starbucks")
                 || descriptionLower.contains("starbucks")) {
-            return "dining";
+            return DINING;
         }
         if (normalizedMerchantName.contains("chipotle") || descriptionLower.contains("chipotle")) {
-            return "dining";
+            return DINING;
         }
 
         // Additional Fast Food Chains
         final String[] fastFoodChains = {
-                "mcdonald",
-                "mcdonalds",
-                "burger king",
-                "burgerking",
-                "wendy's",
-                "wendys",
-                "taco bell",
-                "tacobell",
-                "kfc",
-                "pizza hut",
-                "pizzahut",
-                "domino's",
-                "dominos",
-                "papa john's",
-                "papajohns",
-                "little caesar",
-                "littlecaesar",
-                "papa murphy",
-                "papamurphy",
-                "dunkin",
-                "dunkin donuts",
-                "dunkindonuts",
-                "tim hortons",
-                "timhortons",
-                "panera",
-                "panera bread",
-                "panerabread",
-                "jamba juice",
-                "jambajuice",
-                "smoothie king",
-                "smoothieking",
-                "qdoba",
-                "moe's",
-                "moes",
-                "baja fresh",
-                "bajafresh"
+            "mcdonald",
+            "mcdonalds",
+            "burger king",
+            "burgerking",
+            "wendy's",
+            "wendys",
+            "taco bell",
+            "tacobell",
+            "kfc",
+            "pizza hut",
+            "pizzahut",
+            "domino's",
+            "dominos",
+            "papa john's",
+            "papajohns",
+            "little caesar",
+            "littlecaesar",
+            "papa murphy",
+            "papamurphy",
+            "dunkin",
+            "dunkin donuts",
+            "dunkindonuts",
+            "tim hortons",
+            "timhortons",
+            "panera",
+            "panera bread",
+            "panerabread",
+            "jamba juice",
+            "jambajuice",
+            "smoothie king",
+            "smoothieking",
+            "qdoba",
+            "moe's",
+            "moes",
+            "baja fresh",
+            "bajafresh"
         };
         for (final String chain : fastFoodChains) {
             if (normalizedMerchantName.contains(chain) || descriptionLower.contains(chain)) {
-                return "dining";
+                return DINING;
             }
         }
 
@@ -95,7 +98,7 @@ public class DiningCategoryStrategy extends BaseCategoryStrategy {
                 || descriptionLower.contains("café")
                 || descriptionLower.contains("caffe")
                 || descriptionLower.contains("cafeteria")) {
-            return "dining";
+            return DINING;
         }
 
         // Tiffins (Indian meal delivery)
@@ -103,78 +106,78 @@ public class DiningCategoryStrategy extends BaseCategoryStrategy {
                 || descriptionLower.contains("tiffin")
                 || normalizedMerchantName.contains("tiffins")
                 || descriptionLower.contains("tiffins")) {
-            return "dining";
+            return DINING;
         }
 
         // Specific Restaurants - Must come before general restaurant patterns
         final String[] specificRestaurants = {
-                "daeho",
-                "tutta bella",
-                "tuttabella",
-                "simply indian restaur",
-                "simply indian restaurant",
-                "simplyindian restaur",
-                "simplyindian restaurant",
-                "skills rainbow room",
-                "skillsrainbow room",
-                "kyurmaen",
-                "kyurmaen ramen",
-                "kyuramen",
-                "kyuramen ramen",
-                "deep dive",
-                "deepdive",
-                "messina",
-                "supreme dumplings",
-                "supremedumplings",
-                "cucina venti",
-                "cucinaventi",
-                "desi dhaba",
-                "desidhaba",
-                "medocinofarms",
-                "medocino farms",
-                "mendocinofarms",
-                "mendocino farms",
-                "laughing monk brewing",
-                "laughingmonk brewing",
-                "laughing monk",
-                "laughingmonk",
-                "indian sizzler",
-                "indiansizzler",
-                "shana thai",
-                "shanathai",
-                "tpd",
-                "tpd 5th ave",
-                "tpd 5th avenue",
-                "pike place market",
-                "pikeplace market",
-                "pikeplacemarket",
-                "burger and kabob hut",
-                "burgerandkabobhut",
-                "kabob hut",
-                "kabobhut",
-                "insomnia cookies",
-                "insomniacookies",
-                "insomnia cookie",
-                "banaras",
-                "banaras restaurant",
-                "banarasrestaurant",
-                "resy",
-                "maxmillen",
-                "maxmillian",
-                "maximilian",
-                "maximillen",
-                "sunny honey",
-                "sunnyhoney",
-                "sq* sunny honey",
-                "sq*sunny honey",
-                "il fornaio",
-                "ilfornaio",
-                "wingstop",
-                "labcor",
-                "labcorp",
-                "ukvi",
-                "canam pizza",
-                "canampizza"
+            "daeho",
+            "tutta bella",
+            "tuttabella",
+            "simply indian restaur",
+            "simply indian restaurant",
+            "simplyindian restaur",
+            "simplyindian restaurant",
+            "skills rainbow room",
+            "skillsrainbow room",
+            "kyurmaen",
+            "kyurmaen ramen",
+            "kyuramen",
+            "kyuramen ramen",
+            "deep dive",
+            "deepdive",
+            "messina",
+            "supreme dumplings",
+            "supremedumplings",
+            "cucina venti",
+            "cucinaventi",
+            "desi dhaba",
+            "desidhaba",
+            "medocinofarms",
+            "medocino farms",
+            "mendocinofarms",
+            "mendocino farms",
+            "laughing monk brewing",
+            "laughingmonk brewing",
+            "laughing monk",
+            "laughingmonk",
+            "indian sizzler",
+            "indiansizzler",
+            "shana thai",
+            "shanathai",
+            "tpd",
+            "tpd 5th ave",
+            "tpd 5th avenue",
+            "pike place market",
+            "pikeplace market",
+            "pikeplacemarket",
+            "burger and kabob hut",
+            "burgerandkabobhut",
+            "kabob hut",
+            "kabobhut",
+            "insomnia cookies",
+            "insomniacookies",
+            "insomnia cookie",
+            "banaras",
+            "banaras restaurant",
+            "banarasrestaurant",
+            "resy",
+            "maxmillen",
+            "maxmillian",
+            "maximilian",
+            "maximillen",
+            "sunny honey",
+            "sunnyhoney",
+            "sq* sunny honey",
+            "sq*sunny honey",
+            "il fornaio",
+            "ilfornaio",
+            "wingstop",
+            "labcor",
+            "labcorp",
+            "ukvi",
+            "canam pizza",
+            "canampizza"
         };
         for (final String restaurant : specificRestaurants) {
             if (normalizedMerchantName.contains(restaurant)
@@ -182,7 +185,7 @@ public class DiningCategoryStrategy extends BaseCategoryStrategy {
                 LOGGER.debug(
                         "🏷️ detectCategoryFromMerchantName: Detected restaurant '{}' → 'dining'",
                         restaurant);
-                return "dining";
+                return DINING;
             }
         }
 
@@ -197,16 +200,17 @@ public class DiningCategoryStrategy extends BaseCategoryStrategy {
                         && (merchantName.toUpperCase(Locale.ROOT).contains("TST*")
                                 || merchantName.toUpperCase(Locale.ROOT).contains("TST ")))) {
             LOGGER.debug("🏷️ detectCategoryFromMerchantName: Detected TST* pattern → 'dining'");
-            return "dining";
+            return DINING;
         }
 
         // TOAST pattern - Toast POS system (restaurant pattern)
         // TOAST is the company name, TST* is their POS terminal code
         if (normalizedMerchantName.contains("toast")
                 || descriptionLower.contains("toast")
-                || (merchantName != null && merchantName.toUpperCase(Locale.ROOT).contains("TOAST"))) {
+                || (merchantName != null
+                        && merchantName.toUpperCase(Locale.ROOT).contains("TOAST"))) {
             LOGGER.debug("🏷️ detectCategoryFromMerchantName: Detected TOAST pattern → 'dining'");
-            return "dining";
+            return DINING;
         }
 
         // SQ* pattern - Square POS system (often used by restaurants)
@@ -221,7 +225,7 @@ public class DiningCategoryStrategy extends BaseCategoryStrategy {
                                 || merchantName.toUpperCase(Locale.ROOT).contains("SQ ")))) {
             LOGGER.debug(
                     "🏷️ detectCategoryFromMerchantName: Detected SQ* pattern (Square POS) → 'dining'");
-            return "dining";
+            return DINING;
         }
 
         // RBL* pattern - Restaurant POS system in India (similar to TST* and SQ*)
@@ -235,7 +239,7 @@ public class DiningCategoryStrategy extends BaseCategoryStrategy {
                                 || merchantName.toUpperCase(Locale.ROOT).contains("RBL ")))) {
             LOGGER.debug(
                     "🏷️ detectCategoryFromMerchantName: Detected RBL* pattern (Indian restaurant POS) → 'dining'");
-            return "dining";
+            return DINING;
         }
 
         // HMS Host services - airport/restaurant dining services
@@ -243,10 +247,11 @@ public class DiningCategoryStrategy extends BaseCategoryStrategy {
                 || normalizedMerchantName.contains("hmshost")
                 || normalizedMerchantName.contains("hms host services")
                 || descriptionLower.contains("hms host")
-                || (merchantName != null && merchantName.toUpperCase(Locale.ROOT).contains("HMS HOST"))) {
+                || (merchantName != null
+                        && merchantName.toUpperCase(Locale.ROOT).contains("HMS HOST"))) {
             LOGGER.debug(
                     "🏷️ detectCategoryFromMerchantName: Detected HMS Host services → 'dining'");
-            return "dining";
+            return DINING;
         }
 
         // Sandwich House - restaurant name
@@ -257,7 +262,7 @@ public class DiningCategoryStrategy extends BaseCategoryStrategy {
                 || (merchantName != null
                         && merchantName.toUpperCase(Locale.ROOT).contains("SANDWICH HOUSE"))) {
             LOGGER.debug("🏷️ detectCategoryFromMerchantName: Detected Sandwich House → 'dining'");
-            return "dining";
+            return DINING;
         }
 
         // Food-related keywords that indicate restaurants (dumplings, burger, fast food, grill,
@@ -300,7 +305,7 @@ public class DiningCategoryStrategy extends BaseCategoryStrategy {
                 || descriptionLower.contains("sandwich")) {
             LOGGER.debug(
                     "🏷️ detectCategoryFromMerchantName: Detected food/restaurant keyword → 'dining'");
-            return "dining";
+            return DINING;
         }
 
         // Restaurant Patterns (Global) - Includes "restaur" as keyword for restaurant
@@ -317,8 +322,8 @@ public class DiningCategoryStrategy extends BaseCategoryStrategy {
                 || normalizedMerchantName.contains("pub")
                 || descriptionLower.contains("restaurant")
                 || descriptionLower.contains("restaur")
-                || descriptionLower.contains("dining")) {
-            return "dining";
+                || descriptionLower.contains(DINING)) {
+            return DINING;
         }
 
         return null; // No match found

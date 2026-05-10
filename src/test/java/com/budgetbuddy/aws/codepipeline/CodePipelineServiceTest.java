@@ -35,6 +35,8 @@ import software.amazon.awssdk.services.codepipeline.model.StartPipelineExecution
 @ExtendWith(MockitoExtension.class)
 class CodePipelineServiceTest {
 
+    private static final String TEST_PIPELINE = "test-pipeline";
+
     @Mock private CodePipelineClient codePipelineClient;
 
     private CodePipelineService service;
@@ -59,7 +61,7 @@ class CodePipelineServiceTest {
                 .thenReturn(response);
 
         // When
-        final String status = service.getPipelineStatus("test-pipeline");
+        final String status = service.getPipelineStatus(TEST_PIPELINE);
 
         // Then
         assertEquals("Succeeded", status);
@@ -81,7 +83,7 @@ class CodePipelineServiceTest {
                 .thenReturn(response);
 
         // When
-        final String status = service.getPipelineStatus("test-pipeline");
+        final String status = service.getPipelineStatus(TEST_PIPELINE);
 
         // Then
         assertEquals("Failed", status);
@@ -94,7 +96,7 @@ class CodePipelineServiceTest {
                 .thenThrow(new RuntimeException("Test exception"));
 
         // When
-        final String status = service.getPipelineStatus("test-pipeline");
+        final String status = service.getPipelineStatus(TEST_PIPELINE);
 
         // Then
         assertEquals("Unknown", status);
@@ -103,7 +105,7 @@ class CodePipelineServiceTest {
     @Test
     void testListPipelinesWithValidResponseReturnsPipelines() {
         // Given
-        final PipelineSummary pipeline = PipelineSummary.builder().name("test-pipeline").build();
+        final PipelineSummary pipeline = PipelineSummary.builder().name(TEST_PIPELINE).build();
 
         final ListPipelinesResponse response =
                 ListPipelinesResponse.builder().pipelines(List.of(pipeline)).build();
@@ -117,7 +119,7 @@ class CodePipelineServiceTest {
         // Then
         assertNotNull(pipelines);
         assertEquals(1, pipelines.size());
-        assertEquals("test-pipeline", pipelines.get(0).name());
+        assertEquals(TEST_PIPELINE, pipelines.get(0).name());
         verify(codePipelineClient).listPipelines(any(ListPipelinesRequest.class));
     }
 
@@ -154,7 +156,7 @@ class CodePipelineServiceTest {
 
         // When
         final List<PipelineExecutionSummary> executions =
-                service.getPipelineExecutionHistory("test-pipeline", 10);
+                service.getPipelineExecutionHistory(TEST_PIPELINE, 10);
 
         // Then
         assertNotNull(executions);
@@ -171,7 +173,7 @@ class CodePipelineServiceTest {
 
         // When
         final List<PipelineExecutionSummary> executions =
-                service.getPipelineExecutionHistory("test-pipeline", 10);
+                service.getPipelineExecutionHistory(TEST_PIPELINE, 10);
 
         // Then
         assertNotNull(executions);
@@ -190,7 +192,7 @@ class CodePipelineServiceTest {
                 .thenReturn(response);
 
         // When
-        final String executionId = service.startPipelineExecution("test-pipeline");
+        final String executionId = service.startPipelineExecution(TEST_PIPELINE);
 
         // Then
         assertNotNull(executionId);
@@ -205,7 +207,7 @@ class CodePipelineServiceTest {
                 .thenThrow(new RuntimeException("Test exception"));
 
         // When
-        final String executionId = service.startPipelineExecution("test-pipeline");
+        final String executionId = service.startPipelineExecution(TEST_PIPELINE);
 
         // Then
         assertNull(executionId);
@@ -226,7 +228,7 @@ class CodePipelineServiceTest {
                 .thenReturn(response);
 
         // When
-        final String status = service.getPipelineStatus("test-pipeline");
+        final String status = service.getPipelineStatus(TEST_PIPELINE);
 
         // Then
         assertEquals("InProgress", status);
@@ -244,7 +246,8 @@ class CodePipelineServiceTest {
         final StageState succeededStage =
                 StageState.builder().latestExecution(succeededExecution).build();
 
-        final StageState failedStage = StageState.builder().latestExecution(failedExecution).build();
+        final StageState failedStage =
+                StageState.builder().latestExecution(failedExecution).build();
 
         final GetPipelineStateResponse response =
                 GetPipelineStateResponse.builder()
@@ -255,7 +258,7 @@ class CodePipelineServiceTest {
                 .thenReturn(response);
 
         // When
-        final String status = service.getPipelineStatus("test-pipeline");
+        final String status = service.getPipelineStatus(TEST_PIPELINE);
 
         // Then
         assertEquals("Failed", status);

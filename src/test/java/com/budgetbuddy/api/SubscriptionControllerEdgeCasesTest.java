@@ -1,10 +1,5 @@
 package com.budgetbuddy.api;
 
-
-
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import java.nio.charset.StandardCharsets;
-import java.util.Locale;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -29,9 +24,12 @@ import com.budgetbuddy.service.AuthService;
 import com.budgetbuddy.service.SubscriptionService;
 import com.budgetbuddy.service.UserService;
 import com.budgetbuddy.util.TableInitializer;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Locale;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
@@ -100,7 +98,8 @@ public class SubscriptionControllerEdgeCasesTest {
 
         testUserEmail = "test-edge-cases-" + UUID.randomUUID() + "@example.com";
         final String base64PasswordHash =
-                java.util.Base64.getEncoder().encodeToString("test-password".getBytes(StandardCharsets.UTF_8));
+                java.util.Base64.getEncoder()
+                        .encodeToString("test-password".getBytes(StandardCharsets.UTF_8));
         testUser = userService.createUserSecure(testUserEmail, base64PasswordHash, "Test", "User");
         testUserId = testUser.getUserId();
 
@@ -127,7 +126,8 @@ public class SubscriptionControllerEdgeCasesTest {
     }
 
     private org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder withAuth(
-            final org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder builder) {
+            final org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder
+                    builder) {
         return builder.header("Authorization", "Bearer " + accessToken);
     }
 
@@ -150,8 +150,8 @@ public class SubscriptionControllerEdgeCasesTest {
         // handling)
         final var result =
                 mockMvc.perform(
-                        withAuth(delete("/api/subscriptions/"))
-                                .contentType(MediaType.APPLICATION_JSON))
+                                withAuth(delete("/api/subscriptions/"))
+                                        .contentType(MediaType.APPLICATION_JSON))
                         .andReturn();
 
         // Then: Should return error (404 for missing path variable, 500 for server error, or 400
@@ -182,7 +182,8 @@ public class SubscriptionControllerEdgeCasesTest {
         // Create another user
         final String otherUserEmail = "test-other-" + UUID.randomUUID() + "@example.com";
         final String otherUserPasswordHash =
-                java.util.Base64.getEncoder().encodeToString("test-password".getBytes(StandardCharsets.UTF_8));
+                java.util.Base64.getEncoder()
+                        .encodeToString("test-password".getBytes(StandardCharsets.UTF_8));
         userService.createUserSecure(otherUserEmail, otherUserPasswordHash, "Other", "User");
         final AuthRequest otherAuthRequest = new AuthRequest(otherUserEmail, otherUserPasswordHash);
         final AuthResponse otherAuthResponse = authService.authenticate(otherAuthRequest);
@@ -191,9 +192,9 @@ public class SubscriptionControllerEdgeCasesTest {
         // When: Other user tries to delete test user's subscription
         final var result =
                 mockMvc.perform(
-                        delete("/api/subscriptions/" + subscription.getSubscriptionId())
-                                .header("Authorization", "Bearer " + otherAccessToken)
-                                .contentType(MediaType.APPLICATION_JSON))
+                                delete("/api/subscriptions/" + subscription.getSubscriptionId())
+                                        .header("Authorization", "Bearer " + otherAccessToken)
+                                        .contentType(MediaType.APPLICATION_JSON))
                         .andReturn();
 
         // Then: Should return unauthorized or forbidden
@@ -245,8 +246,8 @@ public class SubscriptionControllerEdgeCasesTest {
         final int concurrentRequests = 5;
         final ExecutorService executor = Executors.newFixedThreadPool(concurrentRequests);
         final CountDownLatch latch = new CountDownLatch(concurrentRequests);
-        @SuppressWarnings("unchecked") final
-                CompletableFuture<Integer>[] futures = new CompletableFuture[concurrentRequests];
+        @SuppressWarnings("unchecked")
+        final CompletableFuture<Integer>[] futures = new CompletableFuture[concurrentRequests];
 
         for (int i = 0; i < concurrentRequests; i++) {
             final int index = i;
@@ -256,16 +257,17 @@ public class SubscriptionControllerEdgeCasesTest {
                                 try {
                                     final var result =
                                             mockMvc.perform(
-                                                    withAuth(
-                                                            post(
-                                                                    "/api/subscriptions/detect"))
-                                                            .contentType(
-                                                                    MediaType
-                                                                            .APPLICATION_JSON))
+                                                            withAuth(
+                                                                            post(
+                                                                                    "/api/subscriptions/detect"))
+                                                                    .contentType(
+                                                                            MediaType
+                                                                                    .APPLICATION_JSON))
                                                     .andExpect(status().isOk())
                                                     .andReturn();
 
-                                    final String responseBody = result.getResponse().getContentAsString();
+                                    final String responseBody =
+                                            result.getResponse().getContentAsString();
                                     // Parse response to count subscriptions
                                     return responseBody.split("\"subscriptionId\"").length - 1;
                                 } catch (Exception e) {

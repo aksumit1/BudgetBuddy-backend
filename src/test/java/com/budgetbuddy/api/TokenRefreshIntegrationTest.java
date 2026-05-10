@@ -1,7 +1,5 @@
 package com.budgetbuddy.api;
 
-
-import java.nio.charset.StandardCharsets;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -14,6 +12,7 @@ import com.budgetbuddy.dto.AuthResponse;
 import com.budgetbuddy.service.AuthService;
 import com.budgetbuddy.service.UserService;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.nio.charset.StandardCharsets;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -69,10 +68,13 @@ class TokenRefreshIntegrationTest {
         testEmail = "refresh-test-" + UUID.randomUUID() + "@example.com";
         testClientSalt =
                 java.util.Base64.getEncoder()
-                        .encodeToString(UUID.randomUUID().toString().getBytes(StandardCharsets.UTF_8));
+                        .encodeToString(
+                                UUID.randomUUID().toString().getBytes(StandardCharsets.UTF_8));
         testPasswordHash =
                 java.util.Base64.getEncoder()
-                        .encodeToString(("hashed-password-" + UUID.randomUUID()).getBytes(StandardCharsets.UTF_8));
+                        .encodeToString(
+                                ("hashed-password-" + UUID.randomUUID())
+                                        .getBytes(StandardCharsets.UTF_8));
 
         // Mock rate limiting services to allow all requests in tests
         when(rateLimitService.isAllowed(anyString(), anyString())).thenReturn(true);
@@ -96,7 +98,8 @@ class TokenRefreshIntegrationTest {
                     : "Refresh token should be present";
 
             // When - Refresh the token
-            final String refreshRequestBody = String.format("{\"refreshToken\":\"%s\"}", refreshToken);
+            final String refreshRequestBody =
+                    String.format("{\"refreshToken\":\"%s\"}", refreshToken);
 
             mockMvc.perform(
                             post("/api/auth/refresh")
@@ -196,14 +199,15 @@ class TokenRefreshIntegrationTest {
                     : "Refresh token should be present";
 
             // When - Refresh multiple times
-            final String refreshRequestBody = String.format("{\"refreshToken\":\"%s\"}", refreshToken);
+            final String refreshRequestBody =
+                    String.format("{\"refreshToken\":\"%s\"}", refreshToken);
 
             // First refresh
             final String firstRefreshResult =
                     mockMvc.perform(
-                            post("/api/auth/refresh")
-                                    .contentType(MediaType.APPLICATION_JSON)
-                                    .content(refreshRequestBody))
+                                    post("/api/auth/refresh")
+                                            .contentType(MediaType.APPLICATION_JSON)
+                                            .content(refreshRequestBody))
                             .andExpect(status().isOk())
                             .andExpect(jsonPath("$.accessToken").exists())
                             .andExpect(jsonPath("$.refreshToken").exists())
@@ -249,13 +253,14 @@ class TokenRefreshIntegrationTest {
             final String refreshToken = loginResponse.getRefreshToken();
 
             // When - Refresh the token
-            final String refreshRequestBody = String.format("{\"refreshToken\":\"%s\"}", refreshToken);
+            final String refreshRequestBody =
+                    String.format("{\"refreshToken\":\"%s\"}", refreshToken);
 
             final String responseContent =
                     mockMvc.perform(
-                            post("/api/auth/refresh")
-                                    .contentType(MediaType.APPLICATION_JSON)
-                                    .content(refreshRequestBody))
+                                    post("/api/auth/refresh")
+                                            .contentType(MediaType.APPLICATION_JSON)
+                                            .content(refreshRequestBody))
                             .andExpect(status().isOk())
                             .andExpect(jsonPath("$.accessToken").exists())
                             .andReturn()

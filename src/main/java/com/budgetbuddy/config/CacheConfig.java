@@ -38,7 +38,8 @@ public class CacheConfig implements CachingConfigurer {
     // never returns null (it always returns a fresh CaffeineCacheManager).
     @SuppressFBWarnings(
             value = "NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE",
-            justification = "cacheManager() is overridden in this class and always returns non-null")
+            justification =
+                    "cacheManager() is overridden in this class and always returns non-null")
     @Override
     public CacheResolver cacheResolver() {
         return new SimpleCacheResolver(cacheManager());

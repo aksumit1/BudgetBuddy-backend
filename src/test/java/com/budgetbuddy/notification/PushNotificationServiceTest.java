@@ -1,6 +1,5 @@
 package com.budgetbuddy.notification;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.ArgumentMatchers.any;
@@ -22,6 +21,7 @@ import static org.mockito.Mockito.when;
 import com.budgetbuddy.model.dynamodb.DeviceTokenTable;
 import com.budgetbuddy.repository.dynamodb.DeviceTokenRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
@@ -48,6 +48,8 @@ import software.amazon.awssdk.services.sns.model.PublishResponse;
         justification = "JUnit idiom — test methods accept any setup exception")
 @ExtendWith(MockitoExtension.class)
 class PushNotificationServiceTest {
+
+    private static final String IOS = "ios";
 
     @Mock private SnsClient snsClient;
 
@@ -87,7 +89,7 @@ class PushNotificationServiceTest {
     @Test
     void testSendPushNotificationToAllDevicesSuccess() throws Exception {
         // Given
-        final DeviceTokenTable device1 = createDeviceToken("device1", "ios", testEndpointArn);
+        final DeviceTokenTable device1 = createDeviceToken("device1", IOS, testEndpointArn);
         final DeviceTokenTable device2 = createDeviceToken("device2", "android", testEndpointArn);
         final List<DeviceTokenTable> devices = List.of(device1, device2);
 
@@ -129,7 +131,7 @@ class PushNotificationServiceTest {
     @Test
     void testSendPushNotificationToAllDevicesInvalidEndpoint() throws Exception {
         // Given
-        final DeviceTokenTable device = createDeviceToken("device1", "ios", testEndpointArn);
+        final DeviceTokenTable device = createDeviceToken("device1", IOS, testEndpointArn);
         when(deviceTokenRepository.findEnabledByUserId(testUserId)).thenReturn(List.of(device));
         when(snsClient.publish(any(PublishRequest.class)))
                 .thenThrow(InvalidParameterException.builder().message("Invalid endpoint").build());
@@ -166,7 +168,8 @@ class PushNotificationServiceTest {
                                 .build());
 
         // When
-        final String result = pushNotificationService.registerDevice(testUserId, testDeviceToken, "ios");
+        final String result =
+                pushNotificationService.registerDevice(testUserId, testDeviceToken, IOS);
 
         // Then
         assertNotNull(result);
@@ -178,14 +181,15 @@ class PushNotificationServiceTest {
     void testRegisterDeviceExistingDevice() throws Exception {
         // Given
         final DeviceTokenTable existingDevice =
-                createDeviceToken(testDeviceToken, "ios", testEndpointArn);
+                createDeviceToken(testDeviceToken, IOS, testEndpointArn);
         when(deviceTokenRepository.findByUserIdAndDeviceToken(testUserId, testDeviceToken))
                 .thenReturn(java.util.Optional.of(existingDevice));
         when(snsClient.getEndpointAttributes(any(GetEndpointAttributesRequest.class)))
                 .thenReturn(GetEndpointAttributesResponse.builder().build());
 
         // When
-        final String result = pushNotificationService.registerDevice(testUserId, testDeviceToken, "ios");
+        final String result =
+                pushNotificationService.registerDevice(testUserId, testDeviceToken, IOS);
 
         // Then
         assertEquals(testEndpointArn, result);
@@ -199,7 +203,7 @@ class PushNotificationServiceTest {
         final String newEndpointArn =
                 "arn:aws:sns:us-east-1:123456789012:endpoint/APNS/test-app/new-endpoint";
         final DeviceTokenTable existingDevice =
-                createDeviceToken(testDeviceToken, "ios", testEndpointArn);
+                createDeviceToken(testDeviceToken, IOS, testEndpointArn);
         when(deviceTokenRepository.findByUserIdAndDeviceToken(testUserId, testDeviceToken))
                 .thenReturn(java.util.Optional.of(existingDevice));
         when(snsClient.getEndpointAttributes(any(GetEndpointAttributesRequest.class)))
@@ -211,7 +215,8 @@ class PushNotificationServiceTest {
                                 .build());
 
         // When
-        final String result = pushNotificationService.registerDevice(testUserId, testDeviceToken, "ios");
+        final String result =
+                pushNotificationService.registerDevice(testUserId, testDeviceToken, IOS);
 
         // Then
         assertEquals(newEndpointArn, result);

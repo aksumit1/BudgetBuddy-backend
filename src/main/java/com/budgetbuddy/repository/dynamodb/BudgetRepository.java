@@ -94,7 +94,8 @@ public class BudgetRepository {
         return results;
     }
 
-    public Optional<BudgetTable> findByUserIdAndCategory(final String userId, final String category) {
+    public Optional<BudgetTable> findByUserIdAndCategory(
+            final String userId, final String category) {
         return findByUserId(userId).stream()
                 .filter(b -> category.equals(b.getCategory()))
                 .findFirst();
@@ -121,12 +122,14 @@ public class BudgetRepository {
             // sort key)
             // Query all items for user, then filter in application code
             // This is still efficient because we're using the GSI partition key
-            final SdkIterable<software.amazon.awssdk.enhanced.dynamodb.model.Page<BudgetTable>> pages =
-                    userIdUpdatedAtIndex.query(
-                            QueryConditional.keyEqualTo(
-                                    Key.builder().partitionValue(userId).build()));
+            final SdkIterable<software.amazon.awssdk.enhanced.dynamodb.model.Page<BudgetTable>>
+                    pages =
+                            userIdUpdatedAtIndex.query(
+                                    QueryConditional.keyEqualTo(
+                                            Key.builder().partitionValue(userId).build()));
 
-            for (final software.amazon.awssdk.enhanced.dynamodb.model.Page<BudgetTable> page : pages) {
+            for (final software.amazon.awssdk.enhanced.dynamodb.model.Page<BudgetTable> page :
+                    pages) {
                 for (final BudgetTable budget : page.items()) {
                     // Filter in application code: updatedAtTimestamp >= updatedAfterTimestamp
                     // Use >= to include items updated exactly at the timestamp

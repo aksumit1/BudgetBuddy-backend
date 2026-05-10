@@ -1,7 +1,5 @@
 package com.budgetbuddy.service;
 
-
-import java.util.Locale;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -17,6 +15,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -39,6 +38,9 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 @DisplayName("SubscriptionService Comprehensive Tests - 99%+ Coverage")
 class SubscriptionServiceComprehensiveTest {
+
+    private static final String SUBSCRIPTIONS = "subscriptions";
+    private static final String NETFLIX = "Netflix";
 
     @Mock private SubscriptionRepository subscriptionRepository;
 
@@ -77,7 +79,8 @@ class SubscriptionServiceComprehensiveTest {
                 .thenReturn(testTransactions);
 
         // When
-        final List<Subscription> subscriptions = subscriptionService.detectSubscriptions(testUserId);
+        final List<Subscription> subscriptions =
+                subscriptionService.detectSubscriptions(testUserId);
 
         // Then: Should NOT detect as subscription
         assertTrue(
@@ -95,8 +98,8 @@ class SubscriptionServiceComprehensiveTest {
                             "LYFT PINK",
                             new BigDecimal("-9.99"),
                             LocalDate.of(2024, 1, 15).plusMonths(i),
-                            "subscriptions",
-                            "subscriptions",
+                            SUBSCRIPTIONS,
+                            SUBSCRIPTIONS,
                             "Lyft Pink subscription monthly");
             testTransactions.add(tx);
         }
@@ -105,7 +108,8 @@ class SubscriptionServiceComprehensiveTest {
                 .thenReturn(testTransactions);
 
         // When
-        final List<Subscription> subscriptions = subscriptionService.detectSubscriptions(testUserId);
+        final List<Subscription> subscriptions =
+                subscriptionService.detectSubscriptions(testUserId);
 
         // Then: Should detect as subscription
         assertEquals(1, subscriptions.size());
@@ -134,7 +138,8 @@ class SubscriptionServiceComprehensiveTest {
                 .thenReturn(testTransactions);
 
         // When
-        final List<Subscription> subscriptions = subscriptionService.detectSubscriptions(testUserId);
+        final List<Subscription> subscriptions =
+                subscriptionService.detectSubscriptions(testUserId);
 
         // Then: Should NOT detect as subscription
         assertTrue(
@@ -152,8 +157,8 @@ class SubscriptionServiceComprehensiveTest {
                             "UBER ONE",
                             new BigDecimal("-9.99"),
                             LocalDate.of(2024, 1, 15).plusMonths(i),
-                            "subscriptions",
-                            "subscriptions",
+                            SUBSCRIPTIONS,
+                            SUBSCRIPTIONS,
                             "Uber One membership monthly");
             testTransactions.add(tx);
         }
@@ -162,7 +167,8 @@ class SubscriptionServiceComprehensiveTest {
                 .thenReturn(testTransactions);
 
         // When
-        final List<Subscription> subscriptions = subscriptionService.detectSubscriptions(testUserId);
+        final List<Subscription> subscriptions =
+                subscriptionService.detectSubscriptions(testUserId);
 
         // Then: Should detect as subscription
         assertEquals(1, subscriptions.size());
@@ -191,7 +197,8 @@ class SubscriptionServiceComprehensiveTest {
                 .thenReturn(testTransactions);
 
         // When
-        final List<Subscription> subscriptions = subscriptionService.detectSubscriptions(testUserId);
+        final List<Subscription> subscriptions =
+                subscriptionService.detectSubscriptions(testUserId);
 
         // Then: Should NOT detect as subscription
         assertTrue(
@@ -229,7 +236,8 @@ class SubscriptionServiceComprehensiveTest {
                 .thenReturn(testTransactions);
 
         // When
-        final List<Subscription> subscriptions = subscriptionService.detectSubscriptions(testUserId);
+        final List<Subscription> subscriptions =
+                subscriptionService.detectSubscriptions(testUserId);
 
         // Then
         assertEquals(1, subscriptions.size());
@@ -263,7 +271,8 @@ class SubscriptionServiceComprehensiveTest {
                 .thenReturn(testTransactions);
 
         // When
-        final List<Subscription> subscriptions = subscriptionService.detectSubscriptions(testUserId);
+        final List<Subscription> subscriptions =
+                subscriptionService.detectSubscriptions(testUserId);
 
         // Then
         assertEquals(1, subscriptions.size());
@@ -290,7 +299,8 @@ class SubscriptionServiceComprehensiveTest {
                 .thenReturn(testTransactions);
 
         // When
-        final List<Subscription> subscriptions = subscriptionService.detectSubscriptions(testUserId);
+        final List<Subscription> subscriptions =
+                subscriptionService.detectSubscriptions(testUserId);
 
         // Then
         assertEquals(1, subscriptions.size());
@@ -317,7 +327,8 @@ class SubscriptionServiceComprehensiveTest {
                 .thenReturn(testTransactions);
 
         // When
-        final List<Subscription> subscriptions = subscriptionService.detectSubscriptions(testUserId);
+        final List<Subscription> subscriptions =
+                subscriptionService.detectSubscriptions(testUserId);
 
         // Then
         assertEquals(1, subscriptions.size());
@@ -334,8 +345,8 @@ class SubscriptionServiceComprehensiveTest {
                             "Unknown Service",
                             new BigDecimal("-5.99"),
                             LocalDate.of(2024, 1, 15).plusMonths(i),
-                            "subscriptions",
-                            "subscriptions",
+                            SUBSCRIPTIONS,
+                            SUBSCRIPTIONS,
                             "Unknown Service monthly subscription");
             testTransactions.add(tx);
         }
@@ -344,7 +355,8 @@ class SubscriptionServiceComprehensiveTest {
                 .thenReturn(testTransactions);
 
         // When
-        final List<Subscription> subscriptions = subscriptionService.detectSubscriptions(testUserId);
+        final List<Subscription> subscriptions =
+                subscriptionService.detectSubscriptions(testUserId);
 
         // Then
         assertEquals(1, subscriptions.size());
@@ -360,7 +372,7 @@ class SubscriptionServiceComprehensiveTest {
         for (int i = 0; i < 3; i++) {
             final TransactionTable tx =
                     createTransaction(
-                            "Netflix",
+                            NETFLIX,
                             new BigDecimal("-15.99"),
                             LocalDate.of(2024, 1, 15).plusMonths(i),
                             "entertainment",
@@ -373,15 +385,16 @@ class SubscriptionServiceComprehensiveTest {
                 .thenReturn(testTransactions);
 
         // When
-        final List<Subscription> subscriptions = subscriptionService.detectSubscriptions(testUserId);
+        final List<Subscription> subscriptions =
+                subscriptionService.detectSubscriptions(testUserId);
 
         // Then: Original categories should be preserved
         assertEquals(1, subscriptions.size());
         final Subscription sub = subscriptions.get(0);
         assertEquals("entertainment", sub.getOriginalCategoryPrimary());
         assertEquals("streaming", sub.getOriginalCategoryDetailed());
-        // Category should still be "subscriptions" for display
-        assertEquals("subscriptions", sub.getCategory());
+        // Category should still be SUBSCRIPTIONS for display
+        assertEquals(SUBSCRIPTIONS, sub.getCategory());
     }
 
     // ========== FREQUENCY DETECTION EDGE CASES ==========
@@ -397,8 +410,8 @@ class SubscriptionServiceComprehensiveTest {
                             "Annual Service",
                             new BigDecimal("-99.99"),
                             startDate.plusMonths(i * 6),
-                            "subscriptions",
-                            "subscriptions",
+                            SUBSCRIPTIONS,
+                            SUBSCRIPTIONS,
                             "Semi-annual subscription");
             testTransactions.add(tx);
         }
@@ -407,7 +420,8 @@ class SubscriptionServiceComprehensiveTest {
                 .thenReturn(testTransactions);
 
         // When
-        final List<Subscription> subscriptions = subscriptionService.detectSubscriptions(testUserId);
+        final List<Subscription> subscriptions =
+                subscriptionService.detectSubscriptions(testUserId);
 
         // Then
         assertEquals(1, subscriptions.size());
@@ -421,9 +435,9 @@ class SubscriptionServiceComprehensiveTest {
     void testDetectSubscriptionsIrregularFrequencyNotDetected() {
         // Given: Irregular transactions (not a clear pattern)
         final LocalDate[] dates = {
-                LocalDate.of(2024, 1, 15),
-                LocalDate.of(2024, 2, 20), // 36 days
-                LocalDate.of(2024, 4, 10) // 50 days
+            LocalDate.of(2024, 1, 15),
+            LocalDate.of(2024, 2, 20), // 36 days
+            LocalDate.of(2024, 4, 10) // 50 days
         };
 
         for (final LocalDate date : dates) {
@@ -432,8 +446,8 @@ class SubscriptionServiceComprehensiveTest {
                             "Irregular Service",
                             new BigDecimal("-10.00"),
                             date,
-                            "subscriptions",
-                            "subscriptions",
+                            SUBSCRIPTIONS,
+                            SUBSCRIPTIONS,
                             "Irregular payment");
             testTransactions.add(tx);
         }
@@ -442,7 +456,8 @@ class SubscriptionServiceComprehensiveTest {
                 .thenReturn(testTransactions);
 
         // When
-        final List<Subscription> subscriptions = subscriptionService.detectSubscriptions(testUserId);
+        final List<Subscription> subscriptions =
+                subscriptionService.detectSubscriptions(testUserId);
 
         // Then: Should not detect due to irregular frequency
         assertTrue(subscriptions.isEmpty());
@@ -456,19 +471,19 @@ class SubscriptionServiceComprehensiveTest {
         // Given: Transactions with slight amount variations (within 5% tolerance)
         final BigDecimal baseAmount = new BigDecimal("-15.99");
         final BigDecimal[] amounts = {
-                baseAmount, // $15.99
-                baseAmount.multiply(new BigDecimal("0.97")), // $15.51 (3% less)
-                baseAmount.multiply(new BigDecimal("1.03")) // $16.47 (3% more)
+            baseAmount, // $15.99
+            baseAmount.multiply(new BigDecimal("0.97")), // $15.51 (3% less)
+            baseAmount.multiply(new BigDecimal("1.03")) // $16.47 (3% more)
         };
 
         for (int i = 0; i < amounts.length; i++) {
             final TransactionTable tx =
                     createTransaction(
-                            "Netflix",
+                            NETFLIX,
                             amounts[i],
                             LocalDate.of(2024, 1, 15).plusMonths(i),
-                            "subscriptions",
-                            "subscriptions",
+                            SUBSCRIPTIONS,
+                            SUBSCRIPTIONS,
                             "Netflix subscription");
             testTransactions.add(tx);
         }
@@ -477,7 +492,8 @@ class SubscriptionServiceComprehensiveTest {
                 .thenReturn(testTransactions);
 
         // When
-        final List<Subscription> subscriptions = subscriptionService.detectSubscriptions(testUserId);
+        final List<Subscription> subscriptions =
+                subscriptionService.detectSubscriptions(testUserId);
 
         // Then: Should detect as single subscription despite amount variations
         assertEquals(1, subscriptions.size());
@@ -488,18 +504,18 @@ class SubscriptionServiceComprehensiveTest {
     void testDetectSubscriptionsAmountDifferenceNotGrouped() {
         // Given: Transactions with significant amount differences (>5%)
         final BigDecimal[] amounts = {
-                new BigDecimal("-15.99"), // Base
-                new BigDecimal("-25.99") // 62% more - too different
+            new BigDecimal("-15.99"), // Base
+            new BigDecimal("-25.99") // 62% more - too different
         };
 
         for (int i = 0; i < amounts.length; i++) {
             final TransactionTable tx =
                     createTransaction(
-                            "Netflix",
+                            NETFLIX,
                             amounts[i],
                             LocalDate.of(2024, 1, 15).plusMonths(i),
-                            "subscriptions",
-                            "subscriptions",
+                            SUBSCRIPTIONS,
+                            SUBSCRIPTIONS,
                             "Netflix subscription");
             testTransactions.add(tx);
         }
@@ -508,7 +524,8 @@ class SubscriptionServiceComprehensiveTest {
                 .thenReturn(testTransactions);
 
         // When
-        final List<Subscription> subscriptions = subscriptionService.detectSubscriptions(testUserId);
+        final List<Subscription> subscriptions =
+                subscriptionService.detectSubscriptions(testUserId);
 
         // Then: Should NOT detect (need at least 2 transactions with same amount)
         assertTrue(subscriptions.isEmpty());
@@ -524,11 +541,11 @@ class SubscriptionServiceComprehensiveTest {
         for (int i = 0; i < 3; i++) {
             final TransactionTable tx =
                     createTransaction(
-                            "Netflix",
+                            NETFLIX,
                             new BigDecimal("-9.99"),
                             LocalDate.of(2024, 1, 15).plusMonths(i),
-                            "subscriptions",
-                            "subscriptions",
+                            SUBSCRIPTIONS,
+                            SUBSCRIPTIONS,
                             "Netflix Basic");
             testTransactions.add(tx);
         }
@@ -537,11 +554,11 @@ class SubscriptionServiceComprehensiveTest {
         for (int i = 0; i < 3; i++) {
             final TransactionTable tx =
                     createTransaction(
-                            "Netflix",
+                            NETFLIX,
                             new BigDecimal("-15.99"),
                             LocalDate.of(2024, 1, 15).plusMonths(i),
-                            "subscriptions",
-                            "subscriptions",
+                            SUBSCRIPTIONS,
+                            SUBSCRIPTIONS,
                             "Netflix Premium");
             testTransactions.add(tx);
         }
@@ -550,7 +567,8 @@ class SubscriptionServiceComprehensiveTest {
                 .thenReturn(testTransactions);
 
         // When
-        final List<Subscription> subscriptions = subscriptionService.detectSubscriptions(testUserId);
+        final List<Subscription> subscriptions =
+                subscriptionService.detectSubscriptions(testUserId);
 
         // Then: Should detect both subscriptions
         assertEquals(2, subscriptions.size());
@@ -576,7 +594,8 @@ class SubscriptionServiceComprehensiveTest {
                 .thenReturn(testTransactions);
 
         // When
-        final List<Subscription> subscriptions = subscriptionService.detectSubscriptions(testUserId);
+        final List<Subscription> subscriptions =
+                subscriptionService.detectSubscriptions(testUserId);
 
         // Then: Should detect based on categoryDetailed keyword
         assertEquals(1, subscriptions.size());
@@ -594,8 +613,8 @@ class SubscriptionServiceComprehensiveTest {
                             null,
                             new BigDecimal("-10.00"),
                             LocalDate.of(2024, 1, 15).plusMonths(i),
-                            "subscriptions",
-                            "subscriptions",
+                            SUBSCRIPTIONS,
+                            SUBSCRIPTIONS,
                             "Monthly subscription payment");
             testTransactions.add(tx);
         }
@@ -604,7 +623,8 @@ class SubscriptionServiceComprehensiveTest {
                 .thenReturn(testTransactions);
 
         // When
-        final List<Subscription> subscriptions = subscriptionService.detectSubscriptions(testUserId);
+        final List<Subscription> subscriptions =
+                subscriptionService.detectSubscriptions(testUserId);
 
         // Then: Should still detect based on category
         assertTrue(subscriptions.size() >= 0); // May or may not detect without merchant
@@ -617,11 +637,11 @@ class SubscriptionServiceComprehensiveTest {
         for (int i = 0; i < 3; i++) {
             final TransactionTable tx =
                     createTransaction(
-                            "Netflix",
+                            NETFLIX,
                             new BigDecimal("-15.99"),
                             LocalDate.of(2024, 1, 15).plusMonths(i),
-                            "subscriptions",
-                            "subscriptions",
+                            SUBSCRIPTIONS,
+                            SUBSCRIPTIONS,
                             null);
             testTransactions.add(tx);
         }
@@ -630,7 +650,8 @@ class SubscriptionServiceComprehensiveTest {
                 .thenReturn(testTransactions);
 
         // When
-        final List<Subscription> subscriptions = subscriptionService.detectSubscriptions(testUserId);
+        final List<Subscription> subscriptions =
+                subscriptionService.detectSubscriptions(testUserId);
 
         // Then: Should still detect based on category and merchant
         assertEquals(1, subscriptions.size());
@@ -644,18 +665,19 @@ class SubscriptionServiceComprehensiveTest {
         tx.setTransactionId("tx-123");
         tx.setUserId(testUserId);
         tx.setAccountId("account-123");
-        tx.setMerchantName("Netflix");
+        tx.setMerchantName(NETFLIX);
         tx.setAmount(new BigDecimal("-15.99"));
         tx.setTransactionDate("invalid-date");
-        tx.setCategoryPrimary("subscriptions");
-        tx.setCategoryDetailed("subscriptions");
+        tx.setCategoryPrimary(SUBSCRIPTIONS);
+        tx.setCategoryDetailed(SUBSCRIPTIONS);
         testTransactions.add(tx);
 
         when(transactionRepository.findByUserId(eq(testUserId), eq(0), eq(10_000)))
                 .thenReturn(testTransactions);
 
         // When
-        final List<Subscription> subscriptions = subscriptionService.detectSubscriptions(testUserId);
+        final List<Subscription> subscriptions =
+                subscriptionService.detectSubscriptions(testUserId);
 
         // Then: Should handle gracefully (no crash, may not detect due to invalid date)
         assertNotNull(subscriptions);
@@ -669,7 +691,8 @@ class SubscriptionServiceComprehensiveTest {
                 .thenReturn(new ArrayList<>());
 
         // When
-        final List<Subscription> subscriptions = subscriptionService.detectSubscriptions(testUserId);
+        final List<Subscription> subscriptions =
+                subscriptionService.detectSubscriptions(testUserId);
 
         // Then
         assertNotNull(subscriptions);

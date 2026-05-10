@@ -1,8 +1,5 @@
 package com.budgetbuddy.service;
 
-
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import java.util.Locale;
 import com.budgetbuddy.audit.AuditService;
 import com.budgetbuddy.exception.AppException;
 import com.budgetbuddy.exception.ErrorCode;
@@ -11,12 +8,14 @@ import com.budgetbuddy.model.dynamodb.TransactionTable;
 import com.budgetbuddy.model.dynamodb.UserTable;
 import com.budgetbuddy.repository.dynamodb.AccountRepository;
 import com.budgetbuddy.repository.dynamodb.TransactionRepository;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.regex.Pattern;
@@ -43,6 +42,9 @@ import org.springframework.stereotype.Service;
 @SuppressWarnings({"PMD.LawOfDemeter", "PMD.AvoidCatchingGenericException", "PMD.OnlyOneReturn"})
 @Service
 public class TransactionService {
+
+    private static final String NULL = "null";
+    private static final String UNKNOWN = "unknown";
 
     private static final Logger LOGGER = LoggerFactory.getLogger(TransactionService.class);
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ISO_LOCAL_DATE;
@@ -83,7 +85,6 @@ public class TransactionService {
         }
         if (limit <= 0 || limit > 100) {
             limit = 50; // Default limit, max 100
-
         }
         return transactionRepository.findByUserId(user.getUserId(), skip, limit);
     }
@@ -151,7 +152,8 @@ public class TransactionService {
             throw new AppException(ErrorCode.INVALID_INPUT, "Start date and end date are required");
         }
 
-        final List<TransactionTable> transactions = getTransactionsInRange(user, startDate, endDate);
+        final List<TransactionTable> transactions =
+                getTransactionsInRange(user, startDate, endDate);
         return transactions.stream()
                 .filter(t -> t != null)
                 .map(TransactionTable::getAmount)
@@ -257,7 +259,7 @@ public class TransactionService {
                                 final boolean isPaymentCategory =
                                         "payment".equalsIgnoreCase(t.getCategoryPrimary())
                                                 || "payment"
-                                                .equalsIgnoreCase(t.getCategoryDetailed());
+                                                        .equalsIgnoreCase(t.getCategoryDetailed());
                                 return isPositiveAmount || isPaymentCategory;
                             })
                     .collect(Collectors.toList());
@@ -291,11 +293,10 @@ public class TransactionService {
         if (isNullOrEmpty(transaction.getTransactionType())) {
             // Type is null/empty - always calculate (null type takes precedence over override flag)
             ensureTransactionTypeSetWithAccountLookup(transaction);
-        } else if (!Boolean.TRUE.equals(transaction.getTransactionTypeOverridden())) {
-            // Type is set but not overridden - ensure it's valid (shouldn't need recalculation, but
-            // check anyway)
-            // This is a safety check for edge cases
         }
+        // The else branch is intentionally absent: a non-null type already on the
+        // transaction is left as-is, override flag or not — the recalc was a
+        // safety-only path that no caller actually depended on.
 
         // CRITICAL FIX: Wells Fargo credit card special case
         // Wells Fargo credit card statements don't apply negative signs to payment transactions
@@ -324,28 +325,31 @@ public class TransactionService {
                     final boolean isCreditCard =
                             accountType != null
                                     && (accountType.toLowerCase(Locale.ROOT).contains("credit")
-                                    || "creditcard".equalsIgnoreCase(accountType)
-                                    || "credit_card".equalsIgnoreCase(accountType));
+                                            || "creditcard".equalsIgnoreCase(accountType)
+                                            || "credit_card".equalsIgnoreCase(accountType));
 
                     final boolean isWellsFargo =
                             (institutionName != null
-                                    && (institutionName
-                                    .toLowerCase(Locale.ROOT)
-                                    .contains("wells fargo")
-                                    || institutionName
-                                    .toLowerCase(Locale.ROOT)
-                                    .contains("wellsfargo")
-                                    || "wf"
-                                    .equalsIgnoreCase(institutionName
-                                    .toLowerCase(Locale.ROOT))))
+                                            && (institutionName
+                                                            .toLowerCase(Locale.ROOT)
+                                                            .contains("wells fargo")
+                                                    || institutionName
+                                                            .toLowerCase(Locale.ROOT)
+                                                            .contains("wellsfargo")
+                                                    || "wf"
+                                                            .equalsIgnoreCase(
+                                                                    institutionName.toLowerCase(
+                                                                            Locale.ROOT))))
                                     || (accountName != null
-                                    && (accountName.toLowerCase(Locale.ROOT).contains("wells fargo")
-                                    || accountName
-                                    .toLowerCase(Locale.ROOT)
-                                    .contains("wellsfargo")
-                                    || accountName
-                                    .toLowerCase(Locale.ROOT)
-                                    .contains("wf credit")));
+                                            && (accountName
+                                                            .toLowerCase(Locale.ROOT)
+                                                            .contains("wells fargo")
+                                                    || accountName
+                                                            .toLowerCase(Locale.ROOT)
+                                                            .contains("wellsfargo")
+                                                    || accountName
+                                                            .toLowerCase(Locale.ROOT)
+                                                            .contains("wf credit")));
 
                     final boolean isWellsFargoCreditCard = isCreditCard && isWellsFargo;
 
@@ -485,7 +489,7 @@ public class TransactionService {
                                 // member)
                                 null, // goalId (not available in batch import request)
                                 null // linkedTransactionId (not available in batch import request)
-                        );
+                                );
                 response.setCreated(response.getCreated() + 1);
                 if (transaction.getTransactionId() != null) {
                     response.getCreatedTransactionIds().add(transaction.getTransactionId());
@@ -494,9 +498,7 @@ public class TransactionService {
                 response.setFailed(response.getFailed() + 1);
                 // CRITICAL: Handle case where request might be null (defensive programming)
                 final String transactionDesc =
-                        request.getDescription() != null
-                                ? request.getDescription()
-                                : "unknown";
+                        request.getDescription() != null ? request.getDescription() : UNKNOWN;
                 final String errorMsg =
                         String.format(
                                 "Transaction %s: %s",
@@ -590,17 +592,17 @@ public class TransactionService {
             final String callerInfo =
                     stackTrace.length > 2
                             ? stackTrace[2].getFileName() + ":" + stackTrace[2].getLineNumber()
-                            : "unknown";
+                            : UNKNOWN;
             LOGGER.info(
                     "🔍 [TransactionType] Set transaction type | Line: {} | TransactionId: {} | Amount: {} | Description: '{}' | Category: {} | Account: {} | Type: {} | Method: ensureTransactionTypeSet",
                     callerInfo,
                     transaction.getTransactionId(),
                     transaction.getAmount(),
-                    transaction.getDescription() != null ? transaction.getDescription() : "null",
+                    transaction.getDescription() != null ? transaction.getDescription() : NULL,
                     transaction.getCategoryPrimary() != null
                             ? transaction.getCategoryPrimary()
-                            : "null",
-                    transaction.getAccountId() != null ? transaction.getAccountId() : "null",
+                            : NULL,
+                    transaction.getAccountId() != null ? transaction.getAccountId() : NULL,
                     calculatedType.name());
             // Calculated and set transactionType
         }
@@ -653,17 +655,17 @@ public class TransactionService {
             final String callerInfo =
                     stackTrace.length > 2
                             ? stackTrace[2].getFileName() + ":" + stackTrace[2].getLineNumber()
-                            : "unknown";
+                            : UNKNOWN;
             LOGGER.info(
                     "🔍 [TransactionType] Set transaction type (USER PROVIDED) | Line: {} | TransactionId: {} | Amount: {} | Description: '{}' | Category: {} | Account: {} | Type: {} | PreviousType: {} | Method: setTransactionTypeFromUserOrCalculate",
                     callerInfo,
                     transaction.getTransactionId(),
                     amount,
-                    transaction.getDescription() != null ? transaction.getDescription() : "null",
-                    categoryPrimary != null ? categoryPrimary : "null",
-                    account != null ? account.getAccountId() : "null",
+                    transaction.getDescription() != null ? transaction.getDescription() : NULL,
+                    categoryPrimary != null ? categoryPrimary : NULL,
+                    account != null ? account.getAccountId() : NULL,
                     userType.name(),
-                    existingType != null ? existingType : "null");
+                    existingType != null ? existingType : NULL);
             // Using user-provided transaction type
             return true;
         } else {
@@ -686,15 +688,15 @@ public class TransactionService {
             final String callerInfo =
                     stackTrace.length > 2
                             ? stackTrace[2].getFileName() + ":" + stackTrace[2].getLineNumber()
-                            : "unknown";
+                            : UNKNOWN;
             LOGGER.info(
                     "🔍 [TransactionType] Set transaction type (CALCULATED) | Line: {} | TransactionId: {} | Amount: {} | Description: '{}' | Category: {} | Account: {} | Type: {} | Method: setTransactionTypeFromUserOrCalculate (fallback determiner)",
                     callerInfo,
                     transaction.getTransactionId(),
                     amount,
-                    transaction.getDescription() != null ? transaction.getDescription() : "null",
-                    categoryPrimary != null ? categoryPrimary : "null",
-                    account != null ? account.getAccountId() : "null",
+                    transaction.getDescription() != null ? transaction.getDescription() : NULL,
+                    categoryPrimary != null ? categoryPrimary : NULL,
+                    account != null ? account.getAccountId() : NULL,
                     calculatedType.name());
             // Calculated transaction type
             return false;
@@ -730,17 +732,15 @@ public class TransactionService {
                 final String callerInfo =
                         stackTrace.length > 2
                                 ? stackTrace[2].getFileName() + ":" + stackTrace[2].getLineNumber()
-                                : "unknown";
+                                : UNKNOWN;
                 LOGGER.info(
                         "🔍 [TransactionType] Set transaction type (UNIFIED SERVICE) | Line: {} | TransactionId: {} | Amount: {} | Description: '{}' | Category: {} | Account: {} | Type: {} | Source: {} | Confidence: {} | Method: setTransactionTypeFromUnifiedServiceOrCalculate",
                         callerInfo,
                         transaction.getTransactionId(),
                         amount,
-                        transaction.getDescription() != null
-                                ? transaction.getDescription()
-                                : "null",
-                        categoryPrimary != null ? categoryPrimary : "null",
-                        account != null ? account.getAccountId() : "null",
+                        transaction.getDescription() != null ? transaction.getDescription() : NULL,
+                        categoryPrimary != null ? categoryPrimary : NULL,
+                        account != null ? account.getAccountId() : NULL,
                         typeResult.getTransactionType().name(),
                         typeResult.getSource(),
                         typeResult.getConfidence());
@@ -763,17 +763,15 @@ public class TransactionService {
                 final String callerInfo =
                         stackTrace.length > 2
                                 ? stackTrace[2].getFileName() + ":" + stackTrace[2].getLineNumber()
-                                : "unknown";
+                                : UNKNOWN;
                 LOGGER.info(
                         "🔍 [TransactionType] Set transaction type (FALLBACK) | Line: {} | TransactionId: {} | Amount: {} | Description: '{}' | Category: {} | Account: {} | Type: {} | Method: setTransactionTypeFromUnifiedServiceOrCalculate (fallback)",
                         callerInfo,
                         transaction.getTransactionId(),
                         amount,
-                        transaction.getDescription() != null
-                                ? transaction.getDescription()
-                                : "null",
-                        categoryPrimary != null ? categoryPrimary : "null",
-                        account != null ? account.getAccountId() : "null",
+                        transaction.getDescription() != null ? transaction.getDescription() : NULL,
+                        categoryPrimary != null ? categoryPrimary : NULL,
+                        account != null ? account.getAccountId() : NULL,
                         calculatedType.name());
             }
         } catch (Exception e) {
@@ -797,15 +795,15 @@ public class TransactionService {
             final String callerInfo =
                     stackTrace.length > 2
                             ? stackTrace[2].getFileName() + ":" + stackTrace[2].getLineNumber()
-                            : "unknown";
+                            : UNKNOWN;
             LOGGER.info(
                     "🔍 [TransactionType] Set transaction type (EXCEPTION FALLBACK) | Line: {} | TransactionId: {} | Amount: {} | Description: '{}' | Category: {} | Account: {} | Type: {} | Error: {} | Method: setTransactionTypeFromUnifiedServiceOrCalculate (exception fallback)",
                     callerInfo,
                     transaction.getTransactionId(),
                     amount,
-                    transaction.getDescription() != null ? transaction.getDescription() : "null",
-                    categoryPrimary != null ? categoryPrimary : "null",
-                    account != null ? account.getAccountId() : "null",
+                    transaction.getDescription() != null ? transaction.getDescription() : NULL,
+                    categoryPrimary != null ? categoryPrimary : NULL,
+                    account != null ? account.getAccountId() : NULL,
                     calculatedType.name(),
                     e.getMessage());
         }
@@ -1237,7 +1235,8 @@ public class TransactionService {
                 UUID.fromString(transactionId); // Validates UUID format
                 // CRITICAL FIX: Normalize ID to lowercase before checking for existing
                 // This ensures we check with the normalized ID that will be saved
-                final String normalizedId = com.budgetbuddy.util.IdGenerator.normalizeUUID(transactionId);
+                final String normalizedId =
+                        com.budgetbuddy.util.IdGenerator.normalizeUUID(transactionId);
                 // Check if transaction with this ID already exists (using normalized ID)
                 final Optional<TransactionTable> existingOpt =
                         transactionRepository.findById(normalizedId);
@@ -1269,9 +1268,15 @@ public class TransactionService {
                                 // if user provided one
                                 if (transactionType != null && !transactionType.isBlank()) {
                                     try {
-                                        final com.budgetbuddy.model.TransactionType userTransactionType =
-                                                com.budgetbuddy.model.TransactionType.valueOf(
-                                                        transactionType.trim().toUpperCase(Locale.ROOT));
+                                        final com.budgetbuddy.model.TransactionType
+                                                userTransactionType =
+                                                        com.budgetbuddy.model.TransactionType
+                                                                .valueOf(
+                                                                        transactionType
+                                                                                .trim()
+                                                                                .toUpperCase(
+                                                                                        Locale
+                                                                                                .ROOT));
                                         final String existingType = existing.getTransactionType();
                                         if (!userTransactionType.name().equals(existingType)) {
                                             // User provided different transactionType - update it
@@ -1349,7 +1354,8 @@ public class TransactionService {
                             final Optional<com.budgetbuddy.model.TransactionType> userTypeOpt =
                                     parseUserTransactionType(transactionType);
                             if (userTypeOpt.isPresent()) {
-                                final com.budgetbuddy.model.TransactionType userType = userTypeOpt.get();
+                                final com.budgetbuddy.model.TransactionType userType =
+                                        userTypeOpt.get();
                                 final String existingType = existing.getTransactionType();
                                 existing.setTransactionType(userType.name());
 
@@ -1358,8 +1364,8 @@ public class TransactionService {
                                         importSource != null
                                                 && !importSource.isBlank()
                                                 && ("CSV".equalsIgnoreCase(importSource)
-                                                || "PDF".equalsIgnoreCase(importSource)
-                                                || "EXCEL".equalsIgnoreCase(importSource));
+                                                        || "PDF".equalsIgnoreCase(importSource)
+                                                        || "EXCEL".equalsIgnoreCase(importSource));
 
                                 if (isImport) {
                                     // For imports: Only mark as overridden if transaction was
@@ -1433,7 +1439,8 @@ public class TransactionService {
                         com.budgetbuddy.util.IdGenerator.generateDeterministicUUID(
                                 namespaceUUID, plaidTransactionId);
                 // CRITICAL FIX: Normalize generated UUID to lowercase for consistency
-                final String normalizedId = com.budgetbuddy.util.IdGenerator.normalizeUUID(generatedId);
+                final String normalizedId =
+                        com.budgetbuddy.util.IdGenerator.normalizeUUID(generatedId);
                 transaction.setTransactionId(normalizedId);
                 LOGGER.info(
                         "Generated deterministic transaction ID (normalized): {} from Plaid ID: {} (matches iOS app fallback)",
@@ -1449,12 +1456,14 @@ public class TransactionService {
                 // This ensures reimporting the same file creates the same transaction IDs
                 // Use: importSource + normalized filename + accountId + amount + date + description
                 final String normalizedFileName =
-                        importFileName.trim().toLowerCase(Locale.ROOT).replaceAll("[^a-z0-9._-]", "");
+                        importFileName
+                                .trim()
+                                .toLowerCase(Locale.ROOT)
+                                .replaceAll("[^a-z0-9._-]", "");
                 // CRITICAL FIX: Use the transactionDate parameter (LocalDate) and format it
                 // consistently
                 // Don't use transaction.getTransactionDate() as it hasn't been set yet
-                final String transactionDateStr =
-                        transactionDate.format(DATE_FORMATTER);
+                final String transactionDateStr = transactionDate.format(DATE_FORMATTER);
                 String cleanedDescriptionForKey = removeNamesFromText(description, userName);
                 if (cleanedDescriptionForKey == null || cleanedDescriptionForKey.isEmpty()) {
                     cleanedDescriptionForKey = description != null ? description : "";
@@ -1471,12 +1480,12 @@ public class TransactionService {
                                 descriptionStr.trim().toLowerCase(Locale.ROOT));
 
                 final UUID importNamespaceUUID =
-                        UUID.fromString(
-                                "7ba7b811-9dad-11d1-80b4-00c04fd430c8"); // IMPORT_NAMESPACE
+                        UUID.fromString("7ba7b811-9dad-11d1-80b4-00c04fd430c8"); // IMPORT_NAMESPACE
                 final String generatedId =
                         com.budgetbuddy.util.IdGenerator.generateDeterministicUUID(
                                 importNamespaceUUID, transactionKey);
-                final String normalizedId = com.budgetbuddy.util.IdGenerator.normalizeUUID(generatedId);
+                final String normalizedId =
+                        com.budgetbuddy.util.IdGenerator.normalizeUUID(generatedId);
 
                 // CRITICAL: Check if transaction with this deterministic ID already exists
                 final Optional<TransactionTable> existingByIdOpt =
@@ -1748,8 +1757,8 @@ public class TransactionService {
                         importSource != null
                                 && !importSource.isBlank()
                                 && ("CSV".equalsIgnoreCase(importSource)
-                                || "PDF".equalsIgnoreCase(importSource)
-                                || "EXCEL".equalsIgnoreCase(importSource));
+                                        || "PDF".equalsIgnoreCase(importSource)
+                                        || "EXCEL".equalsIgnoreCase(importSource));
 
                 if (isImport) {
                     // For imports: Only mark as overridden if transaction was already overridden
@@ -1812,19 +1821,26 @@ public class TransactionService {
                 final String accountName = account.getAccountName();
                 final boolean isWellsFargo =
                         (institutionName != null
-                                && (institutionName.toLowerCase(Locale.ROOT).contains("wells fargo")
-                                || institutionName
-                                .toLowerCase(Locale.ROOT)
-                                .contains("wellsfargo")
-                                || "wf"
-                                .equalsIgnoreCase(institutionName
-                                .toLowerCase(Locale.ROOT))))
+                                        && (institutionName
+                                                        .toLowerCase(Locale.ROOT)
+                                                        .contains("wells fargo")
+                                                || institutionName
+                                                        .toLowerCase(Locale.ROOT)
+                                                        .contains("wellsfargo")
+                                                || "wf"
+                                                        .equalsIgnoreCase(
+                                                                institutionName.toLowerCase(
+                                                                        Locale.ROOT))))
                                 || (accountName != null
-                                && (accountName.toLowerCase(Locale.ROOT).contains("wells fargo")
-                                || accountName.toLowerCase(Locale.ROOT).contains("wellsfargo")
-                                || accountName
-                                .toLowerCase(Locale.ROOT)
-                                .contains("wf credit")));
+                                        && (accountName
+                                                        .toLowerCase(Locale.ROOT)
+                                                        .contains("wells fargo")
+                                                || accountName
+                                                        .toLowerCase(Locale.ROOT)
+                                                        .contains("wellsfargo")
+                                                || accountName
+                                                        .toLowerCase(Locale.ROOT)
+                                                        .contains("wf credit")));
                 if (isWellsFargo
                         && transaction.getTransactionType() != null
                         && "PAYMENT".equalsIgnoreCase(transaction.getTransactionType())
@@ -1889,7 +1905,8 @@ public class TransactionService {
                             account != null
                                     && account.getAccountId().equals(existing.getAccountId());
                     final boolean amountMatch = amount.compareTo(existing.getAmount()) == 0;
-                    final boolean dateMatch = transactionDateStr.equals(existing.getTransactionDate());
+                    final boolean dateMatch =
+                            transactionDateStr.equals(existing.getTransactionDate());
                     final boolean importSourceMatch =
                             importSource
                                     .trim()
@@ -1925,7 +1942,7 @@ public class TransactionService {
                                         + "Returning existing transaction {} instead of creating new one.",
                                 importSource,
                                 importFileName,
-                                account != null ? account.getAccountId() : "null",
+                                account != null ? account.getAccountId() : NULL,
                                 amount,
                                 transactionDateStr,
                                 existing.getTransactionId());
@@ -1941,14 +1958,15 @@ public class TransactionService {
                             account != null
                                     && account.getAccountId().equals(existing.getAccountId());
                     final boolean amountMatch = amount.compareTo(existing.getAmount()) == 0;
-                    final boolean dateMatch = transactionDateStr.equals(existing.getTransactionDate());
+                    final boolean dateMatch =
+                            transactionDateStr.equals(existing.getTransactionDate());
 
                     if (accountMatch && amountMatch && dateMatch) {
                         // Duplicate found - return existing transaction for idempotency
                         LOGGER.info(
                                 "Duplicate transaction detected (account: {}, amount: {}, date: {}). "
                                         + "Returning existing transaction {} instead of creating new one.",
-                                account != null ? account.getAccountId() : "null",
+                                account != null ? account.getAccountId() : NULL,
                                 amount,
                                 transactionDateStr,
                                 existing.getTransactionId());
@@ -1969,8 +1987,7 @@ public class TransactionService {
         if (transaction.getGoalId() != null && !transaction.getGoalId().isEmpty()) {
             try {
                 final GoalProgressService goalProgressService =
-                        applicationContext.getBean(
-                                GoalProgressService.class);
+                        applicationContext.getBean(GoalProgressService.class);
                 if (goalProgressService != null) {
                     goalProgressService.onTransactionGoalAssignmentChanged(
                             user.getUserId(), transaction.getGoalId());
@@ -2517,8 +2534,7 @@ public class TransactionService {
                 || (oldGoalId != null && !oldGoalId.equals(newGoalId))) {
             try {
                 final GoalProgressService goalProgressService =
-                        applicationContext.getBean(
-                                GoalProgressService.class);
+                        applicationContext.getBean(GoalProgressService.class);
                 if (goalProgressService != null) {
                     if (newGoalId != null) {
                         goalProgressService.onTransactionGoalAssignmentChanged(

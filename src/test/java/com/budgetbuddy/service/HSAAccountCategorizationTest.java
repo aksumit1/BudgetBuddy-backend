@@ -32,6 +32,10 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @org.mockito.junit.jupiter.MockitoSettings(strictness = org.mockito.quality.Strictness.LENIENT)
 class HSAAccountCategorizationTest {
 
+    private static final String PLAID_HSA_123 = "plaid-hsa-123";
+    private static final String HEALTHCARE = "healthcare";
+    private static final String HSA_ACCOUNT_123 = "hsa-account-123";
+
     @Mock private AccountRepository accountRepository;
 
     @Mock
@@ -49,14 +53,14 @@ class HSAAccountCategorizationTest {
 
         // Setup HSA account
         hsaAccount = new AccountTable();
-        hsaAccount.setAccountId("hsa-account-123");
+        hsaAccount.setAccountId(HSA_ACCOUNT_123);
         hsaAccount.setAccountType("hsa");
         hsaAccount.setAccountName("Health Savings Account");
-        hsaAccount.setPlaidAccountId("plaid-hsa-123");
+        hsaAccount.setPlaidAccountId(PLAID_HSA_123);
 
         // Setup transaction
         transactionTable = new TransactionTable();
-        transactionTable.setAccountId("hsa-account-123");
+        transactionTable.setAccountId(HSA_ACCOUNT_123);
         transactionTable.setTransactionId("txn-123");
     }
 
@@ -67,8 +71,8 @@ class HSAAccountCategorizationTest {
         transactionTable.setDescription("HSA Contribution");
 
         // Mock account lookup
-        when(accountRepository.findById("hsa-account-123")).thenReturn(Optional.of(hsaAccount));
-        when(accountRepository.findByPlaidAccountId("plaid-hsa-123"))
+        when(accountRepository.findById(HSA_ACCOUNT_123)).thenReturn(Optional.of(hsaAccount));
+        when(accountRepository.findByPlaidAccountId(PLAID_HSA_123))
                 .thenReturn(Optional.of(hsaAccount));
 
         // Mock TransactionTypeCategoryService to return "other" category (will be overridden by HSA
@@ -82,7 +86,7 @@ class HSAAccountCategorizationTest {
         // Create Plaid transaction
         final Transaction plaidTransaction =
                 createPlaidTransaction(
-                        "plaid-hsa-123", "HSA Contribution", null, 1000.00, null, null);
+                        PLAID_HSA_123, "HSA Contribution", null, 1000.00, null, null);
 
         // When
         plaidDataExtractor.updateTransactionFromPlaid(transactionTable, plaidTransaction);
@@ -109,14 +113,14 @@ class HSAAccountCategorizationTest {
         transactionTable.setMerchantName("Pharmacy");
 
         // Mock account lookup
-        when(accountRepository.findById("hsa-account-123")).thenReturn(Optional.of(hsaAccount));
-        when(accountRepository.findByPlaidAccountId("plaid-hsa-123"))
+        when(accountRepository.findById(HSA_ACCOUNT_123)).thenReturn(Optional.of(hsaAccount));
+        when(accountRepository.findByPlaidAccountId(PLAID_HSA_123))
                 .thenReturn(Optional.of(hsaAccount));
 
         // Mock TransactionTypeCategoryService - returns healthcare (HSA logic should preserve this)
         final TransactionTypeCategoryService.CategoryResult healthcareResult =
                 new TransactionTypeCategoryService.CategoryResult(
-                        "healthcare", "healthcare", "PLAID", 0.9);
+                        HEALTHCARE, HEALTHCARE, "PLAID", 0.9);
         when(transactionTypeCategoryService.determineCategory(
                         any(), any(), any(), any(), any(), any(), any(), any(), anyString(), any()))
                 .thenReturn(healthcareResult);
@@ -124,7 +128,7 @@ class HSAAccountCategorizationTest {
         // Create Plaid transaction
         final Transaction plaidTransaction =
                 createPlaidTransaction(
-                        "plaid-hsa-123",
+                        PLAID_HSA_123,
                         "Medical Expense",
                         "Pharmacy",
                         -150.00,
@@ -136,11 +140,11 @@ class HSAAccountCategorizationTest {
 
         // Then
         assertEquals(
-                "healthcare",
+                HEALTHCARE,
                 transactionTable.getCategoryPrimary(),
                 "HSA debit should be expense (healthcare)");
         assertEquals(
-                "healthcare",
+                HEALTHCARE,
                 transactionTable.getCategoryDetailed(),
                 "HSA debit should be healthcare");
     }
@@ -152,8 +156,8 @@ class HSAAccountCategorizationTest {
         transactionTable.setDescription("HSA Withdrawal");
 
         // Mock account lookup
-        when(accountRepository.findById("hsa-account-123")).thenReturn(Optional.of(hsaAccount));
-        when(accountRepository.findByPlaidAccountId("plaid-hsa-123"))
+        when(accountRepository.findById(HSA_ACCOUNT_123)).thenReturn(Optional.of(hsaAccount));
+        when(accountRepository.findByPlaidAccountId(PLAID_HSA_123))
                 .thenReturn(Optional.of(hsaAccount));
 
         // Mock TransactionTypeCategoryService - returns generic "other" (HSA logic should override
@@ -166,19 +170,18 @@ class HSAAccountCategorizationTest {
 
         // Create Plaid transaction
         final Transaction plaidTransaction =
-                createPlaidTransaction(
-                        "plaid-hsa-123", "HSA Withdrawal", null, -200.00, null, null);
+                createPlaidTransaction(PLAID_HSA_123, "HSA Withdrawal", null, -200.00, null, null);
 
         // When
         plaidDataExtractor.updateTransactionFromPlaid(transactionTable, plaidTransaction);
 
         // Then
         assertEquals(
-                "healthcare",
+                HEALTHCARE,
                 transactionTable.getCategoryPrimary(),
                 "HSA debit with generic category should default to healthcare");
         assertEquals(
-                "healthcare",
+                HEALTHCARE,
                 transactionTable.getCategoryDetailed(),
                 "HSA debit should be healthcare");
     }

@@ -1,14 +1,12 @@
 package com.budgetbuddy.service;
 
-
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import java.util.Locale;
 import com.budgetbuddy.exception.AppException;
 import com.budgetbuddy.exception.ErrorCode;
 import com.budgetbuddy.model.dynamodb.TransactionActionTable;
 import com.budgetbuddy.model.dynamodb.TransactionTable;
 import com.budgetbuddy.repository.dynamodb.TransactionActionRepository;
 import com.budgetbuddy.repository.dynamodb.TransactionRepository;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
@@ -17,6 +15,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
@@ -38,7 +37,12 @@ import org.springframework.stereotype.Service;
 @SuppressFBWarnings(
         value = "EI_EXPOSE_REP2",
         justification = "Spring constructor injection — beans are shared by design")
-@SuppressWarnings({"PMD.LawOfDemeter", "PMD.AvoidCatchingGenericException", "PMD.DataClass", "PMD.OnlyOneReturn"})
+@SuppressWarnings({
+    "PMD.LawOfDemeter",
+    "PMD.AvoidCatchingGenericException",
+    "PMD.DataClass",
+    "PMD.OnlyOneReturn"
+})
 @Service
 public class MissedPaymentDetectionService {
 
@@ -175,15 +179,21 @@ public class MissedPaymentDetectionService {
                 transactionRepository.findByUserIdAndDateRange(userId, startDateStr, endDateStr);
 
         // Check if any transaction matches the action
-        final String actionTitle = action.getTitle() != null ? action.getTitle().toLowerCase(Locale.ROOT) : "";
+        final String actionTitle =
+                action.getTitle() != null ? action.getTitle().toLowerCase(Locale.ROOT) : "";
         final String actionDesc =
-                action.getDescription() != null ? action.getDescription().toLowerCase(Locale.ROOT) : "";
+                action.getDescription() != null
+                        ? action.getDescription().toLowerCase(Locale.ROOT)
+                        : "";
         final BigDecimal actionAmount = null; // Amount not available in TransactionActionTable
 
         for (final TransactionTable tx : transactions) {
-            final String txDesc = tx.getDescription() != null ? tx.getDescription().toLowerCase(Locale.ROOT) : "";
+            final String txDesc =
+                    tx.getDescription() != null ? tx.getDescription().toLowerCase(Locale.ROOT) : "";
             final String txMerchant =
-                    tx.getMerchantName() != null ? tx.getMerchantName().toLowerCase(Locale.ROOT) : "";
+                    tx.getMerchantName() != null
+                            ? tx.getMerchantName().toLowerCase(Locale.ROOT)
+                            : "";
             final BigDecimal txAmount = tx.getAmount() != null ? tx.getAmount().abs() : null;
 
             // Check if description or merchant matches
@@ -197,10 +207,10 @@ public class MissedPaymentDetectionService {
                     actionAmount != null
                             && txAmount != null
                             && actionAmount
-                            .subtract(txAmount)
-                            .abs()
-                            .compareTo(BigDecimal.valueOf(5))
-                            <= 0;
+                                            .subtract(txAmount)
+                                            .abs()
+                                            .compareTo(BigDecimal.valueOf(5))
+                                    <= 0;
 
             if (descriptionMatches && (amountMatches || actionAmount == null)) {
                 return true; // Payment found
@@ -253,7 +263,8 @@ public class MissedPaymentDetectionService {
         }
 
         // Find recurring patterns (3+ transactions with similar timing)
-        for (final Map.Entry<String, List<TransactionTable>> entry : byMerchantAndAmount.entrySet()) {
+        for (final Map.Entry<String, List<TransactionTable>> entry :
+                byMerchantAndAmount.entrySet()) {
             final List<TransactionTable> group = entry.getValue();
 
             if (group.size() < 3) {
@@ -279,7 +290,8 @@ public class MissedPaymentDetectionService {
             }
 
             // Calculate average interval
-            final double avgInterval = intervals.stream().mapToLong(Long::longValue).average().orElse(0);
+            final double avgInterval =
+                    intervals.stream().mapToLong(Long::longValue).average().orElse(0);
 
             // Check if pattern is monthly (25-35 days) or bi-weekly (12-16 days)
             final boolean isMonthly = avgInterval >= 25 && avgInterval <= 35;
@@ -292,7 +304,8 @@ public class MissedPaymentDetectionService {
                         LocalDate.parse(lastPayment.getTransactionDate(), DATE_FORMATTER);
                 final LocalDate expectedNextPayment = lastPaymentDate.plusDays((long) avgInterval);
 
-                final long daysSinceExpected = ChronoUnit.DAYS.between(expectedNextPayment, endDate);
+                final long daysSinceExpected =
+                        ChronoUnit.DAYS.between(expectedNextPayment, endDate);
 
                 if (daysSinceExpected > 7) {
                     // Payment is overdue

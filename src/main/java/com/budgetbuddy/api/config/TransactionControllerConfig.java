@@ -1,6 +1,5 @@
 package com.budgetbuddy.api.config;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import com.budgetbuddy.notification.DataChangeNotificationService;
 import com.budgetbuddy.security.FileContentScanner;
 import com.budgetbuddy.security.FileIntegrityService;
@@ -19,6 +18,7 @@ import com.budgetbuddy.service.TransactionService;
 import com.budgetbuddy.service.TransactionTypeCategoryService;
 import com.budgetbuddy.service.UserService;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.springframework.stereotype.Component;
 
 /**
@@ -30,7 +30,8 @@ import org.springframework.stereotype.Component;
 // callers — defensive-copying it would break dependency injection.
 @SuppressFBWarnings(
         value = {"EI_EXPOSE_REP", "EI_EXPOSE_REP2"},
-        justification = "JSON DTO / DynamoDB entity getters expose lists by reference; "
+        justification =
+                "JSON DTO / DynamoDB entity getters expose lists by reference; "
                         + "the design is value-semantic and Jackson creates fresh instances; Spring constructor injection — beans are shared by design")
 @Component
 public class TransactionControllerConfig {

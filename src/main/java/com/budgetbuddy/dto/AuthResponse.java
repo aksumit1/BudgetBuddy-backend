@@ -1,7 +1,7 @@
 package com.budgetbuddy.dto;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.time.LocalDateTime;
 
 /** Authentication response DTO */

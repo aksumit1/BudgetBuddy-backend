@@ -34,6 +34,8 @@ import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class GoalServiceTest {
 
+    private static final String DESC = "Desc";
+
     @Autowired private GoalService goalService;
 
     @Autowired private GoalRepository goalRepository;
@@ -100,7 +102,7 @@ class GoalServiceTest {
                     goalService.createGoal(
                             null,
                             "Test",
-                            "Desc",
+                            DESC,
                             BigDecimal.TEN,
                             LocalDate.now(),
                             "SAVINGS",
@@ -120,7 +122,7 @@ class GoalServiceTest {
                     goalService.createGoal(
                             testUser,
                             "",
-                            "Desc",
+                            DESC,
                             BigDecimal.TEN,
                             LocalDate.now(),
                             "SAVINGS",
@@ -140,7 +142,7 @@ class GoalServiceTest {
                     goalService.createGoal(
                             testUser,
                             "Test",
-                            "Desc",
+                            DESC,
                             BigDecimal.ZERO,
                             LocalDate.now(),
                             "SAVINGS",
@@ -190,7 +192,7 @@ class GoalServiceTest {
                 goalService.createGoal(
                         testUser,
                         "Test Goal",
-                        "Desc",
+                        DESC,
                         new BigDecimal("1000.00"),
                         LocalDate.now().plusMonths(6),
                         "SAVINGS",
@@ -214,7 +216,7 @@ class GoalServiceTest {
                 goalService.createGoal(
                         testUser,
                         "Test Goal",
-                        "Desc",
+                        DESC,
                         new BigDecimal("1000.00"),
                         LocalDate.now().plusMonths(6),
                         "SAVINGS",

@@ -1,8 +1,8 @@
 package com.budgetbuddy.security.zerotrust;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import com.budgetbuddy.security.zerotrust.device.DeviceAttestationService;
 import com.budgetbuddy.security.zerotrust.identity.IdentityVerificationService;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -23,7 +23,8 @@ import org.springframework.stereotype.Service;
 @SuppressWarnings({"PMD.DataClass", "PMD.OnlyOneReturn"})
 @SuppressFBWarnings(
         value = {"EI_EXPOSE_REP", "EI_EXPOSE_REP2"},
-        justification = "JSON DTO / DynamoDB entity getters expose lists by reference; "
+        justification =
+                "JSON DTO / DynamoDB entity getters expose lists by reference; "
                         + "the design is value-semantic and Jackson creates fresh instances; Spring constructor injection — beans are shared by design")
 @Service
 public class ZeroTrustService {
@@ -119,8 +120,8 @@ public class ZeroTrustService {
         final RiskScore riskScore = new RiskScore();
 
         // Factor 1: Device trust
-        final DeviceAttestationService.DeviceTrustLevel
-                deviceTrust = deviceAttestationService.getDeviceTrustLevel(deviceId);
+        final DeviceAttestationService.DeviceTrustLevel deviceTrust =
+                deviceAttestationService.getDeviceTrustLevel(deviceId);
         riskScore.addFactor("deviceTrust", deviceTrust.getScore());
 
         // Factor 2: Location anomaly (if available)

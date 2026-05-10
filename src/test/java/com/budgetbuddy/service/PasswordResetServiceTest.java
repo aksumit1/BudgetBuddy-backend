@@ -161,7 +161,8 @@ class PasswordResetServiceTest {
         passwordResetService.requestPasswordReset(testEmail);
 
         // Capture the code from email
-        final ArgumentCaptor<Map<String, Object>> templateDataCaptor = ArgumentCaptor.forClass(Map.class);
+        final ArgumentCaptor<Map<String, Object>> templateDataCaptor =
+                ArgumentCaptor.forClass(Map.class);
         verify(emailService)
                 .sendEmail(
                         anyString(),
@@ -247,7 +248,8 @@ class PasswordResetServiceTest {
 
         // Request and verify code
         passwordResetService.requestPasswordReset(testEmail);
-        final ArgumentCaptor<Map<String, Object>> templateDataCaptor = ArgumentCaptor.forClass(Map.class);
+        final ArgumentCaptor<Map<String, Object>> templateDataCaptor =
+                ArgumentCaptor.forClass(Map.class);
         verify(emailService)
                 .sendEmail(
                         anyString(),
@@ -283,7 +285,8 @@ class PasswordResetServiceTest {
                 .thenReturn(true);
 
         passwordResetService.requestPasswordReset(testEmail);
-        final ArgumentCaptor<Map<String, Object>> templateDataCaptor = ArgumentCaptor.forClass(Map.class);
+        final ArgumentCaptor<Map<String, Object>> templateDataCaptor =
+                ArgumentCaptor.forClass(Map.class);
         verify(emailService)
                 .sendEmail(
                         anyString(),
@@ -351,7 +354,8 @@ class PasswordResetServiceTest {
         passwordResetService.requestPasswordReset(testEmail);
 
         // Then - Verify code format
-        final ArgumentCaptor<Map<String, Object>> templateDataCaptor = ArgumentCaptor.forClass(Map.class);
+        final ArgumentCaptor<Map<String, Object>> templateDataCaptor =
+                ArgumentCaptor.forClass(Map.class);
         verify(emailService)
                 .sendEmail(
                         anyString(),

@@ -64,7 +64,7 @@ public class CircuitBreakerConfig {
                                 org.springframework.web.client.HttpServerErrorException.class,
                                 com.budgetbuddy.exception.AppException
                                         .class // Record AppException as failure
-                        )
+                                )
                         .build();
 
         final CircuitBreaker circuitBreaker = registry.circuitBreaker("plaid", config);
@@ -94,8 +94,7 @@ public class CircuitBreakerConfig {
                         event -> {
                             final org.slf4j.Logger logger =
                                     org.slf4j.LoggerFactory.getLogger(CircuitBreakerConfig.class);
-                            final CircuitBreaker.Metrics metrics =
-                                    circuitBreaker.getMetrics();
+                            final CircuitBreaker.Metrics metrics = circuitBreaker.getMetrics();
                             logger.warn(
                                     "🚫 Plaid Circuit Breaker call not permitted - circuit is OPEN. "
                                             + "Metrics: failureRate={}%, numberOfBufferedCalls={}, numberOfFailedCalls={}",

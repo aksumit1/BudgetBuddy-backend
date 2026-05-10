@@ -36,6 +36,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @org.mockito.junit.jupiter.MockitoSettings(strictness = org.mockito.quality.Strictness.LENIENT)
 class TransactionActionServiceTest {
 
+    private static final String TITLE = "Title";
+
     @Mock private TransactionActionRepository actionRepository;
 
     @Mock private TransactionRepository transactionRepository;
@@ -107,7 +109,7 @@ class TransactionActionServiceTest {
                         actionService.createAction(
                                 null,
                                 testTransaction.getTransactionId(),
-                                "Title",
+                                TITLE,
                                 null,
                                 null,
                                 null,
@@ -143,7 +145,7 @@ class TransactionActionServiceTest {
                         actionService.createAction(
                                 testUser,
                                 testTransaction.getTransactionId(),
-                                "Title",
+                                TITLE,
                                 null,
                                 null,
                                 null,
@@ -167,7 +169,7 @@ class TransactionActionServiceTest {
                         actionService.createAction(
                                 testUser,
                                 testTransaction.getTransactionId(),
-                                "Title",
+                                TITLE,
                                 null,
                                 null,
                                 null,
@@ -215,7 +217,7 @@ class TransactionActionServiceTest {
                         actionService.updateAction(
                                 testUser,
                                 testAction.getActionId(),
-                                "Title",
+                                TITLE,
                                 null,
                                 null,
                                 null,
@@ -241,7 +243,7 @@ class TransactionActionServiceTest {
                         actionService.updateAction(
                                 testUser,
                                 testAction.getActionId(),
-                                "Title",
+                                TITLE,
                                 null,
                                 null,
                                 null,

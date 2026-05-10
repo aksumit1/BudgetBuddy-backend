@@ -1,10 +1,9 @@
 package com.budgetbuddy.service;
 
-
-import java.util.Locale;
 import com.budgetbuddy.api.SyncHealthController;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.Locale;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -30,7 +29,8 @@ public class SyncHealthService {
      * @param status Current sync status
      * @return Sync health response
      */
-    public SyncHealthResponse getSyncHealth(final String userId, SyncHealthController.SyncStatus status) {
+    public SyncHealthResponse getSyncHealth(
+            final String userId, SyncHealthController.SyncStatus status) {
         if (userId == null || userId.isEmpty()) {
             throw new IllegalArgumentException("User ID cannot be null or empty");
         }
@@ -89,7 +89,8 @@ public class SyncHealthService {
 
         // Check last sync age
         if (status.getLastSyncDate() != null) {
-            final long hoursSinceSync = ChronoUnit.HOURS.between(status.getLastSyncDate(), Instant.now());
+            final long hoursSinceSync =
+                    ChronoUnit.HOURS.between(status.getLastSyncDate(), Instant.now());
             if (hoursSinceSync > 24) {
                 return "degraded";
             }

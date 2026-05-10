@@ -1,9 +1,5 @@
 package com.budgetbuddy.integration;
 
-
-
-import java.nio.charset.StandardCharsets;
-import java.util.Locale;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -28,9 +24,11 @@ import com.budgetbuddy.service.TransactionService;
 import com.budgetbuddy.service.UserService;
 import com.budgetbuddy.util.IdGenerator;
 import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.Base64;
+import java.util.Locale;
 import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
@@ -94,7 +92,9 @@ class IdNormalizationIntegrationTest {
 
         // Create test user
         final String testEmail = "id-normalization-test-" + UUID.randomUUID() + "@example.com";
-        final String testPasswordHash = Base64.getEncoder().encodeToString("hashed-password".getBytes(StandardCharsets.UTF_8));
+        final String testPasswordHash =
+                Base64.getEncoder()
+                        .encodeToString("hashed-password".getBytes(StandardCharsets.UTF_8));
 
         testUser = userService.createUserSecure(testEmail, testPasswordHash, "ID", "Normalization");
 
@@ -147,7 +147,8 @@ class IdNormalizationIntegrationTest {
                 "Transaction ID should be normalized to lowercase");
 
         // And - Should be findable by lowercase ID
-        final Optional<TransactionTable> found = transactionRepository.findById(lowercaseTransactionId);
+        final Optional<TransactionTable> found =
+                transactionRepository.findById(lowercaseTransactionId);
         assertTrue(found.isPresent(), "Transaction should be findable by lowercase ID");
         assertEquals(transaction.getTransactionId(), found.get().getTransactionId());
 
@@ -218,7 +219,7 @@ class IdNormalizationIntegrationTest {
                         mixedCaseGoalId,
                         null, // currentAmount
                         null // accountIds
-                );
+                        );
 
         // Then - ID should be normalized to lowercase
         assertEquals(
@@ -326,7 +327,10 @@ class IdNormalizationIntegrationTest {
 
         // Then - Generated ID should be lowercase
         final String budgetId = budget.getBudgetId();
-        assertEquals(budgetId.toLowerCase(Locale.ROOT), budgetId, "Generated budget ID should be lowercase");
+        assertEquals(
+                budgetId.toLowerCase(Locale.ROOT),
+                budgetId,
+                "Generated budget ID should be lowercase");
         assertTrue(IdGenerator.isValidUUID(budgetId), "Budget ID should be valid UUID");
 
         // When - Create goal without providing ID (will generate deterministic ID)
@@ -341,11 +345,12 @@ class IdNormalizationIntegrationTest {
                         null, // goalId - let backend generate
                         null, // currentAmount
                         null // accountIds
-                );
+                        );
 
         // Then - Generated ID should be lowercase
         final String goalId = goal.getGoalId();
-        assertEquals(goalId.toLowerCase(Locale.ROOT), goalId, "Generated goal ID should be lowercase");
+        assertEquals(
+                goalId.toLowerCase(Locale.ROOT), goalId, "Generated goal ID should be lowercase");
         assertTrue(IdGenerator.isValidUUID(goalId), "Goal ID should be valid UUID");
     }
 
@@ -384,7 +389,8 @@ class IdNormalizationIntegrationTest {
                 "Action transaction ID should match (case-insensitive)");
 
         // And - Action should be findable
-        final Optional<TransactionActionTable> found = actionRepository.findById(action.getActionId());
+        final Optional<TransactionActionTable> found =
+                actionRepository.findById(action.getActionId());
         assertTrue(found.isPresent(), "Action should be findable after creation");
     }
 
@@ -402,7 +408,8 @@ class IdNormalizationIntegrationTest {
                         "FOOD");
 
         final String savedId = transaction.getTransactionId();
-        assertTrue(savedId.equals(savedId.toLowerCase(Locale.ROOT)), "Saved ID should be lowercase");
+        assertTrue(
+                savedId.equals(savedId.toLowerCase(Locale.ROOT)), "Saved ID should be lowercase");
 
         // When - Look up with uppercase version
         final String uppercaseId = savedId.toUpperCase(Locale.ROOT);

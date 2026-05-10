@@ -30,6 +30,8 @@ import org.springframework.test.context.ActiveProfiles;
 @Import(AWSTestConfiguration.class)
 class PlaidCategoryIntegrationTest {
 
+    private static final String DINING = "dining";
+
     @Autowired private TransactionService transactionService;
 
     @Autowired private TransactionRepository transactionRepository;
@@ -63,8 +65,8 @@ class PlaidCategoryIntegrationTest {
         transaction.setMerchantName("McDonald's");
         transaction.setImporterCategoryPrimary("FOOD_AND_DRINK");
         transaction.setImporterCategoryDetailed("RESTAURANTS");
-        transaction.setCategoryPrimary("dining");
-        transaction.setCategoryDetailed("dining");
+        transaction.setCategoryPrimary(DINING);
+        transaction.setCategoryDetailed(DINING);
         transaction.setCategoryOverridden(false);
         transaction.setTransactionDate(LocalDate.now().toString());
         transaction.setPlaidTransactionId("plaid-txn-test");
@@ -78,8 +80,8 @@ class PlaidCategoryIntegrationTest {
         assertTrue(saved.isPresent());
         assertEquals("FOOD_AND_DRINK", saved.get().getImporterCategoryPrimary());
         assertEquals("RESTAURANTS", saved.get().getImporterCategoryDetailed());
-        assertEquals("dining", saved.get().getCategoryPrimary());
-        assertEquals("dining", saved.get().getCategoryDetailed());
+        assertEquals(DINING, saved.get().getCategoryPrimary());
+        assertEquals(DINING, saved.get().getCategoryDetailed());
         assertFalse(saved.get().getCategoryOverridden());
 
         // When - User overrides category
@@ -98,7 +100,7 @@ class PlaidCategoryIntegrationTest {
                         false, // clearNotesIfNull = false means preserve existing notes
                         null, // goalId
                         null // linkedTransactionId
-                );
+                        );
 
         // Then - Verify override is applied
         assertNotNull(updated);
@@ -118,8 +120,8 @@ class PlaidCategoryIntegrationTest {
         // Food and Drink
         final PlaidCategoryMapper.CategoryMapping food =
                 mapper.mapPlaidCategory("FOOD_AND_DRINK", "RESTAURANTS", "McDonald's", "Fast food");
-        assertEquals("dining", food.getPrimary());
-        assertEquals("dining", food.getDetailed());
+        assertEquals(DINING, food.getPrimary());
+        assertEquals(DINING, food.getDetailed());
 
         // Groceries
         final PlaidCategoryMapper.CategoryMapping groceries =

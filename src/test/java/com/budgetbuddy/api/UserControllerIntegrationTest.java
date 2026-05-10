@@ -1,7 +1,5 @@
 package com.budgetbuddy.api;
 
-
-import java.nio.charset.StandardCharsets;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -13,6 +11,7 @@ import com.budgetbuddy.dto.AuthResponse;
 import com.budgetbuddy.model.dynamodb.UserTable;
 import com.budgetbuddy.service.AuthService;
 import com.budgetbuddy.service.UserService;
+import java.nio.charset.StandardCharsets;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -66,7 +65,8 @@ class UserControllerIntegrationTest {
         final String email = "test-" + UUID.randomUUID() + "@example.com";
         // Use proper base64-encoded strings
         final String base64PasswordHash =
-                java.util.Base64.getEncoder().encodeToString("hashed-password".getBytes(StandardCharsets.UTF_8));
+                java.util.Base64.getEncoder()
+                        .encodeToString("hashed-password".getBytes(StandardCharsets.UTF_8));
         // BREAKING CHANGE: Client salt removed
         testUser = userService.createUserSecure(email, base64PasswordHash, "Test", "User");
 
@@ -78,7 +78,8 @@ class UserControllerIntegrationTest {
 
     /** Helper method to add JWT token to request */
     private org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder withAuth(
-            final org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder builder) {
+            final org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder
+                    builder) {
         return builder.header("Authorization", "Bearer " + accessToken);
     }
 

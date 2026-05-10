@@ -1,7 +1,5 @@
 package com.budgetbuddy.integration;
 
-
-import java.nio.charset.StandardCharsets;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -14,6 +12,7 @@ import com.budgetbuddy.repository.dynamodb.AccountRepository;
 import com.budgetbuddy.repository.dynamodb.TransactionRepository;
 import com.budgetbuddy.service.UserService;
 import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
@@ -35,6 +34,8 @@ import org.springframework.test.context.ActiveProfiles;
 @Import(AWSTestConfiguration.class)
 class PlaidDeduplicationIntegrationTest {
 
+    private static final String DINING = "dining";
+
     @Autowired private AccountRepository accountRepository;
 
     @Autowired private TransactionRepository transactionRepository;
@@ -49,9 +50,11 @@ class PlaidDeduplicationIntegrationTest {
         testEmail = "dedup-test-" + UUID.randomUUID() + "@example.com";
         // Use proper base64-encoded strings
         final String base64PasswordHash =
-                java.util.Base64.getEncoder().encodeToString("hashed-password".getBytes(StandardCharsets.UTF_8));
+                java.util.Base64.getEncoder()
+                        .encodeToString("hashed-password".getBytes(StandardCharsets.UTF_8));
         final String base64ClientSalt =
-                java.util.Base64.getEncoder().encodeToString("client-salt".getBytes(StandardCharsets.UTF_8));
+                java.util.Base64.getEncoder()
+                        .encodeToString("client-salt".getBytes(StandardCharsets.UTF_8));
         testUser = userService.createUserSecure(testEmail, base64PasswordHash, "Test", "User");
     }
 
@@ -100,7 +103,8 @@ class PlaidDeduplicationIntegrationTest {
             assertTrue(foundByPlaidId.isPresent(), "Account should be found by Plaid ID");
 
             // Verify only one account exists with this plaidAccountId
-            final List<AccountTable> allAccounts = accountRepository.findByUserId(testUser.getUserId());
+            final List<AccountTable> allAccounts =
+                    accountRepository.findByUserId(testUser.getUserId());
             final long countWithPlaidId =
                     allAccounts.stream()
                             .filter(a -> plaidAccountId.equals(a.getPlaidAccountId()))
@@ -271,8 +275,7 @@ class PlaidDeduplicationIntegrationTest {
     }
 
     @Test
-    void
-            testAccountDeduplicationAccessTokenRegeneratedWithNullInstitutionNamePreventsDuplicate() {
+    void testAccountDeduplicationAccessTokenRegeneratedWithNullInstitutionNamePreventsDuplicate() {
         // Given - Existing account from first sync with null institutionName
         final String accountNumber = "1111";
         final String oldPlaidId = "plaid-old-" + UUID.randomUUID();
@@ -348,8 +351,8 @@ class PlaidDeduplicationIntegrationTest {
         existingTransaction.setPlaidTransactionId(plaidTransactionId);
         existingTransaction.setAmount(new BigDecimal("100.00"));
         existingTransaction.setDescription("Existing Transaction");
-        existingTransaction.setCategoryPrimary("dining");
-        existingTransaction.setCategoryDetailed("dining");
+        existingTransaction.setCategoryPrimary(DINING);
+        existingTransaction.setCategoryDetailed(DINING);
         existingTransaction.setTransactionDate(java.time.LocalDate.now().toString());
         existingTransaction.setCurrencyCode("USD");
         existingTransaction.setCreatedAt(Instant.now());
@@ -366,15 +369,16 @@ class PlaidDeduplicationIntegrationTest {
         duplicateTransaction.setPlaidTransactionId(plaidTransactionId); // Same Plaid ID
         duplicateTransaction.setAmount(new BigDecimal("200.00"));
         duplicateTransaction.setDescription("Duplicate Transaction");
-        duplicateTransaction.setCategoryPrimary("dining");
-        duplicateTransaction.setCategoryDetailed("dining");
+        duplicateTransaction.setCategoryPrimary(DINING);
+        duplicateTransaction.setCategoryDetailed(DINING);
         duplicateTransaction.setTransactionDate(java.time.LocalDate.now().toString());
         duplicateTransaction.setCurrencyCode("USD");
         duplicateTransaction.setCreatedAt(Instant.now());
         duplicateTransaction.setUpdatedAt(Instant.now());
 
         // Use saveIfPlaidTransactionNotExists to prevent duplicates
-        final boolean saved = transactionRepository.saveIfPlaidTransactionNotExists(duplicateTransaction);
+        final boolean saved =
+                transactionRepository.saveIfPlaidTransactionNotExists(duplicateTransaction);
 
         // Then - Should not create duplicate
         if (saved) {
@@ -429,8 +433,8 @@ class PlaidDeduplicationIntegrationTest {
         existingTransaction.setPlaidTransactionId(plaidTransactionId);
         existingTransaction.setAmount(new BigDecimal("100.00"));
         existingTransaction.setDescription("Existing Transaction");
-        existingTransaction.setCategoryPrimary("dining");
-        existingTransaction.setCategoryDetailed("dining");
+        existingTransaction.setCategoryPrimary(DINING);
+        existingTransaction.setCategoryDetailed(DINING);
         existingTransaction.setTransactionDate(java.time.LocalDate.now().toString());
         existingTransaction.setCurrencyCode("USD");
         existingTransaction.setCreatedAt(Instant.now());
@@ -468,7 +472,8 @@ class PlaidDeduplicationIntegrationTest {
         // When - Try to sync multiple times (simulating multiple Plaid syncs)
         for (int i = 0; i < 3; i++) {
             // Check if account exists by plaidAccountId
-            final Optional<AccountTable> found = accountRepository.findByPlaidAccountId(plaidAccountId);
+            final Optional<AccountTable> found =
+                    accountRepository.findByPlaidAccountId(plaidAccountId);
             if (found.isPresent()) {
                 // Update existing account
                 final AccountTable account = found.get();
@@ -537,8 +542,8 @@ class PlaidDeduplicationIntegrationTest {
         existingTransaction.setPlaidTransactionId(plaidTransactionId);
         existingTransaction.setAmount(new BigDecimal("100.00"));
         existingTransaction.setDescription("Existing Transaction");
-        existingTransaction.setCategoryPrimary("dining");
-        existingTransaction.setCategoryDetailed("dining");
+        existingTransaction.setCategoryPrimary(DINING);
+        existingTransaction.setCategoryDetailed(DINING);
         existingTransaction.setTransactionDate(java.time.LocalDate.now().toString());
         existingTransaction.setCurrencyCode("USD");
         existingTransaction.setCreatedAt(Instant.now());
@@ -565,8 +570,8 @@ class PlaidDeduplicationIntegrationTest {
                 newTransaction.setPlaidTransactionId(plaidTransactionId);
                 newTransaction.setAmount(new BigDecimal("100.00"));
                 newTransaction.setDescription("New Transaction " + i);
-                newTransaction.setCategoryPrimary("dining");
-                newTransaction.setCategoryDetailed("dining");
+                newTransaction.setCategoryPrimary(DINING);
+                newTransaction.setCategoryDetailed(DINING);
                 newTransaction.setTransactionDate(java.time.LocalDate.now().toString());
                 newTransaction.setCurrencyCode("USD");
                 newTransaction.setCreatedAt(Instant.now());

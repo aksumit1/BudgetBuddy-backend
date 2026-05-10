@@ -42,7 +42,9 @@ public class CircuitBreakerService {
 
     /** Executes a call with circuit breaker protection */
     public <T> T execute(
-            final String serviceName, final java.util.function.Supplier<T> operation, final T fallbackValue) {
+            final String serviceName,
+            final java.util.function.Supplier<T> operation,
+            final T fallbackValue) {
         if (state == State.OPEN) {
             // Check if timeout has passed
             final long timeSinceLastFailure = System.currentTimeMillis() - lastFailureTime.get();

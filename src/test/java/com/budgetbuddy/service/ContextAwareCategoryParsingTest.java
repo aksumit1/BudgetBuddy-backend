@@ -20,6 +20,14 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class ContextAwareCategoryParsingTest {
 
+    private static final String DEPOSITORY = "depository";
+    private static final String CHECKING = "checking";
+    private static final String CARD = "card";
+    private static final String DINING = "dining";
+    private static final String TRANSPORTATION = "transportation";
+    private static final String ENTERTAINMENT = "entertainment";
+    private static final String HEALTH = "health";
+
     @Mock private AccountDetectionService accountDetectionService;
 
     @Mock private EnhancedCategoryDetectionService enhancedCategoryDetection;
@@ -201,8 +209,8 @@ class ContextAwareCategoryParsingTest {
                         null,
                         null,
                         "INCOME",
-                        "depository",
-                        "checking");
+                        DEPOSITORY,
+                        CHECKING);
         assertEquals("dividend", category);
     }
 
@@ -218,7 +226,7 @@ class ContextAwareCategoryParsingTest {
                         null,
                         null,
                         "INCOME",
-                        "depository",
+                        DEPOSITORY,
                         "savings");
         assertEquals("interest", category);
     }
@@ -330,8 +338,8 @@ class ContextAwareCategoryParsingTest {
                         "ach",
                         null,
                         "INCOME",
-                        "depository",
-                        "checking");
+                        DEPOSITORY,
+                        CHECKING);
         assertEquals("salary", category);
     }
 
@@ -348,8 +356,8 @@ class ContextAwareCategoryParsingTest {
                         "ach",
                         null,
                         "INCOME",
-                        "depository",
-                        "checking");
+                        DEPOSITORY,
+                        CHECKING);
         // The logic should detect deposit from context, but "transfer" might be detected first
         assertTrue(
                 "deposit".equals(category) || "transfer".equals(category),
@@ -367,8 +375,8 @@ class ContextAwareCategoryParsingTest {
                         null,
                         null,
                         "INCOME",
-                        "depository",
-                        "checking");
+                        DEPOSITORY,
+                        CHECKING);
         assertEquals("rentIncome", category);
     }
 
@@ -383,8 +391,8 @@ class ContextAwareCategoryParsingTest {
                         null,
                         null,
                         "INCOME",
-                        "depository",
-                        "checking");
+                        DEPOSITORY,
+                        CHECKING);
         assertEquals("stipend", category);
     }
 
@@ -464,8 +472,8 @@ class ContextAwareCategoryParsingTest {
                         "ach",
                         "DEBIT",
                         "EXPENSE",
-                        "depository",
-                        "checking");
+                        DEPOSITORY,
+                        CHECKING);
         assertEquals(
                 "utilities",
                 category,
@@ -484,8 +492,8 @@ class ContextAwareCategoryParsingTest {
                         "ach",
                         "DEBIT",
                         "EXPENSE",
-                        "depository",
-                        "checking");
+                        DEPOSITORY,
+                        CHECKING);
         assertEquals(
                 "utilities",
                 category,
@@ -504,8 +512,8 @@ class ContextAwareCategoryParsingTest {
                         "ach",
                         "DEBIT",
                         "EXPENSE",
-                        "depository",
-                        "checking");
+                        DEPOSITORY,
+                        CHECKING);
         assertEquals(
                 "utilities",
                 category,
@@ -524,10 +532,10 @@ class ContextAwareCategoryParsingTest {
                         "ach",
                         "DEBIT",
                         "EXPENSE",
-                        "depository",
-                        "checking");
+                        DEPOSITORY,
+                        CHECKING);
         assertEquals(
-                "transportation",
+                TRANSPORTATION,
                 category,
                 "WSDOT (Washington State Department of Transportation toll) should be categorized as transportation");
     }
@@ -544,10 +552,10 @@ class ContextAwareCategoryParsingTest {
                         "ach",
                         "DEBIT",
                         "EXPENSE",
-                        "depository",
-                        "checking");
+                        DEPOSITORY,
+                        CHECKING);
         assertEquals(
-                "transportation",
+                TRANSPORTATION,
                 category,
                 "GoodToGo (Washington state toll system) should be categorized as transportation");
     }
@@ -568,10 +576,10 @@ class ContextAwareCategoryParsingTest {
                             "ach",
                             "DEBIT",
                             "EXPENSE",
-                            "depository",
-                            "checking");
+                            DEPOSITORY,
+                            CHECKING);
             assertEquals(
-                    "transportation",
+                    TRANSPORTATION,
                     category,
                     String.format(
                             "State DOT pattern '%s' should be categorized as transportation",
@@ -591,8 +599,8 @@ class ContextAwareCategoryParsingTest {
                         null,
                         null,
                         "EXPENSE",
-                        "depository",
-                        "checking");
+                        DEPOSITORY,
+                        CHECKING);
         assertNotEquals("investmentFees", category);
     }
 
@@ -607,11 +615,11 @@ class ContextAwareCategoryParsingTest {
                         "ChatGPT Plus Subscription",
                         "OpenAI",
                         BigDecimal.valueOf(-20.00),
-                        "card",
+                        CARD,
                         "DEBIT",
                         "EXPENSE",
-                        "depository",
-                        "checking");
+                        DEPOSITORY,
+                        CHECKING);
         assertEquals(
                 "tech", category, "ChatGPT (AI service) should be categorized as tech, not others");
     }
@@ -625,11 +633,11 @@ class ContextAwareCategoryParsingTest {
                         "New York NY Men's clothing",
                         "Men's Store",
                         BigDecimal.valueOf(-150.00),
-                        "card",
+                        CARD,
                         "DEBIT",
                         "EXPENSE",
-                        "depository",
-                        "checking");
+                        DEPOSITORY,
+                        CHECKING);
         assertEquals(
                 "shopping",
                 category,
@@ -642,7 +650,7 @@ class ContextAwareCategoryParsingTest {
     void testInvestmentJournalsSubscriptions() {
         // Test various investment journals
         final String[] journals = {
-                "J*Barrons", "NYTimes", "WSJ", "Wall Street Journal", "New York Times"
+            "J*Barrons", "NYTimes", "WSJ", "Wall Street Journal", "New York Times"
         };
 
         for (final String journal : journals) {
@@ -652,11 +660,11 @@ class ContextAwareCategoryParsingTest {
                             journal + " Subscription",
                             journal,
                             BigDecimal.valueOf(-15.00),
-                            "card",
+                            CARD,
                             "DEBIT",
                             "EXPENSE",
-                            "depository",
-                            "checking");
+                            DEPOSITORY,
+                            CHECKING);
             assertEquals(
                     "subscriptions",
                     category,
@@ -677,13 +685,13 @@ class ContextAwareCategoryParsingTest {
                         "HuluPlus Subscription",
                         "HuluPlus",
                         BigDecimal.valueOf(-12.99),
-                        "card",
+                        CARD,
                         "DEBIT",
                         "EXPENSE",
-                        "depository",
-                        "checking");
+                        DEPOSITORY,
+                        CHECKING);
         assertEquals(
-                "entertainment",
+                ENTERTAINMENT,
                 category,
                 "HuluPlus (streaming service) should be categorized as entertainment, not subscriptions");
     }
@@ -697,13 +705,13 @@ class ContextAwareCategoryParsingTest {
                         "Netflix Monthly",
                         "Netflix",
                         BigDecimal.valueOf(-15.99),
-                        "card",
+                        CARD,
                         "DEBIT",
                         "EXPENSE",
-                        "depository",
-                        "checking");
+                        DEPOSITORY,
+                        CHECKING);
         assertEquals(
-                "entertainment",
+                ENTERTAINMENT,
                 category,
                 "Netflix (streaming service) should be categorized as entertainment, not subscriptions");
     }
@@ -717,13 +725,13 @@ class ContextAwareCategoryParsingTest {
                         "Spotify Premium",
                         "Spotify",
                         BigDecimal.valueOf(-9.99),
-                        "card",
+                        CARD,
                         "DEBIT",
                         "EXPENSE",
-                        "depository",
-                        "checking");
+                        DEPOSITORY,
+                        CHECKING);
         assertEquals(
-                "entertainment",
+                ENTERTAINMENT,
                 category,
                 "Spotify (streaming service) should be categorized as entertainment, not subscriptions");
     }
@@ -737,13 +745,13 @@ class ContextAwareCategoryParsingTest {
                         "Disney+ Subscription",
                         "Disney+",
                         BigDecimal.valueOf(-10.99),
-                        "card",
+                        CARD,
                         "DEBIT",
                         "EXPENSE",
-                        "depository",
-                        "checking");
+                        DEPOSITORY,
+                        CHECKING);
         assertEquals(
-                "entertainment",
+                ENTERTAINMENT,
                 category,
                 "Disney+ (streaming service) should be categorized as entertainment, not subscriptions");
     }
@@ -757,11 +765,11 @@ class ContextAwareCategoryParsingTest {
                         "Adobe Creative Cloud",
                         "Adobe",
                         BigDecimal.valueOf(-52.99),
-                        "card",
+                        CARD,
                         "DEBIT",
                         "EXPENSE",
-                        "depository",
-                        "checking");
+                        DEPOSITORY,
+                        CHECKING);
         assertEquals(
                 "subscriptions",
                 category,
@@ -779,15 +787,13 @@ class ContextAwareCategoryParsingTest {
                         "Lucky Hair Salin",
                         "Lucky Hair Salin",
                         BigDecimal.valueOf(-45.00),
-                        "card",
+                        CARD,
                         "DEBIT",
                         "EXPENSE",
-                        "depository",
-                        "checking");
+                        DEPOSITORY,
+                        CHECKING);
         assertEquals(
-                "health",
-                category,
-                "Lucky Hair Salin (hair salon) should be categorized as health");
+                HEALTH, category, "Lucky Hair Salin (hair salon) should be categorized as health");
     }
 
     @Test
@@ -799,15 +805,13 @@ class ContextAwareCategoryParsingTest {
                         "Lucky Hair Salon",
                         "Lucky Hair Salon",
                         BigDecimal.valueOf(-45.00),
-                        "card",
+                        CARD,
                         "DEBIT",
                         "EXPENSE",
-                        "depository",
-                        "checking");
+                        DEPOSITORY,
+                        CHECKING);
         assertEquals(
-                "health",
-                category,
-                "Lucky Hair Salon (hair salon) should be categorized as health");
+                HEALTH, category, "Lucky Hair Salon (hair salon) should be categorized as health");
     }
 
     // ========== Sports Equipment → Shopping ==========
@@ -821,11 +825,11 @@ class ContextAwareCategoryParsingTest {
                         "Mini Mountain",
                         "Mini Mountain",
                         BigDecimal.valueOf(-150.00),
-                        "card",
+                        CARD,
                         "DEBIT",
                         "EXPENSE",
-                        "depository",
-                        "checking");
+                        DEPOSITORY,
+                        CHECKING);
         assertEquals(
                 "shopping",
                 category,
@@ -841,11 +845,11 @@ class ContextAwareCategoryParsingTest {
                         "Ski Gear Store",
                         "Ski Equipment",
                         BigDecimal.valueOf(-200.00),
-                        "card",
+                        CARD,
                         "DEBIT",
                         "EXPENSE",
-                        "depository",
-                        "checking");
+                        DEPOSITORY,
+                        CHECKING);
         assertEquals("shopping", category, "Ski gear/equipment should be categorized as shopping");
     }
 
@@ -858,13 +862,12 @@ class ContextAwareCategoryParsingTest {
                         "Summit at Snoqualmie",
                         "Summit at Snoqualmie",
                         BigDecimal.valueOf(-80.00),
-                        "card",
+                        CARD,
                         "DEBIT",
                         "EXPENSE",
-                        "depository",
-                        "checking");
-        assertEquals(
-                "health", category, "Ski resort (Summit at Snoqualmie) should remain as health");
+                        DEPOSITORY,
+                        CHECKING);
+        assertEquals(HEALTH, category, "Ski resort (Summit at Snoqualmie) should remain as health");
     }
 
     // ========== Restaurants → Dining ==========
@@ -878,13 +881,12 @@ class ContextAwareCategoryParsingTest {
                         "Daeho",
                         "Daeho",
                         BigDecimal.valueOf(-45.00),
-                        "card",
+                        CARD,
                         "DEBIT",
                         "EXPENSE",
-                        "depository",
-                        "checking");
-        assertEquals(
-                "dining", category, "Daeho (Korean restaurant) should be categorized as dining");
+                        DEPOSITORY,
+                        CHECKING);
+        assertEquals(DINING, category, "Daeho (Korean restaurant) should be categorized as dining");
     }
 
     @Test
@@ -896,13 +898,13 @@ class ContextAwareCategoryParsingTest {
                         "Tutta Bella",
                         "Tutta Bella",
                         BigDecimal.valueOf(-35.00),
-                        "card",
+                        CARD,
                         "DEBIT",
                         "EXPENSE",
-                        "depository",
-                        "checking");
+                        DEPOSITORY,
+                        CHECKING);
         assertEquals(
-                "dining",
+                DINING,
                 category,
                 "Tutta Bella (Italian restaurant) should be categorized as dining");
     }
@@ -916,13 +918,13 @@ class ContextAwareCategoryParsingTest {
                         "Simply Indian Restaur",
                         "Simply Indian Restaur",
                         BigDecimal.valueOf(-25.00),
-                        "card",
+                        CARD,
                         "DEBIT",
                         "EXPENSE",
-                        "depository",
-                        "checking");
+                        DEPOSITORY,
+                        CHECKING);
         assertEquals(
-                "dining",
+                DINING,
                 category,
                 "Simply Indian Restaur (Indian restaurant) should be categorized as dining");
     }
@@ -936,13 +938,13 @@ class ContextAwareCategoryParsingTest {
                         "Local Restaur",
                         "Local Restaur",
                         BigDecimal.valueOf(-30.00),
-                        "card",
+                        CARD,
                         "DEBIT",
                         "EXPENSE",
-                        "depository",
-                        "checking");
+                        DEPOSITORY,
+                        CHECKING);
         assertEquals(
-                "dining", category, "Restaur keyword should be recognized as restaurant → dining");
+                DINING, category, "Restaur keyword should be recognized as restaurant → dining");
     }
 
     // ========== Gas Stations & Travel Centers → Transportation ==========
@@ -956,13 +958,13 @@ class ContextAwareCategoryParsingTest {
                         "COSTCO GAS",
                         "COSTCO GAS",
                         BigDecimal.valueOf(-50.00),
-                        "card",
+                        CARD,
                         "DEBIT",
                         "EXPENSE",
-                        "depository",
-                        "checking");
+                        DEPOSITORY,
+                        CHECKING);
         assertEquals(
-                "transportation",
+                TRANSPORTATION,
                 category,
                 "Costco Gas should be categorized as transportation, not groceries");
     }
@@ -976,13 +978,13 @@ class ContextAwareCategoryParsingTest {
                         "Kwik SAK",
                         "Kwik SAK",
                         BigDecimal.valueOf(-35.00),
-                        "card",
+                        CARD,
                         "DEBIT",
                         "EXPENSE",
-                        "depository",
-                        "checking");
+                        DEPOSITORY,
+                        CHECKING);
         assertEquals(
-                "transportation",
+                TRANSPORTATION,
                 category,
                 "Kwik SAK (gas station) should be categorized as transportation");
     }
@@ -996,13 +998,13 @@ class ContextAwareCategoryParsingTest {
                         "Exxon",
                         "Exxon",
                         BigDecimal.valueOf(-40.00),
-                        "card",
+                        CARD,
                         "DEBIT",
                         "EXPENSE",
-                        "depository",
-                        "checking");
+                        DEPOSITORY,
+                        CHECKING);
         assertEquals(
-                "transportation",
+                TRANSPORTATION,
                 category,
                 "Exxon (gas station) should be categorized as transportation");
     }
@@ -1016,13 +1018,13 @@ class ContextAwareCategoryParsingTest {
                         "BUC-EE's",
                         "BUC-EE's",
                         BigDecimal.valueOf(-60.00),
-                        "card",
+                        CARD,
                         "DEBIT",
                         "EXPENSE",
-                        "depository",
-                        "checking");
+                        DEPOSITORY,
+                        CHECKING);
         assertEquals(
-                "transportation",
+                TRANSPORTATION,
                 category,
                 "BUC-EE's (travel center with gas, grocery, food) should be categorized as transportation");
     }
@@ -1038,13 +1040,13 @@ class ContextAwareCategoryParsingTest {
                         "Skills Rainbow Room",
                         "Skills Rainbow Room",
                         BigDecimal.valueOf(-45.00),
-                        "card",
+                        CARD,
                         "DEBIT",
                         "EXPENSE",
-                        "depository",
-                        "checking");
+                        DEPOSITORY,
+                        CHECKING);
         assertEquals(
-                "dining",
+                DINING,
                 category,
                 "Skills Rainbow Room (restaurant) should be categorized as dining");
     }
@@ -1058,13 +1060,13 @@ class ContextAwareCategoryParsingTest {
                         "TST*RESTAURANT NAME",
                         "TST*RESTAURANT NAME",
                         BigDecimal.valueOf(-25.00),
-                        "card",
+                        CARD,
                         "DEBIT",
                         "EXPENSE",
-                        "depository",
-                        "checking");
+                        DEPOSITORY,
+                        CHECKING);
         assertEquals(
-                "dining",
+                DINING,
                 category,
                 "TST* pattern (Transaction Service Terminal) should be recognized as restaurant → dining");
     }
@@ -1078,13 +1080,13 @@ class ContextAwareCategoryParsingTest {
                         "Kyurmaen",
                         "Kyurmaen",
                         BigDecimal.valueOf(-20.00),
-                        "card",
+                        CARD,
                         "DEBIT",
                         "EXPENSE",
-                        "depository",
-                        "checking");
+                        DEPOSITORY,
+                        CHECKING);
         assertEquals(
-                "dining", category, "Kyurmaen (ramen restaurant) should be categorized as dining");
+                DINING, category, "Kyurmaen (ramen restaurant) should be categorized as dining");
     }
 
     // ========== Costco Warehouse → Groceries (not Income) ==========
@@ -1099,7 +1101,7 @@ class ContextAwareCategoryParsingTest {
                         "COSTCO WHSE #1029 COVINGTON WA",
                         "COSTCO WHSE #1029 COVINGTON WA",
                         BigDecimal.valueOf(60.73),
-                        "card",
+                        CARD,
                         "CREDIT",
                         "EXPENSE",
                         "credit",
@@ -1119,11 +1121,11 @@ class ContextAwareCategoryParsingTest {
                         "Costco Warehouse",
                         "Costco Warehouse",
                         BigDecimal.valueOf(-100.00),
-                        "card",
+                        CARD,
                         "DEBIT",
                         "EXPENSE",
-                        "depository",
-                        "checking");
+                        DEPOSITORY,
+                        CHECKING);
         assertEquals("groceries", category, "Costco Warehouse should be categorized as groceries");
     }
 
@@ -1138,12 +1140,12 @@ class ContextAwareCategoryParsingTest {
                         "DEEP DIVE",
                         "DEEP DIVE",
                         BigDecimal.valueOf(-45.00),
-                        "card",
+                        CARD,
                         "DEBIT",
                         "EXPENSE",
-                        "depository",
-                        "checking");
-        assertEquals("dining", category, "DEEP DIVE (restaurant) should be categorized as dining");
+                        DEPOSITORY,
+                        CHECKING);
+        assertEquals(DINING, category, "DEEP DIVE (restaurant) should be categorized as dining");
     }
 
     @Test
@@ -1155,12 +1157,12 @@ class ContextAwareCategoryParsingTest {
                         "MESSINA",
                         "MESSINA",
                         BigDecimal.valueOf(-35.00),
-                        "card",
+                        CARD,
                         "DEBIT",
                         "EXPENSE",
-                        "depository",
-                        "checking");
-        assertEquals("dining", category, "MESSINA (restaurant) should be categorized as dining");
+                        DEPOSITORY,
+                        CHECKING);
+        assertEquals(DINING, category, "MESSINA (restaurant) should be categorized as dining");
     }
 
     @Test
@@ -1172,15 +1174,13 @@ class ContextAwareCategoryParsingTest {
                         "Supreme Dumplings",
                         "Supreme Dumplings",
                         BigDecimal.valueOf(-25.00),
-                        "card",
+                        CARD,
                         "DEBIT",
                         "EXPENSE",
-                        "depository",
-                        "checking");
+                        DEPOSITORY,
+                        CHECKING);
         assertEquals(
-                "dining",
-                category,
-                "Supreme Dumplings (restaurant) should be categorized as dining");
+                DINING, category, "Supreme Dumplings (restaurant) should be categorized as dining");
     }
 
     @Test
@@ -1192,13 +1192,12 @@ class ContextAwareCategoryParsingTest {
                         "Cucina Venti",
                         "Cucina Venti",
                         BigDecimal.valueOf(-40.00),
-                        "card",
+                        CARD,
                         "DEBIT",
                         "EXPENSE",
-                        "depository",
-                        "checking");
-        assertEquals(
-                "dining", category, "Cucina Venti (restaurant) should be categorized as dining");
+                        DEPOSITORY,
+                        CHECKING);
+        assertEquals(DINING, category, "Cucina Venti (restaurant) should be categorized as dining");
     }
 
     @Test
@@ -1210,15 +1209,13 @@ class ContextAwareCategoryParsingTest {
                         "Desi Dhaba",
                         "Desi Dhaba",
                         BigDecimal.valueOf(-30.00),
-                        "card",
+                        CARD,
                         "DEBIT",
                         "EXPENSE",
-                        "depository",
-                        "checking");
+                        DEPOSITORY,
+                        CHECKING);
         assertEquals(
-                "dining",
-                category,
-                "Desi Dhaba (Indian restaurant) should be categorized as dining");
+                DINING, category, "Desi Dhaba (Indian restaurant) should be categorized as dining");
     }
 
     @Test
@@ -1230,13 +1227,13 @@ class ContextAwareCategoryParsingTest {
                         "Medocinofarms",
                         "Medocinofarms",
                         BigDecimal.valueOf(-50.00),
-                        "card",
+                        CARD,
                         "DEBIT",
                         "EXPENSE",
-                        "depository",
-                        "checking");
+                        DEPOSITORY,
+                        CHECKING);
         assertEquals(
-                "dining", category, "Medocinofarms (restaurant) should be categorized as dining");
+                DINING, category, "Medocinofarms (restaurant) should be categorized as dining");
     }
 
     @Test
@@ -1248,13 +1245,13 @@ class ContextAwareCategoryParsingTest {
                         "Laughing Monk Brewing",
                         "Laughing Monk Brewing",
                         BigDecimal.valueOf(-35.00),
-                        "card",
+                        CARD,
                         "DEBIT",
                         "EXPENSE",
-                        "depository",
-                        "checking");
+                        DEPOSITORY,
+                        CHECKING);
         assertEquals(
-                "dining",
+                DINING,
                 category,
                 "Laughing Monk Brewing (restaurant/brewery) should be categorized as dining");
     }
@@ -1270,12 +1267,12 @@ class ContextAwareCategoryParsingTest {
                         "Local Dumplings",
                         "Local Dumplings",
                         BigDecimal.valueOf(-20.00),
-                        "card",
+                        CARD,
                         "DEBIT",
                         "EXPENSE",
-                        "depository",
-                        "checking");
-        assertEquals("dining", category, "Dumplings keyword should indicate restaurant → dining");
+                        DEPOSITORY,
+                        CHECKING);
+        assertEquals(DINING, category, "Dumplings keyword should indicate restaurant → dining");
     }
 
     @Test
@@ -1287,12 +1284,12 @@ class ContextAwareCategoryParsingTest {
                         "Burger Place",
                         "Burger Place",
                         BigDecimal.valueOf(-15.00),
-                        "card",
+                        CARD,
                         "DEBIT",
                         "EXPENSE",
-                        "depository",
-                        "checking");
-        assertEquals("dining", category, "Burger keyword should indicate restaurant → dining");
+                        DEPOSITORY,
+                        CHECKING);
+        assertEquals(DINING, category, "Burger keyword should indicate restaurant → dining");
     }
 
     @Test
@@ -1304,12 +1301,12 @@ class ContextAwareCategoryParsingTest {
                         "Local Grill",
                         "Local Grill",
                         BigDecimal.valueOf(-30.00),
-                        "card",
+                        CARD,
                         "DEBIT",
                         "EXPENSE",
-                        "depository",
-                        "checking");
-        assertEquals("dining", category, "Grill keyword should indicate restaurant → dining");
+                        DEPOSITORY,
+                        CHECKING);
+        assertEquals(DINING, category, "Grill keyword should indicate restaurant → dining");
     }
 
     @Test
@@ -1321,12 +1318,12 @@ class ContextAwareCategoryParsingTest {
                         "Thai Restaurant",
                         "Thai Restaurant",
                         BigDecimal.valueOf(-25.00),
-                        "card",
+                        CARD,
                         "DEBIT",
                         "EXPENSE",
-                        "depository",
-                        "checking");
-        assertEquals("dining", category, "Thai keyword should indicate restaurant → dining");
+                        DEPOSITORY,
+                        CHECKING);
+        assertEquals(DINING, category, "Thai keyword should indicate restaurant → dining");
     }
 
     @Test
@@ -1338,13 +1335,13 @@ class ContextAwareCategoryParsingTest {
                         "Local Dhaba",
                         "Local Dhaba",
                         BigDecimal.valueOf(-20.00),
-                        "card",
+                        CARD,
                         "DEBIT",
                         "EXPENSE",
-                        "depository",
-                        "checking");
+                        DEPOSITORY,
+                        CHECKING);
         assertEquals(
-                "dining",
+                DINING,
                 category,
                 "Dhaba keyword (Indian restaurant) should indicate restaurant → dining");
     }
@@ -1358,13 +1355,13 @@ class ContextAwareCategoryParsingTest {
                         "Local Brewing",
                         "Local Brewing",
                         BigDecimal.valueOf(-40.00),
-                        "card",
+                        CARD,
                         "DEBIT",
                         "EXPENSE",
-                        "depository",
-                        "checking");
+                        DEPOSITORY,
+                        CHECKING);
         assertEquals(
-                "dining", category, "Brewing keyword should indicate restaurant/brewery → dining");
+                DINING, category, "Brewing keyword should indicate restaurant/brewery → dining");
     }
 
     // ========== Airport Expenses → Transportation ==========
@@ -1378,13 +1375,13 @@ class ContextAwareCategoryParsingTest {
                         "SEATTLEAP CART/CHAIR",
                         "SEATTLEAP CART/CHAIR",
                         BigDecimal.valueOf(-5.00),
-                        "card",
+                        CARD,
                         "DEBIT",
                         "EXPENSE",
-                        "depository",
-                        "checking");
+                        DEPOSITORY,
+                        CHECKING);
         assertEquals(
-                "transportation",
+                TRANSPORTATION,
                 category,
                 "SEATTLEAP CART/CHAIR (airport cart expense) should be categorized as transportation");
     }
@@ -1398,13 +1395,13 @@ class ContextAwareCategoryParsingTest {
                         "Airport Cart",
                         "Airport Cart",
                         BigDecimal.valueOf(-5.00),
-                        "card",
+                        CARD,
                         "DEBIT",
                         "EXPENSE",
-                        "depository",
-                        "checking");
+                        DEPOSITORY,
+                        CHECKING);
         assertEquals(
-                "transportation", category, "Airport cart should be categorized as transportation");
+                TRANSPORTATION, category, "Airport cart should be categorized as transportation");
     }
 
     @Test
@@ -1416,13 +1413,13 @@ class ContextAwareCategoryParsingTest {
                         "Seattle Airport Cart",
                         "Seattle Airport Cart",
                         BigDecimal.valueOf(-5.00),
-                        "card",
+                        CARD,
                         "DEBIT",
                         "EXPENSE",
-                        "depository",
-                        "checking");
+                        DEPOSITORY,
+                        CHECKING);
         assertEquals(
-                "transportation",
+                TRANSPORTATION,
                 category,
                 "Seattle Airport cart should be categorized as transportation");
     }
@@ -1438,13 +1435,13 @@ class ContextAwareCategoryParsingTest {
                         "Indian Sizzler",
                         "Indian Sizzler",
                         BigDecimal.valueOf(-35.00),
-                        "card",
+                        CARD,
                         "DEBIT",
                         "EXPENSE",
-                        "depository",
-                        "checking");
+                        DEPOSITORY,
+                        CHECKING);
         assertEquals(
-                "dining", category, "Indian Sizzler (restaurant) should be categorized as dining");
+                DINING, category, "Indian Sizzler (restaurant) should be categorized as dining");
     }
 
     @Test
@@ -1456,12 +1453,12 @@ class ContextAwareCategoryParsingTest {
                         "Shana Thai",
                         "Shana Thai",
                         BigDecimal.valueOf(-30.00),
-                        "card",
+                        CARD,
                         "DEBIT",
                         "EXPENSE",
-                        "depository",
-                        "checking");
-        assertEquals("dining", category, "Shana Thai (restaurant) should be categorized as dining");
+                        DEPOSITORY,
+                        CHECKING);
+        assertEquals(DINING, category, "Shana Thai (restaurant) should be categorized as dining");
     }
 
     @Test
@@ -1473,12 +1470,12 @@ class ContextAwareCategoryParsingTest {
                         "TPD",
                         "TPD",
                         BigDecimal.valueOf(-25.00),
-                        "card",
+                        CARD,
                         "DEBIT",
                         "EXPENSE",
-                        "depository",
-                        "checking");
-        assertEquals("dining", category, "TPD (restaurant) should be categorized as dining");
+                        DEPOSITORY,
+                        CHECKING);
+        assertEquals(DINING, category, "TPD (restaurant) should be categorized as dining");
     }
 
     // ========== Popular Gas Stations → Transportation ==========
@@ -1492,15 +1489,13 @@ class ContextAwareCategoryParsingTest {
                         "76 Station",
                         "76 Station",
                         BigDecimal.valueOf(-50.00),
-                        "card",
+                        CARD,
                         "DEBIT",
                         "EXPENSE",
-                        "depository",
-                        "checking");
+                        DEPOSITORY,
+                        CHECKING);
         assertEquals(
-                "transportation",
-                category,
-                "76 gas station should be categorized as transportation");
+                TRANSPORTATION, category, "76 gas station should be categorized as transportation");
     }
 
     @Test
@@ -1512,13 +1507,13 @@ class ContextAwareCategoryParsingTest {
                         "Arco",
                         "Arco",
                         BigDecimal.valueOf(-45.00),
-                        "card",
+                        CARD,
                         "DEBIT",
                         "EXPENSE",
-                        "depository",
-                        "checking");
+                        DEPOSITORY,
+                        CHECKING);
         assertEquals(
-                "transportation",
+                TRANSPORTATION,
                 category,
                 "Arco gas station should be categorized as transportation");
     }
@@ -1532,13 +1527,13 @@ class ContextAwareCategoryParsingTest {
                         "Shell",
                         "Shell",
                         BigDecimal.valueOf(-55.00),
-                        "card",
+                        CARD,
                         "DEBIT",
                         "EXPENSE",
-                        "depository",
-                        "checking");
+                        DEPOSITORY,
+                        CHECKING);
         assertEquals(
-                "transportation",
+                TRANSPORTATION,
                 category,
                 "Shell gas station should be categorized as transportation");
     }
@@ -1552,13 +1547,13 @@ class ContextAwareCategoryParsingTest {
                         "Chevron",
                         "Chevron",
                         BigDecimal.valueOf(-60.00),
-                        "card",
+                        CARD,
                         "DEBIT",
                         "EXPENSE",
-                        "depository",
-                        "checking");
+                        DEPOSITORY,
+                        CHECKING);
         assertEquals(
-                "transportation",
+                TRANSPORTATION,
                 category,
                 "Chevron gas station should be categorized as transportation");
     }
@@ -1572,13 +1567,13 @@ class ContextAwareCategoryParsingTest {
                         "Valero",
                         "Valero",
                         BigDecimal.valueOf(-52.00),
-                        "card",
+                        CARD,
                         "DEBIT",
                         "EXPENSE",
-                        "depository",
-                        "checking");
+                        DEPOSITORY,
+                        CHECKING);
         assertEquals(
-                "transportation",
+                TRANSPORTATION,
                 category,
                 "Valero gas station should be categorized as transportation");
     }
@@ -1594,13 +1589,13 @@ class ContextAwareCategoryParsingTest {
                         "Conundroom",
                         "Conundroom",
                         BigDecimal.valueOf(-30.00),
-                        "card",
+                        CARD,
                         "DEBIT",
                         "EXPENSE",
-                        "depository",
-                        "checking");
+                        DEPOSITORY,
+                        CHECKING);
         assertEquals(
-                "entertainment",
+                ENTERTAINMENT,
                 category,
                 "Conundroom (escape room) should be categorized as entertainment");
     }
@@ -1614,13 +1609,13 @@ class ContextAwareCategoryParsingTest {
                         "PayPAMS Payment",
                         "PayPAMS",
                         BigDecimal.valueOf(-25.50),
-                        "card",
+                        CARD,
                         "DEBIT",
                         "EXPENSE",
-                        "depository",
-                        "checking");
+                        DEPOSITORY,
+                        CHECKING);
         assertEquals(
-                "dining",
+                DINING,
                 category,
                 "PayPAMS (online school food payment) should be categorized as dining");
     }
@@ -1634,11 +1629,11 @@ class ContextAwareCategoryParsingTest {
                         "Bellevue School District Payment",
                         "Bellevue School District",
                         BigDecimal.valueOf(-150.00),
-                        "card",
+                        CARD,
                         "DEBIT",
                         "EXPENSE",
-                        "depository",
-                        "checking");
+                        DEPOSITORY,
+                        CHECKING);
         assertEquals(
                 "education",
                 category,
@@ -1654,13 +1649,12 @@ class ContextAwareCategoryParsingTest {
                         "Stop 4 Nails",
                         "Stop 4 Nails",
                         BigDecimal.valueOf(-45.00),
-                        "card",
+                        CARD,
                         "DEBIT",
                         "EXPENSE",
-                        "depository",
-                        "checking");
-        assertEquals(
-                "health", category, "Stop 4 Nails (nail salon) should be categorized as health");
+                        DEPOSITORY,
+                        CHECKING);
+        assertEquals(HEALTH, category, "Stop 4 Nails (nail salon) should be categorized as health");
     }
 
     @Test
@@ -1673,13 +1667,13 @@ class ContextAwareCategoryParsingTest {
                         "Amex Airlines Fee Reimbursement",
                         "AMEX",
                         BigDecimal.valueOf(50.00),
-                        "card",
+                        CARD,
                         "CREDIT",
                         "INCOME",
                         "credit",
                         "credit card");
         assertEquals(
-                "transportation",
+                TRANSPORTATION,
                 category,
                 "Amex Airlines Fee Reimbursement should be categorized as transportation, even though it's a credit");
     }
@@ -1693,13 +1687,13 @@ class ContextAwareCategoryParsingTest {
                         "Eractoll Payment",
                         "Eractoll",
                         BigDecimal.valueOf(-5.00),
-                        "card",
+                        CARD,
                         "DEBIT",
                         "EXPENSE",
-                        "depository",
-                        "checking");
+                        DEPOSITORY,
+                        CHECKING);
         assertEquals(
-                "transportation",
+                TRANSPORTATION,
                 category,
                 "Eractoll (toll payment) should be categorized as transportation");
     }
@@ -1713,12 +1707,12 @@ class ContextAwareCategoryParsingTest {
                         "Burger and Kabob Hut",
                         "Burger and Kabob Hut",
                         BigDecimal.valueOf(-25.50),
-                        "card",
+                        CARD,
                         "DEBIT",
                         "EXPENSE",
-                        "depository",
-                        "checking");
-        assertEquals("dining", category, "Burger and Kabob Hut should be categorized as dining");
+                        DEPOSITORY,
+                        CHECKING);
+        assertEquals(DINING, category, "Burger and Kabob Hut should be categorized as dining");
     }
 
     @Test
@@ -1730,12 +1724,12 @@ class ContextAwareCategoryParsingTest {
                         "Insomnia Cookies-Unive",
                         "Insomnia Cookies",
                         BigDecimal.valueOf(-12.00),
-                        "card",
+                        CARD,
                         "DEBIT",
                         "EXPENSE",
-                        "depository",
-                        "checking");
-        assertEquals("dining", category, "Insomnia Cookies should be categorized as dining");
+                        DEPOSITORY,
+                        CHECKING);
+        assertEquals(DINING, category, "Insomnia Cookies should be categorized as dining");
     }
 
     @Test
@@ -1747,12 +1741,12 @@ class ContextAwareCategoryParsingTest {
                         "Banaras Restaurant",
                         "Banaras",
                         BigDecimal.valueOf(-35.00),
-                        "card",
+                        CARD,
                         "DEBIT",
                         "EXPENSE",
-                        "depository",
-                        "checking");
-        assertEquals("dining", category, "Banaras should be categorized as dining");
+                        DEPOSITORY,
+                        CHECKING);
+        assertEquals(DINING, category, "Banaras should be categorized as dining");
     }
 
     @Test
@@ -1764,13 +1758,13 @@ class ContextAwareCategoryParsingTest {
                         "Hona CTR",
                         "Hona CTR",
                         BigDecimal.valueOf(-150.00),
-                        "card",
+                        CARD,
                         "DEBIT",
                         "EXPENSE",
-                        "depository",
-                        "checking");
+                        DEPOSITORY,
+                        CHECKING);
         assertEquals(
-                "transportation",
+                TRANSPORTATION,
                 category,
                 "Hona CTR (car service) should be categorized as transportation");
     }
@@ -1784,12 +1778,12 @@ class ContextAwareCategoryParsingTest {
                         "New York Cosmetic Store",
                         "New York Cosmetic Store",
                         BigDecimal.valueOf(-45.00),
-                        "card",
+                        CARD,
                         "DEBIT",
                         "EXPENSE",
-                        "depository",
-                        "checking");
-        assertEquals("health", category, "New York Cosmetic Store should be categorized as health");
+                        DEPOSITORY,
+                        CHECKING);
+        assertEquals(HEALTH, category, "New York Cosmetic Store should be categorized as health");
     }
 
     @Test
@@ -1801,11 +1795,11 @@ class ContextAwareCategoryParsingTest {
                         "Gurukul",
                         "Gurukul",
                         BigDecimal.valueOf(-200.00),
-                        "card",
+                        CARD,
                         "DEBIT",
                         "EXPENSE",
-                        "depository",
-                        "checking");
+                        DEPOSITORY,
+                        CHECKING);
         assertEquals(
                 "education",
                 category,
@@ -1821,12 +1815,12 @@ class ContextAwareCategoryParsingTest {
                         "Resy",
                         "Resy",
                         BigDecimal.valueOf(-85.00),
-                        "card",
+                        CARD,
                         "DEBIT",
                         "EXPENSE",
-                        "depository",
-                        "checking");
-        assertEquals("dining", category, "Resy should be categorized as dining");
+                        DEPOSITORY,
+                        CHECKING);
+        assertEquals(DINING, category, "Resy should be categorized as dining");
     }
 
     @Test
@@ -1838,12 +1832,12 @@ class ContextAwareCategoryParsingTest {
                         "Maxmillen",
                         "Maxmillen",
                         BigDecimal.valueOf(-120.00),
-                        "card",
+                        CARD,
                         "DEBIT",
                         "EXPENSE",
-                        "depository",
-                        "checking");
-        assertEquals("dining", category, "Maxmillen should be categorized as dining");
+                        DEPOSITORY,
+                        CHECKING);
+        assertEquals(DINING, category, "Maxmillen should be categorized as dining");
     }
 
     // ========== Checking Account CSV Import Test Cases ==========
@@ -1860,8 +1854,8 @@ class ContextAwareCategoryParsingTest {
                         null,
                         "DEBIT",
                         "EXPENSE",
-                        "depository",
-                        "checking");
+                        DEPOSITORY,
+                        CHECKING);
         assertEquals("transfer", category, "Account transfer should be categorized as transfer");
     }
 
@@ -1877,8 +1871,8 @@ class ContextAwareCategoryParsingTest {
                         null,
                         "DEBIT",
                         "EXPENSE",
-                        "depository",
-                        "checking");
+                        DEPOSITORY,
+                        CHECKING);
         assertEquals("fee", category, "Safe deposit box should be categorized as fee");
     }
 
@@ -1894,8 +1888,8 @@ class ContextAwareCategoryParsingTest {
                         null,
                         "CREDIT",
                         "INCOME",
-                        "depository",
-                        "checking");
+                        DEPOSITORY,
+                        CHECKING);
         assertEquals(
                 "deposit", category, "ACH_CREDIT should be categorized as deposit, not payment");
     }
@@ -1912,8 +1906,8 @@ class ContextAwareCategoryParsingTest {
                         null,
                         "DEBIT",
                         "EXPENSE",
-                        "depository",
-                        "checking");
+                        DEPOSITORY,
+                        CHECKING);
         assertEquals("cash", category, "Withdrawal should be categorized as cash");
     }
 
@@ -1929,8 +1923,8 @@ class ContextAwareCategoryParsingTest {
                         null,
                         "DEBIT",
                         "EXPENSE",
-                        "depository",
-                        "checking");
+                        DEPOSITORY,
+                        CHECKING);
         assertEquals(
                 "payment", category, "American Express payment should be categorized as payment");
     }
@@ -1947,8 +1941,8 @@ class ContextAwareCategoryParsingTest {
                         null,
                         "CREDIT",
                         "INCOME",
-                        "depository",
-                        "checking");
+                        DEPOSITORY,
+                        CHECKING);
         assertEquals("salary", category, "Amazon payroll should be categorized as salary");
     }
 }

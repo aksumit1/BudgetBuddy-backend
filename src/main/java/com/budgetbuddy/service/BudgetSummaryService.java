@@ -1,13 +1,11 @@
 package com.budgetbuddy.service;
 
-
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import java.util.Locale;
 import com.budgetbuddy.model.dynamodb.BudgetTable;
 import com.budgetbuddy.model.dynamodb.TransactionTable;
 import com.budgetbuddy.model.dynamodb.UserTable;
 import com.budgetbuddy.repository.dynamodb.BudgetRepository;
 import com.budgetbuddy.repository.dynamodb.TransactionRepository;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.math.BigDecimal;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
@@ -15,9 +13,9 @@ import java.time.format.DateTimeFormatter;
 import java.time.temporal.TemporalAdjusters;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Objects;
 import java.util.Set;
-import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 /**
@@ -148,7 +146,8 @@ public class BudgetSummaryService {
             }
         }
 
-        final BigDecimal limit = b.getMonthlyLimit() == null ? BigDecimal.ZERO : b.getMonthlyLimit();
+        final BigDecimal limit =
+                b.getMonthlyLimit() == null ? BigDecimal.ZERO : b.getMonthlyLimit();
         final BigDecimal carried =
                 Boolean.TRUE.equals(b.getRolloverEnabled()) && b.getCarriedAmount() != null
                         ? b.getCarriedAmount()
@@ -198,7 +197,8 @@ public class BudgetSummaryService {
     private LocalDate[] cycleWindow(final String period, final LocalDate today) {
         switch (period.toLowerCase(Locale.ROOT)) {
             case "weekly":
-                final LocalDate monday = today.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
+                final LocalDate monday =
+                        today.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
                 return new LocalDate[] {monday, monday.plusDays(6)};
             case "biweekly":
                 // Fixed epoch Monday so every client and the server agree on the window.

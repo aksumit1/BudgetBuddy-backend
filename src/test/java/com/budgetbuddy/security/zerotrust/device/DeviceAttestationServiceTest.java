@@ -1,7 +1,5 @@
 package com.budgetbuddy.security.zerotrust.device;
 
-
-import java.nio.charset.StandardCharsets;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -12,6 +10,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -70,14 +69,15 @@ class DeviceAttestationServiceTest {
                                 Map.of(
                                         "deviceId",
                                         AttributeValue.builder().s(testDeviceId).build(),
-                                        "userId", AttributeValue.builder().s(testUserId).build(),
-                                        "trusted", AttributeValue.builder().bool(true).build(),
+                                        "userId",
+                                        AttributeValue.builder().s(testUserId).build(),
+                                        "trusted",
+                                        AttributeValue.builder().bool(true).build(),
                                         "lastVerified",
                                         AttributeValue.builder()
                                                 .n(
                                                         String.valueOf(
-                                                                System.currentTimeMillis()
-                                                                        / 1000))
+                                                                System.currentTimeMillis() / 1000))
                                                 .build()))
                         .build();
         when(dynamoDbClient.getItem(any(GetItemRequest.class))).thenReturn(response);
@@ -103,14 +103,15 @@ class DeviceAttestationServiceTest {
                                 Map.of(
                                         "deviceId",
                                         AttributeValue.builder().s(testDeviceId).build(),
-                                        "userId", AttributeValue.builder().s(testUserId).build(),
-                                        "trusted", AttributeValue.builder().bool(false).build(),
+                                        "userId",
+                                        AttributeValue.builder().s(testUserId).build(),
+                                        "trusted",
+                                        AttributeValue.builder().bool(false).build(),
                                         "lastVerified",
                                         AttributeValue.builder()
                                                 .n(
                                                         String.valueOf(
-                                                                System.currentTimeMillis()
-                                                                        / 1000))
+                                                                System.currentTimeMillis() / 1000))
                                                 .build()))
                         .build();
         when(dynamoDbClient.getItem(any(GetItemRequest.class))).thenReturn(response);
@@ -151,7 +152,7 @@ class DeviceAttestationServiceTest {
                 java.util.Base64.getEncoder()
                         .encodeToString(
                                 ("valid-apple-devicecheck-cbor-token-data-that-is-long-enough-to-pass-validation-"
-                                        + "123456789012345678901234567890123456789012345678901234567890")
+                                                + "123456789012345678901234567890123456789012345678901234567890")
                                         .getBytes(StandardCharsets.UTF_8));
         final String platform = "ios";
         final GetItemResponse emptyResponse = GetItemResponse.builder().build();

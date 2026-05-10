@@ -1,8 +1,5 @@
 package com.budgetbuddy.service.aws;
 
-
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import java.nio.charset.StandardCharsets;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -13,9 +10,11 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -83,7 +82,8 @@ class S3ServiceTest {
                 .thenReturn(response);
 
         // When
-        final String result = s3Service.uploadFile(testKey, testInputStream, contentLength, contentType);
+        final String result =
+                s3Service.uploadFile(testKey, testInputStream, contentLength, contentType);
 
         // Then
         assertEquals(testKey, result);

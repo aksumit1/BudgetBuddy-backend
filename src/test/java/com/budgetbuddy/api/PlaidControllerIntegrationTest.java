@@ -1,7 +1,5 @@
 package com.budgetbuddy.api;
 
-
-import java.nio.charset.StandardCharsets;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -22,6 +20,7 @@ import com.budgetbuddy.security.ddos.NotFoundErrorTrackingService;
 import com.budgetbuddy.service.AuthService;
 import com.budgetbuddy.service.UserService;
 import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
@@ -50,6 +49,11 @@ import org.springframework.test.web.servlet.MockMvc;
 @ActiveProfiles("test")
 @Import(AWSTestConfiguration.class)
 class PlaidControllerIntegrationTest {
+
+    private static final String AUTHORIZATION = "Authorization";
+    private static final String SUCCESS = "success";
+    private static final String START = "start";
+    private static final String END = "end";
 
     private static final org.slf4j.Logger LOGGER =
             org.slf4j.LoggerFactory.getLogger(PlaidControllerIntegrationTest.class);
@@ -80,7 +84,8 @@ class PlaidControllerIntegrationTest {
         // Create test user with proper base64-encoded strings - BREAKING CHANGE: Client salt
         // removed
         final String base64PasswordHash =
-                java.util.Base64.getEncoder().encodeToString("hashed-password".getBytes(StandardCharsets.UTF_8));
+                java.util.Base64.getEncoder()
+                        .encodeToString("hashed-password".getBytes(StandardCharsets.UTF_8));
         // BREAKING CHANGE: Client salt removed - backend handles salt management
         // BREAKING CHANGE: Client salt removed
         testUser = userService.createUserSecure(testEmail, base64PasswordHash, "Test", "User");
@@ -113,9 +118,9 @@ class PlaidControllerIntegrationTest {
         // Accept 200 (success), 429 (rate limited - acceptable for testing), or 5xx (server error)
         final var result =
                 mockMvc.perform(
-                        get("/api/plaid/accounts")
-                                .header("Authorization", "Bearer " + accessToken)
-                                .contentType(MediaType.APPLICATION_JSON))
+                                get("/api/plaid/accounts")
+                                        .header(AUTHORIZATION, "Bearer " + accessToken)
+                                        .contentType(MediaType.APPLICATION_JSON))
                         .andReturn();
 
         // Check if we got 200 OK, 429 (rate limited), or 5xx (server error)
@@ -128,7 +133,7 @@ class PlaidControllerIntegrationTest {
             // If successful, verify the response structure
             mockMvc.perform(
                             get("/api/plaid/accounts")
-                                    .header("Authorization", "Bearer " + accessToken)
+                                    .header(AUTHORIZATION, "Bearer " + accessToken)
                                     .contentType(MediaType.APPLICATION_JSON))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.accounts").isArray());
@@ -145,10 +150,10 @@ class PlaidControllerIntegrationTest {
         // IMPORTANT: Must include Authorization header for authentication
         final var result =
                 mockMvc.perform(
-                        get("/api/plaid/accounts")
-                                .header("Authorization", "Bearer " + accessToken)
-                                .param("accessToken", "test-access-token")
-                                .contentType(MediaType.APPLICATION_JSON))
+                                get("/api/plaid/accounts")
+                                        .header(AUTHORIZATION, "Bearer " + accessToken)
+                                        .param("accessToken", "test-access-token")
+                                        .contentType(MediaType.APPLICATION_JSON))
                         .andReturn();
 
         final int status = result.getResponse().getStatus();
@@ -167,10 +172,10 @@ class PlaidControllerIntegrationTest {
         // Accept 200 (success), 429 (rate limited - acceptable for testing), or 5xx (server error)
         final var result =
                 mockMvc.perform(
-                        get("/api/plaid/accounts")
-                                .header("Authorization", "Bearer " + accessToken)
-                                .param("accessToken", "")
-                                .contentType(MediaType.APPLICATION_JSON))
+                                get("/api/plaid/accounts")
+                                        .header(AUTHORIZATION, "Bearer " + accessToken)
+                                        .param("accessToken", "")
+                                        .contentType(MediaType.APPLICATION_JSON))
                         .andReturn();
 
         final int status = result.getResponse().getStatus();
@@ -183,7 +188,7 @@ class PlaidControllerIntegrationTest {
         if (status == 200) {
             mockMvc.perform(
                             get("/api/plaid/accounts")
-                                    .header("Authorization", "Bearer " + accessToken)
+                                    .header(AUTHORIZATION, "Bearer " + accessToken)
                                     .param("accessToken", "")
                                     .contentType(MediaType.APPLICATION_JSON))
                     .andExpect(status().isOk())
@@ -199,9 +204,9 @@ class PlaidControllerIntegrationTest {
         // Accept 200 (success), 429 (rate limited - acceptable for testing), or 5xx (server error)
         final var result =
                 mockMvc.perform(
-                        get("/api/plaid/transactions")
-                                .header("Authorization", "Bearer " + accessToken)
-                                .contentType(MediaType.APPLICATION_JSON))
+                                get("/api/plaid/transactions")
+                                        .header(AUTHORIZATION, "Bearer " + accessToken)
+                                        .contentType(MediaType.APPLICATION_JSON))
                         .andReturn();
 
         final int status = result.getResponse().getStatus();
@@ -214,7 +219,7 @@ class PlaidControllerIntegrationTest {
         if (status == 200) {
             mockMvc.perform(
                             get("/api/plaid/transactions")
-                                    .header("Authorization", "Bearer " + accessToken)
+                                    .header(AUTHORIZATION, "Bearer " + accessToken)
                                     .contentType(MediaType.APPLICATION_JSON))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$").isArray());
@@ -228,11 +233,11 @@ class PlaidControllerIntegrationTest {
         // Accept 200 (success), 429 (rate limited - acceptable for testing), or 5xx (server error)
         final var result =
                 mockMvc.perform(
-                        get("/api/plaid/transactions")
-                                .header("Authorization", "Bearer " + accessToken)
-                                .param("start", "2025-01-01")
-                                .param("end", "2025-12-31")
-                                .contentType(MediaType.APPLICATION_JSON))
+                                get("/api/plaid/transactions")
+                                        .header(AUTHORIZATION, "Bearer " + accessToken)
+                                        .param(START, "2025-01-01")
+                                        .param(END, "2025-12-31")
+                                        .contentType(MediaType.APPLICATION_JSON))
                         .andReturn();
 
         final int status = result.getResponse().getStatus();
@@ -245,9 +250,9 @@ class PlaidControllerIntegrationTest {
         if (status == 200) {
             mockMvc.perform(
                             get("/api/plaid/transactions")
-                                    .header("Authorization", "Bearer " + accessToken)
-                                    .param("start", "2025-01-01")
-                                    .param("end", "2025-12-31")
+                                    .header(AUTHORIZATION, "Bearer " + accessToken)
+                                    .param(START, "2025-01-01")
+                                    .param(END, "2025-12-31")
                                     .contentType(MediaType.APPLICATION_JSON))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$").isArray());
@@ -262,11 +267,11 @@ class PlaidControllerIntegrationTest {
         // error)
         final var result =
                 mockMvc.perform(
-                        get("/api/plaid/transactions")
-                                .header("Authorization", "Bearer " + accessToken)
-                                .param("start", "invalid-date")
-                                .param("end", "2025-12-31")
-                                .contentType(MediaType.APPLICATION_JSON))
+                                get("/api/plaid/transactions")
+                                        .header(AUTHORIZATION, "Bearer " + accessToken)
+                                        .param(START, "invalid-date")
+                                        .param(END, "2025-12-31")
+                                        .contentType(MediaType.APPLICATION_JSON))
                         .andReturn();
 
         final int status = result.getResponse().getStatus();
@@ -281,9 +286,9 @@ class PlaidControllerIntegrationTest {
         if (status == 400) {
             mockMvc.perform(
                             get("/api/plaid/transactions")
-                                    .header("Authorization", "Bearer " + accessToken)
-                                    .param("start", "invalid-date")
-                                    .param("end", "2025-12-31")
+                                    .header(AUTHORIZATION, "Bearer " + accessToken)
+                                    .param(START, "invalid-date")
+                                    .param(END, "2025-12-31")
                                     .contentType(MediaType.APPLICATION_JSON))
                     .andExpect(status().isBadRequest());
         }
@@ -310,9 +315,9 @@ class PlaidControllerIntegrationTest {
         // Include Authorization header to avoid authentication issues
         final var result =
                 mockMvc.perform(
-                        get("/api/plaid/accounts")
-                                .header("Authorization", "Bearer " + accessToken)
-                                .contentType(MediaType.APPLICATION_JSON))
+                                get("/api/plaid/accounts")
+                                        .header(AUTHORIZATION, "Bearer " + accessToken)
+                                        .contentType(MediaType.APPLICATION_JSON))
                         .andReturn();
 
         final int status = result.getResponse().getStatus();
@@ -325,7 +330,7 @@ class PlaidControllerIntegrationTest {
         if (status == 200) {
             mockMvc.perform(
                             get("/api/plaid/accounts")
-                                    .header("Authorization", "Bearer " + accessToken)
+                                    .header(AUTHORIZATION, "Bearer " + accessToken)
                                     .contentType(MediaType.APPLICATION_JSON))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.accounts").isArray())
@@ -356,9 +361,9 @@ class PlaidControllerIntegrationTest {
         // Accept 200 (success), 429 (rate limited - acceptable for testing), or 5xx (server error)
         final var result =
                 mockMvc.perform(
-                        get("/api/plaid/accounts")
-                                .header("Authorization", "Bearer " + accessToken)
-                                .contentType(MediaType.APPLICATION_JSON))
+                                get("/api/plaid/accounts")
+                                        .header(AUTHORIZATION, "Bearer " + accessToken)
+                                        .contentType(MediaType.APPLICATION_JSON))
                         .andReturn();
 
         final int status = result.getResponse().getStatus();
@@ -371,7 +376,7 @@ class PlaidControllerIntegrationTest {
         if (status == 200) {
             mockMvc.perform(
                             get("/api/plaid/accounts")
-                                    .header("Authorization", "Bearer " + accessToken)
+                                    .header(AUTHORIZATION, "Bearer " + accessToken)
                                     .contentType(MediaType.APPLICATION_JSON))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.accounts").isArray());
@@ -392,11 +397,11 @@ class PlaidControllerIntegrationTest {
         // error)
         final var result =
                 mockMvc.perform(
-                        get("/api/plaid/transactions")
-                                .header("Authorization", "Bearer " + accessToken)
-                                .param("start", "2025-12-31")
-                                .param("end", "2025-01-01")
-                                .contentType(MediaType.APPLICATION_JSON))
+                                get("/api/plaid/transactions")
+                                        .header(AUTHORIZATION, "Bearer " + accessToken)
+                                        .param(START, "2025-12-31")
+                                        .param(END, "2025-01-01")
+                                        .contentType(MediaType.APPLICATION_JSON))
                         .andReturn();
 
         final int status = result.getResponse().getStatus();
@@ -411,9 +416,9 @@ class PlaidControllerIntegrationTest {
         if (status == 400) {
             mockMvc.perform(
                             get("/api/plaid/transactions")
-                                    .header("Authorization", "Bearer " + accessToken)
-                                    .param("start", "2025-12-31")
-                                    .param("end", "2025-01-01")
+                                    .header(AUTHORIZATION, "Bearer " + accessToken)
+                                    .param(START, "2025-12-31")
+                                    .param(END, "2025-01-01")
                                     .contentType(MediaType.APPLICATION_JSON))
                     .andExpect(status().isBadRequest());
         }
@@ -434,10 +439,10 @@ class PlaidControllerIntegrationTest {
         // Accept 200 (success), 429 (rate limited - acceptable for testing), or 5xx (server error)
         final var result =
                 mockMvc.perform(
-                        put("/api/plaid/accounts/sync-settings")
-                                .header("Authorization", "Bearer " + accessToken)
-                                .contentType(MediaType.APPLICATION_JSON)
-                                .content("[]"))
+                                put("/api/plaid/accounts/sync-settings")
+                                        .header(AUTHORIZATION, "Bearer " + accessToken)
+                                        .contentType(MediaType.APPLICATION_JSON)
+                                        .content("[]"))
                         .andReturn();
 
         final int status = result.getResponse().getStatus();
@@ -450,11 +455,11 @@ class PlaidControllerIntegrationTest {
         if (status == 200) {
             mockMvc.perform(
                             put("/api/plaid/accounts/sync-settings")
-                                    .header("Authorization", "Bearer " + accessToken)
+                                    .header(AUTHORIZATION, "Bearer " + accessToken)
                                     .contentType(MediaType.APPLICATION_JSON)
                                     .content("[]"))
                     .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.status").value("success"))
+                    .andExpect(jsonPath("$.status").value(SUCCESS))
                     .andExpect(jsonPath("$.accountsUpdated").exists());
         }
 
@@ -483,9 +488,9 @@ class PlaidControllerIntegrationTest {
         // Accept 200 (success), 429 (rate limited - acceptable for testing), or 5xx (server error)
         final var result =
                 mockMvc.perform(
-                        put("/api/plaid/accounts/sync-settings")
-                                .header("Authorization", "Bearer " + accessToken)
-                                .contentType(MediaType.APPLICATION_JSON))
+                                put("/api/plaid/accounts/sync-settings")
+                                        .header(AUTHORIZATION, "Bearer " + accessToken)
+                                        .contentType(MediaType.APPLICATION_JSON))
                         .andReturn();
 
         final int status = result.getResponse().getStatus();
@@ -498,10 +503,10 @@ class PlaidControllerIntegrationTest {
         if (status == 200) {
             mockMvc.perform(
                             put("/api/plaid/accounts/sync-settings")
-                                    .header("Authorization", "Bearer " + accessToken)
+                                    .header(AUTHORIZATION, "Bearer " + accessToken)
                                     .contentType(MediaType.APPLICATION_JSON))
                     .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.status").value("success"))
+                    .andExpect(jsonPath("$.status").value(SUCCESS))
                     .andExpect(jsonPath("$.accountsUpdated").exists());
         }
 
@@ -546,10 +551,10 @@ class PlaidControllerIntegrationTest {
         // Accept 200 (success), 429 (rate limited - acceptable for testing), or 5xx (server error)
         final var result =
                 mockMvc.perform(
-                        put("/api/plaid/accounts/sync-settings")
-                                .header("Authorization", "Bearer " + accessToken)
-                                .contentType(MediaType.APPLICATION_JSON)
-                                .content(requestBody))
+                                put("/api/plaid/accounts/sync-settings")
+                                        .header(AUTHORIZATION, "Bearer " + accessToken)
+                                        .contentType(MediaType.APPLICATION_JSON)
+                                        .content(requestBody))
                         .andReturn();
 
         final int status = result.getResponse().getStatus();
@@ -562,11 +567,11 @@ class PlaidControllerIntegrationTest {
         if (status == 200) {
             mockMvc.perform(
                             put("/api/plaid/accounts/sync-settings")
-                                    .header("Authorization", "Bearer " + accessToken)
+                                    .header(AUTHORIZATION, "Bearer " + accessToken)
                                     .contentType(MediaType.APPLICATION_JSON)
                                     .content(requestBody))
                     .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.status").value("success"))
+                    .andExpect(jsonPath("$.status").value(SUCCESS))
                     .andExpect(jsonPath("$.accountsUpdated").value("1"));
         }
 
@@ -591,8 +596,7 @@ class PlaidControllerIntegrationTest {
     }
 
     @Test
-    void testUpdateSyncSettingsWithMultipleAccountsUpdatesAllSpecifiedAccounts()
-            throws Exception {
+    void testUpdateSyncSettingsWithMultipleAccountsUpdatesAllSpecifiedAccounts() throws Exception {
         // Given - Create a second account
         final AccountTable secondAccount = new AccountTable();
         secondAccount.setAccountId(UUID.randomUUID().toString());
@@ -623,10 +627,10 @@ class PlaidControllerIntegrationTest {
         // Accept 200 (success), 429 (rate limited - acceptable for testing), or 5xx (server error)
         final var result =
                 mockMvc.perform(
-                        put("/api/plaid/accounts/sync-settings")
-                                .header("Authorization", "Bearer " + accessToken)
-                                .contentType(MediaType.APPLICATION_JSON)
-                                .content(requestBody))
+                                put("/api/plaid/accounts/sync-settings")
+                                        .header(AUTHORIZATION, "Bearer " + accessToken)
+                                        .contentType(MediaType.APPLICATION_JSON)
+                                        .content(requestBody))
                         .andReturn();
 
         final int status = result.getResponse().getStatus();
@@ -639,11 +643,11 @@ class PlaidControllerIntegrationTest {
         if (status == 200) {
             mockMvc.perform(
                             put("/api/plaid/accounts/sync-settings")
-                                    .header("Authorization", "Bearer " + accessToken)
+                                    .header(AUTHORIZATION, "Bearer " + accessToken)
                                     .contentType(MediaType.APPLICATION_JSON)
                                     .content(requestBody))
                     .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.status").value("success"))
+                    .andExpect(jsonPath("$.status").value(SUCCESS))
                     .andExpect(jsonPath("$.accountsUpdated").value("2"));
         }
 
@@ -680,10 +684,10 @@ class PlaidControllerIntegrationTest {
         // Accept 200 (success), 429 (rate limited - acceptable for testing), or 5xx (server error)
         final var result =
                 mockMvc.perform(
-                        put("/api/plaid/accounts/sync-settings")
-                                .header("Authorization", "Bearer " + accessToken)
-                                .contentType(MediaType.APPLICATION_JSON)
-                                .content(requestBody))
+                                put("/api/plaid/accounts/sync-settings")
+                                        .header(AUTHORIZATION, "Bearer " + accessToken)
+                                        .contentType(MediaType.APPLICATION_JSON)
+                                        .content(requestBody))
                         .andReturn();
 
         final int status = result.getResponse().getStatus();
@@ -696,16 +700,17 @@ class PlaidControllerIntegrationTest {
         if (status == 200) {
             mockMvc.perform(
                             put("/api/plaid/accounts/sync-settings")
-                                    .header("Authorization", "Bearer " + accessToken)
+                                    .header(AUTHORIZATION, "Bearer " + accessToken)
                                     .contentType(MediaType.APPLICATION_JSON)
                                     .content(requestBody))
                     .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.status").value("success"))
+                    .andExpect(jsonPath("$.status").value(SUCCESS))
                     .andExpect(jsonPath("$.accountsUpdated").value("0"));
         }
 
         // Then - No accounts should be updated
-        final AccountTable account = accountRepository.findById(testAccount.getAccountId()).orElseThrow();
+        final AccountTable account =
+                accountRepository.findById(testAccount.getAccountId()).orElseThrow();
         assertNull(
                 account.getLastSyncedAt(), "Account should not be updated with invalid account ID");
     }
@@ -724,10 +729,10 @@ class PlaidControllerIntegrationTest {
         final Instant beforeUpdate = Instant.now();
         final var result =
                 mockMvc.perform(
-                        put("/api/plaid/accounts/sync-settings")
-                                .header("Authorization", "Bearer " + accessToken)
-                                .contentType(MediaType.APPLICATION_JSON)
-                                .content(requestBody))
+                                put("/api/plaid/accounts/sync-settings")
+                                        .header(AUTHORIZATION, "Bearer " + accessToken)
+                                        .contentType(MediaType.APPLICATION_JSON)
+                                        .content(requestBody))
                         .andReturn();
         final Instant afterUpdate = Instant.now();
 
@@ -741,11 +746,11 @@ class PlaidControllerIntegrationTest {
         if (status == 200) {
             mockMvc.perform(
                             put("/api/plaid/accounts/sync-settings")
-                                    .header("Authorization", "Bearer " + accessToken)
+                                    .header(AUTHORIZATION, "Bearer " + accessToken)
                                     .contentType(MediaType.APPLICATION_JSON)
                                     .content(requestBody))
                     .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.status").value("success"));
+                    .andExpect(jsonPath("$.status").value(SUCCESS));
         }
 
         // Then - Account should have current time set (only if request succeeded)
@@ -776,10 +781,10 @@ class PlaidControllerIntegrationTest {
         final Instant beforeUpdate = Instant.now();
         final var result =
                 mockMvc.perform(
-                        put("/api/plaid/accounts/sync-settings")
-                                .header("Authorization", "Bearer " + accessToken)
-                                .contentType(MediaType.APPLICATION_JSON)
-                                .content(requestBody))
+                                put("/api/plaid/accounts/sync-settings")
+                                        .header(AUTHORIZATION, "Bearer " + accessToken)
+                                        .contentType(MediaType.APPLICATION_JSON)
+                                        .content(requestBody))
                         .andReturn();
         final Instant afterUpdate = Instant.now();
 
@@ -793,11 +798,11 @@ class PlaidControllerIntegrationTest {
         if (status == 200) {
             mockMvc.perform(
                             put("/api/plaid/accounts/sync-settings")
-                                    .header("Authorization", "Bearer " + accessToken)
+                                    .header(AUTHORIZATION, "Bearer " + accessToken)
                                     .contentType(MediaType.APPLICATION_JSON)
                                     .content(requestBody))
                     .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.status").value("success"));
+                    .andExpect(jsonPath("$.status").value(SUCCESS));
         }
 
         // Then - Account should have current time set (only if request succeeded)
@@ -825,10 +830,10 @@ class PlaidControllerIntegrationTest {
         // Accept 200 (success), 429 (rate limited - acceptable for testing), or 5xx (server error)
         final var result =
                 mockMvc.perform(
-                        put("/api/plaid/accounts/sync-settings")
-                                .header("Authorization", "Bearer " + accessToken)
-                                .contentType(MediaType.APPLICATION_JSON)
-                                .content(requestBody))
+                                put("/api/plaid/accounts/sync-settings")
+                                        .header(AUTHORIZATION, "Bearer " + accessToken)
+                                        .contentType(MediaType.APPLICATION_JSON)
+                                        .content(requestBody))
                         .andReturn();
 
         final int status = result.getResponse().getStatus();
@@ -841,16 +846,17 @@ class PlaidControllerIntegrationTest {
         if (status == 200) {
             mockMvc.perform(
                             put("/api/plaid/accounts/sync-settings")
-                                    .header("Authorization", "Bearer " + accessToken)
+                                    .header(AUTHORIZATION, "Bearer " + accessToken)
                                     .contentType(MediaType.APPLICATION_JSON)
                                     .content(requestBody))
                     .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.status").value("success"))
+                    .andExpect(jsonPath("$.status").value(SUCCESS))
                     .andExpect(jsonPath("$.accountsUpdated").value("0"));
         }
 
         // Then - No accounts should be updated
-        final AccountTable account = accountRepository.findById(testAccount.getAccountId()).orElseThrow();
+        final AccountTable account =
+                accountRepository.findById(testAccount.getAccountId()).orElseThrow();
         assertNull(
                 account.getLastSyncedAt(), "Account should not be updated with empty account ID");
     }
@@ -871,10 +877,10 @@ class PlaidControllerIntegrationTest {
         // Accept 200 (success), 429 (rate limited - acceptable for testing), or 5xx (server error)
         final var result =
                 mockMvc.perform(
-                        put("/api/plaid/accounts/sync-settings")
-                                .header("Authorization", "Bearer " + accessToken)
-                                .contentType(MediaType.APPLICATION_JSON)
-                                .content("[]"))
+                                put("/api/plaid/accounts/sync-settings")
+                                        .header(AUTHORIZATION, "Bearer " + accessToken)
+                                        .contentType(MediaType.APPLICATION_JSON)
+                                        .content("[]"))
                         .andReturn();
 
         final int status = result.getResponse().getStatus();
@@ -887,11 +893,11 @@ class PlaidControllerIntegrationTest {
         if (status == 200) {
             mockMvc.perform(
                             put("/api/plaid/accounts/sync-settings")
-                                    .header("Authorization", "Bearer " + accessToken)
+                                    .header(AUTHORIZATION, "Bearer " + accessToken)
                                     .contentType(MediaType.APPLICATION_JSON)
                                     .content("[]"))
                     .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.status").value("success"))
+                    .andExpect(jsonPath("$.status").value(SUCCESS))
                     .andExpect(jsonPath("$.message").value("No accounts to update"));
         }
     }

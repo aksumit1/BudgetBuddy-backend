@@ -31,7 +31,8 @@ public class NotificationConfig {
 
     @Bean
     public SnsClient snsClient(
-            @org.springframework.beans.factory.annotation.Value("${app.aws.region:us-east-1}") final String region) {
+            @org.springframework.beans.factory.annotation.Value("${app.aws.region:us-east-1}")
+                    final String region) {
         return SnsClient.builder()
                 .region(Region.of(region))
                 .credentialsProvider(getCredentialsProvider())
@@ -40,7 +41,8 @@ public class NotificationConfig {
 
     @Bean
     public SesClient sesClient(
-            @org.springframework.beans.factory.annotation.Value("${app.aws.region:us-east-1}") final String region) {
+            @org.springframework.beans.factory.annotation.Value("${app.aws.region:us-east-1}")
+                    final String region) {
         return SesClient.builder()
                 .region(Region.of(region))
                 .credentialsProvider(getCredentialsProvider())

@@ -15,7 +15,6 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
@@ -37,6 +36,12 @@ import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 @Import(AWSTestConfiguration.class)
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class AccountNumberDeduplicationTest {
+
+    private static final String RESOURCENOTFOUNDEXCEPTION = "ResourceNotFoundException";
+    private static final String DYNAMODB = "DynamoDB";
+    private static final String CONNECTION = "Connection";
+    private static final String ENDPOINT = "endpoint";
+    private static final String LOCALSTACK = "LocalStack";
 
     @Autowired private AccountRepository accountRepository;
 
@@ -95,15 +100,15 @@ class AccountNumberDeduplicationTest {
             final String causeMsg =
                     cause != null && cause.getMessage() != null ? cause.getMessage() : "";
 
-            if (errorMsg.contains("DynamoDB")
-                    || errorMsg.contains("LocalStack")
-                    || errorMsg.contains("Connection")
-                    || errorMsg.contains("endpoint")
-                    || errorMsg.contains("ResourceNotFoundException")
-                    || causeMsg.contains("DynamoDB")
-                    || causeMsg.contains("Connection")
-                    || causeMsg.contains("endpoint")
-                    || causeMsg.contains("ResourceNotFoundException")) {
+            if (errorMsg.contains(DYNAMODB)
+                    || errorMsg.contains(LOCALSTACK)
+                    || errorMsg.contains(CONNECTION)
+                    || errorMsg.contains(ENDPOINT)
+                    || errorMsg.contains(RESOURCENOTFOUNDEXCEPTION)
+                    || causeMsg.contains(DYNAMODB)
+                    || causeMsg.contains(CONNECTION)
+                    || causeMsg.contains(ENDPOINT)
+                    || causeMsg.contains(RESOURCENOTFOUNDEXCEPTION)) {
                 org.junit.jupiter.api.Assumptions.assumeTrue(
                         false,
                         "Test requires DynamoDB/LocalStack to be running. Skipping test: "
@@ -149,15 +154,15 @@ class AccountNumberDeduplicationTest {
             final String causeMsg =
                     cause != null && cause.getMessage() != null ? cause.getMessage() : "";
 
-            if (errorMsg.contains("DynamoDB")
-                    || errorMsg.contains("LocalStack")
-                    || errorMsg.contains("Connection")
-                    || errorMsg.contains("endpoint")
-                    || errorMsg.contains("ResourceNotFoundException")
-                    || causeMsg.contains("DynamoDB")
-                    || causeMsg.contains("Connection")
-                    || causeMsg.contains("endpoint")
-                    || causeMsg.contains("ResourceNotFoundException")) {
+            if (errorMsg.contains(DYNAMODB)
+                    || errorMsg.contains(LOCALSTACK)
+                    || errorMsg.contains(CONNECTION)
+                    || errorMsg.contains(ENDPOINT)
+                    || errorMsg.contains(RESOURCENOTFOUNDEXCEPTION)
+                    || causeMsg.contains(DYNAMODB)
+                    || causeMsg.contains(CONNECTION)
+                    || causeMsg.contains(ENDPOINT)
+                    || causeMsg.contains(RESOURCENOTFOUNDEXCEPTION)) {
                 org.junit.jupiter.api.Assumptions.assumeTrue(
                         false,
                         "Test requires DynamoDB/LocalStack to be running. Skipping test: "
@@ -184,15 +189,15 @@ class AccountNumberDeduplicationTest {
             final String causeMsg =
                     cause != null && cause.getMessage() != null ? cause.getMessage() : "";
 
-            if (errorMsg.contains("DynamoDB")
-                    || errorMsg.contains("LocalStack")
-                    || errorMsg.contains("Connection")
-                    || errorMsg.contains("endpoint")
-                    || errorMsg.contains("ResourceNotFoundException")
-                    || causeMsg.contains("DynamoDB")
-                    || causeMsg.contains("Connection")
-                    || causeMsg.contains("endpoint")
-                    || causeMsg.contains("ResourceNotFoundException")) {
+            if (errorMsg.contains(DYNAMODB)
+                    || errorMsg.contains(LOCALSTACK)
+                    || errorMsg.contains(CONNECTION)
+                    || errorMsg.contains(ENDPOINT)
+                    || errorMsg.contains(RESOURCENOTFOUNDEXCEPTION)
+                    || causeMsg.contains(DYNAMODB)
+                    || causeMsg.contains(CONNECTION)
+                    || causeMsg.contains(ENDPOINT)
+                    || causeMsg.contains(RESOURCENOTFOUNDEXCEPTION)) {
                 org.junit.jupiter.api.Assumptions.assumeTrue(
                         false,
                         "Test requires DynamoDB/LocalStack to be running. Skipping test: "
@@ -219,15 +224,15 @@ class AccountNumberDeduplicationTest {
             final String causeMsg =
                     cause != null && cause.getMessage() != null ? cause.getMessage() : "";
 
-            if (errorMsg.contains("DynamoDB")
-                    || errorMsg.contains("LocalStack")
-                    || errorMsg.contains("Connection")
-                    || errorMsg.contains("endpoint")
-                    || errorMsg.contains("ResourceNotFoundException")
-                    || causeMsg.contains("DynamoDB")
-                    || causeMsg.contains("Connection")
-                    || causeMsg.contains("endpoint")
-                    || causeMsg.contains("ResourceNotFoundException")) {
+            if (errorMsg.contains(DYNAMODB)
+                    || errorMsg.contains(LOCALSTACK)
+                    || errorMsg.contains(CONNECTION)
+                    || errorMsg.contains(ENDPOINT)
+                    || errorMsg.contains(RESOURCENOTFOUNDEXCEPTION)
+                    || causeMsg.contains(DYNAMODB)
+                    || causeMsg.contains(CONNECTION)
+                    || causeMsg.contains(ENDPOINT)
+                    || causeMsg.contains(RESOURCENOTFOUNDEXCEPTION)) {
                 org.junit.jupiter.api.Assumptions.assumeTrue(
                         false,
                         "Test requires DynamoDB/LocalStack to be running. Skipping test: "
@@ -258,7 +263,8 @@ class AccountNumberDeduplicationTest {
             accountRepository.save(account);
 
             // When - Retrieve the account
-            final Optional<AccountTable> retrieved = accountRepository.findById(account.getAccountId());
+            final Optional<AccountTable> retrieved =
+                    accountRepository.findById(account.getAccountId());
 
             // Then - Account number should be stored and retrieved
             assertTrue(retrieved.isPresent(), "Account should be found");
@@ -273,15 +279,15 @@ class AccountNumberDeduplicationTest {
             final String causeMsg =
                     cause != null && cause.getMessage() != null ? cause.getMessage() : "";
 
-            if (errorMsg.contains("DynamoDB")
-                    || errorMsg.contains("LocalStack")
-                    || errorMsg.contains("Connection")
-                    || errorMsg.contains("endpoint")
-                    || errorMsg.contains("ResourceNotFoundException")
-                    || causeMsg.contains("DynamoDB")
-                    || causeMsg.contains("Connection")
-                    || causeMsg.contains("endpoint")
-                    || causeMsg.contains("ResourceNotFoundException")) {
+            if (errorMsg.contains(DYNAMODB)
+                    || errorMsg.contains(LOCALSTACK)
+                    || errorMsg.contains(CONNECTION)
+                    || errorMsg.contains(ENDPOINT)
+                    || errorMsg.contains(RESOURCENOTFOUNDEXCEPTION)
+                    || causeMsg.contains(DYNAMODB)
+                    || causeMsg.contains(CONNECTION)
+                    || causeMsg.contains(ENDPOINT)
+                    || causeMsg.contains(RESOURCENOTFOUNDEXCEPTION)) {
                 org.junit.jupiter.api.Assumptions.assumeTrue(
                         false,
                         "Test requires DynamoDB/LocalStack to be running. Skipping test: "

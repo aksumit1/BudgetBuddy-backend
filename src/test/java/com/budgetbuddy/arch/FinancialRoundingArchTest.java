@@ -88,23 +88,23 @@ class FinancialRoundingArchTest {
                                                             final String name =
                                                                     access.getTarget().getName();
                                                             if ("java.math.RoundingMode"
-                                                                    .equals(owner)
+                                                                            .equals(owner)
                                                                     && ("HALF_EVEN".equals(name)
-                                                                    || "HALF_DOWN"
-                                                                    .equals(name)
-                                                                    || "DOWN".equals(name)
-                                                                    || "CEILING"
-                                                                    .equals(name)
-                                                                    || "FLOOR"
-                                                                    .equals(
-                                                                            name))) {
+                                                                            || "HALF_DOWN"
+                                                                                    .equals(name)
+                                                                            || "DOWN".equals(name)
+                                                                            || "CEILING"
+                                                                                    .equals(name)
+                                                                            || "FLOOR"
+                                                                                    .equals(
+                                                                                            name))) {
                                                                 events.add(
                                                                         com.tngtech.archunit.lang
                                                                                 .SimpleConditionEvent
                                                                                 .violated(
                                                                                         access,
                                                                                         access
-                                                                                                .getDescription()
+                                                                                                        .getDescription()
                                                                                                 + " — use FinancialMath.ROUNDING (HALF_UP) for money math; "
                                                                                                 + "use RoundingMode.UP only for integer ceilings at scale 0"));
                                                             }

@@ -1,9 +1,5 @@
 package com.budgetbuddy.service;
 
-
-
-import java.nio.charset.StandardCharsets;
-import java.util.Locale;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -18,8 +14,10 @@ import com.budgetbuddy.repository.dynamodb.SubscriptionRepository;
 import com.budgetbuddy.repository.dynamodb.TransactionRepository;
 import com.budgetbuddy.util.TableInitializer;
 import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Locale;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -39,6 +37,8 @@ import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 @Import(AWSTestConfiguration.class)
 @org.junit.jupiter.api.Tag("integration")
 public class SubscriptionServiceOpenAITest {
+
+    private static final String TECH = "tech";
 
     @Autowired private SubscriptionService subscriptionService;
 
@@ -64,7 +64,8 @@ public class SubscriptionServiceOpenAITest {
         // Create test user using UserService (properly hashed password)
         final String testUserEmail = "test-openai-" + UUID.randomUUID() + "@example.com";
         final String base64PasswordHash =
-                java.util.Base64.getEncoder().encodeToString("test-password".getBytes(StandardCharsets.UTF_8));
+                java.util.Base64.getEncoder()
+                        .encodeToString("test-password".getBytes(StandardCharsets.UTF_8));
         testUser = userService.createUserSecure(testUserEmail, base64PasswordHash, "Test", "User");
         testUserId = testUser.getUserId();
 
@@ -85,7 +86,8 @@ public class SubscriptionServiceOpenAITest {
     }
 
     /** Helper method to create OpenAI ChatGPT transaction */
-    private TransactionTable createOpenAITransaction(final BigDecimal amount, final LocalDate date) {
+    private TransactionTable createOpenAITransaction(
+            final BigDecimal amount, final LocalDate date) {
         final TransactionTable tx = new TransactionTable();
         tx.setTransactionId(UUID.randomUUID().toString().toLowerCase(Locale.ROOT));
         tx.setUserId(testUserId);
@@ -94,8 +96,8 @@ public class SubscriptionServiceOpenAITest {
         tx.setTransactionDate(date.format(java.time.format.DateTimeFormatter.ISO_LOCAL_DATE));
         tx.setDescription("OPENAI *CHATGPT SUBSCR SAN FRANCISCO CA +14158799686");
         tx.setMerchantName("OPENAI *CHATGPT SUBSCR SAN FRANCISCO CA +14158799686");
-        tx.setCategoryPrimary("tech");
-        tx.setCategoryDetailed("tech");
+        tx.setCategoryPrimary(TECH);
+        tx.setCategoryDetailed(TECH);
         tx.setTransactionType("PAYMENT");
         return tx;
     }
@@ -112,7 +114,8 @@ public class SubscriptionServiceOpenAITest {
         }
 
         // When: Detect subscriptions
-        final List<Subscription> subscriptions = subscriptionService.detectSubscriptions(testUserId);
+        final List<Subscription> subscriptions =
+                subscriptionService.detectSubscriptions(testUserId);
 
         // Then: Verify OpenAI subscription was detected
         assertFalse(subscriptions.isEmpty(), "Should detect at least 1 subscription");
@@ -123,8 +126,8 @@ public class SubscriptionServiceOpenAITest {
                                 s ->
                                         s.getMerchantName() != null
                                                 && s.getMerchantName()
-                                                .toLowerCase(Locale.ROOT)
-                                                .contains("openai"))
+                                                        .toLowerCase(Locale.ROOT)
+                                                        .contains("openai"))
                         .findFirst()
                         .orElse(null);
 
@@ -159,7 +162,8 @@ public class SubscriptionServiceOpenAITest {
         transactionRepository.save(tx3);
 
         // When: Detect subscriptions
-        final List<Subscription> subscriptions = subscriptionService.detectSubscriptions(testUserId);
+        final List<Subscription> subscriptions =
+                subscriptionService.detectSubscriptions(testUserId);
 
         // Then: Verify OpenAI subscription was detected
         assertFalse(subscriptions.isEmpty(), "Should detect at least 1 subscription");
@@ -170,8 +174,8 @@ public class SubscriptionServiceOpenAITest {
                                 s ->
                                         s.getMerchantName() != null
                                                 && s.getMerchantName()
-                                                .toLowerCase(Locale.ROOT)
-                                                .contains("openai"))
+                                                        .toLowerCase(Locale.ROOT)
+                                                        .contains("openai"))
                         .findFirst()
                         .orElse(null);
 
@@ -190,22 +194,23 @@ public class SubscriptionServiceOpenAITest {
         final LocalDate date3 = LocalDate.of(2025, 10, 9);
 
         final TransactionTable tx1 = createOpenAITransaction(new BigDecimal("-22.04"), date1);
-        tx1.setCategoryPrimary("tech");
-        tx1.setCategoryDetailed("tech");
+        tx1.setCategoryPrimary(TECH);
+        tx1.setCategoryDetailed(TECH);
         transactionRepository.save(tx1);
 
         final TransactionTable tx2 = createOpenAITransaction(new BigDecimal("-22.04"), date2);
-        tx2.setCategoryPrimary("tech");
-        tx2.setCategoryDetailed("tech");
+        tx2.setCategoryPrimary(TECH);
+        tx2.setCategoryDetailed(TECH);
         transactionRepository.save(tx2);
 
         final TransactionTable tx3 = createOpenAITransaction(new BigDecimal("-22.04"), date3);
-        tx3.setCategoryPrimary("tech");
-        tx3.setCategoryDetailed("tech");
+        tx3.setCategoryPrimary(TECH);
+        tx3.setCategoryDetailed(TECH);
         transactionRepository.save(tx3);
 
         // When: Detect subscriptions
-        final List<Subscription> subscriptions = subscriptionService.detectSubscriptions(testUserId);
+        final List<Subscription> subscriptions =
+                subscriptionService.detectSubscriptions(testUserId);
 
         // Then: Verify subscription was detected despite tech category
         assertFalse(subscriptions.isEmpty(), "Should detect subscription even with tech category");
@@ -216,8 +221,8 @@ public class SubscriptionServiceOpenAITest {
                                 s ->
                                         s.getMerchantName() != null
                                                 && s.getMerchantName()
-                                                .toLowerCase(Locale.ROOT)
-                                                .contains("openai"))
+                                                        .toLowerCase(Locale.ROOT)
+                                                        .contains("openai"))
                         .findFirst()
                         .orElse(null);
 

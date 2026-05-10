@@ -1,8 +1,8 @@
 package com.budgetbuddy.service;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.lang.reflect.Method;
 import java.math.BigDecimal;
 import java.util.List;
@@ -42,14 +42,16 @@ class RewardPatternDetectionTest {
         final String[] lines = {"Cash Back Rewards Balance: $488.97"};
 
         // When: Extract reward points (this should detect cash back balance)
-        final Long rewardPoints = (Long) extractRewardPoints.invoke(pdfImportService, (Object) lines);
+        final Long rewardPoints =
+                (Long) extractRewardPoints.invoke(pdfImportService, (Object) lines);
 
         // Note: extractRewardPoints looks for "points", not "cash back balance"
         // So this might return null. We need to check if cash back balance is handled separately.
         // For now, this test documents the current behavior.
 
         // Also check if BalanceExtractor can extract it
-        final BigDecimal balance = balanceExtractor.extractCreditCardBalance(String.join(" ", lines));
+        final BigDecimal balance =
+                balanceExtractor.extractCreditCardBalance(String.join(" ", lines));
 
         // Then: Should detect the balance (if supported)
         // Currently, BalanceExtractor might not have "cash back rewards balance" in its labels
@@ -93,7 +95,8 @@ class RewardPatternDetectionTest {
         final String[] lines = {"Total points transferred to Marriott 8,733"};
 
         // When: Extract reward points
-        final Long rewardPoints = (Long) extractRewardPoints.invoke(pdfImportService, (Object) lines);
+        final Long rewardPoints =
+                (Long) extractRewardPoints.invoke(pdfImportService, (Object) lines);
 
         // Then: Should detect the points (8,733)
         if (rewardPoints != null) {
@@ -111,7 +114,8 @@ class RewardPatternDetectionTest {
         final List<String> headers = List.of("Cash Back Rewards Balance: $488.97");
 
         // When: Extract balance from headers
-        final BigDecimal balance = balanceExtractor.extractBalanceFromHeaders(headers, "creditCard");
+        final BigDecimal balance =
+                balanceExtractor.extractBalanceFromHeaders(headers, "creditCard");
 
         // Then: Should detect the balance (if "cash back rewards balance" is in the label list)
         if (balance != null) {

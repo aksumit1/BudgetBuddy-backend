@@ -1,8 +1,6 @@
 package com.budgetbuddy.service;
 
-
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import java.util.Locale;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
@@ -12,6 +10,7 @@ import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -189,7 +188,8 @@ public class EnhancedPatternMatcher {
      * Try to match a line against multiple patterns and return the best match This is the main
      * entry point for pattern matching
      */
-    public MatchResult matchTransactionLine(final String line, final Integer inferredYear, final boolean isUSLocale) {
+    public MatchResult matchTransactionLine(
+            final String line, final Integer inferredYear, final boolean isUSLocale) {
         if (line == null || line.isBlank()) {
             return new MatchResult(false, null, 0.0, "empty");
         }
@@ -210,8 +210,7 @@ public class EnhancedPatternMatcher {
                 (lineLower.contains(PAY_BY_PHONE)
                         && lineLower.matches(".*\\d{1,3}-\\d{3}-\\d{4}-\\d{4}.*"))
                 || // "Pay by phone 1-302-594-8200"
-                (lineLower.contains(PAY_BY_PHONE)
-                        && lineLower.matches(".*\\d{3}-\\d{3}-\\d{4}.*"))
+                (lineLower.contains(PAY_BY_PHONE) && lineLower.matches(".*\\d{3}-\\d{3}-\\d{4}.*"))
                 || // "Pay by phone 800-436-7958"
                 (lineLower.contains(INTERNATIONAL)
                         && lineLower.matches(".*\\d{1,3}-\\d{3}-\\d{3}-\\d{4}.*"))
@@ -219,8 +218,7 @@ public class EnhancedPatternMatcher {
                 (lineLower.contains(INTERNATIONAL)
                         && lineLower.matches(".*\\d{1,3}-\\d{3}-\\d{4}-\\d{4}.*"))
                 || // "International 1-302-594-8200"
-                (lineLower.contains(INTERNATIONAL)
-                        && lineLower.matches(".*\\d{3}-\\d{3}-\\d{4}.*"))
+                (lineLower.contains(INTERNATIONAL) && lineLower.matches(".*\\d{3}-\\d{3}-\\d{4}.*"))
                 || // "International 800-436-7958"
                 lineLower.contains("operator relay")
                 || lineLower.contains("we accept")
@@ -378,7 +376,8 @@ public class EnhancedPatternMatcher {
     }
 
     /** Pattern 1: Date Description Amount Example: "11/09 AUTOMATIC PAYMENT - THANK YOU -458.40" */
-    private MatchResult tryPattern1(final String line, final Integer inferredYear, final boolean isUSLocale) {
+    private MatchResult tryPattern1(
+            final String line, final Integer inferredYear, final boolean isUSLocale) {
         // Flexible pattern: date (flexible whitespace) description (flexible whitespace) amount
         final Pattern pattern =
                 Pattern.compile(
@@ -439,7 +438,8 @@ public class EnhancedPatternMatcher {
      * Pattern 2: Prefix Date Description Amount Example: "1% Cashback Bonus +$0.0610/06 DIRECTPAY
      * FULL BALANCE -$11.74"
      */
-    private MatchResult tryPattern2(final String line, final Integer inferredYear, final boolean isUSLocale) {
+    private MatchResult tryPattern2(
+            final String line, final Integer inferredYear, final boolean isUSLocale) {
         // Pattern with prefix: .*? date description amount
         final Pattern pattern =
                 Pattern.compile(
@@ -483,7 +483,8 @@ public class EnhancedPatternMatcher {
     }
 
     /** Pattern 3: Date Date Description Amount (two dates) */
-    private MatchResult tryPattern3(final String line, final Integer inferredYear, final boolean isUSLocale) {
+    private MatchResult tryPattern3(
+            final String line, final Integer inferredYear, final boolean isUSLocale) {
         final Pattern pattern =
                 Pattern.compile(
                         "^"
@@ -523,7 +524,8 @@ public class EnhancedPatternMatcher {
     }
 
     /** Pattern 4: Card Date Date ID Description Location Amount */
-    private MatchResult tryPattern4(final String line, final Integer inferredYear, final boolean isUSLocale) {
+    private MatchResult tryPattern4(
+            final String line, final Integer inferredYear, final boolean isUSLocale) {
         final Pattern pattern =
                 Pattern.compile(
                         "^(\\d{4})"
@@ -573,7 +575,8 @@ public class EnhancedPatternMatcher {
     }
 
     /** Pattern 5: Date Date Merchant Location Amount */
-    private MatchResult tryPattern5(final String line, final Integer inferredYear, final boolean isUSLocale) {
+    private MatchResult tryPattern5(
+            final String line, final Integer inferredYear, final boolean isUSLocale) {
         final Pattern pattern =
                 Pattern.compile(
                         "^"
@@ -620,7 +623,8 @@ public class EnhancedPatternMatcher {
     }
 
     /** Fuzzy matching fallback - extract components independently */
-    private MatchResult tryFuzzyMatch(final String line, final Integer inferredYear, final boolean isUSLocale) {
+    private MatchResult tryFuzzyMatch(
+            final String line, final Integer inferredYear, final boolean isUSLocale) {
         final Map<String, String> fields = new HashMap<>();
         double confidence = 0.0;
 
@@ -723,7 +727,8 @@ public class EnhancedPatternMatcher {
     }
 
     /** Find date using fuzzy matching */
-    private String findDateFuzzy(final String line, final Integer inferredYear, final boolean isUSLocale) {
+    private String findDateFuzzy(
+            final String line, final Integer inferredYear, final boolean isUSLocale) {
         for (final Pattern datePattern : DATE_PATTERNS) {
             final Matcher matcher = datePattern.matcher(line);
             if (matcher.find()) {
@@ -743,7 +748,8 @@ public class EnhancedPatternMatcher {
     }
 
     /** Extract description by removing date and amount */
-    private String extractDescriptionFuzzy(final String line, final String dateStr, final String amountStr) {
+    private String extractDescriptionFuzzy(
+            final String line, final String dateStr, final String amountStr) {
         String description = line;
         // LOGGER.info("SUM Description before extraction: {}", description);
         if (dateStr != null && !dateStr.isBlank()) {
@@ -780,7 +786,8 @@ public class EnhancedPatternMatcher {
     }
 
     /** Flexible date parsing with multiple format attempts */
-    private LocalDate parseDateFlexible(final String dateStr, final Integer inferredYear, final boolean isUSLocale) {
+    private LocalDate parseDateFlexible(
+            final String dateStr, final Integer inferredYear, final boolean isUSLocale) {
         if (dateStr == null || dateStr.isBlank()) {
             return null;
         }
@@ -791,17 +798,17 @@ public class EnhancedPatternMatcher {
         final List<DateTimeFormatter> formatters =
                 isUSLocale
                         ? Arrays.asList(
-                        DateTimeFormatter.ofPattern("M/d/yyyy"),
-                        DateTimeFormatter.ofPattern("MM/dd/yyyy"),
-                        DateTimeFormatter.ofPattern("M/d/yy"),
-                        DateTimeFormatter.ofPattern("MM/dd/yy"),
-                        DateTimeFormatter.ofPattern("MM-dd-yy"),
-                        DateTimeFormatter.ofPattern("M-d-yy"))
+                                DateTimeFormatter.ofPattern("M/d/yyyy"),
+                                DateTimeFormatter.ofPattern("MM/dd/yyyy"),
+                                DateTimeFormatter.ofPattern("M/d/yy"),
+                                DateTimeFormatter.ofPattern("MM/dd/yy"),
+                                DateTimeFormatter.ofPattern("MM-dd-yy"),
+                                DateTimeFormatter.ofPattern("M-d-yy"))
                         : Arrays.asList(
-                        DateTimeFormatter.ofPattern("d/M/yyyy"),
-                        DateTimeFormatter.ofPattern("dd/MM/yyyy"),
-                        DateTimeFormatter.ofPattern("d/M/yy"),
-                        DateTimeFormatter.ofPattern("dd/MM/yy"));
+                                DateTimeFormatter.ofPattern("d/M/yyyy"),
+                                DateTimeFormatter.ofPattern("dd/MM/yyyy"),
+                                DateTimeFormatter.ofPattern("d/M/yy"),
+                                DateTimeFormatter.ofPattern("dd/MM/yy"));
 
         for (final DateTimeFormatter formatter : formatters) {
             try {
@@ -812,7 +819,8 @@ public class EnhancedPatternMatcher {
         }
 
         // Try MM/DD or DD/MM format
-        final Pattern mmddPattern = Pattern.compile("^(\\d{1,2})[/-](\\d{1,2})(?:[/-](\\d{2,4}))?$");
+        final Pattern mmddPattern =
+                Pattern.compile("^(\\d{1,2})[/-](\\d{1,2})(?:[/-](\\d{2,4}))?$");
         final Matcher mmddMatcher = mmddPattern.matcher(trimmed);
 
         if (mmddMatcher.matches()) {
@@ -906,14 +914,10 @@ public class EnhancedPatternMatcher {
         try {
             BigDecimal amount = new BigDecimal(cleanAmount);
 
-            // Apply sign
-            if (isDebit) {
-                amount = amount.negate();
-            } else if (hasParentheses) {
-                amount = amount.negate();
-            } else if (isCredit) {
-                // Already positive
-            } else if (isNegative) {
+            // Apply sign. isCredit deliberately has no branch — credits are
+            // already positive — so collapse the chain instead of leaving an
+            // empty else-if (Checkstyle EmptyBlock).
+            if (isDebit || hasParentheses || (isNegative && !isCredit)) {
                 amount = amount.negate();
             }
 
@@ -982,7 +986,8 @@ public class EnhancedPatternMatcher {
     }
 
     /** Calculate confidence score for a match */
-    private double calculateConfidence(final LocalDate date, final BigDecimal amount, final String description) {
+    private double calculateConfidence(
+            final LocalDate date, final BigDecimal amount, final String description) {
         double confidence = 1.0;
         // LOGGER.info("SUMCalculateCONFIDENCE desc: {}, date:{}, amount:{}", description, date,
         // amount);

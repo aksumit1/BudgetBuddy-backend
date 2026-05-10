@@ -16,6 +16,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class FuzzyMatchingServiceTest {
 
+    private static final String WALMART = "walmart";
+
     private FuzzyMatchingService fuzzyMatchingService;
     private Map<String, InMemoryMerchantService.Merchant> testMerchants;
 
@@ -30,7 +32,7 @@ class FuzzyMatchingServiceTest {
         walmart.setPrimaryCategory("groceries");
         walmart.setDetailedCategory("groceries");
         walmart.setConfidence(0.95);
-        testMerchants.put("walmart", walmart);
+        testMerchants.put(WALMART, walmart);
 
         final InMemoryMerchantService.Merchant starbucks = new InMemoryMerchantService.Merchant();
         starbucks.setCanonicalName("Starbucks");
@@ -50,10 +52,10 @@ class FuzzyMatchingServiceTest {
     @Test
     void testExactMatch() {
         final FuzzyMatchingService.FuzzyMatch match =
-                fuzzyMatchingService.findBestMatch("walmart", testMerchants);
+                fuzzyMatchingService.findBestMatch(WALMART, testMerchants);
 
         assertNotNull(match);
-        assertEquals("walmart", match.getMatchedMerchant());
+        assertEquals(WALMART, match.getMatchedMerchant());
         assertEquals(1.0, match.getSimilarity(), 0.01);
         assertEquals("EXACT", match.getMatchType());
         assertEquals(0.95, match.getConfidence(), 0.01);
@@ -61,12 +63,12 @@ class FuzzyMatchingServiceTest {
 
     @Test
     void testLevenshteinMatchTypo() {
-        // Test typo: "walmrt" instead of "walmart"
+        // Test typo: "walmrt" instead of WALMART
         final FuzzyMatchingService.FuzzyMatch match =
                 fuzzyMatchingService.findBestMatch("walmrt", testMerchants);
 
         assertNotNull(match);
-        assertEquals("walmart", match.getMatchedMerchant());
+        assertEquals(WALMART, match.getMatchedMerchant());
         assertEquals("LEVENSHTEIN", match.getMatchType());
         assertTrue(match.getSimilarity() >= 0.85);
         assertTrue(match.getConfidence() >= 0.90);
@@ -74,19 +76,19 @@ class FuzzyMatchingServiceTest {
 
     @Test
     void testLevenshteinMatchMissingLetter() {
-        // Test missing letter: "walmar" instead of "walmart"
+        // Test missing letter: "walmar" instead of WALMART
         final FuzzyMatchingService.FuzzyMatch match =
                 fuzzyMatchingService.findBestMatch("walmar", testMerchants);
 
         assertNotNull(match);
-        assertEquals("walmart", match.getMatchedMerchant());
+        assertEquals(WALMART, match.getMatchedMerchant());
         assertEquals("LEVENSHTEIN", match.getMatchType());
         assertTrue(match.getSimilarity() >= 0.85);
     }
 
     @Test
     void testPartialMatchAbbreviation() {
-        // Test abbreviation: "wmt" should match "walmart" (partial)
+        // Test abbreviation: "wmt" should match WALMART (partial)
         final FuzzyMatchingService.FuzzyMatch match =
                 fuzzyMatchingService.findBestMatch("wmt", testMerchants);
 
@@ -124,7 +126,7 @@ class FuzzyMatchingServiceTest {
     @Test
     void testEmptyCandidates() {
         final FuzzyMatchingService.FuzzyMatch match =
-                fuzzyMatchingService.findBestMatch("walmart", new HashMap<>());
+                fuzzyMatchingService.findBestMatch(WALMART, new HashMap<>());
         assertNull(match);
     }
 
@@ -148,7 +150,7 @@ class FuzzyMatchingServiceTest {
     void testSimilarityCalculation() {
         // Test that similarity is calculated correctly
         final FuzzyMatchingService.FuzzyMatch match1 =
-                fuzzyMatchingService.findBestMatch("walmart", testMerchants);
+                fuzzyMatchingService.findBestMatch(WALMART, testMerchants);
         final FuzzyMatchingService.FuzzyMatch match2 =
                 fuzzyMatchingService.findBestMatch("walmrt", testMerchants);
 

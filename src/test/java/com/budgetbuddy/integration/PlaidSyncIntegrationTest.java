@@ -1,7 +1,5 @@
 package com.budgetbuddy.integration;
 
-
-import java.nio.charset.StandardCharsets;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -14,6 +12,7 @@ import com.budgetbuddy.repository.dynamodb.AccountRepository;
 import com.budgetbuddy.service.UserService;
 import com.budgetbuddy.util.TableInitializer;
 import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
@@ -22,7 +21,6 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
@@ -63,9 +61,11 @@ class PlaidSyncIntegrationTest {
         testEmail = "test-plaid-" + UUID.randomUUID() + "@example.com";
         // Use proper base64-encoded strings
         final String base64PasswordHash =
-                java.util.Base64.getEncoder().encodeToString("hashed-password".getBytes(StandardCharsets.UTF_8));
+                java.util.Base64.getEncoder()
+                        .encodeToString("hashed-password".getBytes(StandardCharsets.UTF_8));
         final String base64ClientSalt =
-                java.util.Base64.getEncoder().encodeToString("client-salt".getBytes(StandardCharsets.UTF_8));
+                java.util.Base64.getEncoder()
+                        .encodeToString("client-salt".getBytes(StandardCharsets.UTF_8));
         testUser = userService.createUserSecure(testEmail, base64PasswordHash, "Test", "User");
     }
 
@@ -176,7 +176,8 @@ class PlaidSyncIntegrationTest {
         accountRepository.save(account);
 
         // When
-        final Optional<AccountTable> retrieved = accountRepository.findByPlaidAccountId(plaidAccountId);
+        final Optional<AccountTable> retrieved =
+                accountRepository.findByPlaidAccountId(plaidAccountId);
 
         // Then
         assertTrue(retrieved.isPresent(), "Account should be found by Plaid ID");
@@ -205,7 +206,8 @@ class PlaidSyncIntegrationTest {
         accountRepository.save(existingAccount);
 
         // Then
-        final Optional<AccountTable> retrieved = accountRepository.findByPlaidAccountId(plaidAccountId);
+        final Optional<AccountTable> retrieved =
+                accountRepository.findByPlaidAccountId(plaidAccountId);
         assertTrue(retrieved.isPresent());
         assertEquals("Updated Name", retrieved.get().getAccountName());
         assertEquals(

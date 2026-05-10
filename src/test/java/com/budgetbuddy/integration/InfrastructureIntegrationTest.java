@@ -33,8 +33,8 @@ import software.amazon.awssdk.services.dynamodb.model.TimeToLiveStatus;
  * <p>Note: These tests require LocalStack to be running and auto-create-tables enabled. Tables are
  * automatically created by DynamoDBTableManager on application startup.
  *
- * <p>CRITICAL: The testDynamoDBClientIsConfigured test runs first (Order(1)) and ensures tables
- * are created before any other tests run. This is essential for CI/CD pipelines.
+ * <p>CRITICAL: The testDynamoDBClientIsConfigured test runs first (Order(1)) and ensures tables are
+ * created before any other tests run. This is essential for CI/CD pipelines.
  */
 // SDK / Spring integration — the underlying APIs (AWS SDK, Plaid SDK,
 // Spring services, reflection) throw arbitrary RuntimeException subtypes

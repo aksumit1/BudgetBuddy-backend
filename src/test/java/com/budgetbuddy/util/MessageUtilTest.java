@@ -50,7 +50,7 @@ class MessageUtilTest {
     @Test
     void testGetMessageWithArgumentsReturnsFormattedMessage() {
         // Given - MessageUtil.getMessage calls messageSource.getMessage(code, args, code, locale)
-        final Object[] args = new Object[]{"John"};
+        final Object[] args = new Object[] {"John"};
         when(messageSource.getMessage(eq("test.key"), eq(args), eq("test.key"), any(Locale.class)))
                 .thenReturn("Hello John");
 

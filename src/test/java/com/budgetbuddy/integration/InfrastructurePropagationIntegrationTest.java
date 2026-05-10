@@ -173,9 +173,9 @@ class InfrastructurePropagationIntegrationTest {
                         .anyMatch(
                                 policy ->
                                         policy.policyDocument()
-                                                .contains("ecr:GetAuthorizationToken")
+                                                        .contains("ecr:GetAuthorizationToken")
                                                 || policy.policyDocument()
-                                                .contains("ecr:BatchGetImage"));
+                                                        .contains("ecr:BatchGetImage"));
         assertTrue(
                 canAccessECR || hasInlinePolicy(roleName, "ECRAccess"),
                 "ECS Task Execution Role should have access to ECR");
@@ -277,7 +277,7 @@ class InfrastructurePropagationIntegrationTest {
                                     policy ->
                                             policy.policyDocument().contains("ecr:PutImage")
                                                     || policy.policyDocument()
-                                                    .contains("ecr:GetAuthorizationToken"));
+                                                            .contains("ecr:GetAuthorizationToken"));
             assertTrue(
                     canAccessECR || hasInlinePolicy(roleName, "ECRAccess"),
                     "CodeBuild Role should have access to ECR");
@@ -309,7 +309,7 @@ class InfrastructurePropagationIntegrationTest {
                                     policy ->
                                             policy.policyDocument().contains("codebuild:StartBuild")
                                                     || policy.policyDocument()
-                                                    .contains("codebuild:BatchGetBuilds"));
+                                                            .contains("codebuild:BatchGetBuilds"));
             assertTrue(
                     canAccessCodeBuild || hasInlinePolicy(roleName, "CodeBuildAccess"),
                     "CodePipeline Role should have access to CodeBuild");
@@ -555,7 +555,7 @@ class InfrastructurePropagationIntegrationTest {
                                         final String policyDoc = policy.policyDocument();
                                         return policyDoc.contains("secretsmanager:GetSecretValue")
                                                 && (policyDoc.contains(secretName)
-                                                || policyDoc.contains("*"));
+                                                        || policyDoc.contains("*"));
                                     });
 
             // Then

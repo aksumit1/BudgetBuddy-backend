@@ -43,6 +43,8 @@ import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class EnhancedPenetrationTest {
 
+    private static final String AUTHORIZATION = "Authorization";
+
     @Autowired private MockMvc mockMvc;
 
     @Autowired private DynamoDbClient dynamoDbClient;
@@ -155,11 +157,11 @@ class EnhancedPenetrationTest {
         // Note: CSRF is disabled for stateless API, but test verifies proper handling
         final var result =
                 mockMvc.perform(
-                        post("/api/transactions")
-                                .header("Origin", "https://evil.com")
-                                .header("Referer", "https://evil.com")
-                                .contentType(MediaType.APPLICATION_JSON)
-                                .content("{\"amount\":1000,\"description\":\"CSRF Test\"}"))
+                                post("/api/transactions")
+                                        .header("Origin", "https://evil.com")
+                                        .header("Referer", "https://evil.com")
+                                        .contentType(MediaType.APPLICATION_JSON)
+                                        .content("{\"amount\":1000,\"description\":\"CSRF Test\"}"))
                         .andReturn();
 
         // CSRF is disabled for stateless API, but should require authentication
@@ -176,7 +178,7 @@ class EnhancedPenetrationTest {
     void testAuthenticationBypassInvalidTokenIsRejected() throws Exception {
         final String invalidToken = "invalid.jwt.token";
 
-        mockMvc.perform(get("/api/transactions").header("Authorization", "Bearer " + invalidToken))
+        mockMvc.perform(get("/api/transactions").header(AUTHORIZATION, "Bearer " + invalidToken))
                 .andExpect(status().isUnauthorized());
     }
 
@@ -185,9 +187,7 @@ class EnhancedPenetrationTest {
     void testAuthenticationBypassMalformedTokenIsRejected() throws Exception {
         final String malformedToken = "not.a.valid.jwt.token.structure";
 
-        mockMvc.perform(
-                        get("/api/transactions")
-                                .header("Authorization", "Bearer " + malformedToken))
+        mockMvc.perform(get("/api/transactions").header(AUTHORIZATION, "Bearer " + malformedToken))
                 .andExpect(status().isUnauthorized());
     }
 
@@ -199,7 +199,7 @@ class EnhancedPenetrationTest {
         final String expiredToken =
                 "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ0ZXN0QGV4YW1wbGUuY29tIiwiZXhwIjoxfQ.invalid";
 
-        mockMvc.perform(get("/api/transactions").header("Authorization", "Bearer " + expiredToken))
+        mockMvc.perform(get("/api/transactions").header(AUTHORIZATION, "Bearer " + expiredToken))
                 .andExpect(status().isUnauthorized());
     }
 
@@ -221,8 +221,8 @@ class EnhancedPenetrationTest {
 
         final var result =
                 mockMvc.perform(
-                        get("/api/accounts/" + accountId)
-                                .header("Authorization", "Bearer invalid-token"))
+                                get("/api/accounts/" + accountId)
+                                        .header(AUTHORIZATION, "Bearer invalid-token"))
                         .andReturn();
 
         // Should fail authentication or authorization
@@ -235,8 +235,8 @@ class EnhancedPenetrationTest {
     void testAuthorizationBypassAdminEndpointIsRejected() throws Exception {
         final var result =
                 mockMvc.perform(
-                        get("/api/system/status")
-                                .header("Authorization", "Bearer invalid-token"))
+                                get("/api/system/status")
+                                        .header(AUTHORIZATION, "Bearer invalid-token"))
                         .andReturn();
 
         // Should fail authentication or authorization
@@ -311,9 +311,9 @@ class EnhancedPenetrationTest {
         // Use an endpoint that triggers validation error (goes through global exception handler)
         final var result =
                 mockMvc.perform(
-                        post("/api/auth/register")
-                                .contentType(MediaType.APPLICATION_JSON)
-                                .content("{}")) // Empty JSON triggers validation error
+                                post("/api/auth/register")
+                                        .contentType(MediaType.APPLICATION_JSON)
+                                        .content("{}")) // Empty JSON triggers validation error
                         .andExpect(status().is4xxClientError())
                         .andReturn();
 
@@ -372,10 +372,10 @@ class EnhancedPenetrationTest {
             try {
                 final var result =
                         mockMvc.perform(
-                                post("/api/auth/login")
-                                        .contentType(MediaType.APPLICATION_JSON)
-                                        .content(
-                                                "{\"email\":\"test@example.com\",\"passwordHash\":\"wrong\",\"salt\":\"salt\"}"))
+                                        post("/api/auth/login")
+                                                .contentType(MediaType.APPLICATION_JSON)
+                                                .content(
+                                                        "{\"email\":\"test@example.com\",\"passwordHash\":\"wrong\",\"salt\":\"salt\"}"))
                                 .andReturn();
 
                 if (result.getResponse().getStatus() == 429) { // Too Many Requests
@@ -425,9 +425,9 @@ class EnhancedPenetrationTest {
 
         final var result =
                 mockMvc.perform(
-                        post("/api/auth/register")
-                                .contentType(MediaType.APPLICATION_JSON)
-                                .content(largePayload.toString()))
+                                post("/api/auth/register")
+                                        .contentType(MediaType.APPLICATION_JSON)
+                                        .content(largePayload.toString()))
                         .andReturn();
 
         // Payload too large should return 4xx or 5xx
@@ -456,10 +456,10 @@ class EnhancedPenetrationTest {
         // This would require authentication, but test structure
         final var result =
                 mockMvc.perform(
-                        post("/api/transactions")
-                                .header("Authorization", "Bearer invalid-token")
-                                .contentType(MediaType.APPLICATION_JSON)
-                                .content("{\"amount\":-1000,\"description\":\"Test\"}"))
+                                post("/api/transactions")
+                                        .header(AUTHORIZATION, "Bearer invalid-token")
+                                        .contentType(MediaType.APPLICATION_JSON)
+                                        .content("{\"amount\":-1000,\"description\":\"Test\"}"))
                         .andReturn();
 
         // Should fail authentication or validation
@@ -558,9 +558,9 @@ class EnhancedPenetrationTest {
         // Both are acceptable - the important thing is it's rejected
         final var result =
                 mockMvc.perform(
-                        post("/api/auth/register")
-                                .contentType(MediaType.TEXT_PLAIN)
-                                .content("invalid json"))
+                                post("/api/auth/register")
+                                        .contentType(MediaType.TEXT_PLAIN)
+                                        .content("invalid json"))
                         .andReturn();
 
         // Should return error status (4xx or 5xx)

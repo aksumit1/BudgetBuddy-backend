@@ -1,10 +1,9 @@
 package com.budgetbuddy.service.ml;
 
-
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import java.util.Locale;
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.Locale;
 import java.util.Set;
 import org.apache.commons.text.similarity.JaroWinklerSimilarity;
 
@@ -37,7 +36,8 @@ public class FuzzyMatchingAnalysis {
         System.out.println("Combined score (50% each) provides balanced matching");
     }
 
-    private static void analyzeMatch(final String testName, final String query, final String candidate) {
+    private static void analyzeMatch(
+            final String testName, final String query, final String candidate) {
         System.out.println("\n" + testName);
         System.out.println("Query:    " + query);
         System.out.println("Candidate: " + candidate);
@@ -56,7 +56,8 @@ public class FuzzyMatchingAnalysis {
                 "Jaro-Winkler Score:   %.4f (%.2f%%)\n", jaroWinklerScore, jaroWinklerScore * 100);
 
         // Full Token
-        final double fullTokenScore = calculateFullTokenSimilarity(normalizedQuery, normalizedCandidate);
+        final double fullTokenScore =
+                calculateFullTokenSimilarity(normalizedQuery, normalizedCandidate);
         System.out.printf(
                 "Full Token Score:    %.4f (%.2f%%)\n", fullTokenScore, fullTokenScore * 100);
 

@@ -1,7 +1,7 @@
 package com.budgetbuddy.repository.dynamodb;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import com.budgetbuddy.model.dynamodb.UserTable;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -50,6 +50,8 @@ import software.amazon.awssdk.services.dynamodb.model.ResourceNotFoundException;
     "dynamoDbClient"
 })
 public class UserRepository {
+
+    private static final String USERS = "users";
 
     private static final String USER_ID_CANNOT_BE_NULL_OR_EMPTY = "User ID cannot be null or empty";
 
@@ -101,7 +103,7 @@ public class UserRepository {
         }
     }
 
-    @CacheEvict(value = "users", allEntries = true)
+    @CacheEvict(value = USERS, allEntries = true)
     public void save(final UserTable user) {
         // Ensure activeStatus is set for GSI (computed from enabled if not set)
         if (user.getActiveStatus() == null && user.getEnabled() != null) {
@@ -115,24 +117,26 @@ public class UserRepository {
                 });
     }
 
-    @Cacheable(value = "users", key = "#userId")
+    @Cacheable(value = USERS, key = "#userId")
     public Optional<UserTable> findById(final String userId) {
         final UserTable user = userTable.getItem(Key.builder().partitionValue(userId).build());
         return Optional.ofNullable(user);
     }
 
-    @Cacheable(value = "users", key = "'email:' + #email", unless = "#result == null")
+    @Cacheable(value = USERS, key = "'email:' + #email", unless = "#result == null")
     public Optional<UserTable> findByEmail(final String email) {
         if (email == null || email.isEmpty()) {
             return Optional.empty();
         }
         try {
             // Query GSI for email lookup
-            final SdkIterable<software.amazon.awssdk.enhanced.dynamodb.model.Page<UserTable>> pages =
-                    emailIndex.query(
-                            QueryConditional.keyEqualTo(
-                                    Key.builder().partitionValue(email).build()));
-            for (final software.amazon.awssdk.enhanced.dynamodb.model.Page<UserTable> page : pages) {
+            final SdkIterable<software.amazon.awssdk.enhanced.dynamodb.model.Page<UserTable>>
+                    pages =
+                            emailIndex.query(
+                                    QueryConditional.keyEqualTo(
+                                            Key.builder().partitionValue(email).build()));
+            for (final software.amazon.awssdk.enhanced.dynamodb.model.Page<UserTable> page :
+                    pages) {
                 for (final UserTable item : page.items()) {
                     return Optional.of(item);
                 }
@@ -167,11 +171,13 @@ public class UserRepository {
         try {
             // Query GSI for email lookup (bypasses cache)
             // Use consistent read to avoid eventual consistency issues
-            final SdkIterable<software.amazon.awssdk.enhanced.dynamodb.model.Page<UserTable>> pages =
-                    emailIndex.query(
-                            QueryConditional.keyEqualTo(
-                                    Key.builder().partitionValue(email).build()));
-            for (final software.amazon.awssdk.enhanced.dynamodb.model.Page<UserTable> page : pages) {
+            final SdkIterable<software.amazon.awssdk.enhanced.dynamodb.model.Page<UserTable>>
+                    pages =
+                            emailIndex.query(
+                                    QueryConditional.keyEqualTo(
+                                            Key.builder().partitionValue(email).build()));
+            for (final software.amazon.awssdk.enhanced.dynamodb.model.Page<UserTable> page :
+                    pages) {
                 for (final UserTable item : page.items()) {
                     // Log when user is found for debugging
                     org.slf4j.LoggerFactory.getLogger(UserRepository.class)
@@ -218,11 +224,13 @@ public class UserRepository {
         final List<UserTable> users = new ArrayList<>();
         try {
             // Query GSI for all users with this email
-            final SdkIterable<software.amazon.awssdk.enhanced.dynamodb.model.Page<UserTable>> pages =
-                    emailIndex.query(
-                            QueryConditional.keyEqualTo(
-                                    Key.builder().partitionValue(email).build()));
-            for (final software.amazon.awssdk.enhanced.dynamodb.model.Page<UserTable> page : pages) {
+            final SdkIterable<software.amazon.awssdk.enhanced.dynamodb.model.Page<UserTable>>
+                    pages =
+                            emailIndex.query(
+                                    QueryConditional.keyEqualTo(
+                                            Key.builder().partitionValue(email).build()));
+            for (final software.amazon.awssdk.enhanced.dynamodb.model.Page<UserTable> page :
+                    pages) {
                 users.addAll(page.items());
             }
             return users;
@@ -245,7 +253,7 @@ public class UserRepository {
         return findByEmail(email).isPresent();
     }
 
-    @CacheEvict(value = "users", allEntries = true)
+    @CacheEvict(value = USERS, allEntries = true)
     public void delete(final String userId) {
         userTable.deleteItem(Key.builder().partitionValue(userId).build());
     }
@@ -254,7 +262,7 @@ public class UserRepository {
      * Update last login timestamp using UpdateItem (cost-optimized) Eliminates read-before-write
      * pattern
      */
-    @CacheEvict(value = "users", allEntries = true)
+    @CacheEvict(value = USERS, allEntries = true)
     public void updateLastLogin(final String userId, final Instant lastLogin) {
         if (userId == null || userId.isEmpty()) {
             throw new IllegalArgumentException(USER_ID_CANNOT_BE_NULL_OR_EMPTY);
@@ -275,7 +283,7 @@ public class UserRepository {
      * Update only the updatedAt timestamp using UpdateItem (cost-optimized) Preserves all other
      * user fields
      */
-    @CacheEvict(value = "users", allEntries = true)
+    @CacheEvict(value = USERS, allEntries = true)
     public void updateTimestamp(final String userId) {
         if (userId == null || userId.isEmpty()) {
             throw new IllegalArgumentException(USER_ID_CANNOT_BE_NULL_OR_EMPTY);
@@ -292,7 +300,7 @@ public class UserRepository {
      * Update a specific field using UpdateItem (cost-optimized) Eliminates read-before-write
      * pattern
      */
-    @CacheEvict(value = "users", allEntries = true)
+    @CacheEvict(value = USERS, allEntries = true)
     public void updateField(final String userId, final String fieldName, final Object value) {
         if (userId == null || userId.isEmpty()) {
             throw new IllegalArgumentException(USER_ID_CANNOT_BE_NULL_OR_EMPTY);
@@ -330,7 +338,7 @@ public class UserRepository {
     }
 
     /** Save user only if it doesn't exist (conditional write) Prevents accidental overwrites */
-    @CacheEvict(value = "users", allEntries = true)
+    @CacheEvict(value = USERS, allEntries = true)
     public boolean saveIfNotExists(final UserTable user) {
         if (user == null) {
             throw new IllegalArgumentException("User cannot be null");
@@ -484,30 +492,37 @@ public class UserRepository {
             // OPTIMIZED: Use GSI with activeStatus="ACTIVE" as partition key
             // and lastLoginAtTimestamp >= cutoff as sort key range query
             // Query by partition key "ACTIVE" and filter by sort key range
-            final SdkIterable<software.amazon.awssdk.enhanced.dynamodb.model.Page<UserTable>> pages =
-                    activeUsersIndex.query(
-                            software.amazon.awssdk.enhanced.dynamodb.model.QueryEnhancedRequest
-                                    .builder()
-                                    .queryConditional(
-                                            QueryConditional.keyEqualTo(
-                                                    Key.builder().partitionValue("ACTIVE").build()))
-                                    .filterExpression(
-                                            software.amazon.awssdk.enhanced.dynamodb.Expression
-                                                    .builder()
-                                                    .expression("lastLoginAtTimestamp >= :cutoff")
-                                                    .putExpressionValue(
-                                                            ":cutoff",
-                                                            software.amazon.awssdk.services.dynamodb
-                                                                    .model.AttributeValue.builder()
-                                                                    .n(
-                                                                            String.valueOf(
-                                                                                    cutoffTimestamp))
-                                                                    .build())
-                                                    .build())
-                                    .limit(limit)
-                                    .build());
+            final SdkIterable<software.amazon.awssdk.enhanced.dynamodb.model.Page<UserTable>>
+                    pages =
+                            activeUsersIndex.query(
+                                    software.amazon.awssdk.enhanced.dynamodb.model
+                                            .QueryEnhancedRequest.builder()
+                                            .queryConditional(
+                                                    QueryConditional.keyEqualTo(
+                                                            Key.builder()
+                                                                    .partitionValue("ACTIVE")
+                                                                    .build()))
+                                            .filterExpression(
+                                                    software.amazon.awssdk.enhanced.dynamodb
+                                                            .Expression.builder()
+                                                            .expression(
+                                                                    "lastLoginAtTimestamp >= :cutoff")
+                                                            .putExpressionValue(
+                                                                    ":cutoff",
+                                                                    software.amazon.awssdk.services
+                                                                            .dynamodb.model
+                                                                            .AttributeValue
+                                                                            .builder()
+                                                                            .n(
+                                                                                    String.valueOf(
+                                                                                            cutoffTimestamp))
+                                                                            .build())
+                                                            .build())
+                                            .limit(limit)
+                                            .build());
 
-            for (final software.amazon.awssdk.enhanced.dynamodb.model.Page<UserTable> page : pages) {
+            for (final software.amazon.awssdk.enhanced.dynamodb.model.Page<UserTable> page :
+                    pages) {
                 for (final UserTable user : page.items()) {
                     if (user.getUserId() != null && !user.getUserId().isEmpty()) {
                         activeUserIds.add(user.getUserId());

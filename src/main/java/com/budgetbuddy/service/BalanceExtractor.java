@@ -1,11 +1,10 @@
 package com.budgetbuddy.service;
 
-
-import java.util.Locale;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.slf4j.Logger;
@@ -217,8 +216,8 @@ public class BalanceExtractor {
 
     private static final List<String> DEBIT_INDICATORS =
             Arrays.asList(
-                    "dr", "debit", "débit", "débito", "schuld", "debito", "debito", DEBET,
-                    DEBET, "lån", "資産", "资产", DEBET);
+                    "dr", "debit", "débit", "débito", "schuld", "debito", "debito", DEBET, DEBET,
+                    "lån", "資産", "资产", DEBET);
 
     /**
      * Extract balance from headers/text based on account type
@@ -227,7 +226,8 @@ public class BalanceExtractor {
      * @param accountType Account type (creditCard, checking, savings, etc.)
      * @return Extracted balance or null if not found
      */
-    public BigDecimal extractBalanceFromHeaders(final List<String> headers, final String accountType) {
+    public BigDecimal extractBalanceFromHeaders(
+            final List<String> headers, final String accountType) {
         if (headers == null || headers.isEmpty()) {
             LOGGER.debug("extractBalanceFromHeaders: Headers are null or empty");
             return null;
@@ -549,7 +549,8 @@ public class BalanceExtractor {
                             trimmedAmount =
                                     trimmedAmount.substring(1, trimmedAmount.length() - 1).trim();
                         }
-                        final BigDecimal balance = parseAmount(trimmedAmount, isNegativeFromParentheses);
+                        final BigDecimal balance =
+                                parseAmount(trimmedAmount, isNegativeFromParentheses);
 
                         if (balance != null && isValidBalance(balance)) {
                             matches.add(new BalanceMatch(balance, label, matcher.start()));
@@ -574,7 +575,8 @@ public class BalanceExtractor {
      * @param amountStr Amount string to parse
      * @param isNegativeFromParentheses True if amount was in parentheses (negative)
      */
-    private BigDecimal parseAmount(final String amountStr, final boolean isNegativeFromParentheses) {
+    private BigDecimal parseAmount(
+            final String amountStr, final boolean isNegativeFromParentheses) {
         if (amountStr == null || amountStr.isBlank()) {
             return null;
         }

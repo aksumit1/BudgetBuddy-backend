@@ -43,6 +43,8 @@ import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class AuthControllerIntegrationTest {
 
+    private static final String HASHED_PASSWORD = "hashed-password";
+
     private static final Logger LOGGER =
             LoggerFactory.getLogger(AuthControllerIntegrationTest.class);
 
@@ -102,7 +104,7 @@ class AuthControllerIntegrationTest {
         // Use proper base64-encoded strings
         request.setPasswordHash(
                 java.util.Base64.getEncoder()
-                        .encodeToString("hashed-password".getBytes(StandardCharsets.UTF_8)));
+                        .encodeToString(HASHED_PASSWORD.getBytes(StandardCharsets.UTF_8)));
         // BREAKING CHANGE: Client salt removed - backend handles salt management
         // request.setSalt(java.util.Base64.getEncoder().encodeToString("client-salt".getBytes(StandardCharsets.UTF_8)));
 
@@ -122,7 +124,7 @@ class AuthControllerIntegrationTest {
         // Use proper base64-encoded strings
         request.setPasswordHash(
                 java.util.Base64.getEncoder()
-                        .encodeToString("hashed-password".getBytes(StandardCharsets.UTF_8)));
+                        .encodeToString(HASHED_PASSWORD.getBytes(StandardCharsets.UTF_8)));
         // BREAKING CHANGE: Client salt removed - backend handles salt management
         // request.setSalt(java.util.Base64.getEncoder().encodeToString("client-salt".getBytes(StandardCharsets.UTF_8)));
 
@@ -139,8 +141,11 @@ class AuthControllerIntegrationTest {
         final String uniqueEmail = "loginuser" + System.currentTimeMillis() + "@example.com";
         // First register a user
         final String passwordHash =
-                java.util.Base64.getEncoder().encodeToString("hashed-password".getBytes(StandardCharsets.UTF_8));
-        final String clientSalt = java.util.Base64.getEncoder().encodeToString("client-salt".getBytes(StandardCharsets.UTF_8));
+                java.util.Base64.getEncoder()
+                        .encodeToString(HASHED_PASSWORD.getBytes(StandardCharsets.UTF_8));
+        final String clientSalt =
+                java.util.Base64.getEncoder()
+                        .encodeToString("client-salt".getBytes(StandardCharsets.UTF_8));
 
         final AuthRequest registerRequest = new AuthRequest();
         registerRequest.setEmail(uniqueEmail);
@@ -172,7 +177,8 @@ class AuthControllerIntegrationTest {
         request.setEmail("nonexistent@example.com");
         // Use proper base64-encoded strings
         request.setPasswordHash(
-                java.util.Base64.getEncoder().encodeToString("wrong-hash".getBytes(StandardCharsets.UTF_8)));
+                java.util.Base64.getEncoder()
+                        .encodeToString("wrong-hash".getBytes(StandardCharsets.UTF_8)));
         // BREAKING CHANGE: Client salt removed - backend handles salt management
         // request.setSalt(java.util.Base64.getEncoder().encodeToString("client-salt".getBytes(StandardCharsets.UTF_8)));
 
@@ -188,8 +194,11 @@ class AuthControllerIntegrationTest {
         // Register and login to get auth token
         final String uniqueEmail = "changepwd" + System.currentTimeMillis() + "@example.com";
         final String passwordHash =
-                java.util.Base64.getEncoder().encodeToString("hashed-password".getBytes(StandardCharsets.UTF_8));
-        final String clientSalt = java.util.Base64.getEncoder().encodeToString("client-salt".getBytes(StandardCharsets.UTF_8));
+                java.util.Base64.getEncoder()
+                        .encodeToString(HASHED_PASSWORD.getBytes(StandardCharsets.UTF_8));
+        final String clientSalt =
+                java.util.Base64.getEncoder()
+                        .encodeToString("client-salt".getBytes(StandardCharsets.UTF_8));
 
         final AuthRequest registerRequest = new AuthRequest();
         registerRequest.setEmail(uniqueEmail);
@@ -197,22 +206,25 @@ class AuthControllerIntegrationTest {
 
         final String registerResponse =
                 mockMvc.perform(
-                        post("/api/auth/register")
-                                .contentType(MediaType.APPLICATION_JSON)
-                                .content(objectMapper.writeValueAsString(registerRequest)))
+                                post("/api/auth/register")
+                                        .contentType(MediaType.APPLICATION_JSON)
+                                        .content(objectMapper.writeValueAsString(registerRequest)))
                         .andExpect(status().isCreated())
                         .andReturn()
                         .getResponse()
                         .getContentAsString();
 
         // Extract access token from response
-        final String accessToken = objectMapper.readTree(registerResponse).get("accessToken").asText();
+        final String accessToken =
+                objectMapper.readTree(registerResponse).get("accessToken").asText();
 
         // Prepare password change request
         final String newPasswordHash =
-                java.util.Base64.getEncoder().encodeToString("new-hashed-password".getBytes(StandardCharsets.UTF_8));
+                java.util.Base64.getEncoder()
+                        .encodeToString("new-hashed-password".getBytes(StandardCharsets.UTF_8));
         final String newClientSalt =
-                java.util.Base64.getEncoder().encodeToString("new-client-salt".getBytes(StandardCharsets.UTF_8));
+                java.util.Base64.getEncoder()
+                        .encodeToString("new-client-salt".getBytes(StandardCharsets.UTF_8));
 
         // BREAKING CHANGE: Client salt removed
         final AuthController.ChangePasswordRequest changeRequest =
@@ -250,8 +262,11 @@ class AuthControllerIntegrationTest {
         // Register and login to get auth token
         final String uniqueEmail = "changepwd2" + System.currentTimeMillis() + "@example.com";
         final String passwordHash =
-                java.util.Base64.getEncoder().encodeToString("hashed-password".getBytes(StandardCharsets.UTF_8));
-        final String clientSalt = java.util.Base64.getEncoder().encodeToString("client-salt".getBytes(StandardCharsets.UTF_8));
+                java.util.Base64.getEncoder()
+                        .encodeToString(HASHED_PASSWORD.getBytes(StandardCharsets.UTF_8));
+        final String clientSalt =
+                java.util.Base64.getEncoder()
+                        .encodeToString("client-salt".getBytes(StandardCharsets.UTF_8));
 
         final AuthRequest registerRequest = new AuthRequest();
         registerRequest.setEmail(uniqueEmail);
@@ -259,22 +274,25 @@ class AuthControllerIntegrationTest {
 
         final String registerResponse =
                 mockMvc.perform(
-                        post("/api/auth/register")
-                                .contentType(MediaType.APPLICATION_JSON)
-                                .content(objectMapper.writeValueAsString(registerRequest)))
+                                post("/api/auth/register")
+                                        .contentType(MediaType.APPLICATION_JSON)
+                                        .content(objectMapper.writeValueAsString(registerRequest)))
                         .andExpect(status().isCreated())
                         .andReturn()
                         .getResponse()
                         .getContentAsString();
 
         // Extract access token from response
-        final String accessToken = objectMapper.readTree(registerResponse).get("accessToken").asText();
+        final String accessToken =
+                objectMapper.readTree(registerResponse).get("accessToken").asText();
 
         // Prepare password change request with wrong current password
         final String newPasswordHash =
-                java.util.Base64.getEncoder().encodeToString("new-hashed-password".getBytes(StandardCharsets.UTF_8));
+                java.util.Base64.getEncoder()
+                        .encodeToString("new-hashed-password".getBytes(StandardCharsets.UTF_8));
         final String newClientSalt =
-                java.util.Base64.getEncoder().encodeToString("new-client-salt".getBytes(StandardCharsets.UTF_8));
+                java.util.Base64.getEncoder()
+                        .encodeToString("new-client-salt".getBytes(StandardCharsets.UTF_8));
 
         // BREAKING CHANGE: Client salt removed
         final AuthController.ChangePasswordRequest changeRequest =
@@ -297,7 +315,8 @@ class AuthControllerIntegrationTest {
     void testChangePasswordWithoutAuthentication() throws Exception {
         // BREAKING CHANGE: Client salt removed
         final String newPasswordHash =
-                java.util.Base64.getEncoder().encodeToString("new-password-hash".getBytes(StandardCharsets.UTF_8));
+                java.util.Base64.getEncoder()
+                        .encodeToString("new-password-hash".getBytes(StandardCharsets.UTF_8));
 
         // BREAKING CHANGE: Client salt removed
         final AuthController.ChangePasswordRequest changeRequest =

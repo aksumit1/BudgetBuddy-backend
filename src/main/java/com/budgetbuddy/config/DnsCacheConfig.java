@@ -31,7 +31,8 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class DnsCacheConfig {
 
-    private static final String NETWORKADDRESS_CACHE_NEGATIVE_TTL = "networkaddress.cache.negative.ttl";
+    private static final String NETWORKADDRESS_CACHE_NEGATIVE_TTL =
+            "networkaddress.cache.negative.ttl";
 
     private static final String NETWORKADDRESS_CACHE_TTL = "networkaddress.cache.ttl";
 
@@ -63,8 +64,7 @@ public class DnsCacheConfig {
             // recovers
             // Default Java is 10 seconds, we use much shorter (default: 1 second)
             Security.setProperty(
-                    NETWORKADDRESS_CACHE_NEGATIVE_TTL,
-                    String.valueOf(dnsCacheNegativeTtlSeconds));
+                    NETWORKADDRESS_CACHE_NEGATIVE_TTL, String.valueOf(dnsCacheNegativeTtlSeconds));
 
             LOGGER.info(
                     "DNS cache configured: Positive TTL={}s (keeps cached addresses during DNS outages), "
@@ -89,7 +89,8 @@ public class DnsCacheConfig {
                     originalTtl != null ? originalTtl : String.valueOf(dnsCacheTtlSeconds));
 
             // Clear negative cache
-            final String originalNegativeTtl = Security.getProperty(NETWORKADDRESS_CACHE_NEGATIVE_TTL);
+            final String originalNegativeTtl =
+                    Security.getProperty(NETWORKADDRESS_CACHE_NEGATIVE_TTL);
             Security.setProperty(NETWORKADDRESS_CACHE_NEGATIVE_TTL, "0");
             Security.setProperty(
                     NETWORKADDRESS_CACHE_NEGATIVE_TTL,

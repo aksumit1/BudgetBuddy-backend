@@ -1,12 +1,12 @@
 package com.budgetbuddy.service;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.lang.reflect.Method;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
@@ -24,6 +24,8 @@ import org.junit.jupiter.api.Test;
         justification = "JUnit idiom — test methods accept any setup exception")
 @DisplayName("PDFImportService Username Detection Tests")
 public class PDFImportServiceUsernameDetectionTest {
+
+    private static final String UNCHECKED = "unchecked";
 
     private PDFImportService pdfImportService;
     private Method isValidNameFormat;
@@ -308,13 +310,13 @@ public class PDFImportServiceUsernameDetectionTest {
     @DisplayName("Should find Card Member pattern")
     void testFindUsernameCandidatesCardMemberPattern() throws Exception {
         final String[] lines = {
-                "Transaction 1",
-                "Card Member: John Doe",
-                "Date Description Amount",
-                "12/25/25 AMAZON $100.00"
+            "Transaction 1",
+            "Card Member: John Doe",
+            "Date Description Amount",
+            "12/25/25 AMAZON $100.00"
         };
-        @SuppressWarnings("unchecked") final
-                List<String> candidates =
+        @SuppressWarnings(UNCHECKED)
+        final List<String> candidates =
                 (List<String>) findUsernameCandidates.invoke(pdfImportService, lines, 3, 1, 4);
         assertNotNull(candidates);
         assertTrue(candidates.contains("John Doe"));
@@ -324,10 +326,10 @@ public class PDFImportServiceUsernameDetectionTest {
     @DisplayName("Should find Name pattern")
     void testFindUsernameCandidatesNamePattern() throws Exception {
         final String[] lines = {
-                "Transaction 1", "Name: Mary Jane", "Date Description Amount", "12/25/25 TARGET $50.00"
+            "Transaction 1", "Name: Mary Jane", "Date Description Amount", "12/25/25 TARGET $50.00"
         };
-        @SuppressWarnings("unchecked") final
-                List<String> candidates =
+        @SuppressWarnings(UNCHECKED)
+        final List<String> candidates =
                 (List<String>) findUsernameCandidates.invoke(pdfImportService, lines, 3, 1, 4);
         assertNotNull(candidates);
         assertTrue(candidates.contains("Mary Jane"));
@@ -337,10 +339,10 @@ public class PDFImportServiceUsernameDetectionTest {
     @DisplayName("Should find standalone name")
     void testFindUsernameCandidatesStandaloneName() throws Exception {
         final String[] lines = {
-                "Transaction 1", "John Doe", "Date Description Amount", "12/25/25 WALMART $75.00"
+            "Transaction 1", "John Doe", "Date Description Amount", "12/25/25 WALMART $75.00"
         };
-        @SuppressWarnings("unchecked") final
-                List<String> candidates =
+        @SuppressWarnings(UNCHECKED)
+        final List<String> candidates =
                 (List<String>) findUsernameCandidates.invoke(pdfImportService, lines, 3, 1, 4);
         assertNotNull(candidates);
         assertTrue(candidates.contains("John Doe"));
@@ -350,8 +352,8 @@ public class PDFImportServiceUsernameDetectionTest {
     @DisplayName("Boundary condition: transaction at line 0")
     void testFindUsernameCandidatesBoundaryAtLine0() throws Exception {
         final String[] lines = {"12/25/25 STORE $10.00"};
-        @SuppressWarnings("unchecked") final
-                List<String> candidates =
+        @SuppressWarnings(UNCHECKED)
+        final List<String> candidates =
                 (List<String>) findUsernameCandidates.invoke(pdfImportService, lines, 0, 1, 4);
         assertNotNull(candidates);
         assertTrue(candidates.isEmpty()); // No lines before, should return empty
@@ -361,8 +363,8 @@ public class PDFImportServiceUsernameDetectionTest {
     @DisplayName("Boundary condition: transaction at line 1")
     void testFindUsernameCandidatesBoundaryAtLine1() throws Exception {
         final String[] lines = {"John Doe", "12/25/25 STORE $10.00"};
-        @SuppressWarnings("unchecked") final
-                List<String> candidates =
+        @SuppressWarnings(UNCHECKED)
+        final List<String> candidates =
                 (List<String>) findUsernameCandidates.invoke(pdfImportService, lines, 1, 1, 4);
         assertNotNull(candidates);
         assertTrue(candidates.contains("John Doe"));
@@ -372,8 +374,8 @@ public class PDFImportServiceUsernameDetectionTest {
     @DisplayName("Boundary condition: transaction at line 3")
     void testFindUsernameCandidatesBoundaryAtLine3() throws Exception {
         final String[] lines = {"Line 0", "Line 1", "Line 2", "12/25/25 STORE $10.00"};
-        @SuppressWarnings("unchecked") final
-                List<String> candidates =
+        @SuppressWarnings(UNCHECKED)
+        final List<String> candidates =
                 (List<String>) findUsernameCandidates.invoke(pdfImportService, lines, 3, 1, 4);
         assertNotNull(candidates);
         // Should check lines 2, 1, 0 (going backwards from line 2 to line 0)
@@ -383,8 +385,8 @@ public class PDFImportServiceUsernameDetectionTest {
     @DisplayName("Should ignore empty lines")
     void testFindUsernameCandidatesIgnoresEmptyLines() throws Exception {
         final String[] lines = {"", "   ", "Card Member: John Doe", "12/25/25 STORE $10.00"};
-        @SuppressWarnings("unchecked") final
-                List<String> candidates =
+        @SuppressWarnings(UNCHECKED)
+        final List<String> candidates =
                 (List<String>) findUsernameCandidates.invoke(pdfImportService, lines, 3, 1, 4);
         assertNotNull(candidates);
         assertTrue(candidates.contains("John Doe"));
@@ -394,13 +396,13 @@ public class PDFImportServiceUsernameDetectionTest {
     @DisplayName("Should prioritize closer lines")
     void testFindUsernameCandidatesPrioritizesCloserLines() throws Exception {
         final String[] lines = {
-                "Card Member: OLD NAME",
-                "Card Member: NEW NAME",
-                "Card Member: CURRENT NAME",
-                "12/25/25 STORE $10.00"
+            "Card Member: OLD NAME",
+            "Card Member: NEW NAME",
+            "Card Member: CURRENT NAME",
+            "12/25/25 STORE $10.00"
         };
-        @SuppressWarnings("unchecked") final
-                List<String> candidates =
+        @SuppressWarnings(UNCHECKED)
+        final List<String> candidates =
                 (List<String>) findUsernameCandidates.invoke(pdfImportService, lines, 3, 1, 4);
         assertNotNull(candidates);
         // All should be found, but order matters (closer first due to reverse iteration)
@@ -424,8 +426,8 @@ public class PDFImportServiceUsernameDetectionTest {
     void testFindUsernameCandidatesNullElements() throws Exception {
         final String[] lines = {null, "Card Member: John Doe", null, "12/25/25 STORE $10.00"};
         // Should not throw exception
-        @SuppressWarnings("unchecked") final
-                List<String> candidates =
+        @SuppressWarnings(UNCHECKED)
+        final List<String> candidates =
                 (List<String>) findUsernameCandidates.invoke(pdfImportService, lines, 3, 1, 4);
         assertNotNull(candidates);
     }
@@ -436,7 +438,7 @@ public class PDFImportServiceUsernameDetectionTest {
     @DisplayName("Should detect username with account holder validation")
     void testDetectUsernameBeforeHeaderWithAccountHolder() throws Exception {
         final String[] lines = {
-                "Line 0", "Card Member: JOHN DOE", "Date Description Amount", "12/25/25 AMAZON $100.00"
+            "Line 0", "Card Member: JOHN DOE", "Date Description Amount", "12/25/25 AMAZON $100.00"
         };
 
         final AccountDetectionService.DetectedAccount detectedAccount =
@@ -457,10 +459,10 @@ public class PDFImportServiceUsernameDetectionTest {
     @DisplayName("Should reject username that doesn't match account holder")
     void testDetectUsernameBeforeHeaderRejectsNonMatching() throws Exception {
         final String[] lines = {
-                "Line 0",
-                "Card Member: Jane Smith",
-                "Date Description Amount",
-                "12/25/25 AMAZON $100.00"
+            "Line 0",
+            "Card Member: Jane Smith",
+            "Date Description Amount",
+            "12/25/25 AMAZON $100.00"
         };
 
         final AccountDetectionService.DetectedAccount detectedAccount =
@@ -479,7 +481,7 @@ public class PDFImportServiceUsernameDetectionTest {
     @DisplayName("Should accept username without account holder validation")
     void testDetectUsernameBeforeHeaderWithoutAccountHolder() throws Exception {
         final String[] lines = {
-                "Line 0", "Card Member: JOHN DOE", "Date Description Amount", "12/25/25 AMAZON $100.00"
+            "Line 0", "Card Member: JOHN DOE", "Date Description Amount", "12/25/25 AMAZON $100.00"
         };
 
         final String username =
@@ -492,7 +494,9 @@ public class PDFImportServiceUsernameDetectionTest {
     @Test
     @DisplayName("Should accept partial match with account holder")
     void testDetectUsernameBeforeHeaderPartialMatch() throws Exception {
-        final String[] lines = {"Line 0", "JOHN", "Date Description Amount", "12/25/25 AMAZON $100.00"};
+        final String[] lines = {
+            "Line 0", "JOHN", "Date Description Amount", "12/25/25 AMAZON $100.00"
+        };
 
         final AccountDetectionService.DetectedAccount detectedAccount =
                 new AccountDetectionService.DetectedAccount();
@@ -514,7 +518,7 @@ public class PDFImportServiceUsernameDetectionTest {
     @DisplayName("Should reject transaction descriptions as usernames")
     void testFalsePositiveTransactionDescriptions() throws Exception {
         final String[] lines = {
-                "AMAZON PAY JOHN DOE 12345", "Date Description Amount", "12/25/25 AMAZON $100.00"
+            "AMAZON PAY JOHN DOE 12345", "Date Description Amount", "12/25/25 AMAZON $100.00"
         };
 
         final AccountDetectionService.DetectedAccount detectedAccount =
@@ -533,7 +537,7 @@ public class PDFImportServiceUsernameDetectionTest {
     @DisplayName("Should reject section headers as usernames")
     void testFalsePositiveSectionHeaders() throws Exception {
         final String[] lines = {
-                "Transaction Details", "Date Description Amount", "12/25/25 AMAZON $100.00"
+            "Transaction Details", "Date Description Amount", "12/25/25 AMAZON $100.00"
         };
 
         final String username =
@@ -558,7 +562,7 @@ public class PDFImportServiceUsernameDetectionTest {
         // This tests the fix: "Cardholder Agreement for details" should NOT extract "Agreement for
         // details" as username
         final String[] lines = {
-                "Cardholder Agreement for details", "Date Description Amount", "12/25/25 AMAZON $100.00"
+            "Cardholder Agreement for details", "Date Description Amount", "12/25/25 AMAZON $100.00"
         };
 
         final String username =
@@ -574,9 +578,9 @@ public class PDFImportServiceUsernameDetectionTest {
         // This tests the fix: "Cardholder: Agreement for details" should NOT extract "Agreement for
         // details" as username
         final String[] lines = {
-                "Cardholder: Agreement for details",
-                "Date Description Amount",
-                "12/25/25 AMAZON $100.00"
+            "Cardholder: Agreement for details",
+            "Date Description Amount",
+            "12/25/25 AMAZON $100.00"
         };
 
         final String username =
@@ -590,7 +594,7 @@ public class PDFImportServiceUsernameDetectionTest {
     @DisplayName("Should reject 'Agreement for details' when extracted from Cardmember pattern")
     void testFalsePositiveAgreementForDetailsFromCardmember() throws Exception {
         final String[] lines = {
-                "Cardmember Agreement for details", "Date Description Amount", "12/25/25 AMAZON $100.00"
+            "Cardmember Agreement for details", "Date Description Amount", "12/25/25 AMAZON $100.00"
         };
 
         final String username =
@@ -624,7 +628,9 @@ public class PDFImportServiceUsernameDetectionTest {
     @Test
     @DisplayName("Should handle hyphenated names")
     void testFalseNegativeHyphenatedNames() throws Exception {
-        final String[] lines = {"MARY-JANE SMITH", "Date Description Amount", "12/25/25 STORE $100.00"};
+        final String[] lines = {
+            "MARY-JANE SMITH", "Date Description Amount", "12/25/25 STORE $100.00"
+        };
 
         final AccountDetectionService.DetectedAccount detectedAccount =
                 new AccountDetectionService.DetectedAccount();
@@ -645,11 +651,11 @@ public class PDFImportServiceUsernameDetectionTest {
     @DisplayName("Integration: Full flow with account holder name")
     void testIntegrationFullFlowWithAccountHolder() throws Exception {
         final String[] lines = {
-                "Statement Period: 12/01/25 - 12/31/25",
-                "Card Member: JOHN DOE",
-                "Date Description Amount",
-                "12/25/25 AMAZON $100.00",
-                "12/26/25 TARGET $50.00"
+            "Statement Period: 12/01/25 - 12/31/25",
+            "Card Member: JOHN DOE",
+            "Date Description Amount",
+            "12/25/25 AMAZON $100.00",
+            "12/26/25 TARGET $50.00"
         };
 
         final AccountDetectionService.DetectedAccount detectedAccount =
@@ -680,10 +686,10 @@ public class PDFImportServiceUsernameDetectionTest {
             "Integration: Multiple username candidates, should validate against account holder")
     void testIntegrationMultipleCandidates() throws Exception {
         final String[] lines = {
-                "Card Member: WRONG NAME",
-                "JOHN DOE",
-                "Date Description Amount",
-                "12/25/25 AMAZON $100.00"
+            "Card Member: WRONG NAME",
+            "JOHN DOE",
+            "Date Description Amount",
+            "12/25/25 AMAZON $100.00"
         };
 
         final AccountDetectionService.DetectedAccount detectedAccount =

@@ -149,7 +149,8 @@ public class AsyncSyncService {
         final List<R> results = new java.util.ArrayList<>();
         for (final List<T> batch : batches) {
             try {
-                final List<R> batchResults = batch.stream().map(processor).collect(Collectors.toList());
+                final List<R> batchResults =
+                        batch.stream().map(processor).collect(Collectors.toList());
                 results.addAll(batchResults);
             } catch (Exception e) {
                 LOGGER.error("Error processing sequential batch: {}", e.getMessage(), e);

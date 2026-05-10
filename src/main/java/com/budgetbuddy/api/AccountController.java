@@ -37,7 +37,12 @@ import org.springframework.web.bind.annotation.RestController;
 // standard library types (BigDecimal, String, Optional) and DTO
 // getters; this class has many such idiomatic uses. Suppress at
 // class level rather than littering every method.
-@SuppressWarnings({"PMD.LawOfDemeter", "PMD.AvoidCatchingGenericException", "PMD.DataClass", "PMD.OnlyOneReturn"})
+@SuppressWarnings({
+    "PMD.LawOfDemeter",
+    "PMD.AvoidCatchingGenericException",
+    "PMD.DataClass",
+    "PMD.OnlyOneReturn"
+})
 @RestController
 @RequestMapping("/api/accounts")
 public class AccountController {
@@ -131,11 +136,9 @@ public class AccountController {
             // Preserve error context with user-friendly message and technical details
             final java.util.Map<String, Object> context = new java.util.HashMap<>();
             context.put(
-                    "accountId",
-                    account.getAccountId() != null ? account.getAccountId() : UNKNOWN);
+                    "accountId", account.getAccountId() != null ? account.getAccountId() : UNKNOWN);
             context.put(
-                    "requestedUserId",
-                    account.getUserId() != null ? account.getUserId() : UNKNOWN);
+                    "requestedUserId", account.getUserId() != null ? account.getUserId() : UNKNOWN);
             context.put(
                     "authenticatedUserId", user.getUserId() != null ? user.getUserId() : UNKNOWN);
             throw new AppException(
@@ -192,7 +195,8 @@ public class AccountController {
             accountId = com.budgetbuddy.util.IdGenerator.normalizeUUID(accountId);
 
             // Check if account with this ID already exists
-            final java.util.Optional<AccountTable> existingById = accountRepository.findById(accountId);
+            final java.util.Optional<AccountTable> existingById =
+                    accountRepository.findById(accountId);
             if (existingById.isPresent()) {
                 final AccountTable existing = existingById.get();
                 // CRITICAL FIX: Verify the existing account belongs to the same user
@@ -488,10 +492,12 @@ public class AccountController {
             @PathVariable final String id,
             @RequestParam(required = false)
                     @org.springframework.format.annotation.DateTimeFormat(
-                            iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE) final java.time.LocalDate startDate,
+                            iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE)
+                    final java.time.LocalDate startDate,
             @RequestParam(required = false)
                     @org.springframework.format.annotation.DateTimeFormat(
-                            iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE) final java.time.LocalDate endDate) {
+                            iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE)
+                    final java.time.LocalDate endDate) {
         if (userDetails == null
                 || userDetails.getUsername() == null
                 || userDetails.getUsername().isEmpty()) {

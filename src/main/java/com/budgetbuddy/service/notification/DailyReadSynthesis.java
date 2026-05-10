@@ -1,16 +1,15 @@
 package com.budgetbuddy.service.notification;
 
-
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import java.util.Locale;
 import com.budgetbuddy.model.dynamodb.AccountTable;
 import com.budgetbuddy.model.dynamodb.TransactionTable;
 import com.budgetbuddy.repository.dynamodb.AccountRepository;
 import com.budgetbuddy.repository.dynamodb.TransactionRepository;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
 import org.springframework.stereotype.Service;
 
@@ -84,7 +83,8 @@ public class DailyReadSynthesis {
             if (a.getCreditLimit() == null || a.getCreditLimit().signum() <= 0) {
                 continue;
             }
-            final BigDecimal balance = a.getBalance() == null ? BigDecimal.ZERO : a.getBalance().abs();
+            final BigDecimal balance =
+                    a.getBalance() == null ? BigDecimal.ZERO : a.getBalance().abs();
             totalBalance = totalBalance.add(balance);
             totalLimit = totalLimit.add(a.getCreditLimit());
         }

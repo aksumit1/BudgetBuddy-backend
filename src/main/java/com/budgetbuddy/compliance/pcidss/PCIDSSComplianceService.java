@@ -1,13 +1,12 @@
 package com.budgetbuddy.compliance.pcidss;
 
-
+import com.budgetbuddy.compliance.AuditLogService;
 import com.budgetbuddy.exception.AppException;
 import com.budgetbuddy.exception.ErrorCode;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import java.util.Locale;
-import com.budgetbuddy.compliance.AuditLogService;
 import java.time.Instant;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.regex.Pattern;
 import org.slf4j.Logger;
@@ -47,7 +46,10 @@ public class PCIDSSComplianceService {
     private static final Logger LOGGER = LoggerFactory.getLogger(PCIDSSComplianceService.class);
 
     // PCI-DSS compliant PAN masking pattern
-    @SuppressWarnings({"unused", "PMD.AvoidCatchingGenericException"}) // Reserved for future PAN validation
+    @SuppressWarnings({
+        "unused",
+        "PMD.AvoidCatchingGenericException"
+    }) // Reserved for future PAN validation
     private static final Pattern PAN_PATTERN =
             Pattern.compile(
                     "\\b(?:4[0-9]{12}(?:[0-9]{3})?|5[1-5][0-9]{14}|3[47][0-9]{13}|3[0-9]{13}|6(?:011|5[0-9]{2})[0-9]{12})\\b");
@@ -340,7 +342,7 @@ public class PCIDSSComplianceService {
     private boolean isWeakCipher(final String cipher) {
         // List of weak cipher suites
         final String[] weakCiphers = {
-                "RC4", "DES", "MD5", "SHA1", "NULL", "EXPORT", "ANON", "ADH", "LOW", "MEDIUM"
+            "RC4", "DES", "MD5", "SHA1", "NULL", "EXPORT", "ANON", "ADH", "LOW", "MEDIUM"
         };
 
         for (final String weak : weakCiphers) {

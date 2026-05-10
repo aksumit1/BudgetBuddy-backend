@@ -85,7 +85,8 @@ public class CloudFormationService {
             final ListStacksRequest.Builder requestBuilder = ListStacksRequest.builder();
             // Add status filters if needed - stackStatusFilter might not accept list directly
             // Use individual filters or omit to get all stacks
-            final ListStacksResponse response = cloudFormationClient.listStacks(requestBuilder.build());
+            final ListStacksResponse response =
+                    cloudFormationClient.listStacks(requestBuilder.build());
 
             final List<StackSummary> summaries = response.stackSummaries();
             return summaries != null ? summaries : Collections.emptyList();

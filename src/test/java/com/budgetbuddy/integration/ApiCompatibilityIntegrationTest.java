@@ -1,10 +1,5 @@
 package com.budgetbuddy.integration;
 
-
-
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import java.nio.charset.StandardCharsets;
-import java.util.Locale;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -24,11 +19,14 @@ import com.budgetbuddy.service.GoalService;
 import com.budgetbuddy.service.TransactionService;
 import com.budgetbuddy.service.UserService;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -56,6 +54,8 @@ import org.springframework.test.context.ActiveProfiles;
 @Import(AWSTestConfiguration.class)
 class ApiCompatibilityIntegrationTest {
 
+    private static final String GROCERIES = "groceries";
+
     @Autowired private AuthService authService;
 
     @Autowired private UserService userService;
@@ -80,7 +80,8 @@ class ApiCompatibilityIntegrationTest {
         // Use proper base64-encoded strings
         // BREAKING CHANGE: Client salt removed
         testPasswordHash =
-                java.util.Base64.getEncoder().encodeToString("hashed-password".getBytes(StandardCharsets.UTF_8));
+                java.util.Base64.getEncoder()
+                        .encodeToString("hashed-password".getBytes(StandardCharsets.UTF_8));
 
         // Create test user
         testUser = userService.createUserSecure(testEmail, testPasswordHash, "Test", "User");
@@ -127,7 +128,7 @@ class ApiCompatibilityIntegrationTest {
                         new BigDecimal("100.50"),
                         LocalDate.now(),
                         "Test Transaction",
-                        "groceries");
+                        GROCERIES);
 
         // When - Serialize to JSON
         final String json = objectMapper.writeValueAsString(transaction);
@@ -172,7 +173,7 @@ class ApiCompatibilityIntegrationTest {
     void testBudgetResponseFormatMatchesIOS() throws Exception {
         // Given - Create a budget
         final BudgetTable budget =
-                budgetService.createOrUpdateBudget(testUser, "groceries", new BigDecimal("500.00"));
+                budgetService.createOrUpdateBudget(testUser, GROCERIES, new BigDecimal("500.00"));
 
         // When - Serialize to JSON
         final String json = objectMapper.writeValueAsString(budget);
@@ -225,7 +226,7 @@ class ApiCompatibilityIntegrationTest {
                         null, // goalId
                         null, // currentAmount
                         null // accountIds - null
-                );
+                        );
 
         // When - Serialize to JSON
         final String jsonWithNull = objectMapper.writeValueAsString(goalWithNull);
@@ -255,7 +256,7 @@ class ApiCompatibilityIntegrationTest {
                         null, // goalId
                         null, // currentAmount
                         java.util.Collections.emptyList() // accountIds - empty list
-                );
+                        );
 
         // When - Serialize to JSON
         final String jsonWithEmpty = objectMapper.writeValueAsString(goalWithEmpty);
@@ -285,7 +286,7 @@ class ApiCompatibilityIntegrationTest {
                         null, // goalId
                         null, // currentAmount
                         Arrays.asList(testAccount.getAccountId()) // accountIds - with account
-                );
+                        );
 
         // When - Serialize to JSON
         final String jsonWithAccounts = objectMapper.writeValueAsString(goalWithAccounts);
@@ -318,7 +319,7 @@ class ApiCompatibilityIntegrationTest {
                 new BigDecimal("50.00"),
                 LocalDate.now(),
                 "Transaction 1",
-                "groceries");
+                GROCERIES);
         transactionService.createTransaction(
                 testUser,
                 account.getAccountId(),
@@ -328,7 +329,8 @@ class ApiCompatibilityIntegrationTest {
                 "dining");
 
         // When - Get transactions
-        final List<TransactionTable> transactions = transactionService.getTransactions(testUser, 0, 10);
+        final List<TransactionTable> transactions =
+                transactionService.getTransactions(testUser, 0, 10);
 
         // Then - Verify list structure
         assertNotNull(transactions);
@@ -371,7 +373,7 @@ class ApiCompatibilityIntegrationTest {
                         new BigDecimal("100.00"),
                         LocalDate.now(),
                         "Test",
-                        "groceries");
+                        GROCERIES);
 
         // When - Serialize to JSON
         final String accountJson = objectMapper.writeValueAsString(account);
@@ -399,7 +401,7 @@ class ApiCompatibilityIntegrationTest {
                         new BigDecimal("123.45"),
                         LocalDate.now(),
                         "Test",
-                        "groceries");
+                        GROCERIES);
 
         // When - Serialize to JSON
         final String transactionJson = objectMapper.writeValueAsString(transaction);

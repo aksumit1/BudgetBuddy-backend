@@ -1,12 +1,12 @@
 package com.budgetbuddy.security.ddos;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.budgetbuddy.AWSTestConfiguration;
 import com.budgetbuddy.util.TableInitializer;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -44,6 +44,9 @@ import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
         })
 class DDoSProtectionServiceLRUCacheTest {
 
+    private static final String SIZE = "size";
+    private static final String MISSES = "misses";
+
     @Autowired private DDoSProtectionService ddosProtectionService;
 
     @Autowired private DynamoDbClient dynamoDbClient;
@@ -62,8 +65,8 @@ class DDoSProtectionServiceLRUCacheTest {
         final java.lang.reflect.Field cacheField =
                 DDoSProtectionService.class.getDeclaredField("inMemoryCache");
         cacheField.setAccessible(true);
-        @SuppressWarnings({"unchecked", "PMD.AvoidCatchingGenericException"}) final
-                java.util.Map<String, ?> cache =
+        @SuppressWarnings({"unchecked", "PMD.AvoidCatchingGenericException"})
+        final java.util.Map<String, ?> cache =
                 (java.util.Map<String, ?>) cacheField.get(ddosProtectionService);
         if (cache != null) {
             cache.clear();
@@ -102,7 +105,7 @@ class DDoSProtectionServiceLRUCacheTest {
 
         // Verify cache size doesn't exceed limit
         final Map<String, Object> metrics = ddosProtectionService.getCacheMetrics();
-        final int cacheSize = (Integer) metrics.get("size");
+        final int cacheSize = (Integer) metrics.get(SIZE);
         final int maxSize = (Integer) metrics.get("maxSize");
         assertTrue(
                 cacheSize <= maxSize,
@@ -139,7 +142,7 @@ class DDoSProtectionServiceLRUCacheTest {
         ddosProtectionService.isAllowed(ip2);
 
         final Map<String, Object> metrics = ddosProtectionService.getCacheMetrics();
-        final int cacheSize = (Integer) metrics.get("size");
+        final int cacheSize = (Integer) metrics.get(SIZE);
         assertTrue(cacheSize <= 5, "Cache should maintain size limit");
     }
 
@@ -153,9 +156,9 @@ class DDoSProtectionServiceLRUCacheTest {
 
         // Then
         assertEquals(0L, metrics.get("hits"), "Initial hits should be 0");
-        assertEquals(0L, metrics.get("misses"), "Initial misses should be 0");
+        assertEquals(0L, metrics.get(MISSES), "Initial misses should be 0");
         assertEquals(0.0, (Double) metrics.get("hitRate"), 0.01, "Initial hit rate should be 0");
-        assertEquals(0, metrics.get("size"), "Initial cache size should be 0");
+        assertEquals(0, metrics.get(SIZE), "Initial cache size should be 0");
     }
 
     @Test
@@ -171,7 +174,7 @@ class DDoSProtectionServiceLRUCacheTest {
         // Then - Metrics should show hits
         final Map<String, Object> metrics = ddosProtectionService.getCacheMetrics();
         final long hits = (Long) metrics.get("hits");
-        final long misses = (Long) metrics.get("misses");
+        final long misses = (Long) metrics.get(MISSES);
 
         assertTrue(hits >= 1, "Should have at least 1 cache hit. Hits: " + hits);
         assertTrue(misses >= 1, "Should have at least 1 cache miss. Misses: " + misses);
@@ -192,7 +195,7 @@ class DDoSProtectionServiceLRUCacheTest {
 
         // Then - Metrics should show misses
         final Map<String, Object> metrics = ddosProtectionService.getCacheMetrics();
-        final long misses = (Long) metrics.get("misses");
+        final long misses = (Long) metrics.get(MISSES);
 
         assertTrue(misses >= 5, "Should have multiple cache misses. Misses: " + misses);
     }
@@ -211,7 +214,7 @@ class DDoSProtectionServiceLRUCacheTest {
         // Then - Hit rate should be calculated correctly
         final Map<String, Object> metrics = ddosProtectionService.getCacheMetrics();
         final long hits = (Long) metrics.get("hits");
-        final long misses = (Long) metrics.get("misses");
+        final long misses = (Long) metrics.get(MISSES);
         final double hitRate = (Double) metrics.get("hitRate");
 
         final long total = hits + misses;
@@ -244,7 +247,7 @@ class DDoSProtectionServiceLRUCacheTest {
 
         // Then - Cache size should reflect entries
         final Map<String, Object> metrics = ddosProtectionService.getCacheMetrics();
-        final int cacheSize = (Integer) metrics.get("size");
+        final int cacheSize = (Integer) metrics.get(SIZE);
         final int maxSize = (Integer) metrics.get("maxSize");
 
         assertTrue(
@@ -280,12 +283,12 @@ class DDoSProtectionServiceLRUCacheTest {
         // Then - Metrics should be zero
         final Map<String, Object> afterReset = ddosProtectionService.getCacheMetrics();
         assertEquals(0L, afterReset.get("hits"), "Hits should be reset to 0");
-        assertEquals(0L, afterReset.get("misses"), "Misses should be reset to 0");
+        assertEquals(0L, afterReset.get(MISSES), "Misses should be reset to 0");
         assertEquals(
                 0.0, (Double) afterReset.get("hitRate"), 0.01, "Hit rate should be reset to 0");
 
         // Cache size should remain (not reset)
-        final int sizeAfter = (Integer) afterReset.get("size");
+        final int sizeAfter = (Integer) afterReset.get(SIZE);
         assertTrue(sizeAfter >= 0, "Cache size should remain after metrics reset");
     }
 
@@ -332,7 +335,7 @@ class DDoSProtectionServiceLRUCacheTest {
 
         // Cache should maintain size limit
         final Map<String, Object> metrics = ddosProtectionService.getCacheMetrics();
-        final int cacheSize = (Integer) metrics.get("size");
+        final int cacheSize = (Integer) metrics.get(SIZE);
         final int maxSize = (Integer) metrics.get("maxSize");
         assertTrue(
                 cacheSize <= maxSize,
@@ -349,7 +352,7 @@ class DDoSProtectionServiceLRUCacheTest {
 
         // When - Get metrics
         final Map<String, Object> metrics = ddosProtectionService.getCacheMetrics();
-        final int initialSize = (Integer) metrics.get("size");
+        final int initialSize = (Integer) metrics.get(SIZE);
 
         // Then - Cache should handle expiration
         assertTrue(initialSize >= 0, "Cache should handle entries");

@@ -1,8 +1,5 @@
 package com.budgetbuddy.service;
 
-
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import java.util.Locale;
 import com.budgetbuddy.exception.AppException;
 import com.budgetbuddy.exception.ErrorCode;
 import com.budgetbuddy.model.dynamodb.AccountTable;
@@ -10,11 +7,13 @@ import com.budgetbuddy.model.dynamodb.GoalTable;
 import com.budgetbuddy.model.dynamodb.UserTable;
 import com.budgetbuddy.repository.dynamodb.AccountRepository;
 import com.budgetbuddy.repository.dynamodb.GoalRepository;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -153,10 +152,10 @@ public class GoalService {
                                 || !existing.getGoalType().equals(goalType)
                                 || accountIdsChanged
                                 || (description != null
-                                && !existing.getDescription().equals(description.trim()))
+                                        && !existing.getDescription().equals(description.trim()))
                                 || (description == null
-                                && existing.getDescription() != null
-                                && !existing.getDescription().isEmpty());
+                                        && existing.getDescription() != null
+                                        && !existing.getDescription().isEmpty());
 
                 if (needsUpdate) {
                     // Update existing goal with new values. Under lock so a
@@ -639,8 +638,7 @@ public class GoalService {
      * @param list2 Second list
      * @return true if lists contain the same elements (ignoring order and duplicates)
      */
-    private boolean listsEqualIgnoreOrder(
-            final List<String> list1, final List<String> list2) {
+    private boolean listsEqualIgnoreOrder(final List<String> list1, final List<String> list2) {
         if (list1 == null && list2 == null) {
             return true;
         }

@@ -40,6 +40,11 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class StripeServiceTest {
 
+    private static final String USER_123 = "user-123";
+    private static final String USD = "usd";
+    private static final String CH_TEST123 = "ch_test123";
+    private static final String PI_TEST123 = "pi_test123";
+
     @Mock private PCIDSSComplianceService pciDSSComplianceService;
 
     @Mock private PaymentIntent paymentIntent;
@@ -65,7 +70,7 @@ class StripeServiceTest {
         metadata.put("orderId", "order-123");
 
         final PaymentIntent createdIntent = mock(PaymentIntent.class);
-        when(createdIntent.getId()).thenReturn("pi_test123");
+        when(createdIntent.getId()).thenReturn(PI_TEST123);
         // Only stub methods that are actually used in the test
         // getAmount() and getStatus() are not used in this test, so we don't stub them
 
@@ -76,13 +81,13 @@ class StripeServiceTest {
 
             // When
             final PaymentIntent result =
-                    service.createPaymentIntent("user-123", 1000L, "usd", "Test payment", metadata);
+                    service.createPaymentIntent(USER_123, 1000L, USD, "Test payment", metadata);
 
             // Then
             assertNotNull(result);
-            assertEquals("pi_test123", result.getId());
+            assertEquals(PI_TEST123, result.getId());
             verify(pciDSSComplianceService)
-                    .logCardholderDataAccess("user-123", "PAYMENT_INTENT", "CREATE", true);
+                    .logCardholderDataAccess(USER_123, "PAYMENT_INTENT", "CREATE", true);
         }
     }
 
@@ -104,7 +109,7 @@ class StripeServiceTest {
                             AppException.class,
                             () -> {
                                 service.createPaymentIntent(
-                                        "user-123", 1000L, "usd", "Test payment", null);
+                                        USER_123, 1000L, USD, "Test payment", null);
                             });
 
             assertEquals(ErrorCode.STRIPE_CARD_DECLINED, exception.getErrorCode());
@@ -116,28 +121,28 @@ class StripeServiceTest {
         // Given
         final PaymentIntent existingIntent = mock(PaymentIntent.class);
         final Map<String, String> metadata = new HashMap<>();
-        metadata.put("userId", "user-123");
+        metadata.put("userId", USER_123);
         when(existingIntent.getMetadata()).thenReturn(metadata);
 
         final PaymentIntent confirmedIntent = mock(PaymentIntent.class);
-        when(confirmedIntent.getId()).thenReturn("pi_test123");
+        when(confirmedIntent.getId()).thenReturn(PI_TEST123);
         when(confirmedIntent.getStatus()).thenReturn("succeeded");
 
         try (MockedStatic<PaymentIntent> paymentIntentMock = mockStatic(PaymentIntent.class)) {
             paymentIntentMock
-                    .when(() -> PaymentIntent.retrieve("pi_test123"))
+                    .when(() -> PaymentIntent.retrieve(PI_TEST123))
                     .thenReturn(existingIntent);
             when(existingIntent.confirm(any(PaymentIntentConfirmParams.class)))
                     .thenReturn(confirmedIntent);
 
             // When
-            final PaymentIntent result = service.confirmPaymentIntent("pi_test123", "pm_test123");
+            final PaymentIntent result = service.confirmPaymentIntent(PI_TEST123, "pm_test123");
 
             // Then
             assertNotNull(result);
             assertEquals("succeeded", result.getStatus());
             verify(pciDSSComplianceService)
-                    .logCardholderDataAccess("user-123", "PAYMENT_INTENT", "CONFIRM", true);
+                    .logCardholderDataAccess(USER_123, "PAYMENT_INTENT", "CONFIRM", true);
         }
     }
 
@@ -156,7 +161,7 @@ class StripeServiceTest {
 
             // When
             final Customer result =
-                    service.createCustomer("user-123", "test@example.com", "John Doe", metadata);
+                    service.createCustomer(USER_123, "test@example.com", "John Doe", metadata);
 
             // Then
             assertNotNull(result);
@@ -207,7 +212,7 @@ class StripeServiceTest {
                     .thenReturn(createdRefund);
 
             // When
-            final Refund result = service.createRefund("ch_test123", 1000L, "duplicate");
+            final Refund result = service.createRefund(CH_TEST123, 1000L, "duplicate");
 
             // Then
             assertNotNull(result);
@@ -228,10 +233,10 @@ class StripeServiceTest {
                     .thenReturn(createdRefund);
 
             // Test different reasons
-            service.createRefund("ch_test123", 1000L, "fraudulent");
-            service.createRefund("ch_test123", 1000L, "requested_by_customer");
-            service.createRefund("ch_test123", 1000L, "unknown_reason");
-            service.createRefund("ch_test123", 1000L, null);
+            service.createRefund(CH_TEST123, 1000L, "fraudulent");
+            service.createRefund(CH_TEST123, 1000L, "requested_by_customer");
+            service.createRefund(CH_TEST123, 1000L, "unknown_reason");
+            service.createRefund(CH_TEST123, 1000L, null);
 
             // Then - Should not throw exception
             assertTrue(true);
@@ -239,8 +244,7 @@ class StripeServiceTest {
     }
 
     @Test
-    void testHandleStripeExceptionWithInsufficientFundsThrowsAppException()
-            throws StripeException {
+    void testHandleStripeExceptionWithInsufficientFundsThrowsAppException() throws StripeException {
         // Given
         final CardException stripeException = mock(CardException.class);
         when(stripeException.getCode()).thenReturn("insufficient_funds");
@@ -257,7 +261,7 @@ class StripeServiceTest {
                             AppException.class,
                             () -> {
                                 service.createPaymentIntent(
-                                        "user-123", 1000L, "usd", "Test payment", null);
+                                        USER_123, 1000L, USD, "Test payment", null);
                             });
 
             assertEquals(ErrorCode.STRIPE_INSUFFICIENT_FUNDS, exception.getErrorCode());
@@ -308,7 +312,7 @@ class StripeServiceTest {
                             AppException.class,
                             () -> {
                                 service.createPaymentIntent(
-                                        "user-123", 1000L, "usd", "Test payment", null);
+                                        USER_123, 1000L, USD, "Test payment", null);
                             });
 
             assertEquals(ErrorCode.STRIPE_RATE_LIMIT_EXCEEDED, exception.getErrorCode());
@@ -333,7 +337,7 @@ class StripeServiceTest {
                             AppException.class,
                             () -> {
                                 service.createPaymentIntent(
-                                        "user-123", 1000L, "usd", "Test payment", null);
+                                        USER_123, 1000L, USD, "Test payment", null);
                             });
 
             assertEquals(ErrorCode.STRIPE_INVALID_API_KEY, exception.getErrorCode());
@@ -358,7 +362,7 @@ class StripeServiceTest {
                             AppException.class,
                             () -> {
                                 service.createPaymentIntent(
-                                        "user-123", 1000L, "usd", "Test payment", null);
+                                        USER_123, 1000L, USD, "Test payment", null);
                             });
 
             assertEquals(ErrorCode.STRIPE_CONNECTION_FAILED, exception.getErrorCode());

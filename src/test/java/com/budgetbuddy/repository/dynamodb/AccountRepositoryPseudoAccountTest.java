@@ -1,7 +1,5 @@
 package com.budgetbuddy.repository.dynamodb;
 
-
-import java.util.Locale;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -21,6 +19,7 @@ import static org.mockito.Mockito.when;
 import com.budgetbuddy.model.dynamodb.AccountTable;
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.Locale;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -238,7 +237,8 @@ class AccountRepositoryPseudoAccountTest {
         final UUID pseudoAccountNamespace = UUID.fromString("6ba7b815-9dad-11d1-80b4-00c04fd430c8");
         final String expectedPseudoAccountId =
                 com.budgetbuddy.util.IdGenerator.generateDeterministicUUID(
-                        pseudoAccountNamespace, "pseudo-account:" + testUserId.toLowerCase(Locale.ROOT));
+                        pseudoAccountNamespace,
+                        "pseudo-account:" + testUserId.toLowerCase(Locale.ROOT));
 
         // Create existing account with correct UUID but wrong userId
         final AccountTable existingAccount = new AccountTable();

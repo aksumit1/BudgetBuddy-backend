@@ -72,7 +72,8 @@ public class JwtTokenProvider {
             }
 
             final String secret = getJwtSecret();
-            final SecretKey signingKey = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
+            final SecretKey signingKey =
+                    Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
 
             // Cache both secret and signing key
             cachedJwtSecret = secret;

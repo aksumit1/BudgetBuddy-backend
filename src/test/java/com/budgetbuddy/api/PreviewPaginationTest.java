@@ -1,8 +1,5 @@
 package com.budgetbuddy.api;
 
-
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import java.nio.charset.StandardCharsets;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -28,7 +25,9 @@ import com.budgetbuddy.service.ExcelImportService;
 import com.budgetbuddy.service.PDFImportService;
 import com.budgetbuddy.service.TransactionService;
 import com.budgetbuddy.service.UserService;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -59,6 +58,9 @@ import org.springframework.security.core.userdetails.UserDetails;
 @ExtendWith(MockitoExtension.class)
 @org.mockito.junit.jupiter.MockitoSettings(strictness = org.mockito.quality.Strictness.LENIENT)
 class PreviewPaginationTest {
+
+    private static final String TEST = "test";
+    private static final String FILE = "file";
 
     @Mock private TransactionService transactionService;
 
@@ -176,7 +178,8 @@ class PreviewPaginationTest {
                 .thenReturn(importResult);
 
         final MockMultipartFile file =
-                new MockMultipartFile("file", "test.csv", "text/csv", "test".getBytes(StandardCharsets.UTF_8));
+                new MockMultipartFile(
+                        FILE, "test.csv", "text/csv", TEST.getBytes(StandardCharsets.UTF_8));
 
         // Act: Request first page with default size (100)
         final ResponseEntity<TransactionController.CSVImportPreviewResponse> response =
@@ -203,7 +206,8 @@ class PreviewPaginationTest {
                 .thenReturn(importResult);
 
         final MockMultipartFile file =
-                new MockMultipartFile("file", "test.csv", "text/csv", "test".getBytes(StandardCharsets.UTF_8));
+                new MockMultipartFile(
+                        FILE, "test.csv", "text/csv", TEST.getBytes(StandardCharsets.UTF_8));
 
         // Act: Request last page (page 2, size 100) - should return 50 transactions
         final ResponseEntity<TransactionController.CSVImportPreviewResponse> response =
@@ -223,13 +227,15 @@ class PreviewPaginationTest {
     @Test
     void testCSVPreviewEmptyTransactions() throws Exception {
         // Arrange: Empty transaction list
-        final CSVImportService.ImportResult importResult = createImportResult(Collections.emptyList());
+        final CSVImportService.ImportResult importResult =
+                createImportResult(Collections.emptyList());
 
         when(csvImportService.parseCSV(any(), anyString(), anyString(), any()))
                 .thenReturn(importResult);
 
         final MockMultipartFile file =
-                new MockMultipartFile("file", "test.csv", "text/csv", "test".getBytes(StandardCharsets.UTF_8));
+                new MockMultipartFile(
+                        FILE, "test.csv", "text/csv", TEST.getBytes(StandardCharsets.UTF_8));
 
         // Act
         final ResponseEntity<TransactionController.CSVImportPreviewResponse> response =
@@ -256,7 +262,8 @@ class PreviewPaginationTest {
                 .thenReturn(importResult);
 
         final MockMultipartFile file =
-                new MockMultipartFile("file", "test.csv", "text/csv", "test".getBytes(StandardCharsets.UTF_8));
+                new MockMultipartFile(
+                        FILE, "test.csv", "text/csv", TEST.getBytes(StandardCharsets.UTF_8));
 
         // Act: Request page 5 when only 1 page exists
         final ResponseEntity<TransactionController.CSVImportPreviewResponse> response =
@@ -284,7 +291,8 @@ class PreviewPaginationTest {
                 .thenReturn(importResult);
 
         final MockMultipartFile file =
-                new MockMultipartFile("file", "test.csv", "text/csv", "test".getBytes(StandardCharsets.UTF_8));
+                new MockMultipartFile(
+                        FILE, "test.csv", "text/csv", TEST.getBytes(StandardCharsets.UTF_8));
 
         // Act & Assert
         final AppException exception =
@@ -308,7 +316,8 @@ class PreviewPaginationTest {
                 .thenReturn(importResult);
 
         final MockMultipartFile file =
-                new MockMultipartFile("file", "test.csv", "text/csv", "test".getBytes(StandardCharsets.UTF_8));
+                new MockMultipartFile(
+                        FILE, "test.csv", "text/csv", TEST.getBytes(StandardCharsets.UTF_8));
 
         // Act & Assert
         final AppException exception =
@@ -332,7 +341,8 @@ class PreviewPaginationTest {
                 .thenReturn(importResult);
 
         final MockMultipartFile file =
-                new MockMultipartFile("file", "test.csv", "text/csv", "test".getBytes(StandardCharsets.UTF_8));
+                new MockMultipartFile(
+                        FILE, "test.csv", "text/csv", TEST.getBytes(StandardCharsets.UTF_8));
 
         // Act & Assert
         final AppException exception =
@@ -349,14 +359,16 @@ class PreviewPaginationTest {
     @Test
     void testCSVPreviewMaxSizeWorks() throws Exception {
         // Arrange: Create 2000 transactions
-        final List<CSVImportService.ParsedTransaction> transactions = createParsedTransactions(2000);
+        final List<CSVImportService.ParsedTransaction> transactions =
+                createParsedTransactions(2000);
         final CSVImportService.ImportResult importResult = createImportResult(transactions);
 
         when(csvImportService.parseCSV(any(), anyString(), anyString(), any()))
                 .thenReturn(importResult);
 
         final MockMultipartFile file =
-                new MockMultipartFile("file", "test.csv", "text/csv", "test".getBytes(StandardCharsets.UTF_8));
+                new MockMultipartFile(
+                        FILE, "test.csv", "text/csv", TEST.getBytes(StandardCharsets.UTF_8));
 
         // Act: Request with max size (1000)
         final ResponseEntity<TransactionController.CSVImportPreviewResponse> response =
@@ -383,7 +395,8 @@ class PreviewPaginationTest {
                 .thenReturn(importResult);
 
         final MockMultipartFile file =
-                new MockMultipartFile("file", "test.csv", "text/csv", "test".getBytes(StandardCharsets.UTF_8));
+                new MockMultipartFile(
+                        FILE, "test.csv", "text/csv", TEST.getBytes(StandardCharsets.UTF_8));
 
         // Act
         final ResponseEntity<TransactionController.CSVImportPreviewResponse> response =
@@ -416,10 +429,10 @@ class PreviewPaginationTest {
 
         final MockMultipartFile file =
                 new MockMultipartFile(
-                        "file",
+                        FILE,
                         "test.xlsx",
                         "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                        "test".getBytes(StandardCharsets.UTF_8));
+                        TEST.getBytes(StandardCharsets.UTF_8));
 
         // Act: Request page 1 (second page)
         final ResponseEntity<TransactionController.ExcelImportPreviewResponse> response =
@@ -446,10 +459,10 @@ class PreviewPaginationTest {
 
         final MockMultipartFile file =
                 new MockMultipartFile(
-                        "file",
+                        FILE,
                         "test.xlsx",
                         "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                        "test".getBytes(StandardCharsets.UTF_8));
+                        TEST.getBytes(StandardCharsets.UTF_8));
 
         // Act
         final ResponseEntity<TransactionController.ExcelImportPreviewResponse> response =
@@ -469,7 +482,8 @@ class PreviewPaginationTest {
     @Test
     void testPDFPreviewPaginationWorks() throws Exception {
         // Arrange: Create 75 transactions
-        final List<PDFImportService.ParsedTransaction> transactions = createPDFParsedTransactions(75);
+        final List<PDFImportService.ParsedTransaction> transactions =
+                createPDFParsedTransactions(75);
         final PDFImportService.ImportResult importResult = new PDFImportService.ImportResult();
         for (final PDFImportService.ParsedTransaction tx : transactions) {
             importResult.addTransaction(tx);
@@ -479,7 +493,8 @@ class PreviewPaginationTest {
                 .thenReturn(importResult);
 
         final MockMultipartFile file =
-                new MockMultipartFile("file", "test.pdf", "application/pdf", "test".getBytes(StandardCharsets.UTF_8));
+                new MockMultipartFile(
+                        FILE, "test.pdf", "application/pdf", TEST.getBytes(StandardCharsets.UTF_8));
 
         // Act: Request page 0 with size 25
         final ResponseEntity<TransactionController.PDFImportPreviewResponse> response =
@@ -505,7 +520,8 @@ class PreviewPaginationTest {
                 .thenReturn(importResult);
 
         final MockMultipartFile file =
-                new MockMultipartFile("file", "test.pdf", "application/pdf", "test".getBytes(StandardCharsets.UTF_8));
+                new MockMultipartFile(
+                        FILE, "test.pdf", "application/pdf", TEST.getBytes(StandardCharsets.UTF_8));
 
         // Act
         final ResponseEntity<TransactionController.PDFImportPreviewResponse> response =

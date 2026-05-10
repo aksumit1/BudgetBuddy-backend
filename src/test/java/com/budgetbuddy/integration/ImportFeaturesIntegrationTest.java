@@ -1,7 +1,5 @@
 package com.budgetbuddy.integration;
 
-
-import java.nio.charset.StandardCharsets;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -11,6 +9,7 @@ import com.budgetbuddy.model.ImportHistory;
 import com.budgetbuddy.model.dynamodb.UserTable;
 import com.budgetbuddy.service.ImportHistoryService;
 import com.budgetbuddy.service.UserService;
+import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
@@ -43,7 +42,8 @@ class ImportFeaturesIntegrationTest {
         // Create test user
         final String email = "test-import-" + UUID.randomUUID() + "@example.com";
         final String base64PasswordHash =
-                java.util.Base64.getEncoder().encodeToString("hashed-password".getBytes(StandardCharsets.UTF_8));
+                java.util.Base64.getEncoder()
+                        .encodeToString("hashed-password".getBytes(StandardCharsets.UTF_8));
         testUser = userService.createUserSecure(email, base64PasswordHash, "Test", "User");
     }
 
@@ -141,7 +141,8 @@ class ImportFeaturesIntegrationTest {
                         testUser.getUserId(), "file3.csv", "CSV", "CSV");
         importHistoryService.failImportHistory(history3.getImportId(), "Test error");
 
-        final Map<String, Object> stats = importHistoryService.getImportStatistics(testUser.getUserId());
+        final Map<String, Object> stats =
+                importHistoryService.getImportStatistics(testUser.getUserId());
         assertNotNull(stats);
         // CRITICAL FIX: Handle both Integer and Long types (count() returns Long, size() returns
         // int)

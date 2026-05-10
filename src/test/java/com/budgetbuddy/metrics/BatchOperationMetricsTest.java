@@ -12,6 +12,8 @@ import org.junit.jupiter.api.Test;
 /** Unit Tests for Batch Operation Metrics */
 class BatchOperationMetricsTest {
 
+    private static final String SYNC = "sync";
+
     private BatchOperationMetrics metrics;
 
     @BeforeEach
@@ -22,10 +24,10 @@ class BatchOperationMetricsTest {
     @Test
     void testRecordBatchOperationWithSuccessRecordsSuccess() {
         // When
-        metrics.recordBatchOperation("sync", 100, 500, true);
+        metrics.recordBatchOperation(SYNC, 100, 500, true);
 
         // Then
-        final BatchOperationMetrics.OperationStats stats = metrics.getStats("sync");
+        final BatchOperationMetrics.OperationStats stats = metrics.getStats(SYNC);
         assertEquals(1, stats.getCount());
         assertEquals(1, stats.getSuccessCount());
         assertEquals(0, stats.getFailureCount());
@@ -36,10 +38,10 @@ class BatchOperationMetricsTest {
     @Test
     void testRecordBatchOperationWithFailureRecordsFailure() {
         // When
-        metrics.recordBatchOperation("sync", 50, 200, false);
+        metrics.recordBatchOperation(SYNC, 50, 200, false);
 
         // Then
-        final BatchOperationMetrics.OperationStats stats = metrics.getStats("sync");
+        final BatchOperationMetrics.OperationStats stats = metrics.getStats(SYNC);
         assertEquals(1, stats.getCount());
         assertEquals(0, stats.getSuccessCount());
         assertEquals(1, stats.getFailureCount());
@@ -48,12 +50,12 @@ class BatchOperationMetricsTest {
     @Test
     void testRecordBatchOperationMultipleOperationsAggregatesStats() {
         // When
-        metrics.recordBatchOperation("sync", 100, 500, true);
-        metrics.recordBatchOperation("sync", 200, 600, true);
-        metrics.recordBatchOperation("sync", 50, 300, false);
+        metrics.recordBatchOperation(SYNC, 100, 500, true);
+        metrics.recordBatchOperation(SYNC, 200, 600, true);
+        metrics.recordBatchOperation(SYNC, 50, 300, false);
 
         // Then
-        final BatchOperationMetrics.OperationStats stats = metrics.getStats("sync");
+        final BatchOperationMetrics.OperationStats stats = metrics.getStats(SYNC);
         assertEquals(3, stats.getCount());
         assertEquals(2, stats.getSuccessCount());
         assertEquals(1, stats.getFailureCount());
@@ -78,7 +80,7 @@ class BatchOperationMetricsTest {
     @Test
     void testGetAllStatsReturnsAllOperations() {
         // Given
-        metrics.recordBatchOperation("sync", 100, 500, true);
+        metrics.recordBatchOperation(SYNC, 100, 500, true);
         metrics.recordBatchOperation("import", 50, 200, true);
 
         // When
@@ -87,14 +89,14 @@ class BatchOperationMetricsTest {
         // Then
         assertNotNull(allStats);
         assertEquals(2, allStats.size());
-        assertTrue(allStats.containsKey("sync"));
+        assertTrue(allStats.containsKey(SYNC));
         assertTrue(allStats.containsKey("import"));
     }
 
     @Test
     void testGetAllStatsReturnsCopy() {
         // Given
-        metrics.recordBatchOperation("sync", 100, 500, true);
+        metrics.recordBatchOperation(SYNC, 100, 500, true);
         final Map<String, BatchOperationMetrics.OperationStats> stats1 = metrics.getAllStats();
 
         // When
@@ -109,7 +111,7 @@ class BatchOperationMetricsTest {
     @Test
     void testLogStatsDoesNotThrowException() {
         // Given
-        metrics.recordBatchOperation("sync", 100, 500, true);
+        metrics.recordBatchOperation(SYNC, 100, 500, true);
 
         // When/Then
         assertDoesNotThrow(
@@ -121,7 +123,8 @@ class BatchOperationMetricsTest {
     @Test
     void testOperationStatsAverageCalculationsWithZeroCount() {
         // Given
-        final BatchOperationMetrics.OperationStats stats = new BatchOperationMetrics.OperationStats();
+        final BatchOperationMetrics.OperationStats stats =
+                new BatchOperationMetrics.OperationStats();
 
         // When/Then
         assertEquals(0, stats.getAverageItems(), 0.01);
@@ -131,7 +134,8 @@ class BatchOperationMetricsTest {
     @Test
     void testOperationStatsIncrementMethods() {
         // Given
-        final BatchOperationMetrics.OperationStats stats = new BatchOperationMetrics.OperationStats();
+        final BatchOperationMetrics.OperationStats stats =
+                new BatchOperationMetrics.OperationStats();
 
         // When
         stats.incrementCount();

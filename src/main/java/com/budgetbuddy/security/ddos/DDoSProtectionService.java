@@ -68,7 +68,10 @@ public class DDoSProtectionService {
     // TODO: Implement hourly rate limiting - currently only per-minute rate limiting is implemented
     // Reserved for future implementation of hourly rate limits
     @Value("${app.rate-limit.ddos.max-requests-per-hour:5000000}")
-    @SuppressWarnings({"unused", "PMD.AvoidCatchingGenericException"}) // Field reserved for future hourly rate limiting implementation
+    @SuppressWarnings({
+        "unused",
+        "PMD.AvoidCatchingGenericException"
+    }) // Field reserved for future hourly rate limiting implementation
     private long maxRequestsPerHour;
 
     // LOW PRIORITY FIX: Make DDoS protection constants fully configurable
@@ -227,29 +230,24 @@ public class DDoSProtectionService {
                             .item(
                                     Map.of(
                                             IP_ADDRESS,
-                                                    AttributeValue.builder().s(ipAddress).build(),
+                                            AttributeValue.builder().s(ipAddress).build(),
                                             "timestamp",
-                                                    AttributeValue.builder()
-                                                            .n(
-                                                                    String.valueOf(
-                                                                            Instant.now()
-                                                                                    .getEpochSecond()))
-                                                            .build(),
+                                            AttributeValue.builder()
+                                                    .n(
+                                                            String.valueOf(
+                                                                    Instant.now().getEpochSecond()))
+                                                    .build(),
                                             "userId",
-                                                    AttributeValue.builder()
-                                                            .s(
-                                                                    userId != null
-                                                                            ? userId
-                                                                            : "anonymous")
-                                                            .build(),
+                                            AttributeValue.builder()
+                                                    .s(userId != null ? userId : "anonymous")
+                                                    .build(),
                                             "ttl",
-                                                    AttributeValue.builder()
-                                                            .n(
-                                                                    String.valueOf(
-                                                                            Instant.now()
-                                                                                            .getEpochSecond()
-                                                                                    + 86_400))
-                                                            .build() // 24h TTL
+                                            AttributeValue.builder()
+                                                    .n(
+                                                            String.valueOf(
+                                                                    Instant.now().getEpochSecond()
+                                                                            + 86_400))
+                                                    .build() // 24h TTL
                                             ))
                             .build());
         } catch (Exception e) {
@@ -461,22 +459,21 @@ public class DDoSProtectionService {
                             .item(
                                     Map.of(
                                             IP_ADDRESS,
-                                                    AttributeValue.builder().s(ipAddress).build(),
+                                            AttributeValue.builder().s(ipAddress).build(),
                                             BLOCKED_UNTIL,
-                                                    AttributeValue.builder()
-                                                            .n(String.valueOf(blockedUntil))
-                                                            .build(),
+                                            AttributeValue.builder()
+                                                    .n(String.valueOf(blockedUntil))
+                                                    .build(),
                                             "blockedAt",
-                                                    AttributeValue.builder()
-                                                            .n(
-                                                                    String.valueOf(
-                                                                            Instant.now()
-                                                                                    .getEpochSecond()))
-                                                            .build(),
+                                            AttributeValue.builder()
+                                                    .n(
+                                                            String.valueOf(
+                                                                    Instant.now().getEpochSecond()))
+                                                    .build(),
                                             "ttl",
-                                                    AttributeValue.builder()
-                                                            .n(String.valueOf(blockedUntil + 86_400))
-                                                            .build()))
+                                            AttributeValue.builder()
+                                                    .n(String.valueOf(blockedUntil + 86_400))
+                                                    .build()))
                             .build());
             LOGGER.warn(
                     "Blocked IP address: {} until {}",
@@ -586,8 +583,7 @@ public class DDoSProtectionService {
         // Check for SdkClientException with credentials error
         if (e instanceof software.amazon.awssdk.core.exception.SdkClientException) {
             final String exceptionMessage = e.getMessage();
-            if (exceptionMessage != null
-                    && exceptionMessage.contains(UNABLE_TO_LOAD_CREDENTIALS)) {
+            if (exceptionMessage != null && exceptionMessage.contains(UNABLE_TO_LOAD_CREDENTIALS)) {
                 return true;
             }
         }

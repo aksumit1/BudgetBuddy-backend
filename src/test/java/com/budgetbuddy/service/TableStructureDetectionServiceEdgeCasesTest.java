@@ -18,6 +18,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class TableStructureDetectionServiceEdgeCasesTest {
 
+    private static final String DATE = "Date";
+
     private TableStructureDetectionService service;
 
     @BeforeEach
@@ -27,7 +29,8 @@ class TableStructureDetectionServiceEdgeCasesTest {
 
     @Test
     void testDetectTableStructureNullText() {
-        final TableStructureDetectionService.TableStructure table = service.detectTableStructure(null);
+        final TableStructureDetectionService.TableStructure table =
+                service.detectTableStructure(null);
         assertNotNull(table);
         assertTrue(table.getHeaders().isEmpty());
         assertTrue(table.getRows().isEmpty());
@@ -35,7 +38,8 @@ class TableStructureDetectionServiceEdgeCasesTest {
 
     @Test
     void testDetectTableStructureEmptyText() {
-        final TableStructureDetectionService.TableStructure table = service.detectTableStructure("");
+        final TableStructureDetectionService.TableStructure table =
+                service.detectTableStructure("");
         assertNotNull(table);
         assertTrue(table.getHeaders().isEmpty());
         assertTrue(table.getRows().isEmpty());
@@ -83,18 +87,21 @@ class TableStructureDetectionServiceEdgeCasesTest {
     @Test
     void testDetectTableStructureTabSeparated() {
         final String text = "Date\tAmount\tDescription\n2024-01-01\t100.00\tPurchase";
-        final TableStructureDetectionService.TableStructure table = service.detectTableStructure(text);
+        final TableStructureDetectionService.TableStructure table =
+                service.detectTableStructure(text);
 
         assertNotNull(table);
         assertFalse(table.getHeaders().isEmpty());
         assertEquals(3, table.getHeaders().size());
-        assertTrue(table.getHeaders().contains("Date"));
+        assertTrue(table.getHeaders().contains(DATE));
     }
 
     @Test
     void testDetectTableStructureSpaceSeparated() {
-        final String text = "Date        Amount        Description\n2024-01-01  100.00        Purchase";
-        final TableStructureDetectionService.TableStructure table = service.detectTableStructure(text);
+        final String text =
+                "Date        Amount        Description\n2024-01-01  100.00        Purchase";
+        final TableStructureDetectionService.TableStructure table =
+                service.detectTableStructure(text);
 
         assertNotNull(table);
         // Should detect headers
@@ -103,7 +110,8 @@ class TableStructureDetectionServiceEdgeCasesTest {
     @Test
     void testDetectTableStructurePipeSeparated() {
         final String text = "Date|Amount|Description\n2024-01-01|100.00|Purchase";
-        final TableStructureDetectionService.TableStructure table = service.detectTableStructure(text);
+        final TableStructureDetectionService.TableStructure table =
+                service.detectTableStructure(text);
 
         assertNotNull(table);
         assertFalse(table.getHeaders().isEmpty());
@@ -112,7 +120,8 @@ class TableStructureDetectionServiceEdgeCasesTest {
     @Test
     void testDetectTableStructureNoHeader() {
         final String text = "2024-01-01\t100.00\tPurchase\n2024-01-02\t200.00\tSale";
-        final TableStructureDetectionService.TableStructure table = service.detectTableStructure(text);
+        final TableStructureDetectionService.TableStructure table =
+                service.detectTableStructure(text);
 
         assertNotNull(table);
         // May or may not detect headers
@@ -121,7 +130,8 @@ class TableStructureDetectionServiceEdgeCasesTest {
     @Test
     void testDetectTableStructureEmptyRows() {
         final String text = "Date\tAmount\tDescription\n\n\n";
-        final TableStructureDetectionService.TableStructure table = service.detectTableStructure(text);
+        final TableStructureDetectionService.TableStructure table =
+                service.detectTableStructure(text);
 
         assertNotNull(table);
         assertFalse(table.getHeaders().isEmpty());
@@ -131,7 +141,8 @@ class TableStructureDetectionServiceEdgeCasesTest {
     @Test
     void testDetectTableStructureMalformedRows() {
         final String text = "Date\tAmount\tDescription\n2024-01-01\n2024-01-02\t200.00";
-        final TableStructureDetectionService.TableStructure table = service.detectTableStructure(text);
+        final TableStructureDetectionService.TableStructure table =
+                service.detectTableStructure(text);
 
         assertNotNull(table);
         // Should handle malformed rows gracefully
@@ -160,7 +171,7 @@ class TableStructureDetectionServiceEdgeCasesTest {
     void testExtractAccountInfoFromTableTableWithAccountNumber() {
         final TableStructureDetectionService.TableStructure table =
                 new TableStructureDetectionService.TableStructure();
-        table.setHeaders(List.of("Date", "Account Number", "Amount"));
+        table.setHeaders(List.of(DATE, "Account Number", "Amount"));
 
         final List<List<String>> rows = new ArrayList<>();
         rows.add(List.of("2024-01-01", "****1234", "100.00"));
@@ -176,7 +187,7 @@ class TableStructureDetectionServiceEdgeCasesTest {
     void testExtractAccountInfoFromTableTableWithNullRows() {
         final TableStructureDetectionService.TableStructure table =
                 new TableStructureDetectionService.TableStructure();
-        table.setHeaders(List.of("Date", "Account Number", "Amount"));
+        table.setHeaders(List.of(DATE, "Account Number", "Amount"));
         table.setRows(null);
 
         // Should not throw exception
@@ -188,7 +199,7 @@ class TableStructureDetectionServiceEdgeCasesTest {
     void testExtractAccountInfoFromTableTableWithEmptyRows() {
         final TableStructureDetectionService.TableStructure table =
                 new TableStructureDetectionService.TableStructure();
-        table.setHeaders(List.of("Date", "Account Number", "Amount"));
+        table.setHeaders(List.of(DATE, "Account Number", "Amount"));
         table.setRows(new ArrayList<>());
 
         final Map<String, String> info = service.extractAccountInfoFromTable(table);
@@ -200,7 +211,7 @@ class TableStructureDetectionServiceEdgeCasesTest {
     void testExtractAccountInfoFromTableTableWithNullCells() {
         final TableStructureDetectionService.TableStructure table =
                 new TableStructureDetectionService.TableStructure();
-        table.setHeaders(List.of("Date", "Account Number", "Amount"));
+        table.setHeaders(List.of(DATE, "Account Number", "Amount"));
 
         final List<List<String>> rows = new ArrayList<>();
         final List<String> row = new ArrayList<>();
@@ -218,7 +229,8 @@ class TableStructureDetectionServiceEdgeCasesTest {
     @Test
     void testDetectTableStructureInvalidColumnIndex() {
         final String text = "Date\tAmount\n2024-01-01\t100.00";
-        final TableStructureDetectionService.TableStructure table = service.detectTableStructure(text);
+        final TableStructureDetectionService.TableStructure table =
+                service.detectTableStructure(text);
 
         assertNotNull(table);
         // Should handle column index out of bounds gracefully

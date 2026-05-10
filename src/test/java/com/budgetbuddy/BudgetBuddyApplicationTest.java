@@ -1,6 +1,5 @@
 package com.budgetbuddy;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
@@ -17,6 +16,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.times;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import org.junit.jupiter.api.Test;
@@ -41,19 +41,34 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 @SuppressWarnings("PMD.AvoidCatchingGenericException")
 class BudgetBuddyApplicationTest {
 
+    private static final String MAIN = "main";
+
+    /**
+     * Bypass private utility-class constructor (HideUtilityClassConstructor) for coverage tests.
+     */
+    private static BudgetBuddyApplication newAppInstance() {
+        try {
+            final var ctor = BudgetBuddyApplication.class.getDeclaredConstructor();
+            ctor.setAccessible(true);
+            return ctor.newInstance();
+        } catch (Exception e) {
+            throw new AssertionError(e);
+        }
+    }
+
     @Test
     void testMainMethod() {
         // Test that the class can be instantiated
         // For coverage, we just need to ensure the class is loaded
-        final BudgetBuddyApplication app = new BudgetBuddyApplication();
+        final BudgetBuddyApplication app = newAppInstance();
         assertNotNull(app);
     }
 
     @Test
     void testBudgetBuddyApplicationCanBeInstantiated() {
         // Test that the class can be instantiated multiple times
-        final BudgetBuddyApplication app1 = new BudgetBuddyApplication();
-        final BudgetBuddyApplication app2 = new BudgetBuddyApplication();
+        final BudgetBuddyApplication app1 = newAppInstance();
+        final BudgetBuddyApplication app2 = newAppInstance();
         assertNotNull(app1);
         assertNotNull(app2);
         // They should be different instances
@@ -95,7 +110,7 @@ class BudgetBuddyApplicationTest {
     @Test
     void testBudgetBuddyApplicationMainMethodExists() throws NoSuchMethodException {
         // Test that main method exists and has correct signature
-        final Method mainMethod = BudgetBuddyApplication.class.getMethod("main", String[].class);
+        final Method mainMethod = BudgetBuddyApplication.class.getMethod(MAIN, String[].class);
         assertNotNull(mainMethod);
         assertTrue(Modifier.isStatic(mainMethod.getModifiers()));
         assertTrue(Modifier.isPublic(mainMethod.getModifiers()));
@@ -105,7 +120,7 @@ class BudgetBuddyApplicationTest {
     @Test
     void testBudgetBuddyApplicationMainMethodSignature() throws NoSuchMethodException {
         // Test main method signature
-        final Method mainMethod = BudgetBuddyApplication.class.getMethod("main", String[].class);
+        final Method mainMethod = BudgetBuddyApplication.class.getMethod(MAIN, String[].class);
         assertEquals(1, mainMethod.getParameterCount());
         assertEquals(String[].class, mainMethod.getParameterTypes()[0]);
     }
@@ -125,7 +140,7 @@ class BudgetBuddyApplicationTest {
                                             eq(BudgetBuddyApplication.class), any(String[].class)))
                     .thenReturn(mockContext);
 
-            final Method mainMethod = BudgetBuddyApplication.class.getMethod("main", String[].class);
+            final Method mainMethod = BudgetBuddyApplication.class.getMethod(MAIN, String[].class);
             assertNotNull(mainMethod);
 
             // Invoke with empty args - should succeed with mocked SpringApplication
@@ -154,7 +169,7 @@ class BudgetBuddyApplicationTest {
                                             eq(BudgetBuddyApplication.class), any(String[].class)))
                     .thenReturn(mockContext);
 
-            final Method mainMethod = BudgetBuddyApplication.class.getMethod("main", String[].class);
+            final Method mainMethod = BudgetBuddyApplication.class.getMethod(MAIN, String[].class);
 
             // Test with empty args
             mainMethod.invoke(null, (Object) new String[0]);
@@ -173,7 +188,8 @@ class BudgetBuddyApplicationTest {
                     atLeastOnce());
 
             // Test with multiple args
-            final String[] testArgs = new String[]{"--spring.profiles.active=test", "--server.port=0"};
+            final String[] testArgs =
+                    new String[] {"--spring.profiles.active=test", "--server.port=0"};
             mainMethod.invoke(null, (Object) testArgs);
             mockedSpringApplication.verify(
                     () -> SpringApplication.run(eq(BudgetBuddyApplication.class), eq(testArgs)),
@@ -188,7 +204,7 @@ class BudgetBuddyApplicationTest {
         try {
             // Use reflection to ensure method exists and can be accessed
             final Method mainMethod =
-                    BudgetBuddyApplication.class.getDeclaredMethod("main", String[].class);
+                    BudgetBuddyApplication.class.getDeclaredMethod(MAIN, String[].class);
             assertNotNull(mainMethod);
             assertTrue(java.lang.reflect.Modifier.isStatic(mainMethod.getModifiers()));
             assertTrue(java.lang.reflect.Modifier.isPublic(mainMethod.getModifiers()));
@@ -213,7 +229,7 @@ class BudgetBuddyApplicationTest {
 
             final Method mainMethod;
             try {
-                mainMethod = BudgetBuddyApplication.class.getMethod("main", String[].class);
+                mainMethod = BudgetBuddyApplication.class.getMethod(MAIN, String[].class);
             } catch (NoSuchMethodException e) {
                 fail("Main method should exist");
                 return;
@@ -251,7 +267,7 @@ class BudgetBuddyApplicationTest {
 
             final Method mainMethod;
             try {
-                mainMethod = BudgetBuddyApplication.class.getMethod("main", String[].class);
+                mainMethod = BudgetBuddyApplication.class.getMethod(MAIN, String[].class);
             } catch (NoSuchMethodException e) {
                 fail("Main method should exist");
                 return;
@@ -259,7 +275,7 @@ class BudgetBuddyApplicationTest {
 
             // Execute the main method with test args
             final String[] testArgs =
-                    new String[]{"--spring.main.web-application-type=none", "--server.port=0"};
+                    new String[] {"--spring.main.web-application-type=none", "--server.port=0"};
             mainMethod.invoke(null, (Object) testArgs);
 
             // Verify SpringApplication.run was called
@@ -288,7 +304,7 @@ class BudgetBuddyApplicationTest {
                     .thenReturn(mockContext);
 
             // Invoke the main method
-            final Method mainMethod = BudgetBuddyApplication.class.getMethod("main", String[].class);
+            final Method mainMethod = BudgetBuddyApplication.class.getMethod(MAIN, String[].class);
             mainMethod.invoke(null, (Object) new String[0]);
 
             // Verify SpringApplication.run was called with correct arguments
@@ -316,14 +332,14 @@ class BudgetBuddyApplicationTest {
                                             eq(BudgetBuddyApplication.class), any(String[].class)))
                     .thenReturn(mockContext);
 
-            final Method mainMethod = BudgetBuddyApplication.class.getMethod("main", String[].class);
+            final Method mainMethod = BudgetBuddyApplication.class.getMethod(MAIN, String[].class);
 
             // Test with various argument combinations
             final String[][] testArgs = {
-                    new String[0],
-                    new String[]{"--test"},
-                    new String[]{"--spring.profiles.active=test"},
-                    new String[]{"--server.port=0", "--spring.main.web-application-type=none"}
+                new String[0],
+                new String[] {"--test"},
+                new String[] {"--spring.profiles.active=test"},
+                new String[] {"--server.port=0", "--spring.main.web-application-type=none"}
             };
 
             for (final String[] args : testArgs) {
@@ -352,7 +368,7 @@ class BudgetBuddyApplicationTest {
                                             eq(BudgetBuddyApplication.class), any(String[].class)))
                     .thenThrow(testException);
 
-            final Method mainMethod = BudgetBuddyApplication.class.getMethod("main", String[].class);
+            final Method mainMethod = BudgetBuddyApplication.class.getMethod(MAIN, String[].class);
 
             // Invoke main method - should throw exception
             final Exception thrown =
@@ -391,7 +407,7 @@ class BudgetBuddyApplicationTest {
                                             eq(BudgetBuddyApplication.class), any(String[].class)))
                     .thenReturn(mockContext);
 
-            final Method mainMethod = BudgetBuddyApplication.class.getMethod("main", String[].class);
+            final Method mainMethod = BudgetBuddyApplication.class.getMethod(MAIN, String[].class);
             mainMethod.invoke(null, (Object) null);
 
             // Verify SpringApplication.run was called
@@ -419,7 +435,7 @@ class BudgetBuddyApplicationTest {
 
             final Method mainMethod;
             try {
-                mainMethod = BudgetBuddyApplication.class.getMethod("main", String[].class);
+                mainMethod = BudgetBuddyApplication.class.getMethod(MAIN, String[].class);
             } catch (NoSuchMethodException e) {
                 fail("Main method should exist");
                 return;
@@ -455,12 +471,12 @@ class BudgetBuddyApplicationTest {
                                             eq(BudgetBuddyApplication.class), any(String[].class)))
                     .thenReturn(mockContext);
 
-            final Method mainMethod = BudgetBuddyApplication.class.getMethod("main", String[].class);
+            final Method mainMethod = BudgetBuddyApplication.class.getMethod(MAIN, String[].class);
             final String[] testArgs =
-                    new String[]{
-                            "--spring.profiles.active=test",
-                            "--server.port=0",
-                            "--spring.main.web-application-type=none"
+                    new String[] {
+                        "--spring.profiles.active=test",
+                        "--server.port=0",
+                        "--spring.main.web-application-type=none"
                     };
             mainMethod.invoke(null, (Object) testArgs);
 
@@ -487,12 +503,12 @@ class BudgetBuddyApplicationTest {
                                             eq(BudgetBuddyApplication.class), any(String[].class)))
                     .thenReturn(mockContext);
 
-            final Method mainMethod = BudgetBuddyApplication.class.getMethod("main", String[].class);
+            final Method mainMethod = BudgetBuddyApplication.class.getMethod(MAIN, String[].class);
             final String[] testArgs =
-                    new String[]{
-                            "--spring.profiles.active=test",
-                            "--server.port=0",
-                            "--spring.main.web-application-type=none"
+                    new String[] {
+                        "--spring.profiles.active=test",
+                        "--server.port=0",
+                        "--spring.main.web-application-type=none"
                     };
             mainMethod.invoke(null, (Object) testArgs);
 
@@ -519,12 +535,12 @@ class BudgetBuddyApplicationTest {
                                             eq(BudgetBuddyApplication.class), any(String[].class)))
                     .thenReturn(mockContext);
 
-            final Method mainMethod = BudgetBuddyApplication.class.getMethod("main", String[].class);
+            final Method mainMethod = BudgetBuddyApplication.class.getMethod(MAIN, String[].class);
             final String[] testArgs =
-                    new String[]{
-                            "--test=value with spaces",
-                            "--test=value\"with\"quotes",
-                            "--test=value\\with\\backslashes"
+                    new String[] {
+                        "--test=value with spaces",
+                        "--test=value\"with\"quotes",
+                        "--test=value\\with\\backslashes"
                     };
             mainMethod.invoke(null, (Object) testArgs);
 
@@ -551,8 +567,8 @@ class BudgetBuddyApplicationTest {
                                             eq(BudgetBuddyApplication.class), any(String[].class)))
                     .thenReturn(mockContext);
 
-            final Method mainMethod = BudgetBuddyApplication.class.getMethod("main", String[].class);
-            final String[] testArgs = new String[]{"--test=测试", "--test=тест", "--test=テスト"};
+            final Method mainMethod = BudgetBuddyApplication.class.getMethod(MAIN, String[].class);
+            final String[] testArgs = new String[] {"--test=测试", "--test=тест", "--test=テスト"};
             mainMethod.invoke(null, (Object) testArgs);
 
             // Verify SpringApplication.run was called
@@ -578,9 +594,9 @@ class BudgetBuddyApplicationTest {
                                             eq(BudgetBuddyApplication.class), any(String[].class)))
                     .thenReturn(mockContext);
 
-            final Method mainMethod = BudgetBuddyApplication.class.getMethod("main", String[].class);
+            final Method mainMethod = BudgetBuddyApplication.class.getMethod(MAIN, String[].class);
             final String longArg = "--test=" + "a".repeat(10_000);
-            final String[] testArgs = new String[]{longArg};
+            final String[] testArgs = new String[] {longArg};
             mainMethod.invoke(null, (Object) testArgs);
 
             // Verify SpringApplication.run was called
@@ -606,7 +622,7 @@ class BudgetBuddyApplicationTest {
                                             eq(BudgetBuddyApplication.class), any(String[].class)))
                     .thenReturn(mockContext);
 
-            final Method mainMethod = BudgetBuddyApplication.class.getMethod("main", String[].class);
+            final Method mainMethod = BudgetBuddyApplication.class.getMethod(MAIN, String[].class);
             final String[] manyArgs = new String[100];
             for (int i = 0; i < 100; i++) {
                 manyArgs[i] = "--arg" + i + "=value" + i;
@@ -674,12 +690,13 @@ class BudgetBuddyApplicationTest {
     @Test
     void testBudgetBuddyApplicationClassHasOneMethod() {
         // Test that class has one method (main)
-        final java.lang.reflect.Method[] methods = BudgetBuddyApplication.class.getDeclaredMethods();
+        final java.lang.reflect.Method[] methods =
+                BudgetBuddyApplication.class.getDeclaredMethods();
         // Should have at least the main method
         assertTrue(methods.length >= 1);
         boolean hasMain = false;
         for (final java.lang.reflect.Method method : methods) {
-            if ("main".equals(method.getName())) {
+            if (MAIN.equals(method.getName())) {
                 hasMain = true;
                 break;
             }
@@ -747,7 +764,7 @@ class BudgetBuddyApplicationTest {
 
         boolean hasMain = false;
         for (final Method method : methods) {
-            if ("main".equals(method.getName()) && method.getParameterCount() == 1) {
+            if (MAIN.equals(method.getName()) && method.getParameterCount() == 1) {
                 hasMain = true;
                 break;
             }
@@ -784,7 +801,7 @@ class BudgetBuddyApplicationTest {
     @Test
     void testBudgetBuddyApplicationToString() {
         // Test toString method
-        final BudgetBuddyApplication app = new BudgetBuddyApplication();
+        final BudgetBuddyApplication app = newAppInstance();
         final String toString = app.toString();
         assertNotNull(toString);
         assertTrue(toString.contains("BudgetBuddyApplication") || toString.length() > 0);
@@ -793,8 +810,8 @@ class BudgetBuddyApplicationTest {
     @Test
     void testBudgetBuddyApplicationEquals() {
         // Test equals method
-        final BudgetBuddyApplication app1 = new BudgetBuddyApplication();
-        final BudgetBuddyApplication app2 = new BudgetBuddyApplication();
+        final BudgetBuddyApplication app1 = newAppInstance();
+        final BudgetBuddyApplication app2 = newAppInstance();
 
         // Different instances should not be equal
         assertNotEquals(app1, app2);
@@ -806,8 +823,8 @@ class BudgetBuddyApplicationTest {
     @Test
     void testBudgetBuddyApplicationHashCode() {
         // Test hashCode method
-        final BudgetBuddyApplication app1 = new BudgetBuddyApplication();
-        final BudgetBuddyApplication app2 = new BudgetBuddyApplication();
+        final BudgetBuddyApplication app1 = newAppInstance();
+        final BudgetBuddyApplication app2 = newAppInstance();
 
         // Different instances should have different hash codes (usually)
         // But we can't guarantee this, so just test that hashCode exists

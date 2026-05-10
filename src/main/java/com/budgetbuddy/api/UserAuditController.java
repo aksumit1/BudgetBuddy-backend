@@ -60,7 +60,8 @@ public class UserAuditController {
                                 () -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
 
         final long to = Instant.now().getEpochSecond();
-        final long from = Instant.now().minus(Math.min(days, 365), ChronoUnit.DAYS).getEpochSecond();
+        final long from =
+                Instant.now().minus(Math.min(days, 365), ChronoUnit.DAYS).getEpochSecond();
         List<AuditLogTable> rows =
                 auditRepository.findByUserIdAndDateRange(user.getUserId(), from, to);
 
@@ -100,7 +101,8 @@ public class UserAuditController {
                                 () -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
 
         final long to = Instant.now().getEpochSecond();
-        final long from = Instant.now().minus(Math.min(days, 365 * 7), ChronoUnit.DAYS).getEpochSecond();
+        final long from =
+                Instant.now().minus(Math.min(days, 365 * 7), ChronoUnit.DAYS).getEpochSecond();
         final List<AuditLogTable> rows =
                 auditRepository.findByUserIdAndDateRange(user.getUserId(), from, to);
         final List<Map<String, Object>> out = new ArrayList<>(rows.size());

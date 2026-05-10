@@ -1,8 +1,5 @@
 package com.budgetbuddy.service;
 
-
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import java.util.Locale;
 import com.budgetbuddy.exception.AppException;
 import com.budgetbuddy.exception.ErrorCode;
 import com.budgetbuddy.model.dynamodb.AccountTable;
@@ -11,12 +8,14 @@ import com.budgetbuddy.model.dynamodb.TransactionTable;
 import com.budgetbuddy.repository.dynamodb.AccountRepository;
 import com.budgetbuddy.repository.dynamodb.GoalRepository;
 import com.budgetbuddy.repository.dynamodb.TransactionRepository;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Locale;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -106,7 +105,8 @@ public class FinancialGoalsRecommendationService {
         final LocalDate endDate = LocalDate.now();
         final LocalDate startDate = endDate.minusDays(90); // Last 3 months
 
-        final String startDateStr = startDate.format(java.time.format.DateTimeFormatter.ISO_LOCAL_DATE);
+        final String startDateStr =
+                startDate.format(java.time.format.DateTimeFormatter.ISO_LOCAL_DATE);
         final String endDateStr = endDate.format(java.time.format.DateTimeFormatter.ISO_LOCAL_DATE);
 
         // Get transactions
@@ -146,8 +146,8 @@ public class FinancialGoalsRecommendationService {
         final double savingsRate =
                 monthlyIncome.compareTo(BigDecimal.ZERO) > 0
                         ? monthlySavings
-                        .divide(monthlyIncome, 4, RoundingMode.HALF_UP)
-                        .doubleValue()
+                                .divide(monthlyIncome, 4, RoundingMode.HALF_UP)
+                                .doubleValue()
                         : 0.0;
 
         // Calculate total liquid assets (checking + savings)
@@ -157,7 +157,7 @@ public class FinancialGoalsRecommendationService {
                                 acc ->
                                         acc.getAccountType() != null
                                                 && ("checking".equals(acc.getAccountType())
-                                                || "savings".equals(acc.getAccountType())))
+                                                        || "savings".equals(acc.getAccountType())))
                         .filter(acc -> acc.getBalance() != null)
                         .map(AccountTable::getBalance)
                         .reduce(BigDecimal.ZERO, BigDecimal::add);
@@ -169,12 +169,12 @@ public class FinancialGoalsRecommendationService {
                                 acc ->
                                         acc.getAccountType() != null
                                                 && ("creditCard".equals(acc.getAccountType())
-                                                || "autoLoan".equals(acc.getAccountType())
-                                                || "personalLoan"
-                                                .equals(acc.getAccountType())
-                                                || "studentLoan"
-                                                .equals(acc.getAccountType())
-                                                || "mortgage".equals(acc.getAccountType())))
+                                                        || "autoLoan".equals(acc.getAccountType())
+                                                        || "personalLoan"
+                                                                .equals(acc.getAccountType())
+                                                        || "studentLoan"
+                                                                .equals(acc.getAccountType())
+                                                        || "mortgage".equals(acc.getAccountType())))
                         .filter(acc -> acc.getBalance() != null)
                         .map(acc -> acc.getBalance().abs()) // Debt is negative balance
                         .reduce(BigDecimal.ZERO, BigDecimal::add);
@@ -183,11 +183,11 @@ public class FinancialGoalsRecommendationService {
         final double debtToIncome =
                 monthlyIncome.compareTo(BigDecimal.ZERO) > 0
                         ? totalDebt
-                        .divide(
-                                monthlyIncome.multiply(BigDecimal.valueOf(12)),
-                                4,
-                                RoundingMode.HALF_UP)
-                        .doubleValue()
+                                .divide(
+                                        monthlyIncome.multiply(BigDecimal.valueOf(12)),
+                                        4,
+                                        RoundingMode.HALF_UP)
+                                .doubleValue()
                         : 0.0;
 
         // Calculate emergency fund adequacy
@@ -197,8 +197,8 @@ public class FinancialGoalsRecommendationService {
         final double emergencyFundProgress =
                 emergencyFundTarget.compareTo(BigDecimal.ZERO) > 0
                         ? liquidAssets
-                        .divide(emergencyFundTarget, 4, RoundingMode.HALF_UP)
-                        .doubleValue()
+                                .divide(emergencyFundTarget, 4, RoundingMode.HALF_UP)
+                                .doubleValue()
                         : 0.0;
 
         return new FinancialAnalysis(
@@ -269,7 +269,8 @@ public class FinancialGoalsRecommendationService {
         if (analysis.totalDebt.compareTo(BigDecimal.ZERO) > 0) {
             // Check if debt-to-income ratio is high
             if (analysis.debtToIncome > DEBT_TO_INCOME_THRESHOLD) {
-                final Priority priority = analysis.debtToIncome > 0.5 ? Priority.HIGH : Priority.MEDIUM;
+                final Priority priority =
+                        analysis.debtToIncome > 0.5 ? Priority.HIGH : Priority.MEDIUM;
 
                 // Calculate payoff timeline
                 final BigDecimal monthlyPayment =
@@ -359,7 +360,8 @@ public class FinancialGoalsRecommendationService {
         final BigDecimal remainingAfterEssentials = analysis.monthlyIncome.subtract(essentials);
 
         if (remainingAfterEssentials.compareTo(BigDecimal.ZERO) > 0) {
-            final Priority priority = Priority.LOW; // Lower priority, but good for financial wellness
+            final Priority priority =
+                    Priority.LOW; // Lower priority, but good for financial wellness
 
             recommendations.add(
                     new FinancialGoalRecommendation(
@@ -393,8 +395,8 @@ public class FinancialGoalsRecommendationService {
                                 goal ->
                                         goal.getGoalType() != null
                                                 && goal.getGoalType()
-                                                .toLowerCase(Locale.ROOT)
-                                                .contains("retirement"));
+                                                        .toLowerCase(Locale.ROOT)
+                                                        .contains("retirement"));
 
         if (!hasRetirementGoal && analysis.monthlyIncome.compareTo(BigDecimal.ZERO) > 0) {
             // Recommend 15% of income for retirement
@@ -402,7 +404,8 @@ public class FinancialGoalsRecommendationService {
                     analysis.monthlyIncome.multiply(BigDecimal.valueOf(0.15));
 
             // Estimate retirement need (25x annual expenses)
-            final BigDecimal annualExpenses = analysis.monthlyExpenses.multiply(BigDecimal.valueOf(12));
+            final BigDecimal annualExpenses =
+                    analysis.monthlyExpenses.multiply(BigDecimal.valueOf(12));
             final BigDecimal retirementTarget = annualExpenses.multiply(BigDecimal.valueOf(25));
 
             final Priority priority = Priority.MEDIUM;

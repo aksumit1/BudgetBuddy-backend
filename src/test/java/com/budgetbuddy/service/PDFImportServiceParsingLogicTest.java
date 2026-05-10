@@ -1,11 +1,11 @@
 package com.budgetbuddy.service;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.lang.reflect.Method;
 import java.math.BigDecimal;
 import java.util.List;
@@ -28,6 +28,13 @@ import org.junit.jupiter.api.Test;
         justification = "JUnit idiom — test methods accept any setup exception")
 @DisplayName("PDF Import Service Parsing Logic Tests")
 class PDFImportServiceParsingLogicTest {
+
+    private static final String DESCRIPTION = "description";
+    private static final String DATE = "date";
+    private static final String AMOUNT = "amount";
+    private static final String UNCHECKED = "unchecked";
+    private static final String EXTRACTROWWITHSMARTCOLUMNDETECTION =
+            "extractRowWithSmartColumnDetection";
 
     private PDFImportService pdfImportService;
 
@@ -58,27 +65,27 @@ class PDFImportServiceParsingLogicTest {
         // Use reflection to test the private method
         final Method method =
                 PDFImportService.class.getDeclaredMethod(
-                        "extractRowWithSmartColumnDetection",
+                        EXTRACTROWWITHSMARTCOLUMNDETECTION,
                         String.class,
                         List.class,
                         Integer.class);
         method.setAccessible(true);
 
-        final List<String> headers = List.of("date", "date", "description", "amount");
-        @SuppressWarnings("unchecked") final
-                Map<String, String> row =
+        final List<String> headers = List.of(DATE, DATE, DESCRIPTION, AMOUNT);
+        @SuppressWarnings(UNCHECKED)
+        final Map<String, String> row =
                 (Map<String, String>) method.invoke(pdfImportService, line, headers, 2025);
 
         assertNotNull(row, "Should extract row");
-        assertEquals("11/25", row.get("date"), "Should extract first date");
-        assertEquals("$14.27", row.get("amount"), "Should extract amount at end");
-        assertTrue(row.get("description").contains("SAFEWAY"), "Should extract full description");
+        assertEquals("11/25", row.get(DATE), "Should extract first date");
+        assertEquals("$14.27", row.get(AMOUNT), "Should extract amount at end");
+        assertTrue(row.get(DESCRIPTION).contains("SAFEWAY"), "Should extract full description");
         assertTrue(
-                row.get("description").contains("BELLEVUE WA"),
+                row.get(DESCRIPTION).contains("BELLEVUE WA"),
                 "Should preserve multi-word description");
         assertEquals(
                 "SAFEWAY #1444 BELLEVUE WA",
-                row.get("description"),
+                row.get(DESCRIPTION),
                 "Should extract complete description between date and amount");
     }
 
@@ -89,26 +96,27 @@ class PDFImportServiceParsingLogicTest {
 
         final Method method =
                 PDFImportService.class.getDeclaredMethod(
-                        "extractRowWithSmartColumnDetection",
+                        EXTRACTROWWITHSMARTCOLUMNDETECTION,
                         String.class,
                         List.class,
                         Integer.class);
         method.setAccessible(true);
 
-        final List<String> headers = List.of("date", "date", "description", "amount");
-        @SuppressWarnings("unchecked") final
-                Map<String, String> row =
+        final List<String> headers = List.of(DATE, DATE, DESCRIPTION, AMOUNT);
+        @SuppressWarnings(UNCHECKED)
+        final Map<String, String> row =
                 (Map<String, String>) method.invoke(pdfImportService, line, headers, 2025);
 
         assertNotNull(row, "Should extract row");
         assertEquals(
-                "-$436.80", row.get("amount"), "Should extract negative amount with dollar sign");
+                "-$436.80", row.get(AMOUNT), "Should extract negative amount with dollar sign");
 
         // Test amount parsing
         final Method parseAmountMethod =
                 PDFImportService.class.getDeclaredMethod("parseAmount", String.class);
         parseAmountMethod.setAccessible(true);
-        final BigDecimal amount = (BigDecimal) parseAmountMethod.invoke(pdfImportService, "-$436.80");
+        final BigDecimal amount =
+                (BigDecimal) parseAmountMethod.invoke(pdfImportService, "-$436.80");
 
         assertNotNull(amount, "Should parse negative amount");
         assertTrue(amount.compareTo(BigDecimal.ZERO) < 0, "Amount should be negative");
@@ -122,22 +130,22 @@ class PDFImportServiceParsingLogicTest {
 
         final Method method =
                 PDFImportService.class.getDeclaredMethod(
-                        "extractRowWithSmartColumnDetection",
+                        EXTRACTROWWITHSMARTCOLUMNDETECTION,
                         String.class,
                         List.class,
                         Integer.class);
         method.setAccessible(true);
 
-        final List<String> headers = List.of("date", "date", "description", "amount");
-        @SuppressWarnings("unchecked") final
-                Map<String, String> row =
+        final List<String> headers = List.of(DATE, DATE, DESCRIPTION, AMOUNT);
+        @SuppressWarnings(UNCHECKED)
+        final Map<String, String> row =
                 (Map<String, String>) method.invoke(pdfImportService, line, headers, 2025);
 
         assertNotNull(row, "Should extract row");
-        assertTrue(row.get("description").contains(","), "Should preserve comma in description");
+        assertTrue(row.get(DESCRIPTION).contains(","), "Should preserve comma in description");
         assertEquals(
                 "CURSOR, AI POWERED IDE NEW YORK NY",
-                row.get("description"),
+                row.get(DESCRIPTION),
                 "Should extract full description with special characters");
     }
 
@@ -148,21 +156,21 @@ class PDFImportServiceParsingLogicTest {
 
         final Method method =
                 PDFImportService.class.getDeclaredMethod(
-                        "extractRowWithSmartColumnDetection",
+                        EXTRACTROWWITHSMARTCOLUMNDETECTION,
                         String.class,
                         List.class,
                         Integer.class);
         method.setAccessible(true);
 
-        final List<String> headers = List.of("date", "date", "description", "amount");
-        @SuppressWarnings("unchecked") final
-                Map<String, String> row =
+        final List<String> headers = List.of(DATE, DATE, DESCRIPTION, AMOUNT);
+        @SuppressWarnings(UNCHECKED)
+        final Map<String, String> row =
                 (Map<String, String>) method.invoke(pdfImportService, line, headers, 2025);
 
         assertNotNull(row, "Should extract row");
-        assertTrue(row.get("description").contains("*"), "Should preserve asterisk");
-        assertTrue(row.get("description").contains("'"), "Should preserve apostrophe");
-        assertEquals("SQ *JAYAM'S TIFFINS AN Bellevue WA", row.get("description"));
+        assertTrue(row.get(DESCRIPTION).contains("*"), "Should preserve asterisk");
+        assertTrue(row.get(DESCRIPTION).contains("'"), "Should preserve apostrophe");
+        assertEquals("SQ *JAYAM'S TIFFINS AN Bellevue WA", row.get(DESCRIPTION));
     }
 
     @Test
@@ -172,23 +180,22 @@ class PDFImportServiceParsingLogicTest {
 
         final Method method =
                 PDFImportService.class.getDeclaredMethod(
-                        "extractRowWithSmartColumnDetection",
+                        EXTRACTROWWITHSMARTCOLUMNDETECTION,
                         String.class,
                         List.class,
                         Integer.class);
         method.setAccessible(true);
 
-        final List<String> headers = List.of("date", "date", "description", "amount");
-        @SuppressWarnings("unchecked") final
-                Map<String, String> row =
+        final List<String> headers = List.of(DATE, DATE, DESCRIPTION, AMOUNT);
+        @SuppressWarnings(UNCHECKED)
+        final Map<String, String> row =
                 (Map<String, String>) method.invoke(pdfImportService, line, headers, 2025);
 
         assertNotNull(row, "Should extract row");
-        assertTrue(row.get("description").contains("#"), "Should preserve hash symbol");
-        assertTrue(
-                row.get("description").contains("4723"), "Should preserve numbers in description");
-        assertEquals("$5.81", row.get("amount"), "Should extract amount, not description numbers");
-        assertEquals("THE HOME DEPOT #4723 REDMOND WA", row.get("description"));
+        assertTrue(row.get(DESCRIPTION).contains("#"), "Should preserve hash symbol");
+        assertTrue(row.get(DESCRIPTION).contains("4723"), "Should preserve numbers in description");
+        assertEquals("$5.81", row.get(AMOUNT), "Should extract amount, not description numbers");
+        assertEquals("THE HOME DEPOT #4723 REDMOND WA", row.get(DESCRIPTION));
     }
 
     @Test
@@ -208,7 +215,8 @@ class PDFImportServiceParsingLogicTest {
         assertTrue(neg1.compareTo(BigDecimal.ZERO) < 0);
 
         // Test negative with parentheses
-        final BigDecimal neg2 = (BigDecimal) parseAmountMethod.invoke(pdfImportService, "($123.45)");
+        final BigDecimal neg2 =
+                (BigDecimal) parseAmountMethod.invoke(pdfImportService, "($123.45)");
         assertEquals(0, neg2.compareTo(new BigDecimal("-123.45")));
         assertTrue(neg2.compareTo(BigDecimal.ZERO) < 0);
 
@@ -218,7 +226,8 @@ class PDFImportServiceParsingLogicTest {
         assertEquals(0, withCommas.compareTo(new BigDecimal("1234.56")));
 
         // Test without dollar sign
-        final BigDecimal noDollar = (BigDecimal) parseAmountMethod.invoke(pdfImportService, "99.99");
+        final BigDecimal noDollar =
+                (BigDecimal) parseAmountMethod.invoke(pdfImportService, "99.99");
         assertEquals(0, noDollar.compareTo(new BigDecimal("99.99")));
     }
 
@@ -230,21 +239,21 @@ class PDFImportServiceParsingLogicTest {
 
         final Method method =
                 PDFImportService.class.getDeclaredMethod(
-                        "extractRowWithSmartColumnDetection",
+                        EXTRACTROWWITHSMARTCOLUMNDETECTION,
                         String.class,
                         List.class,
                         Integer.class);
         method.setAccessible(true);
 
-        final List<String> headers = List.of("date", "date", "description", "amount");
-        @SuppressWarnings("unchecked") final
-                Map<String, String> row =
+        final List<String> headers = List.of(DATE, DATE, DESCRIPTION, AMOUNT);
+        @SuppressWarnings(UNCHECKED)
+        final Map<String, String> row =
                 (Map<String, String>) method.invoke(pdfImportService, line, headers, 2025);
 
         assertNotNull(row, "Should extract row");
-        assertEquals("11/03", row.get("date"), "Should use first date (transaction date)");
-        assertEquals("$13.02", row.get("amount"), "Should extract amount");
-        assertTrue(row.get("description").contains("STARBUCKS"), "Should extract description");
+        assertEquals("11/03", row.get(DATE), "Should use first date (transaction date)");
+        assertEquals("$13.02", row.get(AMOUNT), "Should extract amount");
+        assertTrue(row.get(DESCRIPTION).contains("STARBUCKS"), "Should extract description");
     }
 
     @Test
@@ -256,30 +265,30 @@ class PDFImportServiceParsingLogicTest {
 
         final Method method =
                 PDFImportService.class.getDeclaredMethod(
-                        "extractRowWithSmartColumnDetection",
+                        EXTRACTROWWITHSMARTCOLUMNDETECTION,
                         String.class,
                         List.class,
                         Integer.class);
         method.setAccessible(true);
 
-        final List<String> headers = List.of("date", "date", "description", "amount");
+        final List<String> headers = List.of(DATE, DATE, DESCRIPTION, AMOUNT);
 
-        @SuppressWarnings("unchecked") final
-                Map<String, String> row1 =
+        @SuppressWarnings(UNCHECKED)
+        final Map<String, String> row1 =
                 (Map<String, String>) method.invoke(pdfImportService, line1, headers, 2025);
 
-        @SuppressWarnings("unchecked") final
-                Map<String, String> row2 =
+        @SuppressWarnings(UNCHECKED)
+        final Map<String, String> row2 =
                 (Map<String, String>) method.invoke(pdfImportService, line2, headers, 2025);
 
         assertNotNull(row1);
         assertNotNull(row2);
-        assertEquals("$14.27", row1.get("amount"));
-        assertEquals("$37.25", row2.get("amount"));
+        assertEquals("$14.27", row1.get(AMOUNT));
+        assertEquals("$37.25", row2.get(AMOUNT));
 
         // Verify descriptions don't contain amounts
-        assertFalse(row1.get("description").contains("14.27"));
-        assertFalse(row2.get("description").contains("37.25"));
+        assertFalse(row1.get(DESCRIPTION).contains("14.27"));
+        assertFalse(row2.get(DESCRIPTION).contains("37.25"));
     }
 
     @Test
@@ -290,15 +299,15 @@ class PDFImportServiceParsingLogicTest {
 
         final Method method =
                 PDFImportService.class.getDeclaredMethod(
-                        "extractRowWithSmartColumnDetection",
+                        EXTRACTROWWITHSMARTCOLUMNDETECTION,
                         String.class,
                         List.class,
                         Integer.class);
         method.setAccessible(true);
 
         final List<String> headers = List.of("col1", "col2", "col3");
-        @SuppressWarnings("unchecked") final
-                Map<String, String> row =
+        @SuppressWarnings(UNCHECKED)
+        final Map<String, String> row =
                 (Map<String, String>) method.invoke(pdfImportService, line, headers, 2025);
 
         // Should return empty or fallback row, not null
@@ -313,32 +322,32 @@ class PDFImportServiceParsingLogicTest {
 
         final Method method =
                 PDFImportService.class.getDeclaredMethod(
-                        "extractRowWithSmartColumnDetection",
+                        EXTRACTROWWITHSMARTCOLUMNDETECTION,
                         String.class,
                         List.class,
                         Integer.class);
         method.setAccessible(true);
 
-        final List<String> headers = List.of("date", "date", "description", "amount");
-        @SuppressWarnings("unchecked") final
-                Map<String, String> row =
+        final List<String> headers = List.of(DATE, DATE, DESCRIPTION, AMOUNT);
+        @SuppressWarnings(UNCHECKED)
+        final Map<String, String> row =
                 (Map<String, String>) method.invoke(pdfImportService, line, headers, 2025);
 
         assertNotNull(row, "Should extract row from Citi format");
-        assertEquals("11/25", row.get("date"), "Should extract first date");
-        assertEquals("$14.27", row.get("amount"), "Should extract amount at end");
+        assertEquals("11/25", row.get(DATE), "Should extract first date");
+        assertEquals("$14.27", row.get(AMOUNT), "Should extract amount at end");
         assertEquals(
                 "SAFEWAY #1444 BELLEVUE WA",
-                row.get("description"),
+                row.get(DESCRIPTION),
                 "Should extract complete description between date and amount");
 
         // Test negative amount format
         final String negativeLine = "11/28 11/28 AUTOPAY 999990000012756RAUTOPAY AUTO-PMT -$436.80";
-        @SuppressWarnings("unchecked") final
-                Map<String, String> negativeRow =
+        @SuppressWarnings(UNCHECKED)
+        final Map<String, String> negativeRow =
                 (Map<String, String>) method.invoke(pdfImportService, negativeLine, headers, 2025);
 
         assertNotNull(negativeRow, "Should extract row with negative amount");
-        assertEquals("-$436.80", negativeRow.get("amount"), "Should extract negative amount");
+        assertEquals("-$436.80", negativeRow.get(AMOUNT), "Should extract negative amount");
     }
 }

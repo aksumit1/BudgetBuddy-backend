@@ -61,6 +61,10 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class PlaidSyncServiceBugFixesTest {
 
+    private static final String PLAID_ACCOUNT_1 = "plaid-account-1";
+    private static final String OTHER = "other";
+    private static final String PLAID_TX_1 = "plaid-tx-1";
+
     @Mock private PlaidService plaidService;
 
     @Mock private AccountRepository accountRepository;
@@ -134,7 +138,7 @@ class PlaidSyncServiceBugFixesTest {
     void testSyncAccountsSetsActiveToTrueForNewAccounts() {
         // Given - New account from Plaid
         final AccountBase plaidAccount =
-                createMockPlaidAccount("plaid-account-1", "Test Account", 1000.0);
+                createMockPlaidAccount(PLAID_ACCOUNT_1, "Test Account", 1000.0);
         final AccountsGetResponse accountsResponse = new AccountsGetResponse();
         accountsResponse.setAccounts(Collections.singletonList(plaidAccount));
 
@@ -167,7 +171,8 @@ class PlaidSyncServiceBugFixesTest {
         plaidSyncService.syncAccounts(testUser, testAccessToken, null);
 
         // Then - Verify active is set to true
-        final ArgumentCaptor<AccountTable> accountCaptor = ArgumentCaptor.forClass(AccountTable.class);
+        final ArgumentCaptor<AccountTable> accountCaptor =
+                ArgumentCaptor.forClass(AccountTable.class);
         verify(accountRepository).saveIfNotExists(accountCaptor.capture());
         final AccountTable savedAccount = accountCaptor.getValue();
         assertTrue(savedAccount.getActive(), "New accounts should have active = true");
@@ -179,14 +184,14 @@ class PlaidSyncServiceBugFixesTest {
     void testSyncAccountsPreservesActiveStatusForExistingAccounts() {
         // Given - Existing account with active = true
         final AccountBase plaidAccount =
-                createMockPlaidAccount("plaid-account-1", "Test Account", 1500.0);
+                createMockPlaidAccount(PLAID_ACCOUNT_1, "Test Account", 1500.0);
         final AccountsGetResponse accountsResponse = new AccountsGetResponse();
         accountsResponse.setAccounts(Collections.singletonList(plaidAccount));
 
         final AccountTable existingAccount = new AccountTable();
         existingAccount.setAccountId(UUID.randomUUID().toString());
         existingAccount.setUserId(testUserId);
-        existingAccount.setPlaidAccountId("plaid-account-1");
+        existingAccount.setPlaidAccountId(PLAID_ACCOUNT_1);
         existingAccount.setActive(true);
 
         when(plaidService.getAccounts(testAccessToken)).thenReturn(accountsResponse);
@@ -221,7 +226,8 @@ class PlaidSyncServiceBugFixesTest {
         plaidSyncService.syncAccounts(testUser, testAccessToken, null);
 
         // Then - Verify active status is preserved (saveWithLock = optimistic concurrency).
-        final ArgumentCaptor<AccountTable> accountCaptor = ArgumentCaptor.forClass(AccountTable.class);
+        final ArgumentCaptor<AccountTable> accountCaptor =
+                ArgumentCaptor.forClass(AccountTable.class);
         verify(accountRepository).saveWithLock(accountCaptor.capture());
         final AccountTable savedAccount = accountCaptor.getValue();
         assertTrue(savedAccount.getActive(), "Active status should be preserved");
@@ -234,18 +240,18 @@ class PlaidSyncServiceBugFixesTest {
         final AccountTable testAccount = new AccountTable();
         testAccount.setAccountId(UUID.randomUUID().toString());
         testAccount.setUserId(testUserId);
-        testAccount.setPlaidAccountId("plaid-account-1");
+        testAccount.setPlaidAccountId(PLAID_ACCOUNT_1);
         testAccount.setLastSyncedAt(null); // First sync - ensure sync isn't skipped
         testAccount.setActive(true);
 
         final Transaction plaidTransaction =
                 createMockPlaidTransaction(
-                        "plaid-tx-1",
+                        PLAID_TX_1,
                         "Test Transaction",
                         50.0,
                         LocalDate.of(2025, 11, 26),
                         null // null category - should default to "Other"
-                );
+                        );
         final TransactionsGetResponse transactionsResponse = new TransactionsGetResponse();
         transactionsResponse.setTransactions(Collections.singletonList(plaidTransaction));
         transactionsResponse.setTotalTransactions(1);
@@ -255,7 +261,7 @@ class PlaidSyncServiceBugFixesTest {
         when(plaidService.getTransactions(eq(testAccessToken), anyString(), anyString()))
                 .thenReturn(transactionsResponse);
         // Mock dataExtractor to return account ID for transaction grouping and transaction ID
-        when(dataExtractor.extractAccountIdFromTransaction(any())).thenReturn("plaid-account-1");
+        when(dataExtractor.extractAccountIdFromTransaction(any())).thenReturn(PLAID_ACCOUNT_1);
         when(dataExtractor.extractTransactionId(any()))
                 .thenAnswer(
                         invocation -> {
@@ -313,7 +319,7 @@ class PlaidSyncServiceBugFixesTest {
                                 } else {
                                     categoryMapping =
                                             new PlaidCategoryMapper.CategoryMapping(
-                                                    "other", "other", false);
+                                                    OTHER, OTHER, false);
                                 }
 
                                 txTable.setImporterCategoryPrimary(plaidCategoryPrimary);
@@ -325,7 +331,7 @@ class PlaidSyncServiceBugFixesTest {
                         })
                 .when(dataExtractor)
                 .updateTransactionFromPlaid(any(TransactionTable.class), any());
-        when(transactionRepository.findByPlaidTransactionId("plaid-tx-1"))
+        when(transactionRepository.findByPlaidTransactionId(PLAID_TX_1))
                 .thenReturn(Optional.empty());
         when(transactionRepository.saveIfPlaidTransactionNotExists(any(TransactionTable.class)))
                 .thenReturn(true);
@@ -351,18 +357,18 @@ class PlaidSyncServiceBugFixesTest {
         final AccountTable testAccount = new AccountTable();
         testAccount.setAccountId(UUID.randomUUID().toString());
         testAccount.setUserId(testUserId);
-        testAccount.setPlaidAccountId("plaid-account-1");
+        testAccount.setPlaidAccountId(PLAID_ACCOUNT_1);
         testAccount.setLastSyncedAt(null); // First sync - ensure sync isn't skipped
         testAccount.setActive(true);
 
         final Transaction plaidTransaction =
                 createMockPlaidTransaction(
-                        "plaid-tx-1",
+                        PLAID_TX_1,
                         "Uber 072515 SF**POOL**",
                         6.33,
                         LocalDate.of(2025, 10, 29),
                         null // null category - actual backend behavior
-                );
+                        );
         final TransactionsGetResponse transactionsResponse = new TransactionsGetResponse();
         transactionsResponse.setTransactions(Collections.singletonList(plaidTransaction));
         transactionsResponse.setTotalTransactions(1);
@@ -372,7 +378,7 @@ class PlaidSyncServiceBugFixesTest {
         when(plaidService.getTransactions(eq(testAccessToken), anyString(), anyString()))
                 .thenReturn(transactionsResponse);
         // Mock dataExtractor to return account ID for transaction grouping and transaction ID
-        when(dataExtractor.extractAccountIdFromTransaction(any())).thenReturn("plaid-account-1");
+        when(dataExtractor.extractAccountIdFromTransaction(any())).thenReturn(PLAID_ACCOUNT_1);
         when(dataExtractor.extractTransactionId(any()))
                 .thenAnswer(
                         invocation -> {
@@ -430,7 +436,7 @@ class PlaidSyncServiceBugFixesTest {
                                 } else {
                                     categoryMapping =
                                             new PlaidCategoryMapper.CategoryMapping(
-                                                    "other", "other", false);
+                                                    OTHER, OTHER, false);
                                 }
 
                                 txTable.setImporterCategoryPrimary(plaidCategoryPrimary);
@@ -442,7 +448,7 @@ class PlaidSyncServiceBugFixesTest {
                         })
                 .when(dataExtractor)
                 .updateTransactionFromPlaid(any(TransactionTable.class), any());
-        when(transactionRepository.findByPlaidTransactionId("plaid-tx-1"))
+        when(transactionRepository.findByPlaidTransactionId(PLAID_TX_1))
                 .thenReturn(Optional.empty());
         when(transactionRepository.saveIfPlaidTransactionNotExists(any(TransactionTable.class)))
                 .thenReturn(true);
@@ -457,13 +463,13 @@ class PlaidSyncServiceBugFixesTest {
         final TransactionTable savedTransaction = transactionCaptor.getValue();
         assertNotNull(savedTransaction.getCategoryPrimary(), "Category primary should not be null");
         assertEquals(
-                "other",
+                OTHER,
                 savedTransaction.getCategoryPrimary(),
                 "Null category should default to 'other'");
         assertNotNull(
                 savedTransaction.getCategoryDetailed(), "Category detailed should not be null");
         assertEquals(
-                "other",
+                OTHER,
                 savedTransaction.getCategoryDetailed(),
                 "Null category detailed should default to 'other'");
     }
@@ -475,13 +481,13 @@ class PlaidSyncServiceBugFixesTest {
         final AccountTable testAccount = new AccountTable();
         testAccount.setAccountId(UUID.randomUUID().toString());
         testAccount.setUserId(testUserId);
-        testAccount.setPlaidAccountId("plaid-account-1");
+        testAccount.setPlaidAccountId(PLAID_ACCOUNT_1);
         testAccount.setLastSyncedAt(null); // First sync - ensure sync isn't skipped
         testAccount.setActive(true);
 
         final Transaction validTransaction =
                 createMockPlaidTransaction(
-                        "plaid-tx-1",
+                        PLAID_TX_1,
                         "Valid Transaction",
                         100.0,
                         LocalDate.of(2025, 11, 26),
@@ -502,7 +508,7 @@ class PlaidSyncServiceBugFixesTest {
         when(plaidService.getTransactions(eq(testAccessToken), anyString(), anyString()))
                 .thenReturn(transactionsResponse);
         // Mock dataExtractor to return account ID for transaction grouping and transaction ID
-        when(dataExtractor.extractAccountIdFromTransaction(any())).thenReturn("plaid-account-1");
+        when(dataExtractor.extractAccountIdFromTransaction(any())).thenReturn(PLAID_ACCOUNT_1);
         when(dataExtractor.extractTransactionId(any()))
                 .thenAnswer(
                         invocation -> {
@@ -513,7 +519,7 @@ class PlaidSyncServiceBugFixesTest {
                             }
                             return null;
                         });
-        when(transactionRepository.findByPlaidTransactionId("plaid-tx-1"))
+        when(transactionRepository.findByPlaidTransactionId(PLAID_TX_1))
                 .thenReturn(Optional.empty());
         when(transactionRepository.findByPlaidTransactionId("plaid-tx-2"))
                 .thenReturn(Optional.empty());
@@ -532,8 +538,9 @@ class PlaidSyncServiceBugFixesTest {
     void testSyncAccountsHandlesPartialFailuresGracefully() {
         // Given - Multiple accounts, one with invalid data
         final AccountBase validAccount =
-                createMockPlaidAccount("plaid-account-1", "Valid Account", 1000.0);
-        final AccountBase invalidAccount = createMockPlaidAccount(null, null, null); // Invalid account
+                createMockPlaidAccount(PLAID_ACCOUNT_1, "Valid Account", 1000.0);
+        final AccountBase invalidAccount =
+                createMockPlaidAccount(null, null, null); // Invalid account
 
         final AccountsGetResponse accountsResponse = new AccountsGetResponse();
         accountsResponse.setAccounts(Arrays.asList(validAccount, invalidAccount));
@@ -564,7 +571,8 @@ class PlaidSyncServiceBugFixesTest {
     }
 
     // Helper methods
-    private AccountBase createMockPlaidAccount(final String accountId, final String name, final Double balance) {
+    private AccountBase createMockPlaidAccount(
+            final String accountId, final String name, final Double balance) {
         final AccountBase account = new AccountBase();
         if (accountId != null) {
             account.accountId(accountId);
@@ -607,7 +615,7 @@ class PlaidSyncServiceBugFixesTest {
             transaction.category(category);
         }
         // CRITICAL: Set accountId so transaction can be grouped with account in batched sync
-        transaction.accountId("plaid-account-1");
+        transaction.accountId(PLAID_ACCOUNT_1);
         transaction.isoCurrencyCode("USD");
         transaction.pending(false);
         return transaction;

@@ -1,6 +1,5 @@
 package com.budgetbuddy.service;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -9,6 +8,7 @@ import com.budgetbuddy.model.dynamodb.UserTable;
 import com.budgetbuddy.notification.NotificationService;
 import com.budgetbuddy.repository.dynamodb.TransactionActionRepository;
 import com.budgetbuddy.repository.dynamodb.UserRepository;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -63,7 +63,8 @@ class ReminderNotificationServiceTest {
         final String dueDate = "2024-12-31T23:59:59Z";
 
         // When
-        final boolean result = reminderNotificationService.validateReminderDate(reminderDate, dueDate);
+        final boolean result =
+                reminderNotificationService.validateReminderDate(reminderDate, dueDate);
 
         // Then
         assertTrue(result, "Reminder date before due date should be valid");
@@ -76,7 +77,8 @@ class ReminderNotificationServiceTest {
         final String dueDate = "2024-12-31T10:00:00Z";
 
         // When
-        final boolean result = reminderNotificationService.validateReminderDate(reminderDate, dueDate);
+        final boolean result =
+                reminderNotificationService.validateReminderDate(reminderDate, dueDate);
 
         // Then
         assertTrue(result, "Reminder date equal to due date should be valid");
@@ -89,7 +91,8 @@ class ReminderNotificationServiceTest {
         final String dueDate = "2024-12-31T23:59:59Z";
 
         // When
-        final boolean result = reminderNotificationService.validateReminderDate(reminderDate, dueDate);
+        final boolean result =
+                reminderNotificationService.validateReminderDate(reminderDate, dueDate);
 
         // Then
         assertTrue(result, "Reminder date after due date should still be valid (user's choice)");
@@ -102,7 +105,8 @@ class ReminderNotificationServiceTest {
         final String dueDate = null;
 
         // When
-        final boolean result = reminderNotificationService.validateReminderDate(reminderDate, dueDate);
+        final boolean result =
+                reminderNotificationService.validateReminderDate(reminderDate, dueDate);
 
         // Then
         assertTrue(result, "Reminder date without due date should be valid");
@@ -115,7 +119,8 @@ class ReminderNotificationServiceTest {
         final String dueDate = "2024-12-31T23:59:59Z";
 
         // When
-        final boolean result = reminderNotificationService.validateReminderDate(reminderDate, dueDate);
+        final boolean result =
+                reminderNotificationService.validateReminderDate(reminderDate, dueDate);
 
         // Then
         assertTrue(result, "Due date without reminder date should be valid (no reminder sent)");
@@ -128,7 +133,8 @@ class ReminderNotificationServiceTest {
         final String dueDate = null;
 
         // When
-        final boolean result = reminderNotificationService.validateReminderDate(reminderDate, dueDate);
+        final boolean result =
+                reminderNotificationService.validateReminderDate(reminderDate, dueDate);
 
         // Then
         assertTrue(result, "Both dates null should be valid");
@@ -141,7 +147,8 @@ class ReminderNotificationServiceTest {
         final String dueDate = "2024-12-31T23:59:59Z";
 
         // When
-        final boolean result = reminderNotificationService.validateReminderDate(reminderDate, dueDate);
+        final boolean result =
+                reminderNotificationService.validateReminderDate(reminderDate, dueDate);
 
         // Then
         assertTrue(result, "Invalid date format should still return true (can't validate)");
@@ -219,7 +226,8 @@ class ReminderNotificationServiceTest {
         final String dueDate = "2024-12-31T23:59:59Z";
 
         // When: Validation is called (simulated)
-        final boolean result = reminderNotificationService.validateReminderDate(reminderDate, dueDate);
+        final boolean result =
+                reminderNotificationService.validateReminderDate(reminderDate, dueDate);
 
         // Then: Should be valid
         assertTrue(result);

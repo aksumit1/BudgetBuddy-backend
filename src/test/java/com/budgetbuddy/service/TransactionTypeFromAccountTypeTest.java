@@ -29,6 +29,10 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @DisplayName("Transaction Type Determination from Account Type")
 class TransactionTypeFromAccountTypeTest {
 
+    private static final String DEPOSITORY = "depository";
+    private static final String ACH = "ach";
+    private static final String TRANSACTION = "Transaction";
+
     private TransactionTypeCategoryService transactionTypeCategoryService;
 
     @Mock private PlaidCategoryMapper plaidCategoryMapper;
@@ -94,11 +98,7 @@ class TransactionTypeFromAccountTypeTest {
     void testCheckingAccountPositiveAmountReturnsIncome() {
         final TransactionTypeCategoryService.TypeResult result =
                 transactionTypeCategoryService.determineTransactionTypeFromAccountType(
-                        "depository",
-                        "checking",
-                        new BigDecimal("100.00"),
-                        "Salary deposit",
-                        "ach");
+                        DEPOSITORY, "checking", new BigDecimal("100.00"), "Salary deposit", ACH);
 
         assertNotNull(result);
         assertEquals(TransactionType.INCOME, result.getTransactionType());
@@ -110,7 +110,7 @@ class TransactionTypeFromAccountTypeTest {
     void testCheckingAccountNegativeAmountReturnsExpense() {
         final TransactionTypeCategoryService.TypeResult result =
                 transactionTypeCategoryService.determineTransactionTypeFromAccountType(
-                        "depository",
+                        DEPOSITORY,
                         "checking",
                         new BigDecimal("-50.00"),
                         "Grocery purchase",
@@ -125,7 +125,7 @@ class TransactionTypeFromAccountTypeTest {
     void testSavingsAccountPositiveAmountReturnsIncome() {
         final TransactionTypeCategoryService.TypeResult result =
                 transactionTypeCategoryService.determineTransactionTypeFromAccountType(
-                        "depository", "savings", new BigDecimal("500.00"), "Interest earned", null);
+                        DEPOSITORY, "savings", new BigDecimal("500.00"), "Interest earned", null);
 
         assertNotNull(result);
         assertEquals(TransactionType.INCOME, result.getTransactionType());
@@ -136,7 +136,7 @@ class TransactionTypeFromAccountTypeTest {
     void testMoneyMarketAccountPositiveAmountReturnsIncome() {
         final TransactionTypeCategoryService.TypeResult result =
                 transactionTypeCategoryService.determineTransactionTypeFromAccountType(
-                        "depository", "money market", new BigDecimal("1000.00"), "Deposit", null);
+                        DEPOSITORY, "money market", new BigDecimal("1000.00"), "Deposit", null);
 
         assertNotNull(result);
         assertEquals(TransactionType.INCOME, result.getTransactionType());
@@ -147,11 +147,7 @@ class TransactionTypeFromAccountTypeTest {
     void testMoneyMarketAccountNegativeAmountReturnsExpense() {
         final TransactionTypeCategoryService.TypeResult result =
                 transactionTypeCategoryService.determineTransactionTypeFromAccountType(
-                        "depository",
-                        "money market",
-                        new BigDecimal("-200.00"),
-                        "Withdrawal",
-                        null);
+                        DEPOSITORY, "money market", new BigDecimal("-200.00"), "Withdrawal", null);
 
         assertNotNull(result);
         assertEquals(TransactionType.EXPENSE, result.getTransactionType());
@@ -183,7 +179,7 @@ class TransactionTypeFromAccountTypeTest {
                         "credit card",
                         new BigDecimal("-500.00"),
                         "Payment to credit card",
-                        "ach");
+                        ACH);
 
         assertNotNull(result);
         assertEquals(TransactionType.PAYMENT, result.getTransactionType());
@@ -207,7 +203,7 @@ class TransactionTypeFromAccountTypeTest {
     void testMortgagePositiveAmountReturnsPayment() {
         final TransactionTypeCategoryService.TypeResult result =
                 transactionTypeCategoryService.determineTransactionTypeFromAccountType(
-                        "loan", "mortgage", new BigDecimal("1500.00"), "Mortgage payment", "ach");
+                        "loan", "mortgage", new BigDecimal("1500.00"), "Mortgage payment", ACH);
 
         assertNotNull(result);
         assertEquals(TransactionType.PAYMENT, result.getTransactionType());
@@ -233,7 +229,7 @@ class TransactionTypeFromAccountTypeTest {
                         "student loan",
                         new BigDecimal("300.00"),
                         "Student loan payment",
-                        "ach");
+                        ACH);
 
         assertNotNull(result);
         assertEquals(TransactionType.PAYMENT, result.getTransactionType());
@@ -244,7 +240,7 @@ class TransactionTypeFromAccountTypeTest {
     void testAutoLoanPositiveAmountReturnsPayment() {
         final TransactionTypeCategoryService.TypeResult result =
                 transactionTypeCategoryService.determineTransactionTypeFromAccountType(
-                        "loan", "auto loan", new BigDecimal("400.00"), "Car loan payment", "ach");
+                        "loan", "auto loan", new BigDecimal("400.00"), "Car loan payment", ACH);
 
         assertNotNull(result);
         assertEquals(TransactionType.PAYMENT, result.getTransactionType());
@@ -259,7 +255,7 @@ class TransactionTypeFromAccountTypeTest {
                         "credit line",
                         new BigDecimal("250.00"),
                         "Credit line payment",
-                        "ach");
+                        ACH);
 
         assertNotNull(result);
         assertEquals(TransactionType.PAYMENT, result.getTransactionType());
@@ -359,7 +355,7 @@ class TransactionTypeFromAccountTypeTest {
     void testNullAccountTypeReturnsNull() {
         final TransactionTypeCategoryService.TypeResult result =
                 transactionTypeCategoryService.determineTransactionTypeFromAccountType(
-                        null, null, new BigDecimal("100.00"), "Transaction", null);
+                        null, null, new BigDecimal("100.00"), TRANSACTION, null);
 
         assertNull(result);
     }
@@ -369,7 +365,7 @@ class TransactionTypeFromAccountTypeTest {
     void testNullAmountReturnsNull() {
         final TransactionTypeCategoryService.TypeResult result =
                 transactionTypeCategoryService.determineTransactionTypeFromAccountType(
-                        "depository", "checking", null, "Transaction", null);
+                        DEPOSITORY, "checking", null, TRANSACTION, null);
 
         assertNull(result);
     }
@@ -379,7 +375,7 @@ class TransactionTypeFromAccountTypeTest {
     void testZeroAmountReturnsNull() {
         final TransactionTypeCategoryService.TypeResult result =
                 transactionTypeCategoryService.determineTransactionTypeFromAccountType(
-                        "depository", "checking", BigDecimal.ZERO, "Zero amount transaction", null);
+                        DEPOSITORY, "checking", BigDecimal.ZERO, "Zero amount transaction", null);
 
         assertNull(result);
     }
@@ -389,7 +385,7 @@ class TransactionTypeFromAccountTypeTest {
     void testEmptyAccountTypeReturnsNull() {
         final TransactionTypeCategoryService.TypeResult result =
                 transactionTypeCategoryService.determineTransactionTypeFromAccountType(
-                        "", null, new BigDecimal("100.00"), "Transaction", null);
+                        "", null, new BigDecimal("100.00"), TRANSACTION, null);
 
         assertNull(result);
     }
@@ -399,7 +395,7 @@ class TransactionTypeFromAccountTypeTest {
     void testWhitespaceAccountTypeReturnsNull() {
         final TransactionTypeCategoryService.TypeResult result =
                 transactionTypeCategoryService.determineTransactionTypeFromAccountType(
-                        "   ", null, new BigDecimal("100.00"), "Transaction", null);
+                        "   ", null, new BigDecimal("100.00"), TRANSACTION, null);
 
         assertNull(result);
     }
@@ -424,7 +420,7 @@ class TransactionTypeFromAccountTypeTest {
     void testVeryLargeAmountHandlesCorrectly() {
         final TransactionTypeCategoryService.TypeResult result =
                 transactionTypeCategoryService.determineTransactionTypeFromAccountType(
-                        "depository",
+                        DEPOSITORY,
                         "checking",
                         new BigDecimal("999999999.99"),
                         "Large deposit",
@@ -439,7 +435,7 @@ class TransactionTypeFromAccountTypeTest {
     void testVerySmallAmountHandlesCorrectly() {
         final TransactionTypeCategoryService.TypeResult result =
                 transactionTypeCategoryService.determineTransactionTypeFromAccountType(
-                        "depository", "checking", new BigDecimal("0.01"), "Small deposit", null);
+                        DEPOSITORY, "checking", new BigDecimal("0.01"), "Small deposit", null);
 
         assertNotNull(result);
         assertEquals(TransactionType.INCOME, result.getTransactionType());
@@ -450,11 +446,7 @@ class TransactionTypeFromAccountTypeTest {
     void testVerySmallNegativeAmountHandlesCorrectly() {
         final TransactionTypeCategoryService.TypeResult result =
                 transactionTypeCategoryService.determineTransactionTypeFromAccountType(
-                        "depository",
-                        "checking",
-                        new BigDecimal("-0.01"),
-                        "Small withdrawal",
-                        null);
+                        DEPOSITORY, "checking", new BigDecimal("-0.01"), "Small withdrawal", null);
 
         assertNotNull(result);
         assertEquals(TransactionType.EXPENSE, result.getTransactionType());
@@ -490,7 +482,7 @@ class TransactionTypeFromAccountTypeTest {
                         "unknown_type",
                         "unknown_subtype",
                         new BigDecimal("100.00"),
-                        "Transaction",
+                        TRANSACTION,
                         null);
 
         assertNull(result);

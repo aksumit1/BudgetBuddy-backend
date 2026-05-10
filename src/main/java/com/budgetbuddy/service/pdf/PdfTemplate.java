@@ -1,9 +1,9 @@
 package com.budgetbuddy.service.pdf;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
@@ -182,7 +182,8 @@ public class PdfTemplate {
         }
 
         /** Try to parse one physical line with this layout. Null if it doesn't match. */
-        public Map<String, String> apply(final String line, final Integer inferredYear, final PdfTemplate owner) {
+        public Map<String, String> apply(
+                final String line, final Integer inferredYear, final PdfTemplate owner) {
             if (compiledPattern == null) {
                 compiledPattern = Pattern.compile(lineRegex);
             }

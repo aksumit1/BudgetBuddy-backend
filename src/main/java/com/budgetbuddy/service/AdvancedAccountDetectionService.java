@@ -1,12 +1,11 @@
 package com.budgetbuddy.service;
 
-
-import java.util.Locale;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.regex.Matcher;
@@ -35,6 +34,8 @@ import org.springframework.stereotype.Service;
 @SuppressWarnings({"PMD.AvoidCatchingGenericException", "PMD.DataClass", "PMD.OnlyOneReturn"})
 @Service
 public class AdvancedAccountDetectionService {
+
+    private static final String DATA = "data";
 
     private static final String COLUMN = "column";
 
@@ -283,10 +284,14 @@ public class AdvancedAccountDetectionService {
     public static class DetectionResult {
         private String value;
         private double confidence; // 0.0 to 1.0
-        private String source; // "filename", "header", "data", "metadata"
+        private String source; // "filename", "header", DATA, "metadata"
         private String method; // "pattern", "fuzzy", "statistical", "context"
 
-        public DetectionResult(final String value, final double confidence, final String source, final String method) {
+        public DetectionResult(
+                final String value,
+                final double confidence,
+                final String source,
+                final String method) {
             this.value = value;
             this.confidence = confidence;
             this.source = source;
@@ -334,10 +339,12 @@ public class AdvancedAccountDetectionService {
                 new AccountDetectionService.DetectedAccount();
 
         // Multi-source detection with confidence scoring
-        final DetectionResult accountNumber = detectAccountNumber(filename, headers, dataRows, metadata);
+        final DetectionResult accountNumber =
+                detectAccountNumber(filename, headers, dataRows, metadata);
         final DetectionResult institutionName =
                 detectInstitutionName(filename, headers, dataRows, metadata);
-        final DetectionResult accountType = detectAccountType(filename, headers, dataRows, metadata);
+        final DetectionResult accountType =
+                detectAccountType(filename, headers, dataRows, metadata);
         final DetectionResult accountName =
                 detectAccountName(
                         filename, headers, dataRows, metadata, institutionName, accountType);
@@ -441,7 +448,7 @@ public class AdvancedAccountDetectionService {
                         // formats (****1234)
                         accountNum = extractAccountNumberFromText(rawAccountNum);
                         if (accountNum != null) {
-                            candidates.add(new DetectionResult(accountNum, 0.9, "data", COLUMN));
+                            candidates.add(new DetectionResult(accountNum, 0.9, DATA, COLUMN));
                         }
                     }
                 }
@@ -452,7 +459,7 @@ public class AdvancedAccountDetectionService {
         if (dataRows != null && !dataRows.isEmpty()) {
             accountNum = extractAccountNumberStatistically(dataRows);
             if (accountNum != null) {
-                candidates.add(new DetectionResult(accountNum, 0.75, "data", "statistical"));
+                candidates.add(new DetectionResult(accountNum, 0.75, DATA, "statistical"));
             }
         }
 
@@ -515,7 +522,7 @@ public class AdvancedAccountDetectionService {
                     if (value != null) {
                         institution = detectInstitutionFromText(value);
                         if (institution != null) {
-                            candidates.add(new DetectionResult(institution, 0.9, "data", COLUMN));
+                            candidates.add(new DetectionResult(institution, 0.9, DATA, COLUMN));
                         }
                     }
                 }
@@ -583,7 +590,7 @@ public class AdvancedAccountDetectionService {
                     if (value != null && !value.isBlank()) {
                         accountType = detectAccountTypeFromText(value);
                         if (accountType != null) {
-                            candidates.add(new DetectionResult(accountType, 0.9, "data", COLUMN));
+                            candidates.add(new DetectionResult(accountType, 0.9, DATA, COLUMN));
                         }
                     }
                 }
@@ -593,7 +600,7 @@ public class AdvancedAccountDetectionService {
         // 3. Transaction pattern analysis
         accountType = inferAccountTypeFromTransactionPatterns(dataRows);
         if (accountType != null) {
-            candidates.add(new DetectionResult(accountType, 0.75, "data", "statistical"));
+            candidates.add(new DetectionResult(accountType, 0.75, DATA, "statistical"));
         }
 
         // 4. Metadata analysis
@@ -636,7 +643,7 @@ public class AdvancedAccountDetectionService {
                 if (isAccountNameColumn(header)) {
                     final String value = extractFromDataColumn(dataRows, i, 1);
                     if (value != null && !value.isBlank()) {
-                        candidates.add(new DetectionResult(value.trim(), 0.9, "data", COLUMN));
+                        candidates.add(new DetectionResult(value.trim(), 0.9, DATA, COLUMN));
                     }
                 }
             }
@@ -753,7 +760,8 @@ public class AdvancedAccountDetectionService {
 
         for (final Map.Entry<String, List<String>> entry : sortedEntries) {
             final String canonical = entry.getKey();
-            final String normalizedCanonical = canonical.toLowerCase(Locale.ROOT).replaceAll("[_\\-]", " ");
+            final String normalizedCanonical =
+                    canonical.toLowerCase(Locale.ROOT).replaceAll("[_\\-]", " ");
             // For canonical names, use word boundary if short, contains if long
             if (normalizedCanonical.length() <= 5) {
                 final Pattern pattern =
@@ -837,7 +845,8 @@ public class AdvancedAccountDetectionService {
 
         for (final Map.Entry<String, String> entry : ACCOUNT_TYPE_PATTERNS.entrySet()) {
             // Normalize pattern key as well
-            final String normalizedKey = entry.getKey().toLowerCase(Locale.ROOT).replaceAll("[_\\-]", " ");
+            final String normalizedKey =
+                    entry.getKey().toLowerCase(Locale.ROOT).replaceAll("[_\\-]", " ");
             if (textLower.contains(normalizedKey)) {
                 return entry.getValue();
             }

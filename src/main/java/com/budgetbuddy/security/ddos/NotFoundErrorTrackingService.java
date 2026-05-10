@@ -368,22 +368,21 @@ public class NotFoundErrorTrackingService {
                             .item(
                                     Map.of(
                                             SOURCE_ID,
-                                                    AttributeValue.builder().s(sourceId).build(),
+                                            AttributeValue.builder().s(sourceId).build(),
                                             BLOCKED_UNTIL,
-                                                    AttributeValue.builder()
-                                                            .n(String.valueOf(blockedUntil))
-                                                            .build(),
+                                            AttributeValue.builder()
+                                                    .n(String.valueOf(blockedUntil))
+                                                    .build(),
                                             "blockedAt",
-                                                    AttributeValue.builder()
-                                                            .n(
-                                                                    String.valueOf(
-                                                                            Instant.now()
-                                                                                    .getEpochSecond()))
-                                                            .build(),
+                                            AttributeValue.builder()
+                                                    .n(
+                                                            String.valueOf(
+                                                                    Instant.now().getEpochSecond()))
+                                                    .build(),
                                             "ttl",
-                                                    AttributeValue.builder()
-                                                            .n(String.valueOf(blockedUntil + 86_400))
-                                                            .build()))
+                                            AttributeValue.builder()
+                                                    .n(String.valueOf(blockedUntil + 86_400))
+                                                    .build()))
                             .build());
             LOGGER.warn(
                     "404 tracking: Blocked source {} until {}",

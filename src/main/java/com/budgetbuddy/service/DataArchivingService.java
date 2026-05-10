@@ -2,12 +2,12 @@ package com.budgetbuddy.service;
 
 import com.budgetbuddy.exception.AppException;
 import com.budgetbuddy.exception.ErrorCode;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import com.budgetbuddy.model.dynamodb.TransactionTable;
 import com.budgetbuddy.repository.dynamodb.TransactionRepository;
 import com.budgetbuddy.repository.dynamodb.UserRepository;
 import com.budgetbuddy.service.aws.S3Service;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.nio.charset.StandardCharsets;
@@ -168,7 +168,8 @@ public class DataArchivingService {
             LOGGER.info("Archived {} transactions to S3", transactions.size());
         } catch (Exception e) {
             LOGGER.error("Error archiving transactions: {}", e.getMessage());
-            throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to archive transactions", e);
+            throw new AppException(
+                    ErrorCode.INTERNAL_SERVER_ERROR, "Failed to archive transactions", e);
         }
     }
 
@@ -188,7 +189,8 @@ public class DataArchivingService {
             return baos.toByteArray();
         } catch (Exception e) {
             LOGGER.error("Error compressing transactions: {}", e.getMessage(), e);
-            throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to compress transactions", e);
+            throw new AppException(
+                    ErrorCode.INTERNAL_SERVER_ERROR, "Failed to compress transactions", e);
         }
     }
 }

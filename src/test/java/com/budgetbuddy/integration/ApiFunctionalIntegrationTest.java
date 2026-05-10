@@ -1,8 +1,5 @@
 package com.budgetbuddy.integration;
 
-
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import java.nio.charset.StandardCharsets;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -24,7 +21,9 @@ import com.budgetbuddy.repository.dynamodb.UserRepository;
 import com.budgetbuddy.service.AuthService;
 import com.budgetbuddy.service.UserService;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.Base64;
@@ -56,6 +55,8 @@ import org.springframework.test.web.servlet.MockMvc;
 @Import(AWSTestConfiguration.class)
 class ApiFunctionalIntegrationTest {
 
+    private static final String AUTHORIZATION = "Authorization";
+
     @Autowired private MockMvc mockMvc;
 
     @Autowired private ObjectMapper objectMapper;
@@ -78,7 +79,9 @@ class ApiFunctionalIntegrationTest {
     void setUp() {
         SecurityContextHolder.clearContext();
         testEmail = "test-" + UUID.randomUUID() + "@example.com";
-        testPasswordHash = Base64.getEncoder().encodeToString("hashed-password".getBytes(StandardCharsets.UTF_8));
+        testPasswordHash =
+                Base64.getEncoder()
+                        .encodeToString("hashed-password".getBytes(StandardCharsets.UTF_8));
 
         // Create test user
         testUser = userService.createUserSecure(testEmail, testPasswordHash, "Test", "User");
@@ -184,7 +187,7 @@ class ApiFunctionalIntegrationTest {
         // When/Then
         mockMvc.perform(
                         get("/api/accounts")
-                                .header("Authorization", "Bearer " + authToken)
+                                .header(AUTHORIZATION, "Bearer " + authToken)
                                 .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$").isArray());
@@ -198,7 +201,7 @@ class ApiFunctionalIntegrationTest {
         // When/Then
         mockMvc.perform(
                         get("/api/accounts/" + accountId)
-                                .header("Authorization", "Bearer " + authToken)
+                                .header(AUTHORIZATION, "Bearer " + authToken)
                                 .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(
                         result -> {
@@ -222,7 +225,7 @@ class ApiFunctionalIntegrationTest {
         // When/Then
         mockMvc.perform(
                         get("/api/transactions")
-                                .header("Authorization", "Bearer " + authToken)
+                                .header(AUTHORIZATION, "Bearer " + authToken)
                                 .param("page", "0")
                                 .param("size", "20")
                                 .contentType(MediaType.APPLICATION_JSON))
@@ -235,7 +238,7 @@ class ApiFunctionalIntegrationTest {
         // When/Then
         mockMvc.perform(
                         get("/api/transactions")
-                                .header("Authorization", "Bearer " + authToken)
+                                .header(AUTHORIZATION, "Bearer " + authToken)
                                 .param("page", "0")
                                 .param("size", "10")
                                 .contentType(MediaType.APPLICATION_JSON))
@@ -253,7 +256,7 @@ class ApiFunctionalIntegrationTest {
         // When/Then
         mockMvc.perform(
                         get("/api/transactions/range")
-                                .header("Authorization", "Bearer " + authToken)
+                                .header(AUTHORIZATION, "Bearer " + authToken)
                                 .param("startDate", startDate.format(formatter))
                                 .param("endDate", endDate.format(formatter))
                                 .contentType(MediaType.APPLICATION_JSON))
@@ -271,7 +274,7 @@ class ApiFunctionalIntegrationTest {
         // When/Then
         mockMvc.perform(
                         get("/api/transactions/total")
-                                .header("Authorization", "Bearer " + authToken)
+                                .header(AUTHORIZATION, "Bearer " + authToken)
                                 .param("startDate", startDate.format(formatter))
                                 .param("endDate", endDate.format(formatter))
                                 .contentType(MediaType.APPLICATION_JSON))
@@ -299,7 +302,7 @@ class ApiFunctionalIntegrationTest {
         // When/Then
         mockMvc.perform(
                         post("/api/transactions")
-                                .header("Authorization", "Bearer " + authToken)
+                                .header(AUTHORIZATION, "Bearer " + authToken)
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(transactionJson))
                 .andExpect(
@@ -325,7 +328,7 @@ class ApiFunctionalIntegrationTest {
         // When/Then
         mockMvc.perform(
                         put("/api/transactions/" + transactionId)
-                                .header("Authorization", "Bearer " + authToken)
+                                .header(AUTHORIZATION, "Bearer " + authToken)
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(transactionJson))
                 .andExpect(
@@ -344,7 +347,7 @@ class ApiFunctionalIntegrationTest {
         // When/Then
         mockMvc.perform(
                         delete("/api/transactions/" + transactionId)
-                                .header("Authorization", "Bearer " + authToken)
+                                .header(AUTHORIZATION, "Bearer " + authToken)
                                 .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(
                         result -> {
@@ -364,7 +367,7 @@ class ApiFunctionalIntegrationTest {
         // When/Then
         mockMvc.perform(
                         get("/api/transactions/" + transactionId + "/actions")
-                                .header("Authorization", "Bearer " + authToken)
+                                .header(AUTHORIZATION, "Bearer " + authToken)
                                 .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$").isArray());
@@ -388,7 +391,7 @@ class ApiFunctionalIntegrationTest {
         // When/Then
         mockMvc.perform(
                         post("/api/transactions/" + transactionId + "/actions")
-                                .header("Authorization", "Bearer " + authToken)
+                                .header(AUTHORIZATION, "Bearer " + authToken)
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(actionJson))
                 .andExpect(
@@ -408,7 +411,7 @@ class ApiFunctionalIntegrationTest {
         // When/Then
         mockMvc.perform(
                         get("/api/transactions/actions/user")
-                                .header("Authorization", "Bearer " + authToken)
+                                .header(AUTHORIZATION, "Bearer " + authToken)
                                 .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$").isArray());
@@ -421,7 +424,7 @@ class ApiFunctionalIntegrationTest {
         // When/Then
         mockMvc.perform(
                         get("/api/budgets")
-                                .header("Authorization", "Bearer " + authToken)
+                                .header(AUTHORIZATION, "Bearer " + authToken)
                                 .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$").isArray());
@@ -443,7 +446,7 @@ class ApiFunctionalIntegrationTest {
         // When/Then
         mockMvc.perform(
                         post("/api/budgets")
-                                .header("Authorization", "Bearer " + authToken)
+                                .header(AUTHORIZATION, "Bearer " + authToken)
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(budgetJson))
                 .andExpect(
@@ -463,7 +466,7 @@ class ApiFunctionalIntegrationTest {
         // When/Then
         mockMvc.perform(
                         delete("/api/budgets/" + budgetId)
-                                .header("Authorization", "Bearer " + authToken)
+                                .header(AUTHORIZATION, "Bearer " + authToken)
                                 .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(
                         result -> {
@@ -480,7 +483,7 @@ class ApiFunctionalIntegrationTest {
         // When/Then
         mockMvc.perform(
                         get("/api/goals")
-                                .header("Authorization", "Bearer " + authToken)
+                                .header(AUTHORIZATION, "Bearer " + authToken)
                                 .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$").isArray());
@@ -505,7 +508,7 @@ class ApiFunctionalIntegrationTest {
         // When/Then
         mockMvc.perform(
                         post("/api/goals")
-                                .header("Authorization", "Bearer " + authToken)
+                                .header(AUTHORIZATION, "Bearer " + authToken)
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(goalJson))
                 .andExpect(
@@ -530,7 +533,7 @@ class ApiFunctionalIntegrationTest {
         // When/Then
         mockMvc.perform(
                         put("/api/goals/" + goalId + "/progress")
-                                .header("Authorization", "Bearer " + authToken)
+                                .header(AUTHORIZATION, "Bearer " + authToken)
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(progressJson))
                 .andExpect(
@@ -557,7 +560,7 @@ class ApiFunctionalIntegrationTest {
         // When/Then
         mockMvc.perform(
                         post("/api/transactions/sync")
-                                .header("Authorization", "Bearer " + authToken)
+                                .header(AUTHORIZATION, "Bearer " + authToken)
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(syncRequest))
                 .andExpect(
@@ -577,7 +580,7 @@ class ApiFunctionalIntegrationTest {
         // When/Then
         mockMvc.perform(
                         get("/api/transactions/sync/status")
-                                .header("Authorization", "Bearer " + authToken)
+                                .header(AUTHORIZATION, "Bearer " + authToken)
                                 .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk());
     }
@@ -589,7 +592,7 @@ class ApiFunctionalIntegrationTest {
         // When/Then
         mockMvc.perform(
                         get("/api/users/me")
-                                .header("Authorization", "Bearer " + authToken)
+                                .header(AUTHORIZATION, "Bearer " + authToken)
                                 .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.email").exists());
@@ -608,7 +611,7 @@ class ApiFunctionalIntegrationTest {
         // When/Then
         mockMvc.perform(
                         post("/api/users/device-token")
-                                .header("Authorization", "Bearer " + authToken)
+                                .header(AUTHORIZATION, "Bearer " + authToken)
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(deviceTokenJson))
                 .andExpect(status().isOk());
@@ -621,7 +624,7 @@ class ApiFunctionalIntegrationTest {
         // When/Then
         mockMvc.perform(
                         post("/api/plaid/link-token")
-                                .header("Authorization", "Bearer " + authToken)
+                                .header(AUTHORIZATION, "Bearer " + authToken)
                                 .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(
                         result -> {
@@ -649,7 +652,7 @@ class ApiFunctionalIntegrationTest {
         // When/Then
         mockMvc.perform(
                         post("/api/plaid/exchange-token")
-                                .header("Authorization", "Bearer " + authToken)
+                                .header(AUTHORIZATION, "Bearer " + authToken)
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(exchangeRequest))
                 .andExpect(
@@ -665,7 +668,7 @@ class ApiFunctionalIntegrationTest {
         // When/Then
         mockMvc.perform(
                         get("/api/plaid/accounts")
-                                .header("Authorization", "Bearer " + authToken)
+                                .header(AUTHORIZATION, "Bearer " + authToken)
                                 .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(
                         result -> {
@@ -680,7 +683,7 @@ class ApiFunctionalIntegrationTest {
         // When/Then
         mockMvc.perform(
                         get("/api/plaid/transactions")
-                                .header("Authorization", "Bearer " + authToken)
+                                .header(AUTHORIZATION, "Bearer " + authToken)
                                 .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(
                         result -> {
@@ -701,7 +704,7 @@ class ApiFunctionalIntegrationTest {
         // When/Then
         mockMvc.perform(
                         get("/api/analytics/spending-summary")
-                                .header("Authorization", "Bearer " + authToken)
+                                .header(AUTHORIZATION, "Bearer " + authToken)
                                 .param("startDate", startDate.format(DateTimeFormatter.ISO_DATE))
                                 .param("endDate", endDate.format(DateTimeFormatter.ISO_DATE))
                                 .contentType(MediaType.APPLICATION_JSON))
@@ -718,7 +721,7 @@ class ApiFunctionalIntegrationTest {
         // When/Then
         mockMvc.perform(
                         get("/api/analytics/spending-by-category")
-                                .header("Authorization", "Bearer " + authToken)
+                                .header(AUTHORIZATION, "Bearer " + authToken)
                                 .param("startDate", startDate.format(DateTimeFormatter.ISO_DATE))
                                 .param("endDate", endDate.format(DateTimeFormatter.ISO_DATE))
                                 .contentType(MediaType.APPLICATION_JSON))

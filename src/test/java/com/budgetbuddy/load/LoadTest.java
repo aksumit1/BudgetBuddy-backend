@@ -1,13 +1,12 @@
 package com.budgetbuddy.load;
 
-
-import java.nio.charset.StandardCharsets;
 import com.budgetbuddy.AWSTestConfiguration;
 import com.budgetbuddy.dto.AuthRequest;
 import com.budgetbuddy.dto.AuthResponse;
 import com.budgetbuddy.service.AuthService;
 import com.budgetbuddy.service.UserService;
 import com.budgetbuddy.util.TableInitializer;
+import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
@@ -75,7 +74,9 @@ class LoadTest {
     void setUp() {
         baseUrl = "http://localhost:" + port;
         testEmail = "loadtest-" + UUID.randomUUID() + "@example.com";
-        final String passwordHash = Base64.getEncoder().encodeToString("testpassword123".getBytes(StandardCharsets.UTF_8));
+        final String passwordHash =
+                Base64.getEncoder()
+                        .encodeToString("testpassword123".getBytes(StandardCharsets.UTF_8));
 
         // Create test user
         userService.createUserSecure(testEmail, passwordHash, "Load", "Test");

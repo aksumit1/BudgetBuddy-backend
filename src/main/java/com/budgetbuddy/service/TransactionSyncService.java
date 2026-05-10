@@ -1,6 +1,5 @@
 package com.budgetbuddy.service;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import com.budgetbuddy.model.dynamodb.AccountTable;
 import com.budgetbuddy.model.dynamodb.TransactionTable;
 import com.budgetbuddy.plaid.PlaidService;
@@ -8,6 +7,7 @@ import com.budgetbuddy.repository.dynamodb.AccountRepository;
 import com.budgetbuddy.repository.dynamodb.TransactionRepository;
 import com.budgetbuddy.service.plaid.PlaidDataExtractor;
 import com.budgetbuddy.util.IdGenerator;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.Optional;
@@ -33,13 +33,20 @@ import org.springframework.stereotype.Service;
 @SuppressFBWarnings(
         value = "EI_EXPOSE_REP2",
         justification = "Spring constructor injection — beans are shared by design")
-@SuppressWarnings({"PMD.LawOfDemeter", "PMD.AvoidCatchingGenericException", "PMD.DataClass", "PMD.OnlyOneReturn"})
+@SuppressWarnings({
+    "PMD.LawOfDemeter",
+    "PMD.AvoidCatchingGenericException",
+    "PMD.DataClass",
+    "PMD.OnlyOneReturn"
+})
 @Service
 public class TransactionSyncService {
 
-    private static final String A_6BA7B811_9DAD_11D1_80B4_00C04FD430C8 = "6ba7b811-9dad-11d1-80b4-00c04fd430c8";
+    private static final String A_6BA7B811_9DAD_11D1_80B4_00C04FD430C8 =
+            "6ba7b811-9dad-11d1-80b4-00c04fd430c8";
 
-    private static final String THIS_MATCHES_I_OS_APP_FALLBACK_BEHAVIOR = "This matches iOS app fallback behavior.";
+    private static final String THIS_MATCHES_I_OS_APP_FALLBACK_BEHAVIOR =
+            "This matches iOS app fallback behavior.";
 
     private static final Logger LOGGER = LoggerFactory.getLogger(TransactionSyncService.class);
     private static final DateTimeFormatter DATE_FORMATTER =
@@ -67,7 +74,8 @@ public class TransactionSyncService {
 
     /** Sync transactions for a user Fetches transactions from Plaid and updates local database */
     @Async
-    public CompletableFuture<SyncResult> syncTransactions(final String userId, final String accessToken) {
+    public CompletableFuture<SyncResult> syncTransactions(
+            final String userId, final String accessToken) {
         if (userId == null || userId.isEmpty() || accessToken == null || accessToken.isEmpty()) {
             LOGGER.error(
                     "Invalid parameters for transaction sync: userId={}, accessToken={}",
@@ -243,8 +251,9 @@ public class TransactionSyncService {
                     CompletableFuture.runAsync(
                             () -> {
                                 try {
-                                    final java.util.List<com.budgetbuddy.model.Subscription> detected =
-                                            subscriptionService.detectSubscriptions(userId);
+                                    final java.util.List<com.budgetbuddy.model.Subscription>
+                                            detected =
+                                                    subscriptionService.detectSubscriptions(userId);
                                     if (!detected.isEmpty()) {
                                         subscriptionService.saveSubscriptions(userId, detected);
                                         LOGGER.info(
@@ -438,8 +447,9 @@ public class TransactionSyncService {
                     CompletableFuture.runAsync(
                             () -> {
                                 try {
-                                    final java.util.List<com.budgetbuddy.model.Subscription> detected =
-                                            subscriptionService.detectSubscriptions(userId);
+                                    final java.util.List<com.budgetbuddy.model.Subscription>
+                                            detected =
+                                                    subscriptionService.detectSubscriptions(userId);
                                     if (!detected.isEmpty()) {
                                         subscriptionService.saveSubscriptions(userId, detected);
                                         LOGGER.info(
@@ -532,7 +542,8 @@ public class TransactionSyncService {
             }
 
             // Fallback: try reflection
-            final java.lang.reflect.Method getAmount = plaidTransaction.getClass().getMethod("getAmount");
+            final java.lang.reflect.Method getAmount =
+                    plaidTransaction.getClass().getMethod("getAmount");
             final Object amount = getAmount.invoke(plaidTransaction);
             if (amount != null) {
                 if (amount instanceof Double) {
@@ -560,7 +571,8 @@ public class TransactionSyncService {
             }
 
             // Fallback: try reflection
-            final java.lang.reflect.Method getDate = plaidTransaction.getClass().getMethod("getDate");
+            final java.lang.reflect.Method getDate =
+                    plaidTransaction.getClass().getMethod("getDate");
             final Object date = getDate.invoke(plaidTransaction);
             if (date != null) {
                 if (date instanceof LocalDate) {
@@ -593,7 +605,8 @@ public class TransactionSyncService {
 
             // Fallback: try reflection
             try {
-                final java.lang.reflect.Method getName = plaidTransaction.getClass().getMethod("getName");
+                final java.lang.reflect.Method getName =
+                        plaidTransaction.getClass().getMethod("getName");
                 final Object name = getName.invoke(plaidTransaction);
                 if (name != null && !name.toString().isEmpty()) {
                     return name.toString();

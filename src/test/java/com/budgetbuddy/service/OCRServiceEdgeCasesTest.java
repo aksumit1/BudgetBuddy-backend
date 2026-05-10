@@ -1,7 +1,5 @@
 package com.budgetbuddy.service;
 
-
-import java.nio.charset.StandardCharsets;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -10,6 +8,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
@@ -26,6 +25,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @SuppressWarnings("PMD.AvoidCatchingGenericException")
 @ExtendWith(MockitoExtension.class)
 class OCRServiceEdgeCasesTest {
+
+    private static final String ENG = "eng";
 
     private OCRService ocrService;
 
@@ -47,7 +48,7 @@ class OCRServiceEdgeCasesTest {
         assertThrows(
                 IllegalArgumentException.class,
                 () -> {
-                    ocrService.extractTextFromPDF(null, Collections.singletonList("eng"));
+                    ocrService.extractTextFromPDF(null, Collections.singletonList(ENG));
                 });
     }
 
@@ -57,14 +58,15 @@ class OCRServiceEdgeCasesTest {
         assertThrows(
                 RuntimeException.class,
                 () -> {
-                    ocrService.extractTextFromPDF(emptyStream, Collections.singletonList("eng"));
+                    ocrService.extractTextFromPDF(emptyStream, Collections.singletonList(ENG));
                 });
     }
 
     @Test
     void testExtractTextFromPDFNullLanguages() {
         // Should default to English
-        final InputStream stream = new ByteArrayInputStream("test".getBytes(StandardCharsets.UTF_8));
+        final InputStream stream =
+                new ByteArrayInputStream("test".getBytes(StandardCharsets.UTF_8));
         // This will fail because it's not a valid PDF, but should handle null languages gracefully
         assertThrows(
                 RuntimeException.class,
@@ -76,7 +78,8 @@ class OCRServiceEdgeCasesTest {
     @Test
     void testExtractTextFromPDFEmptyLanguages() {
         // Should default to English
-        final InputStream stream = new ByteArrayInputStream("test".getBytes(StandardCharsets.UTF_8));
+        final InputStream stream =
+                new ByteArrayInputStream("test".getBytes(StandardCharsets.UTF_8));
         assertThrows(
                 RuntimeException.class,
                 () -> {
@@ -89,19 +92,19 @@ class OCRServiceEdgeCasesTest {
         assertThrows(
                 IllegalArgumentException.class,
                 () -> {
-                    ocrService.extractTextFromImage(null, Collections.singletonList("eng"));
+                    ocrService.extractTextFromImage(null, Collections.singletonList(ENG));
                 });
     }
 
     @Test
     void testExtractTextFromImageInvalidFormat() {
         // Invalid image format
-        final InputStream invalidStream = new ByteArrayInputStream("not an image".getBytes(StandardCharsets.UTF_8));
+        final InputStream invalidStream =
+                new ByteArrayInputStream("not an image".getBytes(StandardCharsets.UTF_8));
         assertThrows(
                 RuntimeException.class,
                 () -> {
-                    ocrService.extractTextFromImage(
-                            invalidStream, Collections.singletonList("eng"));
+                    ocrService.extractTextFromImage(invalidStream, Collections.singletonList(ENG));
                 });
     }
 
@@ -121,21 +124,21 @@ class OCRServiceEdgeCasesTest {
     void testDetectLanguagesNullText() {
         final List<String> languages = ocrService.detectLanguages(null);
         assertEquals(1, languages.size());
-        assertEquals("eng", languages.get(0));
+        assertEquals(ENG, languages.get(0));
     }
 
     @Test
     void testDetectLanguagesEmptyText() {
         final List<String> languages = ocrService.detectLanguages("");
         assertEquals(1, languages.size());
-        assertEquals("eng", languages.get(0));
+        assertEquals(ENG, languages.get(0));
     }
 
     @Test
     void testDetectLanguagesWhitespaceOnly() {
         final List<String> languages = ocrService.detectLanguages("   \n\t  ");
         assertEquals(1, languages.size());
-        assertEquals("eng", languages.get(0));
+        assertEquals(ENG, languages.get(0));
     }
 
     @Test
@@ -167,7 +170,7 @@ class OCRServiceEdgeCasesTest {
         final List<String> languages = ocrService.getSupportedLanguages();
         assertNotNull(languages);
         assertFalse(languages.isEmpty());
-        assertTrue(languages.contains("eng"));
+        assertTrue(languages.contains(ENG));
         assertTrue(languages.contains("fra"));
         assertTrue(languages.contains("deu"));
     }

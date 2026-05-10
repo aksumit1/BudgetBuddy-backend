@@ -48,6 +48,8 @@ import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 @org.mockito.junit.jupiter.MockitoSettings(strictness = org.mockito.quality.Strictness.LENIENT)
 class AccountRepositoryTest {
 
+    private static final String UNCHECKED = "unchecked";
+
     @Mock private DynamoDbEnhancedClient enhancedClient;
 
     @Mock private DynamoDbClient dynamoDbClient;
@@ -131,8 +133,8 @@ class AccountRepositoryTest {
     void testFindByUserIdWithActiveAccountReturnsAccount() {
         // Given
         final Page<AccountTable> page = createPage(Collections.singletonList(activeAccount));
-        @SuppressWarnings("unchecked") final
-                SdkIterable<Page<AccountTable>> pages = mock(SdkIterable.class);
+        @SuppressWarnings(UNCHECKED)
+        final SdkIterable<Page<AccountTable>> pages = mock(SdkIterable.class);
         when(pages.iterator()).thenReturn(Collections.singletonList(page).iterator());
         when(userIdIndex.query(any(QueryConditional.class))).thenReturn(pages);
 
@@ -148,8 +150,8 @@ class AccountRepositoryTest {
     void testFindByUserIdWithNullActiveAccountReturnsAccount() {
         // Given - Account with null active should be treated as active
         final Page<AccountTable> page = createPage(Collections.singletonList(nullActiveAccount));
-        @SuppressWarnings("unchecked") final
-                SdkIterable<Page<AccountTable>> pages = mock(SdkIterable.class);
+        @SuppressWarnings(UNCHECKED)
+        final SdkIterable<Page<AccountTable>> pages = mock(SdkIterable.class);
         when(pages.iterator()).thenReturn(Collections.singletonList(page).iterator());
         when(userIdIndex.query(any(QueryConditional.class))).thenReturn(pages);
 
@@ -165,8 +167,8 @@ class AccountRepositoryTest {
     void testFindByUserIdWithInactiveAccountExcludesAccount() {
         // Given
         final Page<AccountTable> page = createPage(Collections.singletonList(inactiveAccount));
-        @SuppressWarnings("unchecked") final
-                SdkIterable<Page<AccountTable>> pages = mock(SdkIterable.class);
+        @SuppressWarnings(UNCHECKED)
+        final SdkIterable<Page<AccountTable>> pages = mock(SdkIterable.class);
         when(pages.iterator()).thenReturn(Collections.singletonList(page).iterator());
         when(userIdIndex.query(any(QueryConditional.class))).thenReturn(pages);
 
@@ -184,8 +186,8 @@ class AccountRepositoryTest {
         final List<AccountTable> allAccounts =
                 Arrays.asList(activeAccount, inactiveAccount, nullActiveAccount);
         final Page<AccountTable> page = createPage(allAccounts);
-        @SuppressWarnings("unchecked") final
-                SdkIterable<Page<AccountTable>> pages = mock(SdkIterable.class);
+        @SuppressWarnings(UNCHECKED)
+        final SdkIterable<Page<AccountTable>> pages = mock(SdkIterable.class);
         when(pages.iterator()).thenReturn(Collections.singletonList(page).iterator());
         when(userIdIndex.query(any(QueryConditional.class))).thenReturn(pages);
 
@@ -203,8 +205,8 @@ class AccountRepositoryTest {
     void testFindByUserIdWithNoAccountsReturnsEmptyList() {
         // Given
         final Page<AccountTable> emptyPage = createPage(Collections.emptyList());
-        @SuppressWarnings("unchecked") final
-                SdkIterable<Page<AccountTable>> pages = mock(SdkIterable.class);
+        @SuppressWarnings(UNCHECKED)
+        final SdkIterable<Page<AccountTable>> pages = mock(SdkIterable.class);
         when(pages.iterator()).thenReturn(Collections.singletonList(emptyPage).iterator());
         when(userIdIndex.query(any(QueryConditional.class))).thenReturn(pages);
 
@@ -221,8 +223,8 @@ class AccountRepositoryTest {
         final AccountTable activeAccount2 = createAccount("account-4", testUserId, true);
         final Page<AccountTable> page1 = createPage(Collections.singletonList(activeAccount));
         final Page<AccountTable> page2 = createPage(Collections.singletonList(activeAccount2));
-        @SuppressWarnings("unchecked") final
-                SdkIterable<Page<AccountTable>> pages = mock(SdkIterable.class);
+        @SuppressWarnings(UNCHECKED)
+        final SdkIterable<Page<AccountTable>> pages = mock(SdkIterable.class);
         when(pages.iterator()).thenReturn(Arrays.asList(page1, page2).iterator());
         when(userIdIndex.query(any(QueryConditional.class))).thenReturn(pages);
 
@@ -241,13 +243,14 @@ class AccountRepositoryTest {
         final String plaidAccountId = "plaid-account-123";
         activeAccount.setPlaidAccountId(plaidAccountId);
         final Page<AccountTable> page = createPage(Collections.singletonList(activeAccount));
-        @SuppressWarnings("unchecked") final
-                SdkIterable<Page<AccountTable>> pages = mock(SdkIterable.class);
+        @SuppressWarnings(UNCHECKED)
+        final SdkIterable<Page<AccountTable>> pages = mock(SdkIterable.class);
         when(pages.iterator()).thenReturn(Collections.singletonList(page).iterator());
         when(plaidAccountIdIndex.query(any(QueryConditional.class))).thenReturn(pages);
 
         // When
-        final Optional<AccountTable> result = accountRepository.findByPlaidAccountId(plaidAccountId);
+        final Optional<AccountTable> result =
+                accountRepository.findByPlaidAccountId(plaidAccountId);
 
         // Then
         assertTrue(result.isPresent());
@@ -258,20 +261,22 @@ class AccountRepositoryTest {
     void testFindByPlaidAccountIdWithNonExistentAccountReturnsEmpty() {
         // Given
         final Page<AccountTable> emptyPage = createPage(Collections.emptyList());
-        @SuppressWarnings("unchecked") final
-                SdkIterable<Page<AccountTable>> pages = mock(SdkIterable.class);
+        @SuppressWarnings(UNCHECKED)
+        final SdkIterable<Page<AccountTable>> pages = mock(SdkIterable.class);
         when(pages.iterator()).thenReturn(Collections.singletonList(emptyPage).iterator());
         when(plaidAccountIdIndex.query(any(QueryConditional.class))).thenReturn(pages);
 
         // When
-        final Optional<AccountTable> result = accountRepository.findByPlaidAccountId("non-existent");
+        final Optional<AccountTable> result =
+                accountRepository.findByPlaidAccountId("non-existent");
 
         // Then
         assertFalse(result.isPresent());
     }
 
     // Helper methods
-    private AccountTable createAccount(final String accountId, final String userId, final Boolean active) {
+    private AccountTable createAccount(
+            final String accountId, final String userId, final Boolean active) {
         final AccountTable account = new AccountTable();
         account.setAccountId(accountId);
         account.setUserId(userId);
@@ -292,8 +297,8 @@ class AccountRepositoryTest {
         final String accountNumber = "1234567890";
         activeAccount.setAccountNumber(accountNumber);
         final Page<AccountTable> page = createPage(Collections.singletonList(activeAccount));
-        @SuppressWarnings("unchecked") final
-                SdkIterable<Page<AccountTable>> pages = mock(SdkIterable.class);
+        @SuppressWarnings(UNCHECKED)
+        final SdkIterable<Page<AccountTable>> pages = mock(SdkIterable.class);
         when(pages.iterator()).thenReturn(Collections.singletonList(page).iterator());
         when(userIdIndex.query(any(QueryConditional.class))).thenReturn(pages);
 
@@ -309,7 +314,8 @@ class AccountRepositoryTest {
     @Test
     void testFindByAccountNumberWithNullAccountNumberReturnsEmpty() {
         // When
-        final Optional<AccountTable> result = accountRepository.findByAccountNumber(null, testUserId);
+        final Optional<AccountTable> result =
+                accountRepository.findByAccountNumber(null, testUserId);
 
         // Then
         assertFalse(result.isPresent());
@@ -333,8 +339,8 @@ class AccountRepositoryTest {
 
         // Create a mock page with the accounts using the helper method
         final Page<AccountTable> page = createPage(Arrays.asList(activeAccount, inactiveAccount));
-        @SuppressWarnings("unchecked") final
-                SdkIterable<Page<AccountTable>> pages = mock(SdkIterable.class);
+        @SuppressWarnings(UNCHECKED)
+        final SdkIterable<Page<AccountTable>> pages = mock(SdkIterable.class);
         when(pages.iterator()).thenReturn(Collections.singletonList(page).iterator());
         when(plaidItemIdIndex.query(any(QueryConditional.class))).thenReturn(pages);
 
@@ -492,8 +498,8 @@ class AccountRepositoryTest {
         activeAccount.setUpdatedAtTimestamp(Instant.now().getEpochSecond());
 
         final Page<AccountTable> page = createPage(Collections.singletonList(activeAccount));
-        @SuppressWarnings("unchecked") final
-                SdkIterable<Page<AccountTable>> pages = mock(SdkIterable.class);
+        @SuppressWarnings(UNCHECKED)
+        final SdkIterable<Page<AccountTable>> pages = mock(SdkIterable.class);
         when(pages.iterator()).thenReturn(Collections.singletonList(page).iterator());
         when(userIdUpdatedAtIndex.query(any(QueryConditional.class))).thenReturn(pages);
 
@@ -520,9 +526,10 @@ class AccountRepositoryTest {
                                 .build());
 
         // Mock findByUserId fallback
-        final Page<AccountTable> fallbackPage = createPage(Collections.singletonList(activeAccount));
-        @SuppressWarnings("unchecked") final
-                SdkIterable<Page<AccountTable>> fallbackPages = mock(SdkIterable.class);
+        final Page<AccountTable> fallbackPage =
+                createPage(Collections.singletonList(activeAccount));
+        @SuppressWarnings(UNCHECKED)
+        final SdkIterable<Page<AccountTable>> fallbackPages = mock(SdkIterable.class);
         when(fallbackPages.iterator())
                 .thenReturn(Collections.singletonList(fallbackPage).iterator());
         when(userIdIndex.query(any(QueryConditional.class))).thenReturn(fallbackPages);
@@ -543,7 +550,8 @@ class AccountRepositoryTest {
                 .thenReturn(activeAccount);
 
         // When
-        final Optional<AccountTable> result = accountRepository.findById(activeAccount.getAccountId());
+        final Optional<AccountTable> result =
+                accountRepository.findById(activeAccount.getAccountId());
 
         // Then
         assertTrue(result.isPresent());
@@ -603,7 +611,8 @@ class AccountRepositoryTest {
     @Test
     void testFindByUserIdAndUpdatedAfterWithNullTimestampReturnsEmpty() {
         // When
-        final List<AccountTable> result = accountRepository.findByUserIdAndUpdatedAfter(testUserId, null);
+        final List<AccountTable> result =
+                accountRepository.findByUserIdAndUpdatedAfter(testUserId, null);
 
         // Then
         assertTrue(result.isEmpty());
@@ -627,8 +636,8 @@ class AccountRepositoryTest {
         activeAccount.setAccountNumber(accountNumber);
         activeAccount.setInstitutionName(institutionName);
         final Page<AccountTable> page = createPage(Collections.singletonList(activeAccount));
-        @SuppressWarnings("unchecked") final
-                SdkIterable<Page<AccountTable>> pages = mock(SdkIterable.class);
+        @SuppressWarnings(UNCHECKED)
+        final SdkIterable<Page<AccountTable>> pages = mock(SdkIterable.class);
         when(pages.iterator()).thenReturn(Collections.singletonList(page).iterator());
         when(userIdIndex.query(any(QueryConditional.class))).thenReturn(pages);
 
@@ -650,8 +659,8 @@ class AccountRepositoryTest {
         activeAccount.setAccountNumber(accountNumber);
         activeAccount.setInstitutionName(null);
         final Page<AccountTable> page = createPage(Collections.singletonList(activeAccount));
-        @SuppressWarnings("unchecked") final
-                SdkIterable<Page<AccountTable>> pages = mock(SdkIterable.class);
+        @SuppressWarnings(UNCHECKED)
+        final SdkIterable<Page<AccountTable>> pages = mock(SdkIterable.class);
         when(pages.iterator()).thenReturn(Collections.singletonList(page).iterator());
         when(userIdIndex.query(any(QueryConditional.class))).thenReturn(pages);
 
@@ -786,8 +795,8 @@ class AccountRepositoryTest {
         // Create a scan page
         final Page<AccountTable> scanPage = createPage(Collections.singletonList(activeAccount));
         // scan() returns PageIterable<AccountTable> - mock it directly
-        @SuppressWarnings("unchecked") final
-                PageIterable<AccountTable> scanPages = mock(PageIterable.class);
+        @SuppressWarnings(UNCHECKED)
+        final PageIterable<AccountTable> scanPages = mock(PageIterable.class);
         when(scanPages.iterator()).thenReturn(Collections.singletonList(scanPage).iterator());
 
         // Mock plaidItemIdIndex to return null (simulating missing index)
@@ -807,7 +816,7 @@ class AccountRepositoryTest {
         verify(accountTable, atLeastOnce()).scan();
     }
 
-    @SuppressWarnings("unchecked")
+    @SuppressWarnings(UNCHECKED)
     private Page<AccountTable> createPage(final List<AccountTable> items) {
         final Page<AccountTable> page = mock(Page.class);
         when(page.items()).thenReturn(items);

@@ -1,11 +1,11 @@
 package com.budgetbuddy.service;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.budgetbuddy.exception.AppException;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -26,6 +26,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @SuppressWarnings("PMD.LawOfDemeter")
 @ExtendWith(MockitoExtension.class)
 class FIDO2ServiceTest {
+
+    private static final String TEST_USER_ID = "test-user-id";
 
     @Mock
     private com.budgetbuddy.repository.dynamodb.FIDO2CredentialRepository credentialRepository;
@@ -59,7 +61,7 @@ class FIDO2ServiceTest {
     @Test
     void testGenerateRegistrationChallengeWithValidInputReturnsChallengeAndOptions() {
         // Given
-        final String userId = "test-user-id";
+        final String userId = TEST_USER_ID;
         final String username = "test@example.com";
 
         // When
@@ -91,14 +93,14 @@ class FIDO2ServiceTest {
         assertThrows(
                 AppException.class,
                 () -> {
-                    fido2Service.generateRegistrationChallenge("test-user-id", null);
+                    fido2Service.generateRegistrationChallenge(TEST_USER_ID, null);
                 });
     }
 
     @Test
     void testGenerateAuthenticationChallengeWithNoPasskeysThrowsException() {
         // Given
-        final String userId = "test-user-id";
+        final String userId = TEST_USER_ID;
 
         // When/Then
         assertThrows(
@@ -112,7 +114,7 @@ class FIDO2ServiceTest {
     @Test
     void testListPasskeysWithNoPasskeysReturnsEmptyList() {
         // Given
-        final String userId = "test-user-id";
+        final String userId = TEST_USER_ID;
 
         // When
         final List<FIDO2Service.PasskeyInfo> passkeys = fido2Service.listPasskeys(userId);
@@ -125,7 +127,7 @@ class FIDO2ServiceTest {
     @Test
     void testDeletePasskeyWithNoPasskeysThrowsException() {
         // Given
-        final String userId = "test-user-id";
+        final String userId = TEST_USER_ID;
         final String credentialId = "test-credential-id";
 
         // When/Then

@@ -1,8 +1,5 @@
 package com.budgetbuddy.api;
 
-
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import java.util.Locale;
 import com.budgetbuddy.exception.AppException;
 import com.budgetbuddy.exception.ErrorCode;
 import com.budgetbuddy.model.dynamodb.AccountTable;
@@ -24,11 +21,13 @@ import com.budgetbuddy.service.TransactionAnomalyService;
 import com.budgetbuddy.service.TransactionAnomalyService.TransactionAnomaly;
 import com.budgetbuddy.service.UserService;
 import com.budgetbuddy.service.ml.FinancialInsightsPredictionService;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.math.BigDecimal;
 import java.time.DateTimeException;
 import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.stream.Collectors;
 import org.springframework.http.ResponseEntity;
@@ -59,7 +58,12 @@ import org.springframework.web.bind.annotation.RestController;
 @SuppressFBWarnings(
         value = "EI_EXPOSE_REP2",
         justification = "Spring constructor injection — beans are shared by design")
-@SuppressWarnings({"PMD.LawOfDemeter", "PMD.AvoidCatchingGenericException", "PMD.DataClass", "PMD.OnlyOneReturn"})
+@SuppressWarnings({
+    "PMD.LawOfDemeter",
+    "PMD.AvoidCatchingGenericException",
+    "PMD.DataClass",
+    "PMD.OnlyOneReturn"
+})
 @RestController
 @RequestMapping("/api/insights")
 public class FinancialInsightsController {
@@ -151,7 +155,9 @@ public class FinancialInsightsController {
                 continue;
             }
             final String merchant =
-                    t.getMerchantName() == null ? "" : t.getMerchantName().trim().toLowerCase(Locale.ROOT);
+                    t.getMerchantName() == null
+                            ? ""
+                            : t.getMerchantName().trim().toLowerCase(Locale.ROOT);
             if (merchant.isEmpty()) {
                 continue;
             }
@@ -432,7 +438,8 @@ public class FinancialInsightsController {
                         .orElseThrow(
                                 () -> new AppException(ErrorCode.USER_NOT_FOUND, USER_NOT_FOUND_1));
 
-        final List<HighInterestAlert> alerts = highInterestService.detectHighInterest(user.getUserId());
+        final List<HighInterestAlert> alerts =
+                highInterestService.detectHighInterest(user.getUserId());
 
         final List<Map<String, Object>> response =
                 alerts.stream().map(this::toHighInterestMap).collect(Collectors.toList());
@@ -719,7 +726,8 @@ public class FinancialInsightsController {
 
         // Get accounts and calculate interest rates from transactions
         final List<AccountTable> accounts = accountRepository.findByUserId(user.getUserId());
-        final Map<String, FinancialInsightsPredictionService.AccountData> accountMap = new HashMap<>();
+        final Map<String, FinancialInsightsPredictionService.AccountData> accountMap =
+                new HashMap<>();
         for (final AccountTable account : accounts) {
             final BigDecimal balance =
                     account.getBalance() != null ? account.getBalance().abs() : BigDecimal.ZERO;
@@ -739,15 +747,17 @@ public class FinancialInsightsController {
                                     tx -> {
                                         final String desc =
                                                 tx.getDescription() != null
-                                                        ? tx.getDescription().toLowerCase(Locale.ROOT)
+                                                        ? tx.getDescription()
+                                                                .toLowerCase(Locale.ROOT)
                                                         : "";
                                         final String category =
                                                 tx.getCategoryPrimary() != null
-                                                        ? tx.getCategoryPrimary().toLowerCase(Locale.ROOT)
+                                                        ? tx.getCategoryPrimary()
+                                                                .toLowerCase(Locale.ROOT)
                                                         : "";
                                         return (desc.contains(INTEREST)
-                                                || desc.contains("finance charge")
-                                                || category.contains(INTEREST))
+                                                        || desc.contains("finance charge")
+                                                        || category.contains(INTEREST))
                                                 && tx.getAmount() != null
                                                 && tx.getAmount().compareTo(BigDecimal.ZERO) < 0;
                                     })
@@ -771,8 +781,8 @@ public class FinancialInsightsController {
                 final double rate =
                         balance.compareTo(BigDecimal.ZERO) > 0
                                 ? annualInterest
-                                .divide(balance, 4, java.math.RoundingMode.HALF_UP)
-                                .doubleValue()
+                                        .divide(balance, 4, java.math.RoundingMode.HALF_UP)
+                                        .doubleValue()
                                 : 0.0;
 
                 if (rate > 0.01) { // At least 1% interest rate
@@ -840,7 +850,8 @@ public class FinancialInsightsController {
                                 historicalTransactions, subscriptionMap);
 
         final List<AccountTable> accounts = accountRepository.findByUserId(user.getUserId());
-        final Map<String, FinancialInsightsPredictionService.AccountData> accountMap = new HashMap<>();
+        final Map<String, FinancialInsightsPredictionService.AccountData> accountMap =
+                new HashMap<>();
         for (final AccountTable account : accounts) {
             final BigDecimal balance =
                     account.getBalance() != null ? account.getBalance().abs() : BigDecimal.ZERO;
@@ -860,15 +871,17 @@ public class FinancialInsightsController {
                                     tx -> {
                                         final String desc =
                                                 tx.getDescription() != null
-                                                        ? tx.getDescription().toLowerCase(Locale.ROOT)
+                                                        ? tx.getDescription()
+                                                                .toLowerCase(Locale.ROOT)
                                                         : "";
                                         final String category =
                                                 tx.getCategoryPrimary() != null
-                                                        ? tx.getCategoryPrimary().toLowerCase(Locale.ROOT)
+                                                        ? tx.getCategoryPrimary()
+                                                                .toLowerCase(Locale.ROOT)
                                                         : "";
                                         return (desc.contains(INTEREST)
-                                                || desc.contains("finance charge")
-                                                || category.contains(INTEREST))
+                                                        || desc.contains("finance charge")
+                                                        || category.contains(INTEREST))
                                                 && tx.getAmount() != null
                                                 && tx.getAmount().compareTo(BigDecimal.ZERO) < 0;
                                     })
@@ -892,8 +905,8 @@ public class FinancialInsightsController {
                 final double rate =
                         balance.compareTo(BigDecimal.ZERO) > 0
                                 ? annualInterest
-                                .divide(balance, 4, java.math.RoundingMode.HALF_UP)
-                                .doubleValue()
+                                        .divide(balance, 4, java.math.RoundingMode.HALF_UP)
+                                        .doubleValue()
                                 : 0.0;
 
                 if (rate > 0.01) { // At least 1% interest rate
@@ -906,8 +919,9 @@ public class FinancialInsightsController {
                 }
             }
         }
-        final List<FinancialInsightsPredictionService.PredictedInterestCost> predictedInterestCosts =
-                predictionService.predictInterestCosts(accountMap, historicalTransactions);
+        final List<FinancialInsightsPredictionService.PredictedInterestCost>
+                predictedInterestCosts =
+                        predictionService.predictInterestCosts(accountMap, historicalTransactions);
 
         summary.put("predictedAnomaliesCount", predictedAnomalies.size());
         summary.put("predictedExpenseReductionsCount", predictedExpenseReductions.size());

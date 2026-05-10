@@ -1,9 +1,9 @@
 package com.budgetbuddy.service;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import com.budgetbuddy.model.ImportHistory;
 import com.budgetbuddy.model.dynamodb.ImportHistoryTable;
 import com.budgetbuddy.repository.dynamodb.ImportHistoryRepository;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.time.Instant;
 import java.util.HashMap;
 import java.util.List;
@@ -115,7 +115,10 @@ public class ImportHistoryService {
 
     /** Create a new import history record */
     public ImportHistory createImportHistory(
-            final String userId, final String fileName, final String fileType, final String importSource) {
+            final String userId,
+            final String fileName,
+            final String fileType,
+            final String importSource) {
         final ImportHistory history = new ImportHistory();
         history.setUserId(userId);
         history.setFileName(fileName);
@@ -151,7 +154,11 @@ public class ImportHistoryService {
 
     /** Complete import history */
     public void completeImportHistory(
-            final String importId, final int successful, final int failed, final int skipped, final int duplicates) {
+            final String importId,
+            final int successful,
+            final int failed,
+            final int skipped,
+            final int duplicates) {
         final Optional<ImportHistoryTable> tableOpt = importHistoryRepository.findById(importId);
         if (tableOpt.isPresent()) {
             final ImportHistoryTable table = tableOpt.get();
@@ -192,7 +199,8 @@ public class ImportHistoryService {
     }
 
     /** Mark import as partial (can be resumed) */
-    public void markPartialImport(final String importId, final int lastProcessedIndex, final String resumeToken) {
+    public void markPartialImport(
+            final String importId, final int lastProcessedIndex, final String resumeToken) {
         final Optional<ImportHistoryTable> tableOpt = importHistoryRepository.findById(importId);
         if (tableOpt.isPresent()) {
             final ImportHistoryTable table = tableOpt.get();

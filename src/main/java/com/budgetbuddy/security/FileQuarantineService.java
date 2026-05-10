@@ -29,7 +29,12 @@ import org.springframework.stereotype.Service;
 // standard library types (BigDecimal, String, Optional) and DTO
 // getters; this class has many such idiomatic uses. Suppress at
 // class level rather than littering every method.
-@SuppressWarnings({"PMD.LawOfDemeter", "PMD.AvoidCatchingGenericException", "PMD.DataClass", "PMD.OnlyOneReturn"})
+@SuppressWarnings({
+    "PMD.LawOfDemeter",
+    "PMD.AvoidCatchingGenericException",
+    "PMD.DataClass",
+    "PMD.OnlyOneReturn"
+})
 @Service
 public class FileQuarantineService {
 
@@ -107,7 +112,10 @@ public class FileQuarantineService {
      * @return Quarantine ID
      */
     public String quarantineFile(
-            final InputStream inputStream, final String originalFileName, final String reason, final String userId) {
+            final InputStream inputStream,
+            final String originalFileName,
+            final String reason,
+            final String userId) {
         if (!quarantineEnabled) {
             LOGGER.warn(
                     "Quarantine is disabled. File {} will not be quarantined. Reason: {}",
@@ -274,7 +282,8 @@ public class FileQuarantineService {
      */
     public int cleanupOldFiles() {
         int cleaned = 0;
-        final long cutoffTime = System.currentTimeMillis() - (retentionPeriodDays * 24 * 60 * 60 * 1000L);
+        final long cutoffTime =
+                System.currentTimeMillis() - (retentionPeriodDays * 24 * 60 * 60 * 1000L);
 
         quarantineLock.lock();
         try {
@@ -288,8 +297,7 @@ public class FileQuarantineService {
                                 .toEpochMilli()
                         < cutoffTime) {
                     try {
-                        final Path filePath =
-                                Paths.get(record.getQuarantinedPath());
+                        final Path filePath = Paths.get(record.getQuarantinedPath());
                         if (Files.exists(filePath)) {
                             Files.delete(filePath);
                         }

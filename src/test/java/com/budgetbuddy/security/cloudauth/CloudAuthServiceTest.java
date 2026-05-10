@@ -32,6 +32,8 @@ import software.amazon.awssdk.services.cognitoidentityprovider.model.UsernameExi
 @ExtendWith(MockitoExtension.class)
 class CloudAuthServiceTest {
 
+    private static final String PASSWORD123 = "password123";
+
     @Mock private CognitoIdentityProviderClient cognitoClient;
 
     private CloudAuthService service;
@@ -62,7 +64,7 @@ class CloudAuthServiceTest {
 
         // When
         final CloudAuthService.CloudAuthResult result =
-                service.authenticate("test@example.com", "password123");
+                service.authenticate("test@example.com", PASSWORD123);
 
         // Then
         assertNotNull(result);
@@ -98,7 +100,7 @@ class CloudAuthServiceTest {
 
         // When
         final CloudAuthService.CloudAuthResult result =
-                service.authenticate("test@example.com", "password123");
+                service.authenticate("test@example.com", PASSWORD123);
 
         // Then
         assertNotNull(result);
@@ -121,7 +123,7 @@ class CloudAuthServiceTest {
 
         // When
         final CloudAuthService.CloudAuthResult result =
-                service.register("test@example.com", "password123", "John", "Doe");
+                service.register("test@example.com", PASSWORD123, "John", "Doe");
 
         // Then
         assertNotNull(result);
@@ -139,7 +141,7 @@ class CloudAuthServiceTest {
 
         // When
         final CloudAuthService.CloudAuthResult result =
-                service.register("test@example.com", "password123", "John", "Doe");
+                service.register("test@example.com", PASSWORD123, "John", "Doe");
 
         // Then
         assertNotNull(result);
@@ -155,7 +157,7 @@ class CloudAuthServiceTest {
 
         // When
         final CloudAuthService.CloudAuthResult result =
-                service.register("test@example.com", "password123", "John", "Doe");
+                service.register("test@example.com", PASSWORD123, "John", "Doe");
 
         // Then
         assertNotNull(result);
@@ -166,7 +168,8 @@ class CloudAuthServiceTest {
     @Test
     void testVerifyTokenWithValidTokenReturnsTrue() {
         // Given
-        final GetUserResponse response = GetUserResponse.builder().username("test@example.com").build();
+        final GetUserResponse response =
+                GetUserResponse.builder().username("test@example.com").build();
 
         when(cognitoClient.getUser(any(GetUserRequest.class))).thenReturn(response);
 

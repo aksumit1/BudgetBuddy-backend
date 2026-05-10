@@ -1,7 +1,5 @@
 package com.budgetbuddy.filter;
 
-
-import java.util.Locale;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -11,6 +9,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
 import java.util.UUID;
 import java.util.regex.Pattern;
 import org.slf4j.Logger;
@@ -101,7 +100,8 @@ public class RequestResponseLoggingFilter extends OncePerRequestFilter {
         // request bodies on any logged endpoint.
         final ContentCachingRequestWrapper wrappedRequest =
                 new ContentCachingRequestWrapper(request, 256 * 1024);
-        final ContentCachingResponseWrapper wrappedResponse = new ContentCachingResponseWrapper(response);
+        final ContentCachingResponseWrapper wrappedResponse =
+                new ContentCachingResponseWrapper(response);
 
         final long startTime = System.currentTimeMillis();
 
@@ -208,7 +208,8 @@ public class RequestResponseLoggingFilter extends OncePerRequestFilter {
             Collections.list(request.getHeaderNames())
                     .forEach(
                             headerName -> {
-                                if (!SENSITIVE_HEADERS.contains(headerName.toLowerCase(Locale.ROOT))) {
+                                if (!SENSITIVE_HEADERS.contains(
+                                        headerName.toLowerCase(Locale.ROOT))) {
                                     headersLog
                                             .append(headerName)
                                             .append(": ")
@@ -402,7 +403,8 @@ public class RequestResponseLoggingFilter extends OncePerRequestFilter {
                 }
 
                 // Get all parameter names (non-file form fields)
-                final java.util.Map<String, String[]> parameterMap = multipartRequest.getParameterMap();
+                final java.util.Map<String, String[]> parameterMap =
+                        multipartRequest.getParameterMap();
                 final java.util.Set<String> paramNames = new java.util.HashSet<>();
                 for (final String paramName : parameterMap.keySet()) {
                     if (!fileMap.containsKey(paramName)) {
@@ -481,7 +483,8 @@ public class RequestResponseLoggingFilter extends OncePerRequestFilter {
             response.getHeaderNames()
                     .forEach(
                             headerName -> {
-                                if (!SENSITIVE_HEADERS.contains(headerName.toLowerCase(Locale.ROOT))) {
+                                if (!SENSITIVE_HEADERS.contains(
+                                        headerName.toLowerCase(Locale.ROOT))) {
                                     headersLog
                                             .append(headerName)
                                             .append(": ")

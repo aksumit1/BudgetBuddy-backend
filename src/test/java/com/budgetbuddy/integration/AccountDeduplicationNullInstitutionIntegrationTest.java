@@ -1,7 +1,5 @@
 package com.budgetbuddy.integration;
 
-
-import java.nio.charset.StandardCharsets;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -13,6 +11,7 @@ import com.budgetbuddy.model.dynamodb.UserTable;
 import com.budgetbuddy.repository.dynamodb.AccountRepository;
 import com.budgetbuddy.service.UserService;
 import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
@@ -50,7 +49,8 @@ class AccountDeduplicationNullInstitutionIntegrationTest {
         testUser = new UserTable();
         testUser.setUserId(UUID.randomUUID().toString());
         final String base64PasswordHash =
-                java.util.Base64.getEncoder().encodeToString("test-hash".getBytes(StandardCharsets.UTF_8));
+                java.util.Base64.getEncoder()
+                        .encodeToString("test-hash".getBytes(StandardCharsets.UTF_8));
 
         testUser = userService.createUserSecure(uniqueEmail, base64PasswordHash, "Test", "User");
     }
@@ -226,8 +226,7 @@ class AccountDeduplicationNullInstitutionIntegrationTest {
     }
 
     @Test
-    void
-            testFindByAccountNumberAndInstitutionWithNullInstitutionNameMatchesByAccountNumberOnly() {
+    void testFindByAccountNumberAndInstitutionWithNullInstitutionNameMatchesByAccountNumberOnly() {
         // Given - Account with null institutionName
         final String accountNumber = "8888";
         final AccountTable account = new AccountTable();
@@ -256,8 +255,7 @@ class AccountDeduplicationNullInstitutionIntegrationTest {
     }
 
     @Test
-    void
-            testAccountDeduplicationAccessTokenRegeneratedWithNullInstitutionNamePreventsDuplicate() {
+    void testAccountDeduplicationAccessTokenRegeneratedWithNullInstitutionNamePreventsDuplicate() {
         // Given - Existing account from first sync
         final String accountNumber = "1111";
         final String oldPlaidId = "plaid-old-" + UUID.randomUUID();
@@ -305,7 +303,8 @@ class AccountDeduplicationNullInstitutionIntegrationTest {
         final List<AccountTable> allAccounts = accountRepository.findByUserId(testUser.getUserId());
         assertEquals(1, allAccounts.size(), "Should only have one account after deduplication");
 
-        final Optional<AccountTable> finalAccount = accountRepository.findByPlaidAccountId(newPlaidId);
+        final Optional<AccountTable> finalAccount =
+                accountRepository.findByPlaidAccountId(newPlaidId);
         assertTrue(finalAccount.isPresent(), "Account should have new Plaid ID");
         assertEquals(
                 accountNumber,

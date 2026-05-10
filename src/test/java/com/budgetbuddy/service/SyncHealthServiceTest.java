@@ -1,6 +1,5 @@
 package com.budgetbuddy.service;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -9,6 +8,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.budgetbuddy.api.SyncHealthController;
 import com.budgetbuddy.service.SyncHealthService.SyncHealthResponse;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import org.junit.jupiter.api.BeforeEach;
@@ -22,6 +22,10 @@ import org.junit.jupiter.api.Test;
         justification = "Tests deliberately exercise null-input paths")
 class SyncHealthServiceTest {
 
+    private static final String USER_123 = "user-123";
+    private static final String HEALTHY = "healthy";
+    private static final String SUCCESS = "success";
+
     private SyncHealthService service;
 
     @BeforeEach
@@ -32,17 +36,17 @@ class SyncHealthServiceTest {
     @Test
     void testGetSyncHealthSuccess() {
         // Given
-        final String userId = "user-123";
+        final String userId = USER_123;
         final SyncHealthController.SyncStatus status =
-                new SyncHealthController.SyncStatus("success", Instant.now(), 0, "healthy", null);
+                new SyncHealthController.SyncStatus(SUCCESS, Instant.now(), 0, HEALTHY, null);
 
         // When
         final SyncHealthResponse response = service.getSyncHealth(userId, status);
 
         // Then
         assertNotNull(response);
-        assertEquals("success", response.getStatus());
-        assertEquals("healthy", response.getConnectionHealth());
+        assertEquals(SUCCESS, response.getStatus());
+        assertEquals(HEALTHY, response.getConnectionHealth());
         assertFalse(response.getIsStale());
         assertEquals(0, response.getConsecutiveFailures());
     }
@@ -50,7 +54,7 @@ class SyncHealthServiceTest {
     @Test
     void testGetSyncHealthStaleConnection() {
         // Given
-        final String userId = "user-123";
+        final String userId = USER_123;
         final SyncHealthController.SyncStatus status =
                 new SyncHealthController.SyncStatus(
                         "stale",
@@ -71,7 +75,7 @@ class SyncHealthServiceTest {
     @Test
     void testGetSyncHealthUnhealthyAfterMultipleFailures() {
         // Given
-        final String userId = "user-123";
+        final String userId = USER_123;
         final SyncHealthController.SyncStatus status =
                 new SyncHealthController.SyncStatus(
                         "failure",
@@ -92,7 +96,7 @@ class SyncHealthServiceTest {
     @Test
     void testGetSyncHealthDegradedAfterOneFailure() {
         // Given
-        final String userId = "user-123";
+        final String userId = USER_123;
         final SyncHealthController.SyncStatus status =
                 new SyncHealthController.SyncStatus(
                         "failure",
@@ -113,13 +117,13 @@ class SyncHealthServiceTest {
     @Test
     void testGetSyncHealthOldSyncDate() {
         // Given
-        final String userId = "user-123";
+        final String userId = USER_123;
         final SyncHealthController.SyncStatus status =
                 new SyncHealthController.SyncStatus(
                         "idle",
                         Instant.now().minus(25, ChronoUnit.HOURS), // 25 hours ago
                         0,
-                        "healthy",
+                        HEALTHY,
                         null);
 
         // When
@@ -134,7 +138,7 @@ class SyncHealthServiceTest {
     @Test
     void testGetSyncHealthNullStatus() {
         // Given
-        final String userId = "user-123";
+        final String userId = USER_123;
         final SyncHealthController.SyncStatus nullStatus = null;
 
         // When
@@ -149,11 +153,11 @@ class SyncHealthServiceTest {
     @Test
     void testGetSyncHealthStaleErrorDetection() {
         // Given
-        final String userId = "user-123";
+        final String userId = USER_123;
         final SyncHealthController.SyncStatus status =
                 new SyncHealthController.SyncStatus(
-                        "failure", Instant.now(), 1, "healthy", "login required" // Stale indicator
-                );
+                        "failure", Instant.now(), 1, HEALTHY, "login required" // Stale indicator
+                        );
 
         // When
         final SyncHealthResponse response = service.getSyncHealth(userId, status);
@@ -166,27 +170,27 @@ class SyncHealthServiceTest {
     @Test
     void testGetSyncHealthTimeAgoFormatting() {
         // Given
-        final String userId = "user-123";
+        final String userId = USER_123;
 
         // Test "just now"
         final SyncHealthController.SyncStatus status1 =
                 new SyncHealthController.SyncStatus(
-                        "success", Instant.now().minus(30, ChronoUnit.SECONDS), 0, "healthy", null);
+                        SUCCESS, Instant.now().minus(30, ChronoUnit.SECONDS), 0, HEALTHY, null);
 
         // Test "minutes ago"
         final SyncHealthController.SyncStatus status2 =
                 new SyncHealthController.SyncStatus(
-                        "success", Instant.now().minus(5, ChronoUnit.MINUTES), 0, "healthy", null);
+                        SUCCESS, Instant.now().minus(5, ChronoUnit.MINUTES), 0, HEALTHY, null);
 
         // Test "hours ago"
         final SyncHealthController.SyncStatus status3 =
                 new SyncHealthController.SyncStatus(
-                        "success", Instant.now().minus(2, ChronoUnit.HOURS), 0, "healthy", null);
+                        SUCCESS, Instant.now().minus(2, ChronoUnit.HOURS), 0, HEALTHY, null);
 
         // Test "days ago"
         final SyncHealthController.SyncStatus status4 =
                 new SyncHealthController.SyncStatus(
-                        "success", Instant.now().minus(3, ChronoUnit.DAYS), 0, "healthy", null);
+                        SUCCESS, Instant.now().minus(3, ChronoUnit.DAYS), 0, HEALTHY, null);
 
         // When
         final SyncHealthResponse response1 = service.getSyncHealth(userId, status1);
@@ -206,7 +210,7 @@ class SyncHealthServiceTest {
     @Test
     void testGetSyncHealthUserFriendlyErrorMessage() {
         // Given
-        final String userId = "user-123";
+        final String userId = USER_123;
         // Test with "timeout" in the error message (case-insensitive matching)
         final SyncHealthController.SyncStatus status =
                 new SyncHealthController.SyncStatus(
@@ -215,7 +219,7 @@ class SyncHealthServiceTest {
                         1,
                         "degraded",
                         "timeout" // Use just "timeout" to match the contains check
-                );
+                        );
 
         // When
         final SyncHealthResponse response = service.getSyncHealth(userId, status);

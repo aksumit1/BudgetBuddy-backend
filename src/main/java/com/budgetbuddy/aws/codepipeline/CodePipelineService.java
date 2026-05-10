@@ -49,9 +49,7 @@ public class CodePipelineService {
                             GetPipelineStateRequest.builder().name(pipelineName).build());
 
             return response.stageStates().stream()
-                    .filter(
-                            stage ->
-                                    !"Succeeded".equals(stage.latestExecution().statusAsString()))
+                    .filter(stage -> !"Succeeded".equals(stage.latestExecution().statusAsString()))
                     .findFirst()
                     .map(stage -> stage.latestExecution().statusAsString())
                     .orElse("Succeeded");

@@ -1,12 +1,10 @@
 package com.budgetbuddy.service;
 
-
-import java.util.Locale;
 import com.budgetbuddy.notification.DataChangeNotificationService;
 import com.budgetbuddy.service.TransactionAnomalyService.TransactionAnomaly;
 import java.time.LocalDate;
-import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

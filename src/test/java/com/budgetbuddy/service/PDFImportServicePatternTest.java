@@ -1,15 +1,14 @@
 package com.budgetbuddy.service;
 
-
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import java.util.Locale;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.lang.reflect.Method;
+import java.util.Locale;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -25,6 +24,13 @@ import org.junit.jupiter.api.Test;
         value = "THROWS_METHOD_THROWS_CLAUSE_BASIC_EXCEPTION",
         justification = "JUnit idiom — test methods accept any setup exception")
 class PDFImportServicePatternTest {
+
+    private static final String UNCHECKED = "unchecked";
+    private static final String PARSEPATTERN1 = "parsePattern1";
+    private static final String DESCRIPTION = "description";
+    private static final String EXTRACTROWWITHSMARTCOLUMNDETECTION =
+            "extractRowWithSmartColumnDetection";
+    private static final String AMOUNT = "amount";
 
     private PDFImportService pdfImportService;
     private EnhancedPatternMatcher enhancedPatternMatcher;
@@ -60,11 +66,11 @@ class PDFImportServicePatternTest {
             // Test parsePattern1
             final Method parsePattern1Method =
                     PDFImportService.class.getDeclaredMethod(
-                            "parsePattern1", String.class, Integer.class);
+                            PARSEPATTERN1, String.class, Integer.class);
             parsePattern1Method.setAccessible(true);
 
-            @SuppressWarnings("unchecked") final
-                    Map<String, String> result =
+            @SuppressWarnings(UNCHECKED)
+            final Map<String, String> result =
                     (Map<String, String>) parsePattern1Method.invoke(pdfImportService, line, 2025);
 
             assertNull(
@@ -80,14 +86,14 @@ class PDFImportServicePatternTest {
             // Test extractRowWithSmartColumnDetection (full parsing flow)
             final Method extractRowMethod =
                     PDFImportService.class.getDeclaredMethod(
-                            "extractRowWithSmartColumnDetection",
+                            EXTRACTROWWITHSMARTCOLUMNDETECTION,
                             String.class,
                             java.util.List.class,
                             Integer.class);
             extractRowMethod.setAccessible(true);
 
-            @SuppressWarnings("unchecked") final
-                    Map<String, String> fullResult =
+            @SuppressWarnings(UNCHECKED)
+            final Map<String, String> fullResult =
                     (Map<String, String>)
                             extractRowMethod.invoke(
                                     pdfImportService,
@@ -107,13 +113,13 @@ class PDFImportServicePatternTest {
     void testNegativeClosingDateHeader() throws Exception {
         final Method parsePattern1Method =
                 PDFImportService.class.getDeclaredMethod(
-                        "parsePattern1", String.class, Integer.class);
+                        PARSEPATTERN1, String.class, Integer.class);
         parsePattern1Method.setAccessible(true);
 
         final String line = "Closing Date 12/12/25 Account Ending 8-41007";
 
-        @SuppressWarnings("unchecked") final
-                Map<String, String> result =
+        @SuppressWarnings(UNCHECKED)
+        final Map<String, String> result =
                 (Map<String, String>) parsePattern1Method.invoke(pdfImportService, line, 2025);
 
         assertNull(result, "Should NOT parse 'Closing Date' header as a transaction");
@@ -136,11 +142,11 @@ class PDFImportServicePatternTest {
         // Test parsePattern1
         final Method parsePattern1Method =
                 PDFImportService.class.getDeclaredMethod(
-                        "parsePattern1", String.class, Integer.class);
+                        PARSEPATTERN1, String.class, Integer.class);
         parsePattern1Method.setAccessible(true);
 
-        @SuppressWarnings("unchecked") final
-                Map<String, String> result =
+        @SuppressWarnings(UNCHECKED)
+        final Map<String, String> result =
                 (Map<String, String>) parsePattern1Method.invoke(pdfImportService, line, 2025);
 
         assertNull(
@@ -157,14 +163,14 @@ class PDFImportServicePatternTest {
         // Test extractRowWithSmartColumnDetection (full parsing flow)
         final Method extractRowMethod =
                 PDFImportService.class.getDeclaredMethod(
-                        "extractRowWithSmartColumnDetection",
+                        EXTRACTROWWITHSMARTCOLUMNDETECTION,
                         String.class,
                         java.util.List.class,
                         Integer.class);
         extractRowMethod.setAccessible(true);
 
-        @SuppressWarnings("unchecked") final
-                Map<String, String> fullResult =
+        @SuppressWarnings(UNCHECKED)
+        final Map<String, String> fullResult =
                 (Map<String, String>)
                         extractRowMethod.invoke(
                                 pdfImportService, line, java.util.Collections.emptyList(), 2025);
@@ -179,13 +185,13 @@ class PDFImportServicePatternTest {
     void testNegativeTotalPointsTransferred() throws Exception {
         final Method parsePattern1Method =
                 PDFImportService.class.getDeclaredMethod(
-                        "parsePattern1", String.class, Integer.class);
+                        PARSEPATTERN1, String.class, Integer.class);
         parsePattern1Method.setAccessible(true);
 
         final String line = "Total points transferred to Marriott 8,73312/14/25";
 
-        @SuppressWarnings("unchecked") final
-                Map<String, String> result =
+        @SuppressWarnings(UNCHECKED)
+        final Map<String, String> result =
                 (Map<String, String>) parsePattern1Method.invoke(pdfImportService, line, 2025);
 
         assertNull(result, "Should NOT parse 'Total points transferred' line as a transaction");
@@ -205,13 +211,13 @@ class PDFImportServicePatternTest {
     void testNegativeInternationalPhoneNumberLine() throws Exception {
         final Method parsePattern1Method =
                 PDFImportService.class.getDeclaredMethod(
-                        "parsePattern1", String.class, Integer.class);
+                        PARSEPATTERN1, String.class, Integer.class);
         parsePattern1Method.setAccessible(true);
 
         final String line = "International   1-302-594-8200";
 
-        @SuppressWarnings("unchecked") final
-                Map<String, String> result =
+        @SuppressWarnings(UNCHECKED)
+        final Map<String, String> result =
                 (Map<String, String>) parsePattern1Method.invoke(pdfImportService, line, 2025);
 
         assertNull(
@@ -228,14 +234,14 @@ class PDFImportServicePatternTest {
         // Also test extractRowWithSmartColumnDetection
         final Method extractRowMethod =
                 PDFImportService.class.getDeclaredMethod(
-                        "extractRowWithSmartColumnDetection",
+                        EXTRACTROWWITHSMARTCOLUMNDETECTION,
                         String.class,
                         java.util.List.class,
                         Integer.class);
         extractRowMethod.setAccessible(true);
 
-        @SuppressWarnings("unchecked") final
-                Map<String, String> fullResult =
+        @SuppressWarnings(UNCHECKED)
+        final Map<String, String> fullResult =
                 (Map<String, String>)
                         extractRowMethod.invoke(
                                 pdfImportService, line, java.util.Collections.emptyList(), 2025);
@@ -250,18 +256,18 @@ class PDFImportServicePatternTest {
     void testNegativePhoneNumberLines() throws Exception {
         final Method parsePattern1Method =
                 PDFImportService.class.getDeclaredMethod(
-                        "parsePattern1", String.class, Integer.class);
+                        PARSEPATTERN1, String.class, Integer.class);
         parsePattern1Method.setAccessible(true);
 
         final String[] lines = {
-                "Pay by phone1-800-436-7958",
-                "International 1-302-594-8200",
-                "We accept operator relay calls"
+            "Pay by phone1-800-436-7958",
+            "International 1-302-594-8200",
+            "We accept operator relay calls"
         };
 
         for (final String line : lines) {
-            @SuppressWarnings("unchecked") final
-                    Map<String, String> result =
+            @SuppressWarnings(UNCHECKED)
+            final Map<String, String> result =
                     (Map<String, String>) parsePattern1Method.invoke(pdfImportService, line, 2025);
 
             assertNull(result, "Should NOT parse phone number line as a transaction: " + line);
@@ -274,7 +280,7 @@ class PDFImportServicePatternTest {
                     enhancedPatternMatcher.matchTransactionLine(line, 2025, true);
             // If it matches, check that it's being filtered by isValidDescription
             if (matchResult.isMatched()) {
-                final String desc = matchResult.getFields().get("description");
+                final String desc = matchResult.getFields().get(DESCRIPTION);
                 // These lines should be filtered out by isValidDescription due to
                 // phone/informational keywords
                 assertTrue(
@@ -302,11 +308,11 @@ class PDFImportServicePatternTest {
         // Test parsePattern1
         final Method parsePattern1Method =
                 PDFImportService.class.getDeclaredMethod(
-                        "parsePattern1", String.class, Integer.class);
+                        PARSEPATTERN1, String.class, Integer.class);
         parsePattern1Method.setAccessible(true);
 
-        @SuppressWarnings("unchecked") final
-                Map<String, String> result =
+        @SuppressWarnings(UNCHECKED)
+        final Map<String, String> result =
                 (Map<String, String>) parsePattern1Method.invoke(pdfImportService, line, 2025);
 
         assertNull(
@@ -325,14 +331,14 @@ class PDFImportServicePatternTest {
         // Test extractRowWithSmartColumnDetection (full parsing flow)
         final Method extractRowMethod =
                 PDFImportService.class.getDeclaredMethod(
-                        "extractRowWithSmartColumnDetection",
+                        EXTRACTROWWITHSMARTCOLUMNDETECTION,
                         String.class,
                         java.util.List.class,
                         Integer.class);
         extractRowMethod.setAccessible(true);
 
-        @SuppressWarnings("unchecked") final
-                Map<String, String> fullResult =
+        @SuppressWarnings(UNCHECKED)
+        final Map<String, String> fullResult =
                 (Map<String, String>)
                         extractRowMethod.invoke(
                                 pdfImportService, line, java.util.Collections.emptyList(), 2025);
@@ -353,11 +359,11 @@ class PDFImportServicePatternTest {
         // Test parsePattern1
         final Method parsePattern1Method =
                 PDFImportService.class.getDeclaredMethod(
-                        "parsePattern1", String.class, Integer.class);
+                        PARSEPATTERN1, String.class, Integer.class);
         parsePattern1Method.setAccessible(true);
 
-        @SuppressWarnings("unchecked") final
-                Map<String, String> result =
+        @SuppressWarnings(UNCHECKED)
+        final Map<String, String> result =
                 (Map<String, String>) parsePattern1Method.invoke(pdfImportService, line, 2025);
 
         assertNull(result, "parsePattern1 should NOT parse address line as a transaction: " + line);
@@ -372,14 +378,14 @@ class PDFImportServicePatternTest {
         // Test extractRowWithSmartColumnDetection (full parsing flow)
         final Method extractRowMethod =
                 PDFImportService.class.getDeclaredMethod(
-                        "extractRowWithSmartColumnDetection",
+                        EXTRACTROWWITHSMARTCOLUMNDETECTION,
                         String.class,
                         java.util.List.class,
                         Integer.class);
         extractRowMethod.setAccessible(true);
 
-        @SuppressWarnings("unchecked") final
-                Map<String, String> fullResult =
+        @SuppressWarnings(UNCHECKED)
+        final Map<String, String> fullResult =
                 (Map<String, String>)
                         extractRowMethod.invoke(
                                 pdfImportService, line, java.util.Collections.emptyList(), 2025);
@@ -396,18 +402,18 @@ class PDFImportServicePatternTest {
     @Test
     void testNegativeCustomerServiceAndRelayCallsLines() throws Exception {
         final String[] lines = {
-                "24-hour customer service: 1-866-229-6633", "we accept all relay calls, including 711"
+            "24-hour customer service: 1-866-229-6633", "we accept all relay calls, including 711"
         };
 
         for (final String line : lines) {
             // Test parsePattern1
             final Method parsePattern1Method =
                     PDFImportService.class.getDeclaredMethod(
-                            "parsePattern1", String.class, Integer.class);
+                            PARSEPATTERN1, String.class, Integer.class);
             parsePattern1Method.setAccessible(true);
 
-            @SuppressWarnings("unchecked") final
-                    Map<String, String> result =
+            @SuppressWarnings(UNCHECKED)
+            final Map<String, String> result =
                     (Map<String, String>) parsePattern1Method.invoke(pdfImportService, line, 2025);
 
             assertNull(
@@ -426,14 +432,14 @@ class PDFImportServicePatternTest {
             // Test extractRowWithSmartColumnDetection (full parsing flow)
             final Method extractRowMethod =
                     PDFImportService.class.getDeclaredMethod(
-                            "extractRowWithSmartColumnDetection",
+                            EXTRACTROWWITHSMARTCOLUMNDETECTION,
                             String.class,
                             java.util.List.class,
                             Integer.class);
             extractRowMethod.setAccessible(true);
 
-            @SuppressWarnings("unchecked") final
-                    Map<String, String> fullResult =
+            @SuppressWarnings(UNCHECKED)
+            final Map<String, String> fullResult =
                     (Map<String, String>)
                             extractRowMethod.invoke(
                                     pdfImportService,
@@ -453,14 +459,14 @@ class PDFImportServicePatternTest {
     void testNegativeAddressInquiryLines() throws Exception {
         final Method parsePattern1Method =
                 PDFImportService.class.getDeclaredMethod(
-                        "parsePattern1", String.class, Integer.class);
+                        PARSEPATTERN1, String.class, Integer.class);
         parsePattern1Method.setAccessible(true);
 
         final String line =
                 "Send general inquiries to: Wells Fargo, PO Box 10347, Des Moines IA 50306-0347 Payment";
 
-        @SuppressWarnings("unchecked") final
-                Map<String, String> result =
+        @SuppressWarnings(UNCHECKED)
+        final Map<String, String> result =
                 (Map<String, String>) parsePattern1Method.invoke(pdfImportService, line, 2025);
 
         assertNull(result, "Should NOT parse address/inquiry line as a transaction");
@@ -477,14 +483,14 @@ class PDFImportServicePatternTest {
     void testNegativeStatementHeaderLines() throws Exception {
         final Method parsePattern1Method =
                 PDFImportService.class.getDeclaredMethod(
-                        "parsePattern1", String.class, Integer.class);
+                        PARSEPATTERN1, String.class, Integer.class);
         parsePattern1Method.setAccessible(true);
 
         final String line =
                 "Account ending in 6779 Statement Period 11/18/2025 to 12/18/2025 Page 1 of 5";
 
-        @SuppressWarnings("unchecked") final
-                Map<String, String> result =
+        @SuppressWarnings(UNCHECKED)
+        final Map<String, String> result =
                 (Map<String, String>) parsePattern1Method.invoke(pdfImportService, line, 2025);
 
         assertNull(result, "Should NOT parse statement header line as a transaction");
@@ -501,13 +507,13 @@ class PDFImportServicePatternTest {
     void testNegativeRewardsBalanceLines() throws Exception {
         final Method parsePattern1Method =
                 PDFImportService.class.getDeclaredMethod(
-                        "parsePattern1", String.class, Integer.class);
+                        PARSEPATTERN1, String.class, Integer.class);
         parsePattern1Method.setAccessible(true);
 
         final String line = "Rewards balance as of: 11/30/2025 $68.28";
 
-        @SuppressWarnings("unchecked") final
-                Map<String, String> result =
+        @SuppressWarnings(UNCHECKED)
+        final Map<String, String> result =
                 (Map<String, String>) parsePattern1Method.invoke(pdfImportService, line, 2025);
 
         assertNull(result, "Should NOT parse rewards balance line as a transaction");
@@ -524,13 +530,13 @@ class PDFImportServicePatternTest {
     void testNegativeDateHeaderAndWarningLines() throws Exception {
         final Method parsePattern1Method =
                 PDFImportService.class.getDeclaredMethod(
-                        "parsePattern1", String.class, Integer.class);
+                        PARSEPATTERN1, String.class, Integer.class);
         parsePattern1Method.setAccessible(true);
 
         final String line = "AS OF 10/10/25 09/17/2025 - 10/16/2025 Late Payment Warning:";
 
-        @SuppressWarnings("unchecked") final
-                Map<String, String> result =
+        @SuppressWarnings(UNCHECKED)
+        final Map<String, String> result =
                 (Map<String, String>) parsePattern1Method.invoke(pdfImportService, line, 2025);
 
         assertNull(result, "Should NOT parse date header/warning line as a transaction");
@@ -547,14 +553,14 @@ class PDFImportServicePatternTest {
     void testNegativeBalanceLines() throws Exception {
         final Method parsePattern1Method =
                 PDFImportService.class.getDeclaredMethod(
-                        "parsePattern1", String.class, Integer.class);
+                        PARSEPATTERN1, String.class, Integer.class);
         parsePattern1Method.setAccessible(true);
 
         final String[] lines = {"New Balance: $5.66 5.66 5.66 11/13/2025", "5.66 5.66 11/13/2025"};
 
         for (final String line : lines) {
-            @SuppressWarnings("unchecked") final
-                    Map<String, String> result =
+            @SuppressWarnings(UNCHECKED)
+            final Map<String, String> result =
                     (Map<String, String>) parsePattern1Method.invoke(pdfImportService, line, 2025);
 
             assertNull(result, "Should NOT parse balance line as a transaction: " + line);
@@ -579,11 +585,11 @@ class PDFImportServicePatternTest {
         // Test parsePattern1
         final Method parsePattern1Method =
                 PDFImportService.class.getDeclaredMethod(
-                        "parsePattern1", String.class, Integer.class);
+                        PARSEPATTERN1, String.class, Integer.class);
         parsePattern1Method.setAccessible(true);
 
-        @SuppressWarnings("unchecked") final
-                Map<String, String> result =
+        @SuppressWarnings(UNCHECKED)
+        final Map<String, String> result =
                 (Map<String, String>) parsePattern1Method.invoke(pdfImportService, line, 2025);
 
         assertNull(
@@ -601,14 +607,14 @@ class PDFImportServicePatternTest {
         // Test extractRowWithSmartColumnDetection (full parsing flow)
         final Method extractRowMethod =
                 PDFImportService.class.getDeclaredMethod(
-                        "extractRowWithSmartColumnDetection",
+                        EXTRACTROWWITHSMARTCOLUMNDETECTION,
                         String.class,
                         java.util.List.class,
                         Integer.class);
         extractRowMethod.setAccessible(true);
 
-        @SuppressWarnings("unchecked") final
-                Map<String, String> fullResult =
+        @SuppressWarnings(UNCHECKED)
+        final Map<String, String> fullResult =
                 (Map<String, String>)
                         extractRowMethod.invoke(
                                 pdfImportService, line, java.util.Collections.emptyList(), 2025);
@@ -630,11 +636,11 @@ class PDFImportServicePatternTest {
         // Test parsePattern1
         final Method parsePattern1Method =
                 PDFImportService.class.getDeclaredMethod(
-                        "parsePattern1", String.class, Integer.class);
+                        PARSEPATTERN1, String.class, Integer.class);
         parsePattern1Method.setAccessible(true);
 
-        @SuppressWarnings("unchecked") final
-                Map<String, String> result =
+        @SuppressWarnings(UNCHECKED)
+        final Map<String, String> result =
                 (Map<String, String>) parsePattern1Method.invoke(pdfImportService, line, 2025);
 
         assertNull(
@@ -651,14 +657,14 @@ class PDFImportServicePatternTest {
         // Test extractRowWithSmartColumnDetection (full parsing flow)
         final Method extractRowMethod =
                 PDFImportService.class.getDeclaredMethod(
-                        "extractRowWithSmartColumnDetection",
+                        EXTRACTROWWITHSMARTCOLUMNDETECTION,
                         String.class,
                         java.util.List.class,
                         Integer.class);
         extractRowMethod.setAccessible(true);
 
-        @SuppressWarnings("unchecked") final
-                Map<String, String> fullResult =
+        @SuppressWarnings(UNCHECKED)
+        final Map<String, String> fullResult =
                 (Map<String, String>)
                         extractRowMethod.invoke(
                                 pdfImportService, line, java.util.Collections.emptyList(), 2025);
@@ -681,11 +687,11 @@ class PDFImportServicePatternTest {
         // Test parsePattern1
         final Method parsePattern1Method =
                 PDFImportService.class.getDeclaredMethod(
-                        "parsePattern1", String.class, Integer.class);
+                        PARSEPATTERN1, String.class, Integer.class);
         parsePattern1Method.setAccessible(true);
 
-        @SuppressWarnings("unchecked") final
-                Map<String, String> result =
+        @SuppressWarnings(UNCHECKED)
+        final Map<String, String> result =
                 (Map<String, String>) parsePattern1Method.invoke(pdfImportService, line, 2025);
 
         assertNull(
@@ -702,14 +708,14 @@ class PDFImportServicePatternTest {
         // Test extractRowWithSmartColumnDetection (full parsing flow)
         final Method extractRowMethod =
                 PDFImportService.class.getDeclaredMethod(
-                        "extractRowWithSmartColumnDetection",
+                        EXTRACTROWWITHSMARTCOLUMNDETECTION,
                         String.class,
                         java.util.List.class,
                         Integer.class);
         extractRowMethod.setAccessible(true);
 
-        @SuppressWarnings("unchecked") final
-                Map<String, String> fullResult =
+        @SuppressWarnings(UNCHECKED)
+        final Map<String, String> fullResult =
                 (Map<String, String>)
                         extractRowMethod.invoke(
                                 pdfImportService, line, java.util.Collections.emptyList(), 2025);
@@ -731,11 +737,11 @@ class PDFImportServicePatternTest {
         // Test parsePattern1
         final Method parsePattern1Method =
                 PDFImportService.class.getDeclaredMethod(
-                        "parsePattern1", String.class, Integer.class);
+                        PARSEPATTERN1, String.class, Integer.class);
         parsePattern1Method.setAccessible(true);
 
-        @SuppressWarnings("unchecked") final
-                Map<String, String> result =
+        @SuppressWarnings(UNCHECKED)
+        final Map<String, String> result =
                 (Map<String, String>) parsePattern1Method.invoke(pdfImportService, line, 2025);
 
         assertNull(
@@ -754,14 +760,14 @@ class PDFImportServicePatternTest {
         // Test extractRowWithSmartColumnDetection (full parsing flow)
         final Method extractRowMethod =
                 PDFImportService.class.getDeclaredMethod(
-                        "extractRowWithSmartColumnDetection",
+                        EXTRACTROWWITHSMARTCOLUMNDETECTION,
                         String.class,
                         java.util.List.class,
                         Integer.class);
         extractRowMethod.setAccessible(true);
 
-        @SuppressWarnings("unchecked") final
-                Map<String, String> fullResult =
+        @SuppressWarnings(UNCHECKED)
+        final Map<String, String> fullResult =
                 (Map<String, String>)
                         extractRowMethod.invoke(
                                 pdfImportService, line, java.util.Collections.emptyList(), 2025);
@@ -776,18 +782,18 @@ class PDFImportServicePatternTest {
     void testNegativeReferenceNumberDateNameLines() throws Exception {
         final Method parsePattern1Method =
                 PDFImportService.class.getDeclaredMethod(
-                        "parsePattern1", String.class, Integer.class);
+                        PARSEPATTERN1, String.class, Integer.class);
         parsePattern1Method.setAccessible(true);
 
         final String[] lines = {
-                "776 10/10/2025Agarwal",
-                "776 776",
-                "This chart will be shown in every Jan, Apr, Jul and Oct statement when you have up to 12 months of scores."
+            "776 10/10/2025Agarwal",
+            "776 776",
+            "This chart will be shown in every Jan, Apr, Jul and Oct statement when you have up to 12 months of scores."
         };
 
         for (final String line : lines) {
-            @SuppressWarnings("unchecked") final
-                    Map<String, String> result =
+            @SuppressWarnings(UNCHECKED)
+            final Map<String, String> result =
                     (Map<String, String>) parsePattern1Method.invoke(pdfImportService, line, 2025);
 
             assertNull(
@@ -817,7 +823,7 @@ class PDFImportServicePatternTest {
 
         // Create a multi-line transaction for Pattern 7
         final String[] lines = {
-                "11/15/25 TST* MAXIMILIEN", "00014367 SEATTLE WA RESTAURANT", "$127.50 ⧫"
+            "11/15/25 TST* MAXIMILIEN", "00014367 SEATTLE WA RESTAURANT", "$127.50 ⧫"
         };
 
         // Use reflection to call parsePattern7
@@ -831,19 +837,19 @@ class PDFImportServicePatternTest {
                             String.class);
             parsePattern7Method.setAccessible(true);
 
-            @SuppressWarnings("unchecked") final
-                    Map<String, String> result =
+            @SuppressWarnings(UNCHECKED)
+            final Map<String, String> result =
                     (Map<String, String>)
                             parsePattern7Method.invoke(pdfImportService, lines, 0, 2025, null);
 
             assertNotNull(result, "Should parse Pattern 7 transaction");
             assertEquals(
                     "$127.50",
-                    result.get("amount"),
+                    result.get(AMOUNT),
                     "Should extract correct amount $127.50, not $14367");
             assertTrue(
-                    result.get("description").contains("MAXIMILIEN")
-                            || result.get("description").contains("RESTAURANT"),
+                    result.get(DESCRIPTION).contains("MAXIMILIEN")
+                            || result.get(DESCRIPTION).contains("RESTAURANT"),
                     "Description should contain merchant name");
         } catch (NoSuchMethodException e) {
             // If parsePattern7 signature changed, skip this test
@@ -866,11 +872,11 @@ class PDFImportServicePatternTest {
         // Test parsePattern1 directly
         final Method parsePattern1Method =
                 PDFImportService.class.getDeclaredMethod(
-                        "parsePattern1", String.class, Integer.class);
+                        PARSEPATTERN1, String.class, Integer.class);
         parsePattern1Method.setAccessible(true);
 
-        @SuppressWarnings("unchecked") final
-                Map<String, String> result =
+        @SuppressWarnings(UNCHECKED)
+        final Map<String, String> result =
                 (Map<String, String>) parsePattern1Method.invoke(pdfImportService, line, 2025);
 
         assertNotNull(
@@ -878,10 +884,10 @@ class PDFImportServicePatternTest {
                 "parsePattern1 should parse Citibank AUTOPAY transaction (was false negative)");
         assertEquals("12/17", result.get("date"));
         assertTrue(
-                result.get("description").contains("AUTOPAY")
-                        || result.get("description").contains("AUTO-PMT"),
+                result.get(DESCRIPTION).contains("AUTOPAY")
+                        || result.get(DESCRIPTION).contains("AUTO-PMT"),
                 "Description should contain AUTOPAY or AUTO-PMT");
-        assertEquals("-$2,681.98", result.get("amount"));
+        assertEquals("-$2,681.98", result.get(AMOUNT));
 
         // Test EnhancedPatternMatcher
         final EnhancedPatternMatcher.MatchResult matchResult =
@@ -890,7 +896,7 @@ class PDFImportServicePatternTest {
                 matchResult.isMatched(), "EnhancedPatternMatcher should match AUTOPAY transaction");
 
         // Verify that the description doesn't get filtered by isValidDescription
-        final String description = result.get("description");
+        final String description = result.get(DESCRIPTION);
         assertFalse(
                 description.toLowerCase(Locale.ROOT).contains("pay over time")
                         || description.toLowerCase(Locale.ROOT).contains("cash advances"),
@@ -909,11 +915,11 @@ class PDFImportServicePatternTest {
         // Test parsePattern1 directly
         final Method parsePattern1Method =
                 PDFImportService.class.getDeclaredMethod(
-                        "parsePattern1", String.class, Integer.class);
+                        PARSEPATTERN1, String.class, Integer.class);
         parsePattern1Method.setAccessible(true);
 
-        @SuppressWarnings("unchecked") final
-                Map<String, String> result =
+        @SuppressWarnings(UNCHECKED)
+        final Map<String, String> result =
                 (Map<String, String>) parsePattern1Method.invoke(pdfImportService, line, 2025);
 
         assertNotNull(
@@ -921,11 +927,11 @@ class PDFImportServicePatternTest {
                 "parsePattern1 should parse Citibank PROMOTIONAL APR transaction (was false negative)");
         assertEquals("12/13", result.get("date"));
         assertTrue(
-                result.get("description").contains("PROMOTIONAL")
-                        || result.get("description").contains("APR")
-                        || result.get("description").contains("OFFER"),
+                result.get(DESCRIPTION).contains("PROMOTIONAL")
+                        || result.get(DESCRIPTION).contains("APR")
+                        || result.get(DESCRIPTION).contains("OFFER"),
                 "Description should contain PROMOTIONAL, APR, or OFFER");
-        assertEquals("-$5,741.18", result.get("amount"));
+        assertEquals("-$5,741.18", result.get(AMOUNT));
 
         // Test EnhancedPatternMatcher
         final EnhancedPatternMatcher.MatchResult matchResult =
@@ -937,7 +943,7 @@ class PDFImportServicePatternTest {
         // Verify that the description doesn't get filtered by isValidDescription
         // The APR filter should only reject if "apr" appears with "annual percentage rate" or
         // "interest rate"
-        final String description = result.get("description");
+        final String description = result.get(DESCRIPTION);
         assertFalse(
                 description.toLowerCase(Locale.ROOT).contains("apr")
                         && (description.toLowerCase(Locale.ROOT).contains("annual percentage rate")
@@ -953,32 +959,32 @@ class PDFImportServicePatternTest {
     void testPositiveTransactionWithPhoneNumberInDescription() throws Exception {
         final Method parsePattern1Method =
                 PDFImportService.class.getDeclaredMethod(
-                        "parsePattern1", String.class, Integer.class);
+                        PARSEPATTERN1, String.class, Integer.class);
         parsePattern1Method.setAccessible(true);
 
         final String line = "11/30 11/30 WWW COSTCO COM           800-955-2292 WA $35.38";
 
-        @SuppressWarnings("unchecked") final
-                Map<String, String> result =
+        @SuppressWarnings(UNCHECKED)
+        final Map<String, String> result =
                 (Map<String, String>) parsePattern1Method.invoke(pdfImportService, line, 2025);
 
         assertNotNull(result, "Should parse transaction with phone number in description");
         assertEquals("11/30", result.get("date"));
         assertTrue(
-                result.get("description").contains("WWW COSTCO COM"),
+                result.get(DESCRIPTION).contains("WWW COSTCO COM"),
                 "Description should contain merchant name");
         assertTrue(
-                result.get("description").contains("800-955-2292"),
+                result.get(DESCRIPTION).contains("800-955-2292"),
                 "Description should contain phone number");
-        assertTrue(result.get("description").contains("WA"), "Description should contain location");
-        assertEquals("$35.38", result.get("amount"));
+        assertTrue(result.get(DESCRIPTION).contains("WA"), "Description should contain location");
+        assertEquals("$35.38", result.get(AMOUNT));
 
         final EnhancedPatternMatcher.MatchResult matchResult =
                 enhancedPatternMatcher.matchTransactionLine(line, 2025, true);
         assertTrue(
                 matchResult.isMatched(),
                 "EnhancedPatternMatcher should match transaction with phone number");
-        final String enhancedDescription = matchResult.getFields().get("description");
+        final String enhancedDescription = matchResult.getFields().get(DESCRIPTION);
         assertNotNull(enhancedDescription, "EnhancedPatternMatcher description should not be null");
         // The line has two dates, so Pattern 3 might match, which includes both dates in
         // description
@@ -1004,20 +1010,20 @@ class PDFImportServicePatternTest {
         // Test parsePattern1 directly
         final Method parsePattern1Method =
                 PDFImportService.class.getDeclaredMethod(
-                        "parsePattern1", String.class, Integer.class);
+                        PARSEPATTERN1, String.class, Integer.class);
         parsePattern1Method.setAccessible(true);
 
-        @SuppressWarnings("unchecked") final
-                Map<String, String> result =
+        @SuppressWarnings(UNCHECKED)
+        final Map<String, String> result =
                 (Map<String, String>) parsePattern1Method.invoke(pdfImportService, line, 2025);
 
         assertNotNull(result, "parsePattern1 should parse autopay transaction with -$ amount");
         assertEquals("07/28", result.get("date"));
         assertTrue(
-                result.get("description").contains("autopay")
-                        || result.get("description").contains("auto-pmt"),
+                result.get(DESCRIPTION).contains("autopay")
+                        || result.get(DESCRIPTION).contains("auto-pmt"),
                 "Description should contain autopay or auto-pmt");
-        assertEquals("-$1,624.59", result.get("amount"));
+        assertEquals("-$1,624.59", result.get(AMOUNT));
 
         // Test EnhancedPatternMatcher
         final EnhancedPatternMatcher.MatchResult matchResult =
@@ -1027,20 +1033,20 @@ class PDFImportServicePatternTest {
                 "EnhancedPatternMatcher should match autopay transaction with -$ amount");
         assertEquals(
                 "-$1,624.59",
-                matchResult.getFields().get("amount"),
+                matchResult.getFields().get(AMOUNT),
                 "EnhancedPatternMatcher should extract -$1,624.59 as amount");
 
         // Test extractRowWithSmartColumnDetection (full parsing flow)
         final Method extractRowMethod =
                 PDFImportService.class.getDeclaredMethod(
-                        "extractRowWithSmartColumnDetection",
+                        EXTRACTROWWITHSMARTCOLUMNDETECTION,
                         String.class,
                         java.util.List.class,
                         Integer.class);
         extractRowMethod.setAccessible(true);
 
-        @SuppressWarnings("unchecked") final
-                Map<String, String> fullResult =
+        @SuppressWarnings(UNCHECKED)
+        final Map<String, String> fullResult =
                 (Map<String, String>)
                         extractRowMethod.invoke(
                                 pdfImportService, line, java.util.Collections.emptyList(), 2025);
@@ -1050,9 +1056,9 @@ class PDFImportServicePatternTest {
                 "extractRowWithSmartColumnDetection should parse autopay transaction with -$ amount");
         assertEquals("07/28", fullResult.get("date"));
         assertTrue(
-                fullResult.get("description").contains("autopay")
-                        || fullResult.get("description").contains("auto-pmt"),
+                fullResult.get(DESCRIPTION).contains("autopay")
+                        || fullResult.get(DESCRIPTION).contains("auto-pmt"),
                 "Description should contain autopay or auto-pmt");
-        assertEquals("-$1,624.59", fullResult.get("amount"));
+        assertEquals("-$1,624.59", fullResult.get(AMOUNT));
     }
 }

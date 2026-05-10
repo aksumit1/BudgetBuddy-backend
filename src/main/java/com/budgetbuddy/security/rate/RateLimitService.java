@@ -49,7 +49,8 @@ import software.amazon.awssdk.services.dynamodb.model.UpdateTimeToLiveRequest;
 @Service
 public class RateLimitService {
 
-    private static final String DYNAMO_DB_CREDENTIALS_NOT_AVAILABLE = "DynamoDB credentials not available - skipping table initialization (likely in test environment without LocalStack)";
+    private static final String DYNAMO_DB_CREDENTIALS_NOT_AVAILABLE =
+            "DynamoDB credentials not available - skipping table initialization (likely in test environment without LocalStack)";
 
     private static final String UNABLE_TO_LOAD_CREDENTIALS = "Unable to load credentials";
 
@@ -85,14 +86,20 @@ public class RateLimitService {
     // Rate limits per endpoint type - now configurable via properties
     private Map<String, RateLimitConfig> getEndpointLimits() {
         return Map.of(
-                "/api/auth/login", new RateLimitConfig(authLoginLimit, 60),
-                "/api/auth/signup", new RateLimitConfig(authSignupLimit, 60),
-                "/api/plaid", new RateLimitConfig(plaidLimit, 60),
-                "/api/transactions", new RateLimitConfig(transactionsLimit, 60),
+                "/api/auth/login",
+                new RateLimitConfig(authLoginLimit, 60),
+                "/api/auth/signup",
+                new RateLimitConfig(authSignupLimit, 60),
+                "/api/plaid",
+                new RateLimitConfig(plaidLimit, 60),
+                "/api/transactions",
+                new RateLimitConfig(transactionsLimit, 60),
                 "/api/transactions/batch-import",
-                        new RateLimitConfig(100, 60), // 100 batch requests per minute
-                "/api/analytics", new RateLimitConfig(analyticsLimit, 60),
-                DEFAULT, new RateLimitConfig(defaultLimit, 60));
+                new RateLimitConfig(100, 60), // 100 batch requests per minute
+                "/api/analytics",
+                new RateLimitConfig(analyticsLimit, 60),
+                DEFAULT,
+                new RateLimitConfig(defaultLimit, 60));
     }
 
     private static final int MAX_CACHE_SIZE = 50_000; // Prevent unbounded growth
@@ -105,7 +112,10 @@ public class RateLimitService {
     // In-memory cache for hot paths
     private final Map<String, TokenBucket> inMemoryCache = new ConcurrentHashMap<>();
 
-    @SuppressWarnings({"unused", "PMD.AvoidCatchingGenericException"}) // Reserved for future cache TTL implementation
+    @SuppressWarnings({
+        "unused",
+        "PMD.AvoidCatchingGenericException"
+    }) // Reserved for future cache TTL implementation
     private static final long CACHE_TTL_MS = 60_000; // 1 minute
 
     private volatile long lastCacheCleanup = System.currentTimeMillis();
@@ -279,25 +289,23 @@ public class RateLimitService {
                             .tableName(tableName)
                             .item(
                                     Map.of(
-                                            "key", AttributeValue.builder().s(key).build(),
+                                            "key",
+                                            AttributeValue.builder().s(key).build(),
                                             TOKENS,
-                                                    AttributeValue.builder()
-                                                            .n(String.valueOf(bucket.getTokens()))
-                                                            .build(),
+                                            AttributeValue.builder()
+                                                    .n(String.valueOf(bucket.getTokens()))
+                                                    .build(),
                                             LAST_REFILL,
-                                                    AttributeValue.builder()
-                                                            .n(
-                                                                    String.valueOf(
-                                                                            bucket.getLastRefill()))
-                                                            .build(),
+                                            AttributeValue.builder()
+                                                    .n(String.valueOf(bucket.getLastRefill()))
+                                                    .build(),
                                             "ttl",
-                                                    AttributeValue.builder()
-                                                            .n(
-                                                                    String.valueOf(
-                                                                            Instant.now()
-                                                                                            .getEpochSecond()
-                                                                                    + 3600))
-                                                            .build()))
+                                            AttributeValue.builder()
+                                                    .n(
+                                                            String.valueOf(
+                                                                    Instant.now().getEpochSecond()
+                                                                            + 3600))
+                                                    .build()))
                             .build());
         } catch (Exception e) {
             LOGGER.error("Failed to update rate limit in DynamoDB: {}", e.getMessage());
@@ -336,8 +344,7 @@ public class RateLimitService {
         } catch (Exception e) {
             // CRITICAL: Handle credentials errors gracefully (e.g., in tests without LocalStack)
             if (isCredentialsError(e)) {
-                LOGGER.warn(
-                        DYNAMO_DB_CREDENTIALS_NOT_AVAILABLE);
+                LOGGER.warn(DYNAMO_DB_CREDENTIALS_NOT_AVAILABLE);
                 return;
             }
             LOGGER.warn("Failed to check if rate limit table exists: {}", e.getMessage());
@@ -382,16 +389,14 @@ public class RateLimitService {
         } catch (software.amazon.awssdk.core.exception.SdkClientException e) {
             // CRITICAL: Handle credentials errors gracefully (e.g., in tests without LocalStack)
             if (isCredentialsError(e)) {
-                LOGGER.warn(
-                        DYNAMO_DB_CREDENTIALS_NOT_AVAILABLE);
+                LOGGER.warn(DYNAMO_DB_CREDENTIALS_NOT_AVAILABLE);
                 return;
             }
             LOGGER.error("Failed to create rate limit table: {}", e.getMessage());
         } catch (Exception e) {
             // CRITICAL: Handle credentials errors gracefully
             if (isCredentialsError(e)) {
-                LOGGER.warn(
-                        DYNAMO_DB_CREDENTIALS_NOT_AVAILABLE);
+                LOGGER.warn(DYNAMO_DB_CREDENTIALS_NOT_AVAILABLE);
                 return;
             }
             LOGGER.error("Failed to create rate limit table: {}", e.getMessage());
@@ -407,8 +412,7 @@ public class RateLimitService {
         // Check for SdkClientException with credentials error
         if (e instanceof software.amazon.awssdk.core.exception.SdkClientException) {
             final String exceptionMessage = e.getMessage();
-            if (exceptionMessage != null
-                    && exceptionMessage.contains(UNABLE_TO_LOAD_CREDENTIALS)) {
+            if (exceptionMessage != null && exceptionMessage.contains(UNABLE_TO_LOAD_CREDENTIALS)) {
                 return true;
             }
         }

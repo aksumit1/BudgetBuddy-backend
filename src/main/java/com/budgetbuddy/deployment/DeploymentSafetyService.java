@@ -26,7 +26,12 @@ import org.springframework.web.client.RestTemplate;
 // standard library types (BigDecimal, String, Optional) and DTO
 // getters; this class has many such idiomatic uses. Suppress at
 // class level rather than littering every method.
-@SuppressWarnings({"PMD.LawOfDemeter", "PMD.AvoidCatchingGenericException", "PMD.DataClass", "PMD.OnlyOneReturn"})
+@SuppressWarnings({
+    "PMD.LawOfDemeter",
+    "PMD.AvoidCatchingGenericException",
+    "PMD.DataClass",
+    "PMD.OnlyOneReturn"
+})
 @Service
 public class DeploymentSafetyService {
 
@@ -213,7 +218,8 @@ public class DeploymentSafetyService {
 
             try {
                 final String url = baseUrl + endpoint;
-                final ResponseEntity<String> response = restTemplate.getForEntity(url, String.class);
+                final ResponseEntity<String> response =
+                        restTemplate.getForEntity(url, String.class);
 
                 if (response.getStatusCode().is2xxSuccessful()) {
                     passed++;

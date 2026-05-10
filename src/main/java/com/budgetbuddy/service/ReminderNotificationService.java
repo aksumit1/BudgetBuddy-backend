@@ -1,11 +1,11 @@
 package com.budgetbuddy.service;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import com.budgetbuddy.model.dynamodb.TransactionActionTable;
 import com.budgetbuddy.model.dynamodb.UserTable;
 import com.budgetbuddy.notification.NotificationService;
 import com.budgetbuddy.repository.dynamodb.TransactionActionRepository;
 import com.budgetbuddy.repository.dynamodb.UserRepository;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;

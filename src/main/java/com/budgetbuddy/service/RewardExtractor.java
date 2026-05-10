@@ -24,17 +24,24 @@ import org.springframework.stereotype.Component;
 // standard library types (BigDecimal, String, Optional) and DTO
 // getters; this class has many such idiomatic uses. Suppress at
 // class level rather than littering every method.
-@SuppressWarnings({"PMD.LawOfDemeter", "PMD.AvoidCatchingGenericException", "PMD.DataClass", "PMD.OnlyOneReturn"})
+@SuppressWarnings({
+    "PMD.LawOfDemeter",
+    "PMD.AvoidCatchingGenericException",
+    "PMD.DataClass",
+    "PMD.OnlyOneReturn"
+})
 @Component
 public class RewardExtractor {
 
     private static final String D_1_2_D_1_2_D_2_4 = "(?![\\d/]{1,2}/[\\d/]{1,2}/[\\d]{2,4})";
 
-    private static final String S_S_S_D_S_S = "([\\$€£¥₹]?\\s*(?:\\(\\s*[\\$€£¥₹]?\\s*)?[\\d\\s,.]+(?:\\s*\\))?)";
+    private static final String S_S_S_D_S_S =
+            "([\\$€£¥₹]?\\s*(?:\\(\\s*[\\$€£¥₹]?\\s*)?[\\d\\s,.]+(?:\\s*\\))?)";
 
     private static final String D_1_7_D_3 = "(\\d{1,7}(?:,\\d{3})*)";
 
-    private static final String EXTRACTED_CASH_BACK_BALANCE_PATTERN = "✓ Extracted cash back balance: {} (pattern: '{}')";
+    private static final String EXTRACTED_CASH_BACK_BALANCE_PATTERN =
+            "✓ Extracted cash back balance: {} (pattern: '{}')";
 
     private static final Logger LOGGER = LoggerFactory.getLogger(RewardExtractor.class);
 
@@ -49,7 +56,11 @@ public class RewardExtractor {
         private final RewardType type;
         private final int priority; // Higher priority = checked first
 
-        public RewardPattern(final String name, final Pattern pattern, final RewardType type, final int priority) {
+        public RewardPattern(
+                final String name,
+                final Pattern pattern,
+                final RewardType type,
+                final int priority) {
             this.name = name;
             this.pattern = pattern;
             this.type = type;
@@ -90,7 +101,11 @@ public class RewardExtractor {
         private final int position;
 
         public RewardResult(
-                final RewardType type, final Long points, final BigDecimal cashBack, final String label, final int position) {
+                final RewardType type,
+                final Long points,
+                final BigDecimal cashBack,
+                final String label,
+                final int position) {
             this.type = type;
             this.points = points;
             this.cashBack = cashBack;
@@ -221,9 +236,7 @@ public class RewardExtractor {
                 new RewardPattern(
                         "points_simple",
                         Pattern.compile(
-                                "(?i)(?:points|pts)[\\s:]+"
-                                        + D_1_2_D_1_2_D_2_4
-                                        + D_1_7_D_3),
+                                "(?i)(?:points|pts)[\\s:]+" + D_1_2_D_1_2_D_2_4 + D_1_7_D_3),
                         RewardType.POINTS,
                         60));
 
@@ -246,8 +259,7 @@ public class RewardExtractor {
                 new RewardPattern(
                         "cash_back_balance",
                         Pattern.compile(
-                                "(?i)cash\\s+back\\s+balance[:\\s]*[\\n\\r\\s]*"
-                                        + S_S_S_D_S_S),
+                                "(?i)cash\\s+back\\s+balance[:\\s]*[\\n\\r\\s]*" + S_S_S_D_S_S),
                         RewardType.CASH_BACK,
                         85));
 
@@ -256,9 +268,7 @@ public class RewardExtractor {
         patterns.add(
                 new RewardPattern(
                         "rewards_balance",
-                        Pattern.compile(
-                                "(?i)rewards?\\s+balance[:\\s]*[\\n\\r\\s]*"
-                                        + S_S_S_D_S_S),
+                        Pattern.compile("(?i)rewards?\\s+balance[:\\s]*[\\n\\r\\s]*" + S_S_S_D_S_S),
                         RewardType.CASH_BACK,
                         80));
 
@@ -497,7 +507,8 @@ public class RewardExtractor {
         }
 
         // Normalize newlines to spaces for pattern matching
-        final String normalizedText = text.replaceAll("\\r?\\n", " ").replaceAll("\\s+", " ").trim();
+        final String normalizedText =
+                text.replaceAll("\\r?\\n", " ").replaceAll("\\s+", " ").trim();
 
         // Try full normalized text first (handles newlines within pattern)
         RewardResult result = extractRewardFromLine(normalizedText);
@@ -505,9 +516,7 @@ public class RewardExtractor {
                 && result.getType() == RewardType.CASH_BACK
                 && result.getCashBack() != null) {
             LOGGER.debug(
-                    EXTRACTED_CASH_BACK_BALANCE_PATTERN,
-                    result.getCashBack(),
-                    result.getLabel());
+                    EXTRACTED_CASH_BACK_BALANCE_PATTERN, result.getCashBack(), result.getLabel());
             return result.getCashBack();
         }
 

@@ -1,12 +1,11 @@
 package com.budgetbuddy.api;
 
-
-import java.util.Locale;
 import com.budgetbuddy.exception.AppException;
 import com.budgetbuddy.exception.ErrorCode;
 import com.budgetbuddy.model.dynamodb.UserTable;
 import com.budgetbuddy.service.UserService;
 import com.budgetbuddy.service.household.HouseholdService;
+import java.util.Locale;
 import java.util.Map;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -46,13 +45,15 @@ public class HouseholdController {
 
     @PostMapping("/invite")
     public ResponseEntity<Map<String, Object>> invite(
-            @AuthenticationPrincipal final UserDetails userDetails, @RequestBody final InviteRequest body) {
+            @AuthenticationPrincipal final UserDetails userDetails,
+            @RequestBody final InviteRequest body) {
         final UserTable user = authenticate(userDetails);
         if (body.email == null || !body.email.contains("@") || !body.email.contains(".")) {
             throw new AppException(ErrorCode.INVALID_INPUT, "Email looks invalid");
         }
         final HouseholdService.Invite invite =
-                householdService.invite(user.getUserId(), body.email.toLowerCase(Locale.ROOT).trim());
+                householdService.invite(
+                        user.getUserId(), body.email.toLowerCase(Locale.ROOT).trim());
         return ResponseEntity.ok(
                 Map.of(
                         "email",

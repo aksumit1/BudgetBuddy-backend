@@ -39,6 +39,10 @@ import org.slf4j.LoggerFactory;
 @ExtendWith(MockitoExtension.class)
 class CategoryTypeAllocationDeepReviewTest {
 
+    private static final String OTHER = "other";
+    private static final String TEST = "Test";
+    private static final String TRANSFER = "transfer";
+
     private CSVImportService csvImportService;
 
     @Mock private AccountDetectionService accountDetectionService;
@@ -95,7 +99,7 @@ class CategoryTypeAllocationDeepReviewTest {
     void testParseCategoryAllNullInputs() {
         final String category = csvImportService.parseCategory(null, null, null, null, null, null);
         assertNotNull(category, "Category should never be null");
-        assertEquals("other", category, "All null inputs should default to 'other'");
+        assertEquals(OTHER, category, "All null inputs should default to 'other'");
     }
 
     @Test
@@ -112,7 +116,7 @@ class CategoryTypeAllocationDeepReviewTest {
     void testParseCategoryEmptyStrings() {
         final String category = csvImportService.parseCategory("", "", "", BigDecimal.ZERO, "", "");
         assertNotNull(category);
-        assertEquals("other", category);
+        assertEquals(OTHER, category);
     }
 
     @Test
@@ -120,7 +124,7 @@ class CategoryTypeAllocationDeepReviewTest {
         final String category =
                 csvImportService.parseCategory("   ", "   ", "   ", BigDecimal.ZERO, "   ", "   ");
         assertNotNull(category);
-        assertEquals("other", category);
+        assertEquals(OTHER, category);
     }
 
     // ========== BOUNDARY CONDITION TESTS ==========
@@ -131,7 +135,7 @@ class CategoryTypeAllocationDeepReviewTest {
                 csvImportService.parseCategory(
                         "fee", "Bank fee", null, BigDecimal.ZERO, null, null);
         assertNotNull(category);
-        assertEquals("other", category, "Zero amount with fee description should be 'other'");
+        assertEquals(OTHER, category, "Zero amount with fee description should be 'other'");
     }
 
     @Test
@@ -140,7 +144,7 @@ class CategoryTypeAllocationDeepReviewTest {
         final BigDecimal hugeAmount = BigDecimal.valueOf(2_000_000_000);
         final String category =
                 csvImportService.parseCategory(
-                        "transfer", "Large transfer", null, hugeAmount, null, null);
+                        TRANSFER, "Large transfer", null, hugeAmount, null, null);
         assertNotNull(category);
         // Should still return a valid category despite amount being clamped
     }
@@ -150,7 +154,7 @@ class CategoryTypeAllocationDeepReviewTest {
         final BigDecimal hugeNegative = BigDecimal.valueOf(-2_000_000_000);
         final String category =
                 csvImportService.parseCategory(
-                        "transfer", "Large withdrawal", null, hugeNegative, null, null);
+                        TRANSFER, "Large withdrawal", null, hugeNegative, null, null);
         assertNotNull(category);
         // Should still return a valid category
     }
@@ -179,7 +183,7 @@ class CategoryTypeAllocationDeepReviewTest {
     @Test
     void testDetermineTransactionTypeNullAmount() {
         final String category =
-                csvImportService.parseCategory("other", "Transaction", null, null, null, null);
+                csvImportService.parseCategory(OTHER, "Transaction", null, null, null, null);
         assertNotNull(category);
     }
 
@@ -211,7 +215,7 @@ class CategoryTypeAllocationDeepReviewTest {
     void testDetermineTransactionTypeDebitIndicator() {
         final String category =
                 csvImportService.parseCategory(
-                        "other", "Purchase", null, BigDecimal.valueOf(50), "card", "DEBIT");
+                        OTHER, "Purchase", null, BigDecimal.valueOf(50), "card", "DEBIT");
         assertNotNull(category);
     }
 
@@ -219,7 +223,7 @@ class CategoryTypeAllocationDeepReviewTest {
     void testDetermineTransactionTypeCreditIndicator() {
         final String category =
                 csvImportService.parseCategory(
-                        "other", "Deposit", null, BigDecimal.valueOf(100), "ach", "CREDIT");
+                        OTHER, "Deposit", null, BigDecimal.valueOf(100), "ach", "CREDIT");
         assertNotNull(category);
     }
 
@@ -272,7 +276,7 @@ class CategoryTypeAllocationDeepReviewTest {
     void testParseCategoryMerchantNameDetection() {
         final String category =
                 csvImportService.parseCategory(
-                        "other",
+                        OTHER,
                         "Purchase at Safeway",
                         "SAFEWAY",
                         BigDecimal.valueOf(50),
@@ -286,7 +290,7 @@ class CategoryTypeAllocationDeepReviewTest {
         // Test with a description that's actually detected (coffee shop keywords)
         final String category =
                 csvImportService.parseCategory(
-                        "other", "Coffee shop purchase", null, BigDecimal.valueOf(5), "card", null);
+                        OTHER, "Coffee shop purchase", null, BigDecimal.valueOf(5), "card", null);
         // Note: Description-based detection may not always catch all cases,
         // so we verify it returns a valid category (not null or empty)
         assertNotNull(category, "Category should not be null");
@@ -295,12 +299,7 @@ class CategoryTypeAllocationDeepReviewTest {
         // Alternative: Test with merchant name (more reliable detection)
         final String categoryWithMerchant =
                 csvImportService.parseCategory(
-                        "other",
-                        "Coffee purchase",
-                        "STARBUCKS",
-                        BigDecimal.valueOf(5),
-                        "card",
-                        null);
+                        OTHER, "Coffee purchase", "STARBUCKS", BigDecimal.valueOf(5), "card", null);
         assertEquals(
                 "dining",
                 categoryWithMerchant,
@@ -324,7 +323,7 @@ class CategoryTypeAllocationDeepReviewTest {
                 .when(enhancedCategoryDetection.detectCategory(any(), any(), any(), any(), any()))
                 .thenReturn(
                         new EnhancedCategoryDetectionService.DetectionResult(
-                                "groceries", 0.8, "ML_PREDICTION", "Test"));
+                                "groceries", 0.8, "ML_PREDICTION", TEST));
 
         for (int i = 0; i < threadCount; i++) {
             executor.submit(
@@ -333,7 +332,7 @@ class CategoryTypeAllocationDeepReviewTest {
                             for (int j = 0; j < callsPerThread; j++) {
                                 final String category =
                                         csvImportService.parseCategory(
-                                                "other",
+                                                OTHER,
                                                 "Safeway purchase",
                                                 "SAFEWAY",
                                                 BigDecimal.valueOf(50 + j),
@@ -378,7 +377,7 @@ class CategoryTypeAllocationDeepReviewTest {
                         try {
                             // Each thread uses different category strings
                             final String[] categories = {
-                                    "groceries", "dining", "rent", "utilities", "transportation"
+                                "groceries", "dining", "rent", "utilities", "transportation"
                             };
                             for (final String cat : categories) {
                                 final String result =
@@ -419,7 +418,7 @@ class CategoryTypeAllocationDeepReviewTest {
         // Should not throw, should fall back to other methods
         final String category =
                 csvImportService.parseCategory(
-                        "other",
+                        OTHER,
                         "Test transaction",
                         "MERCHANT",
                         BigDecimal.valueOf(100),
@@ -434,7 +433,7 @@ class CategoryTypeAllocationDeepReviewTest {
         // Test with various invalid amount scenarios (handled by BigDecimal validation)
         final String category =
                 csvImportService.parseCategory(
-                        "other", "Test", null, BigDecimal.valueOf(Double.MAX_VALUE), null, null);
+                        OTHER, TEST, null, BigDecimal.valueOf(Double.MAX_VALUE), null, null);
         assertNotNull(category, "Should handle extreme amounts gracefully");
     }
 
@@ -456,10 +455,10 @@ class CategoryTypeAllocationDeepReviewTest {
     void testParseCategoryCaseInsensitive() {
         final String category1 =
                 csvImportService.parseCategory(
-                        "GROCERIES", "Test", null, BigDecimal.valueOf(50), null, null);
+                        "GROCERIES", TEST, null, BigDecimal.valueOf(50), null, null);
         final String category2 =
                 csvImportService.parseCategory(
-                        "groceries", "Test", null, BigDecimal.valueOf(50), null, null);
+                        "groceries", TEST, null, BigDecimal.valueOf(50), null, null);
         assertEquals(category1, category2, "Category detection should be case-insensitive");
     }
 
@@ -481,14 +480,14 @@ class CategoryTypeAllocationDeepReviewTest {
             // Warmup iterations to allow JVM to optimize
             for (int i = 0; i < 100; i++) {
                 csvImportService.parseCategory(
-                        "groceries", "Test", null, BigDecimal.valueOf(50), null, null);
+                        "groceries", TEST, null, BigDecimal.valueOf(50), null, null);
             }
 
             // Actual performance measurement
             final long startTime = System.nanoTime();
             for (int i = 0; i < 1000; i++) {
                 csvImportService.parseCategory(
-                        "groceries", "Test", null, BigDecimal.valueOf(50), null, null);
+                        "groceries", TEST, null, BigDecimal.valueOf(50), null, null);
             }
             final long endTime = System.nanoTime();
             final long duration = endTime - startTime;
@@ -516,7 +515,7 @@ class CategoryTypeAllocationDeepReviewTest {
         final BigDecimal boundary = BigDecimal.valueOf(1_000_000_000);
         final String category =
                 csvImportService.parseCategory(
-                        "transfer", "Large transfer", null, boundary, null, null);
+                        TRANSFER, "Large transfer", null, boundary, null, null);
         assertNotNull(category);
     }
 
@@ -525,7 +524,7 @@ class CategoryTypeAllocationDeepReviewTest {
         final BigDecimal boundary = BigDecimal.valueOf(-1_000_000_000);
         final String category =
                 csvImportService.parseCategory(
-                        "transfer", "Large withdrawal", null, boundary, null, null);
+                        TRANSFER, "Large withdrawal", null, boundary, null, null);
         assertNotNull(category);
     }
 
@@ -534,7 +533,7 @@ class CategoryTypeAllocationDeepReviewTest {
         final BigDecimal overLimit = BigDecimal.valueOf(1_000_000_001);
         final String category =
                 csvImportService.parseCategory(
-                        "transfer", "Huge transfer", null, overLimit, null, null);
+                        TRANSFER, "Huge transfer", null, overLimit, null, null);
         assertNotNull(category, "Should handle amounts just over limit");
     }
 
@@ -557,7 +556,7 @@ class CategoryTypeAllocationDeepReviewTest {
     void testParseCategoryTransferCategory() {
         final String category =
                 csvImportService.parseCategory(
-                        "transfer", "Bank transfer", null, BigDecimal.valueOf(1000), null, null);
+                        TRANSFER, "Bank transfer", null, BigDecimal.valueOf(1000), null, null);
         assertNotNull(category);
     }
 

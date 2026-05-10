@@ -115,9 +115,11 @@ public class TableInitializerMain {
         }
     }
 
-    private static void verifyTableExists(final DynamoDbClient dynamoDbClient, final String tableName) {
+    private static void verifyTableExists(
+            final DynamoDbClient dynamoDbClient, final String tableName) {
         try {
-            final var response = dynamoDbClient.describeTable(builder -> builder.tableName(tableName));
+            final var response =
+                    dynamoDbClient.describeTable(builder -> builder.tableName(tableName));
             final var status = response.table().tableStatus();
             LOGGER.info("✅ Verified table exists: {} (status: {})", tableName, status);
 

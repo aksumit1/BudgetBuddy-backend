@@ -31,6 +31,8 @@ import software.amazon.awssdk.services.cloudwatch.model.PutMetricDataResponse;
 @ExtendWith(MockitoExtension.class)
 class HIPAAComplianceServiceTest {
 
+    private static final String FINANCIAL = "financial";
+
     @Mock private AuditLogService auditLogService;
 
     @Mock private CloudWatchClient cloudWatchClient;
@@ -145,7 +147,8 @@ class HIPAAComplianceServiceTest {
     @Test
     void testCheckSessionTimeoutWithActiveSessionDoesNothing() {
         // Given
-        final long lastActivityTime = Instant.now().minusSeconds(300).getEpochSecond(); // 5 minutes ago
+        final long lastActivityTime =
+                Instant.now().minusSeconds(300).getEpochSecond(); // 5 minutes ago
 
         // When
         hipaaComplianceService.checkSessionTimeout(testUserId, lastActivityTime);
@@ -227,11 +230,11 @@ class HIPAAComplianceServiceTest {
                 .logPHIAccess(anyString(), anyString(), anyString(), anyBoolean());
 
         // When
-        final boolean result = hipaaComplianceService.checkPHIAccessPolicy(testUserId, "financial");
+        final boolean result = hipaaComplianceService.checkPHIAccessPolicy(testUserId, FINANCIAL);
 
         // Then
         assertTrue(result, "Admin should have full access");
-        verify(auditLogService).logPHIAccess(testUserId, "financial", "READ", true);
+        verify(auditLogService).logPHIAccess(testUserId, FINANCIAL, "READ", true);
     }
 
     @Test
@@ -244,11 +247,11 @@ class HIPAAComplianceServiceTest {
                 .logPHIAccess(anyString(), anyString(), anyString(), anyBoolean());
 
         // When
-        final boolean result = hipaaComplianceService.checkPHIAccessPolicy(testUserId, "financial");
+        final boolean result = hipaaComplianceService.checkPHIAccessPolicy(testUserId, FINANCIAL);
 
         // Then
         assertTrue(result, "Regular user should have access to their own financial data");
-        verify(auditLogService).logPHIAccess(testUserId, "financial", "READ", true);
+        verify(auditLogService).logPHIAccess(testUserId, FINANCIAL, "READ", true);
     }
 
     @Test
@@ -260,11 +263,11 @@ class HIPAAComplianceServiceTest {
                 .logPHIAccess(anyString(), anyString(), anyString(), anyBoolean());
 
         // When
-        final boolean result = hipaaComplianceService.checkPHIAccessPolicy(testUserId, "financial");
+        final boolean result = hipaaComplianceService.checkPHIAccessPolicy(testUserId, FINANCIAL);
 
         // Then
         assertFalse(result, "User with no roles should be denied access");
-        verify(auditLogService).logPHIAccess(testUserId, "financial", "READ", false);
+        verify(auditLogService).logPHIAccess(testUserId, FINANCIAL, "READ", false);
     }
 
     @Test
@@ -296,7 +299,8 @@ class HIPAAComplianceServiceTest {
     @Test
     void testBreachReportSettersAndGetters() {
         // Given
-        final HIPAAComplianceService.BreachReport report = new HIPAAComplianceService.BreachReport();
+        final HIPAAComplianceService.BreachReport report =
+                new HIPAAComplianceService.BreachReport();
 
         // When
         report.setUserId(testUserId);

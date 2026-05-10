@@ -1,11 +1,11 @@
 package com.budgetbuddy.service.importer;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import com.budgetbuddy.model.dynamodb.UserTable;
 import com.budgetbuddy.service.CSVImportService;
 import com.budgetbuddy.service.DuplicateDetectionService;
 import com.budgetbuddy.service.SubscriptionService;
 import com.budgetbuddy.service.TransactionService;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;

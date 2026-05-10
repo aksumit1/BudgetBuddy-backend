@@ -306,7 +306,8 @@ class GDPRComplianceServiceTest {
     @Test
     void testGDPRDataExportSettersAndGetters() {
         // Given
-        final GDPRComplianceService.GDPRDataExport export = new GDPRComplianceService.GDPRDataExport();
+        final GDPRComplianceService.GDPRDataExport export =
+                new GDPRComplianceService.GDPRDataExport();
         final String exportId = "export-123";
         final Instant exportDate = Instant.now();
         final UserTable userData = new UserTable();

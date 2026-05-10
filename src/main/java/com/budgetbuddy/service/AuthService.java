@@ -1,8 +1,5 @@
 package com.budgetbuddy.service;
 
-
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import java.util.Locale;
 import com.budgetbuddy.dto.AuthRequest;
 import com.budgetbuddy.dto.AuthResponse;
 import com.budgetbuddy.exception.AppException;
@@ -11,10 +8,12 @@ import com.budgetbuddy.model.dynamodb.UserTable;
 import com.budgetbuddy.repository.dynamodb.UserRepository;
 import com.budgetbuddy.security.JwtTokenProvider;
 import com.budgetbuddy.security.PasswordHashingService;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.Collections;
 import java.util.Date;
+import java.util.Locale;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -162,7 +161,10 @@ public class AuthService {
         if (roles != null && !roles.isEmpty()) {
             authorities =
                     roles.stream()
-                            .map(role -> new SimpleGrantedAuthority(ROLE + role.toUpperCase(Locale.ROOT)))
+                            .map(
+                                    role ->
+                                            new SimpleGrantedAuthority(
+                                                    ROLE + role.toUpperCase(Locale.ROOT)))
                             .collect(java.util.stream.Collectors.toList());
         } else {
             authorities = Collections.singletonList(new SimpleGrantedAuthority(ROLE_USER));
@@ -280,7 +282,10 @@ public class AuthService {
         if (roles != null && !roles.isEmpty()) {
             authorities =
                     roles.stream()
-                            .map(role -> new SimpleGrantedAuthority(ROLE + role.toUpperCase(Locale.ROOT)))
+                            .map(
+                                    role ->
+                                            new SimpleGrantedAuthority(
+                                                    ROLE + role.toUpperCase(Locale.ROOT)))
                             .collect(java.util.stream.Collectors.toList());
         } else {
             authorities = Collections.singletonList(new SimpleGrantedAuthority(ROLE_USER));
@@ -375,7 +380,10 @@ public class AuthService {
         if (roles != null && !roles.isEmpty()) {
             authorities =
                     roles.stream()
-                            .map(role -> new SimpleGrantedAuthority(ROLE + role.toUpperCase(Locale.ROOT)))
+                            .map(
+                                    role ->
+                                            new SimpleGrantedAuthority(
+                                                    ROLE + role.toUpperCase(Locale.ROOT)))
                             .collect(java.util.stream.Collectors.toList());
         } else {
             authorities = Collections.singletonList(new SimpleGrantedAuthority(ROLE_USER));
@@ -452,7 +460,10 @@ public class AuthService {
         if (roles != null && !roles.isEmpty()) {
             authorities =
                     roles.stream()
-                            .map(role -> new SimpleGrantedAuthority(ROLE + role.toUpperCase(Locale.ROOT)))
+                            .map(
+                                    role ->
+                                            new SimpleGrantedAuthority(
+                                                    ROLE + role.toUpperCase(Locale.ROOT)))
                             .collect(java.util.stream.Collectors.toList());
         } else {
             authorities = Collections.singletonList(new SimpleGrantedAuthority(ROLE_USER));

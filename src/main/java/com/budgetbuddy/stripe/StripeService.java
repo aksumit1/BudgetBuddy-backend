@@ -1,8 +1,5 @@
 package com.budgetbuddy.stripe;
 
-
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import java.util.Locale;
 import com.budgetbuddy.compliance.pcidss.PCIDSSComplianceService;
 import com.budgetbuddy.exception.AppException;
 import com.budgetbuddy.exception.ErrorCode;
@@ -17,9 +14,11 @@ import com.stripe.param.PaymentIntentConfirmParams;
 import com.stripe.param.PaymentIntentCreateParams;
 import com.stripe.param.PaymentMethodCreateParams;
 import com.stripe.param.RefundCreateParams;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import io.github.resilience4j.retry.annotation.Retry;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -35,6 +34,8 @@ import org.springframework.stereotype.Service;
         justification = "Spring constructor injection — beans are shared by design")
 @Service
 public class StripeService {
+
+    private static final String STRIPE = "stripe";
 
     private static final String NUMBER = "number";
 
@@ -66,8 +67,8 @@ public class StripeService {
     }
 
     /** Create Payment Intent */
-    @CircuitBreaker(name = "stripe")
-    @Retry(name = "stripe")
+    @CircuitBreaker(name = STRIPE)
+    @Retry(name = STRIPE)
     public PaymentIntent createPaymentIntent(
             final String userId,
             final long amount,
@@ -115,8 +116,8 @@ public class StripeService {
     }
 
     /** Confirm Payment Intent */
-    @CircuitBreaker(name = "stripe")
-    @Retry(name = "stripe")
+    @CircuitBreaker(name = STRIPE)
+    @Retry(name = STRIPE)
     public PaymentIntent confirmPaymentIntent(
             final String paymentIntentId, final String paymentMethodId) {
         try {
@@ -157,8 +158,8 @@ public class StripeService {
     }
 
     /** Create Customer */
-    @CircuitBreaker(name = "stripe")
-    @Retry(name = "stripe")
+    @CircuitBreaker(name = STRIPE)
+    @Retry(name = STRIPE)
     public Customer createCustomer(
             final String userId,
             final String email,
@@ -189,8 +190,8 @@ public class StripeService {
     }
 
     /** Create Payment Method */
-    @CircuitBreaker(name = "stripe")
-    @Retry(name = "stripe")
+    @CircuitBreaker(name = STRIPE)
+    @Retry(name = STRIPE)
     public PaymentMethod createPaymentMethod(
             final String type, final Map<String, Object> cardDetails) {
         try {
@@ -241,8 +242,8 @@ public class StripeService {
     }
 
     /** Refund Payment */
-    @CircuitBreaker(name = "stripe")
-    @Retry(name = "stripe")
+    @CircuitBreaker(name = STRIPE)
+    @Retry(name = STRIPE)
     public Refund createRefund(final String chargeId, final Long amount, final String reason) {
         try {
             RefundCreateParams.Reason refundReason = null;

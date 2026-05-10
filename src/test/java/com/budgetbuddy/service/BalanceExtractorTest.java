@@ -52,7 +52,8 @@ class BalanceExtractorTest {
     @DisplayName("Extract credit card balance - European format")
     void testCreditCardBalanceEuropeanFormat() {
         final List<String> headers = Arrays.asList("VISA CARD", "Nouveau solde: 1.234,56 €");
-        final BigDecimal result = balanceExtractor.extractCreditCardBalance(String.join(" ", headers));
+        final BigDecimal result =
+                balanceExtractor.extractCreditCardBalance(String.join(" ", headers));
         assertNotNull(result);
         assertEquals(new BigDecimal("1234.56"), result);
     }
@@ -60,8 +61,10 @@ class BalanceExtractorTest {
     @Test
     @DisplayName("Extract credit card balance - Indian format")
     void testCreditCardBalanceIndianFormat() {
-        final List<String> headers = Arrays.asList("HDFC CREDIT CARD", "New Balance: ₹12,34,567.89");
-        final BigDecimal result = balanceExtractor.extractCreditCardBalance(String.join(" ", headers));
+        final List<String> headers =
+                Arrays.asList("HDFC CREDIT CARD", "New Balance: ₹12,34,567.89");
+        final BigDecimal result =
+                balanceExtractor.extractCreditCardBalance(String.join(" ", headers));
         assertNotNull(result);
         assertEquals(new BigDecimal("1234567.89"), result);
     }
@@ -70,7 +73,8 @@ class BalanceExtractorTest {
     @DisplayName("Extract credit card balance - No currency symbol")
     void testCreditCardBalanceNoCurrency() {
         final List<String> headers = Arrays.asList("New Balance: 1234.56");
-        final BigDecimal result = balanceExtractor.extractCreditCardBalance(String.join(" ", headers));
+        final BigDecimal result =
+                balanceExtractor.extractCreditCardBalance(String.join(" ", headers));
         assertNotNull(result);
         assertEquals(new BigDecimal("1234.56"), result);
     }
@@ -79,7 +83,8 @@ class BalanceExtractorTest {
     @DisplayName("Extract credit card balance - Negative amount in parentheses")
     void testCreditCardBalanceNegativeParentheses() {
         final List<String> headers = Arrays.asList("New Balance: ($1,234.56)");
-        final BigDecimal result = balanceExtractor.extractCreditCardBalance(String.join(" ", headers));
+        final BigDecimal result =
+                balanceExtractor.extractCreditCardBalance(String.join(" ", headers));
         assertNotNull(result);
         assertEquals(new BigDecimal("-1234.56"), result);
     }
@@ -88,7 +93,8 @@ class BalanceExtractorTest {
     @DisplayName("Extract credit card balance - Spanish label")
     void testCreditCardBalanceSpanishLabel() {
         final List<String> headers = Arrays.asList("Nuevo saldo: €1.234,56");
-        final BigDecimal result = balanceExtractor.extractCreditCardBalance(String.join(" ", headers));
+        final BigDecimal result =
+                balanceExtractor.extractCreditCardBalance(String.join(" ", headers));
         assertNotNull(result);
         assertEquals(new BigDecimal("1234.56"), result);
     }
@@ -97,7 +103,8 @@ class BalanceExtractorTest {
     @DisplayName("Extract credit card balance - French label")
     void testCreditCardBalanceFrenchLabel() {
         final List<String> headers = Arrays.asList("Nouveau solde: 1 234,56 €");
-        final BigDecimal result = balanceExtractor.extractCreditCardBalance(String.join(" ", headers));
+        final BigDecimal result =
+                balanceExtractor.extractCreditCardBalance(String.join(" ", headers));
         assertNotNull(result);
         assertEquals(new BigDecimal("1234.56"), result);
     }

@@ -34,13 +34,18 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @DisplayName("CategoryClassificationModel Tests")
 class CategoryClassificationModelTest {
 
+    private static final String GROCERIES = "groceries";
+    private static final String GROCERY = "Grocery";
+    private static final String SHOPPING = "shopping";
+
     private CategoryClassificationModel model;
     private static final String TEST_MODEL_PATH = "data/test_category_model.dat";
 
     @BeforeEach
     void setUp() {
         // Use temp directory for tests to avoid permission issues
-        final String testModelDir = System.getProperty("java.io.tmpdir") + "/budgetbuddy-test-ml-models";
+        final String testModelDir =
+                System.getProperty("java.io.tmpdir") + "/budgetbuddy-test-ml-models";
         model = new CategoryClassificationModel(testModelDir);
         // Clean up test model file if it exists
         try {
@@ -60,7 +65,7 @@ class CategoryClassificationModelTest {
     void testTrainValidData() {
         final long initialCount = model.getStatistics().totalSamples;
 
-        model.train("SAFEWAY", "Grocery purchase", "75.50", "POS", "groceries");
+        model.train("SAFEWAY", "Grocery purchase", "75.50", "POS", GROCERIES);
 
         assertEquals(initialCount + 1, model.getStatistics().totalSamples);
     }
@@ -95,7 +100,7 @@ class CategoryClassificationModelTest {
     @Test
     @DisplayName("train with null merchant name still trains on other features")
     void testTrainNullMerchant() {
-        model.train(null, "Grocery purchase", "75.50", "POS", "groceries");
+        model.train(null, "Grocery purchase", "75.50", "POS", GROCERIES);
 
         // Should still train on keywords, amount, payment channel
         final CategoryClassificationModel.PredictionResult result =
@@ -110,9 +115,9 @@ class CategoryClassificationModelTest {
     void testTrainInvalidAmount() {
         assertDoesNotThrow(
                 () -> {
-                    model.train("SAFEWAY", "Grocery purchase", "invalid", "POS", "groceries");
-                    model.train("SAFEWAY", "Grocery purchase", "abc", "POS", "groceries");
-                    model.train("SAFEWAY", "Grocery purchase", "", "POS", "groceries");
+                    model.train("SAFEWAY", "Grocery purchase", "invalid", "POS", GROCERIES);
+                    model.train("SAFEWAY", "Grocery purchase", "abc", "POS", GROCERIES);
+                    model.train("SAFEWAY", "Grocery purchase", "", "POS", GROCERIES);
                 });
     }
 
@@ -121,15 +126,14 @@ class CategoryClassificationModelTest {
     void testTrainVeryLargeAmount() {
         assertDoesNotThrow(
                 () -> {
-                    model.train(
-                            "SAFEWAY", "Grocery purchase", "999999999999.99", "POS", "groceries");
+                    model.train("SAFEWAY", "Grocery purchase", "999999999999.99", "POS", GROCERIES);
                 });
     }
 
     @Test
     @DisplayName("train with negative amount uses absolute value")
     void testTrainNegativeAmount() {
-        model.train("SAFEWAY", "Grocery purchase", "-75.50", "POS", "groceries");
+        model.train("SAFEWAY", "Grocery purchase", "-75.50", "POS", GROCERIES);
 
         // Should train on amount range for 75.50
         final CategoryClassificationModel.PredictionResult result =
@@ -155,22 +159,22 @@ class CategoryClassificationModelTest {
     @Test
     @DisplayName("predict after training returns category")
     void testPredictAfterTraining() {
-        model.train("SAFEWAY", "Grocery purchase", "75.50", "POS", "groceries");
-        model.train("SAFEWAY", "Grocery purchase", "80.00", "POS", "groceries");
-        model.train("SAFEWAY", "Grocery purchase", "90.00", "POS", "groceries");
+        model.train("SAFEWAY", "Grocery purchase", "75.50", "POS", GROCERIES);
+        model.train("SAFEWAY", "Grocery purchase", "80.00", "POS", GROCERIES);
+        model.train("SAFEWAY", "Grocery purchase", "90.00", "POS", GROCERIES);
 
         final CategoryClassificationModel.PredictionResult result =
                 model.predict("SAFEWAY", "Grocery purchase", "75.50", "POS");
 
         assertNotNull(result);
-        assertEquals("groceries", result.category);
+        assertEquals(GROCERIES, result.category);
         assertTrue(result.confidence > 0.0);
     }
 
     @Test
     @DisplayName("predict with null inputs handles gracefully")
     void testPredictNullInputs() {
-        model.train("SAFEWAY", "Grocery purchase", "75.50", "POS", "groceries");
+        model.train("SAFEWAY", "Grocery purchase", "75.50", "POS", GROCERIES);
 
         assertDoesNotThrow(
                 () -> {
@@ -183,7 +187,7 @@ class CategoryClassificationModelTest {
     @Test
     @DisplayName("predict with empty inputs handles gracefully")
     void testPredictEmptyInputs() {
-        model.train("SAFEWAY", "Grocery purchase", "75.50", "POS", "groceries");
+        model.train("SAFEWAY", "Grocery purchase", "75.50", "POS", GROCERIES);
 
         assertDoesNotThrow(
                 () -> {
@@ -196,7 +200,7 @@ class CategoryClassificationModelTest {
     @Test
     @DisplayName("predict with invalid amount format handles gracefully")
     void testPredictInvalidAmount() {
-        model.train("SAFEWAY", "Grocery purchase", "75.50", "POS", "groceries");
+        model.train("SAFEWAY", "Grocery purchase", "75.50", "POS", GROCERIES);
 
         assertDoesNotThrow(
                 () -> {
@@ -210,10 +214,10 @@ class CategoryClassificationModelTest {
     @DisplayName("predict returns top 3 predictions")
     void testPredictTop3Predictions() {
         // Train with multiple categories
-        model.train("SAFEWAY", "Grocery purchase", "75.50", "POS", "groceries");
-        model.train("SAFEWAY", "Grocery purchase", "80.00", "POS", "groceries");
-        model.train("TARGET", "Shopping", "100.00", "POS", "shopping");
-        model.train("TARGET", "Shopping", "120.00", "POS", "shopping");
+        model.train("SAFEWAY", "Grocery purchase", "75.50", "POS", GROCERIES);
+        model.train("SAFEWAY", "Grocery purchase", "80.00", "POS", GROCERIES);
+        model.train("TARGET", "Shopping", "100.00", "POS", SHOPPING);
+        model.train("TARGET", "Shopping", "120.00", "POS", SHOPPING);
         model.train("STARBUCKS", "Coffee", "5.00", "POS", "dining");
 
         final CategoryClassificationModel.PredictionResult result =
@@ -222,7 +226,7 @@ class CategoryClassificationModelTest {
         assertNotNull(result);
         assertTrue(result.topPredictions.size() <= 3);
         if (!result.topPredictions.isEmpty()) {
-            assertEquals("groceries", result.topPredictions.get(0).category);
+            assertEquals(GROCERIES, result.topPredictions.get(0).category);
         }
     }
 
@@ -248,7 +252,7 @@ class CategoryClassificationModelTest {
                                         "Description " + j,
                                         String.valueOf(50 + j),
                                         "POS",
-                                        "groceries");
+                                        GROCERIES);
                             }
                         } catch (Exception e) {
                             errors.incrementAndGet();
@@ -270,7 +274,7 @@ class CategoryClassificationModelTest {
     void testConcurrentPredictionThreadSafe() throws InterruptedException {
         // Train model first
         for (int i = 0; i < 100; i++) {
-            model.train("SAFEWAY", "Grocery purchase", String.valueOf(50 + i), "POS", "groceries");
+            model.train("SAFEWAY", "Grocery purchase", String.valueOf(50 + i), "POS", GROCERIES);
         }
 
         final int numThreads = 10;
@@ -308,7 +312,7 @@ class CategoryClassificationModelTest {
     @Test
     @DisplayName("saveModel creates model file")
     void testSaveModelCreatesFile() {
-        model.train("SAFEWAY", "Grocery purchase", "75.50", "POS", "groceries");
+        model.train("SAFEWAY", "Grocery purchase", "75.50", "POS", GROCERIES);
 
         // Use test model path
         try {
@@ -341,7 +345,7 @@ class CategoryClassificationModelTest {
     @DisplayName("predict handles empty merchant counts gracefully")
     void testPredictEmptyMerchantCounts() {
         // Train with different merchant
-        model.train("TARGET", "Shopping", "100.00", "POS", "shopping");
+        model.train("TARGET", "Shopping", "100.00", "POS", SHOPPING);
 
         // Predict with untrained merchant
         final CategoryClassificationModel.PredictionResult result =
@@ -355,7 +359,7 @@ class CategoryClassificationModelTest {
     @DisplayName("predict handles empty keyword counts gracefully")
     void testPredictEmptyKeywordCounts() {
         // Train with different keywords
-        model.train("SAFEWAY", "Shopping purchase", "75.50", "POS", "shopping");
+        model.train("SAFEWAY", "Shopping purchase", "75.50", "POS", SHOPPING);
 
         // Predict with different keywords
         final CategoryClassificationModel.PredictionResult result =
@@ -373,7 +377,7 @@ class CategoryClassificationModelTest {
         final String longMerchant = "A".repeat(10_000);
         assertDoesNotThrow(
                 () -> {
-                    model.train(longMerchant, "Description", "75.50", "POS", "groceries");
+                    model.train(longMerchant, "Description", "75.50", "POS", GROCERIES);
                 });
     }
 
@@ -383,7 +387,7 @@ class CategoryClassificationModelTest {
         final String longDescription = "A".repeat(10_000);
         assertDoesNotThrow(
                 () -> {
-                    model.train("SAFEWAY", longDescription, "75.50", "POS", "groceries");
+                    model.train("SAFEWAY", longDescription, "75.50", "POS", GROCERIES);
                 });
     }
 
@@ -391,18 +395,18 @@ class CategoryClassificationModelTest {
     @DisplayName("getAmountRange handles boundary values")
     void testGetAmountRangeBoundaries() {
         // Test boundary values
-        model.train("SAFEWAY", "Grocery", "9.99", "POS", "groceries"); // 0-10
-        model.train("SAFEWAY", "Grocery", "10.00", "POS", "groceries"); // 10-25
-        model.train("SAFEWAY", "Grocery", "24.99", "POS", "groceries"); // 10-25
-        model.train("SAFEWAY", "Grocery", "25.00", "POS", "groceries"); // 25-50
-        model.train("SAFEWAY", "Grocery", "999.99", "POS", "groceries"); // 500-1000
-        model.train("SAFEWAY", "Grocery", "1000.00", "POS", "groceries"); // 1000+
+        model.train("SAFEWAY", GROCERY, "9.99", "POS", GROCERIES); // 0-10
+        model.train("SAFEWAY", GROCERY, "10.00", "POS", GROCERIES); // 10-25
+        model.train("SAFEWAY", GROCERY, "24.99", "POS", GROCERIES); // 10-25
+        model.train("SAFEWAY", GROCERY, "25.00", "POS", GROCERIES); // 25-50
+        model.train("SAFEWAY", GROCERY, "999.99", "POS", GROCERIES); // 500-1000
+        model.train("SAFEWAY", GROCERY, "1000.00", "POS", GROCERIES); // 1000+
 
         assertDoesNotThrow(
                 () -> {
-                    model.predict("SAFEWAY", "Grocery", "9.99", "POS");
-                    model.predict("SAFEWAY", "Grocery", "10.00", "POS");
-                    model.predict("SAFEWAY", "Grocery", "1000.00", "POS");
+                    model.predict("SAFEWAY", GROCERY, "9.99", "POS");
+                    model.predict("SAFEWAY", GROCERY, "10.00", "POS");
+                    model.predict("SAFEWAY", GROCERY, "1000.00", "POS");
                 });
     }
 
@@ -413,21 +417,21 @@ class CategoryClassificationModelTest {
     void testPredictionResultConfidenceLevels() {
         final CategoryClassificationModel.PredictionResult highConf =
                 new CategoryClassificationModel.PredictionResult(
-                        "groceries", 0.75, Collections.emptyList());
+                        GROCERIES, 0.75, Collections.emptyList());
         assertTrue(highConf.isHighConfidence());
         assertFalse(highConf.isMediumConfidence());
         assertFalse(highConf.isLowConfidence());
 
         final CategoryClassificationModel.PredictionResult medConf =
                 new CategoryClassificationModel.PredictionResult(
-                        "groceries", 0.60, Collections.emptyList());
+                        GROCERIES, 0.60, Collections.emptyList());
         assertFalse(medConf.isHighConfidence());
         assertTrue(medConf.isMediumConfidence());
         assertFalse(medConf.isLowConfidence());
 
         final CategoryClassificationModel.PredictionResult lowConf =
                 new CategoryClassificationModel.PredictionResult(
-                        "groceries", 0.40, Collections.emptyList());
+                        GROCERIES, 0.40, Collections.emptyList());
         assertFalse(lowConf.isHighConfidence());
         assertFalse(lowConf.isMediumConfidence());
         assertTrue(lowConf.isLowConfidence());
@@ -438,8 +442,8 @@ class CategoryClassificationModelTest {
     @Test
     @DisplayName("getStatistics returns correct counts")
     void testGetStatistics() {
-        model.train("SAFEWAY", "Grocery purchase", "75.50", "POS", "groceries");
-        model.train("TARGET", "Shopping", "100.00", "POS", "shopping");
+        model.train("SAFEWAY", "Grocery purchase", "75.50", "POS", GROCERIES);
+        model.train("TARGET", "Shopping", "100.00", "POS", SHOPPING);
 
         final CategoryClassificationModel.ModelStatistics stats = model.getStatistics();
 

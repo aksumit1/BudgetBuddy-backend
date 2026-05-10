@@ -1,12 +1,11 @@
 package com.budgetbuddy.service.plaid;
 
-
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import java.util.Locale;
 import com.budgetbuddy.model.dynamodb.AccountTable;
 import com.budgetbuddy.model.dynamodb.TransactionTable;
 import com.budgetbuddy.repository.dynamodb.AccountRepository;
 import com.budgetbuddy.service.TransactionTypeCategoryService;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import java.util.Locale;
 import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -40,8 +39,7 @@ public class PlaidDataExtractor {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(PlaidDataExtractor.class);
     private final AccountRepository accountRepository;
-    private final TransactionTypeCategoryService
-            transactionTypeCategoryService;
+    private final TransactionTypeCategoryService transactionTypeCategoryService;
 
     public PlaidDataExtractor(
             final AccountRepository accountRepository,
@@ -170,7 +168,8 @@ public class PlaidDataExtractor {
             return null;
         }
         try {
-            final java.lang.reflect.Method getItemIdMethod = plaidItem.getClass().getMethod("getItemId");
+            final java.lang.reflect.Method getItemIdMethod =
+                    plaidItem.getClass().getMethod("getItemId");
             final Object itemIdObj = getItemIdMethod.invoke(plaidItem);
             if (itemIdObj != null) {
                 return itemIdObj.toString();
@@ -192,7 +191,8 @@ public class PlaidDataExtractor {
                 accountBase = (com.plaid.client.model.AccountBase) plaidAccount;
             } else {
                 try {
-                    final Class<?> accountBaseClass = Class.forName("com.plaid.client.model.AccountBase");
+                    final Class<?> accountBaseClass =
+                            Class.forName("com.plaid.client.model.AccountBase");
                     if (accountBaseClass.isInstance(plaidAccount)) {
                         accountBase = (com.plaid.client.model.AccountBase) plaidAccount;
                     }
@@ -262,7 +262,8 @@ public class PlaidDataExtractor {
 
                 // Extract balance
                 if (accountBase.getBalances() != null) {
-                    final com.plaid.client.model.AccountBalance balances = accountBase.getBalances();
+                    final com.plaid.client.model.AccountBalance balances =
+                            accountBase.getBalances();
                     final Double available = balances.getAvailable();
                     final Double current = balances.getCurrent();
                     if (available != null) {
@@ -292,7 +293,8 @@ public class PlaidDataExtractor {
             } else {
                 // Fallback: use reflection
                 try {
-                    final java.lang.reflect.Method getName = plaidAccount.getClass().getMethod("getName");
+                    final java.lang.reflect.Method getName =
+                            plaidAccount.getClass().getMethod("getName");
                     final Object name = getName.invoke(plaidAccount);
                     if (name != null) {
                         account.setAccountName(name.toString());
@@ -345,7 +347,8 @@ public class PlaidDataExtractor {
                 plaidTx = (com.plaid.client.model.Transaction) plaidTransaction;
             } else {
                 try {
-                    final Class<?> transactionClass = Class.forName("com.plaid.client.model.Transaction");
+                    final Class<?> transactionClass =
+                            Class.forName("com.plaid.client.model.Transaction");
                     if (transactionClass.isInstance(plaidTransaction)) {
                         plaidTx = (com.plaid.client.model.Transaction) plaidTransaction;
                     }
@@ -389,7 +392,8 @@ public class PlaidDataExtractor {
                 }
 
                 // Normalize amount based on account type
-                final java.math.BigDecimal normalizedAmount = normalizePlaidAmount(rawAmount, account);
+                final java.math.BigDecimal normalizedAmount =
+                        normalizePlaidAmount(rawAmount, account);
                 transaction.setAmount(normalizedAmount);
 
                 // Extract merchant name
@@ -448,7 +452,9 @@ public class PlaidDataExtractor {
                 final boolean isHSAAccount =
                         account != null
                                 && account.getAccountType() != null
-                                && account.getAccountType().toLowerCase(Locale.ROOT).contains("hsa");
+                                && account.getAccountType()
+                                        .toLowerCase(Locale.ROOT)
+                                        .contains("hsa");
 
                 // CRITICAL: Use unified service to determine internal categories (hybrid logic)
                 // Only if user hasn't overridden categories
@@ -500,8 +506,7 @@ public class PlaidDataExtractor {
                             } else if (rawAmount.compareTo(java.math.BigDecimal.ZERO) < 0) {
                                 // HSA debit (negative raw amount from Plaid) -> healthcare
                                 // Only override if category is generic (other) or null
-                                if (determinedPrimary == null
-                                        || OTHER.equals(determinedPrimary)) {
+                                if (determinedPrimary == null || OTHER.equals(determinedPrimary)) {
                                     determinedPrimary = "healthcare";
                                     determinedDetailed = "healthcare";
                                     LOGGER.debug(
@@ -553,7 +558,8 @@ public class PlaidDataExtractor {
                         // negative,
                         // make it positive (payments reduce debt, so they should be positive)
                         if (account != null && account.getAccountType() != null) {
-                            final String accountType = account.getAccountType().toLowerCase(Locale.ROOT);
+                            final String accountType =
+                                    account.getAccountType().toLowerCase(Locale.ROOT);
                             final boolean isCreditCardOrLoan =
                                     accountType.contains("credit")
                                             || accountType.contains("loan")
@@ -569,7 +575,8 @@ public class PlaidDataExtractor {
                                     && transactionAmount != null
                                     && transactionAmount.compareTo(java.math.BigDecimal.ZERO) < 0) {
                                 // Negate the amount (making it positive)
-                                final java.math.BigDecimal adjustedAmount = transactionAmount.negate();
+                                final java.math.BigDecimal adjustedAmount =
+                                        transactionAmount.negate();
                                 transaction.setAmount(adjustedAmount);
                                 LOGGER.debug(
                                         "Adjusted payment amount for {} account: {} → {} (payment category)",
@@ -615,7 +622,8 @@ public class PlaidDataExtractor {
                     // negative,
                     // make it positive (payments reduce debt, so they should be positive)
                     if (account != null && account.getAccountType() != null) {
-                        final String accountType = account.getAccountType().toLowerCase(Locale.ROOT);
+                        final String accountType =
+                                account.getAccountType().toLowerCase(Locale.ROOT);
                         final boolean isCreditCardOrLoan =
                                 accountType.contains("credit")
                                         || accountType.contains("loan")
@@ -725,7 +733,8 @@ public class PlaidDataExtractor {
                         }
                     }
                     if (account == null) {
-                        final String plaidAccountId = extractAccountIdFromTransaction(plaidTransaction);
+                        final String plaidAccountId =
+                                extractAccountIdFromTransaction(plaidTransaction);
                         if (plaidAccountId != null && !plaidAccountId.isEmpty()) {
                             final Optional<AccountTable> accountOpt =
                                     accountRepository.findByPlaidAccountId(plaidAccountId);
@@ -907,8 +916,8 @@ public class PlaidDataExtractor {
         // Combine account name and institution name for detection
         final String combinedText =
                 ((accountName != null ? accountName : "")
-                        + " "
-                        + (institutionName != null ? institutionName : ""))
+                                + " "
+                                + (institutionName != null ? institutionName : ""))
                         .trim()
                         .toLowerCase(Locale.ROOT);
 

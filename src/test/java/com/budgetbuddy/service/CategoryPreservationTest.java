@@ -1,7 +1,5 @@
 package com.budgetbuddy.service;
 
-
-import java.nio.charset.StandardCharsets;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.ArgumentMatchers.any;
@@ -17,6 +15,7 @@ import com.budgetbuddy.service.ml.FuzzyMatchingService;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
@@ -29,6 +28,9 @@ import org.mockito.junit.jupiter.MockitoExtension;
 /** Unit tests for category preservation during CSV import */
 @ExtendWith(MockitoExtension.class)
 class CategoryPreservationTest {
+
+    private static final String DINING = "dining";
+    private static final String GROCERIES = "groceries";
 
     @Mock private UserRepository userRepository;
 
@@ -103,7 +105,8 @@ class CategoryPreservationTest {
                         + "2025-01-01,Test Transaction 1,100.00\n"
                         + "2025-01-02,Test Transaction 2,200.00\n";
 
-        final InputStream inputStream = new ByteArrayInputStream(csvContent.getBytes(StandardCharsets.UTF_8));
+        final InputStream inputStream =
+                new ByteArrayInputStream(csvContent.getBytes(StandardCharsets.UTF_8));
 
         // Create preview categories
         final List<ImportCategoryPreservationRequest.PreviewCategory> previewCategories =
@@ -111,18 +114,18 @@ class CategoryPreservationTest {
 
         final ImportCategoryPreservationRequest.PreviewCategory cat1 =
                 new ImportCategoryPreservationRequest.PreviewCategory();
-        cat1.setCategoryPrimary("groceries");
-        cat1.setCategoryDetailed("groceries");
-        cat1.setImporterCategoryPrimary("groceries");
-        cat1.setImporterCategoryDetailed("groceries");
+        cat1.setCategoryPrimary(GROCERIES);
+        cat1.setCategoryDetailed(GROCERIES);
+        cat1.setImporterCategoryPrimary(GROCERIES);
+        cat1.setImporterCategoryDetailed(GROCERIES);
         previewCategories.add(cat1);
 
         final ImportCategoryPreservationRequest.PreviewCategory cat2 =
                 new ImportCategoryPreservationRequest.PreviewCategory();
-        cat2.setCategoryPrimary("dining");
-        cat2.setCategoryDetailed("dining");
-        cat2.setImporterCategoryPrimary("dining");
-        cat2.setImporterCategoryDetailed("dining");
+        cat2.setCategoryPrimary(DINING);
+        cat2.setCategoryDetailed(DINING);
+        cat2.setImporterCategoryPrimary(DINING);
+        cat2.setImporterCategoryDetailed(DINING);
         previewCategories.add(cat2);
 
         final String previewAccountId = "account-123";
@@ -151,21 +154,23 @@ class CategoryPreservationTest {
 
         // Verify first transaction has preserved category
         final CSVImportService.ParsedTransaction tx1 = result.getTransactions().get(0);
-        assertEquals("groceries", tx1.getCategoryPrimary());
-        assertEquals("groceries", tx1.getImporterCategoryPrimary());
+        assertEquals(GROCERIES, tx1.getCategoryPrimary());
+        assertEquals(GROCERIES, tx1.getImporterCategoryPrimary());
 
         // Verify second transaction has preserved category
         final CSVImportService.ParsedTransaction tx2 = result.getTransactions().get(1);
-        assertEquals("dining", tx2.getCategoryPrimary());
-        assertEquals("dining", tx2.getImporterCategoryPrimary());
+        assertEquals(DINING, tx2.getCategoryPrimary());
+        assertEquals(DINING, tx2.getImporterCategoryPrimary());
     }
 
     @Test
     void testCategoryPreservationNoPreviewCategories() {
         // Given: CSV without preview categories
-        final String csvContent = "Date,Description,Amount\n" + "2025-01-01,Test Transaction,100.00\n";
+        final String csvContent =
+                "Date,Description,Amount\n" + "2025-01-01,Test Transaction,100.00\n";
 
-        final InputStream inputStream = new ByteArrayInputStream(csvContent.getBytes(StandardCharsets.UTF_8));
+        final InputStream inputStream =
+                new ByteArrayInputStream(csvContent.getBytes(StandardCharsets.UTF_8));
 
         // When: Parse CSV without preview categories
         final CSVImportService.ImportResult result =
@@ -201,7 +206,8 @@ class CategoryPreservationTest {
                         + "2025-01-02,Transaction 2,200.00\n"
                         + "2025-01-03,Transaction 3,300.00\n";
 
-        final InputStream inputStream = new ByteArrayInputStream(csvContent.getBytes(StandardCharsets.UTF_8));
+        final InputStream inputStream =
+                new ByteArrayInputStream(csvContent.getBytes(StandardCharsets.UTF_8));
 
         // Create preview categories for first 2 transactions only
         final List<ImportCategoryPreservationRequest.PreviewCategory> previewCategories =
@@ -209,14 +215,14 @@ class CategoryPreservationTest {
 
         final ImportCategoryPreservationRequest.PreviewCategory cat1 =
                 new ImportCategoryPreservationRequest.PreviewCategory();
-        cat1.setCategoryPrimary("groceries");
-        cat1.setImporterCategoryPrimary("groceries");
+        cat1.setCategoryPrimary(GROCERIES);
+        cat1.setImporterCategoryPrimary(GROCERIES);
         previewCategories.add(cat1);
 
         final ImportCategoryPreservationRequest.PreviewCategory cat2 =
                 new ImportCategoryPreservationRequest.PreviewCategory();
-        cat2.setCategoryPrimary("dining");
-        cat2.setImporterCategoryPrimary("dining");
+        cat2.setCategoryPrimary(DINING);
+        cat2.setImporterCategoryPrimary(DINING);
         previewCategories.add(cat2);
 
         // When: Parse CSV
@@ -239,8 +245,8 @@ class CategoryPreservationTest {
                         + ". Errors: "
                         + result.getErrors());
 
-        assertEquals("groceries", result.getTransactions().get(0).getCategoryPrimary());
-        assertEquals("dining", result.getTransactions().get(1).getCategoryPrimary());
+        assertEquals(GROCERIES, result.getTransactions().get(0).getCategoryPrimary());
+        assertEquals(DINING, result.getTransactions().get(1).getCategoryPrimary());
         // Third transaction should have detected category (not preserved)
         assertNotNull(result.getTransactions().get(2).getCategoryPrimary());
     }
@@ -248,9 +254,11 @@ class CategoryPreservationTest {
     @Test
     void testCategoryPreservationEmptyPreviewCategories() {
         // Given: CSV with empty preview categories list
-        final String csvContent = "Date,Description,Amount\n" + "2025-01-01,Test Transaction,100.00\n";
+        final String csvContent =
+                "Date,Description,Amount\n" + "2025-01-01,Test Transaction,100.00\n";
 
-        final InputStream inputStream = new ByteArrayInputStream(csvContent.getBytes(StandardCharsets.UTF_8));
+        final InputStream inputStream =
+                new ByteArrayInputStream(csvContent.getBytes(StandardCharsets.UTF_8));
 
         // When: Parse CSV with empty preview categories
         final CSVImportService.ImportResult result =

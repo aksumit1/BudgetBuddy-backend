@@ -1,8 +1,5 @@
 package com.budgetbuddy.api;
 
-
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import java.nio.charset.StandardCharsets;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -28,7 +25,9 @@ import com.budgetbuddy.service.SubscriptionService;
 import com.budgetbuddy.service.UserService;
 import com.budgetbuddy.util.TableInitializer;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
@@ -66,6 +65,9 @@ import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 @Tag("integration")
 public class SubscriptionNullHandlingIntegrationTest {
 
+    private static final String NETFLIX = "Netflix";
+    private static final String SUBSCRIPTIONS = "subscriptions";
+
     @Autowired private MockMvc mockMvc;
 
     @Autowired private SubscriptionService subscriptionService;
@@ -98,7 +100,8 @@ public class SubscriptionNullHandlingIntegrationTest {
 
         testUserEmail = "test-null-handling-" + UUID.randomUUID() + "@example.com";
         final String base64PasswordHash =
-                java.util.Base64.getEncoder().encodeToString("test-password".getBytes(StandardCharsets.UTF_8));
+                java.util.Base64.getEncoder()
+                        .encodeToString("test-password".getBytes(StandardCharsets.UTF_8));
         testUser = userService.createUserSecure(testUserEmail, base64PasswordHash, "Test", "User");
         testUserId = testUser.getUserId();
 
@@ -125,7 +128,8 @@ public class SubscriptionNullHandlingIntegrationTest {
     }
 
     private org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder withAuth(
-            final org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder builder) {
+            final org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder
+                    builder) {
         return builder.header("Authorization", "Bearer " + accessToken);
     }
 
@@ -135,7 +139,7 @@ public class SubscriptionNullHandlingIntegrationTest {
         // Given: Create valid subscriptions directly in database
         final SubscriptionTable sub1 =
                 createValidSubscriptionTable(
-                        "Netflix",
+                        NETFLIX,
                         new BigDecimal("-15.99"),
                         Subscription.SubscriptionFrequency.MONTHLY,
                         LocalDate.now().minusMonths(1));
@@ -152,8 +156,8 @@ public class SubscriptionNullHandlingIntegrationTest {
         // When: Get subscriptions via API
         final var result =
                 mockMvc.perform(
-                        withAuth(get("/api/subscriptions"))
-                                .contentType(MediaType.APPLICATION_JSON))
+                                withAuth(get("/api/subscriptions"))
+                                        .contentType(MediaType.APPLICATION_JSON))
                         .andExpect(status().isOk())
                         .andExpect(jsonPath("$").isArray())
                         .andReturn();
@@ -192,7 +196,7 @@ public class SubscriptionNullHandlingIntegrationTest {
         // Given: Create active and inactive subscriptions
         final SubscriptionTable active1 =
                 createValidSubscriptionTable(
-                        "Netflix",
+                        NETFLIX,
                         new BigDecimal("-15.99"),
                         Subscription.SubscriptionFrequency.MONTHLY,
                         LocalDate.now().minusMonths(1));
@@ -221,8 +225,8 @@ public class SubscriptionNullHandlingIntegrationTest {
         // When: Get active subscriptions via API
         final var result =
                 mockMvc.perform(
-                        withAuth(get("/api/subscriptions/active"))
-                                .contentType(MediaType.APPLICATION_JSON))
+                                withAuth(get("/api/subscriptions/active"))
+                                        .contentType(MediaType.APPLICATION_JSON))
                         .andExpect(status().isOk())
                         .andExpect(jsonPath("$").isArray())
                         .andReturn();
@@ -264,7 +268,7 @@ public class SubscriptionNullHandlingIntegrationTest {
         problematicSub.setFrequency("MONTHLY");
         problematicSub.setStartDate(LocalDate.now().minusMonths(1).toString());
         problematicSub.setNextPaymentDate(LocalDate.now().plusMonths(1).toString());
-        problematicSub.setCategory("subscriptions");
+        problematicSub.setCategory(SUBSCRIPTIONS);
         problematicSub.setActive(true);
         problematicSub.setCreatedAt(java.time.Instant.now());
         problematicSub.setUpdatedAt(java.time.Instant.now());
@@ -289,8 +293,8 @@ public class SubscriptionNullHandlingIntegrationTest {
         // Verify via API as well
         final var result =
                 mockMvc.perform(
-                        withAuth(get("/api/subscriptions"))
-                                .contentType(MediaType.APPLICATION_JSON))
+                                withAuth(get("/api/subscriptions"))
+                                        .contentType(MediaType.APPLICATION_JSON))
                         .andExpect(status().isOk())
                         .andReturn();
 
@@ -321,7 +325,7 @@ public class SubscriptionNullHandlingIntegrationTest {
         subWithMissingFields.setFrequency("MONTHLY");
         subWithMissingFields.setStartDate(LocalDate.now().minusMonths(1).toString());
         subWithMissingFields.setNextPaymentDate(LocalDate.now().plusMonths(1).toString());
-        subWithMissingFields.setCategory("subscriptions");
+        subWithMissingFields.setCategory(SUBSCRIPTIONS);
         subWithMissingFields.setActive(true);
         // Intentionally leave description, subscriptionType, lastPaymentDate as null
         subWithMissingFields.setCreatedAt(java.time.Instant.now());
@@ -332,8 +336,8 @@ public class SubscriptionNullHandlingIntegrationTest {
         // When: Get subscriptions via API
         final var result =
                 mockMvc.perform(
-                        withAuth(get("/api/subscriptions"))
-                                .contentType(MediaType.APPLICATION_JSON))
+                                withAuth(get("/api/subscriptions"))
+                                        .contentType(MediaType.APPLICATION_JSON))
                         .andExpect(status().isOk())
                         .andReturn();
 
@@ -385,7 +389,7 @@ public class SubscriptionNullHandlingIntegrationTest {
         subWithInvalidDate.setFrequency("MONTHLY");
         subWithInvalidDate.setStartDate("invalid-date-format"); // Invalid date
         subWithInvalidDate.setNextPaymentDate(LocalDate.now().plusMonths(1).toString());
-        subWithInvalidDate.setCategory("subscriptions");
+        subWithInvalidDate.setCategory(SUBSCRIPTIONS);
         subWithInvalidDate.setActive(true);
         subWithInvalidDate.setCreatedAt(java.time.Instant.now());
         subWithInvalidDate.setUpdatedAt(java.time.Instant.now());
@@ -423,7 +427,7 @@ public class SubscriptionNullHandlingIntegrationTest {
         subWithInvalidFreq.setFrequency("INVALID_FREQUENCY"); // Invalid frequency
         subWithInvalidFreq.setStartDate(LocalDate.now().minusMonths(1).toString());
         subWithInvalidFreq.setNextPaymentDate(LocalDate.now().plusMonths(1).toString());
-        subWithInvalidFreq.setCategory("subscriptions");
+        subWithInvalidFreq.setCategory(SUBSCRIPTIONS);
         subWithInvalidFreq.setActive(true);
         subWithInvalidFreq.setCreatedAt(java.time.Instant.now());
         subWithInvalidFreq.setUpdatedAt(java.time.Instant.now());
@@ -453,8 +457,8 @@ public class SubscriptionNullHandlingIntegrationTest {
         // When: Detect subscriptions
         final var result =
                 mockMvc.perform(
-                        withAuth(post("/api/subscriptions/detect"))
-                                .contentType(MediaType.APPLICATION_JSON))
+                                withAuth(post("/api/subscriptions/detect"))
+                                        .contentType(MediaType.APPLICATION_JSON))
                         .andExpect(status().isOk())
                         .andReturn();
 
@@ -482,7 +486,7 @@ public class SubscriptionNullHandlingIntegrationTest {
         // Given: Valid subscription table
         final SubscriptionTable table =
                 createValidSubscriptionTable(
-                        "Netflix",
+                        NETFLIX,
                         new BigDecimal("-15.99"),
                         Subscription.SubscriptionFrequency.MONTHLY,
                         LocalDate.now().minusMonths(1));
@@ -503,7 +507,7 @@ public class SubscriptionNullHandlingIntegrationTest {
         // Given: Create valid subscription
         final SubscriptionTable sub =
                 createValidSubscriptionTable(
-                        "Netflix",
+                        NETFLIX,
                         new BigDecimal("-15.99"),
                         Subscription.SubscriptionFrequency.MONTHLY,
                         LocalDate.now().minusMonths(1));
@@ -512,8 +516,8 @@ public class SubscriptionNullHandlingIntegrationTest {
         // When: Get subscriptions via API
         final var result =
                 mockMvc.perform(
-                        withAuth(get("/api/subscriptions"))
-                                .contentType(MediaType.APPLICATION_JSON))
+                                withAuth(get("/api/subscriptions"))
+                                        .contentType(MediaType.APPLICATION_JSON))
                         .andExpect(status().isOk())
                         .andExpect(jsonPath("$").isArray())
                         .andExpect(jsonPath("$[0]").exists())
@@ -551,7 +555,7 @@ public class SubscriptionNullHandlingIntegrationTest {
         // Given: Create mix of valid and invalid subscriptions
         final SubscriptionTable valid1 =
                 createValidSubscriptionTable(
-                        "Netflix",
+                        NETFLIX,
                         new BigDecimal("-15.99"),
                         Subscription.SubscriptionFrequency.MONTHLY,
                         LocalDate.now().minusMonths(1));
@@ -576,8 +580,8 @@ public class SubscriptionNullHandlingIntegrationTest {
         // When: Get subscriptions via API
         final var result =
                 mockMvc.perform(
-                        withAuth(get("/api/subscriptions"))
-                                .contentType(MediaType.APPLICATION_JSON))
+                                withAuth(get("/api/subscriptions"))
+                                        .contentType(MediaType.APPLICATION_JSON))
                         .andExpect(status().isOk())
                         .andReturn();
 
@@ -645,7 +649,7 @@ public class SubscriptionNullHandlingIntegrationTest {
         table.setFrequency(frequency.name());
         table.setStartDate(startDate.toString());
         table.setNextPaymentDate(startDate.plusMonths(1).toString());
-        table.setCategory("subscriptions");
+        table.setCategory(SUBSCRIPTIONS);
         table.setSubscriptionType("streaming");
         table.setActive(true);
         table.setCreatedAt(java.time.Instant.now());

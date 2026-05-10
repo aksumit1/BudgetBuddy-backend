@@ -1,12 +1,12 @@
 package com.budgetbuddy.service;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import com.budgetbuddy.exception.AppException;
 import com.budgetbuddy.exception.ErrorCode;
 import com.budgetbuddy.model.dynamodb.BudgetTable;
 import com.budgetbuddy.model.dynamodb.TransactionTable;
 import com.budgetbuddy.model.dynamodb.UserTable;
 import com.budgetbuddy.repository.dynamodb.BudgetRepository;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
@@ -175,7 +175,8 @@ public class BudgetService {
                     && com.budgetbuddy.util.IdGenerator.isValidUUID(budgetId)) {
                 // CRITICAL FIX: Normalize ID to lowercase before checking for existing
                 // This ensures we check with the normalized ID that will be saved
-                final String normalizedId = com.budgetbuddy.util.IdGenerator.normalizeUUID(budgetId);
+                final String normalizedId =
+                        com.budgetbuddy.util.IdGenerator.normalizeUUID(budgetId);
 
                 // Check if budget with this ID already exists (using normalized ID)
                 final Optional<BudgetTable> existingById = budgetRepository.findById(normalizedId);
@@ -241,7 +242,8 @@ public class BudgetService {
                         com.budgetbuddy.util.IdGenerator.generateBudgetId(
                                 user.getUserId(), category);
                 // CRITICAL FIX: Normalize generated ID to lowercase for consistency
-                final String normalizedId = com.budgetbuddy.util.IdGenerator.normalizeUUID(generatedId);
+                final String normalizedId =
+                        com.budgetbuddy.util.IdGenerator.normalizeUUID(generatedId);
                 budget.setBudgetId(normalizedId);
                 LOGGER.debug(
                         "Generated budget ID (normalized): {} from user: {} and category: {}",
@@ -283,8 +285,8 @@ public class BudgetService {
                                     t ->
                                             t != null
                                                     && (category.equals(t.getCategoryPrimary())
-                                                    || category.equals(
-                                                    t.getCategoryDetailed())))
+                                                            || category.equals(
+                                                                    t.getCategoryDetailed())))
                             .map(TransactionTable::getAmount)
                             .filter(amount -> amount != null)
                             .reduce(BigDecimal.ZERO, BigDecimal::add);

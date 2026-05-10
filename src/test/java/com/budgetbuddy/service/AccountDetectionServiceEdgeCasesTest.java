@@ -1,7 +1,5 @@
 package com.budgetbuddy.service;
 
-
-import java.util.Locale;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -16,6 +14,7 @@ import com.budgetbuddy.model.dynamodb.AccountTable;
 import com.budgetbuddy.repository.dynamodb.AccountRepository;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
@@ -30,6 +29,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
  */
 @ExtendWith(MockitoExtension.class)
 class AccountDetectionServiceEdgeCasesTest {
+
+    private static final String CHASE = "Chase";
 
     @Mock private AccountRepository accountRepository;
 
@@ -94,7 +95,9 @@ class AccountDetectionServiceEdgeCasesTest {
         assertNotNull(detected);
         assertTrue(
                 detected.getInstitutionName() != null
-                        && detected.getInstitutionName().toLowerCase(Locale.ROOT).contains("chase"));
+                        && detected.getInstitutionName()
+                                .toLowerCase(Locale.ROOT)
+                                .contains("chase"));
     }
 
     @Test
@@ -161,7 +164,7 @@ class AccountDetectionServiceEdgeCasesTest {
         final AccountDetectionService.DetectedAccount detected =
                 new AccountDetectionService.DetectedAccount();
         detected.setAccountNumber("1234");
-        detected.setInstitutionName("Chase");
+        detected.setInstitutionName(CHASE);
 
         when(accountRepository.findByAccountNumberAndInstitution(
                         anyString(), anyString(), eq(userId)))
@@ -180,7 +183,7 @@ class AccountDetectionServiceEdgeCasesTest {
         final String userId = "user-123";
         final AccountDetectionService.DetectedAccount detected =
                 new AccountDetectionService.DetectedAccount();
-        detected.setInstitutionName("Chase");
+        detected.setInstitutionName(CHASE);
         detected.setAccountType("depository");
 
         // Only stub the methods that will actually be called
@@ -200,7 +203,7 @@ class AccountDetectionServiceEdgeCasesTest {
         final String userId = "user-123";
         final AccountDetectionService.DetectedAccount detected =
                 new AccountDetectionService.DetectedAccount();
-        detected.setInstitutionName("Chase");
+        detected.setInstitutionName(CHASE);
         detected.setAccountType("depository");
 
         final AccountTable accountWithNullInstitution = new AccountTable();
@@ -267,7 +270,8 @@ class AccountDetectionServiceEdgeCasesTest {
         // When - generateAccountName is called internally
         // Note: "unknown.csv" is skipped by detectFromFilename (returns null for generated/UUID
         // filenames)
-        final String filename = "chase_statement_1234.csv"; // Use a valid filename that can be detected
+        final String filename =
+                "chase_statement_1234.csv"; // Use a valid filename that can be detected
         final AccountDetectionService.DetectedAccount result =
                 accountDetectionService.detectFromFilename(filename);
 
@@ -292,7 +296,9 @@ class AccountDetectionServiceEdgeCasesTest {
         assertNotNull(detected);
         assertTrue(
                 detected.getInstitutionName() != null
-                        && detected.getInstitutionName().toLowerCase(Locale.ROOT).contains("chase"));
+                        && detected.getInstitutionName()
+                                .toLowerCase(Locale.ROOT)
+                                .contains("chase"));
     }
 
     // ========== Race Condition Tests ==========
@@ -304,12 +310,12 @@ class AccountDetectionServiceEdgeCasesTest {
         final AccountDetectionService.DetectedAccount detected =
                 new AccountDetectionService.DetectedAccount();
         detected.setAccountNumber("1234");
-        detected.setInstitutionName("Chase");
+        detected.setInstitutionName(CHASE);
 
         final AccountTable account = new AccountTable();
         account.setAccountId(UUID.randomUUID().toString());
         account.setAccountNumber("1234");
-        account.setInstitutionName("Chase");
+        account.setInstitutionName(CHASE);
         account.setUserId(userId);
 
         // Simulate concurrent access - repository might return different results

@@ -22,6 +22,8 @@ import software.amazon.awssdk.services.cloudwatch.CloudWatchClient;
 @ExtendWith(MockitoExtension.class)
 class HIPAAComplianceServiceTest {
 
+    private static final String FINANCIAL = "financial";
+
     @Mock private AuditLogService auditLogService;
 
     @Mock private CloudWatchClient cloudWatchClient;
@@ -47,11 +49,12 @@ class HIPAAComplianceServiceTest {
                 .thenReturn(Set.of("ADMIN", "USER"));
 
         // When - Check access to financial PHI
-        final boolean hasAccess = hipaaComplianceService.checkPHIAccessPolicy(ADMIN_USER_ID, "financial");
+        final boolean hasAccess =
+                hipaaComplianceService.checkPHIAccessPolicy(ADMIN_USER_ID, FINANCIAL);
 
         // Then - Admin should have access
         assertTrue(hasAccess, "Admin should have full access to all PHI types");
-        verify(auditLogService).logPHIAccess(ADMIN_USER_ID, "financial", "READ", true);
+        verify(auditLogService).logPHIAccess(ADMIN_USER_ID, FINANCIAL, "READ", true);
     }
 
     @Test
@@ -60,11 +63,12 @@ class HIPAAComplianceServiceTest {
         when(identityVerificationService.getUserRoles(TEST_USER_ID)).thenReturn(Set.of("USER"));
 
         // When - Check access to financial PHI
-        final boolean hasAccess = hipaaComplianceService.checkPHIAccessPolicy(TEST_USER_ID, "financial");
+        final boolean hasAccess =
+                hipaaComplianceService.checkPHIAccessPolicy(TEST_USER_ID, FINANCIAL);
 
         // Then - User should have access to their own financial data
         assertTrue(hasAccess, "Regular user should have access to their own financial data");
-        verify(auditLogService).logPHIAccess(TEST_USER_ID, "financial", "READ", true);
+        verify(auditLogService).logPHIAccess(TEST_USER_ID, FINANCIAL, "READ", true);
     }
 
     @Test
@@ -73,7 +77,8 @@ class HIPAAComplianceServiceTest {
         when(identityVerificationService.getUserRoles(TEST_USER_ID)).thenReturn(Set.of("USER"));
 
         // When - Check access to personal PHI
-        final boolean hasAccess = hipaaComplianceService.checkPHIAccessPolicy(TEST_USER_ID, "personal");
+        final boolean hasAccess =
+                hipaaComplianceService.checkPHIAccessPolicy(TEST_USER_ID, "personal");
 
         // Then - User should have access to their own personal data
         assertTrue(hasAccess, "Regular user should have access to their own personal data");
@@ -86,7 +91,8 @@ class HIPAAComplianceServiceTest {
         when(identityVerificationService.getUserRoles(TEST_USER_ID)).thenReturn(Set.of("USER"));
 
         // When - Check access to health PHI
-        final boolean hasAccess = hipaaComplianceService.checkPHIAccessPolicy(TEST_USER_ID, "health");
+        final boolean hasAccess =
+                hipaaComplianceService.checkPHIAccessPolicy(TEST_USER_ID, "health");
 
         // Then - User should NOT have access without HEALTH_ACCESS role
         assertFalse(
@@ -101,7 +107,8 @@ class HIPAAComplianceServiceTest {
                 .thenReturn(Set.of("USER", "HEALTH_ACCESS"));
 
         // When - Check access to health PHI
-        final boolean hasAccess = hipaaComplianceService.checkPHIAccessPolicy(TEST_USER_ID, "health");
+        final boolean hasAccess =
+                hipaaComplianceService.checkPHIAccessPolicy(TEST_USER_ID, "health");
 
         // Then - User should have access
         assertTrue(hasAccess, "User with HEALTH_ACCESS role should have access to health data");
@@ -114,11 +121,12 @@ class HIPAAComplianceServiceTest {
         when(identityVerificationService.getUserRoles(TEST_USER_ID)).thenReturn(Set.of());
 
         // When - Check access to financial PHI
-        final boolean hasAccess = hipaaComplianceService.checkPHIAccessPolicy(TEST_USER_ID, "financial");
+        final boolean hasAccess =
+                hipaaComplianceService.checkPHIAccessPolicy(TEST_USER_ID, FINANCIAL);
 
         // Then - User should NOT have access
         assertFalse(hasAccess, "User with no roles should be denied access");
-        verify(auditLogService).logPHIAccess(TEST_USER_ID, "financial", "READ", false);
+        verify(auditLogService).logPHIAccess(TEST_USER_ID, FINANCIAL, "READ", false);
     }
 
     @Test
@@ -127,11 +135,12 @@ class HIPAAComplianceServiceTest {
         when(identityVerificationService.getUserRoles(TEST_USER_ID)).thenReturn(null);
 
         // When - Check access to financial PHI
-        final boolean hasAccess = hipaaComplianceService.checkPHIAccessPolicy(TEST_USER_ID, "financial");
+        final boolean hasAccess =
+                hipaaComplianceService.checkPHIAccessPolicy(TEST_USER_ID, FINANCIAL);
 
         // Then - User should NOT have access
         assertFalse(hasAccess, "User with null roles should be denied access");
-        verify(auditLogService).logPHIAccess(TEST_USER_ID, "financial", "READ", false);
+        verify(auditLogService).logPHIAccess(TEST_USER_ID, FINANCIAL, "READ", false);
     }
 
     @Test
@@ -140,7 +149,8 @@ class HIPAAComplianceServiceTest {
         when(identityVerificationService.getUserRoles(TEST_USER_ID)).thenReturn(Set.of("USER"));
 
         // When - Check access to unknown PHI type
-        final boolean hasAccess = hipaaComplianceService.checkPHIAccessPolicy(TEST_USER_ID, "unknown");
+        final boolean hasAccess =
+                hipaaComplianceService.checkPHIAccessPolicy(TEST_USER_ID, "unknown");
 
         // Then - User should NOT have access to unknown types
         assertFalse(hasAccess, "User should be denied access to unknown PHI types");
@@ -153,10 +163,10 @@ class HIPAAComplianceServiceTest {
         when(identityVerificationService.getUserRoles(TEST_USER_ID)).thenReturn(Set.of("USER"));
 
         // When - Check access
-        hipaaComplianceService.checkPHIAccessPolicy(TEST_USER_ID, "financial");
+        hipaaComplianceService.checkPHIAccessPolicy(TEST_USER_ID, FINANCIAL);
 
         // Then - Should always log the access attempt
         verify(auditLogService, times(1))
-                .logPHIAccess(eq(TEST_USER_ID), eq("financial"), eq("READ"), anyBoolean());
+                .logPHIAccess(eq(TEST_USER_ID), eq(FINANCIAL), eq("READ"), anyBoolean());
     }
 }

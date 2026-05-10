@@ -1,6 +1,5 @@
 package com.budgetbuddy.service;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -14,6 +13,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
@@ -41,9 +41,10 @@ class ImportAccountValidationTest {
 
     @BeforeEach
     void setUp() {
-        final com.budgetbuddy.service.ml.EnhancedCategoryDetectionService enhancedCategoryDetection =
-                org.mockito.Mockito.mock(
-                        com.budgetbuddy.service.ml.EnhancedCategoryDetectionService.class);
+        final com.budgetbuddy.service.ml.EnhancedCategoryDetectionService
+                enhancedCategoryDetection =
+                        org.mockito.Mockito.mock(
+                                com.budgetbuddy.service.ml.EnhancedCategoryDetectionService.class);
         final com.budgetbuddy.service.ml.FuzzyMatchingService fuzzyMatchingService =
                 org.mockito.Mockito.mock(com.budgetbuddy.service.ml.FuzzyMatchingService.class);
         csvImportService =

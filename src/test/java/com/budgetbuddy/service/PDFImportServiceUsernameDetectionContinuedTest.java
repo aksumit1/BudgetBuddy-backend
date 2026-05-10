@@ -1,10 +1,10 @@
 package com.budgetbuddy.service;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.lang.reflect.Method;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -60,11 +60,11 @@ public class PDFImportServiceUsernameDetectionContinuedTest {
     void testPreferAllCapsOverContinued() throws Exception {
         // Simulate the 3-line address format scenario
         final String[] lines = {
-                "ASHTON BASHTON HASHTON",
-                "73529 NE 43ST ST",
-                "SEATTLE WA 98119-3579",
-                "continued", // This should be rejected
-                "Date Description Amount"
+            "ASHTON BASHTON HASHTON",
+            "73529 NE 43ST ST",
+            "SEATTLE WA 98119-3579",
+            "continued", // This should be rejected
+            "Date Description Amount"
         };
 
         final AccountDetectionService.DetectedAccount detectedAccount =
@@ -89,11 +89,11 @@ public class PDFImportServiceUsernameDetectionContinuedTest {
     void testPreferAllCapsContinuedBeforeName() throws Exception {
         // Test case where "continued" appears before the all-caps name
         final String[] lines = {
-                "continued", // This should be rejected
-                "ASHTON BASHTON HASHTON",
-                "73529 NE 43ST ST",
-                "SEATTLE WA 98119-3579",
-                "Date Description Amount"
+            "continued", // This should be rejected
+            "ASHTON BASHTON HASHTON",
+            "73529 NE 43ST ST",
+            "SEATTLE WA 98119-3579",
+            "Date Description Amount"
         };
 
         final AccountDetectionService.DetectedAccount detectedAccount =

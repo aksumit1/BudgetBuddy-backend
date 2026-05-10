@@ -64,7 +64,8 @@ public class TransactionSyncController {
                     "Triggers full synchronization of transactions from Plaid. Returns immediately with sync status.")
     public ResponseEntity<Map<String, Object>> syncTransactions(
             @AuthenticationPrincipal final UserDetails userDetails,
-            @RequestParam @NotBlank @Parameter(description = "Plaid access token") final String accessToken) {
+            @RequestParam @NotBlank @Parameter(description = "Plaid access token")
+                    final String accessToken) {
 
         if (userDetails == null || userDetails.getUsername() == null) {
             throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, USER_NOT_AUTHENTICATED);

@@ -1,11 +1,10 @@
 package com.budgetbuddy.service;
 
-
-import java.util.Locale;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.budgetbuddy.repository.dynamodb.AccountRepository;
+import java.util.Locale;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -154,7 +153,8 @@ class AccountDetectionServiceProductDetectionTest {
     @Test
     void testExtractProductNamePrimeVisaWithPrimeRewardsVisa() {
         // Given - Statement with "Prime Rewards Visa" pattern
-        final String headerText = "Chase\n" + "Prime Rewards Visa Signature\n" + "Account ending in 1234";
+        final String headerText =
+                "Chase\n" + "Prime Rewards Visa Signature\n" + "Account ending in 1234";
 
         // When
         final AccountDetectionService.DetectedAccount detected =
@@ -174,12 +174,12 @@ class AccountDetectionServiceProductDetectionTest {
     void testExtractProductNameRejectsGenericTerms() {
         // Given - Statement with generic terms that should NOT be detected as product names
         final String[] genericTerms = {
-                "Chase mobile app",
-                "Visit chase.com",
-                "Download the app",
-                "Log in to your account",
-                "Contact customer service",
-                "Register for online banking"
+            "Chase mobile app",
+            "Visit chase.com",
+            "Download the app",
+            "Log in to your account",
+            "Contact customer service",
+            "Register for online banking"
         };
 
         for (final String genericTerm : genericTerms) {

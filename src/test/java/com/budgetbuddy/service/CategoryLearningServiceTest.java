@@ -33,6 +33,8 @@ import software.amazon.awssdk.enhanced.dynamodb.TableSchema;
 @ExtendWith(MockitoExtension.class)
 class CategoryLearningServiceTest {
 
+    private static final String GROCERIES = "groceries";
+
     @Mock private DynamoDbEnhancedClient dynamoDbClient;
 
     @Mock private DynamoDbTable<UserCorrectionTable> correctionTable;
@@ -70,8 +72,8 @@ class CategoryLearningServiceTest {
                             "Walmart",
                             "other",
                             "other",
-                            "groceries",
-                            "groceries",
+                            GROCERIES,
+                            GROCERIES,
                             "EXPENSE",
                             null,
                             "WMT STORE");
@@ -93,13 +95,13 @@ class CategoryLearningServiceTest {
                         userId,
                         "Test Merchant",
                         List.of("test", "tm"),
-                        "groceries",
+                        GROCERIES,
                         "supermarket",
                         null);
 
         assertNotNull(mapping);
         assertEquals("Test Merchant", mapping.getMerchantName());
-        assertEquals("groceries", mapping.getCategoryPrimary());
+        assertEquals(GROCERIES, mapping.getCategoryPrimary());
         verify(customMappingTable, times(1)).putItem(any(CustomMerchantMappingTable.class));
     }
 
@@ -160,8 +162,8 @@ class CategoryLearningServiceTest {
                             "Walmart",
                             "other",
                             "other",
-                            "groceries",
-                            "groceries",
+                            GROCERIES,
+                            GROCERIES,
                             "EXPENSE",
                             null,
                             "WMT STORE");

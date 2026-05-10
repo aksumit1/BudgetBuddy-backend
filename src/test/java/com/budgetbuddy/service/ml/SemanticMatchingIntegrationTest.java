@@ -1,7 +1,5 @@
 package com.budgetbuddy.service.ml;
 
-
-import java.util.Locale;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -15,6 +13,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.OptionalDouble;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
@@ -54,13 +53,13 @@ class SemanticMatchingIntegrationTest {
     @DisplayName("Semantic matching detects bill pay transactions")
     void testSemanticMatchingBillPay() {
         final String[] billPayCases = {
-                "PUGET SOUND ENER BILLPAY",
-                "Puget Sound Energy Bill Pay",
-                "CITY OF BELLEVUE UTILITY BILL PAY",
-                "Online Bill Payment",
-                "Automatic Bill Pay",
-                "Bill Payment Service",
-                "Utility Bill Payment"
+            "PUGET SOUND ENER BILLPAY",
+            "Puget Sound Energy Bill Pay",
+            "CITY OF BELLEVUE UTILITY BILL PAY",
+            "Online Bill Payment",
+            "Automatic Bill Pay",
+            "Bill Payment Service",
+            "Utility Bill Payment"
         };
 
         for (final String merchant : billPayCases) {
@@ -82,14 +81,14 @@ class SemanticMatchingIntegrationTest {
     @DisplayName("Semantic matching detects credit card payments")
     void testSemanticMatchingCreditCardPayments() {
         final String[] creditCardCases = {
-                "CITI AUTOPAY PAYMENT",
-                "Chase Credit Card Auto Pay",
-                "WF Credit Card AUTO PAY",
-                "DISCOVER E-PAYMENT",
-                "AMZ_STORECRD_PMT PAYMENT",
-                "Credit Card Payment",
-                "Card Autopay",
-                "Credit Card Auto Pay"
+            "CITI AUTOPAY PAYMENT",
+            "Chase Credit Card Auto Pay",
+            "WF Credit Card AUTO PAY",
+            "DISCOVER E-PAYMENT",
+            "AMZ_STORECRD_PMT PAYMENT",
+            "Credit Card Payment",
+            "Card Autopay",
+            "Credit Card Auto Pay"
         };
 
         for (final String merchant : creditCardCases) {
@@ -111,13 +110,13 @@ class SemanticMatchingIntegrationTest {
     @DisplayName("Semantic matching detects loan payments")
     void testSemanticMatchingLoanPayments() {
         final String[] loanCases = {
-                "Loan Payment",
-                "Car Loan Payment",
-                "Student Loan Payment",
-                "Mortgage Payment",
-                "Loan Autopay",
-                "Debt Payment",
-                "Loan Repayment"
+            "Loan Payment",
+            "Car Loan Payment",
+            "Student Loan Payment",
+            "Mortgage Payment",
+            "Loan Autopay",
+            "Debt Payment",
+            "Loan Repayment"
         };
 
         for (final String merchant : loanCases) {
@@ -135,15 +134,15 @@ class SemanticMatchingIntegrationTest {
     @DisplayName("Semantic matching detects investment transactions")
     void testSemanticMatchingInvestments() {
         final String[] investmentCases = {
-                "Online Transfer from Morganstanley",
-                "Fidelity Investment",
-                "Vanguard Fund Purchase",
-                "Stock Purchase",
-                "Bond Investment",
-                "CD Investment",
-                "Retirement Account",
-                "401k Contribution",
-                "IRA Investment"
+            "Online Transfer from Morganstanley",
+            "Fidelity Investment",
+            "Vanguard Fund Purchase",
+            "Stock Purchase",
+            "Bond Investment",
+            "CD Investment",
+            "Retirement Account",
+            "401k Contribution",
+            "IRA Investment"
         };
 
         for (final String merchant : investmentCases) {
@@ -161,13 +160,13 @@ class SemanticMatchingIntegrationTest {
     @DisplayName("Semantic matching detects stock transactions")
     void testSemanticMatchingStocks() {
         final String[] stockCases = {
-                "Stock Purchase",
-                "Stock Trading",
-                "Equity Investment",
-                "Share Purchase",
-                "Stock Dividend",
-                "Stock Broker",
-                "Stock Account"
+            "Stock Purchase",
+            "Stock Trading",
+            "Equity Investment",
+            "Share Purchase",
+            "Stock Dividend",
+            "Stock Broker",
+            "Stock Account"
         };
 
         for (final String merchant : stockCases) {
@@ -188,12 +187,12 @@ class SemanticMatchingIntegrationTest {
     @DisplayName("Semantic matching detects store purchases")
     void testSemanticMatchingStores() {
         final String[] storeCases = {
-                "Store Purchase",
-                "Retail Store",
-                "Department Store",
-                "Convenience Store",
-                "In Store Purchase",
-                "Store Shopping"
+            "Store Purchase",
+            "Retail Store",
+            "Department Store",
+            "Convenience Store",
+            "In Store Purchase",
+            "Store Shopping"
         };
 
         for (final String merchant : storeCases) {
@@ -225,7 +224,8 @@ class SemanticMatchingIntegrationTest {
                             () -> {
                                 try {
                                     for (int j = 0; j < operationsPerThread; j++) {
-                                        final String merchant = "Test Merchant " + threadId + " " + j;
+                                        final String merchant =
+                                                "Test Merchant " + threadId + " " + j;
                                         final SemanticMatchingService.SemanticMatchResult result =
                                                 semanticMatchingService.findBestSemanticMatch(
                                                         merchant, "Description");
@@ -317,11 +317,11 @@ class SemanticMatchingIntegrationTest {
     @DisplayName("Semantic matching handles special characters")
     void testSemanticMatchingSpecialCharacters() {
         final String[] specialCases = {
-                "Grocery Store!@#$%^&*()",
-                "Grocery-Store",
-                "Grocery_Store",
-                "Grocery.Store",
-                "Grocery/Store"
+            "Grocery Store!@#$%^&*()",
+            "Grocery-Store",
+            "Grocery_Store",
+            "Grocery.Store",
+            "Grocery/Store"
         };
 
         for (final String merchant : specialCases) {
@@ -341,10 +341,10 @@ class SemanticMatchingIntegrationTest {
     void testSemanticMatchingErrorHandling() {
         // Test with various edge cases that might cause exceptions
         final String[] edgeCases = {
-                "\u0000", // Null character
-                "\uFFFF", // Invalid Unicode
-                new String(new char[100_000]), // Very long string
-                "Test", // Normal case (should work)
+            "\u0000", // Null character
+            "\uFFFF", // Invalid Unicode
+            new String(new char[100_000]), // Very long string
+            "Test", // Normal case (should work)
         };
 
         for (final String merchant : edgeCases) {

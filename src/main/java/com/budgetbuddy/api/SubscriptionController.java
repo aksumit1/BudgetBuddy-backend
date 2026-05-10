@@ -1,6 +1,5 @@
 package com.budgetbuddy.api;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import com.budgetbuddy.exception.AppException;
 import com.budgetbuddy.exception.ErrorCode;
 import com.budgetbuddy.model.Subscription;
@@ -9,6 +8,7 @@ import com.budgetbuddy.service.SubscriptionAdvancedService;
 import com.budgetbuddy.service.SubscriptionInsightsService;
 import com.budgetbuddy.service.SubscriptionService;
 import com.budgetbuddy.service.UserService;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -269,7 +269,8 @@ public class SubscriptionController {
             @AuthenticationPrincipal final UserDetails userDetails,
             @Parameter(description = "Subscription ID to delete", required = true)
                     @PathVariable
-                    @NotBlank final String subscriptionId) {
+                    @NotBlank
+                    final String subscriptionId) {
 
         // Input validation
         if (subscriptionId == null || subscriptionId.isBlank()) {
@@ -537,7 +538,8 @@ public class SubscriptionController {
     })
     public ResponseEntity<Map<String, Object>> getSubscriptionHealth(
             @AuthenticationPrincipal final UserDetails userDetails,
-            @Parameter(description = "Subscription ID", required = true) @PathVariable @NotBlank final String subscriptionId) {
+            @Parameter(description = "Subscription ID", required = true) @PathVariable @NotBlank
+                    final String subscriptionId) {
 
         // Input validation
         if (subscriptionId == null || subscriptionId.isBlank()) {
@@ -628,8 +630,7 @@ public class SubscriptionController {
                                     alert ->
                                             Map.of(
                                                     SUBSCRIPTION,
-                                                    toSubscriptionMap(
-                                                            alert.getSubscription()),
+                                                    toSubscriptionMap(alert.getSubscription()),
                                                     "expirationDate",
                                                     alert.getExpirationDate().toString(),
                                                     "daysUntilExpiration",
@@ -687,15 +688,18 @@ public class SubscriptionController {
                             .map(
                                     rec ->
                                             Map.of(
-                                                    "bundleType", rec.getBundleType(),
+                                                    "bundleType",
+                                                    rec.getBundleType(),
                                                     "subscriptions",
                                                     rec.getSubscriptions().stream()
                                                             .map(this::toSubscriptionMap)
                                                             .collect(Collectors.toList()),
-                                                    POTENTIAL_SAVINGS, rec.getPotentialSavings(),
+                                                    POTENTIAL_SAVINGS,
+                                                    rec.getPotentialSavings(),
                                                     "estimatedBundlePrice",
                                                     rec.getEstimatedBundlePrice(),
-                                                    "description", rec.getDescription()))
+                                                    "description",
+                                                    rec.getDescription()))
                             .collect(Collectors.toList());
 
             return ResponseEntity.ok(response);
@@ -748,12 +752,15 @@ public class SubscriptionController {
                                     rec ->
                                             Map.of(
                                                     "currentSubscription",
-                                                    toSubscriptionMap(
-                                                            rec.getCurrentSubscription()),
-                                                    "alternativeName", rec.getAlternativeName(),
-                                                    "alternativePrice", rec.getAlternativePrice(),
-                                                    POTENTIAL_SAVINGS, rec.getPotentialSavings(),
-                                                    REASON, rec.getReason()))
+                                                    toSubscriptionMap(rec.getCurrentSubscription()),
+                                                    "alternativeName",
+                                                    rec.getAlternativeName(),
+                                                    "alternativePrice",
+                                                    rec.getAlternativePrice(),
+                                                    POTENTIAL_SAVINGS,
+                                                    rec.getPotentialSavings(),
+                                                    REASON,
+                                                    rec.getReason()))
                             .collect(Collectors.toList());
 
             return ResponseEntity.ok(response);
@@ -807,12 +814,13 @@ public class SubscriptionController {
                                     pred ->
                                             Map.of(
                                                     SUBSCRIPTION,
-                                                    toSubscriptionMap(
-                                                            pred.getSubscription()),
+                                                    toSubscriptionMap(pred.getSubscription()),
                                                     "cancellationProbability",
                                                     pred.getCancellationProbability(),
-                                                    REASON, pred.getReason(),
-                                                    "healthScore", pred.getHealthScore()))
+                                                    REASON,
+                                                    pred.getReason(),
+                                                    "healthScore",
+                                                    pred.getHealthScore()))
                             .collect(Collectors.toList());
 
             return ResponseEntity.ok(response);
@@ -862,12 +870,18 @@ public class SubscriptionController {
 
             final Map<String, Object> response =
                     Map.of(
-                            "totalSubscriptions", optimization.getTotalSubscriptions(),
-                            "currentMonthlySpend", optimization.getCurrentMonthlySpend(),
-                            "totalPotentialSavings", optimization.getTotalPotentialSavings(),
-                            "cancellationSavings", optimization.getCancellationSavings(),
-                            "bundlingSavings", optimization.getBundlingSavings(),
-                            "alternativeSavings", optimization.getAlternativeSavings(),
+                            "totalSubscriptions",
+                            optimization.getTotalSubscriptions(),
+                            "currentMonthlySpend",
+                            optimization.getCurrentMonthlySpend(),
+                            "totalPotentialSavings",
+                            optimization.getTotalPotentialSavings(),
+                            "cancellationSavings",
+                            optimization.getCancellationSavings(),
+                            "bundlingSavings",
+                            optimization.getBundlingSavings(),
+                            "alternativeSavings",
+                            optimization.getAlternativeSavings(),
                             CANCELLATION_RECOMMENDATIONS,
                             optimization.getCancellationRecommendations().stream()
                                     .map(this::toCancellationRecommendationMap)
@@ -880,8 +894,7 @@ public class SubscriptionController {
                                                             "bundleType",
                                                             rec.getBundleType(),
                                                             POTENTIAL_SAVINGS,
-                                                            rec
-                                                                    .getPotentialSavings(),
+                                                            rec.getPotentialSavings(),
                                                             "description",
                                                             rec.getDescription()))
                                     .collect(Collectors.toList()),
@@ -894,11 +907,9 @@ public class SubscriptionController {
                                                             rec.getCurrentSubscription()
                                                                     .getMerchantName(),
                                                             "alternativeName",
-                                                            rec
-                                                                    .getAlternativeName(),
+                                                            rec.getAlternativeName(),
                                                             POTENTIAL_SAVINGS,
-                                                            rec
-                                                                    .getPotentialSavings()))
+                                                            rec.getPotentialSavings()))
                                     .collect(Collectors.toList()),
                             "trialAlerts",
                             optimization.getTrialAlerts().stream()
@@ -909,8 +920,7 @@ public class SubscriptionController {
                                                             alert.getSubscription()
                                                                     .getMerchantName(),
                                                             "daysUntilExpiration",
-                                                            alert
-                                                                    .getDaysUntilExpiration()))
+                                                            alert.getDaysUntilExpiration()))
                                     .collect(Collectors.toList()));
 
             return ResponseEntity.ok(response);
@@ -933,29 +943,42 @@ public class SubscriptionController {
     private Map<String, Object> toUnusedInsightMap(
             final SubscriptionInsightsService.UnusedSubscriptionInsight insight) {
         return Map.of(
-                SUBSCRIPTION, toSubscriptionMap(insight.getSubscription()),
-                REASON, insight.getReason(),
-                POTENTIAL_SAVINGS, insight.getPotentialSavings(),
-                "severity", insight.getSeverity().name());
+                SUBSCRIPTION,
+                toSubscriptionMap(insight.getSubscription()),
+                REASON,
+                insight.getReason(),
+                POTENTIAL_SAVINGS,
+                insight.getPotentialSavings(),
+                "severity",
+                insight.getSeverity().name());
     }
 
     private Map<String, Object> toPriceChangeMap(
             final SubscriptionInsightsService.PriceChangeAlert alert) {
         return Map.of(
-                SUBSCRIPTION, toSubscriptionMap(alert.getSubscription()),
-                "newAmount", alert.getNewAmount(),
-                "oldAmount", alert.getOldAmount(),
-                "percentChange", alert.getPercentChange(),
-                "detectedDate", alert.getDetectedDate());
+                SUBSCRIPTION,
+                toSubscriptionMap(alert.getSubscription()),
+                "newAmount",
+                alert.getNewAmount(),
+                "oldAmount",
+                alert.getOldAmount(),
+                "percentChange",
+                alert.getPercentChange(),
+                "detectedDate",
+                alert.getDetectedDate());
     }
 
     private Map<String, Object> toCancellationRecommendationMap(
             final SubscriptionInsightsService.CancellationRecommendation recommendation) {
         return Map.of(
-                SUBSCRIPTION, toSubscriptionMap(recommendation.getSubscription()),
-                REASON, recommendation.getReason(),
-                POTENTIAL_SAVINGS, recommendation.getPotentialSavings(),
-                "priority", recommendation.getPriority().name());
+                SUBSCRIPTION,
+                toSubscriptionMap(recommendation.getSubscription()),
+                REASON,
+                recommendation.getReason(),
+                POTENTIAL_SAVINGS,
+                recommendation.getPotentialSavings(),
+                "priority",
+                recommendation.getPriority().name());
     }
 
     private Map<String, Object> toSubscriptionMap(final Subscription subscription) {

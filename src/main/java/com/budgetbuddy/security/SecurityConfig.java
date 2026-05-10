@@ -185,9 +185,7 @@ public class SecurityConfig {
         // Configure allowed origins based on environment
         final boolean isProduction = activeProfile != null && activeProfile.contains("prod");
 
-        if (allowedOrigins != null
-                && !allowedOrigins.isBlank()
-                && !"*".equals(allowedOrigins)) {
+        if (allowedOrigins != null && !allowedOrigins.isBlank() && !"*".equals(allowedOrigins)) {
             final List<String> origins = Arrays.asList(allowedOrigins.split(","));
             configuration.setAllowedOrigins(origins);
             LOGGER.info("CORS configured with specific origins: {}", origins);

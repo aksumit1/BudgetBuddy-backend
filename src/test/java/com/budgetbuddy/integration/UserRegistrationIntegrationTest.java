@@ -1,7 +1,5 @@
 package com.budgetbuddy.integration;
 
-
-import java.nio.charset.StandardCharsets;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -14,13 +12,13 @@ import com.budgetbuddy.exception.ErrorCode;
 import com.budgetbuddy.model.dynamodb.UserTable;
 import com.budgetbuddy.repository.dynamodb.UserRepository;
 import com.budgetbuddy.util.TableInitializer;
+import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.client.TestRestTemplate;
@@ -52,6 +50,8 @@ import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class UserRegistrationIntegrationTest {
 
+    private static final String TESTPASSWORD123 = "testpassword123";
+
     @LocalServerPort private int port;
 
     @Autowired private TestRestTemplate restTemplate;
@@ -81,7 +81,9 @@ class UserRegistrationIntegrationTest {
         // Arrange
         final AuthRequest request = new AuthRequest();
         request.setEmail(uniqueEmail);
-        request.setPasswordHash(Base64.getEncoder().encodeToString("testpassword123".getBytes(StandardCharsets.UTF_8)));
+        request.setPasswordHash(
+                Base64.getEncoder()
+                        .encodeToString(TESTPASSWORD123.getBytes(StandardCharsets.UTF_8)));
         // BREAKING CHANGE: Client salt removed
         // request.setSalt(Base64.getEncoder().encodeToString("somesalt".getBytes(StandardCharsets.UTF_8)));
 
@@ -116,7 +118,8 @@ class UserRegistrationIntegrationTest {
         final AuthRequest firstRequest = new AuthRequest();
         firstRequest.setEmail(uniqueEmail);
         firstRequest.setPasswordHash(
-                Base64.getEncoder().encodeToString("testpassword123".getBytes(StandardCharsets.UTF_8)));
+                Base64.getEncoder()
+                        .encodeToString(TESTPASSWORD123.getBytes(StandardCharsets.UTF_8)));
         // BREAKING CHANGE: Client salt removed
 
         final HttpHeaders headers = new HttpHeaders();
@@ -131,7 +134,8 @@ class UserRegistrationIntegrationTest {
         final AuthRequest duplicateRequest = new AuthRequest();
         duplicateRequest.setEmail(uniqueEmail);
         duplicateRequest.setPasswordHash(
-                Base64.getEncoder().encodeToString("testpassword123".getBytes(StandardCharsets.UTF_8)));
+                Base64.getEncoder()
+                        .encodeToString(TESTPASSWORD123.getBytes(StandardCharsets.UTF_8)));
         // BREAKING CHANGE: Client salt removed
         final HttpEntity<AuthRequest> duplicateEntity = new HttpEntity<>(duplicateRequest, headers);
 
@@ -159,7 +163,9 @@ class UserRegistrationIntegrationTest {
         // Arrange
         final AuthRequest request = new AuthRequest();
         request.setEmail(uniqueEmail);
-        request.setPasswordHash(Base64.getEncoder().encodeToString("testpassword123".getBytes(StandardCharsets.UTF_8)));
+        request.setPasswordHash(
+                Base64.getEncoder()
+                        .encodeToString(TESTPASSWORD123.getBytes(StandardCharsets.UTF_8)));
         // BREAKING CHANGE: Client salt removed
         // request.setSalt(Base64.getEncoder().encodeToString("somesalt".getBytes(StandardCharsets.UTF_8)));
 
@@ -197,9 +203,9 @@ class UserRegistrationIntegrationTest {
     void testRegisterMultipleNewUsersSucceed() {
         // Arrange
         final String[] emails = {
-                "user1-" + System.currentTimeMillis() + "@example.com",
-                "user2-" + System.currentTimeMillis() + "@example.com",
-                "user3-" + System.currentTimeMillis() + "@example.com"
+            "user1-" + System.currentTimeMillis() + "@example.com",
+            "user2-" + System.currentTimeMillis() + "@example.com",
+            "user3-" + System.currentTimeMillis() + "@example.com"
         };
 
         final HttpHeaders headers = new HttpHeaders();
@@ -210,7 +216,8 @@ class UserRegistrationIntegrationTest {
             final AuthRequest request = new AuthRequest();
             request.setEmail(email);
             request.setPasswordHash(
-                    Base64.getEncoder().encodeToString("testpassword123".getBytes(StandardCharsets.UTF_8)));
+                    Base64.getEncoder()
+                            .encodeToString(TESTPASSWORD123.getBytes(StandardCharsets.UTF_8)));
             // BREAKING CHANGE: Client salt removed - backend handles salt management
             final HttpEntity<AuthRequest> entity = new HttpEntity<>(request, headers);
 

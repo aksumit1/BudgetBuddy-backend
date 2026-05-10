@@ -38,6 +38,8 @@ import org.springframework.security.core.userdetails.UserDetails;
 @org.mockito.junit.jupiter.MockitoSettings(strictness = org.mockito.quality.Strictness.LENIENT)
 class TransactionControllerTest {
 
+    private static final String TX_1 = "tx-1";
+
     @Mock private TransactionService transactionService;
 
     @Mock private UserService userService;
@@ -139,7 +141,7 @@ class TransactionControllerTest {
     @Test
     void testGetTransactionsWithValidUserReturnsTransactions() {
         // Given
-        final List<TransactionTable> mockTransactions = Arrays.asList(createTransaction("tx-1"));
+        final List<TransactionTable> mockTransactions = Arrays.asList(createTransaction(TX_1));
         when(userService.findByEmail("test@example.com"))
                 .thenReturn(java.util.Optional.of(testUser));
         when(transactionService.getTransactions(testUser, 0, 20)).thenReturn(mockTransactions);
@@ -353,7 +355,7 @@ class TransactionControllerTest {
         // Given
         final LocalDate startDate = LocalDate.now().minusDays(7);
         final LocalDate endDate = LocalDate.now();
-        final List<TransactionTable> mockTransactions = Arrays.asList(createTransaction("tx-1"));
+        final List<TransactionTable> mockTransactions = Arrays.asList(createTransaction(TX_1));
         when(userService.findByEmail("test@example.com"))
                 .thenReturn(java.util.Optional.of(testUser));
         when(transactionService.getTransactionsInRange(testUser, startDate, endDate))
@@ -380,7 +382,7 @@ class TransactionControllerTest {
         request.setCategoryPrimary("dining");
         request.setCategoryDetailed("dining");
 
-        final TransactionTable mockTransaction = createTransaction("tx-1");
+        final TransactionTable mockTransaction = createTransaction(TX_1);
         when(userService.findByEmail("test@example.com"))
                 .thenReturn(java.util.Optional.of(testUser));
         // Updated to match the full 25-parameter method signature (includes location)
@@ -413,7 +415,7 @@ class TransactionControllerTest {
                 .thenReturn(mockTransaction);
         // Controller now re-fetches after create to return the authoritative
         // row (idempotency-cache-hit path). Stub getTransaction too.
-        when(transactionService.getTransaction(eq(testUser), eq("tx-1"), any()))
+        when(transactionService.getTransaction(eq(testUser), eq(TX_1), any()))
                 .thenReturn(mockTransaction);
 
         // When
@@ -422,7 +424,7 @@ class TransactionControllerTest {
         // Then
         assertEquals(HttpStatus.CREATED, response.getStatusCode());
         assertNotNull(response.getBody(), "Response body should not be null");
-        assertEquals("tx-1", response.getBody().getTransactionId());
+        assertEquals(TX_1, response.getBody().getTransactionId());
     }
 
     // Helper methods

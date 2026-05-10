@@ -1,7 +1,5 @@
 package com.budgetbuddy.security;
 
-
-import java.nio.charset.StandardCharsets;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -10,6 +8,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -39,7 +38,8 @@ class FileContentScannerTest {
     void testScanFileSafeTextFileShouldBeSafe() throws IOException {
         // Given
         final String content = "This is a safe text file with normal content.";
-        final InputStream inputStream = new ByteArrayInputStream(content.getBytes(StandardCharsets.UTF_8));
+        final InputStream inputStream =
+                new ByteArrayInputStream(content.getBytes(StandardCharsets.UTF_8));
 
         // When
         final FileContentScanner.ScanResult result = scanner.scanFile(inputStream, "safe.txt");
@@ -53,10 +53,12 @@ class FileContentScannerTest {
     void testScanFileWithScriptInjectionShouldDetect() throws IOException {
         // Given
         final String content = "<script>alert('xss')</script>";
-        final InputStream inputStream = new ByteArrayInputStream(content.getBytes(StandardCharsets.UTF_8));
+        final InputStream inputStream =
+                new ByteArrayInputStream(content.getBytes(StandardCharsets.UTF_8));
 
         // When
-        final FileContentScanner.ScanResult result = scanner.scanFile(inputStream, "malicious.html");
+        final FileContentScanner.ScanResult result =
+                scanner.scanFile(inputStream, "malicious.html");
 
         // Then
         assertFalse(result.isSafe());
@@ -68,7 +70,8 @@ class FileContentScannerTest {
     void testScanFileWithSQLInjectionShouldDetect() throws IOException {
         // Given
         final String content = "SELECT * FROM users WHERE id = 1; DROP TABLE users;";
-        final InputStream inputStream = new ByteArrayInputStream(content.getBytes(StandardCharsets.UTF_8));
+        final InputStream inputStream =
+                new ByteArrayInputStream(content.getBytes(StandardCharsets.UTF_8));
 
         // When
         final FileContentScanner.ScanResult result = scanner.scanFile(inputStream, "sql.txt");
@@ -82,7 +85,8 @@ class FileContentScannerTest {
     void testScanFileWithCommandInjectionShouldDetect() throws IOException {
         // Given
         final String content = "test; rm -rf /";
-        final InputStream inputStream = new ByteArrayInputStream(content.getBytes(StandardCharsets.UTF_8));
+        final InputStream inputStream =
+                new ByteArrayInputStream(content.getBytes(StandardCharsets.UTF_8));
 
         // When
         final FileContentScanner.ScanResult result = scanner.scanFile(inputStream, "command.txt");
@@ -96,8 +100,8 @@ class FileContentScannerTest {
     void testScanFilePDFFileShouldSkipTextScanning() throws IOException {
         // Given - PDF signature
         final byte[] pdfContent =
-                new byte[]{
-                        (byte) 0x25, (byte) 0x50, (byte) 0x44, (byte) 0x46, 0x2D, 0x31, 0x2E, 0x34, 0x0A
+                new byte[] {
+                    (byte) 0x25, (byte) 0x50, (byte) 0x44, (byte) 0x46, 0x2D, 0x31, 0x2E, 0x34, 0x0A
                 };
         final InputStream inputStream = new ByteArrayInputStream(pdfContent);
 
@@ -118,7 +122,8 @@ class FileContentScannerTest {
     void testScanFilePDFByExtensionShouldSkipTextScanning() throws IOException {
         // Given - PDF by extension (even without PDF signature in first bytes)
         final String content = "This might contain | & ; characters which are normal in PDFs";
-        final InputStream inputStream = new ByteArrayInputStream(content.getBytes(StandardCharsets.UTF_8));
+        final InputStream inputStream =
+                new ByteArrayInputStream(content.getBytes(StandardCharsets.UTF_8));
 
         // When
         final FileContentScanner.ScanResult result = scanner.scanFile(inputStream, "statement.pdf");
@@ -130,7 +135,7 @@ class FileContentScannerTest {
     @Test
     void testScanFileWithExecutableSignatureShouldDetect() throws IOException {
         // Given - PE executable signature
-        final byte[] peSignature = new byte[]{(byte) 0x4D, (byte) 0x5A, 0x00, 0x00};
+        final byte[] peSignature = new byte[] {(byte) 0x4D, (byte) 0x5A, 0x00, 0x00};
         final InputStream inputStream = new ByteArrayInputStream(peSignature);
 
         // When
@@ -146,7 +151,8 @@ class FileContentScannerTest {
     void testScanFileWithPathTraversalShouldDetect() throws IOException {
         // Given
         final String content = "../../etc/passwd";
-        final InputStream inputStream = new ByteArrayInputStream(content.getBytes(StandardCharsets.UTF_8));
+        final InputStream inputStream =
+                new ByteArrayInputStream(content.getBytes(StandardCharsets.UTF_8));
 
         // When
         final FileContentScanner.ScanResult result = scanner.scanFile(inputStream, "traversal.txt");
@@ -160,7 +166,8 @@ class FileContentScannerTest {
     void testScanFileWithSuspiciousFileReferenceShouldDetect() throws IOException {
         // Given
         final String content = "/etc/passwd content here";
-        final InputStream inputStream = new ByteArrayInputStream(content.getBytes(StandardCharsets.UTF_8));
+        final InputStream inputStream =
+                new ByteArrayInputStream(content.getBytes(StandardCharsets.UTF_8));
 
         // When
         final FileContentScanner.ScanResult result = scanner.scanFile(inputStream, "reference.txt");

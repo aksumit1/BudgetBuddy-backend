@@ -36,6 +36,11 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @DisplayName("Tax Export Service Edge Cases Tests")
 class TaxExportEdgeCasesTest {
 
+    private static final String USER123 = "user123";
+    private static final String TX1 = "tx1";
+    private static final String OTHER = "other";
+    private static final String MERCHANT = "Merchant";
+
     @Mock private TransactionRepository transactionRepository;
 
     @Mock private AccountRepository accountRepository;
@@ -71,7 +76,7 @@ class TaxExportEdgeCasesTest {
         assertThrows(
                 IllegalArgumentException.class,
                 () -> {
-                    taxExportService.generateTaxExport("user123", 1800, null, null, null, null);
+                    taxExportService.generateTaxExport(USER123, 1800, null, null, null, null);
                 });
     }
 
@@ -82,7 +87,7 @@ class TaxExportEdgeCasesTest {
         assertThrows(
                 IllegalArgumentException.class,
                 () -> {
-                    taxExportService.generateTaxExport("user123", 2200, null, null, null, null);
+                    taxExportService.generateTaxExport(USER123, 2200, null, null, null, null);
                 });
     }
 
@@ -90,17 +95,11 @@ class TaxExportEdgeCasesTest {
     @DisplayName("Should handle transaction with null date")
     void testGenerateTaxExportTransactionWithNullDate() {
         // Given
-        final String userId = "user123";
+        final String userId = USER123;
         final int year = 2024;
         final TransactionTable transaction =
                 createTransaction(
-                        "tx1",
-                        null,
-                        "Description",
-                        "Merchant",
-                        new BigDecimal("100.00"),
-                        "other",
-                        null);
+                        TX1, null, "Description", MERCHANT, new BigDecimal("100.00"), OTHER, null);
 
         when(transactionRepository.findByUserIdAndDateRange(
                         eq(userId), eq("2024-01-01"), eq("2024-12-31")))
@@ -119,10 +118,10 @@ class TaxExportEdgeCasesTest {
     @DisplayName("Should handle transaction with invalid date format")
     void testGenerateTaxExportTransactionWithInvalidDate() {
         // Given
-        final String userId = "user123";
+        final String userId = USER123;
         final int year = 2024;
         final TransactionTable transaction = new TransactionTable();
-        transaction.setTransactionId("tx1");
+        transaction.setTransactionId(TX1);
         transaction.setUserId(userId);
         transaction.setTransactionDate("invalid-date-format");
         transaction.setDescription("Test");
@@ -144,11 +143,10 @@ class TaxExportEdgeCasesTest {
     @DisplayName("Should handle transaction with null amount")
     void testGenerateTaxExportTransactionWithNullAmount() {
         // Given
-        final String userId = "user123";
+        final String userId = USER123;
         final int year = 2024;
         final TransactionTable transaction =
-                createTransaction(
-                        "tx1", "2024-01-15", "Description", "Merchant", null, "other", null);
+                createTransaction(TX1, "2024-01-15", "Description", MERCHANT, null, OTHER, null);
 
         when(transactionRepository.findByUserIdAndDateRange(
                         eq(userId), eq("2024-01-01"), eq("2024-12-31")))
@@ -167,17 +165,11 @@ class TaxExportEdgeCasesTest {
     @DisplayName("Should handle transaction with null description")
     void testGenerateTaxExportTransactionWithNullDescription() {
         // Given
-        final String userId = "user123";
+        final String userId = USER123;
         final int year = 2024;
         final TransactionTable transaction =
                 createTransaction(
-                        "tx1",
-                        "2024-01-15",
-                        null,
-                        "Merchant",
-                        new BigDecimal("100.00"),
-                        "other",
-                        null);
+                        TX1, "2024-01-15", null, MERCHANT, new BigDecimal("100.00"), OTHER, null);
 
         when(transactionRepository.findByUserIdAndDateRange(
                         eq(userId), eq("2024-01-01"), eq("2024-12-31")))
@@ -198,16 +190,16 @@ class TaxExportEdgeCasesTest {
     @DisplayName("Should handle transaction with newlines in description")
     void testGenerateTaxExportTransactionWithNewlines() {
         // Given
-        final String userId = "user123";
+        final String userId = USER123;
         final int year = 2024;
         final TransactionTable transaction =
                 createTransaction(
-                        "tx1",
+                        TX1,
                         "2024-01-15",
                         "Line 1\nLine 2\rLine 3",
-                        "Merchant",
+                        MERCHANT,
                         new BigDecimal("100.00"),
-                        "other",
+                        OTHER,
                         null);
 
         when(transactionRepository.findByUserIdAndDateRange(
@@ -230,16 +222,16 @@ class TaxExportEdgeCasesTest {
     @DisplayName("Should handle transaction with commas in description")
     void testGenerateTaxExportTransactionWithCommas() {
         // Given
-        final String userId = "user123";
+        final String userId = USER123;
         final int year = 2024;
         final TransactionTable transaction =
                 createTransaction(
-                        "tx1",
+                        TX1,
                         "2024-01-15",
                         "Description, with, commas",
-                        "Merchant",
+                        MERCHANT,
                         new BigDecimal("100.00"),
-                        "other",
+                        OTHER,
                         null);
 
         when(transactionRepository.findByUserIdAndDateRange(
@@ -261,16 +253,16 @@ class TaxExportEdgeCasesTest {
     @DisplayName("Should handle transaction with quotes in description")
     void testGenerateTaxExportTransactionWithQuotes() {
         // Given
-        final String userId = "user123";
+        final String userId = USER123;
         final int year = 2024;
         final TransactionTable transaction =
                 createTransaction(
-                        "tx1",
+                        TX1,
                         "2024-01-15",
                         "Description with \"quotes\"",
-                        "Merchant",
+                        MERCHANT,
                         new BigDecimal("100.00"),
-                        "other",
+                        OTHER,
                         null);
 
         when(transactionRepository.findByUserIdAndDateRange(
@@ -293,16 +285,16 @@ class TaxExportEdgeCasesTest {
     @DisplayName("Should handle transaction date outside year range")
     void testGenerateTaxExportTransactionOutsideYearRange() {
         // Given
-        final String userId = "user123";
+        final String userId = USER123;
         final int year = 2024;
         final TransactionTable transaction =
                 createTransaction(
-                        "tx1",
+                        TX1,
                         "2023-12-31",
                         "Old Transaction",
-                        "Merchant",
+                        MERCHANT,
                         new BigDecimal("100.00"),
-                        "other",
+                        OTHER,
                         null);
 
         when(transactionRepository.findByUserIdAndDateRange(
@@ -322,7 +314,7 @@ class TaxExportEdgeCasesTest {
     @DisplayName("Should handle very large dataset")
     void testGenerateTaxExportVeryLargeDataset() {
         // Given
-        final String userId = "user123";
+        final String userId = USER123;
         final int year = 2024;
         final List<TransactionTable> transactions = new ArrayList<>();
         for (int i = 0; i < 10_000; i++) {
@@ -331,9 +323,9 @@ class TaxExportEdgeCasesTest {
                             "tx" + i,
                             "2024-06-15",
                             "Transaction " + i,
-                            "Merchant",
+                            MERCHANT,
                             new BigDecimal("10.00"),
-                            "other",
+                            OTHER,
                             null));
         }
 
@@ -356,17 +348,17 @@ class TaxExportEdgeCasesTest {
     @DisplayName("Should calculate year-end balance from accounts")
     void testGenerateTaxExportCalculatesYearEndBalance() {
         // Given
-        final String userId = "user123";
+        final String userId = USER123;
         final int year = 2024;
         final List<TransactionTable> transactions =
                 Arrays.asList(
                         createTransaction(
-                                "tx1",
+                                TX1,
                                 "2024-01-15",
                                 "Transaction",
-                                "Merchant",
+                                MERCHANT,
                                 new BigDecimal("100.00"),
-                                "other",
+                                OTHER,
                                 null));
 
         final List<AccountTable> accounts =
@@ -393,11 +385,11 @@ class TaxExportEdgeCasesTest {
     @DisplayName("Should filter by category")
     void testGenerateTaxExportFilterByCategory() {
         // Given
-        final String userId = "user123";
+        final String userId = USER123;
         final int year = 2024;
         final TransactionTable salaryTx =
                 createTransaction(
-                        "tx1",
+                        TX1,
                         "2024-01-15",
                         "Payroll Deposit",
                         "ADP",
@@ -433,16 +425,16 @@ class TaxExportEdgeCasesTest {
     @DisplayName("Should filter by account ID")
     void testGenerateTaxExportFilterByAccountId() {
         // Given
-        final String userId = "user123";
+        final String userId = USER123;
         final int year = 2024;
         final TransactionTable tx1 =
                 createTransaction(
-                        "tx1",
+                        TX1,
                         "2024-01-15",
                         "Transaction 1",
-                        "Merchant",
+                        MERCHANT,
                         new BigDecimal("100.00"),
-                        "other",
+                        OTHER,
                         null);
         tx1.setAccountId("acc1");
         final TransactionTable tx2 =
@@ -450,9 +442,9 @@ class TaxExportEdgeCasesTest {
                         "tx2",
                         "2024-01-16",
                         "Transaction 2",
-                        "Merchant",
+                        MERCHANT,
                         new BigDecimal("200.00"),
-                        "other",
+                        OTHER,
                         null);
         tx2.setAccountId("acc2");
 
@@ -480,7 +472,7 @@ class TaxExportEdgeCasesTest {
     @DisplayName("Should handle empty transaction list")
     void testGenerateTaxExportEmptyTransactions() {
         // Given
-        final String userId = "user123";
+        final String userId = USER123;
         final int year = 2024;
 
         when(transactionRepository.findByUserIdAndDateRange(
@@ -508,18 +500,18 @@ class TaxExportEdgeCasesTest {
     @DisplayName("Should handle null transaction in list")
     void testGenerateTaxExportNullTransactionInList() {
         // Given
-        final String userId = "user123";
+        final String userId = USER123;
         final int year = 2024;
         final List<TransactionTable> transactions = new ArrayList<>();
         transactions.add(null);
         transactions.add(
                 createTransaction(
-                        "tx1",
+                        TX1,
                         "2024-01-15",
                         "Valid Transaction",
-                        "Merchant",
+                        MERCHANT,
                         new BigDecimal("100.00"),
-                        "other",
+                        OTHER,
                         null));
 
         when(transactionRepository.findByUserIdAndDateRange(
@@ -546,7 +538,7 @@ class TaxExportEdgeCasesTest {
             final String paymentChannel) {
         final TransactionTable transaction = new TransactionTable();
         transaction.setTransactionId(transactionId);
-        transaction.setUserId("user123");
+        transaction.setUserId(USER123);
         transaction.setTransactionDate(date);
         transaction.setDescription(description);
         transaction.setMerchantName(merchantName);
@@ -560,7 +552,8 @@ class TaxExportEdgeCasesTest {
         return transaction;
     }
 
-    private AccountTable createAccount(final String accountId, final String userId, final BigDecimal balance) {
+    private AccountTable createAccount(
+            final String accountId, final String userId, final BigDecimal balance) {
         final AccountTable account = new AccountTable();
         account.setAccountId(accountId);
         account.setUserId(userId);

@@ -52,6 +52,8 @@ import org.springframework.security.core.userdetails.UserDetails;
 @ExtendWith(MockitoExtension.class)
 class CategoryControllerTest {
 
+    private static final String GROCERIES = "groceries";
+
     @Mock private CategoryLearningService learningService;
 
     @Mock private TransactionService transactionService;
@@ -109,10 +111,11 @@ class CategoryControllerTest {
                         any()))
                 .thenReturn(testTransaction);
 
-        final CategoryController.CorrectionRequest request = new CategoryController.CorrectionRequest();
+        final CategoryController.CorrectionRequest request =
+                new CategoryController.CorrectionRequest();
         request.setTransactionId(testTransaction.getTransactionId());
-        request.setCategoryPrimary("groceries");
-        request.setCategoryDetailed("groceries");
+        request.setCategoryPrimary(GROCERIES);
+        request.setCategoryDetailed(GROCERIES);
         request.setTransactionType(null);
 
         // Execute
@@ -134,7 +137,7 @@ class CategoryControllerTest {
                         anyString(), // merchantName
                         anyString(), // originalCategoryPrimary
                         anyString(), // originalCategoryDetailed
-                        eq("groceries"), // correctedCategoryPrimary
+                        eq(GROCERIES), // correctedCategoryPrimary
                         anyString(), // correctedCategoryDetailed
                         anyString(), // originalTransactionType
                         isNull(), // correctedTransactionType (null in request)
@@ -147,10 +150,11 @@ class CategoryControllerTest {
         // Setup
         when(userDetails.getUsername()).thenReturn(null);
 
-        final CategoryController.CorrectionRequest request = new CategoryController.CorrectionRequest();
+        final CategoryController.CorrectionRequest request =
+                new CategoryController.CorrectionRequest();
         request.setTransactionId(UUID.randomUUID().toString());
-        request.setCategoryPrimary("groceries");
-        request.setCategoryDetailed("groceries");
+        request.setCategoryPrimary(GROCERIES);
+        request.setCategoryDetailed(GROCERIES);
 
         // Execute & Verify
         assertThrows(
@@ -169,7 +173,7 @@ class CategoryControllerTest {
         final CustomMerchantMappingTable mapping = new CustomMerchantMappingTable();
         mapping.setMappingId(UUID.randomUUID().toString());
         mapping.setMerchantName("Test Merchant");
-        mapping.setCategoryPrimary("groceries");
+        mapping.setCategoryPrimary(GROCERIES);
 
         when(learningService.createOrUpdateCustomMapping(
                         anyString(), anyString(), anyList(), anyString(), anyString(), any()))
@@ -179,7 +183,7 @@ class CategoryControllerTest {
                 new CategoryController.CustomMappingRequest();
         request.setMerchantName("Test Merchant");
         request.setAliases(List.of("tm", "test"));
-        request.setCategoryPrimary("groceries");
+        request.setCategoryPrimary(GROCERIES);
         request.setCategoryDetailed("supermarket");
         request.setTransactionType(null);
 
@@ -190,7 +194,7 @@ class CategoryControllerTest {
         // Verify
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertNotNull(response.getBody());
-        assertEquals("groceries", response.getBody().getCategoryPrimary());
+        assertEquals(GROCERIES, response.getBody().getCategoryPrimary());
     }
 
     @Test

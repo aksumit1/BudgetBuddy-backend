@@ -1,8 +1,5 @@
 package com.budgetbuddy.integration;
 
-
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import java.nio.charset.StandardCharsets;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -17,7 +14,9 @@ import com.budgetbuddy.model.dynamodb.UserTable;
 import com.budgetbuddy.repository.dynamodb.AccountRepository;
 import com.budgetbuddy.repository.dynamodb.TransactionRepository;
 import com.budgetbuddy.service.UserService;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
@@ -55,6 +54,9 @@ import org.springframework.test.web.servlet.MvcResult;
 @Import(AWSTestConfiguration.class)
 class CSVImportE2ETest {
 
+    private static final String FILE = "file";
+    private static final String ACCOUNTID = "accountId";
+
     @Autowired private MockMvc mockMvc;
 
     @Autowired private UserService userService;
@@ -75,20 +77,20 @@ class CSVImportE2ETest {
 
         // Original 14 transactions
         final String[] originalTransactions = {
-                "DEBIT,12/19/2025,\"Online Transfer to CHK ...9994 transaction#: 27398998006 12/19\",-250.00,ACCT_XFER,4714.71, ",
-                "DEBIT,12/19/2025,\"Online Transfer to CHK ...9994 transaction#: 27390930759 12/19\",-600.00,ACCT_XFER,4964.71, ",
-                "DEBIT,12/18/2025,\"WITHDRAWAL 12/18\",-2000.00,MISC_DEBIT,5564.71, ",
-                "CHECK,12/18/2025,\"CHECK 176  \",-450.00,CHECK_PAID,7564.71,176,",
-                "DEBIT,12/18/2025,\"PUGET SOUND ENER BILLPAY                    PPD ID: 0000000160\",-286.18,ACH_DEBIT,8014.71, ",
-                "DEBIT,12/17/2025,\"CITI AUTOPAY     PAYMENT    291883502120566 WEB ID: CITICARDAP\",-2681.98,ACH_DEBIT,8300.89, ",
-                "DEBIT,12/15/2025,\"CHASE CREDIT CRD AUTOPAY                    PPD ID: 4760039224\",-1746.59,ACH_DEBIT,10982.87, ",
-                "DEBIT,12/15/2025,\"WF Credit Card   AUTO PAY                   PPD ID: 50260000\",-405.59,ACH_DEBIT,12729.46, ",
-                "DEBIT,12/12/2025,\"Online Transfer to CHK ...9994 transaction#: 27295296155 12/12\",-500.00,ACCT_XFER,13135.05, ",
-                "DEBIT,12/10/2025,\"CHASE CREDIT CRD AUTOPAY                    PPD ID: 4760039224\",-377.32,ACH_DEBIT,13635.05, ",
-                "CREDIT,12/10/2025,\"Online Transfer 27265796721 from Morganstanley #########7477 transaction #: 27265796721 12/10\",10000.00,ACCT_XFER,14012.37, ",
-                "CHECK,12/09/2025,\"CHECK 175  \",-5203.00,CHECK_PAID,4012.37,175,",
-                "DEBIT,12/09/2025,\"AMZ_STORECRD_PMT PAYMENT    604578162822612 WEB ID: 9130142001\",-124.93,ACH_DEBIT,9215.37, ",
-                "CHECK,12/08/2025,\"CHECK 173  \",-2000.00,CHECK_PAID,9340.30,173,"
+            "DEBIT,12/19/2025,\"Online Transfer to CHK ...9994 transaction#: 27398998006 12/19\",-250.00,ACCT_XFER,4714.71, ",
+            "DEBIT,12/19/2025,\"Online Transfer to CHK ...9994 transaction#: 27390930759 12/19\",-600.00,ACCT_XFER,4964.71, ",
+            "DEBIT,12/18/2025,\"WITHDRAWAL 12/18\",-2000.00,MISC_DEBIT,5564.71, ",
+            "CHECK,12/18/2025,\"CHECK 176  \",-450.00,CHECK_PAID,7564.71,176,",
+            "DEBIT,12/18/2025,\"PUGET SOUND ENER BILLPAY                    PPD ID: 0000000160\",-286.18,ACH_DEBIT,8014.71, ",
+            "DEBIT,12/17/2025,\"CITI AUTOPAY     PAYMENT    291883502120566 WEB ID: CITICARDAP\",-2681.98,ACH_DEBIT,8300.89, ",
+            "DEBIT,12/15/2025,\"CHASE CREDIT CRD AUTOPAY                    PPD ID: 4760039224\",-1746.59,ACH_DEBIT,10982.87, ",
+            "DEBIT,12/15/2025,\"WF Credit Card   AUTO PAY                   PPD ID: 50260000\",-405.59,ACH_DEBIT,12729.46, ",
+            "DEBIT,12/12/2025,\"Online Transfer to CHK ...9994 transaction#: 27295296155 12/12\",-500.00,ACCT_XFER,13135.05, ",
+            "DEBIT,12/10/2025,\"CHASE CREDIT CRD AUTOPAY                    PPD ID: 4760039224\",-377.32,ACH_DEBIT,13635.05, ",
+            "CREDIT,12/10/2025,\"Online Transfer 27265796721 from Morganstanley #########7477 transaction #: 27265796721 12/10\",10000.00,ACCT_XFER,14012.37, ",
+            "CHECK,12/09/2025,\"CHECK 175  \",-5203.00,CHECK_PAID,4012.37,175,",
+            "DEBIT,12/09/2025,\"AMZ_STORECRD_PMT PAYMENT    604578162822612 WEB ID: 9130142001\",-124.93,ACH_DEBIT,9215.37, ",
+            "CHECK,12/08/2025,\"CHECK 173  \",-2000.00,CHECK_PAID,9340.30,173,"
         };
 
         // Add original transactions
@@ -100,16 +102,16 @@ class CSVImportE2ETest {
         // Use various transaction types and dates to simulate real bank statement
         final String[] types = {"DEBIT", "CREDIT", "CHECK"};
         final String[] descriptions = {
-                "GROCERY STORE PURCHASE",
-                "GAS STATION PAYMENT",
-                "RESTAURANT DINING",
-                "ONLINE PAYMENT",
-                "ATM WITHDRAWAL",
-                "BILL PAYMENT",
-                "TRANSFER",
-                "SALARY DEPOSIT",
-                "INTEREST PAYMENT",
-                "FEE CHARGE"
+            "GROCERY STORE PURCHASE",
+            "GAS STATION PAYMENT",
+            "RESTAURANT DINING",
+            "ONLINE PAYMENT",
+            "ATM WITHDRAWAL",
+            "BILL PAYMENT",
+            "TRANSFER",
+            "SALARY DEPOSIT",
+            "INTEREST PAYMENT",
+            "FEE CHARGE"
         };
         double balance = 9340.30;
 
@@ -180,7 +182,8 @@ class CSVImportE2ETest {
         // Create test user
         final String testEmail = "csv-e2e-test-" + UUID.randomUUID() + "@example.com";
         final String base64PasswordHash =
-                java.util.Base64.getEncoder().encodeToString("hashed-password".getBytes(StandardCharsets.UTF_8));
+                java.util.Base64.getEncoder()
+                        .encodeToString("hashed-password".getBytes(StandardCharsets.UTF_8));
         testUser = userService.createUserSecure(testEmail, base64PasswordHash, "Test", "User");
 
         // Create test account
@@ -226,21 +229,22 @@ class CSVImportE2ETest {
     void testE2ECSVImportFlowFromiOSApp() throws Exception {
         final String filename = "bank_statement.csv";
         final MockMultipartFile csvFile =
-                new MockMultipartFile("file", filename, "text/csv", CSV_CONTENT.getBytes(StandardCharsets.UTF_8));
+                new MockMultipartFile(
+                        FILE, filename, "text/csv", CSV_CONTENT.getBytes(StandardCharsets.UTF_8));
 
         // ========== STEP 1: iOS App calls Preview Endpoint ==========
         // Simulate iOS app previewing the CSV file with accountId selected
         final MvcResult previewResult1 =
                 mockMvc.perform(
-                        multipart("/api/transactions/import-csv/preview")
-                                .file(csvFile)
-                                .param(
-                                        "accountId",
-                                        testAccountId) // iOS app provides accountId
-                                .with(
-                                        SecurityMockMvcRequestPostProcessors.user(
-                                                userDetails))
-                                .contentType(MediaType.MULTIPART_FORM_DATA))
+                                multipart("/api/transactions/import-csv/preview")
+                                        .file(csvFile)
+                                        .param(
+                                                ACCOUNTID,
+                                                testAccountId) // iOS app provides accountId
+                                        .with(
+                                                SecurityMockMvcRequestPostProcessors.user(
+                                                        userDetails))
+                                        .contentType(MediaType.MULTIPART_FORM_DATA))
                         .andExpect(status().isOk())
                         .andExpect(jsonPath("$.totalParsed").exists())
                         .andExpect(jsonPath("$.transactions").isArray())
@@ -262,17 +266,18 @@ class CSVImportE2ETest {
         // ========== STEP 2: iOS App calls Import Endpoint ==========
         // Simulate iOS app importing the CSV file
         final MockMultipartFile csvFileForImport =
-                new MockMultipartFile("file", filename, "text/csv", CSV_CONTENT.getBytes(StandardCharsets.UTF_8));
+                new MockMultipartFile(
+                        FILE, filename, "text/csv", CSV_CONTENT.getBytes(StandardCharsets.UTF_8));
 
         final MvcResult importResult1 =
                 mockMvc.perform(
-                        multipart("/api/transactions/import-csv")
-                                .file(csvFileForImport)
-                                .param("accountId", testAccountId)
-                                .with(
-                                        SecurityMockMvcRequestPostProcessors.user(
-                                                userDetails))
-                                .contentType(MediaType.MULTIPART_FORM_DATA))
+                                multipart("/api/transactions/import-csv")
+                                        .file(csvFileForImport)
+                                        .param(ACCOUNTID, testAccountId)
+                                        .with(
+                                                SecurityMockMvcRequestPostProcessors.user(
+                                                        userDetails))
+                                        .contentType(MediaType.MULTIPART_FORM_DATA))
                         .andExpect(status().isOk())
                         .andExpect(jsonPath("$.created").exists())
                         .andReturn();
@@ -316,17 +321,18 @@ class CSVImportE2ETest {
         // ========== STEP 3: iOS App calls Preview Endpoint Again (Re-Preview) ==========
         // Simulate iOS app previewing the same CSV file again
         final MockMultipartFile csvFileForPreview2 =
-                new MockMultipartFile("file", filename, "text/csv", CSV_CONTENT.getBytes(StandardCharsets.UTF_8));
+                new MockMultipartFile(
+                        FILE, filename, "text/csv", CSV_CONTENT.getBytes(StandardCharsets.UTF_8));
 
         final MvcResult previewResult2 =
                 mockMvc.perform(
-                        multipart("/api/transactions/import-csv/preview")
-                                .file(csvFileForPreview2)
-                                .param("accountId", testAccountId) // Same accountId
-                                .with(
-                                        SecurityMockMvcRequestPostProcessors.user(
-                                                userDetails))
-                                .contentType(MediaType.MULTIPART_FORM_DATA))
+                                multipart("/api/transactions/import-csv/preview")
+                                        .file(csvFileForPreview2)
+                                        .param(ACCOUNTID, testAccountId) // Same accountId
+                                        .with(
+                                                SecurityMockMvcRequestPostProcessors.user(
+                                                        userDetails))
+                                        .contentType(MediaType.MULTIPART_FORM_DATA))
                         .andExpect(status().isOk())
                         .andExpect(jsonPath("$.totalParsed").exists())
                         .andExpect(jsonPath("$.transactions").isArray())
@@ -348,17 +354,18 @@ class CSVImportE2ETest {
         // ========== STEP 4: iOS App calls Import Endpoint Again (Re-Import) ==========
         // Simulate iOS app importing the same CSV file again
         final MockMultipartFile csvFileForImport2 =
-                new MockMultipartFile("file", filename, "text/csv", CSV_CONTENT.getBytes(StandardCharsets.UTF_8));
+                new MockMultipartFile(
+                        FILE, filename, "text/csv", CSV_CONTENT.getBytes(StandardCharsets.UTF_8));
 
         final MvcResult importResult2 =
                 mockMvc.perform(
-                        multipart("/api/transactions/import-csv")
-                                .file(csvFileForImport2)
-                                .param("accountId", testAccountId)
-                                .with(
-                                        SecurityMockMvcRequestPostProcessors.user(
-                                                userDetails))
-                                .contentType(MediaType.MULTIPART_FORM_DATA))
+                                multipart("/api/transactions/import-csv")
+                                        .file(csvFileForImport2)
+                                        .param(ACCOUNTID, testAccountId)
+                                        .with(
+                                                SecurityMockMvcRequestPostProcessors.user(
+                                                        userDetails))
+                                        .contentType(MediaType.MULTIPART_FORM_DATA))
                         .andExpect(status().isOk())
                         .andExpect(jsonPath("$.created").exists())
                         .andReturn();
@@ -454,19 +461,20 @@ class CSVImportE2ETest {
     void testE2ECSVPreviewWithoutAccountIdThenWithAccountId() throws Exception {
         final String filename = "bank_statement.csv";
         final MockMultipartFile csvFile =
-                new MockMultipartFile("file", filename, "text/csv", CSV_CONTENT.getBytes(StandardCharsets.UTF_8));
+                new MockMultipartFile(
+                        FILE, filename, "text/csv", CSV_CONTENT.getBytes(StandardCharsets.UTF_8));
 
         // ========== STEP 1: Preview without accountId ==========
         // Simulate iOS app previewing before account selection
         final MvcResult previewResult1 =
                 mockMvc.perform(
-                        multipart("/api/transactions/import-csv/preview")
-                                .file(csvFile)
-                                // No accountId parameter
-                                .with(
-                                        SecurityMockMvcRequestPostProcessors.user(
-                                                userDetails))
-                                .contentType(MediaType.MULTIPART_FORM_DATA))
+                                multipart("/api/transactions/import-csv/preview")
+                                        .file(csvFile)
+                                        // No accountId parameter
+                                        .with(
+                                                SecurityMockMvcRequestPostProcessors.user(
+                                                        userDetails))
+                                        .contentType(MediaType.MULTIPART_FORM_DATA))
                         .andExpect(status().isOk())
                         .andExpect(jsonPath("$.totalParsed").exists())
                         .andExpect(jsonPath("$.transactions").isArray())
@@ -478,12 +486,13 @@ class CSVImportE2ETest {
 
         // ========== STEP 2: Import with accountId ==========
         final MockMultipartFile csvFileForImport =
-                new MockMultipartFile("file", filename, "text/csv", CSV_CONTENT.getBytes(StandardCharsets.UTF_8));
+                new MockMultipartFile(
+                        FILE, filename, "text/csv", CSV_CONTENT.getBytes(StandardCharsets.UTF_8));
 
         mockMvc.perform(
                         multipart("/api/transactions/import-csv")
                                 .file(csvFileForImport)
-                                .param("accountId", testAccountId)
+                                .param(ACCOUNTID, testAccountId)
                                 .with(SecurityMockMvcRequestPostProcessors.user(userDetails))
                                 .contentType(MediaType.MULTIPART_FORM_DATA))
                 .andExpect(status().isOk())
@@ -491,17 +500,18 @@ class CSVImportE2ETest {
 
         // ========== STEP 3: Preview again with accountId (should show duplicates) ==========
         final MockMultipartFile csvFileForPreview2 =
-                new MockMultipartFile("file", filename, "text/csv", CSV_CONTENT.getBytes(StandardCharsets.UTF_8));
+                new MockMultipartFile(
+                        FILE, filename, "text/csv", CSV_CONTENT.getBytes(StandardCharsets.UTF_8));
 
         final MvcResult previewResult2 =
                 mockMvc.perform(
-                        multipart("/api/transactions/import-csv/preview")
-                                .file(csvFileForPreview2)
-                                .param("accountId", testAccountId) // Now with accountId
-                                .with(
-                                        SecurityMockMvcRequestPostProcessors.user(
-                                                userDetails))
-                                .contentType(MediaType.MULTIPART_FORM_DATA))
+                                multipart("/api/transactions/import-csv/preview")
+                                        .file(csvFileForPreview2)
+                                        .param(ACCOUNTID, testAccountId) // Now with accountId
+                                        .with(
+                                                SecurityMockMvcRequestPostProcessors.user(
+                                                        userDetails))
+                                        .contentType(MediaType.MULTIPART_FORM_DATA))
                         .andExpect(status().isOk())
                         .andExpect(jsonPath("$.totalParsed").exists())
                         .andExpect(jsonPath("$.transactions").isArray())

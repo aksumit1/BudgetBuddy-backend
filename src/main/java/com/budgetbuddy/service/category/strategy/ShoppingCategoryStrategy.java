@@ -1,6 +1,5 @@
 package com.budgetbuddy.service.category.strategy;
 
-
 import java.util.Locale;
 import org.springframework.stereotype.Component;
 
@@ -11,6 +10,8 @@ import org.springframework.stereotype.Component;
 @Component
 public class ShoppingCategoryStrategy extends BaseCategoryStrategy {
 
+    private static final String SHOPPING = "shopping";
+
     private static final String APPAREL = "apparel";
 
     private static final String CLOTHING = "clothing";
@@ -19,7 +20,9 @@ public class ShoppingCategoryStrategy extends BaseCategoryStrategy {
 
     @Override
     public String detectCategory(
-            final String normalizedMerchantName, final String descriptionLower, final String merchantName) {
+            final String normalizedMerchantName,
+            final String descriptionLower,
+            final String merchantName) {
         if (normalizedMerchantName == null || normalizedMerchantName.isBlank()) {
             return null;
         }
@@ -32,7 +35,7 @@ public class ShoppingCategoryStrategy extends BaseCategoryStrategy {
                 || descriptionLower.contains("minimountain")) {
             LOGGER.debug(
                     "🏷️ detectCategoryFromMerchantName: Detected Mini Mountain (ski-gear) → 'shopping'");
-            return "shopping";
+            return SHOPPING;
         }
         // Sports equipment patterns
         if (normalizedMerchantName.contains("ski gear")
@@ -48,11 +51,12 @@ public class ShoppingCategoryStrategy extends BaseCategoryStrategy {
                 || descriptionLower.contains("outdoor gear")) {
             LOGGER.debug(
                     "🏷️ detectCategoryFromMerchantName: Detected sports equipment/gear → 'shopping'");
-            return "shopping";
+            return SHOPPING;
         }
 
         // Clothing/Apparel patterns - Must come BEFORE general shopping stores
-        final String merchantLowerForShopping = merchantName != null ? merchantName.toLowerCase(Locale.ROOT) : "";
+        final String merchantLowerForShopping =
+                merchantName != null ? merchantName.toLowerCase(Locale.ROOT) : "";
         final String descLowerForShopping = descriptionLower != null ? descriptionLower : "";
 
         if (normalizedMerchantName.contains(CLOTHING)
@@ -85,48 +89,48 @@ public class ShoppingCategoryStrategy extends BaseCategoryStrategy {
                 || descLowerForShopping.contains("womens")) {
             LOGGER.debug(
                     "🏷️ detectCategoryFromMerchantName: Detected clothing/apparel → 'shopping'");
-            return "shopping";
+            return SHOPPING;
         }
 
         final String[] shoppingStores = {
-                "target",
-                "walmart",
-                "costco",
-                "best buy",
-                "bestbuy",
-                "macy's",
-                "macys",
-                "nordstrom",
-                "tj maxx",
-                "tjmaxx",
-                "marshalls",
-                "ross",
-                "burlington",
-                "kohl's",
-                "kohls",
-                DAISO,
-                "michaels",
-                "michaels stores",
-                "michaelsstores",
-                "michael's",
-                "michaels",
-                "dollar tree",
-                "dollartree",
-                "dollar tree store",
-                "dollartreestore",
-                "store newcastle",
-                "store new castle",
-                "storenewcastle"
+            "target",
+            "walmart",
+            "costco",
+            "best buy",
+            "bestbuy",
+            "macy's",
+            "macys",
+            "nordstrom",
+            "tj maxx",
+            "tjmaxx",
+            "marshalls",
+            "ross",
+            "burlington",
+            "kohl's",
+            "kohls",
+            DAISO,
+            "michaels",
+            "michaels stores",
+            "michaelsstores",
+            "michael's",
+            "michaels",
+            "dollar tree",
+            "dollartree",
+            "dollar tree store",
+            "dollartreestore",
+            "store newcastle",
+            "store new castle",
+            "storenewcastle"
         };
         for (final String store : shoppingStores) {
             if (normalizedMerchantName.contains(store) || descriptionLower.contains(store)) {
-                return "shopping";
+                return SHOPPING;
             }
         }
         // Daiso (retail chain)
         if (normalizedMerchantName.contains(DAISO) || descriptionLower.contains(DAISO)) {
             LOGGER.debug("🏷️ detectCategoryFromMerchantName: Detected Daiso → 'shopping'");
-            return "shopping";
+            return SHOPPING;
         }
 
         return null; // No match found

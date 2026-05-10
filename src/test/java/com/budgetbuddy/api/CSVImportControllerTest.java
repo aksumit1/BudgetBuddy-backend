@@ -1,8 +1,5 @@
 package com.budgetbuddy.api;
 
-
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import java.nio.charset.StandardCharsets;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -28,7 +25,9 @@ import com.budgetbuddy.service.DuplicateDetectionService;
 import com.budgetbuddy.service.TransactionService;
 import com.budgetbuddy.service.TransactionTypeCategoryService;
 import com.budgetbuddy.service.UserService;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.util.Arrays;
 import java.util.List;
@@ -61,6 +60,8 @@ import org.springframework.web.multipart.MultipartFile;
 @ExtendWith(MockitoExtension.class)
 @org.mockito.junit.jupiter.MockitoSettings(strictness = org.mockito.quality.Strictness.LENIENT)
 class CSVImportControllerTest {
+
+    private static final String SELECTED = "selected";
 
     @Mock private TransactionService transactionService;
 
@@ -185,7 +186,12 @@ class CSVImportControllerTest {
                 "Date,Description,Amount\n"
                         + "2025-12-01,STARBUCKS COFFEE,-5.50\n"
                         + "2025-12-02,AMAZON PURCHASE,-29.99\n";
-        mockCSVFile = new MockMultipartFile("file", "test.csv", "text/csv", csvContent.getBytes(StandardCharsets.UTF_8));
+        mockCSVFile =
+                new MockMultipartFile(
+                        "file",
+                        "test.csv",
+                        "text/csv",
+                        csvContent.getBytes(StandardCharsets.UTF_8));
     }
 
     // MARK: - CSV Preview Tests
@@ -234,9 +240,8 @@ class CSVImportControllerTest {
 
         final Map<String, Object> firstTx = transactions.get(0);
         // Required fields
-        assertTrue(firstTx.containsKey("selected"), "Transaction must have 'selected' field");
-        assertEquals(
-                true, firstTx.get("selected"), "Transaction 'selected' should default to true");
+        assertTrue(firstTx.containsKey(SELECTED), "Transaction must have 'selected' field");
+        assertEquals(true, firstTx.get(SELECTED), "Transaction 'selected' should default to true");
         assertTrue(firstTx.containsKey("date"), "Transaction must have 'date' field");
         assertTrue(firstTx.containsKey("amount"), "Transaction must have 'amount' field");
         assertTrue(firstTx.containsKey("description"), "Transaction must have 'description' field");
@@ -279,7 +284,11 @@ class CSVImportControllerTest {
         // Given - CSV with INR currency
         final String inrCSV = "Date,Description,Amount\n" + "2025-12-01,PAYMENT,₹1000.00\n";
         final MultipartFile inrFile =
-                new MockMultipartFile("file", "test_inr.csv", "text/csv", inrCSV.getBytes(StandardCharsets.UTF_8));
+                new MockMultipartFile(
+                        "file",
+                        "test_inr.csv",
+                        "text/csv",
+                        inrCSV.getBytes(StandardCharsets.UTF_8));
 
         final CSVImportService.ParsedTransaction parsed =
                 createParsedTransaction("2025-12-01", -1000.0, "PAYMENT", "INR");
@@ -466,9 +475,9 @@ class CSVImportControllerTest {
 
         // Required fields that iOS app expects (from CSVUploadService.PreviewTransaction)
         assertTrue(
-                tx.containsKey("selected"),
+                tx.containsKey(SELECTED),
                 "MISSING: 'selected' field - this would cause iOS decoding error");
-        assertEquals(true, tx.get("selected"), "'selected' should default to true");
+        assertEquals(true, tx.get(SELECTED), "'selected' should default to true");
 
         assertTrue(tx.containsKey("date"), "MISSING: 'date' field");
         assertTrue(tx.containsKey("amount"), "MISSING: 'amount' field");
@@ -485,7 +494,7 @@ class CSVImportControllerTest {
         assertTrue(tx.containsKey("transactionType"), "MISSING: 'transactionType' field");
 
         // Verify field types
-        assertTrue(tx.get("selected") instanceof Boolean, "'selected' should be Boolean");
+        assertTrue(tx.get(SELECTED) instanceof Boolean, "'selected' should be Boolean");
         assertTrue(
                 tx.get("amount") instanceof Double || tx.get("amount") instanceof Number,
                 "'amount' should be Number");
@@ -737,7 +746,10 @@ class CSVImportControllerTest {
     // MARK: - Helper Methods
 
     private CSVImportService.ParsedTransaction createParsedTransaction(
-            final String date, final double amount, final String description, final String currencyCode) {
+            final String date,
+            final double amount,
+            final String description,
+            final String currencyCode) {
         final CSVImportService.ParsedTransaction parsed = new CSVImportService.ParsedTransaction();
         parsed.setDate(LocalDate.parse(date));
         parsed.setAmount(new BigDecimal(String.valueOf(amount)));

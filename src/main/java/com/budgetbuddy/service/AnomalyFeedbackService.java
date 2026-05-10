@@ -1,15 +1,13 @@
 package com.budgetbuddy.service;
 
-
-
-import java.nio.charset.StandardCharsets;
-import java.util.Locale;
 import com.budgetbuddy.model.dynamodb.AnomalyFeedbackTable;
 import com.budgetbuddy.repository.dynamodb.AnomalyFeedbackRepository;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -69,7 +67,9 @@ public class AnomalyFeedbackService {
             final Verdict verdict) {
         final String fp = fingerprintOf(merchant, category, amount);
         final String feedbackId =
-                UUID.nameUUIDFromBytes((userId + "|" + fp + "|" + verdict.name()).getBytes(StandardCharsets.UTF_8))
+                UUID.nameUUIDFromBytes(
+                                (userId + "|" + fp + "|" + verdict.name())
+                                        .getBytes(StandardCharsets.UTF_8))
                         .toString();
 
         final AnomalyFeedbackTable row =
@@ -107,7 +107,8 @@ public class AnomalyFeedbackService {
      * "$194 at Costco" collapse to the same pattern — otherwise a dismissal would be permanently
      * invalidated by every cent of noise.
      */
-    public static String fingerprintOf(final String merchant, final String category, final BigDecimal amount) {
+    public static String fingerprintOf(
+            final String merchant, final String category, final BigDecimal amount) {
         final String m = merchant == null ? "" : merchant.trim().toLowerCase(Locale.ROOT);
         final String c = category == null ? "" : category.trim().toLowerCase(Locale.ROOT);
         String a = "0";

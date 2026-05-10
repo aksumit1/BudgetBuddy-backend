@@ -1,7 +1,5 @@
 package com.budgetbuddy.performance;
 
-
-import java.nio.charset.StandardCharsets;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.budgetbuddy.AWSTestConfiguration;
@@ -10,6 +8,7 @@ import com.budgetbuddy.model.dynamodb.UserTable;
 import com.budgetbuddy.repository.dynamodb.TransactionRepository;
 import com.budgetbuddy.service.UserService;
 import com.budgetbuddy.util.TableInitializer;
+import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.List;
 import java.util.UUID;
@@ -61,7 +60,8 @@ class MemoryLeakTest {
     void setUp() {
         // Create test user
         final String email = "memory-test-" + UUID.randomUUID() + "@example.com";
-        final String passwordHash = Base64.getEncoder().encodeToString("testpassword".getBytes(StandardCharsets.UTF_8));
+        final String passwordHash =
+                Base64.getEncoder().encodeToString("testpassword".getBytes(StandardCharsets.UTF_8));
         testUser = userService.createUserSecure(email, passwordHash, "Memory", "Test");
     }
 

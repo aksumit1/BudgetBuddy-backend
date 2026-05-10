@@ -25,6 +25,11 @@ import org.springframework.test.context.ActiveProfiles;
 @Import(AWSTestConfiguration.class)
 class SecurityConfigTest {
 
+    private static final String RESOURCENOTFOUNDEXCEPTION = "ResourceNotFoundException";
+    private static final String DYNAMODB = "DynamoDB";
+    private static final String ENDPOINT = "endpoint";
+    private static final String CONNECTION = "Connection";
+
     @Autowired private PasswordEncoder passwordEncoder;
 
     @Test
@@ -47,15 +52,15 @@ class SecurityConfigTest {
             final String causeMsg =
                     cause != null && cause.getMessage() != null ? cause.getMessage() : "";
 
-            if (errorMsg.contains("DynamoDB")
+            if (errorMsg.contains(DYNAMODB)
                     || errorMsg.contains("LocalStack")
-                    || errorMsg.contains("Connection")
-                    || errorMsg.contains("endpoint")
-                    || errorMsg.contains("ResourceNotFoundException")
-                    || causeMsg.contains("DynamoDB")
-                    || causeMsg.contains("Connection")
-                    || causeMsg.contains("endpoint")
-                    || causeMsg.contains("ResourceNotFoundException")) {
+                    || errorMsg.contains(CONNECTION)
+                    || errorMsg.contains(ENDPOINT)
+                    || errorMsg.contains(RESOURCENOTFOUNDEXCEPTION)
+                    || causeMsg.contains(DYNAMODB)
+                    || causeMsg.contains(CONNECTION)
+                    || causeMsg.contains(ENDPOINT)
+                    || causeMsg.contains(RESOURCENOTFOUNDEXCEPTION)) {
                 org.junit.jupiter.api.Assumptions.assumeTrue(
                         false,
                         "Test requires DynamoDB/LocalStack to be running. Skipping test: "
@@ -85,15 +90,15 @@ class SecurityConfigTest {
             final String causeMsg =
                     cause != null && cause.getMessage() != null ? cause.getMessage() : "";
 
-            if (errorMsg.contains("DynamoDB")
+            if (errorMsg.contains(DYNAMODB)
                     || errorMsg.contains("LocalStack")
-                    || errorMsg.contains("Connection")
-                    || errorMsg.contains("endpoint")
-                    || errorMsg.contains("ResourceNotFoundException")
-                    || causeMsg.contains("DynamoDB")
-                    || causeMsg.contains("Connection")
-                    || causeMsg.contains("endpoint")
-                    || causeMsg.contains("ResourceNotFoundException")) {
+                    || errorMsg.contains(CONNECTION)
+                    || errorMsg.contains(ENDPOINT)
+                    || errorMsg.contains(RESOURCENOTFOUNDEXCEPTION)
+                    || causeMsg.contains(DYNAMODB)
+                    || causeMsg.contains(CONNECTION)
+                    || causeMsg.contains(ENDPOINT)
+                    || causeMsg.contains(RESOURCENOTFOUNDEXCEPTION)) {
                 org.junit.jupiter.api.Assumptions.assumeTrue(
                         false,
                         "Test requires DynamoDB/LocalStack to be running. Skipping test: "
@@ -124,15 +129,15 @@ class SecurityConfigTest {
             final String causeMsg =
                     cause != null && cause.getMessage() != null ? cause.getMessage() : "";
 
-            if (errorMsg.contains("DynamoDB")
+            if (errorMsg.contains(DYNAMODB)
                     || errorMsg.contains("LocalStack")
-                    || errorMsg.contains("Connection")
-                    || errorMsg.contains("endpoint")
-                    || errorMsg.contains("ResourceNotFoundException")
-                    || causeMsg.contains("DynamoDB")
-                    || causeMsg.contains("Connection")
-                    || causeMsg.contains("endpoint")
-                    || causeMsg.contains("ResourceNotFoundException")) {
+                    || errorMsg.contains(CONNECTION)
+                    || errorMsg.contains(ENDPOINT)
+                    || errorMsg.contains(RESOURCENOTFOUNDEXCEPTION)
+                    || causeMsg.contains(DYNAMODB)
+                    || causeMsg.contains(CONNECTION)
+                    || causeMsg.contains(ENDPOINT)
+                    || causeMsg.contains(RESOURCENOTFOUNDEXCEPTION)) {
                 org.junit.jupiter.api.Assumptions.assumeTrue(
                         false,
                         "Test requires DynamoDB/LocalStack to be running. Skipping test: "

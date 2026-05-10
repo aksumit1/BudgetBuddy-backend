@@ -1,7 +1,5 @@
 package com.budgetbuddy.api;
 
-
-import java.nio.charset.StandardCharsets;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
@@ -19,6 +17,7 @@ import com.budgetbuddy.service.AccountDetectionService;
 import com.budgetbuddy.service.UserService;
 import com.budgetbuddy.util.TableInitializer;
 import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -61,6 +60,8 @@ import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class DetectedAccountCreationE2ETest {
 
+    private static final String OTHER = "other";
+
     private static final Logger LOGGER =
             LoggerFactory.getLogger(DetectedAccountCreationE2ETest.class);
 
@@ -84,7 +85,9 @@ class DetectedAccountCreationE2ETest {
     void setUp() {
         // Create test user
         final String email = "test-detected-account-" + UUID.randomUUID() + "@example.com";
-        final String passwordHash = java.util.Base64.getEncoder().encodeToString("test-hash".getBytes(StandardCharsets.UTF_8));
+        final String passwordHash =
+                java.util.Base64.getEncoder()
+                        .encodeToString("test-hash".getBytes(StandardCharsets.UTF_8));
         testUser = userService.createUserSecure(email, passwordHash, "Test", "User");
 
         // Create second user for security tests
@@ -144,7 +147,7 @@ class DetectedAccountCreationE2ETest {
         assertTrue(account.isPresent());
         assertEquals("Imported Account", account.get().getAccountName());
         assertEquals("Unknown", account.get().getInstitutionName());
-        assertEquals("other", account.get().getAccountType());
+        assertEquals(OTHER, account.get().getAccountType());
         assertEquals(testUser.getUserId(), account.get().getUserId());
     }
 
@@ -166,7 +169,7 @@ class DetectedAccountCreationE2ETest {
         assertTrue(account.isPresent());
         assertEquals("Imported Account", account.get().getAccountName());
         assertEquals("Unknown", account.get().getInstitutionName());
-        assertEquals("other", account.get().getAccountType());
+        assertEquals(OTHER, account.get().getAccountType());
     }
 
     @Test
@@ -180,11 +183,11 @@ class DetectedAccountCreationE2ETest {
         // When: Create account
         final String accountId = createAccountViaReflection(testUser, detectedInfo);
 
-        // Then: Account should be created with default type "other"
+        // Then: Account should be created with default type OTHER
         assertNotNull(accountId);
         final Optional<AccountTable> account = accountRepository.findById(accountId);
         assertTrue(account.isPresent());
-        assertEquals("other", account.get().getAccountType());
+        assertEquals(OTHER, account.get().getAccountType());
     }
 
     @Test
@@ -327,7 +330,8 @@ class DetectedAccountCreationE2ETest {
             executor.submit(
                     () -> {
                         try {
-                            final String accountId = createAccountViaReflection(testUser, detectedInfo);
+                            final String accountId =
+                                    createAccountViaReflection(testUser, detectedInfo);
                             createdAccountIds.add(accountId);
                         } catch (Exception e) {
                             errors.add(e);
@@ -354,7 +358,7 @@ class DetectedAccountCreationE2ETest {
                                 a ->
                                         "5678".equals(a.getAccountNumber())
                                                 && "Race Condition Bank"
-                                                .equals(a.getInstitutionName()))
+                                                        .equals(a.getInstitutionName()))
                         .collect(java.util.stream.Collectors.toList());
 
         // CRITICAL: Due to race conditions, multiple accounts might be created
@@ -424,7 +428,7 @@ class DetectedAccountCreationE2ETest {
         tx1.setAmount(new BigDecimal("100.00"));
         tx1.setTransactionDate(LocalDate.now());
         tx1.setDescription("Test Transaction 1");
-        tx1.setCategoryPrimary("other"); // Required field
+        tx1.setCategoryPrimary(OTHER); // Required field
         // Note: No accountId set - should use detected account
         transactions.add(tx1);
         request.setTransactions(transactions);
@@ -457,7 +461,7 @@ class DetectedAccountCreationE2ETest {
                                 a ->
                                         "9999".equals(a.getAccountNumber())
                                                 && "Batch Import Bank"
-                                                .equals(a.getInstitutionName()))
+                                                        .equals(a.getInstitutionName()))
                         .findFirst();
         assertTrue(createdAccount.isPresent(), "Account should be created");
     }
@@ -480,7 +484,7 @@ class DetectedAccountCreationE2ETest {
         tx1.setAmount(new BigDecimal("100.00"));
         tx1.setTransactionDate(LocalDate.now());
         tx1.setDescription("Test Transaction");
-        tx1.setCategoryPrimary("other"); // Required field
+        tx1.setCategoryPrimary(OTHER); // Required field
         tx1.setAccountId("pseudo-account-id"); // Use pseudo account as fallback
         transactions.add(tx1);
         request.setTransactions(transactions);

@@ -21,6 +21,8 @@ import software.amazon.awssdk.services.cloudwatch.CloudWatchClient;
 /** Comprehensive tests for SOC2ComplianceService */
 class SOC2ComplianceServiceTest {
 
+    private static final String USER_123 = "user-123";
+
     @Mock private AuditLogService auditLogService;
 
     @Mock private CloudWatchClient cloudWatchClient;
@@ -39,7 +41,7 @@ class SOC2ComplianceServiceTest {
         // Given
         final String controlId = "CC1.1";
         final String activity = "Access review";
-        final String userId = "user-123";
+        final String userId = USER_123;
 
         // When
         soc2ComplianceService.logControlActivity(controlId, activity, userId);
@@ -54,7 +56,7 @@ class SOC2ComplianceServiceTest {
         // Given
         final String changeType = "Configuration";
         final String description = "Updated security settings";
-        final String userId = "user-123";
+        final String userId = USER_123;
 
         // When
         soc2ComplianceService.logSystemChange(changeType, description, userId);
@@ -69,7 +71,7 @@ class SOC2ComplianceServiceTest {
         // Given
         final String resource = "/api/admin/users";
         final String action = "DELETE";
-        final String userId = "user-123";
+        final String userId = USER_123;
 
         // When
         final SOC2ComplianceService.RiskAssessment assessment =
@@ -91,7 +93,7 @@ class SOC2ComplianceServiceTest {
         // Given
         final String resource = "/api/admin/compliance";
         final String action = "DELETE";
-        final String userId = "user-123";
+        final String userId = USER_123;
 
         // When
         final SOC2ComplianceService.RiskAssessment assessment =
@@ -157,7 +159,7 @@ class SOC2ComplianceServiceTest {
         // Given
         final String resource = "/api/transactions";
         final String action = "GET";
-        final String userId = "user-123";
+        final String userId = USER_123;
 
         // When
         soc2ComplianceService.logAccessControl(resource, action, userId, true);
@@ -188,7 +190,7 @@ class SOC2ComplianceServiceTest {
         final String changeId = "CHG-001";
         final String changeType = "Configuration";
         final String description = "Updated API endpoint";
-        final String userId = "user-123";
+        final String userId = USER_123;
 
         // When
         soc2ComplianceService.logChangeManagement(changeId, changeType, description, userId);

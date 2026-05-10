@@ -33,6 +33,8 @@ import software.amazon.awssdk.services.secretsmanager.SecretsManagerClient;
 @SuppressWarnings({"PMD.AvoidCatchingGenericException", "PMD.OnlyOneReturn"})
 public class AwsServicesConfig {
 
+    private static final String CLOSE = "close";
+
     @Value("${app.aws.region:us-east-1}")
     private String awsRegion;
 
@@ -63,7 +65,7 @@ public class AwsServicesConfig {
         }
     }
 
-    @Bean(destroyMethod = "close")
+    @Bean(destroyMethod = CLOSE)
     public CloudWatchClient cloudWatchClient() {
         final var builder =
                 CloudWatchClient.builder()
@@ -78,7 +80,7 @@ public class AwsServicesConfig {
         return builder.build();
     }
 
-    @Bean(destroyMethod = "close")
+    @Bean(destroyMethod = CLOSE)
     public CloudTrailClient cloudTrailClient() {
         return CloudTrailClient.builder()
                 .region(Region.of(awsRegion))
@@ -86,7 +88,7 @@ public class AwsServicesConfig {
                 .build();
     }
 
-    @Bean(destroyMethod = "close")
+    @Bean(destroyMethod = CLOSE)
     public CloudFormationClient cloudFormationClient() {
         return CloudFormationClient.builder()
                 .region(Region.of(awsRegion))
@@ -94,7 +96,7 @@ public class AwsServicesConfig {
                 .build();
     }
 
-    @Bean(destroyMethod = "close")
+    @Bean(destroyMethod = CLOSE)
     public CodePipelineClient codePipelineClient() {
         return CodePipelineClient.builder()
                 .region(Region.of(awsRegion))
@@ -102,7 +104,7 @@ public class AwsServicesConfig {
                 .build();
     }
 
-    @Bean(destroyMethod = "close")
+    @Bean(destroyMethod = CLOSE)
     public CognitoIdentityProviderClient cognitoIdentityProviderClient() {
         return CognitoIdentityProviderClient.builder()
                 .region(Region.of(awsRegion))
@@ -110,7 +112,7 @@ public class AwsServicesConfig {
                 .build();
     }
 
-    @Bean(destroyMethod = "close")
+    @Bean(destroyMethod = CLOSE)
     public KmsClient kmsClient() {
         return KmsClient.builder()
                 .region(Region.of(awsRegion))
@@ -118,7 +120,7 @@ public class AwsServicesConfig {
                 .build();
     }
 
-    @Bean(destroyMethod = "close")
+    @Bean(destroyMethod = CLOSE)
     public SecretsManagerClient secretsManagerClient() {
         final var builder =
                 SecretsManagerClient.builder()

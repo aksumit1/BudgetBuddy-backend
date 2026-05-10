@@ -1,12 +1,11 @@
 package com.budgetbuddy.service.ml;
 
-
-import java.util.Locale;
 import jakarta.annotation.PostConstruct;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import org.slf4j.Logger;
@@ -33,7 +32,8 @@ import org.springframework.stereotype.Service;
 @Service
 public class MerchantCategoryDataService {
 
-    private static final String MERCHANT_COUNT_EXCEEDED_SAFETY_LIMIT = "Merchant count exceeded safety limit ({}). Stopping data load.";
+    private static final String MERCHANT_COUNT_EXCEEDED_SAFETY_LIMIT =
+            "Merchant count exceeded safety limit ({}). Stopping data load.";
 
     private static final String CHARITY = "charity";
 
@@ -175,9 +175,7 @@ public class MerchantCategoryDataService {
                 merchantCount += 23;
                 // CRITICAL: Boundary check after each category
                 if (merchantCount > MAX_MERCHANTS) {
-                    LOGGER.error(
-                            MERCHANT_COUNT_EXCEEDED_SAFETY_LIMIT,
-                            MAX_MERCHANTS);
+                    LOGGER.error(MERCHANT_COUNT_EXCEEDED_SAFETY_LIMIT, MAX_MERCHANTS);
                     return;
                 }
 
@@ -197,9 +195,7 @@ public class MerchantCategoryDataService {
                 merchantCount += 9;
                 // CRITICAL: Boundary check after each category
                 if (merchantCount > MAX_MERCHANTS) {
-                    LOGGER.error(
-                            MERCHANT_COUNT_EXCEEDED_SAFETY_LIMIT,
-                            MAX_MERCHANTS);
+                    LOGGER.error(MERCHANT_COUNT_EXCEEDED_SAFETY_LIMIT, MAX_MERCHANTS);
                     return;
                 }
 
@@ -233,9 +229,7 @@ public class MerchantCategoryDataService {
                 merchantCount += 20;
                 // CRITICAL: Boundary check after each category
                 if (merchantCount > MAX_MERCHANTS) {
-                    LOGGER.error(
-                            MERCHANT_COUNT_EXCEEDED_SAFETY_LIMIT,
-                            MAX_MERCHANTS);
+                    LOGGER.error(MERCHANT_COUNT_EXCEEDED_SAFETY_LIMIT, MAX_MERCHANTS);
                     return;
                 }
 
@@ -523,9 +517,7 @@ public class MerchantCategoryDataService {
                 merchantCount += 274;
                 // CRITICAL: Boundary check after each category
                 if (merchantCount > MAX_MERCHANTS) {
-                    LOGGER.error(
-                            MERCHANT_COUNT_EXCEEDED_SAFETY_LIMIT,
-                            MAX_MERCHANTS);
+                    LOGGER.error(MERCHANT_COUNT_EXCEEDED_SAFETY_LIMIT, MAX_MERCHANTS);
                     return;
                 }
 
@@ -680,9 +672,7 @@ public class MerchantCategoryDataService {
                 merchantCount += 146;
                 // CRITICAL: Boundary check after each category
                 if (merchantCount > MAX_MERCHANTS) {
-                    LOGGER.error(
-                            MERCHANT_COUNT_EXCEEDED_SAFETY_LIMIT,
-                            MAX_MERCHANTS);
+                    LOGGER.error(MERCHANT_COUNT_EXCEEDED_SAFETY_LIMIT, MAX_MERCHANTS);
                     return;
                 }
 
@@ -782,9 +772,7 @@ public class MerchantCategoryDataService {
                 merchantCount += 91;
                 // CRITICAL: Boundary check after each category
                 if (merchantCount > MAX_MERCHANTS) {
-                    LOGGER.error(
-                            MERCHANT_COUNT_EXCEEDED_SAFETY_LIMIT,
-                            MAX_MERCHANTS);
+                    LOGGER.error(MERCHANT_COUNT_EXCEEDED_SAFETY_LIMIT, MAX_MERCHANTS);
                     return;
                 }
 
@@ -961,9 +949,7 @@ public class MerchantCategoryDataService {
                 merchantCount += 164;
                 // CRITICAL: Boundary check after each category
                 if (merchantCount > MAX_MERCHANTS) {
-                    LOGGER.error(
-                            MERCHANT_COUNT_EXCEEDED_SAFETY_LIMIT,
-                            MAX_MERCHANTS);
+                    LOGGER.error(MERCHANT_COUNT_EXCEEDED_SAFETY_LIMIT, MAX_MERCHANTS);
                     return;
                 }
 
@@ -1110,9 +1096,7 @@ public class MerchantCategoryDataService {
                 merchantCount += 130;
                 // CRITICAL: Boundary check after each category
                 if (merchantCount > MAX_MERCHANTS) {
-                    LOGGER.error(
-                            MERCHANT_COUNT_EXCEEDED_SAFETY_LIMIT,
-                            MAX_MERCHANTS);
+                    LOGGER.error(MERCHANT_COUNT_EXCEEDED_SAFETY_LIMIT, MAX_MERCHANTS);
                     return;
                 }
 
@@ -1195,9 +1179,7 @@ public class MerchantCategoryDataService {
                 merchantCount += 74;
                 // CRITICAL: Boundary check after each category
                 if (merchantCount > MAX_MERCHANTS) {
-                    LOGGER.error(
-                            MERCHANT_COUNT_EXCEEDED_SAFETY_LIMIT,
-                            MAX_MERCHANTS);
+                    LOGGER.error(MERCHANT_COUNT_EXCEEDED_SAFETY_LIMIT, MAX_MERCHANTS);
                     return;
                 }
 
@@ -1239,9 +1221,7 @@ public class MerchantCategoryDataService {
                 merchantCount += 33;
                 // CRITICAL: Boundary check after each category
                 if (merchantCount > MAX_MERCHANTS) {
-                    LOGGER.error(
-                            MERCHANT_COUNT_EXCEEDED_SAFETY_LIMIT,
-                            MAX_MERCHANTS);
+                    LOGGER.error(MERCHANT_COUNT_EXCEEDED_SAFETY_LIMIT, MAX_MERCHANTS);
                     return;
                 }
 
@@ -1427,9 +1407,7 @@ public class MerchantCategoryDataService {
                 merchantCount += 177;
                 // CRITICAL: Boundary check after each category
                 if (merchantCount > MAX_MERCHANTS) {
-                    LOGGER.error(
-                            MERCHANT_COUNT_EXCEEDED_SAFETY_LIMIT,
-                            MAX_MERCHANTS);
+                    LOGGER.error(MERCHANT_COUNT_EXCEEDED_SAFETY_LIMIT, MAX_MERCHANTS);
                     return;
                 }
 
@@ -1494,9 +1472,7 @@ public class MerchantCategoryDataService {
                 merchantCount += 56;
                 // CRITICAL: Boundary check after each category
                 if (merchantCount > MAX_MERCHANTS) {
-                    LOGGER.error(
-                            MERCHANT_COUNT_EXCEEDED_SAFETY_LIMIT,
-                            MAX_MERCHANTS);
+                    LOGGER.error(MERCHANT_COUNT_EXCEEDED_SAFETY_LIMIT, MAX_MERCHANTS);
                     return;
                 }
 
@@ -1692,9 +1668,7 @@ public class MerchantCategoryDataService {
                 merchantCount += 187;
                 // CRITICAL: Boundary check after each category
                 if (merchantCount > MAX_MERCHANTS) {
-                    LOGGER.error(
-                            MERCHANT_COUNT_EXCEEDED_SAFETY_LIMIT,
-                            MAX_MERCHANTS);
+                    LOGGER.error(MERCHANT_COUNT_EXCEEDED_SAFETY_LIMIT, MAX_MERCHANTS);
                     return;
                 }
 
@@ -1984,9 +1958,7 @@ public class MerchantCategoryDataService {
                 merchantCount += 275;
                 // CRITICAL: Boundary check after each category
                 if (merchantCount > MAX_MERCHANTS) {
-                    LOGGER.error(
-                            MERCHANT_COUNT_EXCEEDED_SAFETY_LIMIT,
-                            MAX_MERCHANTS);
+                    LOGGER.error(MERCHANT_COUNT_EXCEEDED_SAFETY_LIMIT, MAX_MERCHANTS);
                     return;
                 }
 
@@ -2054,9 +2026,7 @@ public class MerchantCategoryDataService {
                 merchantCount += 59;
                 // CRITICAL: Boundary check after each category
                 if (merchantCount > MAX_MERCHANTS) {
-                    LOGGER.error(
-                            MERCHANT_COUNT_EXCEEDED_SAFETY_LIMIT,
-                            MAX_MERCHANTS);
+                    LOGGER.error(MERCHANT_COUNT_EXCEEDED_SAFETY_LIMIT, MAX_MERCHANTS);
                     return;
                 }
 
@@ -2066,9 +2036,7 @@ public class MerchantCategoryDataService {
                 merchantCount += 1;
                 // CRITICAL: Boundary check after each category
                 if (merchantCount > MAX_MERCHANTS) {
-                    LOGGER.error(
-                            MERCHANT_COUNT_EXCEEDED_SAFETY_LIMIT,
-                            MAX_MERCHANTS);
+                    LOGGER.error(MERCHANT_COUNT_EXCEEDED_SAFETY_LIMIT, MAX_MERCHANTS);
                     return;
                 }
 
@@ -2104,9 +2072,7 @@ public class MerchantCategoryDataService {
                 merchantCount += 27;
                 // CRITICAL: Boundary check after each category
                 if (merchantCount > MAX_MERCHANTS) {
-                    LOGGER.error(
-                            MERCHANT_COUNT_EXCEEDED_SAFETY_LIMIT,
-                            MAX_MERCHANTS);
+                    LOGGER.error(MERCHANT_COUNT_EXCEEDED_SAFETY_LIMIT, MAX_MERCHANTS);
                     return;
                 }
 
@@ -2284,9 +2250,7 @@ public class MerchantCategoryDataService {
                 merchantCount += 159;
                 // CRITICAL: Boundary check after each category
                 if (merchantCount > MAX_MERCHANTS) {
-                    LOGGER.error(
-                            MERCHANT_COUNT_EXCEEDED_SAFETY_LIMIT,
-                            MAX_MERCHANTS);
+                    LOGGER.error(MERCHANT_COUNT_EXCEEDED_SAFETY_LIMIT, MAX_MERCHANTS);
                     return;
                 }
 
@@ -2437,9 +2401,7 @@ public class MerchantCategoryDataService {
                 merchantCount += 132;
                 // CRITICAL: Boundary check after each category
                 if (merchantCount > MAX_MERCHANTS) {
-                    LOGGER.error(
-                            MERCHANT_COUNT_EXCEEDED_SAFETY_LIMIT,
-                            MAX_MERCHANTS);
+                    LOGGER.error(MERCHANT_COUNT_EXCEEDED_SAFETY_LIMIT, MAX_MERCHANTS);
                     return;
                 }
 
@@ -2736,9 +2698,7 @@ public class MerchantCategoryDataService {
                 merchantCount += 279;
                 // CRITICAL: Boundary check after each category
                 if (merchantCount > MAX_MERCHANTS) {
-                    LOGGER.error(
-                            MERCHANT_COUNT_EXCEEDED_SAFETY_LIMIT,
-                            MAX_MERCHANTS);
+                    LOGGER.error(MERCHANT_COUNT_EXCEEDED_SAFETY_LIMIT, MAX_MERCHANTS);
                     return;
                 }
 
@@ -3069,9 +3029,7 @@ public class MerchantCategoryDataService {
                 merchantCount += 321;
                 // CRITICAL: Boundary check after each category
                 if (merchantCount > MAX_MERCHANTS) {
-                    LOGGER.error(
-                            MERCHANT_COUNT_EXCEEDED_SAFETY_LIMIT,
-                            MAX_MERCHANTS);
+                    LOGGER.error(MERCHANT_COUNT_EXCEEDED_SAFETY_LIMIT, MAX_MERCHANTS);
                     return;
                 }
 
@@ -3226,9 +3184,7 @@ public class MerchantCategoryDataService {
                 merchantCount += 75;
                 // CRITICAL: Boundary check after each category
                 if (merchantCount > MAX_MERCHANTS) {
-                    LOGGER.error(
-                            MERCHANT_COUNT_EXCEEDED_SAFETY_LIMIT,
-                            MAX_MERCHANTS);
+                    LOGGER.error(MERCHANT_COUNT_EXCEEDED_SAFETY_LIMIT, MAX_MERCHANTS);
                     return;
                 }
 
@@ -3430,9 +3386,7 @@ public class MerchantCategoryDataService {
                 merchantCount += 193;
                 // CRITICAL: Boundary check after each category
                 if (merchantCount > MAX_MERCHANTS) {
-                    LOGGER.error(
-                            MERCHANT_COUNT_EXCEEDED_SAFETY_LIMIT,
-                            MAX_MERCHANTS);
+                    LOGGER.error(MERCHANT_COUNT_EXCEEDED_SAFETY_LIMIT, MAX_MERCHANTS);
                     return;
                 }
 
@@ -3585,10 +3539,7 @@ public class MerchantCategoryDataService {
     public synchronized void addMerchantCategory(final String merchant, final String category) {
         try {
             // CRITICAL: Null and empty input validation
-            if (merchant == null
-                    || merchant.isBlank()
-                    || category == null
-                    || category.isBlank()) {
+            if (merchant == null || merchant.isBlank() || category == null || category.isBlank()) {
                 LOGGER.warn("Cannot add merchant category: merchant or category is null/empty");
                 return;
             }
@@ -3823,7 +3774,8 @@ public class MerchantCategoryDataService {
      * a black hole. We only accept a "payment" match if the keyword is conclusive on its own or the
      * description contains a payment-action phrase alongside it.
      */
-    private static boolean isPaymentFalsePositive(final MatchCandidate candidate, final String combined) {
+    private static boolean isPaymentFalsePositive(
+            final MatchCandidate candidate, final String combined) {
         if (candidate == null || !PAYMENT.equalsIgnoreCase(candidate.category)) {
             return false;
         }
@@ -3860,7 +3812,8 @@ public class MerchantCategoryDataService {
         return com.budgetbuddy.service.category.PaymentPhrases.isPaymentish(combined);
     }
 
-    private boolean isFullWordMatch(final String keyword, final String combined, final Set<String> tokens) {
+    private boolean isFullWordMatch(
+            final String keyword, final String combined, final Set<String> tokens) {
         if (keyword.contains(" ")) {
             return combined.contains(keyword);
         }
@@ -3901,7 +3854,11 @@ public class MerchantCategoryDataService {
         private final int frequency;
 
         private MatchCandidate(
-                final String category, final String keyword, final double score, final boolean fullWord, final int frequency) {
+                final String category,
+                final String keyword,
+                final double score,
+                final boolean fullWord,
+                final int frequency) {
             this.category = category;
             this.keyword = keyword;
             this.score = score;

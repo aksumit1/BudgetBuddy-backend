@@ -47,6 +47,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @org.mockito.junit.jupiter.MockitoSettings(strictness = org.mockito.quality.Strictness.LENIENT)
 class PlaidDeduplicationTest {
 
+    private static final String TEST_ACCESS_TOKEN = "test-access-token";
+
     @Mock private PlaidService plaidService;
 
     @Mock private AccountRepository accountRepository;
@@ -181,7 +183,7 @@ class PlaidDeduplicationTest {
         doNothing().when(accountRepository).save(any(AccountTable.class));
 
         // When - Sync accounts
-        plaidSyncService.syncAccounts(testUser, "test-access-token", null);
+        plaidSyncService.syncAccounts(testUser, TEST_ACCESS_TOKEN, null);
 
         // Then - Account should be updated, not duplicated
         // OPTIMIZATION: Verify findByUserId is called once (not per account)
@@ -238,7 +240,7 @@ class PlaidDeduplicationTest {
         when(accountRepository.saveIfNotExists(any(AccountTable.class))).thenReturn(true);
 
         // When - Sync accounts
-        plaidSyncService.syncAccounts(testUser, "test-access-token", null);
+        plaidSyncService.syncAccounts(testUser, TEST_ACCESS_TOKEN, null);
 
         // Then - New account should be created
         // OPTIMIZATION: Verify findByUserId is called once (not per account)
@@ -262,7 +264,8 @@ class PlaidDeduplicationTest {
         // Mock Plaid response with same transaction
         final com.plaid.client.model.TransactionsGetResponse transactionsResponse =
                 new com.plaid.client.model.TransactionsGetResponse();
-        final com.plaid.client.model.Transaction transaction = new com.plaid.client.model.Transaction();
+        final com.plaid.client.model.Transaction transaction =
+                new com.plaid.client.model.Transaction();
         transaction.setTransactionId(testPlaidTransactionId);
         transaction.setAccountId(testPlaidAccountId);
         transaction.setAmount(200.0);
@@ -332,7 +335,7 @@ class PlaidDeduplicationTest {
                 .thenReturn(true);
 
         // When - Sync transactions
-        plaidSyncService.syncTransactions(testUser, "test-access-token");
+        plaidSyncService.syncTransactions(testUser, TEST_ACCESS_TOKEN);
 
         // Then - Transaction should be updated, not duplicated
         verify(transactionRepository, atLeastOnce())
@@ -361,7 +364,8 @@ class PlaidDeduplicationTest {
                 .thenReturn(Collections.singletonList("Food and Drink"));
 
         // Convert TransactionBase to Transaction for response
-        final com.plaid.client.model.Transaction transaction = new com.plaid.client.model.Transaction();
+        final com.plaid.client.model.Transaction transaction =
+                new com.plaid.client.model.Transaction();
         transaction.setTransactionId(testPlaidTransactionId);
         transaction.setAccountId(testPlaidAccountId);
         transaction.setAmount(200.0);
@@ -433,7 +437,7 @@ class PlaidDeduplicationTest {
                 .thenReturn(true);
 
         // When - Sync transactions
-        plaidSyncService.syncTransactions(testUser, "test-access-token");
+        plaidSyncService.syncTransactions(testUser, TEST_ACCESS_TOKEN);
 
         // Then - New transaction should be created
         verify(transactionRepository, atLeastOnce())
@@ -497,9 +501,9 @@ class PlaidDeduplicationTest {
         doNothing().when(accountRepository).save(any(AccountTable.class));
 
         // When - Sync accounts multiple times
-        plaidSyncService.syncAccounts(testUser, "test-access-token", null);
-        plaidSyncService.syncAccounts(testUser, "test-access-token", null);
-        plaidSyncService.syncAccounts(testUser, "test-access-token", null);
+        plaidSyncService.syncAccounts(testUser, TEST_ACCESS_TOKEN, null);
+        plaidSyncService.syncAccounts(testUser, TEST_ACCESS_TOKEN, null);
+        plaidSyncService.syncAccounts(testUser, TEST_ACCESS_TOKEN, null);
 
         // Then - Account should only be updated, never duplicated
         // OPTIMIZATION: Verify findByUserId is called once per sync (3 times total), not per
@@ -540,7 +544,8 @@ class PlaidDeduplicationTest {
                 .thenReturn(Collections.singletonList("Food and Drink"));
 
         // Convert TransactionBase to Transaction for response
-        final com.plaid.client.model.Transaction transaction = new com.plaid.client.model.Transaction();
+        final com.plaid.client.model.Transaction transaction =
+                new com.plaid.client.model.Transaction();
         transaction.setTransactionId(testPlaidTransactionId);
         transaction.setAccountId(testPlaidAccountId);
         transaction.setAmount(200.0);
@@ -650,9 +655,9 @@ class PlaidDeduplicationTest {
                 .save(any(AccountTable.class));
 
         // When - Sync transactions multiple times
-        plaidSyncService.syncTransactions(testUser, "test-access-token");
-        plaidSyncService.syncTransactions(testUser, "test-access-token");
-        plaidSyncService.syncTransactions(testUser, "test-access-token");
+        plaidSyncService.syncTransactions(testUser, TEST_ACCESS_TOKEN);
+        plaidSyncService.syncTransactions(testUser, TEST_ACCESS_TOKEN);
+        plaidSyncService.syncTransactions(testUser, TEST_ACCESS_TOKEN);
 
         // Then - Transaction should only be updated, never duplicated
         // Since findByPlaidTransactionId returns existing transaction,

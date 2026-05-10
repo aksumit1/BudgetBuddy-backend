@@ -1,6 +1,5 @@
 package com.budgetbuddy.service.ml;
 
-
 import java.util.Locale;
 import java.util.Set;
 import java.util.regex.Pattern;
@@ -150,16 +149,21 @@ public final class MerchantLocationSplitter {
      * it. Same for 3-word compounds like "NORTH LITTLE ROCK".
      */
     private static Split peelCity(
-            final String[] tokens, final int stateIdx, final String stateOrCountry, final boolean isCountry) {
+            final String[] tokens,
+            final int stateIdx,
+            final String stateOrCountry,
+            final boolean isCountry) {
         int cityWordCount = 1;
         final int candidatePrev = stateIdx - 2;
         if (candidatePrev >= 1
-                && CITY_COMPOUND_PREFIXES.contains(tokens[candidatePrev].toUpperCase(Locale.ROOT))) {
+                && CITY_COMPOUND_PREFIXES.contains(
+                        tokens[candidatePrev].toUpperCase(Locale.ROOT))) {
             cityWordCount = 2;
             // Check for 3-word compounds ("NORTH LITTLE ROCK", "WEST SOUTH ...").
             final int candidatePrevPrev = stateIdx - 3;
             if (candidatePrevPrev >= 1
-                    && CITY_COMPOUND_PREFIXES.contains(tokens[candidatePrevPrev].toUpperCase(Locale.ROOT))) {
+                    && CITY_COMPOUND_PREFIXES.contains(
+                            tokens[candidatePrevPrev].toUpperCase(Locale.ROOT))) {
                 cityWordCount = 3;
             }
         }
@@ -220,7 +224,8 @@ public final class MerchantLocationSplitter {
         int cityWordCount = 1;
         final int candidatePrev = headTokens.length - 2;
         if (candidatePrev >= 1
-                && CITY_COMPOUND_PREFIXES.contains(headTokens[candidatePrev].toUpperCase(Locale.ROOT))) {
+                && CITY_COMPOUND_PREFIXES.contains(
+                        headTokens[candidatePrev].toUpperCase(Locale.ROOT))) {
             cityWordCount = 2;
             final int candidatePrevPrev = headTokens.length - 3;
             if (candidatePrevPrev >= 1
@@ -271,7 +276,8 @@ public final class MerchantLocationSplitter {
         return true;
     }
 
-    private static String joinRange(final String[] tokens, final int fromInclusive, final int toExclusive) {
+    private static String joinRange(
+            final String[] tokens, final int fromInclusive, final int toExclusive) {
         final StringBuilder sb = new StringBuilder();
         for (int i = fromInclusive; i < toExclusive; i++) {
             if (i > fromInclusive) {
@@ -289,7 +295,8 @@ public final class MerchantLocationSplitter {
         return raw.replaceAll("\\s+", " ").replaceAll("[,\\s]+$", "").trim();
     }
 
-    private static String normaliseLocation(final String city, final String state, final String country) {
+    private static String normaliseLocation(
+            final String city, final String state, final String country) {
         final String cityTitled = city == null ? "" : titleCase(city.trim());
         if (state != null && !state.isBlank()) {
             return cityTitled.isEmpty()

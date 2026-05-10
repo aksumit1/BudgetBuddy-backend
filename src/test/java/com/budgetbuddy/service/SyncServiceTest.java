@@ -1,6 +1,5 @@
 package com.budgetbuddy.service;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -23,6 +22,7 @@ import com.budgetbuddy.repository.dynamodb.BudgetRepository;
 import com.budgetbuddy.repository.dynamodb.GoalRepository;
 import com.budgetbuddy.repository.dynamodb.TransactionActionRepository;
 import com.budgetbuddy.repository.dynamodb.TransactionRepository;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.Arrays;
@@ -274,7 +274,8 @@ class SyncServiceTest {
     @Test
     void getIncrementalChangesNoChanges() {
         // Given
-        final Long sinceTimestamp = Instant.now().minusSeconds(300).getEpochSecond(); // 5 minutes ago
+        final Long sinceTimestamp =
+                Instant.now().minusSeconds(300).getEpochSecond(); // 5 minutes ago
 
         final List<AccountTable> allAccounts = Arrays.asList(testAccount);
         final List<TransactionTable> allTransactions = Arrays.asList(testTransaction);

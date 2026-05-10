@@ -1,10 +1,10 @@
 package com.budgetbuddy.service;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import com.budgetbuddy.model.dynamodb.GoalTable;
 import com.budgetbuddy.model.dynamodb.UserTable;
 import com.budgetbuddy.notification.DataChangeNotificationService;
 import com.budgetbuddy.repository.dynamodb.GoalRepository;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;

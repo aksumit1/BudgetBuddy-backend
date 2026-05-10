@@ -178,7 +178,8 @@ class GoalRepositoryTest {
         // When
         final List<GoalTable> result1 =
                 goalRepository.findByUserIdAndUpdatedAfter(null, Instant.now().getEpochSecond());
-        final List<GoalTable> result2 = goalRepository.findByUserIdAndUpdatedAfter(testUserId, null);
+        final List<GoalTable> result2 =
+                goalRepository.findByUserIdAndUpdatedAfter(testUserId, null);
         final List<GoalTable> result3 =
                 goalRepository.findByUserIdAndUpdatedAfter("", Instant.now().getEpochSecond());
 

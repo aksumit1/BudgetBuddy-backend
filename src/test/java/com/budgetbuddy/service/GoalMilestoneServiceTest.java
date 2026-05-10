@@ -32,7 +32,8 @@ class GoalMilestoneServiceTest {
     void testGetMilestonesAtZero() {
         testGoal.setCurrentAmount(new BigDecimal("0.00"));
 
-        final List<GoalMilestoneService.Milestone> milestones = milestoneService.getMilestones(testGoal);
+        final List<GoalMilestoneService.Milestone> milestones =
+                milestoneService.getMilestones(testGoal);
 
         assertEquals(4, milestones.size());
         assertFalse(milestones.get(0).isReached()); // 25%
@@ -45,7 +46,8 @@ class GoalMilestoneServiceTest {
     void testGetMilestonesAt25Percent() {
         testGoal.setCurrentAmount(new BigDecimal("250.00"));
 
-        final List<GoalMilestoneService.Milestone> milestones = milestoneService.getMilestones(testGoal);
+        final List<GoalMilestoneService.Milestone> milestones =
+                milestoneService.getMilestones(testGoal);
 
         assertTrue(milestones.get(0).isReached()); // 25%
         assertFalse(milestones.get(1).isReached()); // 50%
@@ -58,7 +60,8 @@ class GoalMilestoneServiceTest {
     void testGetMilestonesAt50Percent() {
         testGoal.setCurrentAmount(new BigDecimal("500.00"));
 
-        final List<GoalMilestoneService.Milestone> milestones = milestoneService.getMilestones(testGoal);
+        final List<GoalMilestoneService.Milestone> milestones =
+                milestoneService.getMilestones(testGoal);
 
         assertTrue(milestones.get(0).isReached()); // 25%
         assertTrue(milestones.get(1).isReached()); // 50%
@@ -70,7 +73,8 @@ class GoalMilestoneServiceTest {
     void testGetMilestonesAt100Percent() {
         testGoal.setCurrentAmount(new BigDecimal("1000.00"));
 
-        final List<GoalMilestoneService.Milestone> milestones = milestoneService.getMilestones(testGoal);
+        final List<GoalMilestoneService.Milestone> milestones =
+                milestoneService.getMilestones(testGoal);
 
         assertTrue(milestones.get(0).isReached()); // 25%
         assertTrue(milestones.get(1).isReached()); // 50%
@@ -82,7 +86,8 @@ class GoalMilestoneServiceTest {
     void testGetMilestonesOver100Percent() {
         testGoal.setCurrentAmount(new BigDecimal("1200.00"));
 
-        final List<GoalMilestoneService.Milestone> milestones = milestoneService.getMilestones(testGoal);
+        final List<GoalMilestoneService.Milestone> milestones =
+                milestoneService.getMilestones(testGoal);
 
         assertTrue(milestones.get(3).isReached()); // 100%
         assertEquals(100, milestoneService.getProgressPercentage(testGoal));
@@ -165,7 +170,8 @@ class GoalMilestoneServiceTest {
 
     @Test
     void testGetMilestonesNullGoal() {
-        final List<GoalMilestoneService.Milestone> milestones = milestoneService.getMilestones(null);
+        final List<GoalMilestoneService.Milestone> milestones =
+                milestoneService.getMilestones(null);
 
         assertTrue(milestones.isEmpty());
     }
@@ -174,7 +180,8 @@ class GoalMilestoneServiceTest {
     void testGetMilestonesNullTargetAmount() {
         testGoal.setTargetAmount(null);
 
-        final List<GoalMilestoneService.Milestone> milestones = milestoneService.getMilestones(testGoal);
+        final List<GoalMilestoneService.Milestone> milestones =
+                milestoneService.getMilestones(testGoal);
 
         assertTrue(milestones.isEmpty());
     }

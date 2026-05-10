@@ -68,13 +68,15 @@ public class FIDO2CredentialRepository {
         }
         final List<FIDO2CredentialTable> credentials = new ArrayList<>();
         try {
-            final SdkIterable<software.amazon.awssdk.enhanced.dynamodb.model.Page<FIDO2CredentialTable>>
+            final SdkIterable<
+                            software.amazon.awssdk.enhanced.dynamodb.model.Page<
+                                    FIDO2CredentialTable>>
                     pages =
                             userIdIndex.query(
                                     QueryConditional.keyEqualTo(
                                             Key.builder().partitionValue(userId).build()));
-            for (final software.amazon.awssdk.enhanced.dynamodb.model.Page<FIDO2CredentialTable> page :
-                    pages) {
+            for (final software.amazon.awssdk.enhanced.dynamodb.model.Page<FIDO2CredentialTable>
+                    page : pages) {
                 credentials.addAll(page.items());
             }
         } catch (Exception e) {

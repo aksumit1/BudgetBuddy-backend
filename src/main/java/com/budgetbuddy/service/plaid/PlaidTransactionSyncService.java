@@ -1,6 +1,5 @@
 package com.budgetbuddy.service.plaid;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import com.budgetbuddy.exception.AppException;
 import com.budgetbuddy.exception.ErrorCode;
 import com.budgetbuddy.model.dynamodb.AccountTable;
@@ -10,6 +9,7 @@ import com.budgetbuddy.plaid.PlaidService;
 import com.budgetbuddy.repository.dynamodb.AccountRepository;
 import com.budgetbuddy.repository.dynamodb.TransactionRepository;
 import com.budgetbuddy.util.IdGenerator;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -290,14 +290,16 @@ public class PlaidTransactionSyncService {
             return transactions;
         }
 
-        final LocalDate lastSyncedDate = lastSyncedAt.atZone(java.time.ZoneId.of("UTC")).toLocalDate();
+        final LocalDate lastSyncedDate =
+                lastSyncedAt.atZone(java.time.ZoneId.of("UTC")).toLocalDate();
         final List<Object> filtered = new ArrayList<>();
 
         for (final var transaction : transactions) {
             final String transactionDateStr = extractTransactionDate(transaction);
             if (transactionDateStr != null && !transactionDateStr.isEmpty()) {
                 try {
-                    final LocalDate transactionDate = LocalDate.parse(transactionDateStr, DATE_FORMATTER);
+                    final LocalDate transactionDate =
+                            LocalDate.parse(transactionDateStr, DATE_FORMATTER);
                     if (!transactionDate.isBefore(lastSyncedDate)) {
                         filtered.add(transaction);
                     }
@@ -328,7 +330,8 @@ public class PlaidTransactionSyncService {
 
             // Fallback: try reflection
             try {
-                final java.lang.reflect.Method getDate = plaidTransaction.getClass().getMethod("getDate");
+                final java.lang.reflect.Method getDate =
+                        plaidTransaction.getClass().getMethod("getDate");
                 final Object date = getDate.invoke(plaidTransaction);
                 if (date != null && date instanceof LocalDate) {
                     return ((LocalDate) date).format(DATE_FORMATTER);
@@ -357,7 +360,8 @@ public class PlaidTransactionSyncService {
 
         for (final var plaidTransaction : plaidTransactions) {
             try {
-                final String plaidTransactionId = dataExtractor.extractTransactionId(plaidTransaction);
+                final String plaidTransactionId =
+                        dataExtractor.extractTransactionId(plaidTransaction);
                 if (plaidTransactionId == null || plaidTransactionId.isEmpty()) {
                     LOGGER.warn("Transaction has no Plaid ID, skipping");
                     errorCount++;
@@ -384,7 +388,8 @@ public class PlaidTransactionSyncService {
                 // old one. Without this block we'd insert the posted row and
                 // leave the pending row untouched, double-counting the spend
                 // (and often with a different amount — tip-adjusted, FX-settled).
-                final String pendingPlaidId = dataExtractor.extractPendingTransactionId(plaidTransaction);
+                final String pendingPlaidId =
+                        dataExtractor.extractPendingTransactionId(plaidTransaction);
                 if (pendingPlaidId != null) {
                     final Optional<TransactionTable> pendingRow =
                             transactionRepository.findByPlaidTransactionId(pendingPlaidId);
@@ -485,7 +490,8 @@ public class PlaidTransactionSyncService {
 
                 // Use saveIfPlaidTransactionNotExists to prevent duplicates (handles race
                 // conditions)
-                final boolean saved = transactionRepository.saveIfPlaidTransactionNotExists(transaction);
+                final boolean saved =
+                        transactionRepository.saveIfPlaidTransactionNotExists(transaction);
                 if (saved) {
                     syncedCount++;
                 } else {
@@ -612,7 +618,8 @@ public class PlaidTransactionSyncService {
             }
 
             // Fallback: try reflection
-            final java.lang.reflect.Method getDate = plaidTransaction.getClass().getMethod("getDate");
+            final java.lang.reflect.Method getDate =
+                    plaidTransaction.getClass().getMethod("getDate");
             final Object date = getDate.invoke(plaidTransaction);
             if (date != null) {
                 if (date instanceof LocalDate) {
@@ -645,7 +652,8 @@ public class PlaidTransactionSyncService {
 
             // Fallback: try reflection
             try {
-                final java.lang.reflect.Method getName = plaidTransaction.getClass().getMethod("getName");
+                final java.lang.reflect.Method getName =
+                        plaidTransaction.getClass().getMethod("getName");
                 final Object name = getName.invoke(plaidTransaction);
                 if (name != null && !name.toString().isEmpty()) {
                     return name.toString();

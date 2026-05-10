@@ -276,7 +276,7 @@ class UserDeletionControllerTest {
                                 event ->
                                         event.getLevel() == Level.ERROR
                                                 && event.getMessage()
-                                                .contains("Failed to delete account"))
+                                                        .contains("Failed to delete account"))
                         .count();
 
         assertEquals(1, errorLogs, "Should log ERROR when account deletion fails");
@@ -289,9 +289,9 @@ class UserDeletionControllerTest {
                                 event ->
                                         event.getLevel() == Level.ERROR
                                                 && event.getFormattedMessage()
-                                                .contains("Failed to delete account")
+                                                        .contains("Failed to delete account")
                                                 && event.getFormattedMessage()
-                                                .contains("Service error"));
+                                                        .contains("Service error"));
         assertTrue(foundErrorLog, "Should log ERROR with service error message");
     }
 }

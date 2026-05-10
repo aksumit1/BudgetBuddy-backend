@@ -130,7 +130,8 @@ public class PdfOcrService {
 
         for (int i = 0; i < pagesToScan; i++) {
             try {
-                final BufferedImage image = renderer.renderImageWithDPI(i, renderDpi, ImageType.GRAY);
+                final BufferedImage image =
+                        renderer.renderImageWithDPI(i, renderDpi, ImageType.GRAY);
                 final String pageText = tesseract.doOCR(image);
                 if (pageText != null && !pageText.isBlank()) {
                     out.append(pageText);

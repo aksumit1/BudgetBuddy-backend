@@ -1,10 +1,10 @@
 package com.budgetbuddy.service.circuitbreaker;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -26,6 +26,11 @@ import org.junit.jupiter.api.Test;
 @SuppressWarnings("PMD.LawOfDemeter")
 class CircuitBreakerServiceTest {
 
+    private static final String TEST_SERVICE = "test-service";
+    private static final String SUCCESS = "success";
+    private static final String FALLBACK_VALUE = "fallback-value";
+    private static final String FAILURE = "Failure";
+
     private CircuitBreakerService circuitBreakerService;
 
     @BeforeEach
@@ -42,8 +47,8 @@ class CircuitBreakerServiceTest {
     @Test
     void testExecuteWithSuccessReturnsResult() throws Exception {
         // Given
-        final String serviceName = "test-service";
-        final String expectedResult = "success";
+        final String serviceName = TEST_SERVICE;
+        final String expectedResult = SUCCESS;
 
         // When
         final String result =
@@ -57,8 +62,8 @@ class CircuitBreakerServiceTest {
     @Test
     void testExecuteWithFailureReturnsFallback() throws Exception {
         // Given
-        final String serviceName = "test-service";
-        final String fallback = "fallback-value";
+        final String serviceName = TEST_SERVICE;
+        final String fallback = FALLBACK_VALUE;
 
         // When
         final String result =
@@ -77,8 +82,8 @@ class CircuitBreakerServiceTest {
     @Test
     void testExecuteWithMultipleFailuresOpensCircuit() throws Exception {
         // Given
-        final String serviceName = "test-service";
-        final String fallback = "fallback-value";
+        final String serviceName = TEST_SERVICE;
+        final String fallback = FALLBACK_VALUE;
         final int failureThreshold = 5;
 
         // When - Trigger enough failures to open circuit
@@ -101,21 +106,21 @@ class CircuitBreakerServiceTest {
     @Test
     void testExecuteWithOpenCircuitReturnsFallback() throws Exception {
         // Given - Open the circuit first
-        final String serviceName = "test-service";
-        final String fallback = "fallback-value";
+        final String serviceName = TEST_SERVICE;
+        final String fallback = FALLBACK_VALUE;
 
         for (int i = 0; i < 5; i++) {
             circuitBreakerService.execute(
                     serviceName,
                     () -> {
-                        throw new RuntimeException("Failure");
+                        throw new RuntimeException(FAILURE);
                     },
                     fallback);
         }
         assertState("OPEN");
 
         // When - Execute with open circuit
-        final String result = circuitBreakerService.execute(serviceName, () -> "success", fallback);
+        final String result = circuitBreakerService.execute(serviceName, () -> SUCCESS, fallback);
 
         // Then - Should return fallback immediately
         assertEquals(fallback, result);
@@ -125,14 +130,14 @@ class CircuitBreakerServiceTest {
     @Test
     void testExecuteWithTimeoutTransitionsToHalfOpen() throws Exception {
         // Given - Open the circuit
-        final String serviceName = "test-service";
-        final String fallback = "fallback-value";
+        final String serviceName = TEST_SERVICE;
+        final String fallback = FALLBACK_VALUE;
 
         for (int i = 0; i < 5; i++) {
             circuitBreakerService.execute(
                     serviceName,
                     () -> {
-                        throw new RuntimeException("Failure");
+                        throw new RuntimeException(FAILURE);
                     },
                     fallback);
         }
@@ -149,15 +154,17 @@ class CircuitBreakerServiceTest {
     void testExecuteWithHalfOpenSuccessTransitionsToClosed() throws Exception {
         // Given - Manually set state to HALF_OPEN using reflection
         // Since we can't easily set state, we test the reset and normal flow
-        final String serviceName = "test-service";
-        final String fallback = "fallback-value";
+        final String serviceName = TEST_SERVICE;
+        final String fallback = FALLBACK_VALUE;
 
         // Reset to ensure clean state
         circuitBreakerService.reset();
 
         // When - Execute successful operations
-        final String result1 = circuitBreakerService.execute(serviceName, () -> "success1", fallback);
-        final String result2 = circuitBreakerService.execute(serviceName, () -> "success2", fallback);
+        final String result1 =
+                circuitBreakerService.execute(serviceName, () -> "success1", fallback);
+        final String result2 =
+                circuitBreakerService.execute(serviceName, () -> "success2", fallback);
 
         // Then - Should remain closed
         assertEquals("success1", result1);
@@ -169,15 +176,15 @@ class CircuitBreakerServiceTest {
     void testExecuteWithHalfOpenFailureTransitionsToOpen() throws Exception {
         // Given - Reset to clean state
         circuitBreakerService.reset();
-        final String serviceName = "test-service";
-        final String fallback = "fallback-value";
+        final String serviceName = TEST_SERVICE;
+        final String fallback = FALLBACK_VALUE;
 
         // Open circuit first
         for (int i = 0; i < 5; i++) {
             circuitBreakerService.execute(
                     serviceName,
                     () -> {
-                        throw new RuntimeException("Failure");
+                        throw new RuntimeException(FAILURE);
                     },
                     fallback);
         }
@@ -208,14 +215,14 @@ class CircuitBreakerServiceTest {
     @Test
     void testResetResetsState() throws Exception {
         // Given - Open the circuit
-        final String serviceName = "test-service";
-        final String fallback = "fallback-value";
+        final String serviceName = TEST_SERVICE;
+        final String fallback = FALLBACK_VALUE;
 
         for (int i = 0; i < 5; i++) {
             circuitBreakerService.execute(
                     serviceName,
                     () -> {
-                        throw new RuntimeException("Failure");
+                        throw new RuntimeException(FAILURE);
                     },
                     fallback);
         }
@@ -228,40 +235,40 @@ class CircuitBreakerServiceTest {
         assertState("CLOSED");
 
         // Verify that successful operations work after reset
-        final String result = circuitBreakerService.execute(serviceName, () -> "success", fallback);
-        assertEquals("success", result);
+        final String result = circuitBreakerService.execute(serviceName, () -> SUCCESS, fallback);
+        assertEquals(SUCCESS, result);
         assertState("CLOSED");
     }
 
     @Test
     void testExecuteWithSuccessAfterFailuresResetsFailureCount() throws Exception {
         // Given
-        final String serviceName = "test-service";
-        final String fallback = "fallback-value";
+        final String serviceName = TEST_SERVICE;
+        final String fallback = FALLBACK_VALUE;
 
         // Trigger some failures (but not enough to open circuit)
         for (int i = 0; i < 3; i++) {
             circuitBreakerService.execute(
                     serviceName,
                     () -> {
-                        throw new RuntimeException("Failure");
+                        throw new RuntimeException(FAILURE);
                     },
                     fallback);
         }
 
         // When - Success occurs
-        final String result = circuitBreakerService.execute(serviceName, () -> "success", fallback);
+        final String result = circuitBreakerService.execute(serviceName, () -> SUCCESS, fallback);
 
         // Then - Circuit should remain closed
-        assertEquals("success", result);
+        assertEquals(SUCCESS, result);
         assertState("CLOSED");
     }
 
     @Test
     void testExecuteWithExceptionReturnsFallback() {
         // Given
-        final String serviceName = "test-service";
-        final String fallback = "fallback-value";
+        final String serviceName = TEST_SERVICE;
+        final String fallback = FALLBACK_VALUE;
 
         // When
         final String result =
@@ -279,7 +286,7 @@ class CircuitBreakerServiceTest {
     @Test
     void testExecuteWithNullResultReturnsNull() throws Exception {
         // Given
-        final String serviceName = "test-service";
+        final String serviceName = TEST_SERVICE;
 
         // When
         final String result = circuitBreakerService.execute(serviceName, () -> null, "fallback");
@@ -292,14 +299,14 @@ class CircuitBreakerServiceTest {
     @Test
     void testExecuteWithNullFallbackReturnsNullOnFailure() {
         // Given
-        final String serviceName = "test-service";
+        final String serviceName = TEST_SERVICE;
 
         // When
         final String result =
                 circuitBreakerService.execute(
                         serviceName,
                         () -> {
-                            throw new RuntimeException("Failure");
+                            throw new RuntimeException(FAILURE);
                         },
                         null);
 
@@ -319,7 +326,7 @@ class CircuitBreakerServiceTest {
             circuitBreakerService.execute(
                     service1,
                     () -> {
-                        throw new RuntimeException("Failure");
+                        throw new RuntimeException(FAILURE);
                     },
                     fallback);
         }
@@ -330,14 +337,14 @@ class CircuitBreakerServiceTest {
         assertState("OPEN");
 
         // Service2 will also get fallback because circuit is open
-        final String result2 = circuitBreakerService.execute(service2, () -> "success", fallback);
+        final String result2 = circuitBreakerService.execute(service2, () -> SUCCESS, fallback);
         assertEquals(fallback, result2);
     }
 
     @Test
     void testExecuteConcurrentExecutionHandlesRaceConditions() throws InterruptedException {
         // Given
-        final String serviceName = "test-service";
+        final String serviceName = TEST_SERVICE;
         final String fallback = "fallback";
         final int threadCount = 10;
         final ExecutorService executor = Executors.newFixedThreadPool(threadCount);
@@ -354,8 +361,8 @@ class CircuitBreakerServiceTest {
                             if (index % 2 == 0) {
                                 final String result =
                                         circuitBreakerService.execute(
-                                                serviceName, () -> "success", fallback);
-                                if ("success".equals(result)) {
+                                                serviceName, () -> SUCCESS, fallback);
+                                if (SUCCESS.equals(result)) {
                                     successCount.incrementAndGet();
                                 }
                             } else {
@@ -363,7 +370,7 @@ class CircuitBreakerServiceTest {
                                         circuitBreakerService.execute(
                                                 serviceName,
                                                 () -> {
-                                                    throw new RuntimeException("Failure");
+                                                    throw new RuntimeException(FAILURE);
                                                 },
                                                 fallback);
                                 if (fallback.equals(result)) {
@@ -387,7 +394,7 @@ class CircuitBreakerServiceTest {
     @Test
     void testExecuteWithRunnableLikeOperation() {
         // Given
-        final String serviceName = "test-service";
+        final String serviceName = TEST_SERVICE;
         final AtomicInteger counter = new AtomicInteger(0);
 
         // When

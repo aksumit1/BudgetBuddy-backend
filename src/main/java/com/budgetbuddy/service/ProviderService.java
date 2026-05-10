@@ -26,7 +26,8 @@ import org.springframework.stereotype.Service;
 @Service
 public class ProviderService {
 
-    private static final String PROVIDER_ID_CANNOT_BE_NULL_OR_EMPTY = "Provider ID cannot be null or empty";
+    private static final String PROVIDER_ID_CANNOT_BE_NULL_OR_EMPTY =
+            "Provider ID cannot be null or empty";
 
     private static final String USER_ID_CANNOT_BE_NULL_OR_EMPTY = "User ID cannot be null or empty";
 
@@ -118,8 +119,8 @@ public class ProviderService {
                 healthy
                         ? 0
                         : (isHealthy != null && !isHealthy
-                        ? (currentHealth.getFailureCount() + 1)
-                        : currentHealth.getFailureCount());
+                                ? (currentHealth.getFailureCount() + 1)
+                                : currentHealth.getFailureCount());
         final String errorMessage = lastError != null ? lastError : currentHealth.getLastError();
 
         final ProviderHealth updatedHealth =
@@ -193,7 +194,7 @@ public class ProviderService {
                         0, // Reset failure count
                         false, // Clear stale status
                         null // Clear error
-                );
+                        );
 
         providers.put(providerId, clearedHealth);
 

@@ -1,10 +1,10 @@
 package com.budgetbuddy.service;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.lang.reflect.Method;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -45,9 +45,9 @@ class PDFImportServiceUsernameDetectionWithCommasTest {
     void testDetectNameWithTrailingComma() throws Exception {
         // Given: Name with trailing comma (CSV-like format)
         final String[] lines = {
-                "Date Description Amount",
-                "TOM TRACKER ,",
-                "09/19 09/20 COSTCO WHSE #0110        ISSAQUAH     WA $7.70"
+            "Date Description Amount",
+            "TOM TRACKER ,",
+            "09/19 09/20 COSTCO WHSE #0110        ISSAQUAH     WA $7.70"
         };
 
         // Transaction line is at index 2
@@ -73,7 +73,8 @@ class PDFImportServiceUsernameDetectionWithCommasTest {
             "Should validate name with trailing comma as invalid (commas not allowed in names)")
     void testIsValidNameFormatNameWithComma() throws Exception {
         // When: Check if name with comma is valid
-        final boolean result = (Boolean) isValidNameFormat.invoke(pdfImportService, "TOM TRACKER ,");
+        final boolean result =
+                (Boolean) isValidNameFormat.invoke(pdfImportService, "TOM TRACKER ,");
 
         // Then: Should be invalid (commas are not valid in names)
         // Note: This test verifies that isValidNameFormat rejects commas, which is correct
@@ -87,9 +88,9 @@ class PDFImportServiceUsernameDetectionWithCommasTest {
         // Given: Lines where name has trailing comma but is trimmed
         // The findUsernameCandidates should trim the line before checking isValidNameFormat
         final String[] lines = {
-                "Date Description Amount",
-                "ROGER BRANDON,", // Trailing comma
-                "09/19 09/20 COSTCO WHSE #0110        ISSAQUAH     WA $104.36"
+            "Date Description Amount",
+            "ROGER BRANDON,", // Trailing comma
+            "09/19 09/20 COSTCO WHSE #0110        ISSAQUAH     WA $104.36"
         };
 
         // Transaction line is at index 2

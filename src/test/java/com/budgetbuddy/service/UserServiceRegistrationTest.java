@@ -9,7 +9,6 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.anyString;
-import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -36,6 +35,10 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 @org.mockito.junit.jupiter.MockitoSettings(strictness = org.mockito.quality.Strictness.LENIENT)
 class UserServiceRegistrationTest {
+
+    private static final String LAST = "Last";
+    private static final String FIRST = "First";
+    private static final String HASH = "hash";
 
     @Mock private UserRepository userRepository;
 
@@ -132,7 +135,7 @@ class UserServiceRegistrationTest {
         when(userRepository.findAllByEmail(email)).thenReturn(java.util.Collections.emptyList());
 
         // Act
-        userService.createUserSecure(email, "hash", "First", "Last");
+        userService.createUserSecure(email, HASH, FIRST, LAST);
 
         // Assert - saveIfNotExists is the synchronous gate; findAllByEmail is the
         // async post-save duplicate scan (CompletableFuture.runAsync). Verify
@@ -153,7 +156,7 @@ class UserServiceRegistrationTest {
                 assertThrows(
                         AppException.class,
                         () -> {
-                            userService.createUserSecure(email, "hash", "First", "Last");
+                            userService.createUserSecure(email, HASH, FIRST, LAST);
                         });
 
         assertEquals(ErrorCode.INTERNAL_SERVER_ERROR, exception.getErrorCode());
@@ -169,28 +172,28 @@ class UserServiceRegistrationTest {
         assertThrows(
                 AppException.class,
                 () -> {
-                    userService.createUserSecure(null, "hash", "First", "Last");
+                    userService.createUserSecure(null, HASH, FIRST, LAST);
                 });
 
         // Act & Assert - Empty email
         assertThrows(
                 AppException.class,
                 () -> {
-                    userService.createUserSecure("", "hash", "First", "Last");
+                    userService.createUserSecure("", HASH, FIRST, LAST);
                 });
 
         // Act & Assert - Null password hash
         assertThrows(
                 AppException.class,
                 () -> {
-                    userService.createUserSecure("test@example.com", null, "First", "Last");
+                    userService.createUserSecure("test@example.com", null, FIRST, LAST);
                 });
 
         // Act & Assert - Null salt
         assertThrows(
                 AppException.class,
                 () -> {
-                    userService.createUserSecure("test@example.com", "hash", "First", "Last");
+                    userService.createUserSecure("test@example.com", HASH, FIRST, LAST);
                 });
     }
 
@@ -209,7 +212,7 @@ class UserServiceRegistrationTest {
                         "client-hash",
                         null, // No first name
                         null // No last name
-                );
+                        );
 
         // Assert
         assertNotNull(result.getUserId());

@@ -1,7 +1,5 @@
 package com.budgetbuddy.integration;
 
-
-import java.nio.charset.StandardCharsets;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -18,6 +16,7 @@ import com.budgetbuddy.security.JwtTokenProvider;
 import com.budgetbuddy.service.AuthService;
 import com.budgetbuddy.service.UserService;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
@@ -43,6 +42,8 @@ import org.springframework.test.web.servlet.MockMvc;
 @Import(AWSTestConfiguration.class)
 class JwtAuthenticationIntegrationTest {
 
+    private static final String AUTHORIZATION = "Authorization";
+
     @Autowired private MockMvc mockMvc;
 
     @Autowired private ObjectMapper objectMapper;
@@ -63,7 +64,9 @@ class JwtAuthenticationIntegrationTest {
     void setUp() {
         SecurityContextHolder.clearContext();
         testEmail = "test-" + UUID.randomUUID() + "@example.com";
-        testPasswordHash = Base64.getEncoder().encodeToString("hashed-password".getBytes(StandardCharsets.UTF_8));
+        testPasswordHash =
+                Base64.getEncoder()
+                        .encodeToString("hashed-password".getBytes(StandardCharsets.UTF_8));
 
         // Create test user
         testUser = userService.createUserSecure(testEmail, testPasswordHash, "Test", "User");
@@ -78,9 +81,9 @@ class JwtAuthenticationIntegrationTest {
 
         final String loginResponse =
                 mockMvc.perform(
-                        post("/api/auth/login")
-                                .contentType(MediaType.APPLICATION_JSON)
-                                .content(objectMapper.writeValueAsString(loginRequest)))
+                                post("/api/auth/login")
+                                        .contentType(MediaType.APPLICATION_JSON)
+                                        .content(objectMapper.writeValueAsString(loginRequest)))
                         .andExpect(status().isOk())
                         .andExpect(jsonPath("$.accessToken").exists())
                         .andReturn()
@@ -96,14 +99,14 @@ class JwtAuthenticationIntegrationTest {
         try {
             mockMvc.perform(
                             get("/api/transactions")
-                                    .header("Authorization", "Bearer " + token)
+                                    .header(AUTHORIZATION, "Bearer " + token)
                                     .contentType(MediaType.APPLICATION_JSON))
                     .andExpect(status().isOk());
         } catch (AssertionError e) {
             // If not OK, might be 401 or 403 - that's acceptable for this test
             mockMvc.perform(
                             get("/api/transactions")
-                                    .header("Authorization", "Bearer " + token)
+                                    .header(AUTHORIZATION, "Bearer " + token)
                                     .contentType(MediaType.APPLICATION_JSON))
                     .andExpect(status().is4xxClientError());
         }
@@ -121,7 +124,7 @@ class JwtAuthenticationIntegrationTest {
         // When/Then - Should reject
         mockMvc.perform(
                         get("/api/transactions")
-                                .header("Authorization", "Bearer " + invalidToken)
+                                .header(AUTHORIZATION, "Bearer " + invalidToken)
                                 .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isUnauthorized());
     }
@@ -135,7 +138,7 @@ class JwtAuthenticationIntegrationTest {
         // When/Then - Should reject
         mockMvc.perform(
                         get("/api/transactions")
-                                .header("Authorization", "Bearer " + expiredToken)
+                                .header(AUTHORIZATION, "Bearer " + expiredToken)
                                 .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isUnauthorized());
     }
@@ -156,9 +159,9 @@ class JwtAuthenticationIntegrationTest {
 
         final String loginResponse =
                 mockMvc.perform(
-                        post("/api/auth/login")
-                                .contentType(MediaType.APPLICATION_JSON)
-                                .content(objectMapper.writeValueAsString(loginRequest)))
+                                post("/api/auth/login")
+                                        .contentType(MediaType.APPLICATION_JSON)
+                                        .content(objectMapper.writeValueAsString(loginRequest)))
                         .andExpect(status().isOk())
                         .andReturn()
                         .getResponse()
@@ -173,7 +176,7 @@ class JwtAuthenticationIntegrationTest {
         // When - Try to use token after user deletion
         mockMvc.perform(
                         get("/api/transactions")
-                                .header("Authorization", "Bearer " + token)
+                                .header(AUTHORIZATION, "Bearer " + token)
                                 .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isUnauthorized());
     }
@@ -186,7 +189,7 @@ class JwtAuthenticationIntegrationTest {
         // When/Then - Should reject
         mockMvc.perform(
                         get("/api/transactions")
-                                .header("Authorization", "Bearer " + malformedToken)
+                                .header(AUTHORIZATION, "Bearer " + malformedToken)
                                 .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isUnauthorized());
     }
@@ -199,7 +202,7 @@ class JwtAuthenticationIntegrationTest {
         // When/Then - Should reject (filter won't process it)
         mockMvc.perform(
                         get("/api/transactions")
-                                .header("Authorization", token)
+                                .header(AUTHORIZATION, token)
                                 .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isUnauthorized());
     }
@@ -213,9 +216,9 @@ class JwtAuthenticationIntegrationTest {
 
         final String loginResponse =
                 mockMvc.perform(
-                        post("/api/auth/login")
-                                .contentType(MediaType.APPLICATION_JSON)
-                                .content(objectMapper.writeValueAsString(loginRequest)))
+                                post("/api/auth/login")
+                                        .contentType(MediaType.APPLICATION_JSON)
+                                        .content(objectMapper.writeValueAsString(loginRequest)))
                         .andExpect(status().isOk())
                         .andReturn()
                         .getResponse()

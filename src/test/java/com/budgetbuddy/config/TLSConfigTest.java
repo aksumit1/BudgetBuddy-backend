@@ -1,10 +1,10 @@
 package com.budgetbuddy.config;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import com.budgetbuddy.AWSTestConfiguration;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import javax.net.ssl.SSLContext;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;

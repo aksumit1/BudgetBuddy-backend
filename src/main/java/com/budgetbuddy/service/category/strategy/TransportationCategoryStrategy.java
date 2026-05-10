@@ -1,6 +1,5 @@
 package com.budgetbuddy.service.category.strategy;
 
-
 import java.util.Locale;
 import org.springframework.stereotype.Component;
 
@@ -10,6 +9,8 @@ import org.springframework.stereotype.Component;
 @SuppressWarnings("PMD.OnlyOneReturn")
 @Component
 public class TransportationCategoryStrategy extends BaseCategoryStrategy {
+
+    private static final String TRANSPORTATION = "transportation";
 
     private static final String CHAIR = "chair";
 
@@ -31,7 +32,9 @@ public class TransportationCategoryStrategy extends BaseCategoryStrategy {
 
     @Override
     public String detectCategory(
-            final String normalizedMerchantName, final String descriptionLower, final String merchantName) {
+            final String normalizedMerchantName,
+            final String descriptionLower,
+            final String merchantName) {
         if (normalizedMerchantName == null || normalizedMerchantName.isBlank()) {
             return null;
         }
@@ -52,7 +55,7 @@ public class TransportationCategoryStrategy extends BaseCategoryStrategy {
                     || descriptionLower.contains(CHAIR)) {
                 LOGGER.debug(
                         "🏷️ detectCategoryFromMerchantName: Detected airport cart/chair → 'transportation'");
-                return "transportation";
+                return TRANSPORTATION;
             }
         }
         // General airport cart/chair patterns
@@ -63,23 +66,23 @@ public class TransportationCategoryStrategy extends BaseCategoryStrategy {
                         || descriptionLower.contains(CHAIR))) {
             LOGGER.debug(
                     "🏷️ detectCategoryFromMerchantName: Detected airport cart/chair → 'transportation'");
-            return "transportation";
+            return TRANSPORTATION;
         }
 
         // ========== GAS STATIONS ==========
         if (normalizedMerchantName.contains(CHEVRON) || descriptionLower.contains(CHEVRON)) {
-            return "transportation";
+            return TRANSPORTATION;
         }
         final String[] gasStations = {
-                "shell", "bp ", "bp.", "exxon", "mobil", "esso",
-                "arco", "valero", "citgo", "speedway", "7-eleven", "7eleven",
-                "circle k", "circlek", CHEVRON, "texaco", "phillips 66", "phillips66",
-                "conoco", "marathon", "sunoco", "sinclair", "kwik trip", "kwiktrip",
-                "kwik sak", "kwiksak", "buc-ee", "bucees", "buc-ee's", "bucees's"
+            "shell", "bp ", "bp.", "exxon", "mobil", "esso",
+            "arco", "valero", "citgo", "speedway", "7-eleven", "7eleven",
+            "circle k", "circlek", CHEVRON, "texaco", "phillips 66", "phillips66",
+            "conoco", "marathon", "sunoco", "sinclair", "kwik trip", "kwiktrip",
+            "kwik sak", "kwiksak", "buc-ee", "bucees", "buc-ee's", "bucees's"
         };
         for (final String station : gasStations) {
             if (normalizedMerchantName.contains(station) || descriptionLower.contains(station)) {
-                return "transportation";
+                return TRANSPORTATION;
             }
         }
 
@@ -95,7 +98,7 @@ public class TransportationCategoryStrategy extends BaseCategoryStrategy {
                         || descriptionLower.contains("76 fuel"))
                 && !normalizedMerchantName.contains("check")
                 && !descriptionLower.contains("check")) {
-            return "transportation";
+            return TRANSPORTATION;
         }
 
         // Gas Station Patterns
@@ -105,7 +108,7 @@ public class TransportationCategoryStrategy extends BaseCategoryStrategy {
                 || normalizedMerchantName.contains("petrol")
                 || normalizedMerchantName.contains("gas ")
                 || descriptionLower.contains("gas station")) {
-            return "transportation";
+            return TRANSPORTATION;
         }
 
         // ========== CAR DEALERSHIPS AND SERVICES ==========
@@ -117,11 +120,13 @@ public class TransportationCategoryStrategy extends BaseCategoryStrategy {
                 || normalizedMerchantName.contains("honda dealer")
                 || descriptionLower.contains("honda ctr")
                 || descriptionLower.contains("honda of")
-                || (merchantName != null && merchantName.toUpperCase(Locale.ROOT).contains("HONDA CTR"))
-                || (merchantName != null && merchantName.toUpperCase(Locale.ROOT).contains("HONDA OF"))) {
+                || (merchantName != null
+                        && merchantName.toUpperCase(Locale.ROOT).contains("HONDA CTR"))
+                || (merchantName != null
+                        && merchantName.toUpperCase(Locale.ROOT).contains("HONDA OF"))) {
             LOGGER.debug(
                     "🏷️ detectCategoryFromMerchantName: Detected Honda (dealership/service) → 'transportation'");
-            return "transportation";
+            return TRANSPORTATION;
         }
 
         // ========== ENTERTAINMENT ==========
@@ -156,25 +161,25 @@ public class TransportationCategoryStrategy extends BaseCategoryStrategy {
             return "entertainment";
         }
         final String[] entertainmentVenues = {
-                "cinemark",
-                "regal",
-                "carmike",
-                "marcus",
-                "harkins",
-                "alamo drafthouse",
-                "alamodrafthouse",
-                "movie theater",
-                "movietheater",
-                "cinema",
-                "theater",
-                "theatre",
-                "imax",
-                ESCAPE_ROOM,
-                ESCAPEROOM,
-                "escape rooms",
-                "escaperooms",
-                "countdown rooms",
-                "countdownrooms"
+            "cinemark",
+            "regal",
+            "carmike",
+            "marcus",
+            "harkins",
+            "alamo drafthouse",
+            "alamodrafthouse",
+            "movie theater",
+            "movietheater",
+            "cinema",
+            "theater",
+            "theatre",
+            "imax",
+            ESCAPE_ROOM,
+            ESCAPEROOM,
+            "escape rooms",
+            "escaperooms",
+            "countdown rooms",
+            "countdownrooms"
         };
         for (final String venue : entertainmentVenues) {
             if (normalizedMerchantName.contains(venue) || descriptionLower.contains(venue)) {
@@ -184,36 +189,36 @@ public class TransportationCategoryStrategy extends BaseCategoryStrategy {
 
         // Streaming Services - Must come before general entertainment patterns
         final String[] streamingServicesInEntertainment = {
-                "netflix",
-                "hulu",
-                "huluplus",
-                "hulu plus",
-                DISNEY,
-                "disney+",
-                "disneyplus",
-                "hbo",
-                "hbo max",
-                "hbomax",
-                "paramount",
-                "paramount+",
-                "paramount plus",
-                "peacock",
-                "nbc peacock",
-                "spotify",
-                "apple music",
-                "applemusic",
-                "youtube premium",
-                "youtubepremium",
-                "youtube tv",
-                "youtubetv",
-                "amazon prime",
-                "amazonprime",
-                "prime video",
-                "primevideo",
-                "showtime",
-                "starz",
-                "crunchyroll",
-                "funimation"
+            "netflix",
+            "hulu",
+            "huluplus",
+            "hulu plus",
+            DISNEY,
+            "disney+",
+            "disneyplus",
+            "hbo",
+            "hbo max",
+            "hbomax",
+            "paramount",
+            "paramount+",
+            "paramount plus",
+            "peacock",
+            "nbc peacock",
+            "spotify",
+            "apple music",
+            "applemusic",
+            "youtube premium",
+            "youtubepremium",
+            "youtube tv",
+            "youtubetv",
+            "amazon prime",
+            "amazonprime",
+            "prime video",
+            "primevideo",
+            "showtime",
+            "starz",
+            "crunchyroll",
+            "funimation"
         };
         for (final String service : streamingServicesInEntertainment) {
             if (normalizedMerchantName.contains(service) || descriptionLower.contains(service)) {
@@ -299,10 +304,12 @@ public class TransportationCategoryStrategy extends BaseCategoryStrategy {
                 || descriptionLower.contains("wa vehicle licensing")
                 || descriptionLower.contains("vehicle licensing")
                 || (merchantName != null
-                        && merchantName.toUpperCase(Locale.ROOT).contains("WA VEHICLE LICENSING"))) {
+                        && merchantName
+                                .toUpperCase(Locale.ROOT)
+                                .contains("WA VEHICLE LICENSING"))) {
             LOGGER.debug(
                     "🏷️ detectCategoryFromMerchantName: Detected WA Vehicle Licensing → 'transportation'");
-            return "transportation";
+            return TRANSPORTATION;
         }
 
         // 76-FALCO - Gas station (76 brand)
@@ -311,10 +318,11 @@ public class TransportationCategoryStrategy extends BaseCategoryStrategy {
                 || normalizedMerchantName.contains("76falco")
                 || descriptionLower.contains("76-falco")
                 || descriptionLower.contains("76 falco")
-                || (merchantName != null && merchantName.toUpperCase(Locale.ROOT).contains("76-FALCO"))) {
+                || (merchantName != null
+                        && merchantName.toUpperCase(Locale.ROOT).contains("76-FALCO"))) {
             LOGGER.debug(
                     "🏷️ detectCategoryFromMerchantName: Detected 76-FALCO gas station → 'transportation'");
-            return "transportation";
+            return TRANSPORTATION;
         }
 
         // Education-related items (school, books, reading, tuition, etc.) - categorized as
@@ -325,7 +333,9 @@ public class TransportationCategoryStrategy extends BaseCategoryStrategy {
                 || normalizedMerchantName.contains("university bookstore")
                 || descriptionLower.contains("university book store")
                 || (merchantName != null
-                        && merchantName.toUpperCase(Locale.ROOT).contains("UNIVERSITY BOOK STORE"))) {
+                        && merchantName
+                                .toUpperCase(Locale.ROOT)
+                                .contains("UNIVERSITY BOOK STORE"))) {
             LOGGER.debug(
                     "🏷️ detectCategoryFromMerchantName: Detected University Book Store → 'education'");
             return "education";
@@ -364,34 +374,36 @@ public class TransportationCategoryStrategy extends BaseCategoryStrategy {
 
         // Exam/testing keywords (AAMC, SAT, TOEFL, GRE, GMAT, LSAT, MCAT, ACT, AP, IB, etc.)
         final String[] examKeywords = {
-                "aamc",
-                "sat",
-                TOEFL,
-                "gre",
-                "gmat",
-                "lsat",
-                "mcat",
-                "act",
-                "ap exam",
-                "ib exam",
-                "clep",
-                "praxis",
-                "bar exam",
-                "nclex",
-                "usmle",
-                "comlex",
-                "test registration",
-                "test fee",
-                "test center",
-                "pearson vue",
-                "ets",
-                "prometric"
+            "aamc",
+            "sat",
+            TOEFL,
+            "gre",
+            "gmat",
+            "lsat",
+            "mcat",
+            "act",
+            "ap exam",
+            "ib exam",
+            "clep",
+            "praxis",
+            "bar exam",
+            "nclex",
+            "usmle",
+            "comlex",
+            "test registration",
+            "test fee",
+            "test center",
+            "pearson vue",
+            "ets",
+            "prometric"
         };
         for (final String exam : examKeywords) {
             if (normalizedMerchantName.contains(exam)
                     || descriptionLower.contains(exam)
                     || (merchantName != null
-                            && merchantName.toUpperCase(Locale.ROOT).contains(exam.toUpperCase(Locale.ROOT)))) {
+                            && merchantName
+                                    .toUpperCase(Locale.ROOT)
+                                    .contains(exam.toUpperCase(Locale.ROOT)))) {
                 LOGGER.debug(
                         "🏷️ detectCategoryFromMerchantName: Detected exam/testing keyword '{}' → 'education'",
                         exam);
@@ -421,27 +433,29 @@ public class TransportationCategoryStrategy extends BaseCategoryStrategy {
         // German: Schule, Universität
         // Arabic: Madrasa, Kuttab
         final String[] regionalSchoolTerms = {
-                "gurukul",
-                "vidyalaya",
-                "shiksha",
-                "pathshala",
-                "escuela",
-                "colegio",
-                "universidad",
-                "école",
-                "collège",
-                "université",
-                "schule",
-                "universität",
-                "madrasa",
-                "kuttab",
-                "madrassa"
+            "gurukul",
+            "vidyalaya",
+            "shiksha",
+            "pathshala",
+            "escuela",
+            "colegio",
+            "universidad",
+            "école",
+            "collège",
+            "université",
+            "schule",
+            "universität",
+            "madrasa",
+            "kuttab",
+            "madrassa"
         };
         for (final String term : regionalSchoolTerms) {
             if (normalizedMerchantName.contains(term)
                     || descriptionLower.contains(term)
                     || (merchantName != null
-                            && merchantName.toUpperCase(Locale.ROOT).contains(term.toUpperCase(Locale.ROOT)))) {
+                            && merchantName
+                                    .toUpperCase(Locale.ROOT)
+                                    .contains(term.toUpperCase(Locale.ROOT)))) {
                 LOGGER.debug(
                         "🏷️ detectCategoryFromMerchantName: Detected regional school term '{}' → 'education'",
                         term);
@@ -451,33 +465,35 @@ public class TransportationCategoryStrategy extends BaseCategoryStrategy {
 
         // CRITICAL: Check for school types FIRST (middle school, high school, elementary, etc.)
         final String[] schoolTypes = {
-                "middle school",
-                "middleschool",
-                "high school",
-                "highschool",
-                "elementary school",
-                "elementaryschool",
-                "elementary",
-                "secondary school",
-                "secondaryschool",
-                "senior secondary school",
-                "seniorschool",
-                "college",
-                "university",
-                "phd",
-                "ph.d",
-                "ph.d.",
-                "doctorate",
-                "graduate school",
-                "graduateschool",
-                SCHOOL_DISTRICT,
-                SCHOOLDISTRICT
+            "middle school",
+            "middleschool",
+            "high school",
+            "highschool",
+            "elementary school",
+            "elementaryschool",
+            "elementary",
+            "secondary school",
+            "secondaryschool",
+            "senior secondary school",
+            "seniorschool",
+            "college",
+            "university",
+            "phd",
+            "ph.d",
+            "ph.d.",
+            "doctorate",
+            "graduate school",
+            "graduateschool",
+            SCHOOL_DISTRICT,
+            SCHOOLDISTRICT
         };
         for (final String school : schoolTypes) {
             if (normalizedMerchantName.contains(school)
                     || descriptionLower.contains(school)
                     || (merchantName != null
-                            && merchantName.toUpperCase(Locale.ROOT).contains(school.toUpperCase(Locale.ROOT)))) {
+                            && merchantName
+                                    .toUpperCase(Locale.ROOT)
+                                    .contains(school.toUpperCase(Locale.ROOT)))) {
                 LOGGER.debug(
                         "🏷️ detectCategoryFromMerchantName: Detected school type '{}' → 'education'",
                         school);
@@ -487,24 +503,26 @@ public class TransportationCategoryStrategy extends BaseCategoryStrategy {
 
         // Educational media (books, newspapers, magazines, journals)
         final String[] educationalMedia = {
-                "newspaper",
-                "magazine",
-                "journal",
-                "books",
-                "bookstore",
-                "book store",
-                "textbook",
-                "text book",
-                "library",
-                "academic journal",
-                "research journal",
-                "scientific journal"
+            "newspaper",
+            "magazine",
+            "journal",
+            "books",
+            "bookstore",
+            "book store",
+            "textbook",
+            "text book",
+            "library",
+            "academic journal",
+            "research journal",
+            "scientific journal"
         };
         for (final String media : educationalMedia) {
             if (normalizedMerchantName.contains(media)
                     || descriptionLower.contains(media)
                     || (merchantName != null
-                            && merchantName.toUpperCase(Locale.ROOT).contains(media.toUpperCase(Locale.ROOT)))) {
+                            && merchantName
+                                    .toUpperCase(Locale.ROOT)
+                                    .contains(media.toUpperCase(Locale.ROOT)))) {
                 LOGGER.debug(
                         "🏷️ detectCategoryFromMerchantName: Detected educational media '{}' → 'education'",
                         media);
@@ -513,23 +531,23 @@ public class TransportationCategoryStrategy extends BaseCategoryStrategy {
         }
 
         final String[] educationKeywords = {
-                "school",
-                "university",
-                "college",
-                "tuition",
-                "tuition fee",
-                "books",
-                "bookstore",
-                "book store",
-                "reading",
-                "textbook",
-                "text book",
-                "education",
-                "educational",
-                "course",
-                "class",
-                "lesson",
-                "training"
+            "school",
+            "university",
+            "college",
+            "tuition",
+            "tuition fee",
+            "books",
+            "bookstore",
+            "book store",
+            "reading",
+            "textbook",
+            "text book",
+            "education",
+            "educational",
+            "course",
+            "class",
+            "lesson",
+            "training"
         };
         for (final String edu : educationKeywords) {
             if (normalizedMerchantName.contains(edu) || descriptionLower.contains(edu)) {

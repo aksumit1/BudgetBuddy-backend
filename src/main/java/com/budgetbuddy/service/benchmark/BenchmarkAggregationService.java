@@ -1,8 +1,5 @@
 package com.budgetbuddy.service.benchmark;
 
-
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import java.util.Locale;
 import com.budgetbuddy.model.dynamodb.BenchmarkTable;
 import com.budgetbuddy.model.dynamodb.TransactionTable;
 import com.budgetbuddy.model.dynamodb.UserPreferencesTable;
@@ -10,6 +7,7 @@ import com.budgetbuddy.repository.dynamodb.BenchmarkRepository;
 import com.budgetbuddy.repository.dynamodb.TransactionRepository;
 import com.budgetbuddy.repository.dynamodb.UserPreferencesRepository;
 import com.budgetbuddy.service.DistributedLockService;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -17,6 +15,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -54,7 +53,12 @@ import org.springframework.stereotype.Service;
 @SuppressFBWarnings(
         value = "EI_EXPOSE_REP2",
         justification = "Spring constructor injection — beans are shared by design")
-@SuppressWarnings({"PMD.LawOfDemeter", "PMD.AvoidCatchingGenericException", "PMD.DataClass", "PMD.OnlyOneReturn"})
+@SuppressWarnings({
+    "PMD.LawOfDemeter",
+    "PMD.AvoidCatchingGenericException",
+    "PMD.DataClass",
+    "PMD.OnlyOneReturn"
+})
 @Service
 public class BenchmarkAggregationService {
 
@@ -74,7 +78,11 @@ public class BenchmarkAggregationService {
         public final String bucketLabel;
 
         public BenchmarkRow(
-                final String category, final BigDecimal median, final BigDecimal p25, final BigDecimal p75, final String bucket) {
+                final String category,
+                final BigDecimal median,
+                final BigDecimal p25,
+                final BigDecimal p75,
+                final String bucket) {
             this.category = category;
             this.medianMonthly = median;
             this.p25 = p25;
@@ -149,7 +157,8 @@ public class BenchmarkAggregationService {
                     bucketId,
                     bucketLabelFromInputs(pref.getAnnualIncomeTier(), pref.getHouseholdSize()));
 
-            final Map<String, Double> monthly = monthlySpendByCategory(pref.getUserId(), start, today);
+            final Map<String, Double> monthly =
+                    monthlySpendByCategory(pref.getUserId(), start, today);
             if (monthly.isEmpty()) {
                 continue;
             }
@@ -314,7 +323,10 @@ public class BenchmarkAggregationService {
                 if (cat == null || cat.isBlank()) {
                     continue;
                 }
-                sum.merge(cat.toLowerCase(Locale.ROOT), t.getAmount().abs().doubleValue(), Double::sum);
+                sum.merge(
+                        cat.toLowerCase(Locale.ROOT),
+                        t.getAmount().abs().doubleValue(),
+                        Double::sum);
             }
         } catch (Exception e) {
             LOGGER.debug("Skipping user {} — transaction fetch failed: {}", userId, e.getMessage());

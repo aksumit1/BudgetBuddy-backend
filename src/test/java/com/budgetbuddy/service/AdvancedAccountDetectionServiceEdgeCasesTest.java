@@ -18,6 +18,9 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class AdvancedAccountDetectionServiceEdgeCasesTest {
 
+    private static final String DATE = "Date";
+    private static final String AMOUNT = "Amount";
+
     @Mock private AccountRepository accountRepository;
 
     @Mock private OCRService ocrService;
@@ -53,7 +56,7 @@ class AdvancedAccountDetectionServiceEdgeCasesTest {
 
     @Test
     void testDetectAccountHeadersWithNulls() {
-        final List<String> headers = Arrays.asList("Date", null, "Amount", null);
+        final List<String> headers = Arrays.asList(DATE, null, AMOUNT, null);
         final AccountDetectionService.DetectedAccount detected =
                 service.detectAccount("statement.csv", headers, new ArrayList<>(), new HashMap<>());
         assertNotNull(detected);
@@ -70,7 +73,7 @@ class AdvancedAccountDetectionServiceEdgeCasesTest {
         final AccountDetectionService.DetectedAccount detected =
                 service.detectAccount(
                         "statement.csv",
-                        Arrays.asList("Date", "Description", "Amount"),
+                        Arrays.asList(DATE, "Description", AMOUNT),
                         dataRows,
                         new HashMap<>());
         assertNotNull(detected);
@@ -100,7 +103,7 @@ class AdvancedAccountDetectionServiceEdgeCasesTest {
         final AccountDetectionService.DetectedAccount detected =
                 service.detectAccount(
                         "statement.csv",
-                        Arrays.asList("Date", "Description", "Amount"),
+                        Arrays.asList(DATE, "Description", AMOUNT),
                         dataRows,
                         new HashMap<>());
         assertNotNull(detected);
@@ -123,7 +126,7 @@ class AdvancedAccountDetectionServiceEdgeCasesTest {
 
     @Test
     void testDetectAccountInvalidColumnIndex() {
-        final List<String> headers = Arrays.asList("Date", "Amount");
+        final List<String> headers = Arrays.asList(DATE, AMOUNT);
         final List<List<String>> dataRows = Arrays.asList(Arrays.asList("2024-01-01", "100.00"));
 
         // Try to access column index 10 when only 2 columns exist
@@ -139,7 +142,7 @@ class AdvancedAccountDetectionServiceEdgeCasesTest {
         final AccountDetectionService.DetectedAccount detected =
                 service.detectAccount(
                         "chase_checking_1234.csv",
-                        Arrays.asList("Date", "Amount"),
+                        Arrays.asList(DATE, AMOUNT),
                         dataRows,
                         new HashMap<>());
         assertNotNull(detected);

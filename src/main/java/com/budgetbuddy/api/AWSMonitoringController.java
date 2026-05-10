@@ -68,7 +68,8 @@ public class AWSMonitoringController {
             return ResponseEntity.status(403).build();
         }
 
-        final var statistics = cloudWatchService.getMetricStatistics(metricName, startTime, endTime);
+        final var statistics =
+                cloudWatchService.getMetricStatistics(metricName, startTime, endTime);
         return ResponseEntity.ok(Map.of("statistics", statistics));
     }
 
@@ -118,7 +119,8 @@ public class AWSMonitoringController {
     /** Get CodePipeline status */
     @GetMapping("/codepipeline/status")
     public ResponseEntity<Map<String, String>> getCodePipelineStatus(
-            @AuthenticationPrincipal final UserDetails userDetails, @RequestParam final String pipelineName) {
+            @AuthenticationPrincipal final UserDetails userDetails,
+            @RequestParam final String pipelineName) {
         final com.budgetbuddy.model.dynamodb.UserTable user =
                 userService
                         .findByEmail(userDetails.getUsername())

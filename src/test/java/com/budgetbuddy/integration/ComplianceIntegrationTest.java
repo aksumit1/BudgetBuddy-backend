@@ -1,7 +1,5 @@
 package com.budgetbuddy.integration;
 
-
-import java.nio.charset.StandardCharsets;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -15,6 +13,7 @@ import com.budgetbuddy.compliance.gdpr.GDPRComplianceService;
 import com.budgetbuddy.compliance.hipaa.HIPAAComplianceService;
 import com.budgetbuddy.model.dynamodb.UserTable;
 import com.budgetbuddy.service.UserService;
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
@@ -54,7 +53,8 @@ class ComplianceIntegrationTest {
         testEmail =
                 "test-compliance-" + UUID.randomUUID().toString().substring(0, 8) + "@example.com";
         testPasswordHash =
-                java.util.Base64.getEncoder().encodeToString("test-password-hash".getBytes(StandardCharsets.UTF_8));
+                java.util.Base64.getEncoder()
+                        .encodeToString("test-password-hash".getBytes(StandardCharsets.UTF_8));
         testUser = userService.createUserSecure(testEmail, testPasswordHash, null, null);
     }
 
@@ -147,7 +147,8 @@ class ComplianceIntegrationTest {
         final String userId = testUser.getUserId();
 
         // When
-        final GDPRComplianceService.GDPRDataExport export = gdprComplianceService.exportUserData(userId);
+        final GDPRComplianceService.GDPRDataExport export =
+                gdprComplianceService.exportUserData(userId);
 
         // Then
         assertNotNull(export);
@@ -238,7 +239,8 @@ class ComplianceIntegrationTest {
 
         // When - First authorize, then share
         dmaComplianceService.authorizeThirdPartyAccess(userId, thirdPartyId, dataType);
-        final String data = dmaComplianceService.shareDataWithThirdParty(userId, thirdPartyId, dataType);
+        final String data =
+                dmaComplianceService.shareDataWithThirdParty(userId, thirdPartyId, dataType);
 
         // Then
         assertNotNull(data);

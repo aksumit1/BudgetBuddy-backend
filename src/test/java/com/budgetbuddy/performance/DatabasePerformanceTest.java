@@ -1,7 +1,5 @@
 package com.budgetbuddy.performance;
 
-
-import java.nio.charset.StandardCharsets;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.budgetbuddy.AWSTestConfiguration;
@@ -13,6 +11,7 @@ import com.budgetbuddy.repository.dynamodb.TransactionRepository;
 import com.budgetbuddy.service.UserService;
 import com.budgetbuddy.util.TableInitializer;
 import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Base64;
@@ -68,7 +67,8 @@ class DatabasePerformanceTest {
     void setUp() {
         // Create test user
         final String email = "perf-test-" + UUID.randomUUID() + "@example.com";
-        final String passwordHash = Base64.getEncoder().encodeToString("testpassword".getBytes(StandardCharsets.UTF_8));
+        final String passwordHash =
+                Base64.getEncoder().encodeToString("testpassword".getBytes(StandardCharsets.UTF_8));
         testUser = userService.createUserSecure(email, passwordHash, "Performance", "Test");
 
         // Create test accounts

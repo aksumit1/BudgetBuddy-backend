@@ -1,6 +1,5 @@
 package com.budgetbuddy.service;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
@@ -9,6 +8,7 @@ import com.budgetbuddy.model.dynamodb.TransactionTable;
 import com.budgetbuddy.model.dynamodb.UserTable;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.File;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -63,10 +63,12 @@ final class BudgetSummaryServiceParityTest {
                 rows.add(tx(tx, bNode.path("category").asText()));
             }
 
-            final BudgetSummaryService.BudgetSummaryDto dto = service.buildOneAt(user, b, rows, now);
+            final BudgetSummaryService.BudgetSummaryDto dto =
+                    service.buildOneAt(user, b, rows, now);
 
             final BigDecimal expSpent = scenario.path("expected").path("spent").decimalValue();
-            final BigDecimal expEff = scenario.path("expected").path("effectiveLimit").decimalValue();
+            final BigDecimal expEff =
+                    scenario.path("expected").path("effectiveLimit").decimalValue();
             final BigDecimal expRem = scenario.path("expected").path("remaining").decimalValue();
             final BigDecimal expGoal =
                     scenario.path("expected").path("goalContributedSoFar").decimalValue();
@@ -121,7 +123,8 @@ final class BudgetSummaryServiceParityTest {
         return t;
     }
 
-    private static void assertClose(final BigDecimal expected, final BigDecimal actual, final String message) {
+    private static void assertClose(
+            final BigDecimal expected, final BigDecimal actual, final String message) {
         final BigDecimal e = expected == null ? BigDecimal.ZERO : expected;
         final BigDecimal a = actual == null ? BigDecimal.ZERO : actual;
         final BigDecimal diff = e.subtract(a).abs().setScale(6, RoundingMode.HALF_UP);

@@ -25,6 +25,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class AuditLogServiceTest {
 
+    private static final String USER_123 = "user-123";
+
     @Mock private AuditLogRepository auditLogRepository;
 
     @Mock private ObjectMapper objectMapper;
@@ -57,7 +59,7 @@ class AuditLogServiceTest {
     @Test
     void testLogActionWithValidInputLogsAction() {
         // Given
-        final String userId = "user-123";
+        final String userId = USER_123;
         final String action = "CREATE_ACCOUNT";
         final String resourceType = "ACCOUNT";
         final String resourceId = "acc-123";
@@ -83,7 +85,7 @@ class AuditLogServiceTest {
     @Test
     void testLogActionWithNullActionSkipsLogging() {
         // When
-        auditLogService.logAction("user-123", null, "ACCOUNT", "acc-123", Map.of(), null, null);
+        auditLogService.logAction(USER_123, null, "ACCOUNT", "acc-123", Map.of(), null, null);
 
         // Then
         verify(auditLogRepository, never()).save(any());
@@ -92,7 +94,7 @@ class AuditLogServiceTest {
     @Test
     void testLogActionWithEmptyActionSkipsLogging() {
         // When
-        auditLogService.logAction("user-123", "", "ACCOUNT", "acc-123", Map.of(), null, null);
+        auditLogService.logAction(USER_123, "", "ACCOUNT", "acc-123", Map.of(), null, null);
 
         // Then
         verify(auditLogRepository, never()).save(any());
@@ -109,7 +111,7 @@ class AuditLogServiceTest {
         doNothing().when(auditLogRepository).save(any(AuditLogTable.class));
 
         // When
-        auditLogService.logControlActivity("control-123", "activity", "user-123");
+        auditLogService.logControlActivity("control-123", "activity", USER_123);
 
         // Then
         verify(auditLogRepository).save(any(AuditLogTable.class));
@@ -126,7 +128,7 @@ class AuditLogServiceTest {
         doNothing().when(auditLogRepository).save(any(AuditLogTable.class));
 
         // When
-        auditLogService.logSystemChange("DEPLOYMENT", "System update", "user-123");
+        auditLogService.logSystemChange("DEPLOYMENT", "System update", USER_123);
 
         // Then
         verify(auditLogRepository).save(any(AuditLogTable.class));
@@ -137,7 +139,7 @@ class AuditLogServiceTest {
         // Given
         final SOC2ComplianceService.RiskAssessment assessment =
                 new SOC2ComplianceService.RiskAssessment();
-        assessment.setUserId("user-123");
+        assessment.setUserId(USER_123);
         assessment.setResource("resource-123");
         assessment.setRiskScore(75);
         assessment.setRiskLevel("HIGH");
@@ -176,7 +178,7 @@ class AuditLogServiceTest {
         doNothing().when(auditLogRepository).save(any(AuditLogTable.class));
 
         // When
-        auditLogService.logAccessControl("resource-123", "READ", "user-123", true);
+        auditLogService.logAccessControl("resource-123", "READ", USER_123, true);
 
         // Then
         verify(auditLogRepository).save(any(AuditLogTable.class));
@@ -224,7 +226,7 @@ class AuditLogServiceTest {
         doNothing().when(auditLogRepository).save(any(AuditLogTable.class));
 
         // When
-        auditLogService.logPHIAccess("user-123", "MEDICAL_RECORD", "READ", true);
+        auditLogService.logPHIAccess(USER_123, "MEDICAL_RECORD", "READ", true);
 
         // Then
         verify(auditLogRepository).save(any(AuditLogTable.class));
@@ -241,7 +243,7 @@ class AuditLogServiceTest {
         doNothing().when(auditLogRepository).save(any(AuditLogTable.class));
 
         // When
-        auditLogService.auditPHIActivity("user-123", "phi-123", "VIEW", "Details");
+        auditLogService.auditPHIActivity(USER_123, "phi-123", "VIEW", "Details");
 
         // Then
         verify(auditLogRepository).save(any(AuditLogTable.class));
@@ -258,7 +260,7 @@ class AuditLogServiceTest {
         doNothing().when(auditLogRepository).save(any(AuditLogTable.class));
 
         // When
-        auditLogService.logPHIModification("user-123", "phi-123", "UPDATE", "old", "new");
+        auditLogService.logPHIModification(USER_123, "phi-123", "UPDATE", "old", "new");
 
         // Then
         verify(auditLogRepository).save(any(AuditLogTable.class));
@@ -267,8 +269,9 @@ class AuditLogServiceTest {
     @Test
     void testLogBreachWithValidReportLogsBreach() {
         // Given
-        final HIPAAComplianceService.BreachReport report = new HIPAAComplianceService.BreachReport();
-        report.setUserId("user-123");
+        final HIPAAComplianceService.BreachReport report =
+                new HIPAAComplianceService.BreachReport();
+        report.setUserId(USER_123);
         report.setPhiId("phi-123");
         report.setBreachType("UNAUTHORIZED_ACCESS");
         report.setDetails("Breach details");
@@ -307,7 +310,7 @@ class AuditLogServiceTest {
         doNothing().when(auditLogRepository).save(any(AuditLogTable.class));
 
         // When
-        auditLogService.logWorkforceAccess("user-123", "ADMIN", "SYSTEM", true);
+        auditLogService.logWorkforceAccess(USER_123, "ADMIN", "SYSTEM", true);
 
         // Then
         verify(auditLogRepository).save(any(AuditLogTable.class));
@@ -324,7 +327,7 @@ class AuditLogServiceTest {
         doNothing().when(auditLogRepository).save(any(AuditLogTable.class));
 
         // When
-        auditLogService.logAuthentication("user-123", "PASSWORD", true);
+        auditLogService.logAuthentication(USER_123, "PASSWORD", true);
 
         // Then
         verify(auditLogRepository).save(any(AuditLogTable.class));
@@ -341,7 +344,7 @@ class AuditLogServiceTest {
         doNothing().when(auditLogRepository).save(any(AuditLogTable.class));
 
         // When
-        auditLogService.logUserRegistration("user-123", "EMAIL");
+        auditLogService.logUserRegistration(USER_123, "EMAIL");
 
         // Then
         verify(auditLogRepository).save(any(AuditLogTable.class));
@@ -358,7 +361,7 @@ class AuditLogServiceTest {
         doNothing().when(auditLogRepository).save(any(AuditLogTable.class));
 
         // When
-        auditLogService.logAccessProvisioning("user-123", "ACCOUNT", "READ");
+        auditLogService.logAccessProvisioning(USER_123, "ACCOUNT", "READ");
 
         // Then
         verify(auditLogRepository).save(any(AuditLogTable.class));
@@ -375,7 +378,7 @@ class AuditLogServiceTest {
         doNothing().when(auditLogRepository).save(any(AuditLogTable.class));
 
         // When
-        auditLogService.logPrivilegedAccess("user-123", "ADMIN", "SYSTEM");
+        auditLogService.logPrivilegedAccess(USER_123, "ADMIN", "SYSTEM");
 
         // Then
         verify(auditLogRepository).save(any(AuditLogTable.class));
@@ -392,7 +395,7 @@ class AuditLogServiceTest {
         doNothing().when(auditLogRepository).save(any(AuditLogTable.class));
 
         // When
-        auditLogService.logCredentialChange("user-123", "PASSWORD_RESET");
+        auditLogService.logCredentialChange(USER_123, "PASSWORD_RESET");
 
         // Then
         verify(auditLogRepository).save(any(AuditLogTable.class));
@@ -403,7 +406,7 @@ class AuditLogServiceTest {
         // Given
         final ISO27001ComplianceService.AccessReview review =
                 new ISO27001ComplianceService.AccessReview();
-        review.setUserId("user-123");
+        review.setUserId(USER_123);
         review.setStatus("APPROVED");
 
         try {
@@ -440,7 +443,7 @@ class AuditLogServiceTest {
         doNothing().when(auditLogRepository).save(any(AuditLogTable.class));
 
         // When
-        auditLogService.logAccessRemoval("user-123", "ACCOUNT", "Terminated");
+        auditLogService.logAccessRemoval(USER_123, "ACCOUNT", "Terminated");
 
         // Then
         verify(auditLogRepository).save(any(AuditLogTable.class));
@@ -457,7 +460,7 @@ class AuditLogServiceTest {
         doNothing().when(auditLogRepository).save(any(AuditLogTable.class));
 
         // When
-        auditLogService.logSecureLogon("user-123", "MFA", true);
+        auditLogService.logSecureLogon(USER_123, "MFA", true);
 
         // Then
         verify(auditLogRepository).save(any(AuditLogTable.class));
@@ -474,7 +477,7 @@ class AuditLogServiceTest {
         doNothing().when(auditLogRepository).save(any(AuditLogTable.class));
 
         // When
-        auditLogService.logPasswordManagement("user-123", "RESET");
+        auditLogService.logPasswordManagement(USER_123, "RESET");
 
         // Then
         verify(auditLogRepository).save(any(AuditLogTable.class));
@@ -609,7 +612,7 @@ class AuditLogServiceTest {
         doNothing().when(auditLogRepository).save(any(AuditLogTable.class));
 
         // When
-        auditLogService.logCardDataAccess("user-123", "1234", true);
+        auditLogService.logCardDataAccess(USER_123, "1234", true);
 
         // Then
         verify(auditLogRepository).save(any(AuditLogTable.class));
@@ -626,7 +629,7 @@ class AuditLogServiceTest {
         doNothing().when(auditLogRepository).save(any(AuditLogTable.class));
 
         // When
-        auditLogService.logCardholderDataAccess("user-123", "PAYMENT", true);
+        auditLogService.logCardholderDataAccess(USER_123, "PAYMENT", true);
 
         // Then
         verify(auditLogRepository).save(any(AuditLogTable.class));
@@ -643,7 +646,7 @@ class AuditLogServiceTest {
         doNothing().when(auditLogRepository).save(any(AuditLogTable.class));
 
         // When
-        auditLogService.logFinancialDataAccess("user-123", "TRANSACTION", "READ");
+        auditLogService.logFinancialDataAccess(USER_123, "TRANSACTION", "READ");
 
         // Then
         verify(auditLogRepository).save(any(AuditLogTable.class));
@@ -660,7 +663,7 @@ class AuditLogServiceTest {
         doNothing().when(auditLogRepository).save(any(AuditLogTable.class));
 
         // When
-        auditLogService.logFinancialDataModification("user-123", "ACCOUNT", "old", "new");
+        auditLogService.logFinancialDataModification(USER_123, "ACCOUNT", "old", "new");
 
         // Then
         verify(auditLogRepository).save(any(AuditLogTable.class));

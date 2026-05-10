@@ -1,6 +1,5 @@
 package com.budgetbuddy.repository;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -9,6 +8,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.budgetbuddy.model.dynamodb.DeviceTokenTable;
 import com.budgetbuddy.repository.dynamodb.DeviceTokenRepository;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
@@ -68,6 +68,8 @@ import software.amazon.awssdk.services.dynamodb.model.ScalarAttributeType;
 @org.junit.jupiter.api.condition.DisabledIfEnvironmentVariable(named = "CI", matches = "true")
 @DisplayName("DeviceTokenRepository Integration Tests")
 class DeviceTokenRepositoryTest {
+
+    private static final String IOS = "ios";
 
     // Docker availability is checked by Testcontainers automatically
     // Container initialization will be skipped if Docker is not available
@@ -170,7 +172,7 @@ class DeviceTokenRepositoryTest {
         final DeviceTokenTable token = new DeviceTokenTable();
         token.setUserId(userId);
         token.setDeviceToken(deviceToken);
-        token.setPlatform("ios");
+        token.setPlatform(IOS);
         token.setEnabled(true);
 
         repository.save(token);
@@ -180,7 +182,7 @@ class DeviceTokenRepositoryTest {
         assertTrue(retrieved.isPresent());
         assertEquals(userId, retrieved.get().getUserId());
         assertEquals(deviceToken, retrieved.get().getDeviceToken());
-        assertEquals("ios", retrieved.get().getPlatform());
+        assertEquals(IOS, retrieved.get().getPlatform());
         assertTrue(retrieved.get().getEnabled());
     }
 
@@ -197,10 +199,11 @@ class DeviceTokenRepositoryTest {
                                 i ->
                                         CompletableFuture.runAsync(
                                                 () -> {
-                                                    final DeviceTokenTable token = new DeviceTokenTable();
+                                                    final DeviceTokenTable token =
+                                                            new DeviceTokenTable();
                                                     token.setUserId(userId);
                                                     token.setDeviceToken(deviceToken);
-                                                    token.setPlatform("ios");
+                                                    token.setPlatform(IOS);
                                                     token.setEnabled(true);
                                                     repository.save(token);
                                                 },
@@ -226,7 +229,7 @@ class DeviceTokenRepositoryTest {
             final DeviceTokenTable token = new DeviceTokenTable();
             token.setUserId(userId);
             token.setDeviceToken(UUID.randomUUID().toString());
-            token.setPlatform("ios");
+            token.setPlatform(IOS);
             token.setEnabled(i % 2 == 0); // Alternate enabled/disabled
             repository.save(token);
         }
@@ -263,7 +266,7 @@ class DeviceTokenRepositoryTest {
         final DeviceTokenTable token = new DeviceTokenTable();
         token.setUserId(userId);
         token.setDeviceToken(deviceToken);
-        token.setPlatform("ios");
+        token.setPlatform(IOS);
         token.setEnabled(true);
         repository.save(token);
 
@@ -287,7 +290,7 @@ class DeviceTokenRepositoryTest {
         final DeviceTokenTable token = new DeviceTokenTable();
         token.setUserId(userId);
         token.setDeviceToken(deviceToken);
-        token.setPlatform("ios");
+        token.setPlatform(IOS);
         token.setEnabled(true);
         repository.save(token);
 
@@ -308,7 +311,7 @@ class DeviceTokenRepositoryTest {
         final DeviceTokenTable token1 = new DeviceTokenTable();
         token1.setUserId(userId);
         token1.setDeviceToken(deviceToken);
-        token1.setPlatform("ios");
+        token1.setPlatform(IOS);
         token1.setEnabled(true);
 
         final DeviceTokenTable token2 = new DeviceTokenTable();
@@ -350,7 +353,7 @@ class DeviceTokenRepositoryTest {
             final DeviceTokenTable token = new DeviceTokenTable();
             token.setUserId(userId);
             token.setDeviceToken(UUID.randomUUID().toString());
-            token.setPlatform(i % 2 == 0 ? "ios" : "android");
+            token.setPlatform(i % 2 == 0 ? IOS : "android");
             token.setEnabled(true);
             repository.save(token);
         }

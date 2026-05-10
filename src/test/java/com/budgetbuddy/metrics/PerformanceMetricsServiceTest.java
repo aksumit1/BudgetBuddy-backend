@@ -14,6 +14,10 @@ import org.junit.jupiter.api.Test;
 /** Unit Tests for Performance Metrics Service */
 class PerformanceMetricsServiceTest {
 
+    private static final String ENDPOINT = "endpoint";
+    private static final String METHOD = "method";
+    private static final String CORRELATION_123 = "correlation-123";
+
     private MeterRegistry meterRegistry;
     private PerformanceMetricsService service;
 
@@ -28,7 +32,7 @@ class PerformanceMetricsServiceTest {
     @Test
     void testStartRequestRecordsRequest() {
         // When
-        service.startRequest("correlation-123", "/api/test", "GET");
+        service.startRequest(CORRELATION_123, "/api/test", "GET");
 
         // Then - Verify counters were created and incremented
         final Counter totalRequestsCounter = meterRegistry.find("http.requests.total").counter();
@@ -38,8 +42,8 @@ class PerformanceMetricsServiceTest {
         final Counter requestsCounter =
                 meterRegistry
                         .find("http.requests")
-                        .tag("endpoint", "/api/test")
-                        .tag("method", "GET")
+                        .tag(ENDPOINT, "/api/test")
+                        .tag(METHOD, "GET")
                         .counter();
         assertNotNull(requestsCounter, "Requests counter should exist");
         assertEquals(1.0, requestsCounter.count(), "Requests counter should be 1");
@@ -48,17 +52,17 @@ class PerformanceMetricsServiceTest {
     @Test
     void testEndRequestWithSuccessRecordsSuccess() {
         // Given
-        service.startRequest("correlation-123", "/api/test", "GET");
+        service.startRequest(CORRELATION_123, "/api/test", "GET");
 
         // When
-        service.endRequest("correlation-123", "/api/test", "GET", 200, false);
+        service.endRequest(CORRELATION_123, "/api/test", "GET", 200, false);
 
         // Then - Verify timer was recorded and success counter incremented
         final Timer durationTimer =
                 meterRegistry
                         .find("http.request.duration")
-                        .tag("endpoint", "/api/test")
-                        .tag("method", "GET")
+                        .tag(ENDPOINT, "/api/test")
+                        .tag(METHOD, "GET")
                         .timer();
         assertNotNull(durationTimer, "Duration timer should exist");
         assertEquals(1, durationTimer.count(), "Timer should have 1 measurement");
@@ -71,25 +75,25 @@ class PerformanceMetricsServiceTest {
     @Test
     void testEndRequestWithErrorRecordsError() {
         // Given
-        service.startRequest("correlation-123", "/api/test", "GET");
+        service.startRequest(CORRELATION_123, "/api/test", "GET");
 
         // When
-        service.endRequest("correlation-123", "/api/test", "GET", 500, true);
+        service.endRequest(CORRELATION_123, "/api/test", "GET", 500, true);
 
         // Then - Verify timer and error counter
         final Timer durationTimer =
                 meterRegistry
                         .find("http.request.duration")
-                        .tag("endpoint", "/api/test")
-                        .tag("method", "GET")
+                        .tag(ENDPOINT, "/api/test")
+                        .tag(METHOD, "GET")
                         .timer();
         assertNotNull(durationTimer, "Duration timer should exist");
 
         final Counter errorCounter =
                 meterRegistry
                         .find("http.errors")
-                        .tag("endpoint", "/api/test")
-                        .tag("method", "GET")
+                        .tag(ENDPOINT, "/api/test")
+                        .tag(METHOD, "GET")
                         .tag("status", "500")
                         .counter();
         assertNotNull(errorCounter, "Error counter should exist");
@@ -99,17 +103,17 @@ class PerformanceMetricsServiceTest {
     @Test
     void testEndRequestWithHighStatusCodeRecordsError() {
         // Given
-        service.startRequest("correlation-123", "/api/test", "GET");
+        service.startRequest(CORRELATION_123, "/api/test", "GET");
 
         // When
-        service.endRequest("correlation-123", "/api/test", "GET", 404, false);
+        service.endRequest(CORRELATION_123, "/api/test", "GET", 404, false);
 
         // Then - Verify error counter for 4xx status
         final Counter errorCounter =
                 meterRegistry
                         .find("http.errors")
-                        .tag("endpoint", "/api/test")
-                        .tag("method", "GET")
+                        .tag(ENDPOINT, "/api/test")
+                        .tag(METHOD, "GET")
                         .tag("status", "404")
                         .counter();
         assertNotNull(errorCounter, "Error counter should exist for 404");
@@ -136,7 +140,7 @@ class PerformanceMetricsServiceTest {
         // Then - Verify gauge was registered
         // Gauges are harder to verify directly, but we can check the meter exists
         assertNotNull(
-                meterRegistry.find("http.throughput").tag("endpoint", "/api/test").gauge(),
+                meterRegistry.find("http.throughput").tag(ENDPOINT, "/api/test").gauge(),
                 "Throughput gauge should exist");
     }
 
@@ -173,7 +177,7 @@ class PerformanceMetricsServiceTest {
                 meterRegistry
                         .find("external.api.duration")
                         .tag("service", "plaid")
-                        .tag("endpoint", "/transactions")
+                        .tag(ENDPOINT, "/transactions")
                         .tag("success", "true")
                         .timer();
         assertNotNull(apiTimer, "API timer should exist");
@@ -228,8 +232,8 @@ class PerformanceMetricsServiceTest {
         final Counter requestsCounter =
                 meterRegistry
                         .find("http.requests")
-                        .tag("endpoint", "/api/users/{id}")
-                        .tag("method", "GET")
+                        .tag(ENDPOINT, "/api/users/{id}")
+                        .tag(METHOD, "GET")
                         .counter();
         assertNotNull(requestsCounter, "Requests counter with sanitized endpoint should exist");
         assertEquals(1.0, requestsCounter.count(), "Counter should be 1");
@@ -244,8 +248,8 @@ class PerformanceMetricsServiceTest {
         final Counter requestsCounter =
                 meterRegistry
                         .find("http.requests")
-                        .tag("endpoint", "unknown")
-                        .tag("method", "GET")
+                        .tag(ENDPOINT, "unknown")
+                        .tag(METHOD, "GET")
                         .counter();
         assertNotNull(requestsCounter, "Requests counter with unknown endpoint should exist");
         assertEquals(1.0, requestsCounter.count(), "Counter should be 1");

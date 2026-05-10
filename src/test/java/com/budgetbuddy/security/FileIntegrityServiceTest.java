@@ -1,7 +1,5 @@
 package com.budgetbuddy.security;
 
-
-import java.nio.charset.StandardCharsets;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
@@ -11,6 +9,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
@@ -29,8 +28,10 @@ class FileIntegrityServiceTest {
     void testCalculateChecksumShouldReturnConsistentHash() {
         // Given
         final String content = "test content for checksum";
-        final InputStream inputStream1 = new ByteArrayInputStream(content.getBytes(StandardCharsets.UTF_8));
-        final InputStream inputStream2 = new ByteArrayInputStream(content.getBytes(StandardCharsets.UTF_8));
+        final InputStream inputStream1 =
+                new ByteArrayInputStream(content.getBytes(StandardCharsets.UTF_8));
+        final InputStream inputStream2 =
+                new ByteArrayInputStream(content.getBytes(StandardCharsets.UTF_8));
 
         // When
         final String checksum1 = service.calculateChecksum(inputStream1);
@@ -47,8 +48,10 @@ class FileIntegrityServiceTest {
         // Given
         final String content1 = "test content 1";
         final String content2 = "test content 2";
-        final InputStream inputStream1 = new ByteArrayInputStream(content1.getBytes(StandardCharsets.UTF_8));
-        final InputStream inputStream2 = new ByteArrayInputStream(content2.getBytes(StandardCharsets.UTF_8));
+        final InputStream inputStream1 =
+                new ByteArrayInputStream(content1.getBytes(StandardCharsets.UTF_8));
+        final InputStream inputStream2 =
+                new ByteArrayInputStream(content2.getBytes(StandardCharsets.UTF_8));
 
         // When
         final String checksum1 = service.calculateChecksum(inputStream1);
@@ -113,12 +116,14 @@ class FileIntegrityServiceTest {
         // Given
         final String fileId = "test-file-789";
         final String content = "test content";
-        final InputStream inputStream1 = new ByteArrayInputStream(content.getBytes(StandardCharsets.UTF_8));
+        final InputStream inputStream1 =
+                new ByteArrayInputStream(content.getBytes(StandardCharsets.UTF_8));
         final String checksum = service.calculateChecksum(inputStream1);
         service.storeChecksum(fileId, checksum, null);
 
         // When - Verify with same content
-        final InputStream inputStream2 = new ByteArrayInputStream(content.getBytes(StandardCharsets.UTF_8));
+        final InputStream inputStream2 =
+                new ByteArrayInputStream(content.getBytes(StandardCharsets.UTF_8));
         final boolean verified = service.verifyIntegrity(fileId, inputStream2);
 
         // Then
@@ -130,13 +135,15 @@ class FileIntegrityServiceTest {
         // Given
         final String fileId = "test-file-abc";
         final String content1 = "test content 1";
-        final InputStream inputStream1 = new ByteArrayInputStream(content1.getBytes(StandardCharsets.UTF_8));
+        final InputStream inputStream1 =
+                new ByteArrayInputStream(content1.getBytes(StandardCharsets.UTF_8));
         final String checksum = service.calculateChecksum(inputStream1);
         service.storeChecksum(fileId, checksum, null);
 
         // When - Verify with different content
         final String content2 = "test content 2";
-        final InputStream inputStream2 = new ByteArrayInputStream(content2.getBytes(StandardCharsets.UTF_8));
+        final InputStream inputStream2 =
+                new ByteArrayInputStream(content2.getBytes(StandardCharsets.UTF_8));
         final boolean verified = service.verifyIntegrity(fileId, inputStream2);
 
         // Then
@@ -147,7 +154,8 @@ class FileIntegrityServiceTest {
     void testVerifyIntegrityNoStoredChecksumShouldReturnFalse() {
         // Given
         final String fileId = "non-existent-file";
-        final InputStream inputStream = new ByteArrayInputStream("content".getBytes(StandardCharsets.UTF_8));
+        final InputStream inputStream =
+                new ByteArrayInputStream("content".getBytes(StandardCharsets.UTF_8));
 
         // When
         final boolean verified = service.verifyIntegrity(fileId, inputStream);

@@ -59,8 +59,10 @@ class DDoSProtectionServiceTest {
         final String uuid = UUID.randomUUID().toString().replace("-", "");
         final int thirdOctetHash = uuid.substring(0, 4).hashCode();
         final int fourthOctetHash = uuid.substring(4, 8).hashCode();
-        final int thirdOctet = (thirdOctetHash < 0 ? -thirdOctetHash : thirdOctetHash) % 255; // 0-254
-        final int fourthOctet = (fourthOctetHash < 0 ? -fourthOctetHash : fourthOctetHash) % 255; // 0-254
+        final int thirdOctet =
+                (thirdOctetHash < 0 ? -thirdOctetHash : thirdOctetHash) % 255; // 0-254
+        final int fourthOctet =
+                (fourthOctetHash < 0 ? -fourthOctetHash : fourthOctetHash) % 255; // 0-254
         testIp = "192.168." + thirdOctet + "." + fourthOctet;
     }
 
@@ -108,8 +110,10 @@ class DDoSProtectionServiceTest {
         final String uuid = UUID.randomUUID().toString().replace("-", "");
         final int thirdOctetHash = uuid.substring(0, 4).hashCode();
         final int fourthOctetHash = uuid.substring(4, 8).hashCode();
-        final int thirdOctet = (thirdOctetHash < 0 ? -thirdOctetHash : thirdOctetHash) % 255; // 0-254
-        final int fourthOctet = (fourthOctetHash < 0 ? -fourthOctetHash : fourthOctetHash) % 255; // 0-254
+        final int thirdOctet =
+                (thirdOctetHash < 0 ? -thirdOctetHash : thirdOctetHash) % 255; // 0-254
+        final int fourthOctet =
+                (fourthOctetHash < 0 ? -fourthOctetHash : fourthOctetHash) % 255; // 0-254
         final String uniqueTestIp = "192.168." + thirdOctet + "." + fourthOctet;
 
         final int limit = 10;
@@ -146,9 +150,11 @@ class DDoSProtectionServiceTest {
         final int thirdOctet2Hash = uuid2.substring(0, 4).hashCode();
         final int fourthOctet2Hash = uuid2.substring(4, 8).hashCode();
         final int thirdOctet1 = (thirdOctet1Hash < 0 ? -thirdOctet1Hash : thirdOctet1Hash) % 255;
-        final int fourthOctet1 = (fourthOctet1Hash < 0 ? -fourthOctet1Hash : fourthOctet1Hash) % 255;
+        final int fourthOctet1 =
+                (fourthOctet1Hash < 0 ? -fourthOctet1Hash : fourthOctet1Hash) % 255;
         final int thirdOctet2 = (thirdOctet2Hash < 0 ? -thirdOctet2Hash : thirdOctet2Hash) % 255;
-        final int fourthOctet2 = (fourthOctet2Hash < 0 ? -fourthOctet2Hash : fourthOctet2Hash) % 255;
+        final int fourthOctet2 =
+                (fourthOctet2Hash < 0 ? -fourthOctet2Hash : fourthOctet2Hash) % 255;
         final String ip1 = "192.168." + thirdOctet1 + "." + fourthOctet1;
         String ip2 = "192.168." + thirdOctet2 + "." + fourthOctet2;
 

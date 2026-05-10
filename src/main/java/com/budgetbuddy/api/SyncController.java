@@ -115,7 +115,8 @@ public class SyncController {
             @Parameter(
                             description =
                                     "Epoch timestamp (seconds) - only return items changed after this time")
-                    @RequestParam(required = false) final Long since) {
+                    @RequestParam(required = false)
+                    final Long since) {
 
         if (userDetails == null
                 || userDetails.getUsername() == null

@@ -281,7 +281,8 @@ public class AppConfigIntegration {
      * matches production structure
      */
     private JsonNode buildFallbackConfiguration() throws IOException {
-        final com.fasterxml.jackson.databind.node.ObjectNode config = objectMapper.createObjectNode();
+        final com.fasterxml.jackson.databind.node.ObjectNode config =
+                objectMapper.createObjectNode();
 
         // Feature Flags - matches CloudFormation template
         final com.fasterxml.jackson.databind.node.ObjectNode featureFlags =
@@ -306,7 +307,8 @@ public class AppConfigIntegration {
 
         // Rate Limits - matches CloudFormation template (uses values from application.yml which
         // match production)
-        final com.fasterxml.jackson.databind.node.ObjectNode rateLimits = objectMapper.createObjectNode();
+        final com.fasterxml.jackson.databind.node.ObjectNode rateLimits =
+                objectMapper.createObjectNode();
         rateLimits.put(
                 "perUser",
                 springEnvironment.getProperty(
@@ -370,7 +372,10 @@ public class AppConfigIntegration {
                 }
             }
         } catch (Exception e) {
-            throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to get configuration from AppConfig API", e);
+            throw new AppException(
+                    ErrorCode.INTERNAL_SERVER_ERROR,
+                    "Failed to get configuration from AppConfig API",
+                    e);
         }
     }
 
@@ -546,7 +551,8 @@ public class AppConfigIntegration {
             String nextToken = null;
             try {
                 // Try to get next polling token using reflection to handle API differences
-                final java.lang.reflect.Method method = response.getClass().getMethod("nextPollingToken");
+                final java.lang.reflect.Method method =
+                        response.getClass().getMethod("nextPollingToken");
                 nextToken = (String) method.invoke(response);
             } catch (NoSuchMethodException e) {
                 // Try alternative method name

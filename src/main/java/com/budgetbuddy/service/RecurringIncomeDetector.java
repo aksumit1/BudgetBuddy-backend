@@ -1,12 +1,10 @@
 package com.budgetbuddy.service;
 
-
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import java.util.Locale;
 import com.budgetbuddy.model.dynamodb.TransactionTable;
 import com.budgetbuddy.repository.dynamodb.TransactionRepository;
 import com.budgetbuddy.service.correctness.TransferClassifier;
 import com.budgetbuddy.service.correctness.UserClock;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.DateTimeException;
@@ -17,8 +15,8 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
-import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 /**
@@ -42,7 +40,12 @@ import org.springframework.stereotype.Service;
 @SuppressFBWarnings(
         value = "EI_EXPOSE_REP2",
         justification = "Spring constructor injection — beans are shared by design")
-@SuppressWarnings({"PMD.LawOfDemeter", "PMD.AvoidCatchingGenericException", "PMD.DataClass", "PMD.OnlyOneReturn"})
+@SuppressWarnings({
+    "PMD.LawOfDemeter",
+    "PMD.AvoidCatchingGenericException",
+    "PMD.DataClass",
+    "PMD.OnlyOneReturn"
+})
 @Service
 public class RecurringIncomeDetector {
     private static final String DUE_DATE = "dueDate";
@@ -280,8 +283,7 @@ public class RecurringIncomeDetector {
      * OUTFLOW patterns (the negative-amount mirror of {@link #detect}) so we don't hit subscription
      * storage for this lightweight view.
      */
-    public List<Map<String, Object>> upcomingBillsNextDays(
-            final String userId, final int days) {
+    public List<Map<String, Object>> upcomingBillsNextDays(final String userId, final int days) {
         if (userId == null) {
             return List.of();
         }

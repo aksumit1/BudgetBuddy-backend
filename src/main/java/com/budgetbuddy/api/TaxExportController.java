@@ -74,8 +74,7 @@ public class TaxExportController {
         try {
             if (userDetails == null || userDetails.getUsername() == null) {
                 LOGGER.error("Export request with null userDetails");
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                        .body(AUTHENTICATION_REQUIRED);
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(AUTHENTICATION_REQUIRED);
             }
 
             final String userId = userDetails.getUsername();
@@ -110,7 +109,7 @@ public class TaxExportController {
                             && result.getTransactionsByCategory() != null
                             && !result.getTransactionsByCategory().isEmpty()
                             && result.getTransactionsByCategory().values().stream()
-                            .anyMatch(list -> list != null && !list.isEmpty());
+                                    .anyMatch(list -> list != null && !list.isEmpty());
 
             if (!hasData) {
                 LOGGER.info(
@@ -160,8 +159,7 @@ public class TaxExportController {
 
         try {
             if (userDetails == null || userDetails.getUsername() == null) {
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                        .body(AUTHENTICATION_REQUIRED);
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(AUTHENTICATION_REQUIRED);
             }
 
             final String userId = userDetails.getUsername();
@@ -224,8 +222,7 @@ public class TaxExportController {
 
         try {
             if (userDetails == null || userDetails.getUsername() == null) {
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                        .body(AUTHENTICATION_REQUIRED);
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(AUTHENTICATION_REQUIRED);
             }
 
             final String userId = userDetails.getUsername();
@@ -277,8 +274,7 @@ public class TaxExportController {
 
         try {
             if (userDetails == null || userDetails.getUsername() == null) {
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                        .body(AUTHENTICATION_REQUIRED);
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(AUTHENTICATION_REQUIRED);
             }
 
             final String userId = userDetails.getUsername();
@@ -321,8 +317,7 @@ public class TaxExportController {
 
         try {
             if (userDetails == null || userDetails.getUsername() == null) {
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                        .body(AUTHENTICATION_REQUIRED);
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(AUTHENTICATION_REQUIRED);
             }
 
             final String userId = userDetails.getUsername();

@@ -1,13 +1,12 @@
 package com.budgetbuddy.service;
 
-
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import java.util.Locale;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import java.util.Locale;
 import java.util.regex.Pattern;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -50,14 +49,14 @@ class PatternMatchingServiceTest {
 
         // Test various account number formats
         final String[] testCases = {
-                "Account ending in 1234",
-                "ACCT #5678",
-                "Card Number: ****1234",
-                "Credit Card ending with 9876",
-                "Account: 1234567890",
-                "Card ending in: 1234",
-                "Account Number: 1234",
-                "ACCT NO. 5678"
+            "Account ending in 1234",
+            "ACCT #5678",
+            "Card Number: ****1234",
+            "Credit Card ending with 9876",
+            "Account: 1234567890",
+            "Card ending in: 1234",
+            "Account Number: 1234",
+            "ACCT NO. 5678"
         };
 
         for (final String testCase : testCases) {
@@ -77,11 +76,11 @@ class PatternMatchingServiceTest {
 
         // Should NOT match these
         final String[] negativeCases = {
-                "Transaction #1234", // Transaction, not account
-                "Order #5678", // Order, not account
-                "1234", // Just a number, no context
-                "Account", // No number
-                "" // Empty
+            "Transaction #1234", // Transaction, not account
+            "Order #5678", // Order, not account
+            "1234", // Just a number, no context
+            "Account", // No number
+            "" // Empty
         };
 
         for (final String negativeCase : negativeCases) {
@@ -98,21 +97,21 @@ class PatternMatchingServiceTest {
     void testMerchantNamePatternGroceries() {
         // Test grocery store patterns
         final String[] groceryMerchants = {
-                "SAFEWAY #1444",
-                "Safeway Store",
-                "SAFEWAY.COM",
-                "Whole Foods Market",
-                "WHOLE FOODS",
-                "Trader Joe's",
-                "TRADER JOE",
-                "Kroger",
-                "KROGER STORE",
-                "Costco",
-                "COSTCO WHOLESALE",
-                "Walmart",
-                "WALMART SUPER CENTER",
-                "Target",
-                "TARGET STORE"
+            "SAFEWAY #1444",
+            "Safeway Store",
+            "SAFEWAY.COM",
+            "Whole Foods Market",
+            "WHOLE FOODS",
+            "Trader Joe's",
+            "TRADER JOE",
+            "Kroger",
+            "KROGER STORE",
+            "Costco",
+            "COSTCO WHOLESALE",
+            "Walmart",
+            "WALMART SUPER CENTER",
+            "Target",
+            "TARGET STORE"
         };
 
         for (final String merchant : groceryMerchants) {
@@ -137,18 +136,18 @@ class PatternMatchingServiceTest {
     @DisplayName("Merchant name pattern matching - Dining")
     void testMerchantNamePatternDining() {
         final String[] diningMerchants = {
-                "SUBWAY",
-                "Subway Restaurant",
-                "Panda Express",
-                "PANDA EXPRESS",
-                "Starbucks",
-                "STARBUCKS COFFEE",
-                "Chipotle",
-                "CHIPOTLE MEXICAN GRILL",
-                "McDonald's",
-                "MCDONALDS",
-                "Burger King",
-                "BURGER KING RESTAURANT"
+            "SUBWAY",
+            "Subway Restaurant",
+            "Panda Express",
+            "PANDA EXPRESS",
+            "Starbucks",
+            "STARBUCKS COFFEE",
+            "Chipotle",
+            "CHIPOTLE MEXICAN GRILL",
+            "McDonald's",
+            "MCDONALDS",
+            "Burger King",
+            "BURGER KING RESTAURANT"
         };
 
         for (final String merchant : diningMerchants) {
@@ -171,15 +170,15 @@ class PatternMatchingServiceTest {
     @DisplayName("Merchant name pattern matching - Utilities")
     void testMerchantNamePatternUtilities() {
         final String[] utilityMerchants = {
-                "PUGET SOUND ENERGY",
-                "Puget Sound Energy Billpay",
-                "CITY OF BELLEVUE UTILITY",
-                "City of Bellevue Utility",
-                "SEATTLE CITY LIGHT",
-                "Seattle City Light",
-                "PGE",
-                "PG&E",
-                "Pacific Gas & Electric"
+            "PUGET SOUND ENERGY",
+            "Puget Sound Energy Billpay",
+            "CITY OF BELLEVUE UTILITY",
+            "City of Bellevue Utility",
+            "SEATTLE CITY LIGHT",
+            "Seattle City Light",
+            "PGE",
+            "PG&E",
+            "Pacific Gas & Electric"
         };
 
         for (final String merchant : utilityMerchants) {
@@ -200,16 +199,16 @@ class PatternMatchingServiceTest {
     @DisplayName("Merchant name pattern matching - Credit Card Payments")
     void testMerchantNamePatternCreditCardPayments() {
         final String[] creditCardPayments = {
-                "CITI AUTOPAY PAYMENT",
-                "Citi Autopay Payment",
-                "CHASE CREDIT CRD AUTOPAY",
-                "Chase Credit Card Autopay",
-                "WF Credit Card AUTO PAY",
-                "Wells Fargo Credit Card Auto Pay",
-                "DISCOVER E-PAYMENT",
-                "Discover E-Payment",
-                "AMZ_STORECRD_PMT PAYMENT",
-                "Amazon Store Card Payment"
+            "CITI AUTOPAY PAYMENT",
+            "Citi Autopay Payment",
+            "CHASE CREDIT CRD AUTOPAY",
+            "Chase Credit Card Autopay",
+            "WF Credit Card AUTO PAY",
+            "Wells Fargo Credit Card Auto Pay",
+            "DISCOVER E-PAYMENT",
+            "Discover E-Payment",
+            "AMZ_STORECRD_PMT PAYMENT",
+            "Amazon Store Card Payment"
         };
 
         for (final String merchant : creditCardPayments) {
@@ -244,11 +243,13 @@ class PatternMatchingServiceTest {
 
         // Indian patterns
         final String[] indianGrocery = {
-                "INDIAN SUPERMARKET", "Patel Brothers", "APNA BAZAAR", "Namaste Plaza"
+            "INDIAN SUPERMARKET", "Patel Brothers", "APNA BAZAAR", "Namaste Plaza"
         };
 
         // Global patterns
-        final String[] globalGrocery = {"SUPERMARKET", "GROCERY STORE", "FOOD MARKET", "HYPERMARKET"};
+        final String[] globalGrocery = {
+            "SUPERMARKET", "GROCERY STORE", "FOOD MARKET", "HYPERMARKET"
+        };
 
         for (final String merchant : usGrocery) {
             final String normalized = merchant.toLowerCase(Locale.ROOT);
@@ -296,7 +297,8 @@ class PatternMatchingServiceTest {
                         || normalized.contains("auto pay")
                         || (normalized.contains("wf") && normalized.contains("credit"));
 
-        final boolean isGrocery = normalized.contains("walmart") || normalized.contains("whole foods");
+        final boolean isGrocery =
+                normalized.contains("walmart") || normalized.contains("whole foods");
 
         assertTrue(isCreditCardPayment, "Should detect as credit card payment");
         assertFalse(isGrocery, "Should NOT detect as grocery");
@@ -336,7 +338,8 @@ class PatternMatchingServiceTest {
             } else {
                 // Empty strings should not match patterns
                 final String normalized = testCase.trim().toLowerCase(Locale.ROOT);
-                final boolean matches = normalized.contains("safeway") || normalized.contains("subway");
+                final boolean matches =
+                        normalized.contains("safeway") || normalized.contains("subway");
                 assertFalse(matches, "Empty string should not match patterns");
             }
         }
@@ -358,12 +361,12 @@ class PatternMatchingServiceTest {
     @DisplayName("Pattern matching handles special characters")
     void testPatternMatchingSpecialCharacters() {
         final String[] specialCases = {
-                "SAFEWAY!@#$%",
-                "SAFEWAY #1234",
-                "SAFEWAY-STORE",
-                "SAFEWAY_STORE",
-                "SAFEWAY.STORE",
-                "SAFEWAY/STORE"
+            "SAFEWAY!@#$%",
+            "SAFEWAY #1234",
+            "SAFEWAY-STORE",
+            "SAFEWAY_STORE",
+            "SAFEWAY.STORE",
+            "SAFEWAY/STORE"
         };
 
         for (final String merchant : specialCases) {
@@ -384,7 +387,8 @@ class PatternMatchingServiceTest {
         final String[] unicodeCases = {"CAFÉ", "RESTAURANT", "CAFE", "RÉSUMÉ"};
 
         for (final String merchant : unicodeCases) {
-            final String normalized = merchant.toLowerCase(Locale.ROOT).replace("é", "e").replace("É", "e");
+            final String normalized =
+                    merchant.toLowerCase(Locale.ROOT).replace("é", "e").replace("É", "e");
 
             // Should handle unicode normalization
             assertDoesNotThrow(
@@ -401,13 +405,13 @@ class PatternMatchingServiceTest {
     @DisplayName("Pattern matching is case-insensitive")
     void testPatternMatchingCaseInsensitive() {
         final String[] caseVariations = {
-                "SAFEWAY",
-                "safeway",
-                "Safeway",
-                "SaFeWaY",
-                "SAFEWAY STORE",
-                "safeway store",
-                "Safeway Store"
+            "SAFEWAY",
+            "safeway",
+            "Safeway",
+            "SaFeWaY",
+            "SAFEWAY STORE",
+            "safeway store",
+            "Safeway Store"
         };
 
         for (final String merchant : caseVariations) {
@@ -428,7 +432,8 @@ class PatternMatchingServiceTest {
 
         // More specific pattern (safeway) should win over generic (store)
         final boolean isSpecificGrocery = normalized.contains("safeway");
-        final boolean isGenericStore = normalized.contains("store") && !normalized.contains("safeway");
+        final boolean isGenericStore =
+                normalized.contains("store") && !normalized.contains("safeway");
 
         assertTrue(isSpecificGrocery, "Specific pattern should match");
         // Generic pattern might also match, but specific should take priority

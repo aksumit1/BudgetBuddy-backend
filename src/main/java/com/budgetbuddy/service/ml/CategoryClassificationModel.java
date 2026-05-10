@@ -1,9 +1,7 @@
 package com.budgetbuddy.service.ml;
 
-
 import com.budgetbuddy.exception.AppException;
 import com.budgetbuddy.exception.ErrorCode;
-import java.util.Locale;
 import com.budgetbuddy.security.FileSecurityValidator;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.FileInputStream;
@@ -17,6 +15,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -76,7 +75,8 @@ public class CategoryClassificationModel {
 
     @Autowired private FileSecurityValidator fileSecurityValidator;
 
-    public CategoryClassificationModel(@Value("${app.ml.model.directory:}") final String modelDirectory) {
+    public CategoryClassificationModel(
+            @Value("${app.ml.model.directory:}") final String modelDirectory) {
         // Use system temp directory as fallback if not configured
         String effectiveDirectory = modelDirectory;
         if (effectiveDirectory == null || effectiveDirectory.isBlank()) {
@@ -100,7 +100,8 @@ public class CategoryClassificationModel {
      */
     private Path getValidatedModelFilePath() {
         if (!modelPersistenceEnabled) {
-            throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR, 
+            throw new AppException(
+                    ErrorCode.INTERNAL_SERVER_ERROR,
                     "Model persistence is disabled due to directory access issues");
         }
 
@@ -123,7 +124,8 @@ public class CategoryClassificationModel {
                     && !Files.isWritable(parentDir)) {
                 LOGGER.warn("Model directory exists but is not writable: {}", parentDir);
                 modelPersistenceEnabled = false;
-                throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR, "Model directory is not writable");
+                throw new AppException(
+                        ErrorCode.INTERNAL_SERVER_ERROR, "Model directory is not writable");
             }
 
             return validatedPath;
@@ -148,7 +150,8 @@ public class CategoryClassificationModel {
 
         // Fallback to system temp directory (for all exception cases above)
         try {
-            final String fallbackDir = System.getProperty("java.io.tmpdir") + "/budgetbuddy-ml-models";
+            final String fallbackDir =
+                    System.getProperty("java.io.tmpdir") + "/budgetbuddy-ml-models";
             final String fallbackPath = fallbackDir + "/" + MODEL_FILE_NAME;
             final Path validatedFallback = fileSecurityValidator.validateFilePath(fallbackPath);
             final Path fallbackParent = validatedFallback.getParent();
@@ -167,7 +170,10 @@ public class CategoryClassificationModel {
                     "Failed to create fallback model directory. Model persistence will be disabled. Error: {}",
                     fallbackException.getMessage());
             modelPersistenceEnabled = false;
-            throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to initialize model file path", fallbackException);
+            throw new AppException(
+                    ErrorCode.INTERNAL_SERVER_ERROR,
+                    "Failed to initialize model file path",
+                    fallbackException);
         }
     }
 
@@ -240,7 +246,8 @@ public class CategoryClassificationModel {
         // Train on payment channel
         if (paymentChannel != null && !paymentChannel.isBlank()) {
             paymentChannelCategoryCounts
-                    .computeIfAbsent(paymentChannel.toLowerCase(Locale.ROOT), k -> new ConcurrentHashMap<>())
+                    .computeIfAbsent(
+                            paymentChannel.toLowerCase(Locale.ROOT), k -> new ConcurrentHashMap<>())
                     .merge(category, 1, Integer::sum);
         }
 
@@ -260,15 +267,20 @@ public class CategoryClassificationModel {
      * @return PredictionResult with predicted category and confidence score
      */
     public PredictionResult predict(
-            final String merchantName, final String description, final String amount, final String paymentChannel) {
+            final String merchantName,
+            final String description,
+            final String amount,
+            final String paymentChannel) {
         final Map<String, Double> categoryScores = new HashMap<>();
 
         // Score based on merchant name
         if (merchantName != null && !merchantName.isBlank()) {
             final String normalizedMerchant = normalizeForTraining(merchantName);
-            final Map<String, Integer> merchantCounts = merchantCategoryCounts.get(normalizedMerchant);
+            final Map<String, Integer> merchantCounts =
+                    merchantCategoryCounts.get(normalizedMerchant);
             if (merchantCounts != null && !merchantCounts.isEmpty()) {
-                final int total = merchantCounts.values().stream().mapToInt(Integer::intValue).sum();
+                final int total =
+                        merchantCounts.values().stream().mapToInt(Integer::intValue).sum();
                 if (total > 0) { // CRITICAL: Prevent division by zero
                     for (final Map.Entry<String, Integer> entry : merchantCounts.entrySet()) {
                         final double score = (double) entry.getValue() / total;
@@ -289,7 +301,8 @@ public class CategoryClassificationModel {
                         final int total =
                                 keywordCounts.values().stream().mapToInt(Integer::intValue).sum();
                         if (total > 0) { // CRITICAL: Prevent division by zero
-                            for (final Map.Entry<String, Integer> entry : keywordCounts.entrySet()) {
+                            for (final Map.Entry<String, Integer> entry :
+                                    keywordCounts.entrySet()) {
                                 final double score = (double) entry.getValue() / total;
                                 categoryScores.merge(
                                         entry.getKey(), score * 0.3, Double::sum); // 30% weight
@@ -312,7 +325,8 @@ public class CategoryClassificationModel {
                         amountValue = -amountValue;
                     }
                     final String amountRange = getAmountRange(amountValue);
-                    final Map<String, Integer> amountCounts = amountRangeCategoryCounts.get(amountRange);
+                    final Map<String, Integer> amountCounts =
+                            amountRangeCategoryCounts.get(amountRange);
                     if (amountCounts != null && !amountCounts.isEmpty()) {
                         final int total =
                                 amountCounts.values().stream().mapToInt(Integer::intValue).sum();
@@ -386,7 +400,7 @@ public class CategoryClassificationModel {
     private String[] extractKeywords(final String description) {
         // Remove common stop words and extract meaningful words
         final String[] stopWords = {
-                "the", "a", "an", "and", "or", "but", "in", "on", "at", "to", "for", "of", "with", "by"
+            "the", "a", "an", "and", "or", "but", "in", "on", "at", "to", "for", "of", "with", "by"
         };
         final Set<String> stopWordSet = new HashSet<>(Arrays.asList(stopWords));
 
@@ -589,7 +603,9 @@ public class CategoryClassificationModel {
         public final List<CategoryScore> topPredictions;
 
         public PredictionResult(
-                final String category, final double confidence, final List<CategoryScore> topPredictions) {
+                final String category,
+                final double confidence,
+                final List<CategoryScore> topPredictions) {
             this.category = category;
             this.confidence = confidence;
             this.topPredictions = topPredictions;

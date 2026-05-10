@@ -1,7 +1,5 @@
 package com.budgetbuddy.service;
 
-
-import java.util.Locale;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -27,6 +25,7 @@ import com.budgetbuddy.repository.dynamodb.UserRepository;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.Locale;
 import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
@@ -176,7 +175,8 @@ class TransactionActionServiceNewTransactionTest {
     @DisplayName("Action creation should fail if transaction doesn't exist")
     void testCreateActionWithNonExistentTransactionThrowsException() {
         // Given - Transaction doesn't exist
-        final String nonExistentTransactionId = UUID.randomUUID().toString().toLowerCase(Locale.ROOT);
+        final String nonExistentTransactionId =
+                UUID.randomUUID().toString().toLowerCase(Locale.ROOT);
         when(transactionRepository.findById(nonExistentTransactionId)).thenReturn(Optional.empty());
 
         // When/Then - Should throw exception
@@ -260,7 +260,10 @@ class TransactionActionServiceNewTransactionTest {
 
         // Then - Generated action ID should be lowercase
         final String actionId = action.getActionId();
-        assertEquals(actionId.toLowerCase(Locale.ROOT), actionId, "Generated action ID should be lowercase");
+        assertEquals(
+                actionId.toLowerCase(Locale.ROOT),
+                actionId,
+                "Generated action ID should be lowercase");
         verify(actionRepository, times(1)).save(any(TransactionActionTable.class));
     }
 }

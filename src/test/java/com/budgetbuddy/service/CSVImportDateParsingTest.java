@@ -1,11 +1,11 @@
 package com.budgetbuddy.service;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
@@ -41,9 +41,10 @@ public class CSVImportDateParsingTest {
     void setUp() {
         final AccountDetectionService accountDetectionService =
                 org.mockito.Mockito.mock(AccountDetectionService.class);
-        final com.budgetbuddy.service.ml.EnhancedCategoryDetectionService enhancedCategoryDetection =
-                org.mockito.Mockito.mock(
-                        com.budgetbuddy.service.ml.EnhancedCategoryDetectionService.class);
+        final com.budgetbuddy.service.ml.EnhancedCategoryDetectionService
+                enhancedCategoryDetection =
+                        org.mockito.Mockito.mock(
+                                com.budgetbuddy.service.ml.EnhancedCategoryDetectionService.class);
         final com.budgetbuddy.service.ml.FuzzyMatchingService fuzzyMatchingService =
                 org.mockito.Mockito.mock(com.budgetbuddy.service.ml.FuzzyMatchingService.class);
         csvImportService =
@@ -121,15 +122,15 @@ public class CSVImportDateParsingTest {
     @DisplayName("Test date parsing with various date formats")
     void testDateParsingVariousFormats() {
         final String[] dateFormats = {
-                "12/19/2025", // MM/dd/yyyy - US format
-                "12/19/2025", // Should parse as Dec 19
-                "2025-12-19", // ISO format
-                "12-19-2025", // MM-dd-yyyy
-                "Dec 19, 2025" // MMM dd, yyyy
+            "12/19/2025", // MM/dd/yyyy - US format
+            "12/19/2025", // Should parse as Dec 19
+            "2025-12-19", // ISO format
+            "12-19-2025", // MM-dd-yyyy
+            "Dec 19, 2025" // MMM dd, yyyy
         };
 
         final String[] expectedISO = {
-                "2025-12-19", "2025-12-19", "2025-12-19", "2025-12-19", "2025-12-19"
+            "2025-12-19", "2025-12-19", "2025-12-19", "2025-12-19", "2025-12-19"
         };
 
         for (int i = 0; i < dateFormats.length; i++) {

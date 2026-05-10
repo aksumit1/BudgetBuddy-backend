@@ -24,6 +24,8 @@ import org.springframework.cache.support.SimpleCacheManager;
 @ExtendWith(MockitoExtension.class)
 class CacheMetricsTest {
 
+    private static final String TESTCACHE = "testCache";
+
     @Mock private CacheManager cacheManager;
 
     private CacheMetrics cacheMetrics;
@@ -34,7 +36,7 @@ class CacheMetricsTest {
         cacheMetrics = new CacheMetrics(cacheManager);
 
         // Create a real CaffeineCacheManager for some tests
-        caffeineCacheManager = new CaffeineCacheManager("testCache");
+        caffeineCacheManager = new CaffeineCacheManager(TESTCACHE);
         caffeineCacheManager.setCaffeine(Caffeine.newBuilder().maximumSize(100).recordStats());
     }
 
@@ -66,9 +68,9 @@ class CacheMetricsTest {
                 "Cache stats should not be empty. Cache manager has caches: "
                         + caffeineCacheManager.getCacheNames());
         assertTrue(
-                stats.containsKey("testCache"),
+                stats.containsKey(TESTCACHE),
                 "Stats should contain testCache. Found: " + stats.keySet());
-        final CacheMetrics.CacheStatsInfo info = stats.get("testCache");
+        final CacheMetrics.CacheStatsInfo info = stats.get(TESTCACHE);
         assertNotNull(info);
         assertEquals(0, info.getHits());
         assertEquals(0, info.getMisses());
@@ -77,7 +79,8 @@ class CacheMetricsTest {
     @Test
     void testGetCacheStatsWithNonCaffeineCacheReturnsEmptyMap() {
         // Given
-        final org.springframework.cache.support.SimpleCacheManager manager = new SimpleCacheManager();
+        final org.springframework.cache.support.SimpleCacheManager manager =
+                new SimpleCacheManager();
         final org.springframework.cache.concurrent.ConcurrentMapCache simpleCache =
                 new org.springframework.cache.concurrent.ConcurrentMapCache("simpleCache");
         manager.setCaches(Collections.singletonList(simpleCache));
@@ -97,7 +100,7 @@ class CacheMetricsTest {
         final CacheMetrics metricsWithRealCache = new CacheMetrics(caffeineCacheManager);
 
         // When
-        final CacheMetrics.CacheStatsInfo stats = metricsWithRealCache.getCacheStats("testCache");
+        final CacheMetrics.CacheStatsInfo stats = metricsWithRealCache.getCacheStats(TESTCACHE);
 
         // Then
         // The cache should be found and return stats since we're using CaffeineCacheManager
@@ -105,10 +108,10 @@ class CacheMetricsTest {
                 stats,
                 "Cache stats should not be null for CaffeineCache. "
                         + "Cache exists: "
-                        + (caffeineCacheManager.getCache("testCache") != null)
+                        + (caffeineCacheManager.getCache(TESTCACHE) != null)
                         + ", Cache type: "
-                        + (caffeineCacheManager.getCache("testCache") != null
-                                ? caffeineCacheManager.getCache("testCache").getClass().getName()
+                        + (caffeineCacheManager.getCache(TESTCACHE) != null
+                                ? caffeineCacheManager.getCache(TESTCACHE).getClass().getName()
                                 : "null"));
         assertEquals(0, stats.getHits());
         assertEquals(0, stats.getMisses());

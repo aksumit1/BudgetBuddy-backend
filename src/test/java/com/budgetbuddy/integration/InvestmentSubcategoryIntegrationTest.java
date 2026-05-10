@@ -31,6 +31,8 @@ import org.springframework.test.context.ActiveProfiles;
 @Import(AWSTestConfiguration.class)
 class InvestmentSubcategoryIntegrationTest {
 
+    private static final String INVESTMENT = "investment";
+
     @Autowired private TransactionService transactionService;
 
     @Autowired private TransactionRepository transactionRepository;
@@ -83,7 +85,7 @@ class InvestmentSubcategoryIntegrationTest {
                         transaction.getAmount());
 
         // Then - Should be categorized as CD, not entertainment
-        assertEquals("investment", mapping.getPrimary());
+        assertEquals(INVESTMENT, mapping.getPrimary());
         assertEquals(
                 "cd",
                 mapping.getDetailed(),
@@ -99,7 +101,7 @@ class InvestmentSubcategoryIntegrationTest {
         final Optional<TransactionTable> saved =
                 transactionRepository.findById(transaction.getTransactionId());
         assertTrue(saved.isPresent());
-        assertEquals("investment", saved.get().getCategoryPrimary());
+        assertEquals(INVESTMENT, saved.get().getCategoryPrimary());
         assertEquals("cd", saved.get().getCategoryDetailed());
     }
 
@@ -129,7 +131,7 @@ class InvestmentSubcategoryIntegrationTest {
                         transaction.getAmount());
 
         // Then - Should be categorized as stocks
-        assertEquals("investment", mapping.getPrimary());
+        assertEquals(INVESTMENT, mapping.getPrimary());
         assertEquals(
                 "stocks",
                 mapping.getDetailed(),
@@ -145,7 +147,7 @@ class InvestmentSubcategoryIntegrationTest {
         final Optional<TransactionTable> saved =
                 transactionRepository.findById(transaction.getTransactionId());
         assertTrue(saved.isPresent());
-        assertEquals("investment", saved.get().getCategoryPrimary());
+        assertEquals(INVESTMENT, saved.get().getCategoryPrimary());
         assertEquals("stocks", saved.get().getCategoryDetailed());
     }
 
@@ -175,7 +177,7 @@ class InvestmentSubcategoryIntegrationTest {
                         transaction.getAmount());
 
         // Then - Should be categorized as fourZeroOneK
-        assertEquals("investment", mapping.getPrimary());
+        assertEquals(INVESTMENT, mapping.getPrimary());
         assertEquals(
                 "fourZeroOneK",
                 mapping.getDetailed(),
@@ -191,7 +193,7 @@ class InvestmentSubcategoryIntegrationTest {
         final Optional<TransactionTable> saved =
                 transactionRepository.findById(transaction.getTransactionId());
         assertTrue(saved.isPresent());
-        assertEquals("investment", saved.get().getCategoryPrimary());
+        assertEquals(INVESTMENT, saved.get().getCategoryPrimary());
         assertEquals("fourZeroOneK", saved.get().getCategoryDetailed());
     }
 
@@ -221,7 +223,7 @@ class InvestmentSubcategoryIntegrationTest {
                         transaction.getAmount());
 
         // Then - Should be categorized as crypto
-        assertEquals("investment", mapping.getPrimary());
+        assertEquals(INVESTMENT, mapping.getPrimary());
         assertEquals("crypto", mapping.getDetailed(), "Bitcoin should be categorized as 'crypto'");
 
         // When - Save transaction
@@ -234,7 +236,7 @@ class InvestmentSubcategoryIntegrationTest {
         final Optional<TransactionTable> saved =
                 transactionRepository.findById(transaction.getTransactionId());
         assertTrue(saved.isPresent());
-        assertEquals("investment", saved.get().getCategoryPrimary());
+        assertEquals(INVESTMENT, saved.get().getCategoryPrimary());
         assertEquals("crypto", saved.get().getCategoryDetailed());
     }
 
@@ -250,7 +252,7 @@ class InvestmentSubcategoryIntegrationTest {
         transaction.setMerchantName("Bank");
         transaction.setImporterCategoryPrimary("ENTERTAINMENT");
         transaction.setImporterCategoryDetailed("ENTERTAINMENT");
-        transaction.setCategoryPrimary("investment");
+        transaction.setCategoryPrimary(INVESTMENT);
         transaction.setCategoryDetailed("cd");
         transaction.setCategoryOverridden(false);
         transaction.setTransactionDate(LocalDate.now().toString());
@@ -265,7 +267,7 @@ class InvestmentSubcategoryIntegrationTest {
                         null, // plaidTransactionId
                         null, // amount
                         null, // notes
-                        "investment", // categoryPrimary
+                        INVESTMENT, // categoryPrimary
                         "stocks", // categoryDetailed
                         null, // reviewStatus
                         null, // isHidden
@@ -273,11 +275,11 @@ class InvestmentSubcategoryIntegrationTest {
                         false, // clearNotesIfNull = false means preserve existing notes
                         null, // goalId
                         null // linkedTransactionId
-                );
+                        );
 
         // Then - Verify override is applied
         assertNotNull(updated);
-        assertEquals("investment", updated.getCategoryPrimary());
+        assertEquals(INVESTMENT, updated.getCategoryPrimary());
         assertEquals("stocks", updated.getCategoryDetailed());
         assertTrue(updated.getCategoryOverridden());
         // Original Plaid categories should be preserved

@@ -1,7 +1,7 @@
 package com.budgetbuddy.service;
 
-
 import java.util.Locale;
+
 /**
  * Helpers for redacting sensitive identifiers before logging or serialising.
  *

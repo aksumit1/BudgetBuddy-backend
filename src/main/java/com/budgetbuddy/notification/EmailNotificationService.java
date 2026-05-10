@@ -1,7 +1,7 @@
 package com.budgetbuddy.notification;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import org.slf4j.Logger;
@@ -45,7 +45,8 @@ public class EmailNotificationService {
 
     public EmailNotificationService(
             final SesClient sesClient,
-            @Value("${app.notifications.email.from:noreply@budgetbuddy.com}") final String fromEmail,
+            @Value("${app.notifications.email.from:noreply@budgetbuddy.com}")
+                    final String fromEmail,
             final ObjectMapper objectMapper,
             @Value("${app.notifications.email.enabled:true}") final boolean emailEnabled,
             final Environment environment) {

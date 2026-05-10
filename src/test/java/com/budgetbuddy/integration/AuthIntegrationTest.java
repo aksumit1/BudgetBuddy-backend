@@ -1,7 +1,5 @@
 package com.budgetbuddy.integration;
 
-
-import java.nio.charset.StandardCharsets;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -14,6 +12,7 @@ import com.budgetbuddy.model.dynamodb.UserTable;
 import com.budgetbuddy.security.PasswordHashingService;
 import com.budgetbuddy.service.AuthService;
 import com.budgetbuddy.service.UserService;
+import java.nio.charset.StandardCharsets;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -47,7 +46,9 @@ class AuthIntegrationTest {
     void setUp() {
         testEmail = "test-" + UUID.randomUUID() + "@example.com";
         // Use proper base64-encoded salt
-        testClientSalt = java.util.Base64.getEncoder().encodeToString("client-salt".getBytes(StandardCharsets.UTF_8));
+        testClientSalt =
+                java.util.Base64.getEncoder()
+                        .encodeToString("client-salt".getBytes(StandardCharsets.UTF_8));
 
         // Create client-side hashed password
         final PasswordHashingService.PasswordHashResult clientHash =
@@ -59,7 +60,8 @@ class AuthIntegrationTest {
     void testRegisterAndAuthenticateEndToEnd() {
         // Given - Register user
         // BREAKING CHANGE: Client salt removed
-        final UserTable user = userService.createUserSecure(testEmail, testPasswordHash, "Test", "User");
+        final UserTable user =
+                userService.createUserSecure(testEmail, testPasswordHash, "Test", "User");
         assertNotNull(user);
         assertNotNull(user.getUserId());
 

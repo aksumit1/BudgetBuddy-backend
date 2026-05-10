@@ -27,6 +27,9 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class DataChangeNotificationServiceTest {
 
+    private static final String ENTITYTYPE = "entityType";
+    private static final String CHANGETYPE = "changeType";
+
     @Mock private PushNotificationService pushNotificationService;
 
     private DataChangeNotificationService dataChangeNotificationService;
@@ -72,10 +75,10 @@ class DataChangeNotificationServiceTest {
                                 data -> {
                                     final Map<String, Object> map = (Map<String, Object>) data;
                                     return "data_changed".equals(map.get("type"))
-                                            && "TRANSACTION_CREATED".equals(map.get("changeType"))
+                                            && "TRANSACTION_CREATED".equals(map.get(CHANGETYPE))
                                             && Boolean.TRUE.equals(map.get("silent"))
                                             && testTransactionId.equals(map.get("transactionId"))
-                                            && "transaction".equals(map.get("entityType"));
+                                            && "transaction".equals(map.get(ENTITYTYPE));
                                 }));
     }
 
@@ -99,7 +102,7 @@ class DataChangeNotificationServiceTest {
                         argThat(
                                 data -> {
                                     final Map<String, Object> map = (Map<String, Object>) data;
-                                    return "TRANSACTION_UPDATED".equals(map.get("changeType"));
+                                    return "TRANSACTION_UPDATED".equals(map.get(CHANGETYPE));
                                 }));
     }
 
@@ -123,9 +126,9 @@ class DataChangeNotificationServiceTest {
                         argThat(
                                 data -> {
                                     final Map<String, Object> map = (Map<String, Object>) data;
-                                    return "ACCOUNT_LINKED".equals(map.get("changeType"))
+                                    return "ACCOUNT_LINKED".equals(map.get(CHANGETYPE))
                                             && testAccountId.equals(map.get("accountId"))
-                                            && "account".equals(map.get("entityType"));
+                                            && "account".equals(map.get(ENTITYTYPE));
                                 }));
     }
 
@@ -149,9 +152,9 @@ class DataChangeNotificationServiceTest {
                         argThat(
                                 data -> {
                                     final Map<String, Object> map = (Map<String, Object>) data;
-                                    return "BUDGET_WARNING".equals(map.get("changeType"))
+                                    return "BUDGET_WARNING".equals(map.get(CHANGETYPE))
                                             && testBudgetId.equals(map.get("budgetId"))
-                                            && "budget".equals(map.get("entityType"));
+                                            && "budget".equals(map.get(ENTITYTYPE));
                                 }));
     }
 
@@ -175,9 +178,9 @@ class DataChangeNotificationServiceTest {
                         argThat(
                                 data -> {
                                     final Map<String, Object> map = (Map<String, Object>) data;
-                                    return "GOAL_PROGRESS".equals(map.get("changeType"))
+                                    return "GOAL_PROGRESS".equals(map.get(CHANGETYPE))
                                             && testGoalId.equals(map.get("goalId"))
-                                            && "goal".equals(map.get("entityType"));
+                                            && "goal".equals(map.get(ENTITYTYPE));
                                 }));
     }
 
@@ -204,7 +207,7 @@ class DataChangeNotificationServiceTest {
                                     final Map<String, Object> map = (Map<String, Object>) data;
                                     return count == (Integer) map.get("count")
                                             && Boolean.TRUE.equals(map.get("batch"))
-                                            && "transaction".equals(map.get("entityType"));
+                                            && "transaction".equals(map.get(ENTITYTYPE));
                                 }));
     }
 

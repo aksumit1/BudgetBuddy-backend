@@ -27,6 +27,9 @@ import org.mockito.MockitoAnnotations;
 @SuppressWarnings("PMD.LawOfDemeter")
 class ZeroTrustServiceTest {
 
+    private static final String USER_123 = "user-123";
+    private static final String DEVICE_456 = "device-456";
+
     @Mock private DeviceAttestationService deviceAttestationService;
 
     @Mock private IdentityVerificationService identityVerificationService;
@@ -44,8 +47,8 @@ class ZeroTrustServiceTest {
     @DisplayName("Should grant access when all verifications pass")
     void testVerifyAccessSuccess() {
         // Given
-        final String userId = "user-123";
-        final String deviceId = "device-456";
+        final String userId = USER_123;
+        final String deviceId = DEVICE_456;
         final String resource = "/api/transactions";
         final String action = "GET";
 
@@ -69,8 +72,8 @@ class ZeroTrustServiceTest {
     @DisplayName("Should deny access when identity verification fails")
     void testVerifyAccessIdentityVerificationFailed() {
         // Given
-        final String userId = "user-123";
-        final String deviceId = "device-456";
+        final String userId = USER_123;
+        final String deviceId = DEVICE_456;
         final String resource = "/api/transactions";
         final String action = "GET";
 
@@ -90,8 +93,8 @@ class ZeroTrustServiceTest {
     @DisplayName("Should deny access when device attestation fails")
     void testVerifyAccessDeviceAttestationFailed() {
         // Given
-        final String userId = "user-123";
-        final String deviceId = "device-456";
+        final String userId = USER_123;
+        final String deviceId = DEVICE_456;
         final String resource = "/api/transactions";
         final String action = "GET";
 
@@ -111,8 +114,8 @@ class ZeroTrustServiceTest {
     @DisplayName("Should deny access when risk score is too high")
     void testVerifyAccessHighRiskScore() {
         // Given
-        final String userId = "user-123";
-        final String deviceId = "device-456";
+        final String userId = USER_123;
+        final String deviceId = DEVICE_456;
         final String resource = "/api/admin/compliance"; // High sensitivity (80)
         final String action = "DELETE"; // High sensitivity (60)
 
@@ -159,8 +162,8 @@ class ZeroTrustServiceTest {
     @DisplayName("Should deny access when user lacks permissions")
     void testVerifyAccessInsufficientPermissions() {
         // Given
-        final String userId = "user-123";
-        final String deviceId = "device-456";
+        final String userId = USER_123;
+        final String deviceId = DEVICE_456;
         final String resource = "/api/admin";
         final String action = "DELETE";
 

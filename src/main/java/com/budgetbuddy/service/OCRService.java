@@ -34,6 +34,8 @@ import org.springframework.stereotype.Service;
 @Service
 public class OCRService {
 
+    private static final String ENG = "eng";
+
     private static final Logger LOGGER = LoggerFactory.getLogger(OCRService.class);
 
     private final ITesseract tesseract;
@@ -47,7 +49,7 @@ public class OCRService {
     // Supported languages for OCR
     private static final List<String> SUPPORTED_LANGUAGES =
             List.of(
-                    "eng", // English
+                    ENG, // English
                     "deu", // German
                     "fra", // French
                     "spa", // Spanish
@@ -80,7 +82,7 @@ public class OCRService {
             }
 
             // Set default language (English)
-            tesseract.setLanguage("eng");
+            tesseract.setLanguage(ENG);
 
             // Configure OCR settings for better accuracy
             tesseract.setPageSegMode(1); // Automatic page segmentation with OSD
@@ -89,7 +91,8 @@ public class OCRService {
             LOGGER.info("OCR Service initialized successfully");
         } catch (Exception e) {
             LOGGER.error("Failed to initialize OCR Service: {}", e.getMessage(), e);
-            throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR, "OCR Service initialization failed", e);
+            throw new AppException(
+                    ErrorCode.INTERNAL_SERVER_ERROR, "OCR Service initialization failed", e);
         }
     }
 
@@ -97,7 +100,7 @@ public class OCRService {
      * Extract text from a scanned PDF using OCR
      *
      * @param pdfInputStream PDF input stream
-     * @param languages List of language codes to use (e.g., ["eng", "fra"])
+     * @param languages List of language codes to use (e.g., [ENG, "fra"])
      * @return Extracted text
      */
     public String extractTextFromPDF(final InputStream pdfInputStream, List<String> languages) {
@@ -106,7 +109,7 @@ public class OCRService {
         }
 
         if (languages == null || languages.isEmpty()) {
-            languages = List.of("eng"); // Default to English
+            languages = List.of(ENG); // Default to English
         }
 
         // CRITICAL FIX: Read InputStream into byte array first to allow reuse
@@ -116,7 +119,8 @@ public class OCRService {
             pdfBytes = pdfInputStream.readAllBytes();
         } catch (IOException e) {
             LOGGER.error("Error reading PDF input stream: {}", e.getMessage(), e);
-            throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to read PDF input stream", e);
+            throw new AppException(
+                    ErrorCode.INTERNAL_SERVER_ERROR, "Failed to read PDF input stream", e);
         }
 
         // Validate PDF size (prevent OOM attacks)
@@ -157,7 +161,8 @@ public class OCRService {
             for (int page = 0; page < pageCount; page++) {
                 try {
                     // Render PDF page to image (300 DPI for good quality)
-                    final BufferedImage image = pdfRenderer.renderImageWithDPI(page, 300, ImageType.RGB);
+                    final BufferedImage image =
+                            pdfRenderer.renderImageWithDPI(page, 300, ImageType.RGB);
 
                     // Perform OCR on the image (synchronized for thread safety)
                     String pageText;
@@ -187,7 +192,10 @@ public class OCRService {
 
         } catch (IOException e) {
             LOGGER.error("Error loading PDF for OCR: {}", e.getMessage(), e);
-            throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to extract text from PDF using OCR", e);
+            throw new AppException(
+                    ErrorCode.INTERNAL_SERVER_ERROR,
+                    "Failed to extract text from PDF using OCR",
+                    e);
         }
     }
 
@@ -204,7 +212,7 @@ public class OCRService {
         }
 
         if (languages == null || languages.isEmpty()) {
-            languages = List.of("eng"); // Default to English
+            languages = List.of(ENG); // Default to English
         }
 
         try {
@@ -233,10 +241,14 @@ public class OCRService {
 
         } catch (IOException e) {
             LOGGER.error("Error reading image for OCR: {}", e.getMessage(), e);
-            throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to read image for OCR", e);
+            throw new AppException(
+                    ErrorCode.INTERNAL_SERVER_ERROR, "Failed to read image for OCR", e);
         } catch (TesseractException e) {
             LOGGER.error("OCR failed for image: {}", e.getMessage(), e);
-            throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to extract text from image using OCR", e);
+            throw new AppException(
+                    ErrorCode.INTERNAL_SERVER_ERROR,
+                    "Failed to extract text from image using OCR",
+                    e);
         }
     }
 
@@ -288,7 +300,8 @@ public class OCRService {
             }
 
             // Check ratio of non-whitespace characters
-            final long nonWhitespaceChars = text.chars().filter(c -> !Character.isWhitespace(c)).count();
+            final long nonWhitespaceChars =
+                    text.chars().filter(c -> !Character.isWhitespace(c)).count();
 
             // Defensive check: avoid division by zero
             if (text.length() == 0) {
@@ -325,7 +338,7 @@ public class OCRService {
      */
     public List<String> detectLanguages(final String textSample) {
         if (textSample == null || textSample.isBlank()) {
-            return List.of("eng"); // Default to English
+            return List.of(ENG); // Default to English
         }
 
         final List<String> detectedLanguages = new ArrayList<>();
@@ -373,7 +386,7 @@ public class OCRService {
 
         // Default to English if no specific script detected
         if (detectedLanguages.isEmpty()) {
-            detectedLanguages.add("eng");
+            detectedLanguages.add(ENG);
         }
 
         LOGGER.debug("Detected languages: {}", detectedLanguages);

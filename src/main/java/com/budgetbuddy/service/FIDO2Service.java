@@ -1,8 +1,5 @@
 package com.budgetbuddy.service;
 
-
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import java.nio.charset.StandardCharsets;
 import com.budgetbuddy.exception.AppException;
 import com.budgetbuddy.exception.ErrorCode;
 import com.yubico.webauthn.AssertionRequest;
@@ -32,6 +29,7 @@ import com.yubico.webauthn.data.UserIdentity;
 import com.yubico.webauthn.data.exception.Base64UrlException;
 import com.yubico.webauthn.exception.AssertionFailedException;
 import com.yubico.webauthn.exception.RegistrationFailedException;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -145,7 +143,8 @@ public class FIDO2Service {
                             .build();
 
             final RelyingParty rp = getRelyingParty();
-            final PublicKeyCredentialCreationOptions creationOptions = rp.startRegistration(options);
+            final PublicKeyCredentialCreationOptions creationOptions =
+                    rp.startRegistration(options);
 
             // Store challenge in DynamoDB with TTL
             final com.budgetbuddy.model.dynamodb.FIDO2ChallengeTable challenge =
@@ -196,7 +195,8 @@ public class FIDO2Service {
             throw new AppException(
                     ErrorCode.INVALID_INPUT, "Registration challenge not found or expired");
         }
-        final com.budgetbuddy.model.dynamodb.FIDO2ChallengeTable challengeTable = challengeOpt.get();
+        final com.budgetbuddy.model.dynamodb.FIDO2ChallengeTable challengeTable =
+                challengeOpt.get();
 
         // Check expiration
         if (challengeTable.getExpiresAt().isBefore(Instant.now())) {
@@ -215,7 +215,7 @@ public class FIDO2Service {
         try {
             // Parse the full credential JSON
             final PublicKeyCredential<
-                    AuthenticatorAttestationResponse, ClientRegistrationExtensionOutputs>
+                            AuthenticatorAttestationResponse, ClientRegistrationExtensionOutputs>
                     credential = PublicKeyCredential.parseRegistrationResponseJson(credentialJson);
 
             // Get the original creation options (we need to reconstruct it)
@@ -369,7 +369,8 @@ public class FIDO2Service {
             throw new AppException(
                     ErrorCode.INVALID_INPUT, "Authentication challenge not found or expired");
         }
-        final com.budgetbuddy.model.dynamodb.FIDO2ChallengeTable challengeTable = challengeOpt.get();
+        final com.budgetbuddy.model.dynamodb.FIDO2ChallengeTable challengeTable =
+                challengeOpt.get();
 
         // Check expiration
         if (challengeTable.getExpiresAt().isBefore(Instant.now())) {
@@ -394,7 +395,8 @@ public class FIDO2Service {
 
         try {
             // Parse the full credential JSON
-            final PublicKeyCredential<AuthenticatorAssertionResponse, ClientAssertionExtensionOutputs>
+            final PublicKeyCredential<
+                            AuthenticatorAssertionResponse, ClientAssertionExtensionOutputs>
                     publicKeyCredential =
                             PublicKeyCredential.parseAssertionResponseJson(credentialJson);
 
@@ -592,7 +594,8 @@ public class FIDO2Service {
      */
     private final class DynamoDBCredentialRepository implements CredentialRepository {
         @Override
-        public Set<PublicKeyCredentialDescriptor> getCredentialIdsForUsername(final String username) {
+        public Set<PublicKeyCredentialDescriptor> getCredentialIdsForUsername(
+                final String username) {
             final java.util.List<com.budgetbuddy.model.dynamodb.FIDO2CredentialTable> credentials =
                     credentialRepository.findByUserId(username);
             if (credentials == null || credentials.isEmpty()) {
@@ -631,8 +634,8 @@ public class FIDO2Service {
             try {
                 final String userId = userHandle.getBase64Url();
                 // Verify user exists by checking if they have any credentials
-                final java.util.List<com.budgetbuddy.model.dynamodb.FIDO2CredentialTable> credentials =
-                        credentialRepository.findByUserId(userId);
+                final java.util.List<com.budgetbuddy.model.dynamodb.FIDO2CredentialTable>
+                        credentials = credentialRepository.findByUserId(userId);
                 if (credentials != null && !credentials.isEmpty()) {
                     return Optional.of(userId);
                 }
@@ -643,7 +646,8 @@ public class FIDO2Service {
         }
 
         @Override
-        public Optional<RegisteredCredential> lookup(final ByteArray credentialId, final ByteArray userHandle) {
+        public Optional<RegisteredCredential> lookup(
+                final ByteArray credentialId, final ByteArray userHandle) {
             try {
                 final String userId = userHandle.getBase64Url();
                 final String credentialIdBase64 = credentialId.getBase64Url();
@@ -684,8 +688,8 @@ public class FIDO2Service {
             final Set<RegisteredCredential> results = new HashSet<>();
             try {
                 final String userId = userHandle.getBase64Url();
-                final java.util.List<com.budgetbuddy.model.dynamodb.FIDO2CredentialTable> credentials =
-                        credentialRepository.findByUserId(userId);
+                final java.util.List<com.budgetbuddy.model.dynamodb.FIDO2CredentialTable>
+                        credentials = credentialRepository.findByUserId(userId);
 
                 for (final com.budgetbuddy.model.dynamodb.FIDO2CredentialTable credentialTable :
                         credentials) {

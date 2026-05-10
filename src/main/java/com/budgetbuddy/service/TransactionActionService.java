@@ -1,8 +1,5 @@
 package com.budgetbuddy.service;
 
-
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import java.util.Locale;
 import com.budgetbuddy.exception.AppException;
 import com.budgetbuddy.exception.ErrorCode;
 import com.budgetbuddy.model.dynamodb.TransactionActionTable;
@@ -11,8 +8,10 @@ import com.budgetbuddy.model.dynamodb.UserTable;
 import com.budgetbuddy.repository.dynamodb.TransactionActionRepository;
 import com.budgetbuddy.repository.dynamodb.TransactionRepository;
 import com.budgetbuddy.util.IdGenerator;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.time.Instant;
 import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -122,8 +121,7 @@ public class TransactionActionService {
                 // CRITICAL: Log if Plaid ID matches but transaction ID doesn't - indicates ID
                 // mismatch
                 // Use case-insensitive comparison
-                if (!IdGenerator.equalsIgnoreCase(
-                        foundTransactionId, transactionId)) {
+                if (!IdGenerator.equalsIgnoreCase(foundTransactionId, transactionId)) {
                     LOGGER.warn(
                             "⚠️ ID MISMATCH: Transaction found by Plaid ID {} but transaction IDs don't match. "
                                     + "Requested ID: {}, Found ID: {}. This indicates an ID generation mismatch between app and backend. "
@@ -163,8 +161,7 @@ public class TransactionActionService {
 
         // Log if we're using a different transaction ID than requested
         // Use case-insensitive comparison
-        if (!IdGenerator.equalsIgnoreCase(
-                actualTransactionId, transactionId)) {
+        if (!IdGenerator.equalsIgnoreCase(actualTransactionId, transactionId)) {
             LOGGER.info(
                     "Using transaction ID {} (different from requested {}) for action creation. "
                             + "This is expected when Plaid ID lookup finds a transaction with a different generated ID.",
@@ -180,7 +177,8 @@ public class TransactionActionService {
             // This ensures we check with the normalized ID that will be saved
             final String normalizedId = IdGenerator.normalizeUUID(actionId);
             // Check if action with this ID already exists (using normalized ID)
-            final Optional<TransactionActionTable> existingById = actionRepository.findById(normalizedId);
+            final Optional<TransactionActionTable> existingById =
+                    actionRepository.findById(normalizedId);
             if (existingById.isPresent()) {
                 final TransactionActionTable existing = existingById.get();
                 // CRITICAL FIX: Verify the existing action belongs to the same user and transaction
@@ -351,7 +349,8 @@ public class TransactionActionService {
         }
 
         // Get actions for this transaction
-        final List<TransactionActionTable> actions = actionRepository.findByTransactionId(transactionId);
+        final List<TransactionActionTable> actions =
+                actionRepository.findByTransactionId(transactionId);
 
         // Filter to only return actions that belong to the user (security check)
         // This ensures users can only see their own actions
@@ -366,7 +365,8 @@ public class TransactionActionService {
         // Optional: Verify transaction exists and belongs to user (for logging/debugging)
         // But don't throw error if transaction doesn't exist - actions can exist before transaction
         // is synced
-        final Optional<TransactionTable> transaction = transactionRepository.findById(transactionId);
+        final Optional<TransactionTable> transaction =
+                transactionRepository.findById(transactionId);
         if (transaction.isPresent()) {
             // Transaction exists - verify it belongs to user
             if (!transaction.get().getUserId().equals(user.getUserId())) {

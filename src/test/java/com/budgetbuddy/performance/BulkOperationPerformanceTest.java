@@ -1,8 +1,5 @@
 package com.budgetbuddy.performance;
 
-
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import java.nio.charset.StandardCharsets;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -15,7 +12,9 @@ import com.budgetbuddy.service.CSVImportService;
 import com.budgetbuddy.service.TransactionService;
 import com.budgetbuddy.service.UserService;
 import com.budgetbuddy.util.TableInitializer;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Base64;
@@ -58,6 +57,8 @@ import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class BulkOperationPerformanceTest {
 
+    private static final String DINING = "dining";
+
     @Autowired private DynamoDbClient dynamoDbClient;
 
     @Autowired private UserService userService;
@@ -82,7 +83,8 @@ class BulkOperationPerformanceTest {
     void setUp() {
         // Create test user
         final String email = "bulk-test-" + UUID.randomUUID() + "@example.com";
-        final String passwordHash = Base64.getEncoder().encodeToString("testpassword".getBytes(StandardCharsets.UTF_8));
+        final String passwordHash =
+                Base64.getEncoder().encodeToString("testpassword".getBytes(StandardCharsets.UTF_8));
         testUser = userService.createUserSecure(email, passwordHash, "Bulk", "Test");
 
         // Create test account
@@ -112,8 +114,8 @@ class BulkOperationPerformanceTest {
                         new BigDecimal("-" + (i + 1) + ".00"),
                         LocalDate.now().minusDays(i % 30),
                         "Bulk Transaction " + i,
-                        "dining",
-                        "dining",
+                        DINING,
+                        DINING,
                         null,
                         null,
                         null,
@@ -165,14 +167,15 @@ class BulkOperationPerformanceTest {
                     .append("CSV Transaction ")
                     .append(i)
                     .append(",")
-                    .append("dining")
+                    .append(DINING)
                     .append("\n");
         }
 
         final long startTime = System.nanoTime();
         try {
             final java.io.InputStream inputStream =
-                    new java.io.ByteArrayInputStream(csvContent.toString().getBytes(StandardCharsets.UTF_8));
+                    new java.io.ByteArrayInputStream(
+                            csvContent.toString().getBytes(StandardCharsets.UTF_8));
             csvImportService.parseCSV(inputStream, "test.csv", null, null);
             final long duration = System.nanoTime() - startTime;
             final double totalTimeMs = duration / 1_000_000.0;
@@ -183,8 +186,7 @@ class BulkOperationPerformanceTest {
             System.out.println("Total time: " + String.format("%.2f", totalTimeMs) + "ms");
             System.out.println("Average time per row: " + String.format("%.2f", avgTimeMs) + "ms");
             System.out.println(
-                    "Rows per second: "
-                            + String.format("%.2f", rowCount / (totalTimeMs / 1000.0)));
+                    "Rows per second: " + String.format("%.2f", rowCount / (totalTimeMs / 1000.0)));
 
             // Adjusted threshold: CSV parsing now includes transactionTypeIndicator extraction,
             // category detection, and other enhancements that add overhead
@@ -228,8 +230,8 @@ class BulkOperationPerformanceTest {
                                                             + ".00"),
                                             LocalDate.now().minusDays(j % 30),
                                             "Concurrent Transaction " + threadId + "-" + j,
-                                            "dining",
-                                            "dining",
+                                            DINING,
+                                            DINING,
                                             null,
                                             null,
                                             null,

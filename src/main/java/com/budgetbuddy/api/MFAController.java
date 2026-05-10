@@ -1,6 +1,5 @@
 package com.budgetbuddy.api;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import com.budgetbuddy.exception.AppException;
 import com.budgetbuddy.exception.ErrorCode;
 import com.budgetbuddy.model.dynamodb.UserTable;
@@ -8,6 +7,7 @@ import com.budgetbuddy.notification.EmailNotificationService;
 import com.budgetbuddy.notification.NotificationService;
 import com.budgetbuddy.service.MFAService;
 import com.budgetbuddy.service.UserService;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import java.util.HashMap;
@@ -97,7 +97,8 @@ public class MFAController {
                         .orElseThrow(
                                 () -> new AppException(ErrorCode.USER_NOT_FOUND, USER_NOT_FOUND_1));
 
-        final MFAService.TOTPSetupResult result = mfaService.setupTOTP(user.getUserId(), user.getEmail());
+        final MFAService.TOTPSetupResult result =
+                mfaService.setupTOTP(user.getUserId(), user.getEmail());
 
         final Map<String, Object> response = new HashMap<>();
         response.put("secret", result.getSecret());
@@ -303,7 +304,8 @@ public class MFAController {
             notificationRequest.setRecipientPhone(user.getPhoneNumber());
             notificationRequest.setChannels(Set.of(NotificationService.NotificationChannel.SMS));
 
-            final boolean smsSent = notificationService.sendNotification(notificationRequest).isSmsSent();
+            final boolean smsSent =
+                    notificationService.sendNotification(notificationRequest).isSmsSent();
 
             if (!smsSent) {
                 LOGGER.warn(
@@ -378,7 +380,7 @@ public class MFAController {
                             emailBody,
                             null, // No template ID
                             null // No template data
-                    );
+                            );
 
             if (!emailSent) {
                 LOGGER.warn(
@@ -416,7 +418,8 @@ public class MFAController {
     @Operation(summary = "Verify SMS OTP", description = "Verifies SMS OTP code")
     @ApiResponse(responseCode = "200", description = "SMS OTP verified successfully")
     @ApiResponse(responseCode = "400", description = "Invalid SMS OTP code")
-    public ResponseEntity<Map<String, Object>> verifySMSOTP(@RequestBody final VerifyOTPRequest request) {
+    public ResponseEntity<Map<String, Object>> verifySMSOTP(
+            @RequestBody final VerifyOTPRequest request) {
         if (request == null || request.getUserId() == null || request.getCode() == null) {
             throw new AppException(
                     ErrorCode.INVALID_INPUT, "User ID and SMS OTP code are required");

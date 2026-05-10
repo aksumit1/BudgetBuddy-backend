@@ -1,8 +1,8 @@
 package com.budgetbuddy.service;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import com.budgetbuddy.model.dynamodb.TransactionTable;
 import com.budgetbuddy.repository.dynamodb.TransactionRepository;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -64,7 +64,8 @@ public class TransactionSyncHelper {
             if (transaction.getPlaidTransactionId() != null
                     && !transaction.getPlaidTransactionId().isEmpty()) {
                 // Use conditional write to prevent duplicate Plaid transactions
-                final boolean saved = transactionRepository.saveIfPlaidTransactionNotExists(transaction);
+                final boolean saved =
+                        transactionRepository.saveIfPlaidTransactionNotExists(transaction);
                 if (saved) {
                     result.setNewCount(1);
                 } else {

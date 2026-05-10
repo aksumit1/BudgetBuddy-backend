@@ -57,8 +57,7 @@ class RequestResponseLoggingFilterTest {
     }
 
     @Test
-    void testDoFilterInternalWithHealthEndpointSkipsFilter()
-            throws ServletException, IOException {
+    void testDoFilterInternalWithHealthEndpointSkipsFilter() throws ServletException, IOException {
         // Given
         when(request.getRequestURI()).thenReturn("/actuator/health");
 

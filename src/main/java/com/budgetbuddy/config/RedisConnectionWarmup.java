@@ -29,7 +29,8 @@ import org.springframework.stereotype.Component;
 @ConditionalOnBean(StringRedisTemplate.class)
 public class RedisConnectionWarmup implements CommandLineRunner {
 
-    private static final String NETWORKADDRESS_CACHE_NEGATIVE_TTL = "networkaddress.cache.negative.ttl";
+    private static final String NETWORKADDRESS_CACHE_NEGATIVE_TTL =
+            "networkaddress.cache.negative.ttl";
 
     private static final String NETWORKADDRESS_CACHE_TTL = "networkaddress.cache.ttl";
 
@@ -69,11 +70,10 @@ public class RedisConnectionWarmup implements CommandLineRunner {
             final boolean isDnsFailure =
                     e.getMessage() != null
                             && (e.getMessage().contains("Name does not resolve")
-                            || e.getMessage().contains("UnknownHostException")
-                            || (cause != null
-                            && "UnknownHostException"
-                            .equals(cause.getClass()
-                            .getSimpleName())));
+                                    || e.getMessage().contains("UnknownHostException")
+                                    || (cause != null
+                                            && "UnknownHostException"
+                                                    .equals(cause.getClass().getSimpleName())));
 
             if (isDnsFailure) {
                 // DNS resolution failure - clear DNS cache and retry once

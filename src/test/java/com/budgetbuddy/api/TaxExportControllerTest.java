@@ -29,6 +29,8 @@ import org.springframework.security.core.userdetails.UserDetails;
 @DisplayName("Tax Export Controller Tests")
 class TaxExportControllerTest {
 
+    private static final String USER123 = "user123";
+
     @Mock private TaxExportService taxExportService;
 
     @Mock private UserDetails userDetails;
@@ -54,7 +56,7 @@ class TaxExportControllerTest {
     @DisplayName("Should export tax data as CSV")
     void testExportTaxDataCSVSuccess() {
         // Given
-        final String userId = "user123";
+        final String userId = USER123;
         final int year = 2024;
         final String csvContent = "Tax Year: 2024\nSUMMARY\n...";
 
@@ -79,7 +81,7 @@ class TaxExportControllerTest {
     @DisplayName("Should export tax data as JSON")
     void testExportTaxDataJSONSuccess() {
         // Given
-        final String userId = "user123";
+        final String userId = USER123;
         final int year = 2024;
         final String jsonContent = "{\"taxYear\": 2024, \"summary\": {...}}";
 
@@ -104,7 +106,7 @@ class TaxExportControllerTest {
     @DisplayName("Should return tax summary")
     void testGetTaxSummarySuccess() {
         // Given
-        final String userId = "user123";
+        final String userId = USER123;
         final int year = 2024;
 
         when(userDetails.getUsername()).thenReturn(userId);
@@ -124,7 +126,7 @@ class TaxExportControllerTest {
     @DisplayName("Should use current year when year is 0")
     void testExportTaxDataCSVCurrentYear() {
         // Given
-        final String userId = "user123";
+        final String userId = USER123;
         final int year = 0; // Should default to current year
         final int currentYear = java.time.Year.now().getValue();
         final String csvContent = "Tax Year: " + currentYear + "\n...";
@@ -147,7 +149,7 @@ class TaxExportControllerTest {
     @DisplayName("Should handle errors gracefully")
     void testExportTaxDataCSVErrorHandling() {
         // Given
-        final String userId = "user123";
+        final String userId = USER123;
         final int year = 2024;
 
         when(userDetails.getUsername()).thenReturn(userId);
@@ -168,7 +170,7 @@ class TaxExportControllerTest {
     @DisplayName("Should handle JSON export errors gracefully")
     void testExportTaxDataJSONErrorHandling() {
         // Given
-        final String userId = "user123";
+        final String userId = USER123;
         final int year = 2024;
 
         when(userDetails.getUsername()).thenReturn(userId);

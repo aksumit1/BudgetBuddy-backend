@@ -1,8 +1,8 @@
 package com.budgetbuddy.service;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import com.budgetbuddy.model.dynamodb.UserTable;
 import com.budgetbuddy.repository.dynamodb.UserRepository;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -114,7 +114,8 @@ public class ScheduledImportService {
     }
 
     /** Enable scheduled imports for a user */
-    public void enableScheduledImports(final String userId, final String sourceType, final String sourceConfig) {
+    public void enableScheduledImports(
+            final String userId, final String sourceType, final String sourceConfig) {
         // TODO: Store user's scheduled import configuration
         // This would typically be stored in a user preferences table or DynamoDB
         LOGGER.info("Enabling scheduled imports for user: {}, source: {}", userId, sourceType);

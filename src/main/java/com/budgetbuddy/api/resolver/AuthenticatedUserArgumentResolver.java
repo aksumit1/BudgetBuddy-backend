@@ -55,7 +55,8 @@ public class AuthenticatedUserArgumentResolver implements HandlerMethodArgumentR
             final NativeWebRequest webRequest,
             final WebDataBinderFactory binderFactory) {
 
-        final Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        final Authentication authentication =
+                SecurityContextHolder.getContext().getAuthentication();
 
         if (authentication == null || !(authentication.getPrincipal() instanceof UserDetails)) {
             throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "User not authenticated");

@@ -24,6 +24,8 @@ import org.springframework.cache.caffeine.CaffeineCache;
 /** Comprehensive tests for CacheMonitoringService */
 class CacheMonitoringServiceTest {
 
+    private static final String USERCACHE = "userCache";
+
     @Mock private CacheManager cacheManager;
 
     @Mock private CaffeineCache caffeineCache;
@@ -44,9 +46,8 @@ class CacheMonitoringServiceTest {
     @DisplayName("Should get statistics for all caches")
     void testGetAllCacheStatisticsSuccess() {
         // Given
-        when(cacheManager.getCacheNames())
-                .thenReturn(Arrays.asList("userCache", "transactionCache"));
-        when(cacheManager.getCache("userCache")).thenReturn(caffeineCache);
+        when(cacheManager.getCacheNames()).thenReturn(Arrays.asList(USERCACHE, "transactionCache"));
+        when(cacheManager.getCache(USERCACHE)).thenReturn(caffeineCache);
         when(cacheManager.getCache("transactionCache")).thenReturn(caffeineCache);
         when(caffeineCache.getNativeCache()).thenReturn(nativeCache);
         when(nativeCache.stats()).thenReturn(cacheStats);
@@ -63,10 +64,10 @@ class CacheMonitoringServiceTest {
         // Then
         assertNotNull(stats);
         assertEquals(2, stats.size());
-        assertTrue(stats.containsKey("userCache"));
+        assertTrue(stats.containsKey(USERCACHE));
         assertTrue(stats.containsKey("transactionCache"));
 
-        final CacheMonitoringService.CacheStatistics userStats = stats.get("userCache");
+        final CacheMonitoringService.CacheStatistics userStats = stats.get(USERCACHE);
         assertEquals(100L, userStats.getHitCount());
         assertEquals(50L, userStats.getMissCount());
         assertEquals(10L, userStats.getEvictionCount());
@@ -105,7 +106,7 @@ class CacheMonitoringServiceTest {
     @DisplayName("Should get statistics for specific cache")
     void testGetCacheStatisticsSuccess() {
         // Given
-        when(cacheManager.getCache("userCache")).thenReturn(caffeineCache);
+        when(cacheManager.getCache(USERCACHE)).thenReturn(caffeineCache);
         when(caffeineCache.getNativeCache()).thenReturn(nativeCache);
         when(nativeCache.stats()).thenReturn(cacheStats);
         when(cacheStats.hitCount()).thenReturn(100L);
@@ -116,7 +117,7 @@ class CacheMonitoringServiceTest {
 
         // When
         final CacheMonitoringService.CacheStatistics stats =
-                cacheMonitoringService.getCacheStatistics("userCache");
+                cacheMonitoringService.getCacheStatistics(USERCACHE);
 
         // Then
         assertNotNull(stats);
@@ -184,7 +185,7 @@ class CacheMonitoringServiceTest {
     @DisplayName("Should calculate hit rate correctly")
     void testCalculateHitRate() {
         // Given
-        when(cacheManager.getCache("userCache")).thenReturn(caffeineCache);
+        when(cacheManager.getCache(USERCACHE)).thenReturn(caffeineCache);
         when(caffeineCache.getNativeCache()).thenReturn(nativeCache);
         when(nativeCache.stats()).thenReturn(cacheStats);
         when(cacheStats.hitCount()).thenReturn(100L);
@@ -195,7 +196,7 @@ class CacheMonitoringServiceTest {
 
         // When
         final CacheMonitoringService.CacheStatistics stats =
-                cacheMonitoringService.getCacheStatistics("userCache");
+                cacheMonitoringService.getCacheStatistics(USERCACHE);
 
         // Then
         assertNotNull(stats);
@@ -207,7 +208,7 @@ class CacheMonitoringServiceTest {
     @DisplayName("Should return zero hit rate when no requests")
     void testCalculateHitRateNoRequests() {
         // Given
-        when(cacheManager.getCache("userCache")).thenReturn(caffeineCache);
+        when(cacheManager.getCache(USERCACHE)).thenReturn(caffeineCache);
         when(caffeineCache.getNativeCache()).thenReturn(nativeCache);
         when(nativeCache.stats()).thenReturn(cacheStats);
         when(cacheStats.hitCount()).thenReturn(0L);
@@ -218,7 +219,7 @@ class CacheMonitoringServiceTest {
 
         // When
         final CacheMonitoringService.CacheStatistics stats =
-                cacheMonitoringService.getCacheStatistics("userCache");
+                cacheMonitoringService.getCacheStatistics(USERCACHE);
 
         // Then
         assertNotNull(stats);
@@ -230,8 +231,8 @@ class CacheMonitoringServiceTest {
     @DisplayName("Should log cache statistics")
     void testLogCacheStatistics() {
         // Given
-        when(cacheManager.getCacheNames()).thenReturn(Arrays.asList("userCache"));
-        when(cacheManager.getCache("userCache")).thenReturn(caffeineCache);
+        when(cacheManager.getCacheNames()).thenReturn(Arrays.asList(USERCACHE));
+        when(cacheManager.getCache(USERCACHE)).thenReturn(caffeineCache);
         when(caffeineCache.getNativeCache()).thenReturn(nativeCache);
         when(nativeCache.stats()).thenReturn(cacheStats);
         when(cacheStats.hitCount()).thenReturn(100L);
@@ -251,12 +252,12 @@ class CacheMonitoringServiceTest {
     @DisplayName("Should handle exception during statistics retrieval")
     void testGetCacheStatisticsException() {
         // Given
-        when(cacheManager.getCache("userCache")).thenReturn(caffeineCache);
+        when(cacheManager.getCache(USERCACHE)).thenReturn(caffeineCache);
         when(caffeineCache.getNativeCache()).thenThrow(new RuntimeException("Cache error"));
 
         // When
         final CacheMonitoringService.CacheStatistics stats =
-                cacheMonitoringService.getCacheStatistics("userCache");
+                cacheMonitoringService.getCacheStatistics(USERCACHE);
 
         // Then - Should return null on error
         assertNull(stats);

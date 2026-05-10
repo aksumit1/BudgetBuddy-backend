@@ -1,14 +1,13 @@
 package com.budgetbuddy.service.category;
 
-
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import java.util.Locale;
 import com.budgetbuddy.service.TransactionTypeCategoryService;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import jakarta.annotation.PostConstruct;
 import java.io.InputStream;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import org.slf4j.Logger;
@@ -376,7 +375,9 @@ public class InMemoryMerchantService {
         private final Map<String, Long> categoryDistribution;
 
         public MerchantStats(
-                final int canonicalCount, final int aliasCount, final Map<String, Long> categoryDistribution) {
+                final int canonicalCount,
+                final int aliasCount,
+                final Map<String, Long> categoryDistribution) {
             this.canonicalCount = canonicalCount;
             this.aliasCount = aliasCount;
             this.categoryDistribution = categoryDistribution;

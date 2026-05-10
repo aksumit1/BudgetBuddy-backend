@@ -69,7 +69,8 @@ class AccountControllerTest {
         when(accountRepository.findByUserId("user-123")).thenReturn(accounts);
 
         // When
-        final ResponseEntity<List<AccountTable>> response = accountController.getAccounts(userDetails);
+        final ResponseEntity<List<AccountTable>> response =
+                accountController.getAccounts(userDetails);
 
         // Then
         assertEquals(HttpStatus.OK, response.getStatusCode());

@@ -1,8 +1,8 @@
 package com.budgetbuddy.service.household;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import com.budgetbuddy.model.dynamodb.HouseholdTable;
 import com.budgetbuddy.repository.dynamodb.HouseholdRepository;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.time.Instant;
 import java.util.Optional;
 import org.springframework.stereotype.Service;

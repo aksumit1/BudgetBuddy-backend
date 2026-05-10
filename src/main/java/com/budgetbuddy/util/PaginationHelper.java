@@ -19,10 +19,11 @@ import org.springframework.stereotype.Component;
 @SuppressWarnings({"PMD.DataClass", "PMD.OnlyOneReturn"})
 @SuppressFBWarnings(
         value = {"EI_EXPOSE_REP", "EI_EXPOSE_REP2"},
-        justification = "JSON DTO / DynamoDB entity getters expose lists by reference; "
+        justification =
+                "JSON DTO / DynamoDB entity getters expose lists by reference; "
                         + "the design is value-semantic and Jackson creates fresh instances; Spring constructor injection — beans are shared by design")
 @Component
-public class PaginationHelper {
+public final class PaginationHelper {
 
     private static int defaultPageSize = 50;
     private static int maxPageSize = 1000;

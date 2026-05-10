@@ -1,17 +1,16 @@
 package com.budgetbuddy.repository.dynamodb;
 
-
 import com.budgetbuddy.exception.AppException;
 import com.budgetbuddy.exception.ErrorCode;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import java.util.Locale;
 import com.budgetbuddy.model.dynamodb.TransactionTable;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -60,6 +59,9 @@ import software.amazon.awssdk.services.dynamodb.model.WriteRequest;
 @Repository
 public class TransactionRepository {
 
+    private static final String TRANSACTIONS = "transactions";
+    private static final String TRANSACTIONID = "transactionId";
+
     private final DynamoDbTable<TransactionTable> transactionTable;
     private final DynamoDbIndex<TransactionTable> userIdDateIndex;
     private final DynamoDbIndex<TransactionTable> plaidTransactionIdIndex;
@@ -84,7 +86,7 @@ public class TransactionRepository {
         this.dynamoDbClient = dynamoDbClient;
     }
 
-    @CacheEvict(value = "transactions", allEntries = true)
+    @CacheEvict(value = TRANSACTIONS, allEntries = true)
     public void save(final TransactionTable transaction) {
         if (transaction == null) {
             throw new IllegalArgumentException("Transaction cannot be null");
@@ -105,7 +107,7 @@ public class TransactionRepository {
      *
      * @throws OptimisticLockHelper.OptimisticLockException on conflict.
      */
-    @CacheEvict(value = "transactions", allEntries = true)
+    @CacheEvict(value = TRANSACTIONS, allEntries = true)
     public TransactionTable saveWithLock(final TransactionTable transaction) {
         if (transaction == null) {
             throw new IllegalArgumentException("Transaction cannot be null");
@@ -130,7 +132,7 @@ public class TransactionRepository {
     }
 
     @Cacheable(
-            value = "transactions",
+            value = TRANSACTIONS,
             key = "'user:' + #userId + ':skip:' + #skip + ':limit:' + #limit",
             unless = "#result == null || #result.isEmpty()")
     public List<TransactionTable> findByUserId(
@@ -246,10 +248,12 @@ public class TransactionRepository {
                             userId);
             try {
                 // Fallback: scan table and filter by userId
-                final SdkIterable<software.amazon.awssdk.enhanced.dynamodb.model.Page<TransactionTable>>
+                final SdkIterable<
+                                software.amazon.awssdk.enhanced.dynamodb.model.Page<
+                                        TransactionTable>>
                         scanPages = transactionTable.scan();
-                for (final software.amazon.awssdk.enhanced.dynamodb.model.Page<TransactionTable> page :
-                        scanPages) {
+                for (final software.amazon.awssdk.enhanced.dynamodb.model.Page<TransactionTable>
+                        page : scanPages) {
                     for (final TransactionTable item : page.items()) {
                         if (item == null || !userId.equals(item.getUserId())) {
                             continue;
@@ -313,7 +317,8 @@ public class TransactionRepository {
         } catch (RuntimeException e) {
             // Check if the RuntimeException wraps a ResourceNotFoundException
             final Throwable cause = e.getCause();
-            final String errorMessage = e.getMessage() != null ? e.getMessage().toLowerCase(Locale.ROOT) : "";
+            final String errorMessage =
+                    e.getMessage() != null ? e.getMessage().toLowerCase(Locale.ROOT) : "";
             if (cause instanceof ResourceNotFoundException
                     || errorMessage.contains("index not found")
                     || errorMessage.contains("resource not found")) {
@@ -325,8 +330,8 @@ public class TransactionRepository {
                 try {
                     // Fallback: scan table and filter by userId
                     final SdkIterable<
-                            software.amazon.awssdk.enhanced.dynamodb.model.Page<
-                                    TransactionTable>>
+                                    software.amazon.awssdk.enhanced.dynamodb.model.Page<
+                                            TransactionTable>>
                             scanPages = transactionTable.scan();
                     for (software.amazon.awssdk.enhanced.dynamodb.model.Page<TransactionTable>
                             page : scanPages) {
@@ -503,9 +508,10 @@ public class TransactionRepository {
         final TransactionDeduper deduper = new TransactionDeduper();
         final List<TransactionTable> results = new ArrayList<>();
 
-        final SdkIterable<software.amazon.awssdk.enhanced.dynamodb.model.Page<TransactionTable>> pages =
-                userIdDateIndex.query(range);
-        for (final software.amazon.awssdk.enhanced.dynamodb.model.Page<TransactionTable> page : pages) {
+        final SdkIterable<software.amazon.awssdk.enhanced.dynamodb.model.Page<TransactionTable>>
+                pages = userIdDateIndex.query(range);
+        for (final software.amazon.awssdk.enhanced.dynamodb.model.Page<TransactionTable> page :
+                pages) {
             for (final TransactionTable t : page.items()) {
                 if (t == null || !deduper.admit(t)) {
                     continue;
@@ -678,7 +684,8 @@ public class TransactionRepository {
                             "UserIdUpdatedAtIndex GSI not found for userId {}. Falling back to findByUserId and filtering in memory.",
                             userId);
             try {
-                final List<TransactionTable> allTransactions = findByUserId(userId, 0, Integer.MAX_VALUE);
+                final List<TransactionTable> allTransactions =
+                        findByUserId(userId, 0, Integer.MAX_VALUE);
                 int count = 0;
                 for (final TransactionTable transaction : allTransactions) {
                     if (transaction.getUpdatedAtTimestamp() != null
@@ -702,7 +709,8 @@ public class TransactionRepository {
             // Check if the RuntimeException wraps a ResourceNotFoundException or indicates missing
             // index
             final Throwable cause = e.getCause();
-            final String errorMessage = e.getMessage() != null ? e.getMessage().toLowerCase(Locale.ROOT) : "";
+            final String errorMessage =
+                    e.getMessage() != null ? e.getMessage().toLowerCase(Locale.ROOT) : "";
             if (cause instanceof ResourceNotFoundException
                     || errorMessage.contains("index not found")
                     || errorMessage.contains("resource not found")) {
@@ -746,7 +754,8 @@ public class TransactionRepository {
             }
         } catch (Exception e) {
             // Check if the exception message indicates missing index
-            final String errorMessage = e.getMessage() != null ? e.getMessage().toLowerCase(Locale.ROOT) : "";
+            final String errorMessage =
+                    e.getMessage() != null ? e.getMessage().toLowerCase(Locale.ROOT) : "";
             if (errorMessage.contains("index not found")
                     || errorMessage.contains("resource not found")) {
                 // GSI not available - fallback to findByUserId and filter in memory
@@ -795,11 +804,13 @@ public class TransactionRepository {
         if (plaidTransactionId == null || plaidTransactionId.isEmpty()) {
             return Optional.empty();
         }
-        final SdkIterable<software.amazon.awssdk.enhanced.dynamodb.model.Page<TransactionTable>> pages =
-                plaidTransactionIdIndex.query(
-                        QueryConditional.keyEqualTo(
-                                Key.builder().partitionValue(plaidTransactionId).build()));
-        for (final software.amazon.awssdk.enhanced.dynamodb.model.Page<TransactionTable> page : pages) {
+        final SdkIterable<software.amazon.awssdk.enhanced.dynamodb.model.Page<TransactionTable>>
+                pages =
+                        plaidTransactionIdIndex.query(
+                                QueryConditional.keyEqualTo(
+                                        Key.builder().partitionValue(plaidTransactionId).build()));
+        for (final software.amazon.awssdk.enhanced.dynamodb.model.Page<TransactionTable> page :
+                pages) {
             for (final TransactionTable item : page.items()) {
                 return Optional.of(item);
             }
@@ -807,7 +818,7 @@ public class TransactionRepository {
         return Optional.empty();
     }
 
-    @CacheEvict(value = "transactions", allEntries = true)
+    @CacheEvict(value = TRANSACTIONS, allEntries = true)
     public void delete(final String transactionId) {
         if (transactionId == null || transactionId.isEmpty()) {
             throw new IllegalArgumentException("Transaction ID cannot be null or empty");
@@ -919,7 +930,8 @@ public class TransactionRepository {
                             e.getMessage());
 
             // Get all transactions for this user and account (fallback)
-            final List<TransactionTable> userTransactions = findByUserId(userId, 0, Integer.MAX_VALUE);
+            final List<TransactionTable> userTransactions =
+                    findByUserId(userId, 0, Integer.MAX_VALUE);
 
             return userTransactions.stream()
                     .filter(t -> t != null && accountId.equals(t.getAccountId()))
@@ -1009,7 +1021,7 @@ public class TransactionRepository {
      * Batch save transactions using BatchWriteItem (cost-optimized) DynamoDB allows up to 25 items
      * per batch
      */
-    @CacheEvict(value = "transactions", allEntries = true)
+    @CacheEvict(value = TRANSACTIONS, allEntries = true)
     public void batchSave(final List<TransactionTable> transactions) {
         if (transactions == null || transactions.isEmpty()) {
             return;
@@ -1029,7 +1041,7 @@ public class TransactionRepository {
                                     transaction -> {
                                         final Map<String, AttributeValue> item = new HashMap<>();
                                         item.put(
-                                                "transactionId",
+                                                TRANSACTIONID,
                                                 AttributeValue.builder()
                                                         .s(transaction.getTransactionId())
                                                         .build());
@@ -1069,11 +1081,14 @@ public class TransactionRepository {
 
             com.budgetbuddy.util.RetryHelper.executeWithRetry(
                     () -> {
-                        final BatchWriteItemResponse resp = dynamoDbClient.batchWriteItem(batchRequest);
+                        final BatchWriteItemResponse resp =
+                                dynamoDbClient.batchWriteItem(batchRequest);
 
                         // Retry if there are unprocessed items
                         if (!resp.unprocessedItems().isEmpty()) {
-                            throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR, "Unprocessed items in batch write");
+                            throw new AppException(
+                                    ErrorCode.INTERNAL_SERVER_ERROR,
+                                    "Unprocessed items in batch write");
                         }
 
                         return resp;
@@ -1106,13 +1121,14 @@ public class TransactionRepository {
                                     id -> {
                                         final Map<String, AttributeValue> key = new HashMap<>();
                                         key.put(
-                                                "transactionId",
+                                                TRANSACTIONID,
                                                 AttributeValue.builder().s(id).build());
                                         return key;
                                     })
                             .collect(Collectors.toList());
 
-            final KeysAndAttributes keysAndAttributes = KeysAndAttributes.builder().keys(keys).build();
+            final KeysAndAttributes keysAndAttributes =
+                    KeysAndAttributes.builder().keys(keys).build();
 
             final Map<String, KeysAndAttributes> requestItems = new HashMap<>();
             requestItems.put(this.tableName, keysAndAttributes);
@@ -1124,10 +1140,12 @@ public class TransactionRepository {
 
             // Convert response items to TransactionTable objects
             if (response.responses() != null && response.responses().containsKey(this.tableName)) {
-                final List<Map<String, AttributeValue>> items = response.responses().get(this.tableName);
+                final List<Map<String, AttributeValue>> items =
+                        response.responses().get(this.tableName);
                 for (final Map<String, AttributeValue> item : items) {
                     // Use proper conversion method to fully populate all fields
-                    final TransactionTable transaction = convertAttributeValueMapToTransaction(item);
+                    final TransactionTable transaction =
+                            convertAttributeValueMapToTransaction(item);
                     results.add(transaction);
                 }
             }
@@ -1145,7 +1163,8 @@ public class TransactionRepository {
                                     final BatchGetItemResponse resp =
                                             dynamoDbClient.batchGetItem(retryRequest);
                                     if (!resp.unprocessedKeys().isEmpty()) {
-                                        throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR, 
+                                        throw new AppException(
+                                                ErrorCode.INTERNAL_SERVER_ERROR,
                                                 "Unprocessed keys in batch read");
                                     }
                                     return resp;
@@ -1157,7 +1176,8 @@ public class TransactionRepository {
                     final List<Map<String, AttributeValue>> retryItems =
                             retryResponse.responses().get(this.tableName);
                     for (final Map<String, AttributeValue> item : retryItems) {
-                        final TransactionTable transaction = convertAttributeValueMapToTransaction(item);
+                        final TransactionTable transaction =
+                                convertAttributeValueMapToTransaction(item);
                         results.add(transaction);
                     }
                 }
@@ -1168,7 +1188,7 @@ public class TransactionRepository {
     }
 
     /** Batch delete transactions using BatchWriteItem */
-    @CacheEvict(value = "transactions", allEntries = true)
+    @CacheEvict(value = TRANSACTIONS, allEntries = true)
     public void batchDelete(final List<String> transactionIds) {
         if (transactionIds == null || transactionIds.isEmpty()) {
             return;
@@ -1185,7 +1205,7 @@ public class TransactionRepository {
                                     id -> {
                                         final Map<String, AttributeValue> key = new HashMap<>();
                                         key.put(
-                                                "transactionId",
+                                                TRANSACTIONID,
                                                 AttributeValue.builder().s(id).build());
                                         return WriteRequest.builder()
                                                 .deleteRequest(
@@ -1215,8 +1235,8 @@ public class TransactionRepository {
             final Map<String, AttributeValue> item) {
         final TransactionTable transaction = new TransactionTable();
 
-        if (item.containsKey("transactionId")) {
-            transaction.setTransactionId(item.get("transactionId").s());
+        if (item.containsKey(TRANSACTIONID)) {
+            transaction.setTransactionId(item.get(TRANSACTIONID).s());
         }
         if (item.containsKey("userId")) {
             transaction.setUserId(item.get("userId").s());

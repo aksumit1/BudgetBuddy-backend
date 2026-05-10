@@ -1,7 +1,5 @@
 package com.budgetbuddy.api;
 
-
-import java.nio.charset.StandardCharsets;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -43,6 +41,7 @@ import com.budgetbuddy.service.UserService;
 import java.io.IOException;
 import java.io.InputStream;
 import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -70,6 +69,8 @@ import org.springframework.security.core.userdetails.UserDetails;
 @ExtendWith(MockitoExtension.class)
 @org.mockito.junit.jupiter.MockitoSettings(strictness = org.mockito.quality.Strictness.LENIENT)
 class ImportEndpointIntegrationTest {
+
+    private static final String FILE = "file";
 
     @Mock private UserRepository userRepository;
 
@@ -185,7 +186,8 @@ class ImportEndpointIntegrationTest {
         // Arrange
         final String csvContent = "Date,Description,Amount\n2024-01-01,Test Transaction,100.00";
         final MockMultipartFile file =
-                new MockMultipartFile("file", "test.csv", "text/csv", csvContent.getBytes(StandardCharsets.UTF_8));
+                new MockMultipartFile(
+                        FILE, "test.csv", "text/csv", csvContent.getBytes(StandardCharsets.UTF_8));
 
         final CSVImportService.ImportResult importResult = new CSVImportService.ImportResult();
         for (final CSVImportService.ParsedTransaction tx : createMockParsedTransactions(1)) {
@@ -230,7 +232,8 @@ class ImportEndpointIntegrationTest {
             csvContent += "2024-01-01,Transaction " + i + ",100.00\n";
         }
         final MockMultipartFile file =
-                new MockMultipartFile("file", "test.csv", "text/csv", csvContent.getBytes(StandardCharsets.UTF_8));
+                new MockMultipartFile(
+                        FILE, "test.csv", "text/csv", csvContent.getBytes(StandardCharsets.UTF_8));
 
         final CSVImportService.ImportResult importResult = new CSVImportService.ImportResult();
         for (final CSVImportService.ParsedTransaction tx : createMockParsedTransactions(250)) {
@@ -266,7 +269,8 @@ class ImportEndpointIntegrationTest {
         // Arrange
         final String csvContent = "Date,Description,Amount\n";
         final MockMultipartFile file =
-                new MockMultipartFile("file", "empty.csv", "text/csv", csvContent.getBytes(StandardCharsets.UTF_8));
+                new MockMultipartFile(
+                        FILE, "empty.csv", "text/csv", csvContent.getBytes(StandardCharsets.UTF_8));
 
         final CSVImportService.ImportResult importResult = new CSVImportService.ImportResult();
         // Empty result - no transactions added
@@ -298,7 +302,8 @@ class ImportEndpointIntegrationTest {
         // Arrange
         final String csvContent = "Date,Description,Amount\n2024-01-01,Test,100.00";
         final MockMultipartFile file =
-                new MockMultipartFile("file", "test.csv", "text/csv", csvContent.getBytes(StandardCharsets.UTF_8));
+                new MockMultipartFile(
+                        FILE, "test.csv", "text/csv", csvContent.getBytes(StandardCharsets.UTF_8));
 
         final CSVImportService.ImportResult importResult = new CSVImportService.ImportResult();
         for (final CSVImportService.ParsedTransaction tx : createMockParsedTransactions(1)) {
@@ -327,7 +332,8 @@ class ImportEndpointIntegrationTest {
         // Arrange
         final String csvContent = "Date,Description,Amount\n2024-01-01,Test,100.00";
         final MockMultipartFile file =
-                new MockMultipartFile("file", "test.csv", "text/csv", csvContent.getBytes(StandardCharsets.UTF_8));
+                new MockMultipartFile(
+                        FILE, "test.csv", "text/csv", csvContent.getBytes(StandardCharsets.UTF_8));
 
         final CSVImportService.ImportResult importResult = new CSVImportService.ImportResult();
         for (final CSVImportService.ParsedTransaction tx : createMockParsedTransactions(1)) {
@@ -356,7 +362,8 @@ class ImportEndpointIntegrationTest {
         // Arrange
         final String csvContent = "Date,Description,Amount,Type\n2024-01-01,Test,100.00,DEBIT";
         final MockMultipartFile file =
-                new MockMultipartFile("file", "test.csv", "text/csv", csvContent.getBytes(StandardCharsets.UTF_8));
+                new MockMultipartFile(
+                        FILE, "test.csv", "text/csv", csvContent.getBytes(StandardCharsets.UTF_8));
 
         final CSVImportService.ImportResult importResult = new CSVImportService.ImportResult();
         final CSVImportService.ParsedTransaction parsed = new CSVImportService.ParsedTransaction();
@@ -393,7 +400,8 @@ class ImportEndpointIntegrationTest {
         // Arrange
         final String csvContent = "Date,Description,Amount\n2024-01-01,Test,100.00";
         final MockMultipartFile file =
-                new MockMultipartFile("file", "test.csv", "text/csv", csvContent.getBytes(StandardCharsets.UTF_8));
+                new MockMultipartFile(
+                        FILE, "test.csv", "text/csv", csvContent.getBytes(StandardCharsets.UTF_8));
 
         final CSVImportService.ImportResult importResult = new CSVImportService.ImportResult();
         for (final CSVImportService.ParsedTransaction tx : createMockParsedTransactions(1)) {
@@ -426,7 +434,8 @@ class ImportEndpointIntegrationTest {
         // Arrange
         final String csvContent = "Date,Description,Amount\n2024-01-01,Test,100.00";
         final MockMultipartFile file =
-                new MockMultipartFile("file", "test.csv", "text/csv", csvContent.getBytes(StandardCharsets.UTF_8));
+                new MockMultipartFile(
+                        FILE, "test.csv", "text/csv", csvContent.getBytes(StandardCharsets.UTF_8));
 
         final CSVImportService.ImportResult importResult = new CSVImportService.ImportResult();
         for (final CSVImportService.ParsedTransaction tx : createMockParsedTransactions(1)) {

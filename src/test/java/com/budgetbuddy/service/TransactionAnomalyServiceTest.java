@@ -86,7 +86,7 @@ class TransactionAnomalyServiceTest {
                                 a ->
                                         a.getType()
                                                 == TransactionAnomalyService.AnomalyType
-                                                .STATISTICAL_OUTLIER)
+                                                        .STATISTICAL_OUTLIER)
                         .collect(java.util.stream.Collectors.toList());
 
         // If no statistical outliers found, check if the issue is with the test data
@@ -284,11 +284,12 @@ class TransactionAnomalyServiceTest {
         // Create realistic variation: amounts between $30 and $70 for expenses
         // This ensures std dev > 0 for outlier detection
         final double[] amounts = {
-                30, 35, 40, 45, 50, 50, 55, 60, 50, 45, 40, 50, 55, 45, 50, 60, 50, 45, 50, 55
+            30, 35, 40, 45, 50, 50, 55, 60, 50, 45, 40, 50, 55, 45, 50, 60, 50, 45, 50, 55
         };
         for (int i = 0; i < amounts.length; i++) {
             final BigDecimal amount = new BigDecimal("-" + amounts[i]);
-            final TransactionTable tx = createTransaction("tx-" + i, amount, "Normal Purchase", today);
+            final TransactionTable tx =
+                    createTransaction("tx-" + i, amount, "Normal Purchase", today);
             transactions.add(tx);
         }
 
@@ -375,8 +376,8 @@ class TransactionAnomalyServiceTest {
         // Mix of different categories and amounts to enable outlier detection
         // Use realistic variation: amounts between $30 and $70
         final double[] baseAmounts = {
-                30, 35, 40, 45, 50, 50, 55, 60, 50, 45, 40, 50, 55, 45, 50, 60, 50, 45, 50, 55, 50, 45,
-                40, 50, 55, 45, 50, 60, 50, 45
+            30, 35, 40, 45, 50, 50, 55, 60, 50, 45, 40, 50, 55, 45, 50, 60, 50, 45, 50, 55, 50, 45,
+            40, 50, 55, 45, 50, 60, 50, 45
         };
 
         for (int i = 0; i < baseAmounts.length; i++) {

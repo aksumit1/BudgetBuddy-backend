@@ -1,7 +1,5 @@
 package com.budgetbuddy.integration;
 
-
-import java.nio.charset.StandardCharsets;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -16,6 +14,7 @@ import com.budgetbuddy.service.PDFImportService;
 import com.budgetbuddy.service.TransactionService;
 import com.budgetbuddy.service.UserService;
 import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
@@ -36,6 +35,9 @@ import org.springframework.test.context.ActiveProfiles;
 @ActiveProfiles("test")
 @Import(AWSTestConfiguration.class)
 class ExcelPDFImportDuplicateDetectionIntegrationTest {
+
+    private static final String GAS = "Gas";
+    private static final String GROCERIES = "Groceries";
 
     @Autowired private ExcelImportService excelImportService;
 
@@ -58,7 +60,8 @@ class ExcelPDFImportDuplicateDetectionIntegrationTest {
         // Create test user
         final String testEmail = "excel-pdf-dup-test-" + UUID.randomUUID() + "@example.com";
         final String base64PasswordHash =
-                java.util.Base64.getEncoder().encodeToString("hashed-password".getBytes(StandardCharsets.UTF_8));
+                java.util.Base64.getEncoder()
+                        .encodeToString("hashed-password".getBytes(StandardCharsets.UTF_8));
         testUser = userService.createUserSecure(testEmail, base64PasswordHash, "Test", "User");
 
         // Create test account
@@ -94,8 +97,8 @@ class ExcelPDFImportDuplicateDetectionIntegrationTest {
                         new BigDecimal("50.00"),
                         java.time.LocalDate.parse("2025-01-15"),
                         "Grocery Store",
-                        "Groceries",
-                        "Groceries",
+                        GROCERIES,
+                        GROCERIES,
                         null,
                         "Imported from Excel",
                         null,
@@ -113,8 +116,8 @@ class ExcelPDFImportDuplicateDetectionIntegrationTest {
                         new BigDecimal("30.00"),
                         java.time.LocalDate.parse("2025-01-16"),
                         "Gas Station",
-                        "Gas",
-                        "Gas",
+                        GAS,
+                        GAS,
                         null,
                         "Imported from Excel",
                         null,
@@ -140,8 +143,8 @@ class ExcelPDFImportDuplicateDetectionIntegrationTest {
                         new BigDecimal("50.00"),
                         java.time.LocalDate.parse("2025-01-15"),
                         "Grocery Store",
-                        "Groceries",
-                        "Groceries",
+                        GROCERIES,
+                        GROCERIES,
                         null,
                         "Imported from Excel",
                         null,
@@ -159,8 +162,8 @@ class ExcelPDFImportDuplicateDetectionIntegrationTest {
                         new BigDecimal("30.00"),
                         java.time.LocalDate.parse("2025-01-16"),
                         "Gas Station",
-                        "Gas",
-                        "Gas",
+                        GAS,
+                        GAS,
                         null,
                         "Imported from Excel",
                         null,
@@ -204,8 +207,8 @@ class ExcelPDFImportDuplicateDetectionIntegrationTest {
                         new BigDecimal("50.00"),
                         java.time.LocalDate.parse("2025-01-15"),
                         "Grocery Store",
-                        "Groceries",
-                        "Groceries",
+                        GROCERIES,
+                        GROCERIES,
                         null,
                         "Imported from PDF",
                         null,
@@ -223,8 +226,8 @@ class ExcelPDFImportDuplicateDetectionIntegrationTest {
                         new BigDecimal("30.00"),
                         java.time.LocalDate.parse("2025-01-16"),
                         "Gas Station",
-                        "Gas",
-                        "Gas",
+                        GAS,
+                        GAS,
                         null,
                         "Imported from PDF",
                         null,
@@ -249,8 +252,8 @@ class ExcelPDFImportDuplicateDetectionIntegrationTest {
                         new BigDecimal("50.00"),
                         java.time.LocalDate.parse("2025-01-15"),
                         "Grocery Store",
-                        "Groceries",
-                        "Groceries",
+                        GROCERIES,
+                        GROCERIES,
                         null,
                         "Imported from PDF",
                         null,
@@ -268,8 +271,8 @@ class ExcelPDFImportDuplicateDetectionIntegrationTest {
                         new BigDecimal("30.00"),
                         java.time.LocalDate.parse("2025-01-16"),
                         "Gas Station",
-                        "Gas",
-                        "Gas",
+                        GAS,
+                        GAS,
                         null,
                         "Imported from PDF",
                         null,
@@ -311,8 +314,8 @@ class ExcelPDFImportDuplicateDetectionIntegrationTest {
                 new BigDecimal("50.00"),
                 java.time.LocalDate.parse("2025-01-15"),
                 "Grocery Store",
-                "Groceries",
-                "Groceries",
+                GROCERIES,
+                GROCERIES,
                 null,
                 "Imported from Excel",
                 null,
@@ -329,8 +332,8 @@ class ExcelPDFImportDuplicateDetectionIntegrationTest {
                 new BigDecimal("30.00"),
                 java.time.LocalDate.parse("2025-01-16"),
                 "Gas Station",
-                "Gas",
-                "Gas",
+                GAS,
+                GAS,
                 null,
                 "Imported from Excel",
                 null,
@@ -355,8 +358,8 @@ class ExcelPDFImportDuplicateDetectionIntegrationTest {
                 new BigDecimal("50.00"),
                 java.time.LocalDate.parse("2025-01-15"),
                 "Grocery Store",
-                "Groceries",
-                "Groceries",
+                GROCERIES,
+                GROCERIES,
                 null,
                 "Imported from Excel",
                 null,
@@ -373,8 +376,8 @@ class ExcelPDFImportDuplicateDetectionIntegrationTest {
                 new BigDecimal("30.00"),
                 java.time.LocalDate.parse("2025-01-16"),
                 "Gas Station",
-                "Gas",
-                "Gas",
+                GAS,
+                GAS,
                 null,
                 "Imported from Excel",
                 null,
@@ -429,8 +432,8 @@ class ExcelPDFImportDuplicateDetectionIntegrationTest {
                 new BigDecimal("50.00"),
                 java.time.LocalDate.parse("2025-01-15"),
                 "Grocery Store",
-                "Groceries",
-                "Groceries",
+                GROCERIES,
+                GROCERIES,
                 null,
                 "Imported from PDF",
                 null,
@@ -447,8 +450,8 @@ class ExcelPDFImportDuplicateDetectionIntegrationTest {
                 new BigDecimal("30.00"),
                 java.time.LocalDate.parse("2025-01-16"),
                 "Gas Station",
-                "Gas",
-                "Gas",
+                GAS,
+                GAS,
                 null,
                 "Imported from PDF",
                 null,
@@ -473,8 +476,8 @@ class ExcelPDFImportDuplicateDetectionIntegrationTest {
                 new BigDecimal("50.00"),
                 java.time.LocalDate.parse("2025-01-15"),
                 "Grocery Store",
-                "Groceries",
-                "Groceries",
+                GROCERIES,
+                GROCERIES,
                 null,
                 "Imported from PDF",
                 null,
@@ -491,8 +494,8 @@ class ExcelPDFImportDuplicateDetectionIntegrationTest {
                 new BigDecimal("30.00"),
                 java.time.LocalDate.parse("2025-01-16"),
                 "Gas Station",
-                "Gas",
-                "Gas",
+                GAS,
+                GAS,
                 null,
                 "Imported from PDF",
                 null,

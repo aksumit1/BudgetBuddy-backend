@@ -32,6 +32,9 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @org.mockito.junit.jupiter.MockitoSettings(strictness = org.mockito.quality.Strictness.LENIENT)
 class SubscriptionServiceTest {
 
+    private static final String NETFLIX = "Netflix";
+    private static final String SUBSCRIPTIONS = "subscriptions";
+
     @Mock private SubscriptionRepository subscriptionRepository;
 
     @Mock private TransactionRepository transactionRepository;
@@ -62,12 +65,13 @@ class SubscriptionServiceTest {
     @Test
     void testDetectSubscriptionsMonthlySubscription() {
         // Given: 3 monthly transactions from the same merchant with the same amount
-        final String merchantName = "Netflix";
+        final String merchantName = NETFLIX;
         final BigDecimal amount = new BigDecimal("-15.99");
         final LocalDate startDate = LocalDate.of(2024, 1, 15);
 
         for (int i = 0; i < 3; i++) {
-            final TransactionTable tx = createTransaction(merchantName, amount, startDate.plusMonths(i));
+            final TransactionTable tx =
+                    createTransaction(merchantName, amount, startDate.plusMonths(i));
             testTransactions.add(tx);
         }
 
@@ -75,7 +79,8 @@ class SubscriptionServiceTest {
                 .thenReturn(testTransactions);
 
         // When
-        final List<Subscription> subscriptions = subscriptionService.detectSubscriptions(testUserId);
+        final List<Subscription> subscriptions =
+                subscriptionService.detectSubscriptions(testUserId);
 
         // Then
         assertNotNull(subscriptions);
@@ -110,7 +115,8 @@ class SubscriptionServiceTest {
                 .thenReturn(testTransactions);
 
         // When
-        final List<Subscription> subscriptions = subscriptionService.detectSubscriptions(testUserId);
+        final List<Subscription> subscriptions =
+                subscriptionService.detectSubscriptions(testUserId);
 
         // Then
         assertNotNull(subscriptions);
@@ -127,7 +133,8 @@ class SubscriptionServiceTest {
         final LocalDate startDate = LocalDate.of(2023, 1, 1);
 
         for (int i = 0; i < 2; i++) {
-            final TransactionTable tx = createTransaction(merchantName, amount, startDate.plusYears(i));
+            final TransactionTable tx =
+                    createTransaction(merchantName, amount, startDate.plusYears(i));
             testTransactions.add(tx);
         }
 
@@ -135,7 +142,8 @@ class SubscriptionServiceTest {
                 .thenReturn(testTransactions);
 
         // When
-        final List<Subscription> subscriptions = subscriptionService.detectSubscriptions(testUserId);
+        final List<Subscription> subscriptions =
+                subscriptionService.detectSubscriptions(testUserId);
 
         // Then
         assertNotNull(subscriptions);
@@ -148,13 +156,14 @@ class SubscriptionServiceTest {
     void testDetectSubscriptionsNoSubscriptionsTooFewTransactions() {
         // Given: Only 1 transaction (need at least 2)
         final TransactionTable tx =
-                createTransaction("Netflix", new BigDecimal("-15.99"), LocalDate.now());
+                createTransaction(NETFLIX, new BigDecimal("-15.99"), LocalDate.now());
 
         when(transactionRepository.findByUserId(eq(testUserId), eq(0), eq(10_000)))
                 .thenReturn(testTransactions);
 
         // When
-        final List<Subscription> subscriptions = subscriptionService.detectSubscriptions(testUserId);
+        final List<Subscription> subscriptions =
+                subscriptionService.detectSubscriptions(testUserId);
 
         // Then
         assertNotNull(subscriptions);
@@ -165,9 +174,9 @@ class SubscriptionServiceTest {
     void testDetectSubscriptionsFiltersByCategory() {
         // Given: Transactions with subscription category
         final TransactionTable tx1 =
-                createTransaction("Netflix", new BigDecimal("-15.99"), LocalDate.of(2024, 1, 15));
+                createTransaction(NETFLIX, new BigDecimal("-15.99"), LocalDate.of(2024, 1, 15));
         final TransactionTable tx2 =
-                createTransaction("Netflix", new BigDecimal("-15.99"), LocalDate.of(2024, 2, 15));
+                createTransaction(NETFLIX, new BigDecimal("-15.99"), LocalDate.of(2024, 2, 15));
 
         testTransactions.add(tx1);
         testTransactions.add(tx2);
@@ -176,7 +185,8 @@ class SubscriptionServiceTest {
                 .thenReturn(testTransactions);
 
         // When
-        final List<Subscription> subscriptions = subscriptionService.detectSubscriptions(testUserId);
+        final List<Subscription> subscriptions =
+                subscriptionService.detectSubscriptions(testUserId);
 
         // Then
         assertNotNull(subscriptions);
@@ -198,7 +208,8 @@ class SubscriptionServiceTest {
                 .thenReturn(testTransactions);
 
         // When
-        final List<Subscription> subscriptions = subscriptionService.detectSubscriptions(testUserId);
+        final List<Subscription> subscriptions =
+                subscriptionService.detectSubscriptions(testUserId);
 
         // Then
         assertNotNull(subscriptions);
@@ -212,12 +223,12 @@ class SubscriptionServiceTest {
                 new com.budgetbuddy.model.dynamodb.SubscriptionTable();
         table.setSubscriptionId("sub-123");
         table.setUserId(testUserId);
-        table.setMerchantName("Netflix");
+        table.setMerchantName(NETFLIX);
         table.setAmount(new BigDecimal("15.99"));
         table.setFrequency("MONTHLY");
         table.setStartDate("2024-01-15");
         table.setNextPaymentDate("2024-02-15");
-        table.setCategory("subscriptions");
+        table.setCategory(SUBSCRIPTIONS);
         table.setActive(true);
 
         when(subscriptionRepository.findByUserId(testUserId)).thenReturn(List.of(table));
@@ -228,7 +239,7 @@ class SubscriptionServiceTest {
         // Then
         assertNotNull(subscriptions);
         assertEquals(1, subscriptions.size());
-        assertEquals("Netflix", subscriptions.get(0).getMerchantName());
+        assertEquals(NETFLIX, subscriptions.get(0).getMerchantName());
     }
 
     @Test
@@ -238,7 +249,7 @@ class SubscriptionServiceTest {
                 new com.budgetbuddy.model.dynamodb.SubscriptionTable();
         activeTable.setSubscriptionId("sub-123");
         activeTable.setUserId(testUserId);
-        activeTable.setMerchantName("Netflix");
+        activeTable.setMerchantName(NETFLIX);
         activeTable.setAmount(new BigDecimal("15.99"));
         activeTable.setFrequency("MONTHLY");
         activeTable.setStartDate("2024-01-15");
@@ -246,7 +257,7 @@ class SubscriptionServiceTest {
         // active
         // The service filters out subscriptions with nextPaymentDate more than 30 days in the past
         activeTable.setNextPaymentDate(java.time.LocalDate.now().plusDays(10).toString());
-        activeTable.setCategory("subscriptions");
+        activeTable.setCategory(SUBSCRIPTIONS);
         activeTable.setActive(true);
 
         final com.budgetbuddy.model.dynamodb.SubscriptionTable inactiveTable =
@@ -258,19 +269,20 @@ class SubscriptionServiceTest {
         inactiveTable.setFrequency("MONTHLY");
         inactiveTable.setStartDate("2024-01-01");
         inactiveTable.setNextPaymentDate("2024-02-01");
-        inactiveTable.setCategory("subscriptions");
+        inactiveTable.setCategory(SUBSCRIPTIONS);
         inactiveTable.setActive(false);
 
         when(subscriptionRepository.findActiveByUserId(testUserId))
                 .thenReturn(List.of(activeTable));
 
         // When
-        final List<Subscription> subscriptions = subscriptionService.getActiveSubscriptions(testUserId);
+        final List<Subscription> subscriptions =
+                subscriptionService.getActiveSubscriptions(testUserId);
 
         // Then
         assertNotNull(subscriptions);
         assertEquals(1, subscriptions.size());
-        assertEquals("Netflix", subscriptions.get(0).getMerchantName());
+        assertEquals(NETFLIX, subscriptions.get(0).getMerchantName());
         assertTrue(subscriptions.get(0).getActive());
     }
 
@@ -280,11 +292,11 @@ class SubscriptionServiceTest {
         final Subscription subscription = new Subscription();
         subscription.setSubscriptionId("sub-123");
         subscription.setUserId(testUserId);
-        subscription.setMerchantName("Netflix");
+        subscription.setMerchantName(NETFLIX);
         subscription.setAmount(new BigDecimal("15.99"));
         subscription.setFrequency(Subscription.SubscriptionFrequency.MONTHLY);
         subscription.setStartDate(LocalDate.of(2024, 1, 15));
-        subscription.setCategory("subscriptions");
+        subscription.setCategory(SUBSCRIPTIONS);
         subscription.setActive(true);
 
         // When
@@ -310,12 +322,13 @@ class SubscriptionServiceTest {
     @Test
     void testDetectSubscriptionsSubscriptionCategoryNetflixIsSubscription() {
         // Given: Netflix transactions (known subscription merchant)
-        final String merchantName = "Netflix";
+        final String merchantName = NETFLIX;
         final BigDecimal amount = new BigDecimal("-15.99");
         final LocalDate startDate = LocalDate.of(2024, 1, 15);
 
         for (int i = 0; i < 3; i++) {
-            final TransactionTable tx = createTransaction(merchantName, amount, startDate.plusMonths(i));
+            final TransactionTable tx =
+                    createTransaction(merchantName, amount, startDate.plusMonths(i));
             tx.setCategoryPrimary("entertainment");
             tx.setCategoryDetailed("streaming");
             testTransactions.add(tx);
@@ -325,7 +338,8 @@ class SubscriptionServiceTest {
                 .thenReturn(testTransactions);
 
         // When
-        final List<Subscription> subscriptions = subscriptionService.detectSubscriptions(testUserId);
+        final List<Subscription> subscriptions =
+                subscriptionService.detectSubscriptions(testUserId);
 
         // Then
         assertNotNull(subscriptions);
@@ -345,7 +359,8 @@ class SubscriptionServiceTest {
         final LocalDate startDate = LocalDate.of(2024, 1, 10);
 
         for (int i = 0; i < 3; i++) {
-            final TransactionTable tx = createTransaction(merchantName, amount, startDate.plusMonths(i));
+            final TransactionTable tx =
+                    createTransaction(merchantName, amount, startDate.plusMonths(i));
             tx.setCategoryPrimary("payment");
             tx.setCategoryDetailed("payment");
             testTransactions.add(tx);
@@ -355,7 +370,8 @@ class SubscriptionServiceTest {
                 .thenReturn(testTransactions);
 
         // When
-        final List<Subscription> subscriptions = subscriptionService.detectSubscriptions(testUserId);
+        final List<Subscription> subscriptions =
+                subscriptionService.detectSubscriptions(testUserId);
 
         // Then
         assertNotNull(subscriptions);
@@ -378,8 +394,8 @@ class SubscriptionServiceTest {
         tx.setDescription(merchantName + " subscription");
         tx.setAmount(amount);
         tx.setTransactionDate(date.format(java.time.format.DateTimeFormatter.ISO_LOCAL_DATE));
-        tx.setCategoryPrimary("subscriptions");
-        tx.setCategoryDetailed("subscriptions");
+        tx.setCategoryPrimary(SUBSCRIPTIONS);
+        tx.setCategoryDetailed(SUBSCRIPTIONS);
         return tx;
     }
 }

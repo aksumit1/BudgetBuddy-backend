@@ -139,7 +139,8 @@ class TransactionActionRepositoryTest {
         transactionActionRepository.save(testAction);
 
         // When
-        final List<TransactionActionTable> actions = transactionActionRepository.findByUserId(testUserId);
+        final List<TransactionActionTable> actions =
+                transactionActionRepository.findByUserId(testUserId);
 
         // Then
         assertNotNull(actions, "Actions should not be null");
@@ -156,7 +157,8 @@ class TransactionActionRepositoryTest {
         transactionActionRepository.delete(actionId);
 
         // Then
-        final Optional<TransactionActionTable> found = transactionActionRepository.findById(actionId);
+        final Optional<TransactionActionTable> found =
+                transactionActionRepository.findById(actionId);
         assertTrue(found.isEmpty(), "Action should be deleted");
     }
 

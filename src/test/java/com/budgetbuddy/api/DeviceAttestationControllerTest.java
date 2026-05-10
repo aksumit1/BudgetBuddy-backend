@@ -28,6 +28,8 @@ import org.springframework.security.core.userdetails.UserDetails;
 @org.mockito.junit.jupiter.MockitoSettings(strictness = org.mockito.quality.Strictness.LENIENT)
 class DeviceAttestationControllerTest {
 
+    private static final String DEVICE_123 = "device-123";
+
     @Mock private DeviceAttestationService deviceAttestationService;
 
     @Mock private UserService userService;
@@ -52,12 +54,12 @@ class DeviceAttestationControllerTest {
         // Given
         final DeviceAttestationController.VerifyDeviceRequest request =
                 new DeviceAttestationController.VerifyDeviceRequest();
-        request.setDeviceId("device-123");
+        request.setDeviceId(DEVICE_123);
         request.setAttestationToken("token-123");
         request.setPlatform("ios");
 
         when(userService.findByEmail("test@example.com")).thenReturn(Optional.of(testUser));
-        when(deviceAttestationService.verifyDevice("device-123", "user-123", "token-123", "ios"))
+        when(deviceAttestationService.verifyDevice(DEVICE_123, "user-123", "token-123", "ios"))
                 .thenReturn(true);
 
         // When
@@ -69,7 +71,7 @@ class DeviceAttestationControllerTest {
         assertNotNull(response.getBody());
         assertTrue((Boolean) response.getBody().get("success"));
         assertTrue((Boolean) response.getBody().get("trusted"));
-        assertEquals("device-123", response.getBody().get("deviceId"));
+        assertEquals(DEVICE_123, response.getBody().get("deviceId"));
     }
 
     @Test
@@ -77,13 +79,12 @@ class DeviceAttestationControllerTest {
         // Given
         final DeviceAttestationController.VerifyDeviceRequest request =
                 new DeviceAttestationController.VerifyDeviceRequest();
-        request.setDeviceId("device-123");
+        request.setDeviceId(DEVICE_123);
         request.setAttestationToken("invalid-token");
         request.setPlatform("ios");
 
         when(userService.findByEmail("test@example.com")).thenReturn(Optional.of(testUser));
-        when(deviceAttestationService.verifyDevice(
-                        "device-123", "user-123", "invalid-token", "ios"))
+        when(deviceAttestationService.verifyDevice(DEVICE_123, "user-123", "invalid-token", "ios"))
                 .thenReturn(false);
 
         // When/Then
@@ -98,7 +99,7 @@ class DeviceAttestationControllerTest {
         // Given
         final DeviceAttestationController.VerifyDeviceRequest request =
                 new DeviceAttestationController.VerifyDeviceRequest();
-        request.setDeviceId("device-123");
+        request.setDeviceId(DEVICE_123);
 
         // When/Then
         assertThrows(AppException.class, () -> controller.verifyDevice(null, request));
@@ -137,13 +138,12 @@ class DeviceAttestationControllerTest {
         // Given
         final DeviceAttestationController.VerifyDeviceRequest request =
                 new DeviceAttestationController.VerifyDeviceRequest();
-        request.setDeviceId("device-123");
+        request.setDeviceId(DEVICE_123);
         request.setAttestationToken("token-123");
         request.setPlatform("android");
 
         when(userService.findByEmail("test@example.com")).thenReturn(Optional.of(testUser));
-        when(deviceAttestationService.verifyDevice(
-                        "device-123", "user-123", "token-123", "android"))
+        when(deviceAttestationService.verifyDevice(DEVICE_123, "user-123", "token-123", "android"))
                 .thenReturn(true);
 
         // When

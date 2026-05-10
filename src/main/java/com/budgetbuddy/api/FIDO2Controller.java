@@ -1,11 +1,11 @@
 package com.budgetbuddy.api;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import com.budgetbuddy.exception.AppException;
 import com.budgetbuddy.exception.ErrorCode;
 import com.budgetbuddy.model.dynamodb.UserTable;
 import com.budgetbuddy.service.FIDO2Service;
 import com.budgetbuddy.service.UserService;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import java.util.HashMap;
@@ -230,7 +230,8 @@ public class FIDO2Controller {
     @ApiResponse(responseCode = "401", description = "User not authenticated")
     @ApiResponse(responseCode = "404", description = "Passkey not found")
     public ResponseEntity<Void> deletePasskey(
-            @AuthenticationPrincipal final UserDetails userDetails, @PathVariable final String credentialId) {
+            @AuthenticationPrincipal final UserDetails userDetails,
+            @PathVariable final String credentialId) {
         if (userDetails == null || userDetails.getUsername() == null) {
             throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, USER_NOT_AUTHENTICATED);
         }

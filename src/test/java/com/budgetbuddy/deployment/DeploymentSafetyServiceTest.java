@@ -46,6 +46,8 @@ import org.springframework.web.client.RestTemplate;
 @ExtendWith(MockitoExtension.class)
 class DeploymentSafetyServiceTest {
 
+    private static final String SMOKETESTENDPOINTS = "smokeTestEndpoints";
+
     @Mock private RestTemplate restTemplate;
 
     @Mock private RestTemplateBuilder restTemplateBuilder;
@@ -59,8 +61,8 @@ class DeploymentSafetyServiceTest {
 
     @BeforeEach
     void setUp() {
-        @SuppressWarnings("unchecked") final
-                java.util.function.Supplier<org.springframework.http.client.ClientHttpRequestFactory>
+        @SuppressWarnings("unchecked")
+        final java.util.function.Supplier<org.springframework.http.client.ClientHttpRequestFactory>
                 supplier = any(java.util.function.Supplier.class);
         when(restTemplateBuilder.requestFactory(supplier)).thenReturn(restTemplateBuilder);
         when(restTemplateBuilder.build()).thenReturn(restTemplate);
@@ -78,7 +80,7 @@ class DeploymentSafetyServiceTest {
         ReflectionTestUtils.setField(service, "healthCheckTimeoutSeconds", 60);
         ReflectionTestUtils.setField(service, "healthCheckIntervalSeconds", 5);
         ReflectionTestUtils.setField(service, "maxHealthCheckAttempts", 3);
-        ReflectionTestUtils.setField(service, "smokeTestEndpoints", Collections.emptyList());
+        ReflectionTestUtils.setField(service, SMOKETESTENDPOINTS, Collections.emptyList());
 
         // Set up log appender to capture log events for verification
         logger = (Logger) LoggerFactory.getLogger(DeploymentSafetyService.class);
@@ -108,7 +110,8 @@ class DeploymentSafetyServiceTest {
     @Test
     void testValidateDeploymentWithEmptyBaseUrlReturnsUnhealthy() {
         // When
-        final DeploymentSafetyService.DeploymentValidationResult result = service.validateDeployment("");
+        final DeploymentSafetyService.DeploymentValidationResult result =
+                service.validateDeployment("");
 
         // Then
         assertNotNull(result);
@@ -124,7 +127,7 @@ class DeploymentSafetyServiceTest {
                                 event ->
                                         event.getLevel() == Level.WARN
                                                 && event.getMessage()
-                                                .contains("Base URL is null or empty"))
+                                                        .contains("Base URL is null or empty"))
                         .count();
 
         assertEquals(1, warnLogs, "Should log WARN when base URL is empty");
@@ -180,7 +183,7 @@ class DeploymentSafetyServiceTest {
     @Test
     void testRunSmokeTestsWithEmptyEndpointsReturnsPassed() {
         // Given
-        ReflectionTestUtils.setField(service, "smokeTestEndpoints", Collections.emptyList());
+        ReflectionTestUtils.setField(service, SMOKETESTENDPOINTS, Collections.emptyList());
 
         // When
         final DeploymentSafetyService.SmokeTestResult result =
@@ -196,7 +199,7 @@ class DeploymentSafetyServiceTest {
     @Test
     void testRunSmokeTestsWithNullEndpointsReturnsPassed() {
         // Given
-        ReflectionTestUtils.setField(service, "smokeTestEndpoints", null);
+        ReflectionTestUtils.setField(service, SMOKETESTENDPOINTS, null);
 
         // When
         final DeploymentSafetyService.SmokeTestResult result =
@@ -211,7 +214,7 @@ class DeploymentSafetyServiceTest {
     void testRunSmokeTestsWithSuccessfulEndpointsReturnsPassed() {
         // Given
         final List<String> endpoints = List.of("/api/health", "/api/status");
-        ReflectionTestUtils.setField(service, "smokeTestEndpoints", endpoints);
+        ReflectionTestUtils.setField(service, SMOKETESTENDPOINTS, endpoints);
 
         final ResponseEntity<String> response = new ResponseEntity<>("OK", HttpStatus.OK);
         when(restTemplate.getForEntity(anyString(), eq(String.class))).thenReturn(response);
@@ -231,7 +234,7 @@ class DeploymentSafetyServiceTest {
     void testRunSmokeTestsWithFailedEndpointsReturnsFailed() {
         // Given
         final List<String> endpoints = List.of("/api/health");
-        ReflectionTestUtils.setField(service, "smokeTestEndpoints", endpoints);
+        ReflectionTestUtils.setField(service, SMOKETESTENDPOINTS, endpoints);
 
         when(restTemplate.getForEntity(anyString(), eq(String.class)))
                 .thenThrow(new RestClientException("Connection refused"));
@@ -265,7 +268,7 @@ class DeploymentSafetyServiceTest {
                                 event ->
                                         event.getLevel() == Level.INFO
                                                 && event.getMessage()
-                                                .contains("Smoke tests completed"));
+                                                        .contains("Smoke tests completed"));
         assertTrue(foundInfoLog, "Should log INFO when smoke tests complete");
     }
 
@@ -287,8 +290,8 @@ class DeploymentSafetyServiceTest {
                                 event ->
                                         event.getLevel() == Level.WARN
                                                 && event.getMessage()
-                                                .contains(
-                                                        "Base URL is null or empty for smoke tests"))
+                                                        .contains(
+                                                                "Base URL is null or empty for smoke tests"))
                         .count();
 
         assertEquals(1, warnLogs, "Should log WARN when base URL is empty for smoke tests");
@@ -301,7 +304,7 @@ class DeploymentSafetyServiceTest {
                 new ResponseEntity<>("{\"status\":\"UP\"}", HttpStatus.OK);
         when(restTemplate.getForEntity(contains("/actuator/health"), eq(String.class)))
                 .thenReturn(healthResponse);
-        ReflectionTestUtils.setField(service, "smokeTestEndpoints", Collections.emptyList());
+        ReflectionTestUtils.setField(service, SMOKETESTENDPOINTS, Collections.emptyList());
 
         // When
         final boolean isReady = service.isDeploymentReady("http://localhost:8080");

@@ -1,15 +1,14 @@
 package com.budgetbuddy.service;
 
-
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import java.util.Locale;
 import com.budgetbuddy.exception.AppException;
 import com.budgetbuddy.exception.ErrorCode;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
+import java.util.Locale;
 import org.apache.poi.hssf.usermodel.HSSFWorkbook;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.CellValue;
@@ -38,12 +37,21 @@ import org.springframework.stereotype.Service;
 // JUnit idiom; the rule is a noise generator on test classes.
 @SuppressFBWarnings(
         value = {"EI_EXPOSE_REP", "THROWS_METHOD_THROWS_CLAUSE_BASIC_EXCEPTION", "EI_EXPOSE_REP2"},
-        justification = "JSON DTO / DynamoDB entity getters expose lists by reference; "
+        justification =
+                "JSON DTO / DynamoDB entity getters expose lists by reference; "
                         + "the design is value-semantic and Jackson creates fresh instances; Apache POI / IO methods throw checked Exception; "
                         + "Spring constructor injection — beans are shared by design")
-@SuppressWarnings({"PMD.LawOfDemeter", "PMD.AvoidCatchingGenericException", "PMD.DataClass", "PMD.OnlyOneReturn"})
+@SuppressWarnings({
+    "PMD.LawOfDemeter",
+    "PMD.AvoidCatchingGenericException",
+    "PMD.DataClass",
+    "PMD.OnlyOneReturn"
+})
 @Service
 public class ExcelImportService {
+
+    private static final String DEPOSITORY = "depository";
+    private static final String CHECKING = "checking";
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ExcelImportService.class);
 
@@ -52,7 +60,8 @@ public class ExcelImportService {
     private final AccountDetectionService accountDetectionService;
 
     public ExcelImportService(
-            final CSVImportService csvImportService, final AccountDetectionService accountDetectionService) {
+            final CSVImportService csvImportService,
+            final AccountDetectionService accountDetectionService) {
         this.csvImportService = csvImportService;
         this.accountDetectionService = accountDetectionService;
     }
@@ -97,7 +106,8 @@ public class ExcelImportService {
             return detectedAccount;
         }
 
-        public void setDetectedAccount(final AccountDetectionService.DetectedAccount detectedAccount) {
+        public void setDetectedAccount(
+                final AccountDetectionService.DetectedAccount detectedAccount) {
             this.detectedAccount = detectedAccount;
         }
 
@@ -352,7 +362,8 @@ public class ExcelImportService {
                         final String header = headers.get(colIndex);
 
                         if (value != null && !value.isBlank()) {
-                            final String headerLower = header != null ? header.toLowerCase(Locale.ROOT).trim() : "";
+                            final String headerLower =
+                                    header != null ? header.toLowerCase(Locale.ROOT).trim() : "";
 
                             // Extract account number from data
                             if (detectedAccount.getAccountNumber() == null) {
@@ -490,7 +501,7 @@ public class ExcelImportService {
                                     transferCount[0]);
                     if (inferredType != null) {
                         detectedAccount.setAccountType(inferredType);
-                        if ("depository".equals(inferredType)) {
+                        if (DEPOSITORY.equals(inferredType)) {
                             // Try to determine subtype (checking vs savings)
                             final String subtype =
                                     inferAccountSubtypeFromTransactionPatterns(
@@ -540,8 +551,8 @@ public class ExcelImportService {
                                             ",",
                                             headers), // Pass header line for currency detection
                                     filename // Pass filename for currency detection (CNY vs JPY
-                            // context)
-                            );
+                                    // context)
+                                    );
                     if (transaction != null) {
                         // Set account ID if detected
                         if (matchedAccountId != null) {
@@ -597,8 +608,8 @@ public class ExcelImportService {
                 // savings, money market)
                 final String accountType = detectedAccount.getAccountType();
                 if (accountType != null
-                        && ("depository".equalsIgnoreCase(accountType)
-                                || "checking".equalsIgnoreCase(accountType)
+                        && (DEPOSITORY.equalsIgnoreCase(accountType)
+                                || CHECKING.equalsIgnoreCase(accountType)
                                 || "savings".equalsIgnoreCase(accountType)
                                 || "moneyMarket".equalsIgnoreCase(accountType)
                                 || "money_market".equalsIgnoreCase(accountType))) {
@@ -684,7 +695,8 @@ public class ExcelImportService {
     }
 
     /** Convert Excel row to ParsedRow format */
-    private CSVImportService.ParsedRow convertRowToParsedRow(final Row row, final List<String> headers) {
+    private CSVImportService.ParsedRow convertRowToParsedRow(
+            final Row row, final List<String> headers) {
         final CSVImportService.ParsedRow parsedRow = new CSVImportService.ParsedRow();
 
         for (int i = 0; i < headers.size(); i++) {
@@ -795,7 +807,8 @@ public class ExcelImportService {
         }
 
         // Try simple 4+ digit pattern if no keyword match
-        final java.util.regex.Pattern simplePattern = java.util.regex.Pattern.compile("(\\d{4,19})");
+        final java.util.regex.Pattern simplePattern =
+                java.util.regex.Pattern.compile("(\\d{4,19})");
         matcher = simplePattern.matcher(value);
         if (matcher.find()) {
             final String accountNum = matcher.group(1);
@@ -850,10 +863,10 @@ public class ExcelImportService {
         final String valueLower = value.toLowerCase(Locale.ROOT);
 
         // Map common account type values to our account types
-        if (valueLower.contains("checking") || valueLower.contains("check")) {
-            return "depository";
+        if (valueLower.contains(CHECKING) || valueLower.contains("check")) {
+            return DEPOSITORY;
         } else if (valueLower.contains("savings") || valueLower.contains("saving")) {
-            return "depository";
+            return DEPOSITORY;
         } else if (valueLower.contains("credit card")
                 || valueLower.contains("creditcard")
                 || valueLower.contains("card")) {
@@ -965,27 +978,27 @@ public class ExcelImportService {
             final int transferCount) {
         // If we see checks, it's definitely a depository account (checking)
         if (checkCount > 0) {
-            return "depository";
+            return DEPOSITORY;
         }
 
         // If we see many debits and credits with ACH/transfers, likely depository
         if ((debitCount > 0 || creditCount > 0) && (achCount > 0 || transferCount > 0)) {
-            return "depository";
+            return DEPOSITORY;
         }
 
         // If we see ATM transactions, likely depository (checking or savings)
         if (atmCount > 0) {
-            return "depository";
+            return DEPOSITORY;
         }
 
         // If we see ACH transactions, likely depository
         if (achCount > 0) {
-            return "depository";
+            return DEPOSITORY;
         }
 
         // If we see transfers, likely depository
         if (transferCount > 0) {
-            return "depository";
+            return DEPOSITORY;
         }
 
         return null;
@@ -1002,32 +1015,32 @@ public class ExcelImportService {
         // If we see checks, it's definitely checking
         if (checkCount > 0) {
             LOGGER.debug("Inferred checking account from check transactions");
-            return "checking";
+            return CHECKING;
         }
 
         // If we see many debits (purchases, payments), likely checking
         // Savings accounts typically have fewer transactions and more deposits/withdrawals
         if (debitCount > creditCount && debitCount > 2) {
             LOGGER.debug("Inferred checking account from high debit count: {}", debitCount);
-            return "checking";
+            return CHECKING;
         }
 
         // If we see ATM transactions, more likely checking (savings may have ATM but less common)
         if (atmCount > 0) {
             LOGGER.debug("Inferred checking account from ATM transactions");
-            return "checking";
+            return CHECKING;
         }
 
         // If we see many ACH transactions (direct deposits, bill payments), likely checking
         if (achCount > 2) {
             LOGGER.debug("Inferred checking account from ACH transactions: {}", achCount);
-            return "checking";
+            return CHECKING;
         }
 
         // If we see transfers, could be either, but more common in checking
         if (transferCount > 0 && debitCount > 0) {
             LOGGER.debug("Inferred checking account from transfer and debit patterns");
-            return "checking";
+            return CHECKING;
         }
 
         // Default to savings if we can't determine (fewer transactions, more deposits)

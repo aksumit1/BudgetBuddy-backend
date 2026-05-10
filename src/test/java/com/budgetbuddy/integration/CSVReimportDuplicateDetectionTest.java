@@ -1,7 +1,5 @@
 package com.budgetbuddy.integration;
 
-
-import java.nio.charset.StandardCharsets;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
@@ -16,6 +14,7 @@ import com.budgetbuddy.repository.dynamodb.AccountRepository;
 import com.budgetbuddy.repository.dynamodb.TransactionRepository;
 import com.budgetbuddy.service.UserService;
 import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
@@ -87,7 +86,8 @@ class CSVReimportDuplicateDetectionTest {
         // Create test user
         final String testEmail = "csv-reimport-test-" + UUID.randomUUID() + "@example.com";
         final String base64PasswordHash =
-                java.util.Base64.getEncoder().encodeToString("hashed-password".getBytes(StandardCharsets.UTF_8));
+                java.util.Base64.getEncoder()
+                        .encodeToString("hashed-password".getBytes(StandardCharsets.UTF_8));
         testUser = userService.createUserSecure(testEmail, base64PasswordHash, "Test", "User");
 
         // Create test account
@@ -133,18 +133,19 @@ class CSVReimportDuplicateDetectionTest {
     void testReuploadSameCSVFileShouldDetectDuplicates() throws Exception {
         final String filename = "bank_statement.csv";
         final MockMultipartFile csvFile =
-                new MockMultipartFile("file", filename, "text/csv", CSV_CONTENT.getBytes(StandardCharsets.UTF_8));
+                new MockMultipartFile(
+                        "file", filename, "text/csv", CSV_CONTENT.getBytes(StandardCharsets.UTF_8));
 
         // First upload - should create all transactions
         final MvcResult firstResult =
                 mockMvc.perform(
-                        multipart("/api/transactions/import-csv")
-                                .file(csvFile)
-                                .param("accountId", testAccountId)
-                                .with(
-                                        SecurityMockMvcRequestPostProcessors.user(
-                                                userDetails))
-                                .contentType(MediaType.MULTIPART_FORM_DATA))
+                                multipart("/api/transactions/import-csv")
+                                        .file(csvFile)
+                                        .param("accountId", testAccountId)
+                                        .with(
+                                                SecurityMockMvcRequestPostProcessors.user(
+                                                        userDetails))
+                                        .contentType(MediaType.MULTIPART_FORM_DATA))
                         .andExpect(status().isOk())
                         .andExpect(jsonPath("$.created").exists())
                         .andReturn();
@@ -172,13 +173,13 @@ class CSVReimportDuplicateDetectionTest {
 
         final MvcResult secondResult =
                 mockMvc.perform(
-                        multipart("/api/transactions/import-csv")
-                                .file(csvFile2)
-                                .param("accountId", testAccountId)
-                                .with(
-                                        SecurityMockMvcRequestPostProcessors.user(
-                                                userDetails))
-                                .contentType(MediaType.MULTIPART_FORM_DATA))
+                                multipart("/api/transactions/import-csv")
+                                        .file(csvFile2)
+                                        .param("accountId", testAccountId)
+                                        .with(
+                                                SecurityMockMvcRequestPostProcessors.user(
+                                                        userDetails))
+                                        .contentType(MediaType.MULTIPART_FORM_DATA))
                         .andExpect(status().isOk())
                         .andExpect(jsonPath("$.created").exists())
                         .andReturn();
@@ -232,7 +233,11 @@ class CSVReimportDuplicateDetectionTest {
 
         final String filename1 = "bank_statement_dec.csv";
         final MockMultipartFile csvFile1 =
-                new MockMultipartFile("file", filename1, "text/csv", CSV_CONTENT.getBytes(StandardCharsets.UTF_8));
+                new MockMultipartFile(
+                        "file",
+                        filename1,
+                        "text/csv",
+                        CSV_CONTENT.getBytes(StandardCharsets.UTF_8));
 
         // First upload
         mockMvc.perform(
@@ -254,7 +259,11 @@ class CSVReimportDuplicateDetectionTest {
         // duplicated
         final String filename2 = "bank_statement_dec_backup.csv";
         final MockMultipartFile csvFile2 =
-                new MockMultipartFile("file", filename2, "text/csv", CSV_CONTENT.getBytes(StandardCharsets.UTF_8));
+                new MockMultipartFile(
+                        "file",
+                        filename2,
+                        "text/csv",
+                        CSV_CONTENT.getBytes(StandardCharsets.UTF_8));
 
         mockMvc.perform(
                         multipart("/api/transactions/import-csv")

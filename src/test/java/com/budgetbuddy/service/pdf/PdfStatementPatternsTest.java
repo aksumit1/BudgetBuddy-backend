@@ -34,7 +34,8 @@ class PdfStatementPatternsTest {
     void fallbackAmountMatchesAmountWithoutDollarSign() {
         // QuickBooks export format: no $ sign, just "123.45". We still
         // want to extract it — but only when it has a decimal.
-        final Matcher m = PdfStatementPatterns.FALLBACK_AMOUNT_PATTERN.matcher("GROCERY STORE 123.45");
+        final Matcher m =
+                PdfStatementPatterns.FALLBACK_AMOUNT_PATTERN.matcher("GROCERY STORE 123.45");
         assertTrue(m.find());
         assertEquals("123.45", m.group(1));
     }

@@ -62,7 +62,8 @@ public class PlaidWebhookController {
                     "Receives and processes webhook events from Plaid including transaction updates, item status changes, and authentication events")
     public ResponseEntity<Map<String, String>> handleWebhook(
             @RequestBody final Map<String, Object> payload,
-            @RequestHeader(value = "Plaid-Verification", required = false) final String verificationHeader) {
+            @RequestHeader(value = "Plaid-Verification", required = false)
+                    final String verificationHeader) {
 
         if (payload == null || payload.isEmpty()) {
             LOGGER.warn("Received empty webhook payload");
@@ -104,8 +105,10 @@ public class PlaidWebhookController {
                         "WEBHOOK",
                         itemId != null ? itemId : "unknown",
                         Map.of(
-                                "webhookType", webhookType,
-                                "webhookCode", webhookCode != null ? webhookCode : "unknown"),
+                                "webhookType",
+                                webhookType,
+                                "webhookCode",
+                                webhookCode != null ? webhookCode : "unknown"),
                         null,
                         null);
             } catch (Exception e) {

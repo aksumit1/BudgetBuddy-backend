@@ -2,10 +2,10 @@ package com.budgetbuddy.notification;
 
 import com.budgetbuddy.exception.AppException;
 import com.budgetbuddy.exception.ErrorCode;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import com.budgetbuddy.model.dynamodb.DeviceTokenTable;
 import com.budgetbuddy.repository.dynamodb.DeviceTokenRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.time.Instant;
 import java.util.HashMap;
 import java.util.List;
@@ -113,7 +113,8 @@ public class PushNotificationService {
             final String body,
             final Map<String, Object> data) {
         try {
-            final List<DeviceTokenTable> devices = deviceTokenRepository.findEnabledByUserId(userId);
+            final List<DeviceTokenTable> devices =
+                    deviceTokenRepository.findEnabledByUserId(userId);
 
             if (devices.isEmpty()) {
                 LOGGER.debug("No enabled devices found for user: {}", userId);
@@ -132,7 +133,8 @@ public class PushNotificationService {
                         continue;
                     }
 
-                    final String message = createPlatformMessage(title, body, data, device.getPlatform());
+                    final String message =
+                            createPlatformMessage(title, body, data, device.getPlatform());
 
                     final PublishRequest request =
                             PublishRequest.builder()
@@ -277,11 +279,13 @@ public class PushNotificationService {
                             .attributes(Map.of("UserId", userId))
                             .build();
 
-            final CreatePlatformEndpointResponse response = snsClient.createPlatformEndpoint(request);
+            final CreatePlatformEndpointResponse response =
+                    snsClient.createPlatformEndpoint(request);
             return response.endpointArn();
         } catch (Exception e) {
             LOGGER.error("Failed to create SNS endpoint: {}", e.getMessage());
-            throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to create SNS endpoint", e);
+            throw new AppException(
+                    ErrorCode.INTERNAL_SERVER_ERROR, "Failed to create SNS endpoint", e);
         }
     }
 

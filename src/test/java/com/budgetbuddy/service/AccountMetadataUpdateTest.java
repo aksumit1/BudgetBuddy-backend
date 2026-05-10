@@ -36,6 +36,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class AccountMetadataUpdateTest {
 
+    private static final String USER123 = "user123";
+
     @Mock private AccountRepository accountRepository;
 
     @Mock private PDFImportService pdfImportService;
@@ -66,7 +68,7 @@ class AccountMetadataUpdateTest {
         final String accountId = UUID.randomUUID().toString();
         final AccountTable account = new AccountTable();
         account.setAccountId(accountId);
-        account.setUserId("user123");
+        account.setUserId(USER123);
         account.setPaymentDueDate(null);
         account.setMinimumPaymentDue(null);
         account.setRewardPoints(null);
@@ -105,7 +107,7 @@ class AccountMetadataUpdateTest {
         final String accountId = UUID.randomUUID().toString();
         final AccountTable account = new AccountTable();
         account.setAccountId(accountId);
-        account.setUserId("user123");
+        account.setUserId(USER123);
         account.setPaymentDueDate(LocalDate.of(2024, 11, 15));
         account.setMinimumPaymentDue(new BigDecimal("20.00"));
         account.setRewardPoints(10_000L);
@@ -145,7 +147,7 @@ class AccountMetadataUpdateTest {
         final String accountId = UUID.randomUUID().toString();
         final AccountTable account = new AccountTable();
         account.setAccountId(accountId);
-        account.setUserId("user123");
+        account.setUserId(USER123);
         account.setPaymentDueDate(LocalDate.of(2024, 12, 15));
         account.setMinimumPaymentDue(new BigDecimal("25.00"));
         account.setRewardPoints(12_345L);
@@ -183,7 +185,7 @@ class AccountMetadataUpdateTest {
         final String accountId = UUID.randomUUID().toString();
         final AccountTable account = new AccountTable();
         account.setAccountId(accountId);
-        account.setUserId("user123");
+        account.setUserId(USER123);
         account.setPaymentDueDate(LocalDate.of(2024, 12, 15));
         account.setMinimumPaymentDue(new BigDecimal("25.00"));
         account.setRewardPoints(12_345L);
@@ -221,7 +223,7 @@ class AccountMetadataUpdateTest {
         final String accountId = UUID.randomUUID().toString();
         final AccountTable account = new AccountTable();
         account.setAccountId(accountId);
-        account.setUserId("user123");
+        account.setUserId(USER123);
         account.setPaymentDueDate(null);
         account.setBalance(null);
 

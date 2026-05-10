@@ -29,6 +29,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class AccountServiceTest {
 
+    private static final String USER_123 = "user-123";
+
     @Mock private AccountRepository accountRepository;
 
     private AccountTable testAccount;
@@ -37,7 +39,7 @@ class AccountServiceTest {
     void setUp() {
         testAccount = new AccountTable();
         testAccount.setAccountId(UUID.randomUUID().toString());
-        testAccount.setUserId("user-123");
+        testAccount.setUserId(USER_123);
         testAccount.setAccountName("Test Account");
         testAccount.setBalance(BigDecimal.valueOf(1000.00));
         testAccount.setActive(true);
@@ -50,7 +52,8 @@ class AccountServiceTest {
                 .thenReturn(Optional.of(testAccount));
 
         // When
-        final Optional<AccountTable> result = accountRepository.findById(testAccount.getAccountId());
+        final Optional<AccountTable> result =
+                accountRepository.findById(testAccount.getAccountId());
 
         // Then
         assertTrue(result.isPresent());
@@ -61,10 +64,10 @@ class AccountServiceTest {
     void testFindByUserIdWithValidUserIdReturnsAccounts() {
         // Given
         final List<AccountTable> accounts = List.of(testAccount);
-        when(accountRepository.findByUserId("user-123")).thenReturn(accounts);
+        when(accountRepository.findByUserId(USER_123)).thenReturn(accounts);
 
         // When
-        final List<AccountTable> result = accountRepository.findByUserId("user-123");
+        final List<AccountTable> result = accountRepository.findByUserId(USER_123);
 
         // Then
         assertNotNull(result);
@@ -76,14 +79,14 @@ class AccountServiceTest {
         // Given
         final AccountTable inactiveAccount = new AccountTable();
         inactiveAccount.setAccountId(UUID.randomUUID().toString());
-        inactiveAccount.setUserId("user-123");
+        inactiveAccount.setUserId(USER_123);
         inactiveAccount.setActive(false);
 
         final List<AccountTable> accounts = List.of(testAccount, inactiveAccount);
-        when(accountRepository.findByUserId("user-123")).thenReturn(accounts);
+        when(accountRepository.findByUserId(USER_123)).thenReturn(accounts);
 
         // When
-        final List<AccountTable> allAccounts = accountRepository.findByUserId("user-123");
+        final List<AccountTable> allAccounts = accountRepository.findByUserId(USER_123);
         final List<AccountTable> activeAccounts =
                 allAccounts.stream().filter(AccountTable::getActive).collect(Collectors.toList());
 

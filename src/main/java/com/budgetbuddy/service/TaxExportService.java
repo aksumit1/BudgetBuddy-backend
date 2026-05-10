@@ -1,12 +1,10 @@
 package com.budgetbuddy.service;
 
-
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import java.util.Locale;
 import com.budgetbuddy.model.dynamodb.AccountTable;
 import com.budgetbuddy.model.dynamodb.TransactionTable;
 import com.budgetbuddy.repository.dynamodb.AccountRepository;
 import com.budgetbuddy.repository.dynamodb.TransactionRepository;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -14,6 +12,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,9 +31,15 @@ import org.springframework.stereotype.Service;
 // callers — defensive-copying it would break dependency injection.
 @SuppressFBWarnings(
         value = {"EI_EXPOSE_REP", "EI_EXPOSE_REP2"},
-        justification = "JSON DTO / DynamoDB entity getters expose lists by reference; "
+        justification =
+                "JSON DTO / DynamoDB entity getters expose lists by reference; "
                         + "the design is value-semantic and Jackson creates fresh instances; Spring constructor injection — beans are shared by design")
-@SuppressWarnings({"PMD.LawOfDemeter", "PMD.AvoidCatchingGenericException", "PMD.DataClass", "PMD.OnlyOneReturn"})
+@SuppressWarnings({
+    "PMD.LawOfDemeter",
+    "PMD.AvoidCatchingGenericException",
+    "PMD.DataClass",
+    "PMD.OnlyOneReturn"
+})
 @Service
 public class TaxExportService {
 
@@ -54,7 +59,8 @@ public class TaxExportService {
     private final AccountRepository accountRepository;
 
     public TaxExportService(
-            final TransactionRepository transactionRepository, final AccountRepository accountRepository) {
+            final TransactionRepository transactionRepository,
+            final AccountRepository accountRepository) {
         this.transactionRepository = transactionRepository;
         this.accountRepository = accountRepository;
     }
@@ -419,7 +425,8 @@ public class TaxExportService {
         // Format dates as ISO strings (YYYY-MM-DD)
         final String startDateStr =
                 startDateObj.format(java.time.format.DateTimeFormatter.ISO_LOCAL_DATE);
-        final String endDateStr = endDateObj.format(java.time.format.DateTimeFormatter.ISO_LOCAL_DATE);
+        final String endDateStr =
+                endDateObj.format(java.time.format.DateTimeFormatter.ISO_LOCAL_DATE);
         final List<TransactionTable> transactions =
                 transactionRepository.findByUserIdAndDateRange(userId, startDateStr, endDateStr);
 
@@ -674,7 +681,8 @@ public class TaxExportService {
     }
 
     /** Update summary totals Validates amount is not null before updating */
-    private void updateSummary(final TaxSummary summary, final String taxCategory, final BigDecimal amount) {
+    private void updateSummary(
+            final TaxSummary summary, final String taxCategory, final BigDecimal amount) {
         if (summary == null) {
             LOGGER.warn("updateSummary: summary is null");
             return;
@@ -782,6 +790,9 @@ public class TaxExportService {
             case "CAPITAL_LOSS":
                 summary.setTotalCapitalLosses(summary.getTotalCapitalLosses().add(amount));
                 break;
+            default:
+                LOGGER.debug("updateSummary: unrecognised taxCategory '{}' — ignored", taxCategory);
+                break;
         }
     }
 
@@ -792,7 +803,8 @@ public class TaxExportService {
             return false;
         }
         final String descLower = description.toLowerCase(Locale.ROOT);
-        final String channelLower = paymentChannel != null ? paymentChannel.toLowerCase(Locale.ROOT) : "";
+        final String channelLower =
+                paymentChannel != null ? paymentChannel.toLowerCase(Locale.ROOT) : "";
         return descLower.contains("payroll")
                 || descLower.contains("salary")
                 || descLower.contains("paycheck")
@@ -802,7 +814,10 @@ public class TaxExportService {
     }
 
     private boolean isRSUTransaction(
-            final String category, final String description, final String merchantName, final BigDecimal amount) {
+            final String category,
+            final String description,
+            final String merchantName,
+            final BigDecimal amount) {
         if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
             return false;
         }
@@ -816,7 +831,8 @@ public class TaxExportService {
     }
 
     private boolean isACHTransaction(final String description, final String paymentChannel) {
-        final String channelLower = paymentChannel != null ? paymentChannel.toLowerCase(Locale.ROOT) : "";
+        final String channelLower =
+                paymentChannel != null ? paymentChannel.toLowerCase(Locale.ROOT) : "";
         final String descLower = description.toLowerCase(Locale.ROOT);
         return channelLower.contains("ach")
                 || descLower.contains("ach")
@@ -851,8 +867,10 @@ public class TaxExportService {
                 || combined.contains("turbotax");
     }
 
-    private boolean isTuitionTransaction(final String description, final String merchantName, final String category) {
-        final String combined = (description + " " + merchantName + " " + category).toLowerCase(Locale.ROOT);
+    private boolean isTuitionTransaction(
+            final String description, final String merchantName, final String category) {
+        final String combined =
+                (description + " " + merchantName + " " + category).toLowerCase(Locale.ROOT);
         return combined.contains("tuition")
                 || combined.contains("university")
                 || combined.contains("school fee")
@@ -919,7 +937,7 @@ public class TaxExportService {
                 result.getTransactionsByCategory() != null
                         && !result.getTransactionsByCategory().isEmpty()
                         && result.getTransactionsByCategory().values().stream()
-                        .anyMatch(list -> list != null && !list.isEmpty());
+                                .anyMatch(list -> list != null && !list.isEmpty());
 
         // Detailed transactions by category
         csv.append("DETAILED TRANSACTIONS\n");
@@ -942,10 +960,13 @@ public class TaxExportService {
                     // Null-safe field extraction
                     final String category = entry.getKey() != null ? entry.getKey() : OTHER;
                     final String dateStr = tx.getDate() != null ? tx.getDate().toString() : "";
-                    final String description = tx.getDescription() != null ? tx.getDescription() : "";
-                    final String merchantName = tx.getMerchantName() != null ? tx.getMerchantName() : "";
+                    final String description =
+                            tx.getDescription() != null ? tx.getDescription() : "";
+                    final String merchantName =
+                            tx.getMerchantName() != null ? tx.getMerchantName() : "";
                     final String userName = tx.getUserName() != null ? tx.getUserName() : "";
-                    final String amountStr = tx.getAmount() != null ? tx.getAmount().toString() : "0.00";
+                    final String amountStr =
+                            tx.getAmount() != null ? tx.getAmount().toString() : "0.00";
                     final String taxTag = tx.getTaxTag() != null ? tx.getTaxTag() : OTHER;
 
                     // Proper CSV escaping: replace quotes with double quotes, escape newlines and
@@ -1082,7 +1103,10 @@ public class TaxExportService {
      * @return Combined tax export result across all years
      */
     public TaxExportResult generateMultiYearTaxExport(
-            final String userId, final int[] years, final List<String> categories, final List<String> accountIds) {
+            final String userId,
+            final int[] years,
+            final List<String> categories,
+            final List<String> accountIds) {
         if (userId == null || userId.isEmpty()) {
             throw new IllegalArgumentException("User ID cannot be null or empty");
         }
@@ -1228,9 +1252,11 @@ public class TaxExportService {
                 final String category = entry.getKey() != null ? entry.getKey() : OTHER;
                 final String dateStr = tx.getDate() != null ? tx.getDate().toString() : "";
                 final String description = tx.getDescription() != null ? tx.getDescription() : "";
-                final String merchantName = tx.getMerchantName() != null ? tx.getMerchantName() : "";
+                final String merchantName =
+                        tx.getMerchantName() != null ? tx.getMerchantName() : "";
                 final String userName = tx.getUserName() != null ? tx.getUserName() : "";
-                final String amountStr = tx.getAmount() != null ? tx.getAmount().toString() : "0.00";
+                final String amountStr =
+                        tx.getAmount() != null ? tx.getAmount().toString() : "0.00";
                 final String taxTag = tx.getTaxTag() != null ? tx.getTaxTag() : OTHER;
                 final int year = tx.getDate() != null ? tx.getDate().getYear() : 0;
 
@@ -1341,9 +1367,11 @@ public class TaxExportService {
 
                 final String dateStr = tx.getDate() != null ? tx.getDate().toString() : "";
                 final String description = tx.getDescription() != null ? tx.getDescription() : "";
-                final String merchantName = tx.getMerchantName() != null ? tx.getMerchantName() : "";
+                final String merchantName =
+                        tx.getMerchantName() != null ? tx.getMerchantName() : "";
                 final String userName = tx.getUserName() != null ? tx.getUserName() : "";
-                final String amountStr = tx.getAmount() != null ? tx.getAmount().toString() : "0.00";
+                final String amountStr =
+                        tx.getAmount() != null ? tx.getAmount().toString() : "0.00";
 
                 final String escapedDescription =
                         description

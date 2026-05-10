@@ -31,6 +31,8 @@ import software.amazon.awssdk.services.dynamodb.model.TransactWriteItemsResponse
 @ExtendWith(MockitoExtension.class)
 class DynamoDbTransactionHelperTest {
 
+    private static final String TEST_ID = "test-id";
+
     @Mock private DynamoDbClient dynamoDbClient;
 
     private String tableName;
@@ -53,7 +55,7 @@ class DynamoDbTransactionHelperTest {
                                                 Collections.singletonMap(
                                                         "id",
                                                         AttributeValue.builder()
-                                                                .s("test-id")
+                                                                .s(TEST_ID)
                                                                 .build()))
                                         .build())
                         .build());
@@ -134,7 +136,7 @@ class DynamoDbTransactionHelperTest {
                                                 Collections.singletonMap(
                                                         "id",
                                                         AttributeValue.builder()
-                                                                .s("test-id")
+                                                                .s(TEST_ID)
                                                                 .build()))
                                         .build())
                         .build());
@@ -158,7 +160,7 @@ class DynamoDbTransactionHelperTest {
     void testCreatePutItemWithValidInputsCreatesPutItem() {
         // Given
         final Map<String, AttributeValue> item =
-                Collections.singletonMap("id", AttributeValue.builder().s("test-id").build());
+                Collections.singletonMap("id", AttributeValue.builder().s(TEST_ID).build());
 
         // When
         final TransactWriteItem transactItem =
@@ -174,7 +176,7 @@ class DynamoDbTransactionHelperTest {
     void testCreatePutItemWithConditionExpressionIncludesCondition() {
         // Given
         final Map<String, AttributeValue> item =
-                Collections.singletonMap("id", AttributeValue.builder().s("test-id").build());
+                Collections.singletonMap("id", AttributeValue.builder().s(TEST_ID).build());
         final String conditionExpression = "attribute_not_exists(id)";
 
         // When
@@ -191,9 +193,10 @@ class DynamoDbTransactionHelperTest {
     void testCreateUpdateItemWithValidInputsCreatesUpdateItem() {
         // Given
         final Map<String, AttributeValue> key =
-                Collections.singletonMap("id", AttributeValue.builder().s("test-id").build());
+                Collections.singletonMap("id", AttributeValue.builder().s(TEST_ID).build());
         final String updateExpression = "SET #attr = :val";
-        final Map<String, String> expressionAttributeNames = Collections.singletonMap("#attr", "name");
+        final Map<String, String> expressionAttributeNames =
+                Collections.singletonMap("#attr", "name");
         final Map<String, AttributeValue> expressionAttributeValues =
                 Collections.singletonMap(":val", AttributeValue.builder().s("test-value").build());
 
@@ -217,9 +220,10 @@ class DynamoDbTransactionHelperTest {
     void testCreateUpdateItemWithConditionExpressionIncludesCondition() {
         // Given
         final Map<String, AttributeValue> key =
-                Collections.singletonMap("id", AttributeValue.builder().s("test-id").build());
+                Collections.singletonMap("id", AttributeValue.builder().s(TEST_ID).build());
         final String updateExpression = "SET #attr = :val";
-        final Map<String, String> expressionAttributeNames = Collections.singletonMap("#attr", "name");
+        final Map<String, String> expressionAttributeNames =
+                Collections.singletonMap("#attr", "name");
         final Map<String, AttributeValue> expressionAttributeValues =
                 Collections.singletonMap(":val", AttributeValue.builder().s("test-value").build());
         final String conditionExpression = "attribute_exists(id)";

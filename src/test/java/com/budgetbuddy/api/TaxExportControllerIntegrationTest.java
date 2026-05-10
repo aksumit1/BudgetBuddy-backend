@@ -1,8 +1,5 @@
 package com.budgetbuddy.api;
 
-
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import java.nio.charset.StandardCharsets;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -22,7 +19,9 @@ import com.budgetbuddy.service.AuthService;
 import com.budgetbuddy.service.TransactionService;
 import com.budgetbuddy.service.UserService;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
@@ -53,6 +52,9 @@ import org.springframework.test.web.servlet.MockMvc;
 @Import(AWSTestConfiguration.class)
 @DisplayName("Tax Export Controller Integration Tests")
 class TaxExportControllerIntegrationTest {
+
+    private static final String YEAR = "year";
+    private static final String AUTHORIZATION = "Authorization";
 
     @Autowired private MockMvc mockMvc;
 
@@ -92,7 +94,8 @@ class TaxExportControllerIntegrationTest {
         // Create a test user
         final String email = "tax-export-test-" + UUID.randomUUID() + "@example.com";
         final String base64PasswordHash =
-                java.util.Base64.getEncoder().encodeToString("hashed-password".getBytes(StandardCharsets.UTF_8));
+                java.util.Base64.getEncoder()
+                        .encodeToString("hashed-password".getBytes(StandardCharsets.UTF_8));
         testUser = userService.createUserSecure(email, base64PasswordHash, "Test", "User");
 
         // Authenticate to get access token
@@ -132,8 +135,8 @@ class TaxExportControllerIntegrationTest {
         // When/Then - Make actual HTTP request with Accept header
         mockMvc.perform(
                         get("/api/tax/summary")
-                                .param("year", "2025")
-                                .header("Authorization", "Bearer " + accessToken)
+                                .param(YEAR, "2025")
+                                .header(AUTHORIZATION, "Bearer " + accessToken)
                                 .accept(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
@@ -147,8 +150,8 @@ class TaxExportControllerIntegrationTest {
         // When/Then - Make HTTP request without Accept header (should default to JSON)
         mockMvc.perform(
                         get("/api/tax/summary")
-                                .param("year", "2025")
-                                .header("Authorization", "Bearer " + accessToken))
+                                .param(YEAR, "2025")
+                                .header(AUTHORIZATION, "Bearer " + accessToken))
                 .andExpect(status().isOk())
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$.totalSalary").exists());
@@ -160,8 +163,8 @@ class TaxExportControllerIntegrationTest {
         // When/Then - Request XML which is not supported
         mockMvc.perform(
                         get("/api/tax/summary")
-                                .param("year", "2025")
-                                .header("Authorization", "Bearer " + accessToken)
+                                .param(YEAR, "2025")
+                                .header(AUTHORIZATION, "Bearer " + accessToken)
                                 .accept(MediaType.APPLICATION_XML))
                 .andExpect(status().isNotAcceptable()); // 406 Not Acceptable
     }
@@ -172,8 +175,8 @@ class TaxExportControllerIntegrationTest {
         // When/Then
         mockMvc.perform(
                         get("/api/tax/export/csv")
-                                .param("year", "2025")
-                                .header("Authorization", "Bearer " + accessToken)
+                                .param(YEAR, "2025")
+                                .header(AUTHORIZATION, "Bearer " + accessToken)
                                 .accept("text/csv"))
                 .andExpect(status().isOk())
                 .andExpect(content().contentType("text/csv"))
@@ -192,8 +195,8 @@ class TaxExportControllerIntegrationTest {
         // But CSV export should still work and return CSV
         mockMvc.perform(
                         get("/api/tax/export/csv")
-                                .param("year", "2025")
-                                .header("Authorization", "Bearer " + accessToken)
+                                .param(YEAR, "2025")
+                                .header(AUTHORIZATION, "Bearer " + accessToken)
                                 .accept(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(content().contentType("text/csv")) // Still returns CSV despite Accept:
@@ -211,8 +214,8 @@ class TaxExportControllerIntegrationTest {
         // When/Then
         mockMvc.perform(
                         get("/api/tax/export/json")
-                                .param("year", "2025")
-                                .header("Authorization", "Bearer " + accessToken)
+                                .param(YEAR, "2025")
+                                .header(AUTHORIZATION, "Bearer " + accessToken)
                                 .accept(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON));

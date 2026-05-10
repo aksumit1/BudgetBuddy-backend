@@ -1,7 +1,5 @@
 package com.budgetbuddy.service;
 
-
-import java.util.Locale;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -34,6 +32,7 @@ import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
@@ -54,6 +53,10 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @SuppressWarnings("PMD.LawOfDemeter")
 @ExtendWith(MockitoExtension.class)
 class FinancialInsightsRealWorldScenarioTest {
+
+    private static final String INTEREST = "interest";
+    private static final String SHOPPING = "shopping";
+    private static final String CC_1 = "cc-1";
 
     @Mock private TransactionRepository transactionRepository;
 
@@ -139,7 +142,7 @@ class FinancialInsightsRealWorldScenarioTest {
                         today.minusDays(5),
                         "Electronics Purchase",
                         "Best Buy",
-                        "shopping",
+                        SHOPPING,
                         "electronics"));
 
         // ANOMALY: First-time merchant
@@ -186,13 +189,13 @@ class FinancialInsightsRealWorldScenarioTest {
 
         // Active subscriptions with regular payments
         final String[] subscriptionNames = {
-                "Netflix",
-                "Spotify",
-                "Amazon Prime",
-                "Disney+",
-                "Gym Membership",
-                "Newsletter Subscription",
-                "Cloud Storage"
+            "Netflix",
+            "Spotify",
+            "Amazon Prime",
+            "Disney+",
+            "Gym Membership",
+            "Newsletter Subscription",
+            "Cloud Storage"
         };
 
         for (final String name : subscriptionNames) {
@@ -241,8 +244,8 @@ class FinancialInsightsRealWorldScenarioTest {
                                 r ->
                                         r.getTitle().toLowerCase(Locale.ROOT).contains("newsletter")
                                                 || r.getDescription()
-                                                .toLowerCase(Locale.ROOT)
-                                                .contains("unused"));
+                                                        .toLowerCase(Locale.ROOT)
+                                                        .contains("unused"));
         assertTrue(
                 foundUnusedSubscription || recs.size() > 0,
                 "Should recommend canceling unused subscriptions");
@@ -277,8 +280,8 @@ class FinancialInsightsRealWorldScenarioTest {
                             today.minusMonths(i),
                             "Interest Charge",
                             "Chase Bank",
-                            "interest",
-                            "interest");
+                            INTEREST,
+                            INTEREST);
             tx.setAccountId("cc-account-1"); // Match credit card account ID
             transactions.add(tx);
         }
@@ -292,7 +295,7 @@ class FinancialInsightsRealWorldScenarioTest {
                         "Purchase",
                         "Amazon",
                         "general_merchandise",
-                        "shopping");
+                        SHOPPING);
         purchase.setAccountId("cc-account-1");
         transactions.add(purchase);
 
@@ -413,7 +416,7 @@ class FinancialInsightsRealWorldScenarioTest {
                             "Monthly Expenses",
                             "Various",
                             "general_merchandise",
-                            "shopping"));
+                            SHOPPING));
         }
 
         // Savings account with low balance
@@ -440,11 +443,11 @@ class FinancialInsightsRealWorldScenarioTest {
                         .anyMatch(
                                 g ->
                                         g.getType()
-                                                == FinancialGoalsRecommendationService
-                                                .GoalType.EMERGENCY_FUND
+                                                        == FinancialGoalsRecommendationService
+                                                                .GoalType.EMERGENCY_FUND
                                                 || g.getType()
-                                                == FinancialGoalsRecommendationService
-                                                .GoalType.SAVINGS_RATE);
+                                                        == FinancialGoalsRecommendationService
+                                                                .GoalType.SAVINGS_RATE);
         assertTrue(foundSavingsGoal || goals.size() > 0, "Should recommend savings-related goals");
     }
 
@@ -500,7 +503,7 @@ class FinancialInsightsRealWorldScenarioTest {
                         "Purchase",
                         "Store",
                         "general_merchandise",
-                        "shopping"));
+                        SHOPPING));
 
         when(transactionRepository.findByUserIdAndDateRange(eq(userId), anyString(), anyString()))
                 .thenReturn(transactions);
@@ -548,7 +551,7 @@ class FinancialInsightsRealWorldScenarioTest {
 
         // Credit Card 1
         final AccountTable cc1 = new AccountTable();
-        cc1.setAccountId("cc-1");
+        cc1.setAccountId(CC_1);
         cc1.setUserId(userId);
         cc1.setAccountName("Chase Card");
         cc1.setAccountType("credit");
@@ -573,9 +576,9 @@ class FinancialInsightsRealWorldScenarioTest {
                             today.minusMonths(i),
                             "Interest Charge",
                             "Chase Bank",
-                            "interest",
-                            "interest");
-            tx1.setAccountId("cc-1");
+                            INTEREST,
+                            INTEREST);
+            tx1.setAccountId(CC_1);
             transactions.add(tx1);
 
             final TransactionTable tx2 =
@@ -585,8 +588,8 @@ class FinancialInsightsRealWorldScenarioTest {
                             today.minusMonths(i),
                             "Interest Charge",
                             "Amex",
-                            "interest",
-                            "interest");
+                            INTEREST,
+                            INTEREST);
             tx2.setAccountId("cc-2");
             transactions.add(tx2);
         }
@@ -594,7 +597,7 @@ class FinancialInsightsRealWorldScenarioTest {
         when(transactionRepository.findByUserIdAndDateRange(eq(userId), anyString(), anyString()))
                 .thenReturn(transactions);
         when(accountRepository.findByUserId(userId)).thenReturn(accounts);
-        when(accountRepository.findById("cc-1")).thenReturn(Optional.of(cc1));
+        when(accountRepository.findById(CC_1)).thenReturn(Optional.of(cc1));
         when(accountRepository.findById("cc-2")).thenReturn(Optional.of(cc2));
 
         final List<HighInterestAlert> alerts = highInterestService.detectHighInterest(userId);
@@ -634,7 +637,8 @@ class FinancialInsightsRealWorldScenarioTest {
         final List<ExpenseRecommendation> expenseRecs =
                 expenseReductionService.getRecommendations(userId);
         final List<FinancialGoalRecommendation> goalRecs = goalsService.getRecommendations(userId);
-        final List<MissedPaymentAlert> missedPayments = missedPaymentService.detectMissedPayments(userId);
+        final List<MissedPaymentAlert> missedPayments =
+                missedPaymentService.detectMissedPayments(userId);
         final List<HighInterestAlert> highInterest = highInterestService.detectHighInterest(userId);
 
         // All should return non-null results
@@ -726,7 +730,7 @@ class FinancialInsightsRealWorldScenarioTest {
                         today.minusDays(5),
                         "Electronics",
                         "Best Buy",
-                        "shopping",
+                        SHOPPING,
                         "electronics"));
 
         // Interest charges (must match credit card account ID)
@@ -738,9 +742,9 @@ class FinancialInsightsRealWorldScenarioTest {
                             today.minusMonths(i),
                             "Interest",
                             "Chase",
-                            "interest",
-                            "interest");
-            tx.setAccountId("cc-1"); // Match credit card account ID
+                            INTEREST,
+                            INTEREST);
+            tx.setAccountId(CC_1); // Match credit card account ID
             transactions.add(tx);
         }
 
@@ -759,7 +763,7 @@ class FinancialInsightsRealWorldScenarioTest {
         accounts.add(checking);
 
         final AccountTable creditCard = new AccountTable();
-        creditCard.setAccountId("cc-1");
+        creditCard.setAccountId(CC_1);
         creditCard.setUserId(userId);
         creditCard.setAccountName("Credit Card");
         creditCard.setAccountType("credit");

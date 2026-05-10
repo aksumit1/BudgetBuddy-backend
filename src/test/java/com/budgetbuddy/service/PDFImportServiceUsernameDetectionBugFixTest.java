@@ -1,10 +1,10 @@
 package com.budgetbuddy.service;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.lang.reflect.Method;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -69,7 +69,7 @@ public class PDFImportServiceUsernameDetectionBugFixTest {
     @DisplayName("Should prefer all-caps names over mixed case when multiple candidates exist")
     void testPreferAllCapsWithAccountHolderName() throws Exception {
         final String[] lines = {
-                "JOHN DOE", "John Doe", "Card Member: JANE SMITH", "Date Description Amount"
+            "JOHN DOE", "John Doe", "Card Member: JANE SMITH", "Date Description Amount"
         };
 
         final AccountDetectionService.DetectedAccount detectedAccount =
@@ -111,9 +111,9 @@ public class PDFImportServiceUsernameDetectionBugFixTest {
     @DisplayName("Should prefer labeled patterns (Card Member:) over standalone names")
     void testPreferLabeledPatterns() throws Exception {
         final String[] lines = {
-                "D J*BARRONS", // Standalone name with asterisk (should be rejected anyway)
-                "Card Member: JOHN DOE", // Labeled pattern
-                "Date Description Amount"
+            "D J*BARRONS", // Standalone name with asterisk (should be rejected anyway)
+            "Card Member: JOHN DOE", // Labeled pattern
+            "Date Description Amount"
         };
 
         final AccountDetectionService.DetectedAccount detectedAccount =

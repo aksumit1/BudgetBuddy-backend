@@ -20,32 +20,37 @@ import software.amazon.awssdk.services.secretsmanager.SecretsManagerClient;
  */
 class AwsServicesConfigTest {
 
+    private static final String US_EAST_1 = "us-east-1";
+    private static final String ACCESSKEYID = "accessKeyId";
+    private static final String AWSREGION = "awsRegion";
+    private static final String SECRETACCESSKEY = "secretAccessKey";
+
     private AwsServicesConfig awsServicesConfig = new AwsServicesConfig();
 
     @Test
     void testCloudWatchClientWithDefaultRegion() {
         // Given
-        ReflectionTestUtils.setField(awsServicesConfig, "awsRegion", "us-east-1");
+        ReflectionTestUtils.setField(awsServicesConfig, AWSREGION, US_EAST_1);
         ReflectionTestUtils.setField(awsServicesConfig, "cloudWatchEndpoint", "");
-        ReflectionTestUtils.setField(awsServicesConfig, "accessKeyId", "");
-        ReflectionTestUtils.setField(awsServicesConfig, "secretAccessKey", "");
+        ReflectionTestUtils.setField(awsServicesConfig, ACCESSKEYID, "");
+        ReflectionTestUtils.setField(awsServicesConfig, SECRETACCESSKEY, "");
 
         // When
         final CloudWatchClient client = awsServicesConfig.cloudWatchClient();
 
         // Then
         assertNotNull(client);
-        assertEquals("us-east-1", client.serviceClientConfiguration().region().id());
+        assertEquals(US_EAST_1, client.serviceClientConfiguration().region().id());
     }
 
     @Test
     void testCloudWatchClientWithLocalStackEndpoint() {
         // Given
-        ReflectionTestUtils.setField(awsServicesConfig, "awsRegion", "us-east-1");
+        ReflectionTestUtils.setField(awsServicesConfig, AWSREGION, US_EAST_1);
         ReflectionTestUtils.setField(
                 awsServicesConfig, "cloudWatchEndpoint", "http://localhost:4566");
-        ReflectionTestUtils.setField(awsServicesConfig, "accessKeyId", "");
-        ReflectionTestUtils.setField(awsServicesConfig, "secretAccessKey", "");
+        ReflectionTestUtils.setField(awsServicesConfig, ACCESSKEYID, "");
+        ReflectionTestUtils.setField(awsServicesConfig, SECRETACCESSKEY, "");
 
         // When
         final CloudWatchClient client = awsServicesConfig.cloudWatchClient();
@@ -60,27 +65,27 @@ class AwsServicesConfigTest {
     @Test
     void testSecretsManagerClientWithDefaultRegion() {
         // Given
-        ReflectionTestUtils.setField(awsServicesConfig, "awsRegion", "us-east-1");
+        ReflectionTestUtils.setField(awsServicesConfig, AWSREGION, US_EAST_1);
         ReflectionTestUtils.setField(awsServicesConfig, "secretsManagerEndpoint", "");
-        ReflectionTestUtils.setField(awsServicesConfig, "accessKeyId", "");
-        ReflectionTestUtils.setField(awsServicesConfig, "secretAccessKey", "");
+        ReflectionTestUtils.setField(awsServicesConfig, ACCESSKEYID, "");
+        ReflectionTestUtils.setField(awsServicesConfig, SECRETACCESSKEY, "");
 
         // When
         final SecretsManagerClient client = awsServicesConfig.secretsManagerClient();
 
         // Then
         assertNotNull(client);
-        assertEquals("us-east-1", client.serviceClientConfiguration().region().id());
+        assertEquals(US_EAST_1, client.serviceClientConfiguration().region().id());
     }
 
     @Test
     void testSecretsManagerClientWithLocalStackEndpoint() {
         // Given
-        ReflectionTestUtils.setField(awsServicesConfig, "awsRegion", "us-east-1");
+        ReflectionTestUtils.setField(awsServicesConfig, AWSREGION, US_EAST_1);
         ReflectionTestUtils.setField(
                 awsServicesConfig, "secretsManagerEndpoint", "http://localhost:4566");
-        ReflectionTestUtils.setField(awsServicesConfig, "accessKeyId", "");
-        ReflectionTestUtils.setField(awsServicesConfig, "secretAccessKey", "");
+        ReflectionTestUtils.setField(awsServicesConfig, ACCESSKEYID, "");
+        ReflectionTestUtils.setField(awsServicesConfig, SECRETACCESSKEY, "");
 
         // When
         final SecretsManagerClient client = awsServicesConfig.secretsManagerClient();
@@ -95,86 +100,87 @@ class AwsServicesConfigTest {
     @Test
     void testCloudTrailClientIsCreated() {
         // Given
-        ReflectionTestUtils.setField(awsServicesConfig, "awsRegion", "us-east-1");
-        ReflectionTestUtils.setField(awsServicesConfig, "accessKeyId", "");
-        ReflectionTestUtils.setField(awsServicesConfig, "secretAccessKey", "");
+        ReflectionTestUtils.setField(awsServicesConfig, AWSREGION, US_EAST_1);
+        ReflectionTestUtils.setField(awsServicesConfig, ACCESSKEYID, "");
+        ReflectionTestUtils.setField(awsServicesConfig, SECRETACCESSKEY, "");
 
         // When
         final CloudTrailClient client = awsServicesConfig.cloudTrailClient();
 
         // Then
         assertNotNull(client);
-        assertEquals("us-east-1", client.serviceClientConfiguration().region().id());
+        assertEquals(US_EAST_1, client.serviceClientConfiguration().region().id());
     }
 
     @Test
     void testCloudFormationClientIsCreated() {
         // Given
-        ReflectionTestUtils.setField(awsServicesConfig, "awsRegion", "us-east-1");
-        ReflectionTestUtils.setField(awsServicesConfig, "accessKeyId", "");
-        ReflectionTestUtils.setField(awsServicesConfig, "secretAccessKey", "");
+        ReflectionTestUtils.setField(awsServicesConfig, AWSREGION, US_EAST_1);
+        ReflectionTestUtils.setField(awsServicesConfig, ACCESSKEYID, "");
+        ReflectionTestUtils.setField(awsServicesConfig, SECRETACCESSKEY, "");
 
         // When
         final CloudFormationClient client = awsServicesConfig.cloudFormationClient();
 
         // Then
         assertNotNull(client);
-        assertEquals("us-east-1", client.serviceClientConfiguration().region().id());
+        assertEquals(US_EAST_1, client.serviceClientConfiguration().region().id());
     }
 
     @Test
     void testCodePipelineClientIsCreated() {
         // Given
-        ReflectionTestUtils.setField(awsServicesConfig, "awsRegion", "us-east-1");
-        ReflectionTestUtils.setField(awsServicesConfig, "accessKeyId", "");
-        ReflectionTestUtils.setField(awsServicesConfig, "secretAccessKey", "");
+        ReflectionTestUtils.setField(awsServicesConfig, AWSREGION, US_EAST_1);
+        ReflectionTestUtils.setField(awsServicesConfig, ACCESSKEYID, "");
+        ReflectionTestUtils.setField(awsServicesConfig, SECRETACCESSKEY, "");
 
         // When
         final CodePipelineClient client = awsServicesConfig.codePipelineClient();
 
         // Then
         assertNotNull(client);
-        assertEquals("us-east-1", client.serviceClientConfiguration().region().id());
+        assertEquals(US_EAST_1, client.serviceClientConfiguration().region().id());
     }
 
     @Test
     void testCognitoIdentityProviderClientIsCreated() {
         // Given
-        ReflectionTestUtils.setField(awsServicesConfig, "awsRegion", "us-east-1");
-        ReflectionTestUtils.setField(awsServicesConfig, "accessKeyId", "");
-        ReflectionTestUtils.setField(awsServicesConfig, "secretAccessKey", "");
+        ReflectionTestUtils.setField(awsServicesConfig, AWSREGION, US_EAST_1);
+        ReflectionTestUtils.setField(awsServicesConfig, ACCESSKEYID, "");
+        ReflectionTestUtils.setField(awsServicesConfig, SECRETACCESSKEY, "");
 
         // When
-        final CognitoIdentityProviderClient client = awsServicesConfig.cognitoIdentityProviderClient();
+        final CognitoIdentityProviderClient client =
+                awsServicesConfig.cognitoIdentityProviderClient();
 
         // Then
         assertNotNull(client);
-        assertEquals("us-east-1", client.serviceClientConfiguration().region().id());
+        assertEquals(US_EAST_1, client.serviceClientConfiguration().region().id());
     }
 
     @Test
     void testKmsClientIsCreated() {
         // Given
-        ReflectionTestUtils.setField(awsServicesConfig, "awsRegion", "us-east-1");
-        ReflectionTestUtils.setField(awsServicesConfig, "accessKeyId", "");
-        ReflectionTestUtils.setField(awsServicesConfig, "secretAccessKey", "");
+        ReflectionTestUtils.setField(awsServicesConfig, AWSREGION, US_EAST_1);
+        ReflectionTestUtils.setField(awsServicesConfig, ACCESSKEYID, "");
+        ReflectionTestUtils.setField(awsServicesConfig, SECRETACCESSKEY, "");
 
         // When
         final KmsClient client = awsServicesConfig.kmsClient();
 
         // Then
         assertNotNull(client);
-        assertEquals("us-east-1", client.serviceClientConfiguration().region().id());
+        assertEquals(US_EAST_1, client.serviceClientConfiguration().region().id());
     }
 
     @Test
     void testClientsWithStaticCredentials() {
         // Given
-        ReflectionTestUtils.setField(awsServicesConfig, "awsRegion", "us-east-1");
+        ReflectionTestUtils.setField(awsServicesConfig, AWSREGION, US_EAST_1);
         ReflectionTestUtils.setField(awsServicesConfig, "cloudWatchEndpoint", "");
         ReflectionTestUtils.setField(awsServicesConfig, "secretsManagerEndpoint", "");
-        ReflectionTestUtils.setField(awsServicesConfig, "accessKeyId", "test-key");
-        ReflectionTestUtils.setField(awsServicesConfig, "secretAccessKey", "test-secret");
+        ReflectionTestUtils.setField(awsServicesConfig, ACCESSKEYID, "test-key");
+        ReflectionTestUtils.setField(awsServicesConfig, SECRETACCESSKEY, "test-secret");
 
         // When
         final CloudWatchClient cloudWatchClient = awsServicesConfig.cloudWatchClient();

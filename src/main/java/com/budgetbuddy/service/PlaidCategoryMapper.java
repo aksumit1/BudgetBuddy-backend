@@ -1,8 +1,7 @@
 package com.budgetbuddy.service;
 
-
-import java.util.Locale;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -18,6 +17,18 @@ import org.springframework.stereotype.Service;
 @SuppressWarnings("PMD.OnlyOneReturn")
 @Service
 public class PlaidCategoryMapper {
+
+    private static final String OTHER = "other";
+    private static final String DINING = "dining";
+    private static final String SHOPPING = "shopping";
+    private static final String INTEREST = "interest";
+    private static final String HEALTHCARE = "healthcare";
+    private static final String DIVIDEND = "dividend";
+    private static final String PASSENGER = "passenger";
+    private static final String FLIGHT = "flight";
+    private static final String TICKET = "ticket";
+    private static final String AIRLINE = "airline";
+    private static final String CARRIER = "carrier";
 
     private static final Logger LOGGER = LoggerFactory.getLogger(PlaidCategoryMapper.class);
 
@@ -55,13 +66,13 @@ public class PlaidCategoryMapper {
 
     static {
         // Initialize primary category mappings
-        PRIMARY_CATEGORY_MAP.put("FOOD_AND_DRINK", "dining");
-        PRIMARY_CATEGORY_MAP.put("GENERAL_MERCHANDISE", "shopping");
-        PRIMARY_CATEGORY_MAP.put("GENERAL_SERVICES", "other");
-        PRIMARY_CATEGORY_MAP.put("GOVERNMENT_AND_NON_PROFIT", "other");
-        PRIMARY_CATEGORY_MAP.put("HOME_IMPROVEMENT", "other");
-        PRIMARY_CATEGORY_MAP.put("MEDICAL", "healthcare");
-        PRIMARY_CATEGORY_MAP.put("PERSONAL_CARE", "other");
+        PRIMARY_CATEGORY_MAP.put("FOOD_AND_DRINK", DINING);
+        PRIMARY_CATEGORY_MAP.put("GENERAL_MERCHANDISE", SHOPPING);
+        PRIMARY_CATEGORY_MAP.put("GENERAL_SERVICES", OTHER);
+        PRIMARY_CATEGORY_MAP.put("GOVERNMENT_AND_NON_PROFIT", OTHER);
+        PRIMARY_CATEGORY_MAP.put("HOME_IMPROVEMENT", OTHER);
+        PRIMARY_CATEGORY_MAP.put("MEDICAL", HEALTHCARE);
+        PRIMARY_CATEGORY_MAP.put("PERSONAL_CARE", OTHER);
         PRIMARY_CATEGORY_MAP.put("TRANSPORTATION", "transportation");
         PRIMARY_CATEGORY_MAP.put("TRAVEL", "travel");
         PRIMARY_CATEGORY_MAP.put("RENT_AND_UTILITIES", "rent");
@@ -69,9 +80,9 @@ public class PlaidCategoryMapper {
         PRIMARY_CATEGORY_MAP.put("GENERAL_SERVICES", "utilities");
         PRIMARY_CATEGORY_MAP.put("INCOME", "income");
         PRIMARY_CATEGORY_MAP.put("TRANSFER_IN", "income");
-        PRIMARY_CATEGORY_MAP.put("TRANSFER_OUT", "other");
-        PRIMARY_CATEGORY_MAP.put("LOAN_PAYMENTS", "other");
-        PRIMARY_CATEGORY_MAP.put("BANK_FEES", "other");
+        PRIMARY_CATEGORY_MAP.put("TRANSFER_OUT", OTHER);
+        PRIMARY_CATEGORY_MAP.put("LOAN_PAYMENTS", OTHER);
+        PRIMARY_CATEGORY_MAP.put("BANK_FEES", OTHER);
         PRIMARY_CATEGORY_MAP.put("GAS_STATIONS", "transportation");
         PRIMARY_CATEGORY_MAP.put("GROCERIES", "groceries");
         PRIMARY_CATEGORY_MAP.put("SUBSCRIPTIONS", "subscriptions");
@@ -81,13 +92,13 @@ public class PlaidCategoryMapper {
 
         // Initialize detailed category mappings (more specific)
         // Food and Drink
-        DETAILED_CATEGORY_MAP.put("RESTAURANTS", "dining");
-        DETAILED_CATEGORY_MAP.put("FAST_FOOD", "dining");
-        DETAILED_CATEGORY_MAP.put("COFFEE_SHOPS", "dining");
-        DETAILED_CATEGORY_MAP.put("FOOD_DELIVERY", "dining");
+        DETAILED_CATEGORY_MAP.put("RESTAURANTS", DINING);
+        DETAILED_CATEGORY_MAP.put("FAST_FOOD", DINING);
+        DETAILED_CATEGORY_MAP.put("COFFEE_SHOPS", DINING);
+        DETAILED_CATEGORY_MAP.put("FOOD_DELIVERY", DINING);
         DETAILED_CATEGORY_MAP.put("GROCERIES", "groceries");
         DETAILED_CATEGORY_MAP.put("SUPERMARKETS", "groceries");
-        DETAILED_CATEGORY_MAP.put("ALCOHOL_AND_BARS", "dining");
+        DETAILED_CATEGORY_MAP.put("ALCOHOL_AND_BARS", DINING);
 
         // Transportation
         DETAILED_CATEGORY_MAP.put("GAS_STATIONS", "transportation");
@@ -98,11 +109,11 @@ public class PlaidCategoryMapper {
         DETAILED_CATEGORY_MAP.put("TOLLS", "transportation");
 
         // Shopping
-        DETAILED_CATEGORY_MAP.put("GENERAL_MERCHANDISE", "shopping");
-        DETAILED_CATEGORY_MAP.put("ONLINE_MARKETPLACES", "shopping");
-        DETAILED_CATEGORY_MAP.put("DEPARTMENT_STORES", "shopping");
-        DETAILED_CATEGORY_MAP.put("CLOTHING_AND_ACCESSORIES", "shopping");
-        DETAILED_CATEGORY_MAP.put("ELECTRONICS", "shopping");
+        DETAILED_CATEGORY_MAP.put("GENERAL_MERCHANDISE", SHOPPING);
+        DETAILED_CATEGORY_MAP.put("ONLINE_MARKETPLACES", SHOPPING);
+        DETAILED_CATEGORY_MAP.put("DEPARTMENT_STORES", SHOPPING);
+        DETAILED_CATEGORY_MAP.put("CLOTHING_AND_ACCESSORIES", SHOPPING);
+        DETAILED_CATEGORY_MAP.put("ELECTRONICS", SHOPPING);
 
         // Entertainment
         DETAILED_CATEGORY_MAP.put("ENTERTAINMENT", "entertainment");
@@ -137,23 +148,23 @@ public class PlaidCategoryMapper {
         // Use specific income types (salary, interest, dividend, etc.) as detailed categories
         DETAILED_CATEGORY_MAP.put("SALARY", "salary");
         DETAILED_CATEGORY_MAP.put("PAYROLL", "salary");
-        DETAILED_CATEGORY_MAP.put("DIVIDENDS", "dividend");
+        DETAILED_CATEGORY_MAP.put("DIVIDENDS", DIVIDEND);
         DETAILED_CATEGORY_MAP.put(
                 "INTEREST_EARNED",
-                "interest"); // Note: CD interest will be overridden to investment by enhanced logic
+                INTEREST); // Note: CD interest will be overridden to investment by enhanced logic
         DETAILED_CATEGORY_MAP.put("GIG_ECONOMY", "otherIncome");
         DETAILED_CATEGORY_MAP.put("RENTAL_INCOME", "rentIncome");
         DETAILED_CATEGORY_MAP.put(
                 "INVESTMENT_INCOME",
-                "dividend"); // Note: Investment income from CD deposits will be overridden to
+                DIVIDEND); // Note: Investment income from CD deposits will be overridden to
         // investment by enhanced logic
 
         // Healthcare
-        DETAILED_CATEGORY_MAP.put("PRIMARY_CARE", "healthcare");
-        DETAILED_CATEGORY_MAP.put("DENTAL_CARE", "healthcare");
-        DETAILED_CATEGORY_MAP.put("PHARMACIES", "healthcare");
-        DETAILED_CATEGORY_MAP.put("HOSPITALS", "healthcare");
-        DETAILED_CATEGORY_MAP.put("HEALTH_INSURANCE", "healthcare");
+        DETAILED_CATEGORY_MAP.put("PRIMARY_CARE", HEALTHCARE);
+        DETAILED_CATEGORY_MAP.put("DENTAL_CARE", HEALTHCARE);
+        DETAILED_CATEGORY_MAP.put("PHARMACIES", HEALTHCARE);
+        DETAILED_CATEGORY_MAP.put("HOSPITALS", HEALTHCARE);
+        DETAILED_CATEGORY_MAP.put("HEALTH_INSURANCE", HEALTHCARE);
 
         // Investment - specific types
         DETAILED_CATEGORY_MAP.put("CD_DEPOSIT", "cd");
@@ -219,7 +230,8 @@ public class PlaidCategoryMapper {
 
         // First, try detailed category mapping (more specific)
         if (plaidCategoryDetailed != null && !plaidCategoryDetailed.isEmpty()) {
-            mappedDetailed = DETAILED_CATEGORY_MAP.get(plaidCategoryDetailed.toUpperCase(Locale.ROOT));
+            mappedDetailed =
+                    DETAILED_CATEGORY_MAP.get(plaidCategoryDetailed.toUpperCase(Locale.ROOT));
             if (mappedDetailed != null) {
                 LOGGER.debug(
                         "Mapped Plaid detailed category '{}' to '{}'",
@@ -237,8 +249,8 @@ public class PlaidCategoryMapper {
                     // Check if this is an income-related detailed category
                     final boolean isIncomeDetailed =
                             "salary".equals(mappedDetailed)
-                                    || "interest".equals(mappedDetailed)
-                                    || "dividend".equals(mappedDetailed)
+                                    || INTEREST.equals(mappedDetailed)
+                                    || DIVIDEND.equals(mappedDetailed)
                                     || "stipend".equals(mappedDetailed)
                                     || "rentIncome".equals(mappedDetailed)
                                     || "tips".equals(mappedDetailed)
@@ -260,9 +272,9 @@ public class PlaidCategoryMapper {
                 && plaidCategoryPrimary != null
                 && !plaidCategoryPrimary.isEmpty()) {
             final String upperPrimary = plaidCategoryPrimary.toUpperCase(Locale.ROOT);
-            // Map "UNKNOWN_CATEGORY" to "other"
+            // Map "UNKNOWN_CATEGORY" to OTHER
             if ("UNKNOWN_CATEGORY".equals(upperPrimary)) {
-                mappedPrimary = "other";
+                mappedPrimary = OTHER;
             } else {
                 mappedPrimary = PRIMARY_CATEGORY_MAP.get(upperPrimary);
                 if (mappedPrimary == null) {
@@ -279,14 +291,17 @@ public class PlaidCategoryMapper {
         // Enhanced logic: Check merchant name and description for better categorization
         final String combinedText =
                 ((merchantName != null ? merchantName : "")
-                        + " "
-                        + (description != null ? description : ""))
+                                + " "
+                                + (description != null ? description : ""))
                         .toLowerCase(Locale.ROOT);
 
         // Prepare lowercase versions for pattern matching
-        final String descriptionLower = (description != null ? description : "").toLowerCase(Locale.ROOT);
-        final String merchantLower = (merchantName != null ? merchantName : "").toLowerCase(Locale.ROOT);
-        final String combinedTextLower = (merchantLower + " " + descriptionLower).toLowerCase(Locale.ROOT);
+        final String descriptionLower =
+                (description != null ? description : "").toLowerCase(Locale.ROOT);
+        final String merchantLower =
+                (merchantName != null ? merchantName : "").toLowerCase(Locale.ROOT);
+        final String combinedTextLower =
+                (merchantLower + " " + descriptionLower).toLowerCase(Locale.ROOT);
 
         // CRITICAL: Check for investment-related transactions FIRST (before entertainment and
         // income)
@@ -319,7 +334,7 @@ public class PlaidCategoryMapper {
                 combinedTextLower.contains("ach electronic credit")
                         || combinedTextLower.contains("ach credit")
                         || (combinedTextLower.contains("ach")
-                        && combinedTextLower.contains("credit"));
+                                && combinedTextLower.contains("credit"));
 
         // Also check by paymentChannel, but only if it's NOT an ACH debit
         // For channel-based detection, we need to distinguish credits from debits
@@ -328,7 +343,7 @@ public class PlaidCategoryMapper {
                 combinedTextLower.contains("ach electronic debit")
                         || combinedTextLower.contains("ach debit")
                         || (combinedTextLower.contains("ach")
-                        && combinedTextLower.contains("debit"));
+                                && combinedTextLower.contains("debit"));
 
         // ACH credit by channel: paymentChannel is "ach" AND not an ACH debit pattern
         // CRITICAL: For channel-based detection without explicit credit/debit keywords in
@@ -384,8 +399,8 @@ public class PlaidCategoryMapper {
                     // No explicit salary indicators - use "deposit" instead
                     mappedDetailed = "deposit";
                 }
-            } else if ("interest".equals(incomeCategory)
-                    || "dividend".equals(incomeCategory)
+            } else if (INTEREST.equals(incomeCategory)
+                    || DIVIDEND.equals(incomeCategory)
                     || "stipend".equals(incomeCategory)
                     || "rentIncome".equals(incomeCategory)
                     || "tips".equals(incomeCategory)
@@ -412,12 +427,12 @@ public class PlaidCategoryMapper {
 
         final boolean isCreditCardPayment =
                 (descriptionLower.contains("credit card")
-                        || descriptionLower.contains("creditcard")
-                        || descriptionLower.contains("cc payment")
-                        || descriptionLower.contains("card payment"))
+                                || descriptionLower.contains("creditcard")
+                                || descriptionLower.contains("cc payment")
+                                || descriptionLower.contains("card payment"))
                         && (descriptionLower.contains("payment")
-                        || descriptionLower.contains("pay")
-                        || descriptionLower.contains("transfer"));
+                                || descriptionLower.contains("pay")
+                                || descriptionLower.contains("transfer"));
 
         // Automatic payments: Check for "automatic payment", "autopay", "auto pay", etc.
         // This should be categorized as payment, not expense
@@ -428,7 +443,7 @@ public class PlaidCategoryMapper {
                         || combinedTextLower.contains("auto-pay")
                         || combinedTextLower.contains("autopayment")
                         || (combinedTextLower.contains("automatic")
-                        && combinedTextLower.contains("payment"));
+                                && combinedTextLower.contains("payment"));
 
         // Direct payments: Check for "directpay", "direct pay", "direct payment", "directpayment",
         // "automatyment"
@@ -452,9 +467,9 @@ public class PlaidCategoryMapper {
                         (combinedTextLower.contains("ach electronic debit")
                                 || combinedTextLower.contains("ach debit")
                                 || (combinedTextLower.contains("ach")
-                                && combinedTextLower.contains("debit")
-                                && amount != null
-                                && amount.compareTo(java.math.BigDecimal.ZERO) < 0));
+                                        && combinedTextLower.contains("debit")
+                                        && amount != null
+                                        && amount.compareTo(java.math.BigDecimal.ZERO) < 0));
 
         // Recurring ACH payments: negative ACH transactions with recurring keywords
         // NOTE: Only for negative ACH transactions (debits), not credits
@@ -466,14 +481,14 @@ public class PlaidCategoryMapper {
                         && amount != null
                         && amount.compareTo(java.math.BigDecimal.ZERO) < 0
                         && (combinedTextLower.contains("recurring")
-                        || combinedTextLower.contains("monthly")
-                        || combinedTextLower.contains("subscription")
-                        || combinedTextLower.contains("autopay")
-                        || combinedTextLower.contains("auto pay")
-                        || combinedTextLower.contains("auto-pay")
-                        || combinedTextLower.contains("bill pay")
-                        || combinedTextLower.contains("billpay")
-                        || combinedTextLower.contains("recurring charge"));
+                                || combinedTextLower.contains("monthly")
+                                || combinedTextLower.contains("subscription")
+                                || combinedTextLower.contains("autopay")
+                                || combinedTextLower.contains("auto pay")
+                                || combinedTextLower.contains("auto-pay")
+                                || combinedTextLower.contains("bill pay")
+                                || combinedTextLower.contains("billpay")
+                                || combinedTextLower.contains("recurring charge"));
 
         // Also check for ACH debit by paymentChannel and negative amount
         final boolean isACHDebitByChannel =
@@ -497,10 +512,10 @@ public class PlaidCategoryMapper {
                     isCreditCardPayment
                             ? "Credit card payment"
                             : isDirectPayment
-                            ? "Direct payment"
-                            : isAutomaticPayment
-                            ? "Automatic payment"
-                            : isACHDebit ? "ACH debit" : "Recurring ACH payment";
+                                    ? "Direct payment"
+                                    : isAutomaticPayment
+                                            ? "Automatic payment"
+                                            : isACHDebit ? "ACH debit" : "Recurring ACH payment";
             LOGGER.debug(
                     "Enhanced mapping: {} detected (description={}, paymentChannel={}, amount={}) - overriding category to payment",
                     paymentType,
@@ -554,10 +569,10 @@ public class PlaidCategoryMapper {
         final boolean isShoppingTransaction =
                 !isPlaidGroceries
                         && detectShoppingTransaction(
-                        combinedTextLower, merchantLower, descriptionLower);
+                                combinedTextLower, merchantLower, descriptionLower);
         if (isShoppingTransaction) {
-            mappedDetailed = "shopping";
-            mappedPrimary = "shopping";
+            mappedDetailed = SHOPPING;
+            mappedPrimary = SHOPPING;
             LOGGER.debug(
                     "Enhanced mapping: shopping transaction detected (merchant={}, description={}) - overriding category to shopping",
                     merchantName,
@@ -583,13 +598,13 @@ public class PlaidCategoryMapper {
         // CRITICAL: Check for holdings/company transactions and override to other
         // This MUST happen BEFORE dining detection to prevent holdings companies from being
         // categorized as dining
-        // Holdings companies (like TRG Holdings) are business entities and should be "other", not
-        // "dining"
+        // Holdings companies (like TRG Holdings) are business entities and should be OTHER, not
+        // DINING
         final boolean isHoldingsCompany =
                 detectHoldingsCompany(combinedTextLower, merchantLower, descriptionLower);
         if (isHoldingsCompany) {
-            mappedDetailed = "other";
-            mappedPrimary = "other";
+            mappedDetailed = OTHER;
+            mappedPrimary = OTHER;
             LOGGER.debug(
                     "Enhanced mapping: holdings company detected (merchant={}, description={}) - overriding category to other",
                     merchantName,
@@ -606,8 +621,8 @@ public class PlaidCategoryMapper {
                     || combinedText.contains("pizza")
                     || combinedText.contains("coffee")
                     || combinedText.contains("restaurant")
-                    || combinedText.contains("dining")) {
-                mappedDetailed = "dining";
+                    || combinedText.contains(DINING)) {
+                mappedDetailed = DINING;
                 LOGGER.debug("Enhanced mapping: detected dining from merchant/description");
             } else if (combinedText.contains("walmart")
                     || combinedText.contains("target")
@@ -635,14 +650,14 @@ public class PlaidCategoryMapper {
 
         // Ensure primary is set first
         if (mappedPrimary == null) {
-            // If all inputs were null/empty, return UNKNOWN_CATEGORY instead of "other"
+            // If all inputs were null/empty, return UNKNOWN_CATEGORY instead of OTHER
             if ((plaidCategoryPrimary == null || plaidCategoryPrimary.isEmpty())
                     && (plaidCategoryDetailed == null || plaidCategoryDetailed.isEmpty())
                     && (merchantName == null || merchantName.isEmpty())
                     && (description == null || description.isEmpty())) {
                 mappedPrimary = "UNKNOWN_CATEGORY";
             } else {
-                mappedPrimary = "other";
+                mappedPrimary = OTHER;
             }
         }
 
@@ -664,7 +679,8 @@ public class PlaidCategoryMapper {
                 && detectedInvestmentType == null
                 && !isACHCredit) {
             // Determine specific income category from description
-            final String specificIncomeCategory = determineIncomeCategory(description, merchantName);
+            final String specificIncomeCategory =
+                    determineIncomeCategory(description, merchantName);
             if (!"income".equals(specificIncomeCategory)) {
                 mappedDetailed = specificIncomeCategory;
                 LOGGER.debug(
@@ -676,13 +692,14 @@ public class PlaidCategoryMapper {
         // CRITICAL FIX: Override category if description contains interest keywords (like "INTRST
         // PYMNT")
         // This ensures interest payments are always categorized as Income/Interest, even if Plaid
-        // sent "other" or no category
+        // sent OTHER or no category
         // This MUST happen AFTER all other categorization logic to ensure it overrides incorrect
         // categorizations
         // Check for interest keywords in description (including misspellings like "INTRST", "INTR",
         // etc.)
         if (detectedInvestmentType == null && !isACHCredit) {
-            final String interestCategory = determineInterestFromDescription(description, merchantName);
+            final String interestCategory =
+                    determineInterestFromDescription(description, merchantName);
             if (interestCategory != null) {
                 mappedDetailed = interestCategory;
                 mappedPrimary = "income";
@@ -848,11 +865,11 @@ public class PlaidCategoryMapper {
 
     /**
      * Determines if a transaction is an interest payment based on description This is a separate
-     * method to allow checking interest even when category is "other"
+     * method to allow checking interest even when category is OTHER
      *
      * @param description Transaction description
      * @param merchantName Merchant name
-     * @return "interest" if interest payment detected, null otherwise
+     * @return INTEREST if interest payment detected, null otherwise
      */
     private String determineInterestFromDescription(
             final String description, final String merchantName) {
@@ -862,8 +879,8 @@ public class PlaidCategoryMapper {
 
         final String combinedText =
                 ((merchantName != null ? merchantName : "")
-                        + " "
-                        + (description != null ? description : ""))
+                                + " "
+                                + (description != null ? description : ""))
                         .toLowerCase(Locale.ROOT);
 
         // Interest - check for interest, interest payment, interest earned, savings interest
@@ -871,7 +888,7 @@ public class PlaidCategoryMapper {
         // etc.
         // CRITICAL: Exclude CD interest (handled as investment) and certificate-related interest
         final boolean isInterest =
-                combinedText.contains("interest")
+                combinedText.contains(INTEREST)
                         || combinedText.contains("intrst")
                         || // Misspelling: INTRST
                         combinedText.contains("intr ")
@@ -890,7 +907,7 @@ public class PlaidCategoryMapper {
                 && // CD interest is handled separately (investment)
                 !combinedText.contains("certificate")
                 && !combinedText.contains("cd ")) { // Also exclude any CD-related interest
-            return "interest";
+            return INTEREST;
         }
 
         return null;
@@ -904,8 +921,8 @@ public class PlaidCategoryMapper {
 
         final String combinedText =
                 ((merchantName != null ? merchantName : "")
-                        + " "
-                        + (description != null ? description : ""))
+                                + " "
+                                + (description != null ? description : ""))
                         .toLowerCase(Locale.ROOT);
 
         // Salary/Payroll - check for salary, payroll, paycheck, direct deposit, wages
@@ -937,7 +954,7 @@ public class PlaidCategoryMapper {
         // CRITICAL: Also check for misspellings like "INTRST", "INTR", "INTREST", etc.
         // CRITICAL: Exclude CD interest (handled as investment) and certificate-related interest
         final boolean isInterest =
-                combinedText.contains("interest")
+                combinedText.contains(INTEREST)
                         || combinedText.contains("intrst")
                         || // Misspelling: INTRST
                         combinedText.contains("intr ")
@@ -956,14 +973,14 @@ public class PlaidCategoryMapper {
                 && // CD interest is handled separately (investment)
                 !combinedText.contains("certificate")
                 && !combinedText.contains("cd ")) { // Also exclude any CD-related interest
-            return "interest";
+            return INTEREST;
         }
 
         // Dividend - check for dividend, dividend payment, stock dividend
-        if (combinedText.contains("dividend")
+        if (combinedText.contains(DIVIDEND)
                 || combinedText.contains("stock dividend")
                 || combinedText.contains("dividend payment")) {
-            return "dividend";
+            return DIVIDEND;
         }
 
         // Stipend - check for stipend, scholarship, grant, fellowship
@@ -1022,7 +1039,7 @@ public class PlaidCategoryMapper {
                 combinedTextLower.contains("date of departure")
                         || combinedTextLower.contains("carrier:")
                         || (combinedTextLower.contains("from:")
-                        && combinedTextLower.contains("to:"));
+                                && combinedTextLower.contains("to:"));
 
         // Check for common airline names (case-insensitive matching already done via lowercase)
         // DELTA AIR LINES, DELTA AIR, DELTA
@@ -1030,55 +1047,55 @@ public class PlaidCategoryMapper {
                 combinedTextLower.contains("delta air lines")
                         || combinedTextLower.contains("delta air")
                         || (combinedTextLower.contains("delta")
-                        && (combinedTextLower.contains("airline")
-                        || combinedTextLower.contains("airlines")
-                        || combinedTextLower.contains("flight")
-                        || combinedTextLower.contains("ticket")
-                        || combinedTextLower.contains("passenger")
-                        || combinedTextLower.contains("carrier")
-                        || hasPassengerTicket
-                        || hasFlightDetails));
+                                && (combinedTextLower.contains(AIRLINE)
+                                        || combinedTextLower.contains("airlines")
+                                        || combinedTextLower.contains(FLIGHT)
+                                        || combinedTextLower.contains(TICKET)
+                                        || combinedTextLower.contains(PASSENGER)
+                                        || combinedTextLower.contains(CARRIER)
+                                        || hasPassengerTicket
+                                        || hasFlightDetails));
 
         // ALASKA AIRLINES, ALASKA AIR
         final boolean isAlaska =
                 combinedTextLower.contains("alaska airlines")
                         || combinedTextLower.contains("alaska air")
                         || (combinedTextLower.contains("alaska")
-                        && (combinedTextLower.contains("airline")
-                        || combinedTextLower.contains("airlines")
-                        || combinedTextLower.contains("flight")
-                        || combinedTextLower.contains("ticket")
-                        || combinedTextLower.contains("passenger")
-                        || combinedTextLower.contains("carrier")
-                        || hasPassengerTicket
-                        || hasFlightDetails));
+                                && (combinedTextLower.contains(AIRLINE)
+                                        || combinedTextLower.contains("airlines")
+                                        || combinedTextLower.contains(FLIGHT)
+                                        || combinedTextLower.contains(TICKET)
+                                        || combinedTextLower.contains(PASSENGER)
+                                        || combinedTextLower.contains(CARRIER)
+                                        || hasPassengerTicket
+                                        || hasFlightDetails));
 
         // Other major airlines
         final boolean isUnited =
                 combinedTextLower.contains("united airlines")
                         || combinedTextLower.contains("united air")
                         || (combinedTextLower.contains("united")
-                        && (combinedTextLower.contains("airline")
-                        || combinedTextLower.contains("airlines")
-                        || combinedTextLower.contains("flight")
-                        || combinedTextLower.contains("ticket")
-                        || combinedTextLower.contains("passenger")
-                        || combinedTextLower.contains("carrier")
-                        || hasPassengerTicket
-                        || hasFlightDetails));
+                                && (combinedTextLower.contains(AIRLINE)
+                                        || combinedTextLower.contains("airlines")
+                                        || combinedTextLower.contains(FLIGHT)
+                                        || combinedTextLower.contains(TICKET)
+                                        || combinedTextLower.contains(PASSENGER)
+                                        || combinedTextLower.contains(CARRIER)
+                                        || hasPassengerTicket
+                                        || hasFlightDetails));
 
         final boolean isAmerican =
                 combinedTextLower.contains("american airlines")
                         || combinedTextLower.contains("american air")
                         || (combinedTextLower.contains("american")
-                        && (combinedTextLower.contains("airline")
-                        || combinedTextLower.contains("airlines")
-                        || combinedTextLower.contains("flight")
-                        || combinedTextLower.contains("ticket")
-                        || combinedTextLower.contains("passenger")
-                        || combinedTextLower.contains("carrier")
-                        || hasPassengerTicket
-                        || hasFlightDetails));
+                                && (combinedTextLower.contains(AIRLINE)
+                                        || combinedTextLower.contains("airlines")
+                                        || combinedTextLower.contains(FLIGHT)
+                                        || combinedTextLower.contains(TICKET)
+                                        || combinedTextLower.contains(PASSENGER)
+                                        || combinedTextLower.contains(CARRIER)
+                                        || hasPassengerTicket
+                                        || hasFlightDetails));
 
         final boolean isSouthwest =
                 combinedTextLower.contains("southwest airlines")
@@ -1098,15 +1115,15 @@ public class PlaidCategoryMapper {
         // Check for generic airline keywords (flight, ticket, passenger, carrier, departure, etc.)
         // Only match if combined with airline context to avoid false positives
         final boolean hasAirlineKeywords =
-                (combinedTextLower.contains("airline") || combinedTextLower.contains("airlines"))
-                        && (combinedTextLower.contains("flight")
-                        || combinedTextLower.contains("ticket")
-                        || combinedTextLower.contains("passenger")
-                        || combinedTextLower.contains("carrier")
-                        || combinedTextLower.contains("departure")
-                        || combinedTextLower.contains("airport")
-                        || hasPassengerTicket
-                        || hasFlightDetails);
+                (combinedTextLower.contains(AIRLINE) || combinedTextLower.contains("airlines"))
+                        && (combinedTextLower.contains(FLIGHT)
+                                || combinedTextLower.contains(TICKET)
+                                || combinedTextLower.contains(PASSENGER)
+                                || combinedTextLower.contains(CARRIER)
+                                || combinedTextLower.contains("departure")
+                                || combinedTextLower.contains("airport")
+                                || hasPassengerTicket
+                                || hasFlightDetails);
 
         return isDelta
                 || isAlaska
@@ -1141,7 +1158,7 @@ public class PlaidCategoryMapper {
                         || combinedTextLower.contains("axp centurion")
                         || combinedTextLower.contains("axpcenturion")
                         || (combinedTextLower.contains("axp")
-                        && combinedTextLower.contains("centurion"))
+                                && combinedTextLower.contains("centurion"))
                         || combinedTextLower.contains("american express centurion")
                         || combinedTextLower.contains("amex centurion");
 
@@ -1190,11 +1207,11 @@ public class PlaidCategoryMapper {
         // Generic airport lounge keywords (only if combined with airport/travel context)
         final boolean isGenericLounge =
                 (combinedTextLower.contains("airport lounge")
-                        || combinedTextLower.contains("airportlounge")
-                        || (combinedTextLower.contains("lounge")
-                        && (combinedTextLower.contains("airport")
-                        || combinedTextLower.contains("terminal")
-                        || combinedTextLower.contains("gate"))))
+                                || combinedTextLower.contains("airportlounge")
+                                || (combinedTextLower.contains("lounge")
+                                        && (combinedTextLower.contains("airport")
+                                                || combinedTextLower.contains("terminal")
+                                                || combinedTextLower.contains("gate"))))
                         && !combinedTextLower.contains("hotel lounge")
                         && // Exclude hotel lounges (different category)
                         !combinedTextLower.contains(
@@ -1250,7 +1267,8 @@ public class PlaidCategoryMapper {
         // Department stores and general retailers
         final boolean isNordstrom = combinedTextLower.contains("nordstrom");
 
-        final boolean isMacy = combinedTextLower.contains("macy") || combinedTextLower.contains("macy's");
+        final boolean isMacy =
+                combinedTextLower.contains("macy") || combinedTextLower.contains("macy's");
 
         final boolean isTarget = combinedTextLower.contains("target");
 
@@ -1286,10 +1304,10 @@ public class PlaidCategoryMapper {
         // Generic shopping keywords (only if combined with retail context)
         final boolean hasShoppingKeywords =
                 (combinedTextLower.contains("clothing")
-                        || combinedTextLower.contains("apparel")
-                        || combinedTextLower.contains("retail")
-                        || combinedTextLower.contains("store")
-                        || combinedTextLower.contains("shop"))
+                                || combinedTextLower.contains("apparel")
+                                || combinedTextLower.contains("retail")
+                                || combinedTextLower.contains("store")
+                                || combinedTextLower.contains("shop"))
                         && !combinedTextLower.contains("gas station")
                         && !combinedTextLower.contains("gas store");
 
@@ -1375,10 +1393,10 @@ public class PlaidCategoryMapper {
         // Generic movie theater keywords
         final boolean isMovieTheater =
                 (combinedTextLower.contains("movie theater")
-                        || combinedTextLower.contains("movie theatre")
-                        || combinedTextLower.contains("cinema")
-                        || combinedTextLower.contains("theater")
-                        || combinedTextLower.contains("theatre"))
+                                || combinedTextLower.contains("movie theatre")
+                                || combinedTextLower.contains("cinema")
+                                || combinedTextLower.contains("theater")
+                                || combinedTextLower.contains("theatre"))
                         && !combinedTextLower.contains("home theater")
                         && // Exclude home theater equipment
                         !combinedTextLower.contains("theater equipment");
@@ -1391,8 +1409,8 @@ public class PlaidCategoryMapper {
 
         final boolean isSportsVenue =
                 (combinedTextLower.contains("stadium")
-                        || combinedTextLower.contains("arena")
-                        || combinedTextLower.contains("ballpark"))
+                                || combinedTextLower.contains("arena")
+                                || combinedTextLower.contains("ballpark"))
                         && !combinedTextLower.contains("home")
                         && // Exclude home stadium equipment
                         !combinedTextLower.contains("equipment");
@@ -1422,8 +1440,8 @@ public class PlaidCategoryMapper {
      * Detects if a transaction is from a holdings/company entity based on merchant name and
      * description Checks for common holdings company patterns (e.g., "TRG HOLDINGS LIMITED") This
      * is critical to prevent false positives where holdings companies are categorized as dining or
-     * other categories Holdings companies are business entities and should be categorized as
-     * "other", not "dining"
+     * other categories Holdings companies are business entities and should be categorized as OTHER,
+     * not DINING
      *
      * @param combinedTextLower Combined merchant name and description in lowercase
      * @param merchantLower Merchant name in lowercase
@@ -1445,7 +1463,7 @@ public class PlaidCategoryMapper {
                 combinedTextLower.contains("trg holdings")
                         || combinedTextLower.contains("trgholdings")
                         || (combinedTextLower.contains("trg")
-                        && combinedTextLower.contains("holdings"));
+                                && combinedTextLower.contains("holdings"));
 
         // Exclude healthcare-related holdings (they should be healthcare, not other)
         final boolean isHealthcareRelated =
@@ -1453,9 +1471,9 @@ public class PlaidCategoryMapper {
                         || combinedTextLower.contains("medical")
                         || combinedTextLower.contains("clinic")
                         || combinedTextLower.contains("hospital")
-                        || combinedTextLower.contains("healthcare");
+                        || combinedTextLower.contains(HEALTHCARE);
 
-        // Holdings companies are business entities - default to "other"
+        // Holdings companies are business entities - default to OTHER
         // Only exclude if it's clearly healthcare-related
         return (hasHoldings || isTRGHoldings) && !isHealthcareRelated;
     }

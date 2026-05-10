@@ -97,13 +97,14 @@ public class ImportHistoryRepository {
         }
         final List<ImportHistoryTable> results = new ArrayList<>();
         try {
-            final SdkIterable<software.amazon.awssdk.enhanced.dynamodb.model.Page<ImportHistoryTable>>
+            final SdkIterable<
+                            software.amazon.awssdk.enhanced.dynamodb.model.Page<ImportHistoryTable>>
                     pages =
                             userIdIndex.query(
                                     QueryConditional.keyEqualTo(
                                             Key.builder().partitionValue(userId).build()));
-            for (final software.amazon.awssdk.enhanced.dynamodb.model.Page<ImportHistoryTable> page :
-                    pages) {
+            for (final software.amazon.awssdk.enhanced.dynamodb.model.Page<ImportHistoryTable>
+                    page : pages) {
                 for (final ImportHistoryTable item : page.items()) {
                     if (item != null) {
                         results.add(item);

@@ -1,13 +1,12 @@
 package com.budgetbuddy.service;
 
-
 import com.budgetbuddy.exception.AppException;
 import com.budgetbuddy.exception.ErrorCode;
-import java.util.Locale;
 import com.budgetbuddy.model.dynamodb.CustomMerchantMappingTable;
 import com.budgetbuddy.model.dynamodb.UserCorrectionTable;
 import java.time.Instant;
 import java.util.List;
+import java.util.Locale;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
@@ -202,7 +201,8 @@ public class CategoryLearningService {
             }
 
             // Check if mapping exists
-            final CustomMerchantMappingTable existing = findCustomMapping(userId, normalizedMerchant);
+            final CustomMerchantMappingTable existing =
+                    findCustomMapping(userId, normalizedMerchant);
 
             final Instant now = Instant.now();
 
@@ -253,15 +253,20 @@ public class CategoryLearningService {
                     "Failed to create/update custom mapping (DynamoDB error): {}",
                     e.getMessage(),
                     e);
-            throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to save custom mapping due to database error", e);
+            throw new AppException(
+                    ErrorCode.INTERNAL_SERVER_ERROR,
+                    "Failed to save custom mapping due to database error",
+                    e);
         } catch (Exception e) {
             LOGGER.error("Failed to create/update custom mapping: {}", e.getMessage(), e);
-            throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to save custom mapping", e);
+            throw new AppException(
+                    ErrorCode.INTERNAL_SERVER_ERROR, "Failed to save custom mapping", e);
         }
     }
 
     /** Get custom mapping for a merchant (if exists) */
-    public CustomMerchantMappingTable getCustomMapping(final String userId, final String merchantName) {
+    public CustomMerchantMappingTable getCustomMapping(
+            final String userId, final String merchantName) {
         try {
             final String normalized = normalizeMerchantName(merchantName);
             return findCustomMapping(userId, normalized);
@@ -326,10 +331,14 @@ public class CategoryLearningService {
             throw e; // Re-throw validation/security errors
         } catch (DynamoDbException e) {
             LOGGER.error("Failed to delete custom mapping (DynamoDB error): {}", e.getMessage(), e);
-            throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to delete custom mapping due to database error", e);
+            throw new AppException(
+                    ErrorCode.INTERNAL_SERVER_ERROR,
+                    "Failed to delete custom mapping due to database error",
+                    e);
         } catch (Exception e) {
             LOGGER.error("Failed to delete custom mapping: {}", e.getMessage(), e);
-            throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to delete custom mapping", e);
+            throw new AppException(
+                    ErrorCode.INTERNAL_SERVER_ERROR, "Failed to delete custom mapping", e);
         }
     }
 
@@ -377,7 +386,8 @@ public class CategoryLearningService {
     }
 
     /** Find custom mapping for merchant */
-    private CustomMerchantMappingTable findCustomMapping(final String userId, final String merchantName) {
+    private CustomMerchantMappingTable findCustomMapping(
+            final String userId, final String merchantName) {
         try {
             final QueryConditional queryConditional =
                     QueryConditional.keyEqualTo(
@@ -398,6 +408,9 @@ public class CategoryLearningService {
         if (name == null) {
             return "";
         }
-        return name.toLowerCase(Locale.ROOT).replaceAll("[^a-z0-9]", "").replaceAll("\\s+", "").trim();
+        return name.toLowerCase(Locale.ROOT)
+                .replaceAll("[^a-z0-9]", "")
+                .replaceAll("\\s+", "")
+                .trim();
     }
 }

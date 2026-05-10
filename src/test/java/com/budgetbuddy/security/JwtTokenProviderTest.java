@@ -141,7 +141,8 @@ class JwtTokenProviderTest {
                 .thenReturn(secretFromManager);
 
         // When
-        final String secret = (String) ReflectionTestUtils.invokeMethod(jwtTokenProvider, "getJwtSecret");
+        final String secret =
+                (String) ReflectionTestUtils.invokeMethod(jwtTokenProvider, "getJwtSecret");
 
         // Then
         assertEquals(secretFromManager, secret);
@@ -153,7 +154,8 @@ class JwtTokenProviderTest {
         when(secretsManagerService.getSecret(anyString(), anyString())).thenReturn(null);
 
         // When
-        final String secret = (String) ReflectionTestUtils.invokeMethod(jwtTokenProvider, "getJwtSecret");
+        final String secret =
+                (String) ReflectionTestUtils.invokeMethod(jwtTokenProvider, "getJwtSecret");
 
         // Then
         assertEquals(TEST_SECRET, secret);

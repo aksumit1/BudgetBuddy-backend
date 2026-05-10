@@ -1,7 +1,5 @@
 package com.budgetbuddy.api;
 
-
-import java.nio.charset.StandardCharsets;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -27,6 +25,7 @@ import com.budgetbuddy.service.SubscriptionService;
 import com.budgetbuddy.service.UserService;
 import com.budgetbuddy.util.TableInitializer;
 import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
@@ -56,6 +55,8 @@ import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 @Import(AWSTestConfiguration.class)
 @org.junit.jupiter.api.Tag("integration")
 public class SubscriptionControllerIntegrationTest {
+
+    private static final String NETFLIX = "Netflix";
 
     @Autowired private MockMvc mockMvc;
 
@@ -87,7 +88,8 @@ public class SubscriptionControllerIntegrationTest {
         // Create test user using UserService (properly hashed password)
         testUserEmail = "test-subscription-" + UUID.randomUUID() + "@example.com";
         final String base64PasswordHash =
-                java.util.Base64.getEncoder().encodeToString("test-password".getBytes(StandardCharsets.UTF_8));
+                java.util.Base64.getEncoder()
+                        .encodeToString("test-password".getBytes(StandardCharsets.UTF_8));
         testUser = userService.createUserSecure(testUserEmail, base64PasswordHash, "Test", "User");
         testUserId = testUser.getUserId();
 
@@ -109,7 +111,8 @@ public class SubscriptionControllerIntegrationTest {
 
     /** Helper method to add JWT token to request */
     private org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder withAuth(
-            final org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder builder) {
+            final org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder
+                    builder) {
         return builder.header("Authorization", "Bearer " + accessToken);
     }
 
@@ -120,7 +123,7 @@ public class SubscriptionControllerIntegrationTest {
         for (int i = 0; i < 3; i++) {
             final TransactionTable tx =
                     createSubscriptionTransaction(
-                            "Netflix", new BigDecimal("-15.99"), startDate.plusMonths(i));
+                            NETFLIX, new BigDecimal("-15.99"), startDate.plusMonths(i));
             transactionRepository.save(tx);
         }
 
@@ -131,8 +134,8 @@ public class SubscriptionControllerIntegrationTest {
         // When: Call detect endpoint with authentication
         final var result =
                 mockMvc.perform(
-                        withAuth(post("/api/subscriptions/detect"))
-                                .contentType(MediaType.APPLICATION_JSON))
+                                withAuth(post("/api/subscriptions/detect"))
+                                        .contentType(MediaType.APPLICATION_JSON))
                         .andExpect(status().isOk())
                         .andExpect(jsonPath("$").isArray())
                         .andReturn();
@@ -155,7 +158,7 @@ public class SubscriptionControllerIntegrationTest {
         subscription.setSubscriptionId(UUID.randomUUID().toString());
         subscription.setUserId(testUserId);
         subscription.setAccountId(testAccount.getAccountId());
-        subscription.setMerchantName("Netflix");
+        subscription.setMerchantName(NETFLIX);
         subscription.setAmount(new BigDecimal("15.99"));
         subscription.setFrequency(Subscription.SubscriptionFrequency.MONTHLY);
         subscription.setStartDate(LocalDate.of(2024, 1, 15));
@@ -170,8 +173,8 @@ public class SubscriptionControllerIntegrationTest {
         // When: Call get endpoint with authentication
         final var result =
                 mockMvc.perform(
-                        withAuth(get("/api/subscriptions"))
-                                .contentType(MediaType.APPLICATION_JSON))
+                                withAuth(get("/api/subscriptions"))
+                                        .contentType(MediaType.APPLICATION_JSON))
                         .andExpect(status().isOk())
                         .andExpect(jsonPath("$").isArray())
                         .andExpect(jsonPath("$[0]").exists())
@@ -189,7 +192,7 @@ public class SubscriptionControllerIntegrationTest {
         // Verify the subscription we created exists
         final var netflixSubscription =
                 subscriptions.stream()
-                        .filter(s -> "Netflix".equalsIgnoreCase(s.getMerchantName()))
+                        .filter(s -> NETFLIX.equalsIgnoreCase(s.getMerchantName()))
                         .findFirst();
         assertTrue(netflixSubscription.isPresent(), "Netflix subscription should exist");
     }
@@ -197,7 +200,7 @@ public class SubscriptionControllerIntegrationTest {
     @Test
     void testGetActiveSubscriptionsReturnsOnlyActive() throws Exception {
         // Given: Create active and inactive subscriptions
-        final Subscription active = createTestSubscription("Netflix", true);
+        final Subscription active = createTestSubscription(NETFLIX, true);
         final Subscription inactive = createTestSubscription("Cancelled", false);
         subscriptionService.saveSubscriptions(testUserId, List.of(active, inactive));
 
@@ -213,13 +216,13 @@ public class SubscriptionControllerIntegrationTest {
         // Verify via service
         final var activeSubscriptions = subscriptionService.getActiveSubscriptions(testUserId);
         assertEquals(1, activeSubscriptions.size());
-        assertEquals("Netflix", activeSubscriptions.get(0).getMerchantName());
+        assertEquals(NETFLIX, activeSubscriptions.get(0).getMerchantName());
     }
 
     @Test
     void testDeleteSubscriptionRemovesSubscription() throws Exception {
         // Given: Create a subscription
-        final Subscription subscription = createTestSubscription("Netflix", true);
+        final Subscription subscription = createTestSubscription(NETFLIX, true);
         subscriptionService.saveSubscriptions(testUserId, List.of(subscription));
 
         // Verify subscription was saved
@@ -259,8 +262,8 @@ public class SubscriptionControllerIntegrationTest {
         // When: Call detect endpoint with authentication
         final var result =
                 mockMvc.perform(
-                        withAuth(post("/api/subscriptions/detect"))
-                                .contentType(MediaType.APPLICATION_JSON))
+                                withAuth(post("/api/subscriptions/detect"))
+                                        .contentType(MediaType.APPLICATION_JSON))
                         .andExpect(status().isOk())
                         .andExpect(jsonPath("$").isArray())
                         .andReturn();

@@ -18,6 +18,8 @@ import org.mockito.MockitoAnnotations;
 /** Comprehensive tests for IdentityVerificationService */
 class IdentityVerificationServiceTest {
 
+    private static final String USER_123 = "user-123";
+
     @Mock private UserRepository userRepository;
 
     private IdentityVerificationService identityVerificationService;
@@ -32,7 +34,7 @@ class IdentityVerificationServiceTest {
     @DisplayName("Should verify identity for enabled user with verified email")
     void testVerifyIdentitySuccess() {
         // Given
-        final String userId = "user-123";
+        final String userId = USER_123;
         final UserTable user = new UserTable();
         user.setUserId(userId);
         user.setEnabled(true);
@@ -51,7 +53,7 @@ class IdentityVerificationServiceTest {
     @DisplayName("Should fail verification for disabled user")
     void testVerifyIdentityDisabledUser() {
         // Given
-        final String userId = "user-123";
+        final String userId = USER_123;
         final UserTable user = new UserTable();
         user.setUserId(userId);
         user.setEnabled(false);
@@ -70,7 +72,7 @@ class IdentityVerificationServiceTest {
     @DisplayName("Should fail verification for unverified email")
     void testVerifyIdentityUnverifiedEmail() {
         // Given
-        final String userId = "user-123";
+        final String userId = USER_123;
         final UserTable user = new UserTable();
         user.setUserId(userId);
         user.setEnabled(true);
@@ -89,7 +91,7 @@ class IdentityVerificationServiceTest {
     @DisplayName("Should fail verification for non-existent user")
     void testVerifyIdentityNonExistentUser() {
         // Given
-        final String userId = "user-123";
+        final String userId = USER_123;
         when(userRepository.findById(userId)).thenReturn(java.util.Optional.empty());
 
         // When
@@ -122,7 +124,7 @@ class IdentityVerificationServiceTest {
     @DisplayName("Should deny permission for regular user accessing admin resource")
     void testHasPermissionRegularUserAdminResource() {
         // Given
-        final String userId = "user-123";
+        final String userId = USER_123;
         final UserTable user = new UserTable();
         user.setUserId(userId);
         user.setRoles(Set.of("USER"));
@@ -141,7 +143,7 @@ class IdentityVerificationServiceTest {
     @DisplayName("Should grant permission for regular user accessing user resource")
     void testHasPermissionRegularUserUserResource() {
         // Given
-        final String userId = "user-123";
+        final String userId = USER_123;
         final UserTable user = new UserTable();
         user.setUserId(userId);
         user.setRoles(Set.of("USER"));
@@ -160,7 +162,7 @@ class IdentityVerificationServiceTest {
     @DisplayName("Should return user roles")
     void testGetUserRoles() {
         // Given
-        final String userId = "user-123";
+        final String userId = USER_123;
         final UserTable user = new UserTable();
         user.setUserId(userId);
         user.setRoles(Set.of("USER", "PREMIUM"));
@@ -181,7 +183,7 @@ class IdentityVerificationServiceTest {
     @DisplayName("Should return empty set for non-existent user")
     void testGetUserRolesNonExistentUser() {
         // Given
-        final String userId = "user-123";
+        final String userId = USER_123;
         when(userRepository.findById(userId)).thenReturn(java.util.Optional.empty());
 
         // When

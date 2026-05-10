@@ -35,9 +35,10 @@ class CSVImportServiceGlobalImportTest {
         // AccountDetectionService is a @Service with no-arg constructor
         // Use mock for unit tests
         accountDetectionService = org.mockito.Mockito.mock(AccountDetectionService.class);
-        final com.budgetbuddy.service.ml.EnhancedCategoryDetectionService enhancedCategoryDetection =
-                org.mockito.Mockito.mock(
-                        com.budgetbuddy.service.ml.EnhancedCategoryDetectionService.class);
+        final com.budgetbuddy.service.ml.EnhancedCategoryDetectionService
+                enhancedCategoryDetection =
+                        org.mockito.Mockito.mock(
+                                com.budgetbuddy.service.ml.EnhancedCategoryDetectionService.class);
         final com.budgetbuddy.service.ml.FuzzyMatchingService fuzzyMatchingService =
                 org.mockito.Mockito.mock(com.budgetbuddy.service.ml.FuzzyMatchingService.class);
         csvImportService =
@@ -77,7 +78,8 @@ class CSVImportServiceGlobalImportTest {
         assertEquals(LocalDate.of(2024, 12, 15), tx.getDate(), "Should parse DD.MM.YYYY format");
         // Amount should be parsed correctly (1.234,56 = 1234.56 in US format)
         final BigDecimal amount = tx.getAmount();
-        final BigDecimal amountAbs = amount.compareTo(BigDecimal.ZERO) < 0 ? amount.negate() : amount;
+        final BigDecimal amountAbs =
+                amount.compareTo(BigDecimal.ZERO) < 0 ? amount.negate() : amount;
         assertTrue(
                 amountAbs.compareTo(new BigDecimal("1234.56")) == 0
                         || amountAbs.compareTo(new BigDecimal("1234.56")) < 0.01,
@@ -375,11 +377,16 @@ class CSVImportServiceGlobalImportTest {
         final List<CSVImportService.ParsedTransaction> transactions = result.getTransactions();
 
         // Verify currency detection
-        final boolean foundUSD = transactions.stream().anyMatch(tx -> "USD".equals(tx.getCurrencyCode()));
-        final boolean foundEUR = transactions.stream().anyMatch(tx -> "EUR".equals(tx.getCurrencyCode()));
-        final boolean foundGBP = transactions.stream().anyMatch(tx -> "GBP".equals(tx.getCurrencyCode()));
-        final boolean foundINR = transactions.stream().anyMatch(tx -> "INR".equals(tx.getCurrencyCode()));
-        final boolean foundJPY = transactions.stream().anyMatch(tx -> "JPY".equals(tx.getCurrencyCode()));
+        final boolean foundUSD =
+                transactions.stream().anyMatch(tx -> "USD".equals(tx.getCurrencyCode()));
+        final boolean foundEUR =
+                transactions.stream().anyMatch(tx -> "EUR".equals(tx.getCurrencyCode()));
+        final boolean foundGBP =
+                transactions.stream().anyMatch(tx -> "GBP".equals(tx.getCurrencyCode()));
+        final boolean foundINR =
+                transactions.stream().anyMatch(tx -> "INR".equals(tx.getCurrencyCode()));
+        final boolean foundJPY =
+                transactions.stream().anyMatch(tx -> "JPY".equals(tx.getCurrencyCode()));
 
         assertTrue(
                 foundUSD || foundEUR || foundGBP || foundINR || foundJPY,
@@ -451,14 +458,16 @@ class CSVImportServiceGlobalImportTest {
         // Verify amounts are parsed correctly
         final CSVImportService.ParsedTransaction tx1 = transactions.get(0);
         final BigDecimal amount1 = tx1.getAmount();
-        final BigDecimal amount1Abs = amount1.compareTo(BigDecimal.ZERO) < 0 ? amount1.negate() : amount1;
+        final BigDecimal amount1Abs =
+                amount1.compareTo(BigDecimal.ZERO) < 0 ? amount1.negate() : amount1;
         assertTrue(
                 amount1Abs.compareTo(new BigDecimal("1234.56")) < 0.01,
                 "Should parse European number format (1.234,56 = 1234.56)");
 
         final CSVImportService.ParsedTransaction tx2 = transactions.get(1);
         final BigDecimal amount2 = tx2.getAmount();
-        final BigDecimal amount2Abs = amount2.compareTo(BigDecimal.ZERO) < 0 ? amount2.negate() : amount2;
+        final BigDecimal amount2Abs =
+                amount2.compareTo(BigDecimal.ZERO) < 0 ? amount2.negate() : amount2;
         assertTrue(
                 amount2Abs.compareTo(new BigDecimal("2500.00")) < 0.01,
                 "Should parse European number format (2.500,00 = 2500.00)");

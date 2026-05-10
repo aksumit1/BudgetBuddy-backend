@@ -84,7 +84,10 @@ public class AuditService {
 
     /** Logs a transaction update */
     public void logTransactionUpdate(
-            final String transactionId, final String userId, final String changes, final String source) {
+            final String transactionId,
+            final String userId,
+            final String changes,
+            final String source) {
         AUDIT_LOGGER.info(
                 "TRANSACTION_UPDATED|transactionId={}|userId={}|changes={}|source={}|timestamp={}",
                 transactionId,
@@ -96,7 +99,10 @@ public class AuditService {
 
     /** Logs an import operation */
     public void logImport(
-            final String userId, final String importSource, final int transactionCount, final String fileName) {
+            final String userId,
+            final String importSource,
+            final int transactionCount,
+            final String fileName) {
         AUDIT_LOGGER.info(
                 "IMPORT|userId={}|source={}|transactionCount={}|fileName={}|timestamp={}",
                 userId,

@@ -103,7 +103,8 @@ public class SyncHealthController {
                     userSyncStatus.getOrDefault(
                             user.getUserId(), new SyncStatus("idle", null, 0, "unknown", null));
 
-            final SyncHealthResponse response = syncHealthService.getSyncHealth(user.getUserId(), status);
+            final SyncHealthResponse response =
+                    syncHealthService.getSyncHealth(user.getUserId(), status);
 
             return ResponseEntity.ok(response);
         } finally {
@@ -169,7 +170,8 @@ public class SyncHealthController {
 
             userSyncStatus.put(user.getUserId(), status);
 
-            final SyncHealthResponse response = syncHealthService.getSyncHealth(user.getUserId(), status);
+            final SyncHealthResponse response =
+                    syncHealthService.getSyncHealth(user.getUserId(), status);
 
             return ResponseEntity.ok(response);
         } finally {
@@ -218,7 +220,8 @@ public class SyncHealthController {
                     userSyncStatus.getOrDefault(
                             user.getUserId(), new SyncStatus("idle", null, 0, "healthy", null));
 
-            final SyncHealthResponse response = syncHealthService.getSyncHealth(user.getUserId(), status);
+            final SyncHealthResponse response =
+                    syncHealthService.getSyncHealth(user.getUserId(), status);
 
             return ResponseEntity.ok(response);
         } finally {

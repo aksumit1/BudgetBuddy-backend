@@ -73,7 +73,8 @@ class ComplianceControllerTest {
         when(userDetails.getUsername()).thenReturn(testEmail);
         when(userService.findByEmail(testEmail)).thenReturn(Optional.of(testUser));
 
-        final GDPRComplianceService.GDPRDataExport export = new GDPRComplianceService.GDPRDataExport();
+        final GDPRComplianceService.GDPRDataExport export =
+                new GDPRComplianceService.GDPRDataExport();
         export.setUserId(testUserId);
         when(gdprComplianceService.exportUserData(testUserId)).thenReturn(export);
 
@@ -113,7 +114,8 @@ class ComplianceControllerTest {
         when(gdprComplianceService.exportDataPortable(testUserId)).thenReturn(jsonData);
 
         // When
-        final ResponseEntity<String> response = complianceController.exportDataPortable(userDetails);
+        final ResponseEntity<String> response =
+                complianceController.exportDataPortable(userDetails);
 
         // Then
         assertEquals(HttpStatus.OK, response.getStatusCode());

@@ -38,7 +38,8 @@ class ChallengeServiceTest {
     @DisplayName("Should generate challenge for valid email")
     void testGenerateChallengeSuccess() {
         // When
-        final ChallengeService.ChallengeResponse response = challengeService.generateChallenge(testEmail);
+        final ChallengeService.ChallengeResponse response =
+                challengeService.generateChallenge(testEmail);
 
         // Then
         assertNotNull(response);
@@ -102,7 +103,8 @@ class ChallengeServiceTest {
     @DisplayName("Should verify and consume valid challenge")
     void testVerifyAndConsumeChallengeSuccess() {
         // Given
-        final ChallengeService.ChallengeResponse response = challengeService.generateChallenge(testEmail);
+        final ChallengeService.ChallengeResponse response =
+                challengeService.generateChallenge(testEmail);
         final String challenge = response.getChallenge();
 
         // When
@@ -168,7 +170,8 @@ class ChallengeServiceTest {
     @DisplayName("Should throw exception for null email in verify")
     void testVerifyAndConsumeChallengeNullEmail() {
         // Given
-        final ChallengeService.ChallengeResponse response = challengeService.generateChallenge(testEmail);
+        final ChallengeService.ChallengeResponse response =
+                challengeService.generateChallenge(testEmail);
         final String challenge = response.getChallenge();
 
         // When/Then
@@ -203,7 +206,8 @@ class ChallengeServiceTest {
     @DisplayName("Should throw exception for email mismatch")
     void testVerifyAndConsumeChallengeEmailMismatch() {
         // Given
-        final ChallengeService.ChallengeResponse response = challengeService.generateChallenge(testEmail);
+        final ChallengeService.ChallengeResponse response =
+                challengeService.generateChallenge(testEmail);
         final String challenge = response.getChallenge();
         final String differentEmail = "different@example.com";
 
@@ -223,7 +227,8 @@ class ChallengeServiceTest {
     @DisplayName("Should throw exception when reusing challenge (one-time use)")
     void testVerifyAndConsumeChallengeOneTimeUse() {
         // Given
-        final ChallengeService.ChallengeResponse response = challengeService.generateChallenge(testEmail);
+        final ChallengeService.ChallengeResponse response =
+                challengeService.generateChallenge(testEmail);
         final String challenge = response.getChallenge();
 
         // When - First verification should succeed
@@ -249,7 +254,8 @@ class ChallengeServiceTest {
     void testGenerateChallengeExpirationTime() {
         // When
         final Instant beforeGeneration = Instant.now();
-        final ChallengeService.ChallengeResponse response = challengeService.generateChallenge(testEmail);
+        final ChallengeService.ChallengeResponse response =
+                challengeService.generateChallenge(testEmail);
         final Instant afterGeneration = Instant.now();
 
         // Then

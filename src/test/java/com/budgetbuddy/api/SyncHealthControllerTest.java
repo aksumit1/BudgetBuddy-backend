@@ -1,6 +1,5 @@
 package com.budgetbuddy.api;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -24,6 +23,7 @@ import com.budgetbuddy.model.dynamodb.UserTable;
 import com.budgetbuddy.service.SyncHealthService;
 import com.budgetbuddy.service.SyncHealthService.SyncHealthResponse;
 import com.budgetbuddy.service.UserService;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.time.Instant;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -53,6 +53,9 @@ import org.springframework.security.core.userdetails.UserDetails;
 @org.mockito.junit.jupiter.MockitoSettings(strictness = org.mockito.quality.Strictness.LENIENT)
 class SyncHealthControllerTest {
 
+    private static final String USER_123 = "user-123";
+    private static final String HEALTHY = "healthy";
+
     @Mock private SyncHealthService syncHealthService;
 
     @Mock private UserService userService;
@@ -68,7 +71,7 @@ class SyncHealthControllerTest {
         lenient().when(userDetails.getUsername()).thenReturn("test@example.com");
 
         user = new UserTable();
-        user.setUserId("user-123");
+        user.setUserId(USER_123);
         user.setEmail("test@example.com");
     }
 
@@ -81,12 +84,12 @@ class SyncHealthControllerTest {
         response.setStatus("success");
         response.setLastSyncDate(Instant.now());
         response.setConsecutiveFailures(0);
-        response.setConnectionHealth("healthy");
+        response.setConnectionHealth(HEALTHY);
         response.setIsStale(false);
         response.setTimeAgo("just now");
         response.setMessage("Up to date");
 
-        when(syncHealthService.getSyncHealth(eq("user-123"), any())).thenReturn(response);
+        when(syncHealthService.getSyncHealth(eq(USER_123), any())).thenReturn(response);
 
         // When
         final ResponseEntity<SyncHealthResponse> result = controller.getSyncHealth(userDetails);
@@ -96,7 +99,7 @@ class SyncHealthControllerTest {
         assertEquals(HttpStatus.OK, result.getStatusCode());
         assertNotNull(result.getBody());
         assertEquals("success", result.getBody().getStatus());
-        assertEquals("healthy", result.getBody().getConnectionHealth());
+        assertEquals(HEALTHY, result.getBody().getConnectionHealth());
         assertFalse(result.getBody().getIsStale());
     }
 
@@ -142,13 +145,13 @@ class SyncHealthControllerTest {
         request.setStatus("syncing");
         request.setLastSyncDate(Instant.now());
         request.setConsecutiveFailures(0);
-        request.setConnectionHealth("healthy");
+        request.setConnectionHealth(HEALTHY);
 
         final SyncHealthResponse response = new SyncHealthResponse();
         response.setStatus("syncing");
-        response.setConnectionHealth("healthy");
+        response.setConnectionHealth(HEALTHY);
 
-        when(syncHealthService.getSyncHealth(eq("user-123"), any())).thenReturn(response);
+        when(syncHealthService.getSyncHealth(eq(USER_123), any())).thenReturn(response);
 
         // When
         final ResponseEntity<SyncHealthResponse> result =
@@ -202,9 +205,9 @@ class SyncHealthControllerTest {
         final SyncHealthResponse response = new SyncHealthResponse();
         response.setStatus("idle");
         response.setConsecutiveFailures(0);
-        response.setConnectionHealth("healthy");
+        response.setConnectionHealth(HEALTHY);
 
-        when(syncHealthService.getSyncHealth(eq("user-123"), any())).thenReturn(response);
+        when(syncHealthService.getSyncHealth(eq(USER_123), any())).thenReturn(response);
 
         // When
         final ResponseEntity<SyncHealthResponse> result = controller.clearSyncErrors(userDetails);
@@ -228,7 +231,7 @@ class SyncHealthControllerTest {
         final SyncHealthResponse response = new SyncHealthResponse();
         response.setStatus("syncing");
 
-        when(syncHealthService.getSyncHealth(eq("user-123"), any())).thenReturn(response);
+        when(syncHealthService.getSyncHealth(eq(USER_123), any())).thenReturn(response);
 
         // When - Simulate concurrent updates
         final int threadCount = 10;

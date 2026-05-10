@@ -15,6 +15,8 @@ import software.amazon.awssdk.services.dynamodb.model.ProvisionedThroughputExcee
 /** Unit Tests for RetryHelper */
 class RetryHelperTest {
 
+    private static final String SUCCESS = "success";
+
     @Test
     void testExecuteWithRetryWithSuccessfulOperationReturnsResult() {
         // Given
@@ -25,14 +27,14 @@ class RetryHelperTest {
                 RetryHelper.executeWithRetry(
                         () -> {
                             attempts.incrementAndGet();
-                            return "success";
+                            return SUCCESS;
                         },
                         3,
                         Duration.ofMillis(10),
                         2.0);
 
         // Then
-        assertEquals("success", result);
+        assertEquals(SUCCESS, result);
         assertEquals(1, attempts.get());
     }
 
@@ -51,14 +53,14 @@ class RetryHelperTest {
                             if (attempt < 3) {
                                 throw retryableException;
                             }
-                            return "success";
+                            return SUCCESS;
                         },
                         3,
                         Duration.ofMillis(10),
                         2.0);
 
         // Then
-        assertEquals("success", result);
+        assertEquals(SUCCESS, result);
         assertEquals(3, attempts.get());
     }
 
@@ -114,11 +116,11 @@ class RetryHelperTest {
                 RetryHelper.executeWithRetry(
                         () -> {
                             attempts.incrementAndGet();
-                            return "success";
+                            return SUCCESS;
                         });
 
         // Then
-        assertEquals("success", result);
+        assertEquals(SUCCESS, result);
         assertEquals(1, attempts.get());
     }
 
@@ -140,14 +142,14 @@ class RetryHelperTest {
                             if (attempt < 2) {
                                 throw serviceException;
                             }
-                            return "success";
+                            return SUCCESS;
                         },
                         3,
                         Duration.ofMillis(10),
                         2.0);
 
         // Then
-        assertEquals("success", result);
+        assertEquals(SUCCESS, result);
         assertTrue(attempts.get() >= 2);
     }
 
@@ -166,14 +168,14 @@ class RetryHelperTest {
                             if (attempt < 2) {
                                 throw clientException;
                             }
-                            return "success";
+                            return SUCCESS;
                         },
                         3,
                         Duration.ofMillis(10),
                         2.0);
 
         // Then
-        assertEquals("success", result);
+        assertEquals(SUCCESS, result);
         assertTrue(attempts.get() >= 2);
     }
 
@@ -187,11 +189,11 @@ class RetryHelperTest {
                 RetryHelper.executeDynamoDbWithRetry(
                         () -> {
                             attempts.incrementAndGet();
-                            return "success";
+                            return SUCCESS;
                         });
 
         // Then
-        assertEquals("success", result);
+        assertEquals(SUCCESS, result);
         assertEquals(1, attempts.get());
     }
 
@@ -210,11 +212,11 @@ class RetryHelperTest {
                             if (attempt < 2) {
                                 throw throttlingException;
                             }
-                            return "success";
+                            return SUCCESS;
                         });
 
         // Then
-        assertEquals("success", result);
+        assertEquals(SUCCESS, result);
         assertTrue(attempts.get() >= 2);
     }
 
@@ -233,11 +235,11 @@ class RetryHelperTest {
                             if (attempt < 2) {
                                 throw serverError;
                             }
-                            return "success";
+                            return SUCCESS;
                         });
 
         // Then
-        assertEquals("success", result);
+        assertEquals(SUCCESS, result);
         assertTrue(attempts.get() >= 2);
     }
 }

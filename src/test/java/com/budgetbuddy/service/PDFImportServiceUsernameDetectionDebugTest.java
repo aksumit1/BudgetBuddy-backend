@@ -58,36 +58,38 @@ public class PDFImportServiceUsernameDetectionDebugTest {
     @DisplayName("Debug: Check what candidates are found for realistic scenario")
     void debugRealisticScenario() throws Exception {
         final String[] lines = {
-                "Card Member: JOHN DOE", // Index 0
-                "123 Main Street", // Index 1
-                "New York, NY 10001", // Index 2
-                "Date Description Amount", // Index 3
-                "01/15/2024 LULULEMON ATHLETICA $123.45", // Index 4 - transaction line
-                "",
-                "JANE SMITH", // Index 6
-                "Date Description Amount", // Index 7
-                "01/17/2024 AMAZON $50.00" // Index 8 - transaction line
+            "Card Member: JOHN DOE", // Index 0
+            "123 Main Street", // Index 1
+            "New York, NY 10001", // Index 2
+            "Date Description Amount", // Index 3
+            "01/15/2024 LULULEMON ATHLETICA $123.45", // Index 4 - transaction line
+            "",
+            "JANE SMITH", // Index 6
+            "Date Description Amount", // Index 7
+            "01/17/2024 AMAZON $50.00" // Index 8 - transaction line
         };
 
         // Check if "JOHN DOE" is valid
-        final boolean johnDoeValid = (Boolean) isValidNameFormat.invoke(pdfImportService, "JOHN DOE");
+        final boolean johnDoeValid =
+                (Boolean) isValidNameFormat.invoke(pdfImportService, "JOHN DOE");
         System.out.println("'JOHN DOE' is valid: " + johnDoeValid);
 
         // Check if "JANE SMITH" is valid
-        final boolean janeSmithValid = (Boolean) isValidNameFormat.invoke(pdfImportService, "JANE SMITH");
+        final boolean janeSmithValid =
+                (Boolean) isValidNameFormat.invoke(pdfImportService, "JANE SMITH");
         System.out.println("'JANE SMITH' is valid: " + janeSmithValid);
 
         // Check candidates for first transaction (index 4)
-        @SuppressWarnings("unchecked") final
-                List<String> candidates1 =
+        @SuppressWarnings("unchecked")
+        final List<String> candidates1 =
                 (List<String>) findUsernameCandidates.invoke(pdfImportService, lines, 4, 1, 6);
         System.out.println("Candidates for index 4: " + candidates1);
         System.out.println(
                 "Range checked: indices " + Math.max(0, 4 - 6) + " to " + Math.max(0, 4 - 1));
 
         // Check candidates for second transaction (index 8)
-        @SuppressWarnings("unchecked") final
-                List<String> candidates2 =
+        @SuppressWarnings("unchecked")
+        final List<String> candidates2 =
                 (List<String>) findUsernameCandidates.invoke(pdfImportService, lines, 8, 1, 6);
         System.out.println("Candidates for index 8: " + candidates2);
         System.out.println(
@@ -115,28 +117,28 @@ public class PDFImportServiceUsernameDetectionDebugTest {
     @DisplayName("Debug: Check what candidates are found for multi-user scenario")
     void debugMultiUserScenario() throws Exception {
         final String[] lines = {
-                "JOHN DOE", // Index 0
-                "123 Main St", // Index 1
-                "New York, NY 10001", // Index 2
-                "01/15/2024 MERCHANT $100.00", // Index 3 - transaction line
-                "",
-                "JANE SMITH", // Index 5
-                "456 Oak Ave", // Index 6
-                "Los Angeles, CA 90001", // Index 7
-                "01/16/2024 STORE $200.00" // Index 8 - transaction line
+            "JOHN DOE", // Index 0
+            "123 Main St", // Index 1
+            "New York, NY 10001", // Index 2
+            "01/15/2024 MERCHANT $100.00", // Index 3 - transaction line
+            "",
+            "JANE SMITH", // Index 5
+            "456 Oak Ave", // Index 6
+            "Los Angeles, CA 90001", // Index 7
+            "01/16/2024 STORE $200.00" // Index 8 - transaction line
         };
 
         // Check candidates for first transaction (index 3)
-        @SuppressWarnings("unchecked") final
-                List<String> candidates1 =
+        @SuppressWarnings("unchecked")
+        final List<String> candidates1 =
                 (List<String>) findUsernameCandidates.invoke(pdfImportService, lines, 3, 1, 6);
         System.out.println("Candidates for index 3: " + candidates1);
         System.out.println(
                 "Range checked: indices " + Math.max(0, 3 - 6) + " to " + Math.max(0, 3 - 1));
 
         // Check candidates for second transaction (index 8)
-        @SuppressWarnings("unchecked") final
-                List<String> candidates2 =
+        @SuppressWarnings("unchecked")
+        final List<String> candidates2 =
                 (List<String>) findUsernameCandidates.invoke(pdfImportService, lines, 8, 1, 6);
         System.out.println("Candidates for index 8: " + candidates2);
         System.out.println(
