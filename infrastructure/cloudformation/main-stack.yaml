@@ -368,6 +368,15 @@ Resources:
           ToPort: 443
           SourceSecurityGroupId: !Ref ECSSecurityGroup
           Description: HTTPS from ECS tasks
+      # Explicit egress avoids cfn-nag F1000 (default open egress). VPC
+      # endpoints serve responses on their ENI; restricting outbound to
+      # the VPC CIDR on 443 is sufficient for response traffic.
+      SecurityGroupEgress:
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: !GetAtt VPC.CidrBlock
+          Description: HTTPS responses scoped to VPC CIDR
       Tags:
         - Key: Name
           Value: !Sub '${AWS::StackName}-vpc-endpoint-sg'
@@ -453,11 +462,20 @@ Resources:
         BlockPublicPolicy: true
         IgnorePublicAcls: true
         RestrictPublicBuckets: true
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      VersioningConfiguration:
+        Status: Enabled
       LifecycleConfiguration:
         Rules:
           - Id: DeleteOldLogs
             Status: Enabled
             ExpirationInDays: 3  # Reduced to 3 days for cost optimization
+          - Id: ExpireOldVersions
+            Status: Enabled
+            NoncurrentVersionExpirationInDays: 7
 
   ALBTargetGroup:
     Type: AWS::ElasticLoadBalancingV2::TargetGroup
@@ -480,6 +498,15 @@ Resources:
           Value: !Sub '${AWS::StackName}-tg'
 
   ALBListener:
+    # cfn_nag suppress W56: this listener exists *only* to 301-redirect HTTP
+    # to HTTPS (see DefaultActions). The actual TLS listener is
+    # ALBHTTPSListener — keeping a port 80 listener is the recommended way
+    # to handle clients that still hit http:// URLs.
+    Metadata:
+      cfn_nag:
+        rules_to_suppress:
+          - id: W56
+            reason: HTTP listener serves only 301 redirect to HTTPS; ALBHTTPSListener handles TLS
     Type: AWS::ElasticLoadBalancingV2::Listener
     Properties:
       DefaultActions:
