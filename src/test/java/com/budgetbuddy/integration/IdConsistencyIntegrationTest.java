@@ -40,6 +40,12 @@ import org.springframework.test.context.ActiveProfiles;
  * Integration tests for ID consistency across backend operations Verifies that IDs are generated
  * consistently and match between app and backend expectations
  */
+// SDK / Spring integration — the underlying APIs (AWS SDK, Plaid SDK,
+// Spring services, reflection) throw arbitrary RuntimeException subtypes
+// that can't reasonably be enumerated. Broad catches log + recover (or
+// translate to AppException). Suppress at class level since narrowing
+// here would mean catch (RuntimeException) which PMD flags identically.
+@SuppressWarnings("PMD.AvoidCatchingGenericException")
 @SpringBootTest(classes = com.budgetbuddy.BudgetBuddyApplication.class)
 @ActiveProfiles("test")
 @Import(AWSTestConfiguration.class)

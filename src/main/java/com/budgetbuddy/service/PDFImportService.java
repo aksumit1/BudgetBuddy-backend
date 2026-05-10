@@ -533,7 +533,7 @@ public class PDFImportService {
                     && pdfOcrService.isAvailable()) {
                 LOGGER.info("PDF has no extractable text — running OCR fallback");
                 final String ocrText = pdfOcrService.extractText(document);
-                if (ocrText != null && !ocrText.isBlank()) {
+                if (!ocrText.isBlank()) {
                     fullText = ocrText;
                     result.addInfo(
                             "This looked like a scanned PDF — we used OCR to read it. Some fields may be approximate.");
@@ -1799,7 +1799,7 @@ public class PDFImportService {
         if (accountDetectionService != null) {
             final List<String> institutionKeywords =
                     accountDetectionService.getInstitutionKeywordsForFiltering();
-            if (institutionKeywords != null && !institutionKeywords.isEmpty()) {
+            if (!institutionKeywords.isEmpty()) {
                 for (final String bankName : institutionKeywords) {
                     // Skip null or empty bank names
                     if (bankName == null || bankName.isBlank()) {
@@ -2678,14 +2678,13 @@ public class PDFImportService {
             validCandidates.add(candidate);
         }
 
-        // Separate all-caps candidates from mixed-case candidates for better preference logic
+        // Keep only all-caps candidates — mixed-case names (merchants, descriptions)
+        // are too noisy in this position-before-header heuristic. The dropped
+        // mixed-case set is intentionally not retained.
         final List<String> allCapsCandidates = new ArrayList<>();
-        final List<String> mixedCaseCandidates = new ArrayList<>();
         for (final String candidate : validCandidates) {
             if (candidate.equals(candidate.toUpperCase(Locale.ROOT)) && candidate.matches(".*[A-Z].*")) {
                 allCapsCandidates.add(candidate);
-            } else {
-                mixedCaseCandidates.add(candidate);
             }
         }
 
@@ -5262,7 +5261,7 @@ public class PDFImportService {
             final Map<String, String> row =
                     createTransactionRow(
                             dateStr, description, amountWithSymbol, null, inferredYear);
-            if (location != null && !location.isBlank()) {
+            if (!location.isBlank()) {
                 row.put("location", location.trim());
             }
             if (cardLastFour != null) {
@@ -5308,7 +5307,7 @@ public class PDFImportService {
 
             final Map<String, String> row =
                     createTransactionRow(dateStr, merchant, amountStr, null, inferredYear);
-            if (location != null && !location.isBlank()) {
+            if (!location.isBlank()) {
                 row.put("location", location.trim());
             }
             return row;
@@ -5670,7 +5669,7 @@ public class PDFImportService {
         final EnhancedPatternMatcher.MatchResult matchResult =
                 enhancedPatternMatcher.matchTransactionLine(line, inferredYear, isUSLocale);
 
-        if (matchResult != null && matchResult.isMatched()) {
+        if (matchResult.isMatched()) {
             final Map<String, String> fields = matchResult.getFields();
             // LOGGER.debug("SUM MATCH RESULT AMEX PATTERN = {}", fields);
             // Convert MatchResult to Map format expected by PDFImportService
@@ -5935,7 +5934,7 @@ public class PDFImportService {
             cleanedMerchantName = merchantName;
         }
         String resolvedMerchant =
-                cleanedMerchantName != null ? cleanedMerchantName : cleanedDescription;
+                cleanedMerchantName;
 
         // Prefer Amex Pattern 7's per-line structure when available. The row
         // keys _amexMerchantLine / _amexCityLine / _amexCountryLine are

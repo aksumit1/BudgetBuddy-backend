@@ -254,16 +254,22 @@ public class SubscriptionService {
                                         }
                                     }
 
-                                    // 5. Include all other expenses for recurring detection
-                                    // (mortgage, utilities, etc.)
-                                    // But skip very large one-time payments (likely not
-                                    // subscriptions)
-                                    // Assume subscriptions are typically < $1000/month
-                                    final BigDecimal amount = tx.getAmount();
-                                    if (amount != null
-                                            && amount.abs().compareTo(new BigDecimal("1000"))
-                                            <= 0) {
-                                        return true;
+                                    // 5. Include description-driven recurring matches
+                                    // (e.g. "Netflix subscription monthly" with no category set
+                                    // by the importer). The previous broader "any expense
+                                    // <$1000" catch-all picked up everyday charges (rides,
+                                    // groceries, gas) that happened to fall on a regular
+                                    // cadence and was the dominant source of false positives.
+                                    if (description != null) {
+                                        final String descLower = description.toLowerCase(Locale.ROOT);
+                                        if (descLower.contains("subscription")
+                                                || descLower.contains("membership")
+                                                || descLower.contains("recurring")
+                                                || descLower.contains("monthly")
+                                                || descLower.contains("annual")
+                                                || descLower.contains("yearly")) {
+                                            return true;
+                                        }
                                     }
 
                                     return false;

@@ -36,6 +36,10 @@ import software.amazon.awssdk.services.appconfigdata.model.StartConfigurationSes
  * <p>Features: - Automatic configuration refresh - JSON configuration parsing - Thread-safe
  * configuration access - Proper resource cleanup - Deadlock prevention
  */
+// SDK / Spring / reflection integration — broad catches translate any
+// runtime exception to AppException or log+swallow. Narrowing isn't
+// practical here, so suppress at class level.
+@SuppressWarnings("PMD.AvoidCatchingGenericException")
 @Configuration
 @org.springframework.boot.autoconfigure.condition.ConditionalOnProperty(
         name = "app.aws.appconfig.enabled",

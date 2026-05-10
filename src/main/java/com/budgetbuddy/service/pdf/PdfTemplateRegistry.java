@@ -61,6 +61,12 @@ import org.springframework.stereotype.Service;
  * pipeline is unaffected. Malformed YAML logs a WARN and is skipped — one bad template file can't
  * take down the whole service.
  */
+// SDK / Spring integration — the underlying APIs (AWS SDK, Plaid SDK,
+// Spring services, reflection) throw arbitrary RuntimeException subtypes
+// that can't reasonably be enumerated. Broad catches log + recover (or
+// translate to AppException). Suppress at class level since narrowing
+// here would mean catch (RuntimeException) which PMD flags identically.
+@SuppressWarnings("PMD.AvoidCatchingGenericException")
 @Service
 public class PdfTemplateRegistry {
 

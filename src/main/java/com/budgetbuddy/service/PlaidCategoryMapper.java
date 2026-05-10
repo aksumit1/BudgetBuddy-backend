@@ -662,7 +662,7 @@ public class PlaidCategoryMapper {
                 && !isACHCredit) {
             // Determine specific income category from description
             final String specificIncomeCategory = determineIncomeCategory(description, merchantName);
-            if (specificIncomeCategory != null && !"income".equals(specificIncomeCategory)) {
+            if (!"income".equals(specificIncomeCategory)) {
                 mappedDetailed = specificIncomeCategory;
                 LOGGER.debug(
                         "Enhanced mapping: determined specific income category '{}' from description/merchant",

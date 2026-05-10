@@ -25,6 +25,12 @@ import software.amazon.awssdk.services.secretsmanager.SecretsManagerClient;
  * <p>This configuration is automatically used when the "test" profile is active. Uses @Primary to
  * override production AWS client beans.
  */
+// SDK / Spring integration — the underlying APIs (AWS SDK, Plaid SDK,
+// Spring services, reflection) throw arbitrary RuntimeException subtypes
+// that can't reasonably be enumerated. Broad catches log + recover (or
+// translate to AppException). Suppress at class level since narrowing
+// here would mean catch (RuntimeException) which PMD flags identically.
+@SuppressWarnings("PMD.AvoidCatchingGenericException")
 @TestConfiguration
 @Profile("test")
 public class AWSTestConfiguration {

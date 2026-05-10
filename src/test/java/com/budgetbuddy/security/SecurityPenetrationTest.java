@@ -26,6 +26,12 @@ import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 /** Security Penetration Tests Tests for common security vulnerabilities */
 // Test methods declare `throws Exception` for setup convenience —
 // JUnit idiom; the rule is a noise generator on test classes.
+// SDK / Spring integration — the underlying APIs (AWS SDK, Plaid SDK,
+// Spring services, reflection) throw arbitrary RuntimeException subtypes
+// that can't reasonably be enumerated. Broad catches log + recover (or
+// translate to AppException). Suppress at class level since narrowing
+// here would mean catch (RuntimeException) which PMD flags identically.
+@SuppressWarnings("PMD.AvoidCatchingGenericException")
 @SuppressFBWarnings(
         value = "THROWS_METHOD_THROWS_CLAUSE_BASIC_EXCEPTION",
         justification = "JUnit idiom — test methods accept any setup exception")

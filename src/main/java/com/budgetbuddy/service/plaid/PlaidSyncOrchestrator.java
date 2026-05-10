@@ -19,6 +19,10 @@ import org.springframework.stereotype.Service;
  * Logs, and silent degradations (e.g., everything looks fine but 40% of users are failing) wouldn't
  * surface at all.
  */
+// SDK / Spring / reflection integration — broad catches translate any
+// runtime exception to AppException or log+swallow. Narrowing isn't
+// practical here, so suppress at class level.
+@SuppressWarnings("PMD.AvoidCatchingGenericException")
 @Service
 public class PlaidSyncOrchestrator {
 
@@ -69,9 +73,10 @@ public class PlaidSyncOrchestrator {
             if (cloudWatchService != null) {
                 cloudWatchService.putMetric(metric, value, Map.of("Flow", "PlaidSync"));
             }
-        } catch (Exception ignored) {
+        } catch (Exception e) {
             // CloudWatch failures (network, auth, throttling) must not fail the
             // sync; metrics are observability, not control flow.
+            LOGGER.debug("CloudWatch metric '{}' emission failed: {}", metric, e.getMessage());
         }
     }
 

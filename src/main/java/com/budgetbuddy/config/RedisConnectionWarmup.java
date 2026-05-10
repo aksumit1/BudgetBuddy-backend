@@ -39,12 +39,19 @@ public class RedisConnectionWarmup implements CommandLineRunner {
 
     @Override
     public void run(final String... args) {
+        // Spring's RedisTemplate.getConnectionFactory() is nullable when the
+        // template hasn't been wired with one. We treat it as a no-op warmup.
+        final var factory = redisTemplate.getConnectionFactory();
+        if (factory == null) {
+            LOGGER.debug("Redis connection factory not configured, skipping warmup");
+            return;
+        }
         try {
             // Pre-warm connection pool by performing a simple operation
             // This establishes connections in the pool (up to min-idle: 2)
             // Subsequent health checks will reuse these connections (fast!)
             final long startTime = System.currentTimeMillis();
-            redisTemplate.getConnectionFactory().getConnection().ping();
+            factory.getConnection().ping();
             final long duration = System.currentTimeMillis() - startTime;
 
             if (duration > 100) {
@@ -73,7 +80,7 @@ public class RedisConnectionWarmup implements CommandLineRunner {
                 try {
                     // Retry after clearing DNS cache
                     Thread.sleep(100); // Brief delay to allow DNS cache to clear
-                    redisTemplate.getConnectionFactory().getConnection().ping();
+                    factory.getConnection().ping();
                     LOGGER.debug("Redis connection warmup succeeded after DNS cache clear");
                 } catch (Exception retryException) {
                     LOGGER.debug(

@@ -162,8 +162,8 @@ public class DeploymentSafetyService {
         final String healthUrl = baseUrl + "/actuator/health";
         final ResponseEntity<String> response = restTemplate.getForEntity(healthUrl, String.class);
 
-        if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
-            final String body = response.getBody();
+        final String body = response.getBody();
+        if (response.getStatusCode() == HttpStatus.OK && body != null) {
             return body.contains("\"status\":\"UP\"") || body.contains("\"status\":\"up\"");
         }
 

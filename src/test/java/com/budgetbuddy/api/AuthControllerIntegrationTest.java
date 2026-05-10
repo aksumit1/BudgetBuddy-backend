@@ -33,7 +33,7 @@ import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 // standard library types (BigDecimal, String, Optional) and DTO
 // getters; this class has many such idiomatic uses. Suppress at
 // class level rather than littering every method.
-@SuppressWarnings("PMD.LawOfDemeter")
+@SuppressWarnings({"PMD.LawOfDemeter", "PMD.AvoidCatchingGenericException"})
 @SpringBootTest(
         classes = com.budgetbuddy.BudgetBuddyApplication.class,
         webEnvironment = org.springframework.boot.test.context.SpringBootTest.WebEnvironment.MOCK)

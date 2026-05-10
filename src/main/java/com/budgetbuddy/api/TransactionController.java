@@ -489,7 +489,7 @@ public class TransactionController {
             try {
                 final com.budgetbuddy.model.dynamodb.GoalTable goal =
                         goalService.getGoal(user, request.getGoalId());
-                if (goal != null && Boolean.TRUE.equals(goal.getCompleted())) {
+                if (Boolean.TRUE.equals(goal.getCompleted())) {
                     throw new AppException(
                             ErrorCode.GOAL_ALREADY_COMPLETED,
                             "Goal \""
@@ -968,7 +968,11 @@ public class TransactionController {
 
             // 3. Read file content into byte array (for multiple reads)
             final byte[] fileContent = file.getBytes();
-            final String fileName = file.getOriginalFilename();
+            // Spring's MultipartFile.getOriginalFilename() can return null
+            // (browser oddity, multipart parser quirk); fall back so downstream
+            // checksum / quarantine paths always have a non-null label.
+            final String originalName = file.getOriginalFilename();
+            final String fileName = originalName != null ? originalName : "unnamed-upload";
 
             // 4. Content scanning
             try (InputStream inputStream = new ByteArrayInputStream(fileContent)) {
@@ -2910,12 +2914,12 @@ public class TransactionController {
                                 user.getUserId(), parsedForDuplicateCheck);
 
                 // Log duplicate detection results
-                final int duplicateCount = duplicates != null ? duplicates.size() : 0;
+                final int duplicateCount = duplicates.size();
                 LOGGER.info(
                         "🔍 PDF Preview - Duplicate detection: {} transactions with duplicates out of {} total",
                         duplicateCount,
                         parsedForDuplicateCheck.size());
-                if (duplicateCount > 0 && duplicates != null) {
+                if (duplicateCount > 0) {
                     for (final Map.Entry<Integer, List<DuplicateDetectionService.DuplicateMatch>> entry :
                             duplicates.entrySet()) {
                         LOGGER.info(
@@ -3042,7 +3046,7 @@ public class TransactionController {
                             // preview display)
                             // The actual update will happen during import via
                             // updateAccountMetadataFromPDFImport
-                            if (importResult != null && importResult.getPaymentDueDate() != null) {
+                            if (importResult.getPaymentDueDate() != null) {
                                 // Use import result metadata if available (newer statement)
                                 accountInfo.setPaymentDueDate(importResult.getPaymentDueDate());
                                 accountInfo.setMinimumPaymentDue(
@@ -3117,7 +3121,7 @@ public class TransactionController {
                     response.setDetectedAccount(accountInfo);
 
                     // Log balance in detected account for debugging
-                    if (accountInfo != null && accountInfo.getBalance() != null) {
+                    if (accountInfo.getBalance() != null) {
                         LOGGER.info(
                                 "✅ [PDF Preview] Detected account balance included in response: {}",
                                 accountInfo.getBalance());
@@ -3996,7 +4000,7 @@ public class TransactionController {
                 // CRITICAL: Validate similarity and reason are not null
                 final Double similarity = bestMatch.getSimilarity();
                 final String reason = bestMatch.getMatchReason();
-                txMap.put("duplicateSimilarity", similarity != null ? similarity : 1.0);
+                txMap.put("duplicateSimilarity", similarity);
                 txMap.put(
                         "duplicateReason",
                         reason != null && !reason.isBlank() ? reason.trim() : "Exact match");

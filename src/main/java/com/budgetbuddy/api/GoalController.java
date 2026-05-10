@@ -41,7 +41,7 @@ import org.springframework.web.bind.annotation.RestController;
 @SuppressFBWarnings(
         value = "EI_EXPOSE_REP2",
         justification = "Spring constructor injection — beans are shared by design")
-@SuppressWarnings("PMD.LawOfDemeter")
+@SuppressWarnings({"PMD.LawOfDemeter", "PMD.AvoidCatchingGenericException"})
 @RestController
 @RequestMapping("/api/goals")
 public class GoalController {
@@ -142,8 +142,11 @@ public class GoalController {
         try {
             dataChangeNotificationService.notifyGoalMilestoneReached(
                     user.getUserId(), updated.getGoalId(), updated.getName(), 100, true);
-        } catch (@SuppressWarnings("PMD.AvoidCatchingGenericException") Exception ignored) {
-            // intentional: best-effort push, request must still succeed
+        } catch (@SuppressWarnings("PMD.AvoidCatchingGenericException") Exception e) {
+            org.slf4j.LoggerFactory.getLogger(GoalController.class)
+                    .debug(
+                            "Goal-milestone notification failed (best-effort, request not aborted): {}",
+                            e.getMessage());
         }
         auditInterceptor.goalChanged(user.getUserId(), id, "COMPLETE", "Manual mark complete");
         return ResponseEntity.ok(updated);

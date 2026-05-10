@@ -25,6 +25,12 @@ import software.amazon.awssdk.services.secretsmanager.SecretsManagerClient;
 @Configuration
 @org.springframework.context.annotation.Profile(
         "!test") // Don't load in tests - use AWSTestConfiguration instead
+// SDK / Spring integration — the underlying APIs (AWS SDK, Plaid SDK,
+// Spring services, reflection) throw arbitrary RuntimeException subtypes
+// that can't reasonably be enumerated. Broad catches log + recover (or
+// translate to AppException). Suppress at class level since narrowing
+// here would mean catch (RuntimeException) which PMD flags identically.
+@SuppressWarnings("PMD.AvoidCatchingGenericException")
 public class AwsServicesConfig {
 
     @Value("${app.aws.region:us-east-1}")

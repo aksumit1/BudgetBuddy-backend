@@ -300,7 +300,7 @@ public class EnhancedCategoryDetectionService {
             // so the fuzzy matcher sees the actual merchant signal rather than the envelope.
             if (fuzzyMatchText != null) {
                 final String cleaned = TextNormalizer.cleanMerchantText(fuzzyMatchText);
-                if (cleaned != null && !cleaned.isEmpty()) {
+                if (!cleaned.isEmpty()) {
                     fuzzyMatchText = cleaned;
                 }
             }

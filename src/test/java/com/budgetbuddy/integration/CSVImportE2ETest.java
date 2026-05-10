@@ -48,7 +48,7 @@ import org.springframework.test.web.servlet.MvcResult;
 @SuppressFBWarnings(
         value = "VA_FORMAT_STRING_USES_NEWLINE",
         justification = "literal LF in CSV / wire format, not platform newline")
-@SuppressWarnings("PMD.LawOfDemeter")
+@SuppressWarnings({"PMD.LawOfDemeter", "PMD.AvoidCatchingGenericException"})
 @SpringBootTest
 @ActiveProfiles("test")
 @AutoConfigureMockMvc

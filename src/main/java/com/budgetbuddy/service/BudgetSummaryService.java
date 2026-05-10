@@ -115,6 +115,14 @@ public class BudgetSummaryService {
             if (t.getDeletedAt() != null) {
                 continue;
             }
+            // Filter to the current cycle window. The DB-driven path (buildOne) hands us
+            // a pre-filtered list, but buildOneAt — used by the parity fixture and any
+            // future caller that already has rows in memory — doesn't, and silently
+            // counted prior-month transactions until this guard was added.
+            final LocalDate txDate = parseTxDate(t.getTransactionDate());
+            if (txDate == null || txDate.isBefore(start) || txDate.isAfter(end)) {
+                continue;
+            }
             final boolean categoryMatch =
                     Objects.equals(t.getCategoryPrimary(), b.getCategory())
                             || Objects.equals(t.getCategoryDetailed(), b.getCategory());
@@ -177,6 +185,17 @@ public class BudgetSummaryService {
         // exclusive-end form so [start, end) is the canonical public interface.
         dto.cycleEnd = end.plusDays(1).format(DATE);
         return dto;
+    }
+
+    private static LocalDate parseTxDate(final String date) {
+        if (date == null || date.isEmpty()) {
+            return null;
+        }
+        try {
+            return LocalDate.parse(date, DATE);
+        } catch (java.time.format.DateTimeParseException e) {
+            return null;
+        }
     }
 
     private LocalDate[] cycleWindow(final String period, final LocalDate today) {

@@ -13,7 +13,7 @@ import org.springframework.stereotype.Service;
  */
 // NotificationService.NotificationType.* enum field access is flagged by
 // PMD's LawOfDemeter — false positive on standard enum dispatch.
-@SuppressWarnings("PMD.LawOfDemeter")
+@SuppressWarnings({"PMD.LawOfDemeter", "PMD.AvoidCatchingGenericException"})
 @Service
 public class DataChangeNotificationService {
 

@@ -19,6 +19,12 @@ import software.amazon.awssdk.services.dynamodb.model.ProvisionedThroughputExcee
  * <p>ENHANCED: Now handles DynamoDB-specific errors (throttling, service errors) with intelligent
  * retry logic
  */
+// SDK / Spring integration — the underlying APIs (AWS SDK, Plaid SDK,
+// Spring services, reflection) throw arbitrary RuntimeException subtypes
+// that can't reasonably be enumerated. Broad catches log + recover (or
+// translate to AppException). Suppress at class level since narrowing
+// here would mean catch (RuntimeException) which PMD flags identically.
+@SuppressWarnings("PMD.AvoidCatchingGenericException")
 public final class RetryHelper {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(RetryHelper.class);

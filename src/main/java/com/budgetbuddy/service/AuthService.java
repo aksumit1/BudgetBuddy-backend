@@ -118,7 +118,7 @@ public class AuthService {
                     request.getEmail(),
                     request.getPasswordHash() != null ? request.getPasswordHash().length() : 0,
                     user.getPasswordHash() != null ? user.getPasswordHash().length() : 0,
-                    serverSalt != null ? serverSalt.length() : 0);
+                    serverSalt.length());
 
             // BREAKING CHANGE: No longer requires client salt
             // Standard verification (works for both new and old methods - iOS client handles

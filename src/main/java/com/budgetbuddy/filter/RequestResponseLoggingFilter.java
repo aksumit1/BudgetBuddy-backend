@@ -275,7 +275,7 @@ public class RequestResponseLoggingFilter extends OncePerRequestFilter {
             } else {
                 // For non-multipart, try to get body
                 final byte[] bodyBytes = request.getContentAsByteArray();
-                if (bodyBytes != null && bodyBytes.length > 0) {
+                if (bodyBytes.length > 0) {
                     body = getSanitizedBody(bodyBytes, contentType);
                 }
             }

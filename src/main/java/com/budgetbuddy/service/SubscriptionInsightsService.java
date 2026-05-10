@@ -25,6 +25,12 @@ import org.springframework.stereotype.Service;
 // SpotBugs flags constructor-injected Spring beans as EI_EXPOSE_REP2,
 // but Spring's IoC container intentionally shares the same bean across
 // callers — defensive-copying it would break dependency injection.
+// SDK / Spring integration — the underlying APIs (AWS SDK, Plaid SDK,
+// Spring services, reflection) throw arbitrary RuntimeException subtypes
+// that can't reasonably be enumerated. Broad catches log + recover (or
+// translate to AppException). Suppress at class level since narrowing
+// here would mean catch (RuntimeException) which PMD flags identically.
+@SuppressWarnings("PMD.AvoidCatchingGenericException")
 @SuppressFBWarnings(
         value = "EI_EXPOSE_REP2",
         justification = "Spring constructor injection — beans are shared by design")

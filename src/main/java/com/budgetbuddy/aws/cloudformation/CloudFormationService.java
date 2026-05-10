@@ -38,7 +38,7 @@ import software.amazon.awssdk.services.cloudformation.model.StackSummary;
         justification = "Spring constructor injection — beans are shared by design")
 @SuppressWarnings("PMD.AvoidCatchingGenericException")
 @Service
-public final class CloudFormationService {
+public class CloudFormationService {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(CloudFormationService.class);
 

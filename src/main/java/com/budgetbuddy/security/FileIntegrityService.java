@@ -12,6 +12,12 @@ import org.springframework.stereotype.Service;
  * File integrity service for checksum generation and verification Provides: - SHA-256 checksums for
  * uploaded files - Checksum verification - Checksum storage and lookup
  */
+// SDK / Spring integration — the underlying APIs (AWS SDK, Plaid SDK,
+// Spring services, reflection) throw arbitrary RuntimeException subtypes
+// that can't reasonably be enumerated. Broad catches log + recover (or
+// translate to AppException). Suppress at class level since narrowing
+// here would mean catch (RuntimeException) which PMD flags identically.
+@SuppressWarnings("PMD.AvoidCatchingGenericException")
 @Service
 public class FileIntegrityService {
 

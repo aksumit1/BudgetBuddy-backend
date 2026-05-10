@@ -139,15 +139,17 @@ public class WeeklyDigestService {
             }
         }
 
-        final Map<String, Object> data = new HashMap<>();
-        data.put("entityType", "weekly-digest");
-        data.put("spent", spent);
-        data.put("income", income);
-        data.put("overBudget", overBudget);
-        data.put("goalsOnTrack", goalsOnTrack);
-        // We don't yet have a DataChangeNotificationService method for this; reuse
-        // notifyGoalMilestoneReached with a composite label. A purpose-built method
-        // can land later.
+        // Stats (spent / income / overBudget / goalsOnTrack) are computed for the
+        // digest but the current DataChangeNotificationService only exposes a
+        // milestone API that takes a label. A purpose-built digest payload is a
+        // future step (Flow 7 / O14 follow-up); for now we ship the label only.
+        LOGGER.debug(
+                "Weekly digest summary for {}: spent={} income={} overBudget={} goalsOnTrack={}",
+                user.getUserId(),
+                spent,
+                income,
+                overBudget,
+                goalsOnTrack);
         notificationService.notifyGoalMilestoneReached(
                 user.getUserId(),
                 "weekly-digest-" + LocalDate.now(),

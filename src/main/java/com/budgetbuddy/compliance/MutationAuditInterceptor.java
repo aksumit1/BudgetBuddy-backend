@@ -19,6 +19,10 @@ import org.springframework.stereotype.Component;
  * The interceptor derives the "what changed" diff and routes to {@link AuditLogService}. Failures
  * here never throw back to the user — analytics shouldn't be able to break a save.
  */
+// SDK / Spring / reflection integration — broad catches translate any
+// runtime exception to AppException or log+swallow. Narrowing isn't
+// practical here, so suppress at class level.
+@SuppressWarnings("PMD.AvoidCatchingGenericException")
 @Component
 public class MutationAuditInterceptor {
 

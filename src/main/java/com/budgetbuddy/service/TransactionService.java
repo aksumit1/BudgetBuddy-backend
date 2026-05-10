@@ -494,7 +494,7 @@ public class TransactionService {
                 response.setFailed(response.getFailed() + 1);
                 // CRITICAL: Handle case where request might be null (defensive programming)
                 final String transactionDesc =
-                        request != null && request.getDescription() != null
+                        request.getDescription() != null
                                 ? request.getDescription()
                                 : "unknown";
                 final String errorMsg =
@@ -831,7 +831,7 @@ public class TransactionService {
                             transactionTypeIndicator,
                             description,
                             paymentChannel);
-            if (typeResult != null && typeResult.getTransactionType() != null) {
+            if (typeResult.getTransactionType() != null) {
                 return typeResult.getTransactionType();
             }
         } catch (Exception e) {
@@ -1454,7 +1454,7 @@ public class TransactionService {
                 // consistently
                 // Don't use transaction.getTransactionDate() as it hasn't been set yet
                 final String transactionDateStr =
-                        transactionDate != null ? transactionDate.format(DATE_FORMATTER) : "";
+                        transactionDate.format(DATE_FORMATTER);
                 String cleanedDescriptionForKey = removeNamesFromText(description, userName);
                 if (cleanedDescriptionForKey == null || cleanedDescriptionForKey.isEmpty()) {
                     cleanedDescriptionForKey = description != null ? description : "";
@@ -2040,7 +2040,9 @@ public class TransactionService {
         final LocalDate date;
         try {
             date = LocalDate.parse(transactionDateStr, DATE_FORMATTER);
-        } catch (Exception e) {
+        } catch (java.time.format.DateTimeParseException e) {
+            // Best-effort linking pass; an unparsable date just skips this row.
+            LOGGER.debug("attemptLinkPaymentTransaction: unparsable date '{}'", transactionDateStr);
             return;
         }
         final String startDate = date.minusDays(3).format(DATE_FORMATTER);

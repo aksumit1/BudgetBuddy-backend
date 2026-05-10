@@ -229,7 +229,7 @@ public class TransactionTypeCategoryService {
             } else if (amount.compareTo(BigDecimal.ZERO) < 0) {
                 LOGGER.debug(
                         "Transaction type determined from account type string: Credit card payment (negative) → PAYMENT");
-                return new TypeResult(TransactionType.EXPENSE, "ACCOUNT_TYPE", 0.95);
+                return new TypeResult(TransactionType.PAYMENT, "ACCOUNT_TYPE", 0.95);
             }
         }
 
@@ -238,11 +238,11 @@ public class TransactionTypeCategoryService {
         // -amount = EXPENSE (fees) or INVESTMENT (purchases)
         // Use category/description to distinguish fees from purchases
         if (accountInfo.isInvestment) {
-            if (amount != null && amount.compareTo(BigDecimal.ZERO) > 0) {
+            if (amount.compareTo(BigDecimal.ZERO) > 0) {
                 LOGGER.debug(
                         "Transaction type determined from account type string: Investment account positive amount → INCOME");
                 return new TypeResult(TransactionType.INCOME, "ACCOUNT_TYPE", 0.95);
-            } else if (amount != null && amount.compareTo(BigDecimal.ZERO) < 0) {
+            } else if (amount.compareTo(BigDecimal.ZERO) < 0) {
                 // Check if it's a fee or purchase (simplified - full logic in
                 // determineTransactionType)
 
@@ -276,7 +276,7 @@ public class TransactionTypeCategoryService {
         // +amount = PAYMENT (if payment keywords) or CREDIT (disbursement)
         // -amount = EXPENSE (fees)
         if (accountInfo.isLoan) {
-            if (amount != null && amount.compareTo(BigDecimal.ZERO) > 0) {
+            if (amount.compareTo(BigDecimal.ZERO) > 0) {
                 // Check if it's a payment using existing helper
 
                 // Create a temporary account object for isLoanPayment check
@@ -295,7 +295,7 @@ public class TransactionTypeCategoryService {
                             "Transaction type determined from account type string: Loan account credit/disbursement → PAYMENT");
                     return new TypeResult(TransactionType.PAYMENT, "ACCOUNT_TYPE", 0.90);
                 }
-            } else if (amount != null && amount.compareTo(BigDecimal.ZERO) < 0) {
+            } else if (amount.compareTo(BigDecimal.ZERO) < 0) {
                 LOGGER.debug(
                         "Transaction type determined from account type string: Loan account fee/charge → EXPENSE");
                 return new TypeResult(TransactionType.EXPENSE, "ACCOUNT_TYPE", 0.95);
@@ -379,7 +379,7 @@ public class TransactionTypeCategoryService {
                             amount,
                             description != null ? description : "null",
                             categoryPrimary != null ? categoryPrimary : "null",
-                            account != null ? account.getAccountName() : "null");
+                            account.getAccountName());
                     return new TypeResult(TransactionType.EXPENSE, "ACCOUNT_TYPE", 0.95);
                 } else if (amount != null && amount.compareTo(BigDecimal.ZERO) < 0) {
                     // CRITICAL FIX: Check if category is an expense category (dining, shopping,
@@ -429,7 +429,7 @@ public class TransactionTypeCategoryService {
                                     amount,
                                     description != null ? description : "null",
                                     categoryPrimary,
-                                    account != null ? account.getAccountName() : "null",
+                                    account.getAccountName(),
                                     isPaymentKeyword,
                                     isPaymentCategory);
                             return new TypeResult(
@@ -443,7 +443,7 @@ public class TransactionTypeCategoryService {
                                     amount,
                                     description != null ? description : "null",
                                     categoryPrimary,
-                                    account != null ? account.getAccountName() : "null");
+                                    account.getAccountName());
                             return new TypeResult(
                                     TransactionType.EXPENSE, "CATEGORY_OVERRIDE", 0.95);
                         }
@@ -454,7 +454,7 @@ public class TransactionTypeCategoryService {
                                 amount,
                                 description != null ? description : "null",
                                 categoryPrimary,
-                                account != null ? account.getAccountName() : "null");
+                                account.getAccountName());
                         return new TypeResult(TransactionType.PAYMENT, "CATEGORY_OVERRIDE", 0.95);
                     }
 
@@ -466,7 +466,7 @@ public class TransactionTypeCategoryService {
                                 amount,
                                 description != null ? description : "null",
                                 categoryPrimary != null ? categoryPrimary : "null",
-                                account != null ? account.getAccountName() : "null");
+                                account.getAccountName());
                         return new TypeResult(TransactionType.PAYMENT, "CATEGORY_OVERRIDE", 0.95);
                     }
 
@@ -478,7 +478,7 @@ public class TransactionTypeCategoryService {
                             amount,
                             description != null ? description : "null",
                             categoryPrimary != null ? categoryPrimary : "null",
-                            account != null ? account.getAccountName() : "null");
+                            account.getAccountName());
                     return new TypeResult(TransactionType.EXPENSE, "ACCOUNT_TYPE", 0.90);
                 }
             }
@@ -1005,13 +1005,24 @@ public class TransactionTypeCategoryService {
         final boolean importerIsAuthoritative =
                 isAuthoritativeImporterCategory(importerCategoryPrimary)
                         || isAuthoritativeImporterCategory(importerCategoryDetailed);
+        // Check corroboration against BOTH primary and detailed (when both are
+        // authoritative) — e.g. importer="income"/"interest" + description="Interest
+        // payment" must corroborate via the "interest" token, not silently fall
+        // through because "income"'s tokens (payroll/salary/etc.) didn't match.
         final boolean importerCorroborated =
                 importerIsAuthoritative
-                        && descriptionCorroboratesAuthoritativeCategory(
-                        pickAuthoritativeCategory(
-                                importerCategoryPrimary, importerCategoryDetailed),
-                        merchantName,
-                        description);
+                        && (descriptionCorroboratesAuthoritativeCategory(
+                                isAuthoritativeImporterCategory(importerCategoryPrimary)
+                                        ? importerCategoryPrimary.trim().toLowerCase(Locale.ROOT)
+                                        : null,
+                                merchantName,
+                                description)
+                            || descriptionCorroboratesAuthoritativeCategory(
+                                isAuthoritativeImporterCategory(importerCategoryDetailed)
+                                        ? importerCategoryDetailed.trim().toLowerCase(Locale.ROOT)
+                                        : null,
+                                merchantName,
+                                description));
         if (!importerCorroborated && merchantCategoryDataService != null) {
             final String ruleCategory =
                     merchantCategoryDataService.detectRuleBasedCategory(
@@ -1204,7 +1215,20 @@ public class TransactionTypeCategoryService {
             LOGGER.info(
                     "Demoting spurious 'payment' classification for merchant='{}' (no payment-action phrase)",
                     merchantName);
-            resolved = new CategoryResult("other", "other", "PAYMENT_GUARD", 0.40);
+            // If the importer gave us a specific (non-other) category, prefer it over a blank
+            // "other" — otherwise downstream ML noise erases what the parser already knew
+            // (e.g. an investment/CD row demoted to "other" because "Bank" matched "payment").
+            final String fallbackPrimary =
+                    hasSpecificCategory(mappedImporterPrimary)
+                            ? mappedImporterPrimary
+                            : (hasSpecificCategory(mappedImporterDetailed)
+                                    ? mappedImporterDetailed
+                                    : "other");
+            final String fallbackDetailed =
+                    hasSpecificCategory(mappedImporterDetailed)
+                            ? mappedImporterDetailed
+                            : fallbackPrimary;
+            resolved = new CategoryResult(fallbackPrimary, fallbackDetailed, "PAYMENT_GUARD", 0.40);
         }
 
         LOGGER.info(

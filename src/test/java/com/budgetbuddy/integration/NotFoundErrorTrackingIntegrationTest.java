@@ -46,7 +46,7 @@ import org.springframework.test.web.servlet.MockMvc;
 @SuppressFBWarnings(
         value = "THROWS_METHOD_THROWS_CLAUSE_BASIC_EXCEPTION",
         justification = "JUnit idiom — test methods accept any setup exception")
-@SuppressWarnings("PMD.LawOfDemeter")
+@SuppressWarnings({"PMD.LawOfDemeter", "PMD.AvoidCatchingGenericException"})
 @SpringBootTest(
         classes = com.budgetbuddy.BudgetBuddyApplication.class,
         webEnvironment = org.springframework.boot.test.context.SpringBootTest.WebEnvironment.MOCK)

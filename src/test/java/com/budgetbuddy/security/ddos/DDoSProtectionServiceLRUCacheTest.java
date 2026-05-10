@@ -25,6 +25,10 @@ import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
  */
 // Test methods declare `throws Exception` for setup convenience —
 // JUnit idiom; the rule is a noise generator on test classes.
+// SDK / Spring / reflection integration — broad catches translate any
+// runtime exception to AppException or log+swallow. Narrowing isn't
+// practical here, so suppress at class level.
+@SuppressWarnings("PMD.AvoidCatchingGenericException")
 @SuppressFBWarnings(
         value = "THROWS_METHOD_THROWS_CLAUSE_BASIC_EXCEPTION",
         justification = "JUnit idiom — test methods accept any setup exception")
@@ -58,7 +62,7 @@ class DDoSProtectionServiceLRUCacheTest {
         final java.lang.reflect.Field cacheField =
                 DDoSProtectionService.class.getDeclaredField("inMemoryCache");
         cacheField.setAccessible(true);
-        @SuppressWarnings("unchecked") final
+        @SuppressWarnings({"unchecked", "PMD.AvoidCatchingGenericException"}) final
                 java.util.Map<String, ?> cache =
                 (java.util.Map<String, ?>) cacheField.get(ddosProtectionService);
         if (cache != null) {

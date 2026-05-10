@@ -1,6 +1,7 @@
 package com.budgetbuddy.config;
 
 import com.github.benmanes.caffeine.cache.Caffeine;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.concurrent.TimeUnit;
 import org.springframework.cache.CacheManager;
 import org.springframework.cache.annotation.CachingConfigurer;
@@ -32,6 +33,12 @@ public class CacheConfig implements CachingConfigurer {
      * Dedicated managers (analytics) must be referenced by name via {@code @Cacheable(cacheManager
      * = "...")}.
      */
+    // CachingConfigurer.cacheManager() is declared @Nullable in the interface,
+    // so SpotBugs flags the call here as possibly-null. Our concrete override
+    // never returns null (it always returns a fresh CaffeineCacheManager).
+    @SuppressFBWarnings(
+            value = "NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE",
+            justification = "cacheManager() is overridden in this class and always returns non-null")
     @Override
     public CacheResolver cacheResolver() {
         return new SimpleCacheResolver(cacheManager());

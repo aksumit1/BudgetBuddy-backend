@@ -34,9 +34,13 @@ import org.springframework.stereotype.Service;
 // SpotBugs flags constructor-injected Spring beans as EI_EXPOSE_REP2,
 // but Spring's IoC container intentionally shares the same bean across
 // callers — defensive-copying it would break dependency injection.
+// Test methods declare `throws Exception` for setup convenience —
+// JUnit idiom; the rule is a noise generator on test classes.
 @SuppressFBWarnings(
-        value = "EI_EXPOSE_REP2",
-        justification = "Spring constructor injection — beans are shared by design")
+        value = {"THROWS_METHOD_THROWS_CLAUSE_BASIC_EXCEPTION", "EI_EXPOSE_REP2"},
+        justification =
+                "Apache POI / IO methods throw checked Exception; "
+                        + "Spring constructor injection — beans are shared by design")
 @SuppressWarnings({"PMD.LawOfDemeter", "PMD.AvoidCatchingGenericException"})
 @Service
 public class ExcelImportService {

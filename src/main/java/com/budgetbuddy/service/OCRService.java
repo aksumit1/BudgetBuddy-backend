@@ -23,8 +23,14 @@ import org.springframework.stereotype.Service;
  *
  * <p>Supports multiple languages for global financial statements
  */
+// SDK / Spring integration — the underlying APIs (AWS SDK, Plaid SDK,
+// Spring services, reflection) throw arbitrary RuntimeException subtypes
+// that can't reasonably be enumerated. Broad catches log + recover (or
+// translate to AppException). Suppress at class level since narrowing
+// here would mean catch (RuntimeException) which PMD flags identically.
+@SuppressWarnings("PMD.AvoidCatchingGenericException")
 @Service
-public final class OCRService {
+public class OCRService {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(OCRService.class);
 

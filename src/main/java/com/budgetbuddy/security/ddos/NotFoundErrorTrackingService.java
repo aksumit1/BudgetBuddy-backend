@@ -51,7 +51,7 @@ import software.amazon.awssdk.services.dynamodb.model.UpdateTimeToLiveRequest;
         justification = "Spring constructor injection — beans are shared by design")
 @SuppressWarnings("PMD.AvoidCatchingGenericException")
 @Service
-public final class NotFoundErrorTrackingService {
+public class NotFoundErrorTrackingService {
 
     private static final Logger LOGGER =
             LoggerFactory.getLogger(NotFoundErrorTrackingService.class);

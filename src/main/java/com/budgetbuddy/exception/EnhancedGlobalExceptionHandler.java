@@ -110,6 +110,15 @@ public class EnhancedGlobalExceptionHandler {
             final HttpRequestMethodNotSupportedException ex, final WebRequest request) {
         final String correlationId = MDC.get("correlationId");
 
+        // getSupportedHttpMethods() is @Nullable per Spring's API contract.
+        final var supported = ex.getSupportedHttpMethods();
+        final String supportedList =
+                supported == null
+                        ? "(unknown)"
+                        : String.join(
+                                ", ",
+                                supported.stream().map(method -> method.name()).toList());
+
         final ErrorResponse errorResponse =
                 ErrorResponse.builder()
                         .errorCode("METHOD_NOT_ALLOWED")
@@ -117,11 +126,7 @@ public class EnhancedGlobalExceptionHandler {
                                 "Request method '"
                                         + ex.getMethod()
                                         + "' is not supported for this endpoint. Supported methods: "
-                                        + String.join(
-                                        ", ",
-                                        ex.getSupportedHttpMethods().stream()
-                                                .map(method -> method.name())
-                                                .toList()))
+                                        + supportedList)
                         .correlationId(correlationId)
                         .timestamp(Instant.now())
                         .path(request.getDescription(false).replace("uri=", ""))
@@ -243,8 +248,10 @@ public class EnhancedGlobalExceptionHandler {
             final HttpMediaTypeNotSupportedException ex, final WebRequest request) {
         final String correlationId = MDC.get("correlationId");
 
-        final String contentType =
-                ex.getContentType() != null ? ex.getContentType().toString() : "unknown";
+        // Store getContentType() once — calling it twice can race a non-null
+        // check vs a null deref (SpotBugs flagged this).
+        final org.springframework.http.MediaType ct = ex.getContentType();
+        final String contentType = ct != null ? ct.toString() : "unknown";
         final String supportedTypes =
                 ex.getSupportedMediaTypes() != null && !ex.getSupportedMediaTypes().isEmpty()
                         ? String.join(

@@ -18,12 +18,18 @@ import software.amazon.awssdk.enhanced.dynamodb.model.QueryConditional;
 /**
  * DynamoDB Repository for Import History Tracks all import operations for audit trail and history
  */
+// SDK / Spring integration — the underlying APIs (AWS SDK, Plaid SDK,
+// Spring services, reflection) throw arbitrary RuntimeException subtypes
+// that can't reasonably be enumerated. Broad catches log + recover (or
+// translate to AppException). Suppress at class level since narrowing
+// here would mean catch (RuntimeException) which PMD flags identically.
+@SuppressWarnings("PMD.AvoidCatchingGenericException")
 @Repository
 @org.springframework.context.annotation.DependsOn({
     "dynamoDBTableManager",
     "dynamoDbEnhancedClient"
 })
-public final class ImportHistoryRepository {
+public class ImportHistoryRepository {
 
     private final DynamoDbTable<ImportHistoryTable> importHistoryTable;
     private final DynamoDbIndex<ImportHistoryTable> userIdIndex;

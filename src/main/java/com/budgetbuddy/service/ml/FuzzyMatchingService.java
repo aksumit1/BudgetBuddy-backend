@@ -21,6 +21,12 @@ import org.springframework.stereotype.Service;
  * fuzzy search (50% weight) - handles word order variations using Jaro-Winkler on tokens -
  * Normalization (handles case, punctuation, abbreviations)
  */
+// SDK / Spring integration — the underlying APIs (AWS SDK, Plaid SDK,
+// Spring services, reflection) throw arbitrary RuntimeException subtypes
+// that can't reasonably be enumerated. Broad catches log + recover (or
+// translate to AppException). Suppress at class level since narrowing
+// here would mean catch (RuntimeException) which PMD flags identically.
+@SuppressWarnings("PMD.AvoidCatchingGenericException")
 @Service("mlFuzzyMatchingService")
 public class FuzzyMatchingService {
 

@@ -42,7 +42,7 @@ import software.amazon.awssdk.services.dynamodb.model.UpdateTimeToLiveRequest;
         justification = "Spring constructor injection — beans are shared by design")
 @SuppressWarnings("PMD.AvoidCatchingGenericException")
 @Service
-public final class DeviceAttestationService {
+public class DeviceAttestationService {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(DeviceAttestationService.class);
 

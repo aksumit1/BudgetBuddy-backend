@@ -41,11 +41,15 @@ import software.amazon.awssdk.services.dynamodb.model.UpdateTimeToLiveRequest;
 // SpotBugs flags constructor-injected Spring beans as EI_EXPOSE_REP2,
 // but Spring's IoC container intentionally shares the same bean across
 // callers — defensive-copying it would break dependency injection.
+// SDK / Spring / reflection integration — broad catches translate any
+// runtime exception to AppException or log+swallow. Narrowing isn't
+// practical here, so suppress at class level.
+@SuppressWarnings("PMD.AvoidCatchingGenericException")
 @SuppressFBWarnings(
         value = "EI_EXPOSE_REP2",
         justification = "Spring constructor injection — beans are shared by design")
 @Service
-public final class DDoSProtectionService {
+public class DDoSProtectionService {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(DDoSProtectionService.class);
 

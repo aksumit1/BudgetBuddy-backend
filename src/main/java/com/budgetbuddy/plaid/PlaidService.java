@@ -44,8 +44,11 @@ import org.springframework.stereotype.Service;
 @SuppressFBWarnings(
         value = "EI_EXPOSE_REP2",
         justification = "Spring constructor injection — beans are shared by design")
+// Plaid SDK calls + reflection bootstrap — broad catches translate any
+// runtime/SDK exception into AppException; narrowing is impractical here.
+@SuppressWarnings("PMD.AvoidCatchingGenericException")
 @Service
-public final class PlaidService {
+public class PlaidService {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(PlaidService.class);
 
@@ -786,7 +789,7 @@ public final class PlaidService {
         } catch (Exception e) {
             LOGGER.error(
                     "Plaid: Failed to get transactions (accessToken length: {}, startDate: {}, endDate: {}): {}",
-                    accessToken != null ? accessToken.length() : 0,
+                    accessToken.length(),
                     startDate,
                     endDate,
                     e.getMessage(),
@@ -814,7 +817,7 @@ public final class PlaidService {
         try {
             final InstitutionsGetRequest request = new InstitutionsGetRequest();
             // Set query if provided - Plaid API may use different method name
-            if (query != null && !query.isEmpty()) {
+            if (!query.isEmpty()) {
                 // Try to set query using reflection if method exists
                 try {
                     final java.lang.reflect.Method method =

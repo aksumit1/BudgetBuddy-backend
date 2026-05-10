@@ -48,7 +48,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 @SuppressFBWarnings(
         value = "NP_LOAD_OF_KNOWN_NULL_VALUE",
         justification = "Tests deliberately exercise null-input paths")
-@SuppressWarnings("PMD.LawOfDemeter")
+@SuppressWarnings({"PMD.LawOfDemeter", "PMD.AvoidCatchingGenericException"})
 @ExtendWith(MockitoExtension.class)
 @org.mockito.junit.jupiter.MockitoSettings(strictness = org.mockito.quality.Strictness.LENIENT)
 class ProviderControllerTest {

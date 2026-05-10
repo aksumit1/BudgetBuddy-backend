@@ -27,6 +27,12 @@ import org.springframework.stereotype.Service;
  * detection 3. Context-aware pattern matching 4. Fuzzy string matching for institution names 5.
  * Statistical analysis of patterns 6. Fallback strategies 7. Global format support
  */
+// SDK / Spring integration — the underlying APIs (AWS SDK, Plaid SDK,
+// Spring services, reflection) throw arbitrary RuntimeException subtypes
+// that can't reasonably be enumerated. Broad catches log + recover (or
+// translate to AppException). Suppress at class level since narrowing
+// here would mean catch (RuntimeException) which PMD flags identically.
+@SuppressWarnings("PMD.AvoidCatchingGenericException")
 @Service
 public class AdvancedAccountDetectionService {
 

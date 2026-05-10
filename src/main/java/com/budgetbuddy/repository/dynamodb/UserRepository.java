@@ -49,7 +49,7 @@ import software.amazon.awssdk.services.dynamodb.model.ResourceNotFoundException;
     "dynamoDbEnhancedClient",
     "dynamoDbClient"
 })
-public final class UserRepository {
+public class UserRepository {
 
     private final DynamoDbTable<UserTable> userTable;
     private final DynamoDbIndex<UserTable> emailIndex;

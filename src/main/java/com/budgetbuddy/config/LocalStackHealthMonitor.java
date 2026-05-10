@@ -16,6 +16,12 @@ import org.springframework.stereotype.Component;
  * LocalStack Health Monitor Monitors LocalStack availability and logs warnings if it becomes
  * unavailable This helps detect when LocalStack has been stopped accidentally
  */
+// SDK / Spring integration — the underlying APIs (AWS SDK, Plaid SDK,
+// Spring services, reflection) throw arbitrary RuntimeException subtypes
+// that can't reasonably be enumerated. Broad catches log + recover (or
+// translate to AppException). Suppress at class level since narrowing
+// here would mean catch (RuntimeException) which PMD flags identically.
+@SuppressWarnings("PMD.AvoidCatchingGenericException")
 @Component
 @ConditionalOnExpression("!'${app.aws.dynamodb.endpoint:}'.isEmpty()")
 public class LocalStackHealthMonitor {

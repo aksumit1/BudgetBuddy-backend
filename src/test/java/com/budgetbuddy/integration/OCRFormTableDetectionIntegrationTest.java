@@ -30,6 +30,12 @@ import org.springframework.test.context.ActiveProfiles;
  * Integration tests for OCR, Form Field, and Table Detection Tests real-world scenarios and edge
  * cases
  */
+// SDK / Spring integration — the underlying APIs (AWS SDK, Plaid SDK,
+// Spring services, reflection) throw arbitrary RuntimeException subtypes
+// that can't reasonably be enumerated. Broad catches log + recover (or
+// translate to AppException). Suppress at class level since narrowing
+// here would mean catch (RuntimeException) which PMD flags identically.
+@SuppressWarnings("PMD.AvoidCatchingGenericException")
 @SpringBootTest
 @ActiveProfiles("test")
 @Import(AWSTestConfiguration.class)

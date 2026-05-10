@@ -35,6 +35,12 @@ import org.springframework.test.context.ActiveProfiles;
 import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 
 /** Database Performance Tests Tests DynamoDB query performance, pagination, and batch operations */
+// SDK / Spring integration — the underlying APIs (AWS SDK, Plaid SDK,
+// Spring services, reflection) throw arbitrary RuntimeException subtypes
+// that can't reasonably be enumerated. Broad catches log + recover (or
+// translate to AppException). Suppress at class level since narrowing
+// here would mean catch (RuntimeException) which PMD flags identically.
+@SuppressWarnings("PMD.AvoidCatchingGenericException")
 @SpringBootTest(classes = com.budgetbuddy.BudgetBuddyApplication.class)
 @ActiveProfiles("test")
 @Import(AWSTestConfiguration.class)

@@ -27,6 +27,12 @@ import org.springframework.context.annotation.ComponentScan;
  * <p>Usage: mvn spring-boot:run -Dspring-boot.run.arguments="--scan-subscriptions" OR java -jar
  * target/budgetbuddy-backend.jar --scan-subscriptions
  */
+// SDK / Spring integration — the underlying APIs (AWS SDK, Plaid SDK,
+// Spring services, reflection) throw arbitrary RuntimeException subtypes
+// that can't reasonably be enumerated. Broad catches log + recover (or
+// translate to AppException). Suppress at class level since narrowing
+// here would mean catch (RuntimeException) which PMD flags identically.
+@SuppressWarnings("PMD.AvoidCatchingGenericException")
 @SpringBootApplication
 @ComponentScan(basePackages = "com.budgetbuddy")
 public class SubscriptionScanner implements CommandLineRunner {

@@ -574,7 +574,10 @@
                 <configuration>
                     <activeRecipes>
                         <recipe>org.openrewrite.staticanalysis.NeedBraces</recipe>
-                        <recipe>org.openrewrite.staticanalysis.FinalClass</recipe>
+                        <!-- FinalClass disabled: it marks any class without subclasses
+                             `final`, which breaks Spring's CGLIB proxy generation for
+                             every @Service/@Repository/@Component bean. Keep the rule
+                             out until a per-class allowlist is added. -->
                         <recipe>org.openrewrite.staticanalysis.HideUtilityClassConstructor</recipe>
                         <recipe>org.openrewrite.staticanalysis.EmptyBlock</recipe>
                         <recipe>org.openrewrite.staticanalysis.SimplifyBooleanExpression</recipe>

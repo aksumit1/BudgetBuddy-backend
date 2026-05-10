@@ -30,7 +30,7 @@ import org.springframework.stereotype.Service;
         justification = "Spring constructor injection — beans are shared by design")
 @SuppressWarnings("PMD.AvoidCatchingGenericException")
 @Service
-public final class AuditLogService {
+public class AuditLogService {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(AuditLogService.class);
 

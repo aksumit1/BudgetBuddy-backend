@@ -58,9 +58,13 @@ import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 // class level rather than littering every method.
 // `\n` in the format strings here is a literal LF (CSV rows / raw
 // HTTP body templates), not a platform newline — we do NOT want %n.
+// Test methods declare `throws Exception` for setup convenience —
+// JUnit idiom; the rule is a noise generator on test classes.
 @SuppressFBWarnings(
-        value = "VA_FORMAT_STRING_USES_NEWLINE",
-        justification = "literal LF in CSV / wire format, not platform newline")
+        value = {"THROWS_METHOD_THROWS_CLAUSE_BASIC_EXCEPTION", "VA_FORMAT_STRING_USES_NEWLINE"},
+        justification =
+                "JUnit idiom — test methods accept any setup exception; "
+                        + "literal LF in CSV / wire format (not platform newline)")
 @SuppressWarnings("PMD.LawOfDemeter")
 @SpringBootTest(
         classes = com.budgetbuddy.BudgetBuddyApplication.class,

@@ -31,7 +31,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 // getters; this class has many such idiomatic uses. Suppress at
 // class level rather than littering every method.
 @SuppressWarnings({"PMD.LawOfDemeter", "PMD.AvoidCatchingGenericException"})
-public final class DDoSProtectionFilter extends OncePerRequestFilter {
+public class DDoSProtectionFilter extends OncePerRequestFilter {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(DDoSProtectionFilter.class);
 

@@ -10,6 +10,12 @@ import org.springframework.stereotype.Service;
  * P2: Circuit breaker service for ML service calls Prevents cascading failures when ML service is
  * down
  */
+// SDK / Spring integration — the underlying APIs (AWS SDK, Plaid SDK,
+// Spring services, reflection) throw arbitrary RuntimeException subtypes
+// that can't reasonably be enumerated. Broad catches log + recover (or
+// translate to AppException). Suppress at class level since narrowing
+// here would mean catch (RuntimeException) which PMD flags identically.
+@SuppressWarnings("PMD.AvoidCatchingGenericException")
 @Service
 public class CircuitBreakerService {
 

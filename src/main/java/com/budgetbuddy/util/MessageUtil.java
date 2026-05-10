@@ -11,6 +11,12 @@ import org.springframework.stereotype.Component;
  * <p>Features: - Locale-aware message retrieval - Error message formatting - Success message
  * formatting - Validation message formatting
  */
+// SDK / Spring integration — the underlying APIs (AWS SDK, Plaid SDK,
+// Spring services, reflection) throw arbitrary RuntimeException subtypes
+// that can't reasonably be enumerated. Broad catches log + recover (or
+// translate to AppException). Suppress at class level since narrowing
+// here would mean catch (RuntimeException) which PMD flags identically.
+@SuppressWarnings("PMD.AvoidCatchingGenericException")
 @Component
 public class MessageUtil {
 

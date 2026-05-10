@@ -64,7 +64,7 @@ import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 @SuppressFBWarnings(
         value = "THROWS_METHOD_THROWS_CLAUSE_BASIC_EXCEPTION",
         justification = "JUnit idiom — test methods accept any setup exception")
-@SuppressWarnings("PMD.LawOfDemeter")
+@SuppressWarnings({"PMD.LawOfDemeter", "PMD.AvoidCatchingGenericException"})
 @SpringBootTest(classes = com.budgetbuddy.BudgetBuddyApplication.class)
 @AutoConfigureMockMvc
 @ActiveProfiles("test")

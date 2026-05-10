@@ -29,7 +29,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 // here would mean catch (RuntimeException) which PMD flags identically.
 @SuppressWarnings("PMD.AvoidCatchingGenericException")
 @Component
-public final class JwtAuthenticationFilter extends OncePerRequestFilter {
+public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(JwtAuthenticationFilter.class);
     private static final String AUTHORIZATION_HEADER = "Authorization";

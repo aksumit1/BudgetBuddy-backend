@@ -34,7 +34,7 @@ import software.amazon.awssdk.services.sns.model.PublishResponse;
         justification = "Spring constructor injection — beans are shared by design")
 @SuppressWarnings({"PMD.LawOfDemeter", "PMD.AvoidCatchingGenericException"})
 @Service
-public final class NotificationService {
+public class NotificationService {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(NotificationService.class);
 

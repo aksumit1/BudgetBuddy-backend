@@ -35,6 +35,10 @@ import org.springframework.stereotype.Component;
  * <p>Features: - Merchant name patterns - Description keywords - Amount ranges - Payment channel -
  * Day of week / time patterns - Account type
  */
+// SDK / Spring / reflection integration — broad catches translate any
+// runtime exception to AppException or log+swallow. Narrowing isn't
+// practical here, so suppress at class level.
+@SuppressWarnings("PMD.AvoidCatchingGenericException")
 @Component
 public class CategoryClassificationModel {
 

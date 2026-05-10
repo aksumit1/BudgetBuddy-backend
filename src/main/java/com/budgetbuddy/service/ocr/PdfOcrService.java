@@ -42,6 +42,12 @@ import org.springframework.stereotype.Service;
  * Anything bigger returns what we have with a warning — the user still gets a useful parse for the
  * first 20 pages.
  */
+// SDK / Spring integration — the underlying APIs (AWS SDK, Plaid SDK,
+// Spring services, reflection) throw arbitrary RuntimeException subtypes
+// that can't reasonably be enumerated. Broad catches log + recover (or
+// translate to AppException). Suppress at class level since narrowing
+// here would mean catch (RuntimeException) which PMD flags identically.
+@SuppressWarnings("PMD.AvoidCatchingGenericException")
 @Service
 public class PdfOcrService {
 

@@ -34,6 +34,10 @@ import org.junit.jupiter.api.Test;
         justification =
                 "literal LF in CSV / wire format (not platform newline); "
                         + "JUnit idiom — test methods accept any setup exception")
+// SDK / Spring / reflection integration — broad catches translate any
+// runtime exception to AppException or log+swallow. Narrowing isn't
+// practical here, so suppress at class level.
+@SuppressWarnings("PMD.AvoidCatchingGenericException")
 @DisplayName("PDF Import Service Edge Cases and Error Handling Tests")
 class PDFImportServiceEdgeCasesTest {
 

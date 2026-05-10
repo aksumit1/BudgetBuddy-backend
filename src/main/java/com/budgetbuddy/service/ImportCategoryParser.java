@@ -15,6 +15,12 @@ import org.springframework.stereotype.Service;
  * <p>Currently delegates to CSVImportService.parseCategory() for implementation. Future: Extract
  * all parseCategory logic and helper methods into this service.
  */
+// SDK / Spring integration — the underlying APIs (AWS SDK, Plaid SDK,
+// Spring services, reflection) throw arbitrary RuntimeException subtypes
+// that can't reasonably be enumerated. Broad catches log + recover (or
+// translate to AppException). Suppress at class level since narrowing
+// here would mean catch (RuntimeException) which PMD flags identically.
+@SuppressWarnings("PMD.AvoidCatchingGenericException")
 @Service
 public class ImportCategoryParser {
 

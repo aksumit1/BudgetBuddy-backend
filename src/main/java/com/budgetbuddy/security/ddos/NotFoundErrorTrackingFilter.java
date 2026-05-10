@@ -35,7 +35,7 @@ import org.springframework.web.util.ContentCachingResponseWrapper;
 @SuppressFBWarnings(
         value = "EI_EXPOSE_REP2",
         justification = "Spring constructor injection — beans are shared by design")
-public final class NotFoundErrorTrackingFilter extends OncePerRequestFilter {
+public class NotFoundErrorTrackingFilter extends OncePerRequestFilter {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(NotFoundErrorTrackingFilter.class);
     private static final ObjectMapper OBJECT_MAPPER;

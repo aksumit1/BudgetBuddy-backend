@@ -30,6 +30,12 @@ import org.slf4j.LoggerFactory;
  * Deep review tests for category and transaction type allocation Tests edge cases, boundary
  * conditions, race conditions, and error handling
  */
+// SDK / Spring integration — the underlying APIs (AWS SDK, Plaid SDK,
+// Spring services, reflection) throw arbitrary RuntimeException subtypes
+// that can't reasonably be enumerated. Broad catches log + recover (or
+// translate to AppException). Suppress at class level since narrowing
+// here would mean catch (RuntimeException) which PMD flags identically.
+@SuppressWarnings("PMD.AvoidCatchingGenericException")
 @ExtendWith(MockitoExtension.class)
 class CategoryTypeAllocationDeepReviewTest {
 

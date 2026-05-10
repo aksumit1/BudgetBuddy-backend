@@ -37,6 +37,12 @@ import org.springframework.test.web.servlet.MvcResult;
  * Integration test for duplicate detection when re-uploading the same CSV file. Tests the actual
  * CSV format provided by the user with Details, Posting Date, Description, Amount columns.
  */
+// SDK / Spring integration — the underlying APIs (AWS SDK, Plaid SDK,
+// Spring services, reflection) throw arbitrary RuntimeException subtypes
+// that can't reasonably be enumerated. Broad catches log + recover (or
+// translate to AppException). Suppress at class level since narrowing
+// here would mean catch (RuntimeException) which PMD flags identically.
+@SuppressWarnings("PMD.AvoidCatchingGenericException")
 @SpringBootTest
 @ActiveProfiles("test")
 @AutoConfigureMockMvc

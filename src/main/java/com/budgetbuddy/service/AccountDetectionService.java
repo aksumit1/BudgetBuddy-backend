@@ -2959,7 +2959,7 @@ public class AccountDetectionService {
                     // For multi-word indicators like "marriott bonvoy premier", try to extract the
                     // full card name
                     // by finding the portion of the line that contains the matched indicator
-                    if (matchedProductIndicator != null && matchedProductIndicator.contains(" ")) {
+                    if (matchedProductIndicator.contains(" ")) {
                         // Try to extract a more complete card name from the line
                         // Look for patterns like "Chase Marriott Bonvoy Premier Card" or "Marriott
                         // Bonvoy Premier"

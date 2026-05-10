@@ -18,7 +18,7 @@ import org.springframework.stereotype.Component;
         value = "EI_EXPOSE_REP2",
         justification = "Spring constructor injection — beans are shared by design")
 @Component
-public final class PaginationHelper {
+public class PaginationHelper {
 
     private static int defaultPageSize = 50;
     private static int maxPageSize = 1000;

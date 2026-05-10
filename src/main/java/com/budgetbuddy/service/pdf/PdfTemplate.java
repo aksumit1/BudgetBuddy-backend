@@ -88,7 +88,7 @@ public class PdfTemplate {
     // ---- per-layout (one bank can have many) ----
 
     @JsonIgnoreProperties(ignoreUnknown = true)
-    @SuppressWarnings("PMD.LawOfDemeter") // DTO field access — false positive
+    @SuppressWarnings({"PMD.LawOfDemeter", "PMD.AvoidCatchingGenericException"})
     public static class Layout {
         private String name; // e.g. "checking-single-line"
         private String accountType; // optional: "checking" | "savings" | "credit" | "investment"

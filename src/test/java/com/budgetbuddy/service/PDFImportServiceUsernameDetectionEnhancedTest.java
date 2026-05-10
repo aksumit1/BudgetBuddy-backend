@@ -34,6 +34,10 @@ import org.junit.jupiter.params.provider.ValueSource;
 // AppException paths; SpotBugs's NP_LOAD_OF_KNOWN_NULL_VALUE is expected.
 // Test methods declare `throws Exception` for setup convenience —
 // JUnit idiom; the rule is a noise generator on test classes.
+// SDK / Spring / reflection integration — broad catches translate any
+// runtime exception to AppException or log+swallow. Narrowing isn't
+// practical here, so suppress at class level.
+@SuppressWarnings("PMD.AvoidCatchingGenericException")
 @SuppressFBWarnings(
         value = {"THROWS_METHOD_THROWS_CLAUSE_BASIC_EXCEPTION", "NP_LOAD_OF_KNOWN_NULL_VALUE"},
         justification =
