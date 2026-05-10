@@ -73,7 +73,6 @@ class ApiCompatibilityIntegrationTest {
     private UserTable testUser;
     private String testEmail;
     private String testPasswordHash;
-    private String testClientSalt;
 
     @BeforeEach
     void setUp() {

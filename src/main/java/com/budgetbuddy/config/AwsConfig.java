@@ -30,7 +30,7 @@ import software.amazon.awssdk.services.s3.presigner.S3Presigner;
 // that can't reasonably be enumerated. Broad catches log + recover (or
 // translate to AppException). Suppress at class level since narrowing
 // here would mean catch (RuntimeException) which PMD flags identically.
-@SuppressWarnings("PMD.AvoidCatchingGenericException")
+@SuppressWarnings({"PMD.AvoidCatchingGenericException", "PMD.OnlyOneReturn"})
 public class AwsConfig {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(AwsConfig.class);

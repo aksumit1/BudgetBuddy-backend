@@ -5,8 +5,29 @@ import java.util.Locale;
 import org.springframework.stereotype.Component;
 
 /** Strategy for detecting transportation category */
+// PMD's OnlyOneReturn fights guard-clause idiom — the codebase intentionally
+// uses early returns for clarity (validation guards, fail-fast patterns).
+@SuppressWarnings("PMD.OnlyOneReturn")
 @Component
 public class TransportationCategoryStrategy extends BaseCategoryStrategy {
+
+    private static final String CHAIR = "chair";
+
+    private static final String CHEVRON = "chevron";
+
+    private static final String DISNEY = "disney";
+
+    private static final String ESCAPE_ROOM = "escape room";
+
+    private static final String ESCAPEROOM = "escaperoom";
+
+    private static final String PAYPAMS = "paypams";
+
+    private static final String SCHOOL_DISTRICT = "school district";
+
+    private static final String SCHOOLDISTRICT = "schooldistrict";
+
+    private static final String TOEFL = "toefl";
 
     @Override
     public String detectCategory(
@@ -26,9 +47,9 @@ public class TransportationCategoryStrategy extends BaseCategoryStrategy {
                 || descriptionLower.contains("seattle airport")) {
             // Airport cart/chair rentals
             if (normalizedMerchantName.contains("cart")
-                    || normalizedMerchantName.contains("chair")
+                    || normalizedMerchantName.contains(CHAIR)
                     || descriptionLower.contains("cart")
-                    || descriptionLower.contains("chair")) {
+                    || descriptionLower.contains(CHAIR)) {
                 LOGGER.debug(
                         "🏷️ detectCategoryFromMerchantName: Detected airport cart/chair → 'transportation'");
                 return "transportation";
@@ -37,22 +58,22 @@ public class TransportationCategoryStrategy extends BaseCategoryStrategy {
         // General airport cart/chair patterns
         if ((normalizedMerchantName.contains("airport") || descriptionLower.contains("airport"))
                 && (normalizedMerchantName.contains("cart")
-                        || normalizedMerchantName.contains("chair")
+                        || normalizedMerchantName.contains(CHAIR)
                         || descriptionLower.contains("cart")
-                        || descriptionLower.contains("chair"))) {
+                        || descriptionLower.contains(CHAIR))) {
             LOGGER.debug(
                     "🏷️ detectCategoryFromMerchantName: Detected airport cart/chair → 'transportation'");
             return "transportation";
         }
 
         // ========== GAS STATIONS ==========
-        if (normalizedMerchantName.contains("chevron") || descriptionLower.contains("chevron")) {
+        if (normalizedMerchantName.contains(CHEVRON) || descriptionLower.contains(CHEVRON)) {
             return "transportation";
         }
         final String[] gasStations = {
                 "shell", "bp ", "bp.", "exxon", "mobil", "esso",
                 "arco", "valero", "citgo", "speedway", "7-eleven", "7eleven",
-                "circle k", "circlek", "chevron", "texaco", "phillips 66", "phillips66",
+                "circle k", "circlek", CHEVRON, "texaco", "phillips 66", "phillips66",
                 "conoco", "marathon", "sunoco", "sinclair", "kwik trip", "kwiktrip",
                 "kwik sak", "kwiksak", "buc-ee", "bucees", "buc-ee's", "bucees's"
         };
@@ -110,8 +131,8 @@ public class TransportationCategoryStrategy extends BaseCategoryStrategy {
         // State Fair, Disney, Universal Studio, Sea World
         if (normalizedMerchantName.contains("state fair")
                 || normalizedMerchantName.contains("statefair")
-                || normalizedMerchantName.contains("disney")
-                || descriptionLower.contains("disney")
+                || normalizedMerchantName.contains(DISNEY)
+                || descriptionLower.contains(DISNEY)
                 || normalizedMerchantName.contains("universal studio")
                 || normalizedMerchantName.contains("universalstudio")
                 || normalizedMerchantName.contains("universal studios")
@@ -148,8 +169,8 @@ public class TransportationCategoryStrategy extends BaseCategoryStrategy {
                 "theater",
                 "theatre",
                 "imax",
-                "escape room",
-                "escaperoom",
+                ESCAPE_ROOM,
+                ESCAPEROOM,
                 "escape rooms",
                 "escaperooms",
                 "countdown rooms",
@@ -167,7 +188,7 @@ public class TransportationCategoryStrategy extends BaseCategoryStrategy {
                 "hulu",
                 "huluplus",
                 "hulu plus",
-                "disney",
+                DISNEY,
                 "disney+",
                 "disneyplus",
                 "hbo",
@@ -223,11 +244,11 @@ public class TransportationCategoryStrategy extends BaseCategoryStrategy {
         }
 
         // Escape rooms (entertainment)
-        if (normalizedMerchantName.contains("escape room")
-                || normalizedMerchantName.contains("escaperoom")
+        if (normalizedMerchantName.contains(ESCAPE_ROOM)
+                || normalizedMerchantName.contains(ESCAPEROOM)
                 || normalizedMerchantName.contains("conundroom")
-                || descriptionLower.contains("escape room")
-                || descriptionLower.contains("escaperoom")
+                || descriptionLower.contains(ESCAPE_ROOM)
+                || descriptionLower.contains(ESCAPEROOM)
                 || descriptionLower.contains("conundroom")) {
             LOGGER.debug(
                     "🏷️ detectCategoryFromMerchantName: Detected escape room → 'entertainment'");
@@ -236,9 +257,9 @@ public class TransportationCategoryStrategy extends BaseCategoryStrategy {
 
         // ========== EDUCATION/SCHOOL PAYMENTS ==========
         // PayPAMS - online school payments for food (dining)
-        if (normalizedMerchantName.contains("paypams")
+        if (normalizedMerchantName.contains(PAYPAMS)
                 || normalizedMerchantName.contains("pay pams")
-                || descriptionLower.contains("paypams")
+                || descriptionLower.contains(PAYPAMS)
                 || descriptionLower.contains("pay pams")) {
             LOGGER.debug(
                     "🏷️ detectCategoryFromMerchantName: Detected PayPAMS (school food payment) → 'dining'");
@@ -247,11 +268,11 @@ public class TransportationCategoryStrategy extends BaseCategoryStrategy {
 
         // School District payments - should be categorized as "education"
         // Check for any school district (not just Bellevue)
-        if ((normalizedMerchantName.contains("school district")
-                        || normalizedMerchantName.contains("schooldistrict")
+        if ((normalizedMerchantName.contains(SCHOOL_DISTRICT)
+                        || normalizedMerchantName.contains(SCHOOLDISTRICT)
                         || normalizedMerchantName.contains("school distri"))
-                || (descriptionLower.contains("school district")
-                        || descriptionLower.contains("schooldistrict")
+                || (descriptionLower.contains(SCHOOL_DISTRICT)
+                        || descriptionLower.contains(SCHOOLDISTRICT)
                         || descriptionLower.contains("school distri"))) {
             LOGGER.debug(
                     "🏷️ detectCategoryFromMerchantName: Detected School District → 'education'");
@@ -324,8 +345,8 @@ public class TransportationCategoryStrategy extends BaseCategoryStrategy {
                         || descriptionLower.contains("aamc")
                         || normalizedMerchantName.contains("sat")
                         || descriptionLower.contains("sat")
-                        || normalizedMerchantName.contains("toefl")
-                        || descriptionLower.contains("toefl")
+                        || normalizedMerchantName.contains(TOEFL)
+                        || descriptionLower.contains(TOEFL)
                         || normalizedMerchantName.contains("gre")
                         || descriptionLower.contains("gre")
                         || normalizedMerchantName.contains("gmat")
@@ -345,7 +366,7 @@ public class TransportationCategoryStrategy extends BaseCategoryStrategy {
         final String[] examKeywords = {
                 "aamc",
                 "sat",
-                "toefl",
+                TOEFL,
                 "gre",
                 "gmat",
                 "lsat",
@@ -449,8 +470,8 @@ public class TransportationCategoryStrategy extends BaseCategoryStrategy {
                 "doctorate",
                 "graduate school",
                 "graduateschool",
-                "school district",
-                "schooldistrict"
+                SCHOOL_DISTRICT,
+                SCHOOLDISTRICT
         };
         for (final String school : schoolTypes) {
             if (normalizedMerchantName.contains(school)
@@ -514,10 +535,10 @@ public class TransportationCategoryStrategy extends BaseCategoryStrategy {
             if (normalizedMerchantName.contains(edu) || descriptionLower.contains(edu)) {
                 // Skip if it's a school payment (PayPAMS) or school district - those are handled
                 // separately
-                if (!normalizedMerchantName.contains("paypams")
-                        && !normalizedMerchantName.contains("school district")
-                        && !descriptionLower.contains("paypams")
-                        && !descriptionLower.contains("school district")) {
+                if (!normalizedMerchantName.contains(PAYPAMS)
+                        && !normalizedMerchantName.contains(SCHOOL_DISTRICT)
+                        && !descriptionLower.contains(PAYPAMS)
+                        && !descriptionLower.contains(SCHOOL_DISTRICT)) {
                     LOGGER.debug(
                             "🏷️ detectCategoryFromMerchantName: Detected education item '{}' → 'education'",
                             edu);

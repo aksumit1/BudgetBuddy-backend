@@ -33,6 +33,12 @@ import org.springframework.web.bind.annotation.RestController;
 @Tag(name = "Sync", description = "Optimized sync endpoints for mobile apps")
 public class SyncController {
 
+    private static final String USER_ID_IS_INVALID = "User ID is invalid";
+
+    private static final String USER_NOT_AUTHENTICATED = "User not authenticated";
+
+    private static final String USER_NOT_FOUND_1 = "User not found";
+
     private static final Logger LOGGER = LoggerFactory.getLogger(SyncController.class);
 
     private final SyncService syncService;
@@ -66,17 +72,17 @@ public class SyncController {
         if (userDetails == null
                 || userDetails.getUsername() == null
                 || userDetails.getUsername().isEmpty()) {
-            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "User not authenticated");
+            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, USER_NOT_AUTHENTICATED);
         }
 
         final UserTable user =
                 userService
                         .findByEmail(userDetails.getUsername())
                         .orElseThrow(
-                                () -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
+                                () -> new AppException(ErrorCode.USER_NOT_FOUND, USER_NOT_FOUND_1));
 
         if (user.getUserId() == null || user.getUserId().isEmpty()) {
-            throw new AppException(ErrorCode.INVALID_INPUT, "User ID is invalid");
+            throw new AppException(ErrorCode.INVALID_INPUT, USER_ID_IS_INVALID);
         }
 
         LOGGER.info("Sync all request for user: {}", user.getUserId());
@@ -114,17 +120,17 @@ public class SyncController {
         if (userDetails == null
                 || userDetails.getUsername() == null
                 || userDetails.getUsername().isEmpty()) {
-            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "User not authenticated");
+            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, USER_NOT_AUTHENTICATED);
         }
 
         final UserTable user =
                 userService
                         .findByEmail(userDetails.getUsername())
                         .orElseThrow(
-                                () -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
+                                () -> new AppException(ErrorCode.USER_NOT_FOUND, USER_NOT_FOUND_1));
 
         if (user.getUserId() == null || user.getUserId().isEmpty()) {
-            throw new AppException(ErrorCode.INVALID_INPUT, "User ID is invalid");
+            throw new AppException(ErrorCode.INVALID_INPUT, USER_ID_IS_INVALID);
         }
 
         LOGGER.info("Sync incremental request for user: {}, since: {}", user.getUserId(), since);
@@ -158,17 +164,17 @@ public class SyncController {
         if (userDetails == null
                 || userDetails.getUsername() == null
                 || userDetails.getUsername().isEmpty()) {
-            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "User not authenticated");
+            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, USER_NOT_AUTHENTICATED);
         }
 
         final UserTable user =
                 userService
                         .findByEmail(userDetails.getUsername())
                         .orElseThrow(
-                                () -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
+                                () -> new AppException(ErrorCode.USER_NOT_FOUND, USER_NOT_FOUND_1));
 
         if (user.getUserId() == null || user.getUserId().isEmpty()) {
-            throw new AppException(ErrorCode.INVALID_INPUT, "User ID is invalid");
+            throw new AppException(ErrorCode.INVALID_INPUT, USER_ID_IS_INVALID);
         }
 
         LOGGER.info("Sync status request for user: {}", user.getUserId());

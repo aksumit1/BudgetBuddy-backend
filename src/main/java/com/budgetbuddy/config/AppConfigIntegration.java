@@ -41,7 +41,7 @@ import software.amazon.awssdk.services.appconfigdata.model.StartConfigurationSes
 // SDK / Spring / reflection integration — broad catches translate any
 // runtime exception to AppException or log+swallow. Narrowing isn't
 // practical here, so suppress at class level.
-@SuppressWarnings("PMD.AvoidCatchingGenericException")
+@SuppressWarnings({"PMD.AvoidCatchingGenericException", "PMD.OnlyOneReturn"})
 @Configuration
 @org.springframework.boot.autoconfigure.condition.ConditionalOnProperty(
         name = "app.aws.appconfig.enabled",

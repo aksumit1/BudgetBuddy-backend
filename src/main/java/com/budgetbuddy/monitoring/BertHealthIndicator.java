@@ -22,9 +22,15 @@ import org.springframework.stereotype.Component;
 @SuppressFBWarnings(
         value = "EI_EXPOSE_REP2",
         justification = "Spring constructor injection — beans are shared by design")
-@SuppressWarnings("PMD.AvoidCatchingGenericException")
+@SuppressWarnings({"PMD.AvoidCatchingGenericException", "PMD.OnlyOneReturn"})
 @Component
 public class BertHealthIndicator implements HealthIndicator {
+
+    private static final String DISTIL_BERT = "DistilBERT";
+
+    private static final String SERVICE = "service";
+
+    private static final String STATUS = "status";
 
     private static final Logger LOGGER = LoggerFactory.getLogger(BertHealthIndicator.class);
 
@@ -42,8 +48,8 @@ public class BertHealthIndicator implements HealthIndicator {
 
             if (bertAvailable) {
                 return Health.up()
-                        .withDetail("service", "DistilBERT")
-                        .withDetail("status", "loaded")
+                        .withDetail(SERVICE, DISTIL_BERT)
+                        .withDetail(STATUS, "loaded")
                         .withDetail("model", "distilbert-base-uncased")
                         .withDetail("format", "ONNX")
                         .build();
@@ -51,8 +57,8 @@ public class BertHealthIndicator implements HealthIndicator {
                 // BERT is an optional enrichment; absence degrades gracefully to keyword
                 // matching and must not drag aggregate health DOWN. Report UP with context.
                 return Health.up()
-                        .withDetail("service", "DistilBERT")
-                        .withDetail("status", "not_available")
+                        .withDetail(SERVICE, DISTIL_BERT)
+                        .withDetail(STATUS, "not_available")
                         .withDetail("fallback", "keyword-based matching")
                         .withDetail(
                                 "note",
@@ -62,8 +68,8 @@ public class BertHealthIndicator implements HealthIndicator {
         } catch (Exception e) {
             LOGGER.warn("Error checking BERT health: {}", e.getMessage());
             return Health.up()
-                    .withDetail("service", "DistilBERT")
-                    .withDetail("status", "error-checked")
+                    .withDetail(SERVICE, DISTIL_BERT)
+                    .withDetail(STATUS, "error-checked")
                     .withDetail("fallback", "keyword-based matching")
                     .withDetail("error", e.getMessage())
                     .build();

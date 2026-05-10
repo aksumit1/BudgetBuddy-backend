@@ -493,7 +493,6 @@ class AccountDetectionServiceComprehensiveTest {
     @Test
     @DisplayName("extractAccountNumber handles masked account numbers")
     void testExtractAccountNumberMaskedAccountNumberExtractsCorrectly() {
-        final String text = "Account Number: ****1234";
         // This is tested indirectly through detectFromPDFContent
         final String pdfText = "Chase Bank\nAccount Number: ****1234\nChecking Account";
         final AccountDetectionService.DetectedAccount result =

@@ -10,7 +10,12 @@ import java.util.UUID;
  * deterministic UUID) for all ID generation This ensures IDs are deterministic, consistent, and
  * handle special characters robustly
  */
+// PMD's OnlyOneReturn fights guard-clause idiom — the codebase intentionally
+// uses early returns for clarity (validation guards, fail-fast patterns).
+@SuppressWarnings("PMD.OnlyOneReturn")
 public final class IdGenerator {
+
+    private static final String USER_ID_IS_REQUIRED = "User ID is required";
 
     // Namespace UUIDs for different entity types (using DNS namespace pattern)
     private static final UUID ACCOUNT_NAMESPACE =
@@ -90,7 +95,7 @@ public final class IdGenerator {
      */
     public static String generateBudgetId(final String userId, final String category) {
         if (userId == null || userId.isBlank()) {
-            throw new IllegalArgumentException("User ID is required");
+            throw new IllegalArgumentException(USER_ID_IS_REQUIRED);
         }
         if (category == null || category.isBlank()) {
             throw new IllegalArgumentException("Category is required");
@@ -112,7 +117,7 @@ public final class IdGenerator {
      */
     public static String generateGoalId(final String userId, final String goalName) {
         if (userId == null || userId.isBlank()) {
-            throw new IllegalArgumentException("User ID is required");
+            throw new IllegalArgumentException(USER_ID_IS_REQUIRED);
         }
         if (goalName == null || goalName.isBlank()) {
             throw new IllegalArgumentException("Goal name is required");
@@ -137,7 +142,7 @@ public final class IdGenerator {
     public static String generateSubscriptionId(
             final String userId, final String merchantName, final java.math.BigDecimal amount) {
         if (userId == null || userId.isBlank()) {
-            throw new IllegalArgumentException("User ID is required");
+            throw new IllegalArgumentException(USER_ID_IS_REQUIRED);
         }
         if (merchantName == null || merchantName.isBlank()) {
             throw new IllegalArgumentException("Merchant name is required");

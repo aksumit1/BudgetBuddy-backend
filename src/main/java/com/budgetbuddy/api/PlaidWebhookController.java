@@ -29,11 +29,13 @@ import org.springframework.web.bind.annotation.RestController;
 // that can't reasonably be enumerated. Broad catches log + recover (or
 // translate to AppException). Suppress at class level since narrowing
 // here would mean catch (RuntimeException) which PMD flags identically.
-@SuppressWarnings("PMD.AvoidCatchingGenericException")
+@SuppressWarnings({"PMD.AvoidCatchingGenericException", "PMD.OnlyOneReturn"})
 @RestController
 @RequestMapping("/api/plaid/webhooks")
 @Tag(name = "Plaid", description = "Plaid integration endpoints")
 public class PlaidWebhookController {
+
+    private static final String STATUS = "status";
 
     private static final Logger LOGGER = LoggerFactory.getLogger(PlaidWebhookController.class);
 
@@ -65,7 +67,7 @@ public class PlaidWebhookController {
         if (payload == null || payload.isEmpty()) {
             LOGGER.warn("Received empty webhook payload");
             return ResponseEntity.badRequest()
-                    .body(Map.of("status", "error", "message", "Empty payload"));
+                    .body(Map.of(STATUS, "error", "message", "Empty payload"));
         }
 
         try {
@@ -76,7 +78,7 @@ public class PlaidWebhookController {
             if (webhookType == null || webhookType.isEmpty()) {
                 LOGGER.warn("Webhook type is missing");
                 return ResponseEntity.badRequest()
-                        .body(Map.of("status", "error", "message", "Missing webhook_type"));
+                        .body(Map.of(STATUS, "error", "message", "Missing webhook_type"));
             }
 
             // Verify webhook signature (in production, verify against Plaid's public key)
@@ -110,7 +112,7 @@ public class PlaidWebhookController {
                 LOGGER.warn("Failed to log webhook to audit trail: {}", e.getMessage());
             }
 
-            return ResponseEntity.ok(Map.of("status", "success"));
+            return ResponseEntity.ok(Map.of(STATUS, "success"));
         } catch (AppException e) {
             throw e;
         } catch (Exception e) {

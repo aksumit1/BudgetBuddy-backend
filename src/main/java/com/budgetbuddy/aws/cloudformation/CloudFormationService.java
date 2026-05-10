@@ -36,9 +36,11 @@ import software.amazon.awssdk.services.cloudformation.model.StackSummary;
 @SuppressFBWarnings(
         value = "EI_EXPOSE_REP2",
         justification = "Spring constructor injection — beans are shared by design")
-@SuppressWarnings("PMD.AvoidCatchingGenericException")
+@SuppressWarnings({"PMD.AvoidCatchingGenericException", "PMD.OnlyOneReturn"})
 @Service
 public class CloudFormationService {
+
+    private static final String STACK_NAME_IS_NULL_OR_EMPTY = "Stack name is null or empty";
 
     private static final Logger LOGGER = LoggerFactory.getLogger(CloudFormationService.class);
 
@@ -54,7 +56,7 @@ public class CloudFormationService {
     /** Get stack status Returns stack status or "NOT_FOUND" if stack doesn't exist */
     public String getStackStatus(final String stackName) {
         if (stackName == null || stackName.isEmpty()) {
-            LOGGER.warn("Stack name is null or empty");
+            LOGGER.warn(STACK_NAME_IS_NULL_OR_EMPTY);
             return "INVALID";
         }
 
@@ -98,7 +100,7 @@ public class CloudFormationService {
     /** Get stack resources Returns list of stack resources or empty list on error */
     public List<StackResource> getStackResources(final String stackName) {
         if (stackName == null || stackName.isEmpty()) {
-            LOGGER.warn("Stack name is null or empty");
+            LOGGER.warn(STACK_NAME_IS_NULL_OR_EMPTY);
             return Collections.emptyList();
         }
 
@@ -118,7 +120,7 @@ public class CloudFormationService {
     /** Get stack events Returns list of stack events or empty list on error */
     public List<StackEvent> getStackEvents(final String stackName) {
         if (stackName == null || stackName.isEmpty()) {
-            LOGGER.warn("Stack name is null or empty");
+            LOGGER.warn(STACK_NAME_IS_NULL_OR_EMPTY);
             return Collections.emptyList();
         }
 

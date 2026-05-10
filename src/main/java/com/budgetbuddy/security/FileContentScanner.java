@@ -20,6 +20,9 @@ import org.springframework.stereotype.Component;
  * injection patterns - Command injection patterns - Suspicious binary content - Embedded
  * executables
  */
+// PMD's OnlyOneReturn fights guard-clause idiom — the codebase intentionally
+// uses early returns for clarity (validation guards, fail-fast patterns).
+@SuppressWarnings("PMD.OnlyOneReturn")
 @Component
 public class FileContentScanner {
 

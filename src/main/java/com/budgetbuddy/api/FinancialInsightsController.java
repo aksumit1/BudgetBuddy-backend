@@ -59,10 +59,34 @@ import org.springframework.web.bind.annotation.RestController;
 @SuppressFBWarnings(
         value = "EI_EXPOSE_REP2",
         justification = "Spring constructor injection — beans are shared by design")
-@SuppressWarnings({"PMD.LawOfDemeter", "PMD.AvoidCatchingGenericException"})
+@SuppressWarnings({"PMD.LawOfDemeter", "PMD.AvoidCatchingGenericException", "PMD.DataClass", "PMD.OnlyOneReturn"})
 @RestController
 @RequestMapping("/api/insights")
 public class FinancialInsightsController {
+
+    private static final String UNKNOWN = "Unknown";
+
+    private static final String USER_NOT_AUTHENTICATED = "User not authenticated";
+
+    private static final String USER_NOT_FOUND_1 = "User not found";
+
+    private static final String AMOUNT = "amount";
+
+    private static final String CATEGORY = "category";
+
+    private static final String DESCRIPTION = "description";
+
+    private static final String INTEREST = "interest";
+
+    private static final String MONTHLY_SAVINGS = "monthlySavings";
+
+    private static final String PREDICTED_DATE = "predictedDate";
+
+    private static final String REASON = "reason";
+
+    private static final String SEVERITY = "severity";
+
+    private static final String TITLE = "title";
 
     private final TransactionAnomalyService anomalyService;
     private final ExpenseReductionService expenseReductionService;
@@ -184,13 +208,13 @@ public class FinancialInsightsController {
             @PathVariable final String anomalyId,
             @RequestBody final AnomalyFeedbackRequest request) {
         if (userDetails == null) {
-            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "User not authenticated");
+            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, USER_NOT_AUTHENTICATED);
         }
         final UserTable user =
                 userService
                         .findByEmail(userDetails.getUsername())
                         .orElseThrow(
-                                () -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
+                                () -> new AppException(ErrorCode.USER_NOT_FOUND, USER_NOT_FOUND_1));
         final var saved =
                 anomalyFeedbackService.record(
                         user.getUserId(),
@@ -219,13 +243,13 @@ public class FinancialInsightsController {
     public ResponseEntity<List<com.budgetbuddy.service.CrossAccountAnomalyDetector.Pattern>>
             getCrossAccountAnomalies(@AuthenticationPrincipal final UserDetails userDetails) {
         if (userDetails == null) {
-            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "User not authenticated");
+            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, USER_NOT_AUTHENTICATED);
         }
         final UserTable user =
                 userService
                         .findByEmail(userDetails.getUsername())
                         .orElseThrow(
-                                () -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
+                                () -> new AppException(ErrorCode.USER_NOT_FOUND, USER_NOT_FOUND_1));
         if (crossAccountDetector == null) {
             return ResponseEntity.ok(List.of());
         }
@@ -238,13 +262,13 @@ public class FinancialInsightsController {
             @AuthenticationPrincipal final UserDetails userDetails,
             @RequestBody final Map<String, String> body) {
         if (userDetails == null) {
-            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "User not authenticated");
+            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, USER_NOT_AUTHENTICATED);
         }
         final UserTable user =
                 userService
                         .findByEmail(userDetails.getUsername())
                         .orElseThrow(
-                                () -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
+                                () -> new AppException(ErrorCode.USER_NOT_FOUND, USER_NOT_FOUND_1));
         final String raw = body == null ? null : body.get("sensitivity");
         final String normalized = raw == null ? "normal" : raw.toLowerCase(Locale.ROOT);
         if (!"loose".equals(normalized)
@@ -304,14 +328,14 @@ public class FinancialInsightsController {
     public ResponseEntity<List<Map<String, Object>>> getAnomalies(
             @AuthenticationPrincipal final UserDetails userDetails) {
         if (userDetails == null || userDetails.getUsername() == null) {
-            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "User not authenticated");
+            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, USER_NOT_AUTHENTICATED);
         }
 
         final UserTable user =
                 userService
                         .findByEmail(userDetails.getUsername())
                         .orElseThrow(
-                                () -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
+                                () -> new AppException(ErrorCode.USER_NOT_FOUND, USER_NOT_FOUND_1));
 
         final List<TransactionAnomaly> anomalies = anomalyService.detectAnomalies(user.getUserId());
 
@@ -326,14 +350,14 @@ public class FinancialInsightsController {
     public ResponseEntity<List<Map<String, Object>>> getExpenseReductions(
             @AuthenticationPrincipal final UserDetails userDetails) {
         if (userDetails == null || userDetails.getUsername() == null) {
-            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "User not authenticated");
+            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, USER_NOT_AUTHENTICATED);
         }
 
         final UserTable user =
                 userService
                         .findByEmail(userDetails.getUsername())
                         .orElseThrow(
-                                () -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
+                                () -> new AppException(ErrorCode.USER_NOT_FOUND, USER_NOT_FOUND_1));
 
         final List<ExpenseRecommendation> recommendations =
                 expenseReductionService.getRecommendations(user.getUserId());
@@ -351,14 +375,14 @@ public class FinancialInsightsController {
     public ResponseEntity<List<Map<String, Object>>> getGoalRecommendations(
             @AuthenticationPrincipal final UserDetails userDetails) {
         if (userDetails == null || userDetails.getUsername() == null) {
-            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "User not authenticated");
+            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, USER_NOT_AUTHENTICATED);
         }
 
         final UserTable user =
                 userService
                         .findByEmail(userDetails.getUsername())
                         .orElseThrow(
-                                () -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
+                                () -> new AppException(ErrorCode.USER_NOT_FOUND, USER_NOT_FOUND_1));
 
         final List<FinancialGoalRecommendation> recommendations =
                 goalsService.getRecommendations(user.getUserId());
@@ -376,14 +400,14 @@ public class FinancialInsightsController {
     public ResponseEntity<List<Map<String, Object>>> getMissedPayments(
             @AuthenticationPrincipal final UserDetails userDetails) {
         if (userDetails == null || userDetails.getUsername() == null) {
-            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "User not authenticated");
+            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, USER_NOT_AUTHENTICATED);
         }
 
         final UserTable user =
                 userService
                         .findByEmail(userDetails.getUsername())
                         .orElseThrow(
-                                () -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
+                                () -> new AppException(ErrorCode.USER_NOT_FOUND, USER_NOT_FOUND_1));
 
         final List<MissedPaymentAlert> alerts =
                 missedPaymentService.detectMissedPayments(user.getUserId());
@@ -399,14 +423,14 @@ public class FinancialInsightsController {
     public ResponseEntity<List<Map<String, Object>>> getHighInterest(
             @AuthenticationPrincipal final UserDetails userDetails) {
         if (userDetails == null || userDetails.getUsername() == null) {
-            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "User not authenticated");
+            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, USER_NOT_AUTHENTICATED);
         }
 
         final UserTable user =
                 userService
                         .findByEmail(userDetails.getUsername())
                         .orElseThrow(
-                                () -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
+                                () -> new AppException(ErrorCode.USER_NOT_FOUND, USER_NOT_FOUND_1));
 
         final List<HighInterestAlert> alerts = highInterestService.detectHighInterest(user.getUserId());
 
@@ -421,14 +445,14 @@ public class FinancialInsightsController {
     public ResponseEntity<Map<String, Object>> getInsightsSummary(
             @AuthenticationPrincipal final UserDetails userDetails) {
         if (userDetails == null || userDetails.getUsername() == null) {
-            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "User not authenticated");
+            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, USER_NOT_AUTHENTICATED);
         }
 
         final UserTable user =
                 userService
                         .findByEmail(userDetails.getUsername())
                         .orElseThrow(
-                                () -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
+                                () -> new AppException(ErrorCode.USER_NOT_FOUND, USER_NOT_FOUND_1));
 
         final Map<String, Object> summary = new HashMap<>();
 
@@ -486,14 +510,14 @@ public class FinancialInsightsController {
             @AuthenticationPrincipal final UserDetails userDetails,
             @RequestParam(defaultValue = "30") final int daysAhead) {
         if (userDetails == null || userDetails.getUsername() == null) {
-            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "User not authenticated");
+            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, USER_NOT_AUTHENTICATED);
         }
 
         final UserTable user =
                 userService
                         .findByEmail(userDetails.getUsername())
                         .orElseThrow(
-                                () -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
+                                () -> new AppException(ErrorCode.USER_NOT_FOUND, USER_NOT_FOUND_1));
 
         // Get historical transactions
         final LocalDate endDate = LocalDate.now();
@@ -521,14 +545,14 @@ public class FinancialInsightsController {
     public ResponseEntity<List<Map<String, Object>>> getPredictedExpenseReductions(
             @AuthenticationPrincipal final UserDetails userDetails) {
         if (userDetails == null || userDetails.getUsername() == null) {
-            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "User not authenticated");
+            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, USER_NOT_AUTHENTICATED);
         }
 
         final UserTable user =
                 userService
                         .findByEmail(userDetails.getUsername())
                         .orElseThrow(
-                                () -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
+                                () -> new AppException(ErrorCode.USER_NOT_FOUND, USER_NOT_FOUND_1));
 
         // Get historical transactions
         final LocalDate endDate = LocalDate.now();
@@ -545,7 +569,7 @@ public class FinancialInsightsController {
         final Map<String, BigDecimal> subscriptionMap = new HashMap<>();
         for (final SubscriptionTable sub : subscriptions) {
             if (sub.getActive() != null && sub.getActive() && sub.getAmount() != null) {
-                final String name = sub.getMerchantName() != null ? sub.getMerchantName() : "Unknown";
+                final String name = sub.getMerchantName() != null ? sub.getMerchantName() : UNKNOWN;
                 subscriptionMap.put(name, sub.getAmount());
             }
         }
@@ -569,14 +593,14 @@ public class FinancialInsightsController {
     public ResponseEntity<List<Map<String, Object>>> getPredictedGoalAchievements(
             @AuthenticationPrincipal final UserDetails userDetails) {
         if (userDetails == null || userDetails.getUsername() == null) {
-            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "User not authenticated");
+            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, USER_NOT_AUTHENTICATED);
         }
 
         final UserTable user =
                 userService
                         .findByEmail(userDetails.getUsername())
                         .orElseThrow(
-                                () -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
+                                () -> new AppException(ErrorCode.USER_NOT_FOUND, USER_NOT_FOUND_1));
 
         // Get historical transactions
         final LocalDate endDate = LocalDate.now();
@@ -635,14 +659,14 @@ public class FinancialInsightsController {
     public ResponseEntity<List<Map<String, Object>>> getPredictedMissedPayments(
             @AuthenticationPrincipal final UserDetails userDetails) {
         if (userDetails == null || userDetails.getUsername() == null) {
-            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "User not authenticated");
+            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, USER_NOT_AUTHENTICATED);
         }
 
         final UserTable user =
                 userService
                         .findByEmail(userDetails.getUsername())
                         .orElseThrow(
-                                () -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
+                                () -> new AppException(ErrorCode.USER_NOT_FOUND, USER_NOT_FOUND_1));
 
         // Get historical transactions
         final LocalDate endDate = LocalDate.now();
@@ -675,14 +699,14 @@ public class FinancialInsightsController {
     public ResponseEntity<List<Map<String, Object>>> getPredictedInterestCosts(
             @AuthenticationPrincipal final UserDetails userDetails) {
         if (userDetails == null || userDetails.getUsername() == null) {
-            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "User not authenticated");
+            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, USER_NOT_AUTHENTICATED);
         }
 
         final UserTable user =
                 userService
                         .findByEmail(userDetails.getUsername())
                         .orElseThrow(
-                                () -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
+                                () -> new AppException(ErrorCode.USER_NOT_FOUND, USER_NOT_FOUND_1));
 
         // Get historical transactions
         final LocalDate endDate = LocalDate.now();
@@ -721,9 +745,9 @@ public class FinancialInsightsController {
                                                 tx.getCategoryPrimary() != null
                                                         ? tx.getCategoryPrimary().toLowerCase(Locale.ROOT)
                                                         : "";
-                                        return (desc.contains("interest")
+                                        return (desc.contains(INTEREST)
                                                 || desc.contains("finance charge")
-                                                || category.contains("interest"))
+                                                || category.contains(INTEREST))
                                                 && tx.getAmount() != null
                                                 && tx.getAmount().compareTo(BigDecimal.ZERO) < 0;
                                     })
@@ -753,7 +777,7 @@ public class FinancialInsightsController {
 
                 if (rate > 0.01) { // At least 1% interest rate
                     final String name =
-                            account.getAccountName() != null ? account.getAccountName() : "Unknown";
+                            account.getAccountName() != null ? account.getAccountName() : UNKNOWN;
                     accountMap.put(
                             account.getAccountId(),
                             new FinancialInsightsPredictionService.AccountData(
@@ -778,14 +802,14 @@ public class FinancialInsightsController {
     public ResponseEntity<Map<String, Object>> getPredictionsSummary(
             @AuthenticationPrincipal final UserDetails userDetails) {
         if (userDetails == null || userDetails.getUsername() == null) {
-            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "User not authenticated");
+            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, USER_NOT_AUTHENTICATED);
         }
 
         final UserTable user =
                 userService
                         .findByEmail(userDetails.getUsername())
                         .orElseThrow(
-                                () -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
+                                () -> new AppException(ErrorCode.USER_NOT_FOUND, USER_NOT_FOUND_1));
 
         final Map<String, Object> summary = new HashMap<>();
 
@@ -806,7 +830,7 @@ public class FinancialInsightsController {
         final Map<String, BigDecimal> subscriptionMap = new HashMap<>();
         for (final SubscriptionTable sub : subscriptions) {
             if (sub.getActive() != null && sub.getActive() && sub.getAmount() != null) {
-                final String name = sub.getMerchantName() != null ? sub.getMerchantName() : "Unknown";
+                final String name = sub.getMerchantName() != null ? sub.getMerchantName() : UNKNOWN;
                 subscriptionMap.put(name, sub.getAmount());
             }
         }
@@ -842,9 +866,9 @@ public class FinancialInsightsController {
                                                 tx.getCategoryPrimary() != null
                                                         ? tx.getCategoryPrimary().toLowerCase(Locale.ROOT)
                                                         : "";
-                                        return (desc.contains("interest")
+                                        return (desc.contains(INTEREST)
                                                 || desc.contains("finance charge")
-                                                || category.contains("interest"))
+                                                || category.contains(INTEREST))
                                                 && tx.getAmount() != null
                                                 && tx.getAmount().compareTo(BigDecimal.ZERO) < 0;
                                     })
@@ -874,7 +898,7 @@ public class FinancialInsightsController {
 
                 if (rate > 0.01) { // At least 1% interest rate
                     final String name =
-                            account.getAccountName() != null ? account.getAccountName() : "Unknown";
+                            account.getAccountName() != null ? account.getAccountName() : UNKNOWN;
                     accountMap.put(
                             account.getAccountId(),
                             new FinancialInsightsPredictionService.AccountData(
@@ -911,12 +935,12 @@ public class FinancialInsightsController {
     private Map<String, Object> toPredictedAnomalyMap(
             final FinancialInsightsPredictionService.PredictedAnomaly prediction) {
         final Map<String, Object> map = new HashMap<>();
-        map.put("category", prediction.getCategory());
+        map.put(CATEGORY, prediction.getCategory());
         map.put("predictedAmount", prediction.getPredictedAmount());
         map.put("historicalAverage", prediction.getHistoricalAverage());
         map.put("confidence", prediction.getConfidence());
-        map.put("reason", prediction.getReason());
-        map.put("predictedDate", prediction.getPredictedDate().toString());
+        map.put(REASON, prediction.getReason());
+        map.put(PREDICTED_DATE, prediction.getPredictedDate().toString());
         return map;
     }
 
@@ -924,11 +948,11 @@ public class FinancialInsightsController {
             final FinancialInsightsPredictionService.PredictedExpenseReduction prediction) {
         final Map<String, Object> map = new HashMap<>();
         map.put("expenseName", prediction.getExpenseName());
-        map.put("monthlySavings", prediction.getMonthlySavings());
+        map.put(MONTHLY_SAVINGS, prediction.getMonthlySavings());
         map.put("annualSavings", prediction.getAnnualSavings());
         map.put("probability", prediction.getProbability());
-        map.put("reason", prediction.getReason());
-        map.put("predictedDate", prediction.getPredictedDate().toString());
+        map.put(REASON, prediction.getReason());
+        map.put(PREDICTED_DATE, prediction.getPredictedDate().toString());
         return map;
     }
 
@@ -939,9 +963,9 @@ public class FinancialInsightsController {
         map.put("goalName", prediction.getGoalName());
         map.put("currentAmount", prediction.getCurrentAmount());
         map.put("targetAmount", prediction.getTargetAmount());
-        map.put("predictedDate", prediction.getPredictedDate().toString());
+        map.put(PREDICTED_DATE, prediction.getPredictedDate().toString());
         map.put("achievementProbability", prediction.getAchievementProbability());
-        map.put("monthlySavings", prediction.getMonthlySavings());
+        map.put(MONTHLY_SAVINGS, prediction.getMonthlySavings());
         map.put("remaining", prediction.getRemaining());
         map.put("savingsRate", prediction.getSavingsRate());
         return map;
@@ -952,9 +976,9 @@ public class FinancialInsightsController {
         final Map<String, Object> map = new HashMap<>();
         map.put("paymentName", prediction.getPaymentName());
         map.put("dueDate", prediction.getDueDate().toString());
-        map.put("amount", prediction.getAmount());
+        map.put(AMOUNT, prediction.getAmount());
         map.put("riskProbability", prediction.getRiskProbability());
-        map.put("reason", prediction.getReason());
+        map.put(REASON, prediction.getReason());
         map.put("daysUntilDue", prediction.getDaysUntilDue());
         return map;
     }
@@ -978,14 +1002,14 @@ public class FinancialInsightsController {
     private Map<String, Object> toAnomalyMap(final TransactionAnomaly anomaly) {
         final Map<String, Object> map = new HashMap<>();
         map.put("transactionId", anomaly.getTransactionId());
-        map.put("amount", anomaly.getAmount());
-        map.put("description", anomaly.getDescription());
+        map.put(AMOUNT, anomaly.getAmount());
+        map.put(DESCRIPTION, anomaly.getDescription());
         map.put("merchantName", anomaly.getMerchantName());
         map.put("transactionDate", anomaly.getTransactionDate());
-        map.put("category", anomaly.getCategory());
+        map.put(CATEGORY, anomaly.getCategory());
         map.put("type", anomaly.getType().name());
-        map.put("severity", anomaly.getSeverity().name());
-        map.put("reason", anomaly.getReason());
+        map.put(SEVERITY, anomaly.getSeverity().name());
+        map.put(REASON, anomaly.getReason());
         // Flow 7 / O2: the CTA the iOS card should render. Deep link format is
         // "<kind>:<id>" so the client only has to split once. Anomalies almost always
         // want to open the offending transaction.
@@ -999,12 +1023,12 @@ public class FinancialInsightsController {
     private Map<String, Object> toExpenseRecommendationMap(final ExpenseRecommendation rec) {
         final Map<String, Object> map = new HashMap<>();
         map.put("type", rec.getType().name());
-        map.put("title", rec.getTitle());
-        map.put("monthlySavings", rec.getMonthlySavings());
+        map.put(TITLE, rec.getTitle());
+        map.put(MONTHLY_SAVINGS, rec.getMonthlySavings());
         map.put("annualSavings", rec.getAnnualSavings());
-        map.put("description", rec.getDescription());
+        map.put(DESCRIPTION, rec.getDescription());
         map.put("priority", rec.getPriority().name());
-        map.put("category", rec.getCategory());
+        map.put(CATEGORY, rec.getCategory());
         map.put("entityId", rec.getEntityId());
         // Flow 7 / O2: route each recommendation type to the view that can act on it.
         final String action = suggestedActionFor(rec);
@@ -1053,8 +1077,8 @@ public class FinancialInsightsController {
     private Map<String, Object> toGoalRecommendationMap(final FinancialGoalRecommendation rec) {
         final Map<String, Object> map = new HashMap<>();
         map.put("type", rec.getType().name());
-        map.put("title", rec.getTitle());
-        map.put("description", rec.getDescription());
+        map.put(TITLE, rec.getTitle());
+        map.put(DESCRIPTION, rec.getDescription());
         map.put("currentAmount", rec.getCurrentAmount());
         map.put("targetAmount", rec.getTargetAmount());
         map.put("targetDate", rec.getTargetDate().toString());
@@ -1067,14 +1091,14 @@ public class FinancialInsightsController {
     private Map<String, Object> toMissedPaymentMap(final MissedPaymentAlert alert) {
         final Map<String, Object> map = new HashMap<>();
         map.put("actionId", alert.getActionId());
-        map.put("title", alert.getTitle());
-        map.put("description", alert.getDescription());
+        map.put(TITLE, alert.getTitle());
+        map.put(DESCRIPTION, alert.getDescription());
         map.put("dueDate", alert.getDueDate().toString());
         map.put("daysOverdue", alert.getDaysOverdue());
         map.put("type", alert.getType().name());
-        map.put("severity", alert.getSeverity().name());
+        map.put(SEVERITY, alert.getSeverity().name());
         map.put("message", alert.getMessage());
-        map.put("amount", alert.getAmount());
+        map.put(AMOUNT, alert.getAmount());
         return map;
     }
 
@@ -1088,7 +1112,7 @@ public class FinancialInsightsController {
         map.put("interestRate", alert.getInterestRate());
         map.put("monthlyInterest", alert.getMonthlyInterest());
         map.put("annualInterestCost", alert.getAnnualInterestCost());
-        map.put("severity", alert.getSeverity().name());
+        map.put(SEVERITY, alert.getSeverity().name());
         map.put("recommendation", alert.getRecommendation());
         return map;
     }

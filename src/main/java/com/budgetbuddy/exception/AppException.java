@@ -5,6 +5,9 @@ import java.time.Instant;
 import java.util.Map;
 
 /** Application Exception with comprehensive error context */
+// PMD's OnlyOneReturn fights guard-clause idiom — the codebase intentionally
+// uses early returns for clarity (validation guards, fail-fast patterns).
+@SuppressWarnings("PMD.OnlyOneReturn")
 @SuppressFBWarnings(
         value = "EI_EXPOSE_REP",
         justification =

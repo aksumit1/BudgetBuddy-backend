@@ -42,9 +42,13 @@ import org.springframework.stereotype.Service;
         justification =
                 "literal LF in CSV / wire format (not platform newline); "
                         + "Spring constructor injection — beans are shared by design")
-@SuppressWarnings("PMD.AvoidCatchingGenericException")
+@SuppressWarnings({"PMD.AvoidCatchingGenericException", "PMD.OnlyOneReturn"})
 @Service
 public class DMAComplianceService {
+
+    private static final String ID_1 = "      <Id>";
+
+    private static final String ID = "</Id>\n";
 
     private static final Logger LOGGER = LoggerFactory.getLogger(DMAComplianceService.class);
 
@@ -286,7 +290,7 @@ public class DMAComplianceService {
             xml.append("  <Transactions>\n");
             for (final var transaction : transactions) {
                 xml.append("    <Transaction>\n");
-                xml.append("      <Id>").append(transaction.getTransactionId()).append("</Id>\n");
+                xml.append(ID_1).append(transaction.getTransactionId()).append(ID);
                 xml.append("      <Amount>").append(transaction.getAmount()).append("</Amount>\n");
                 xml.append("      <Date>")
                         .append(transaction.getTransactionDate())
@@ -302,7 +306,7 @@ public class DMAComplianceService {
             xml.append("  <Accounts>\n");
             for (final var account : accounts) {
                 xml.append("    <Account>\n");
-                xml.append("      <Id>").append(account.getAccountId()).append("</Id>\n");
+                xml.append(ID_1).append(account.getAccountId()).append(ID);
                 xml.append("      <Name>").append(account.getAccountName()).append("</Name>\n");
                 xml.append("      <Balance>").append(account.getBalance()).append("</Balance>\n");
                 xml.append("    </Account>\n");
@@ -313,7 +317,7 @@ public class DMAComplianceService {
             xml.append("  <Budgets>\n");
             for (final var budget : budgets) {
                 xml.append("    <Budget>\n");
-                xml.append("      <Id>").append(budget.getBudgetId()).append("</Id>\n");
+                xml.append(ID_1).append(budget.getBudgetId()).append(ID);
                 xml.append("      <Category>").append(budget.getCategory()).append("</Category>\n");
                 xml.append("      <MonthlyLimit>")
                         .append(budget.getMonthlyLimit())
@@ -326,7 +330,7 @@ public class DMAComplianceService {
             xml.append("  <Goals>\n");
             for (final var goal : goals) {
                 xml.append("    <Goal>\n");
-                xml.append("      <Id>").append(goal.getGoalId()).append("</Id>\n");
+                xml.append(ID_1).append(goal.getGoalId()).append(ID);
                 xml.append("      <Name>").append(goal.getName()).append("</Name>\n");
                 xml.append("      <TargetAmount>")
                         .append(goal.getTargetAmount())

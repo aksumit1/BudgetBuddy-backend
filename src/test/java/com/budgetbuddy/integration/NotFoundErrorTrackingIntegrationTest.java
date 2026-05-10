@@ -694,7 +694,6 @@ class NotFoundErrorTrackingIntegrationTest {
                 new java.util.concurrent.CountDownLatch(requests);
 
         for (int i = 0; i < requests; i++) {
-            final int requestNum = i;
             executor.submit(
                     () -> {
                         try {

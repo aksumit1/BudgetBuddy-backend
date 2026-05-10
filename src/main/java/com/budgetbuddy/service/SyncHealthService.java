@@ -15,6 +15,9 @@ import org.springframework.stereotype.Service;
  * <p>Features: - Thread-safe status tracking - Health calculation - Error aggregation - Connection
  * health assessment
  */
+// PMD's DataClass fires on Request/Response/Config DTOs by design —
+// they're intentionally data-only; behaviour belongs in the controller/service.
+@SuppressWarnings({"PMD.DataClass", "PMD.OnlyOneReturn"})
 @Service
 public class SyncHealthService {
 

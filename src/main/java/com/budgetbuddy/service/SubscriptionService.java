@@ -40,7 +40,7 @@ import org.springframework.stereotype.Service;
 @SuppressFBWarnings(
         value = "EI_EXPOSE_REP2",
         justification = "Spring constructor injection — beans are shared by design")
-@SuppressWarnings({"PMD.LawOfDemeter", "PMD.AvoidCatchingGenericException"})
+@SuppressWarnings({"PMD.LawOfDemeter", "PMD.AvoidCatchingGenericException", "PMD.OnlyOneReturn"})
 @Service
 public class SubscriptionService {
 
@@ -174,7 +174,7 @@ public class SubscriptionService {
         this.fuzzyMatchingService = fuzzyMatchingService;
     }
 
-    /**
+    /*
      * Detects subscriptions from user's transactions Groups transactions by merchant and amount,
      * then identifies recurring patterns
      */
@@ -1132,7 +1132,7 @@ public class SubscriptionService {
         return grouped;
     }
 
-    /** Normalizes merchant name for grouping */
+    /* Normalizes merchant name for grouping */
 
     /**
      * Enhanced subscription transaction detection using merchant database Uses category detection

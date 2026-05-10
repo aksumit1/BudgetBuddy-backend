@@ -51,7 +51,7 @@ import org.springframework.web.bind.annotation.RestController;
 @SuppressFBWarnings(
         value = "EI_EXPOSE_REP2",
         justification = "Spring constructor injection — beans are shared by design")
-@SuppressWarnings("PMD.LawOfDemeter")
+@SuppressWarnings({"PMD.LawOfDemeter", "PMD.OnlyOneReturn"})
 @RestController
 @RequestMapping("/api/reports")
 public class ReportController {

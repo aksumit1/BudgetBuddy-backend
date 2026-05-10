@@ -26,9 +26,11 @@ import org.springframework.web.client.RestTemplate;
 // standard library types (BigDecimal, String, Optional) and DTO
 // getters; this class has many such idiomatic uses. Suppress at
 // class level rather than littering every method.
-@SuppressWarnings({"PMD.LawOfDemeter", "PMD.AvoidCatchingGenericException"})
+@SuppressWarnings({"PMD.LawOfDemeter", "PMD.AvoidCatchingGenericException", "PMD.DataClass", "PMD.OnlyOneReturn"})
 @Service
 public class DeploymentSafetyService {
+
+    private static final String BASE_URL_IS_NULL_OR_EMPTY = "Base URL is null or empty";
 
     private static final Logger LOGGER = LoggerFactory.getLogger(DeploymentSafetyService.class);
 
@@ -89,11 +91,11 @@ public class DeploymentSafetyService {
             if (isTestEnvironment) {
                 LOGGER.debug("Base URL is null or empty (expected in test environment)");
             } else {
-                LOGGER.warn("Base URL is null or empty");
+                LOGGER.warn(BASE_URL_IS_NULL_OR_EMPTY);
             }
             final DeploymentValidationResult result = new DeploymentValidationResult();
             result.setHealthy(false);
-            result.setErrorMessage("Base URL is null or empty");
+            result.setErrorMessage(BASE_URL_IS_NULL_OR_EMPTY);
             result.setTimestamp(Instant.now());
             return result;
         }
@@ -248,7 +250,7 @@ public class DeploymentSafetyService {
             if (isTestEnvironment) {
                 LOGGER.debug("Base URL is null or empty (expected in test environment)");
             } else {
-                LOGGER.warn("Base URL is null or empty");
+                LOGGER.warn(BASE_URL_IS_NULL_OR_EMPTY);
             }
             return false;
         }

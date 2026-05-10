@@ -5,6 +5,9 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import java.time.LocalDateTime;
 
 /** Authentication response DTO */
+// PMD's DataClass fires on Request/Response/Config DTOs by design —
+// they're intentionally data-only; behaviour belongs in the controller/service.
+@SuppressWarnings("PMD.DataClass")
 @SuppressFBWarnings(
         value = "EI_EXPOSE_REP",
         justification =

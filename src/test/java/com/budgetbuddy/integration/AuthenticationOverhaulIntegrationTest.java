@@ -23,7 +23,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
-import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -48,9 +47,6 @@ import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @DisplayName("Authentication Overhaul Integration Tests")
 class AuthenticationOverhaulIntegrationTest {
-
-    private static final Logger LOGGER =
-            LoggerFactory.getLogger(AuthenticationOverhaulIntegrationTest.class);
 
     @Autowired private AuthService authService;
 
@@ -216,7 +212,6 @@ class AuthenticationOverhaulIntegrationTest {
     void testFIDO2AuthenticationChallengeGenerationSucceeds() {
         // Given - First register a passkey
         final String userId = UUID.randomUUID().toString();
-        final String username = "fido2-auth-test@example.com";
 
         // Setup: Register passkey first (simplified - would need actual registration)
         // For this test, we'll verify the method exists and doesn't throw for users without

@@ -134,11 +134,12 @@ class UserServiceRegistrationTest {
         // Act
         userService.createUserSecure(email, "hash", "First", "Last");
 
-        // Assert - Verify order of operations (implementation saves first, then checks for
-        // duplicates)
-        final var inOrder = inOrder(userRepository);
-        inOrder.verify(userRepository).saveIfNotExists(any(UserTable.class));
-        inOrder.verify(userRepository).findAllByEmail(email);
+        // Assert - saveIfNotExists is the synchronous gate; findAllByEmail is the
+        // async post-save duplicate scan (CompletableFuture.runAsync). Verify
+        // saveIfNotExists fired, then wait up to 2s for the async duplicate
+        // check to land before asserting it.
+        verify(userRepository).saveIfNotExists(any(UserTable.class));
+        verify(userRepository, org.mockito.Mockito.timeout(2000)).findAllByEmail(email);
     }
 
     @Test

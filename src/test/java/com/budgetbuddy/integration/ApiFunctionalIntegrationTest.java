@@ -70,7 +70,6 @@ class ApiFunctionalIntegrationTest {
 
     private String testEmail;
     private String testPasswordHash;
-    private String testSalt;
     private String authToken;
     private UserTable testUser;
     private AccountTable testAccount;

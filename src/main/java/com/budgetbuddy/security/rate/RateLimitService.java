@@ -42,12 +42,22 @@ import software.amazon.awssdk.services.dynamodb.model.UpdateTimeToLiveRequest;
 // SDK / Spring / reflection integration — broad catches translate any
 // runtime exception to AppException or log+swallow. Narrowing isn't
 // practical here, so suppress at class level.
-@SuppressWarnings("PMD.AvoidCatchingGenericException")
+@SuppressWarnings({"PMD.AvoidCatchingGenericException", "PMD.OnlyOneReturn"})
 @SuppressFBWarnings(
         value = "EI_EXPOSE_REP2",
         justification = "Spring constructor injection — beans are shared by design")
 @Service
 public class RateLimitService {
+
+    private static final String DYNAMO_DB_CREDENTIALS_NOT_AVAILABLE = "DynamoDB credentials not available - skipping table initialization (likely in test environment without LocalStack)";
+
+    private static final String UNABLE_TO_LOAD_CREDENTIALS = "Unable to load credentials";
+
+    private static final String DEFAULT = "default";
+
+    private static final String LAST_REFILL = "lastRefill";
+
+    private static final String TOKENS = "tokens";
 
     private static final Logger LOGGER = LoggerFactory.getLogger(RateLimitService.class);
 
@@ -82,7 +92,7 @@ public class RateLimitService {
                 "/api/transactions/batch-import",
                         new RateLimitConfig(100, 60), // 100 batch requests per minute
                 "/api/analytics", new RateLimitConfig(analyticsLimit, 60),
-                "default", new RateLimitConfig(defaultLimit, 60));
+                DEFAULT, new RateLimitConfig(defaultLimit, 60));
     }
 
     private static final int MAX_CACHE_SIZE = 50_000; // Prevent unbounded growth
@@ -208,20 +218,20 @@ public class RateLimitService {
     private RateLimitConfig getRateLimitConfig(final String endpoint) {
         final Map<String, RateLimitConfig> endpointLimits = getEndpointLimits();
         if (endpoint == null) {
-            return endpointLimits.get("default");
+            return endpointLimits.get(DEFAULT);
         }
 
         return endpointLimits.entrySet().stream()
                 .filter(e -> endpoint.startsWith(e.getKey()))
                 .findFirst()
                 .map(Map.Entry::getValue)
-                .orElse(endpointLimits.get("default"));
+                .orElse(endpointLimits.get(DEFAULT));
     }
 
     private TokenBucket loadOrCreateBucket(final String key, final RateLimitConfig config) {
         if (key == null || config == null) {
             final Map<String, RateLimitConfig> endpointLimits = getEndpointLimits();
-            return new TokenBucket(endpointLimits.get("default"));
+            return new TokenBucket(endpointLimits.get(DEFAULT));
         }
 
         try {
@@ -233,10 +243,10 @@ public class RateLimitService {
                                     .build());
 
             if (response.item() != null
-                    && response.item().containsKey("tokens")
-                    && response.item().containsKey("lastRefill")) {
-                final AttributeValue tokensAttr = response.item().get("tokens");
-                final AttributeValue lastRefillAttr = response.item().get("lastRefill");
+                    && response.item().containsKey(TOKENS)
+                    && response.item().containsKey(LAST_REFILL)) {
+                final AttributeValue tokensAttr = response.item().get(TOKENS);
+                final AttributeValue lastRefillAttr = response.item().get(LAST_REFILL);
 
                 if (tokensAttr != null
                         && tokensAttr.n() != null
@@ -270,11 +280,11 @@ public class RateLimitService {
                             .item(
                                     Map.of(
                                             "key", AttributeValue.builder().s(key).build(),
-                                            "tokens",
+                                            TOKENS,
                                                     AttributeValue.builder()
                                                             .n(String.valueOf(bucket.getTokens()))
                                                             .build(),
-                                            "lastRefill",
+                                            LAST_REFILL,
                                                     AttributeValue.builder()
                                                             .n(
                                                                     String.valueOf(
@@ -327,7 +337,7 @@ public class RateLimitService {
             // CRITICAL: Handle credentials errors gracefully (e.g., in tests without LocalStack)
             if (isCredentialsError(e)) {
                 LOGGER.warn(
-                        "DynamoDB credentials not available - skipping table initialization (likely in test environment without LocalStack)");
+                        DYNAMO_DB_CREDENTIALS_NOT_AVAILABLE);
                 return;
             }
             LOGGER.warn("Failed to check if rate limit table exists: {}", e.getMessage());
@@ -373,7 +383,7 @@ public class RateLimitService {
             // CRITICAL: Handle credentials errors gracefully (e.g., in tests without LocalStack)
             if (isCredentialsError(e)) {
                 LOGGER.warn(
-                        "DynamoDB credentials not available - skipping table initialization (likely in test environment without LocalStack)");
+                        DYNAMO_DB_CREDENTIALS_NOT_AVAILABLE);
                 return;
             }
             LOGGER.error("Failed to create rate limit table: {}", e.getMessage());
@@ -381,7 +391,7 @@ public class RateLimitService {
             // CRITICAL: Handle credentials errors gracefully
             if (isCredentialsError(e)) {
                 LOGGER.warn(
-                        "DynamoDB credentials not available - skipping table initialization (likely in test environment without LocalStack)");
+                        DYNAMO_DB_CREDENTIALS_NOT_AVAILABLE);
                 return;
             }
             LOGGER.error("Failed to create rate limit table: {}", e.getMessage());
@@ -391,14 +401,14 @@ public class RateLimitService {
     /** Check if the exception is due to missing AWS credentials */
     private boolean isCredentialsError(final Exception e) {
         final String message = e.getMessage();
-        if (message != null && message.contains("Unable to load credentials")) {
+        if (message != null && message.contains(UNABLE_TO_LOAD_CREDENTIALS)) {
             return true;
         }
         // Check for SdkClientException with credentials error
         if (e instanceof software.amazon.awssdk.core.exception.SdkClientException) {
             final String exceptionMessage = e.getMessage();
             if (exceptionMessage != null
-                    && exceptionMessage.contains("Unable to load credentials")) {
+                    && exceptionMessage.contains(UNABLE_TO_LOAD_CREDENTIALS)) {
                 return true;
             }
         }
@@ -407,7 +417,7 @@ public class RateLimitService {
         while (cause != null) {
             if (cause instanceof software.amazon.awssdk.core.exception.SdkClientException) {
                 final String causeMessage = cause.getMessage();
-                if (causeMessage != null && causeMessage.contains("Unable to load credentials")) {
+                if (causeMessage != null && causeMessage.contains(UNABLE_TO_LOAD_CREDENTIALS)) {
                     return true;
                 }
             }

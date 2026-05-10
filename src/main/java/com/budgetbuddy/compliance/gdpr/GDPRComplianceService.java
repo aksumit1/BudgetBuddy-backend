@@ -35,7 +35,7 @@ import org.springframework.stereotype.Service;
         value = {"EI_EXPOSE_REP", "EI_EXPOSE_REP2"},
         justification = "JSON DTO / DynamoDB entity getters expose lists by reference; "
                         + "the design is value-semantic and Jackson creates fresh instances; Spring constructor injection — beans are shared by design")
-@SuppressWarnings("PMD.AvoidCatchingGenericException")
+@SuppressWarnings({"PMD.AvoidCatchingGenericException", "PMD.DataClass"})
 @Service
 public class GDPRComplianceService {
 

@@ -24,9 +24,13 @@ import org.springframework.stereotype.Service;
 // that can't reasonably be enumerated. Broad catches log + recover (or
 // translate to AppException). Suppress at class level since narrowing
 // here would mean catch (RuntimeException) which PMD flags identically.
-@SuppressWarnings("PMD.AvoidCatchingGenericException")
+@SuppressWarnings({"PMD.AvoidCatchingGenericException", "PMD.DataClass", "PMD.OnlyOneReturn"})
 @Service
 public class FormFieldDetectionService {
+
+    private static final String ACCOUNT = "account #";
+
+    private static final String ACCOUNT_NUMBER = "account number";
 
     private static final Logger LOGGER = LoggerFactory.getLogger(FormFieldDetectionService.class);
 
@@ -34,8 +38,8 @@ public class FormFieldDetectionService {
     private static final List<String> FORM_FIELD_LABELS =
             Arrays.asList(
                     // Account Information
-                    "account number",
-                    "account #",
+                    ACCOUNT_NUMBER,
+                    ACCOUNT,
                     "account no",
                     "acct number",
                     "acct #",
@@ -371,8 +375,8 @@ public class FormFieldDetectionService {
             // CRITICAL: For account number fields, use a more flexible key that matches variations
             // "account number", "account #", "account no", etc. should all be considered the same
             String key = normalizedLabel;
-            if (normalizedLabel.contains("account number")
-                    || normalizedLabel.contains("account #")
+            if (normalizedLabel.contains(ACCOUNT_NUMBER)
+                    || normalizedLabel.contains(ACCOUNT)
                     || normalizedLabel.contains("account no")
                     || normalizedLabel.contains("acct number")
                     || normalizedLabel.contains("acct #")) {
@@ -407,8 +411,8 @@ public class FormFieldDetectionService {
             final String value = field.getValue();
 
             // Account number
-            if (labelLower.contains("account number")
-                    || labelLower.contains("account #")
+            if (labelLower.contains(ACCOUNT_NUMBER)
+                    || labelLower.contains(ACCOUNT)
                     || labelLower.contains("card number")
                     || labelLower.contains("card #")) {
                 final String accountNum = extractAccountNumber(value);

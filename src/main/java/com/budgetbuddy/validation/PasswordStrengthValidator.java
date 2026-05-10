@@ -10,6 +10,9 @@ import org.springframework.stereotype.Component;
  * least 8 characters - Contains uppercase letter - Contains lowercase letter - Contains digit -
  * Contains special character
  */
+// PMD's OnlyOneReturn fights guard-clause idiom — the codebase intentionally
+// uses early returns for clarity (validation guards, fail-fast patterns).
+@SuppressWarnings("PMD.OnlyOneReturn")
 @Component
 public class PasswordStrengthValidator implements ConstraintValidator<StrongPassword, String> {
 

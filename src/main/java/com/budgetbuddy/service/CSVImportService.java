@@ -42,7 +42,7 @@ import org.springframework.stereotype.Service;
         value = {"EI_EXPOSE_REP", "EI_EXPOSE_REP2"},
         justification = "JSON DTO / DynamoDB entity getters expose lists by reference; "
                         + "the design is value-semantic and Jackson creates fresh instances; Spring constructor injection — beans are shared by design")
-@SuppressWarnings({"PMD.LawOfDemeter", "PMD.AvoidCatchingGenericException"})
+@SuppressWarnings({"PMD.LawOfDemeter", "PMD.AvoidCatchingGenericException", "PMD.OnlyOneReturn"})
 @Service
 public class CSVImportService {
 
@@ -3505,7 +3505,7 @@ public class CSVImportService {
         }
     }
 
-    /**
+    /*
      * Parse category string to category name with enhanced RSU, ACH, Salary detection Supports
      * categories from checking accounts, credit cards, investment accounts, and loans
      *
@@ -4704,7 +4704,7 @@ public class CSVImportService {
         return null; // Could not determine specific income category
     }
 
-    /**
+    /*
      * Normalize merchant name for better matching and consistency Lenient normalization - removes
      * common prefixes/suffixes but preserves merchant identity
      *

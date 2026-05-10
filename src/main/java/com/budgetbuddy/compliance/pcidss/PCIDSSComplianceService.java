@@ -37,7 +37,7 @@ import software.amazon.awssdk.services.kms.KmsClient;
 // SDK / Spring / reflection integration — broad catches translate any
 // runtime exception to AppException or log+swallow. Narrowing isn't
 // practical here, so suppress at class level.
-@SuppressWarnings("PMD.AvoidCatchingGenericException")
+@SuppressWarnings({"PMD.AvoidCatchingGenericException", "PMD.OnlyOneReturn"})
 @SuppressFBWarnings(
         value = "EI_EXPOSE_REP2",
         justification = "Spring constructor injection — beans are shared by design")

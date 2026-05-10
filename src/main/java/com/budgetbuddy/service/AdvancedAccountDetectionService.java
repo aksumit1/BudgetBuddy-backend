@@ -32,9 +32,27 @@ import org.springframework.stereotype.Service;
 // that can't reasonably be enumerated. Broad catches log + recover (or
 // translate to AppException). Suppress at class level since narrowing
 // here would mean catch (RuntimeException) which PMD flags identically.
-@SuppressWarnings("PMD.AvoidCatchingGenericException")
+@SuppressWarnings({"PMD.AvoidCatchingGenericException", "PMD.DataClass", "PMD.OnlyOneReturn"})
 @Service
 public class AdvancedAccountDetectionService {
+
+    private static final String COLUMN = "column";
+
+    private static final String CREDIT = "credit";
+
+    private static final String DEPOSITORY = "depository";
+
+    private static final String EXACT = "exact";
+
+    private static final String FILENAME = "filename";
+
+    private static final String HEADER = "header";
+
+    private static final String INVESTMENT = "investment";
+
+    private static final String METADATA = "metadata";
+
+    private static final String PATTERN = "pattern";
 
     private static final Logger LOGGER =
             LoggerFactory.getLogger(AdvancedAccountDetectionService.class);
@@ -146,119 +164,119 @@ public class AdvancedAccountDetectionService {
 
     static {
         // English
-        ACCOUNT_TYPE_PATTERNS.put("checking", "depository");
-        ACCOUNT_TYPE_PATTERNS.put("current", "depository");
-        ACCOUNT_TYPE_PATTERNS.put("savings", "depository");
-        ACCOUNT_TYPE_PATTERNS.put("credit card", "credit");
-        ACCOUNT_TYPE_PATTERNS.put("creditcard", "credit");
+        ACCOUNT_TYPE_PATTERNS.put("checking", DEPOSITORY);
+        ACCOUNT_TYPE_PATTERNS.put("current", DEPOSITORY);
+        ACCOUNT_TYPE_PATTERNS.put("savings", DEPOSITORY);
+        ACCOUNT_TYPE_PATTERNS.put("credit card", CREDIT);
+        ACCOUNT_TYPE_PATTERNS.put("creditcard", CREDIT);
         ACCOUNT_TYPE_PATTERNS.put("loan", "loan");
         ACCOUNT_TYPE_PATTERNS.put("mortgage", "loan");
-        ACCOUNT_TYPE_PATTERNS.put("investment", "investment");
-        ACCOUNT_TYPE_PATTERNS.put("brokerage", "investment");
-        ACCOUNT_TYPE_PATTERNS.put("401k", "investment");
-        ACCOUNT_TYPE_PATTERNS.put("401(k)", "investment");
-        ACCOUNT_TYPE_PATTERNS.put("403b", "investment");
-        ACCOUNT_TYPE_PATTERNS.put("403(b)", "investment");
-        ACCOUNT_TYPE_PATTERNS.put("ira", "investment");
-        ACCOUNT_TYPE_PATTERNS.put("roth", "investment");
-        ACCOUNT_TYPE_PATTERNS.put("roth ira", "investment");
-        ACCOUNT_TYPE_PATTERNS.put("traditional ira", "investment");
-        ACCOUNT_TYPE_PATTERNS.put("sep ira", "investment");
-        ACCOUNT_TYPE_PATTERNS.put("simple ira", "investment");
-        ACCOUNT_TYPE_PATTERNS.put("529", "investment");
-        ACCOUNT_TYPE_PATTERNS.put("529 plan", "investment");
-        ACCOUNT_TYPE_PATTERNS.put("hsa", "investment");
-        ACCOUNT_TYPE_PATTERNS.put("health savings account", "investment");
+        ACCOUNT_TYPE_PATTERNS.put(INVESTMENT, INVESTMENT);
+        ACCOUNT_TYPE_PATTERNS.put("brokerage", INVESTMENT);
+        ACCOUNT_TYPE_PATTERNS.put("401k", INVESTMENT);
+        ACCOUNT_TYPE_PATTERNS.put("401(k)", INVESTMENT);
+        ACCOUNT_TYPE_PATTERNS.put("403b", INVESTMENT);
+        ACCOUNT_TYPE_PATTERNS.put("403(b)", INVESTMENT);
+        ACCOUNT_TYPE_PATTERNS.put("ira", INVESTMENT);
+        ACCOUNT_TYPE_PATTERNS.put("roth", INVESTMENT);
+        ACCOUNT_TYPE_PATTERNS.put("roth ira", INVESTMENT);
+        ACCOUNT_TYPE_PATTERNS.put("traditional ira", INVESTMENT);
+        ACCOUNT_TYPE_PATTERNS.put("sep ira", INVESTMENT);
+        ACCOUNT_TYPE_PATTERNS.put("simple ira", INVESTMENT);
+        ACCOUNT_TYPE_PATTERNS.put("529", INVESTMENT);
+        ACCOUNT_TYPE_PATTERNS.put("529 plan", INVESTMENT);
+        ACCOUNT_TYPE_PATTERNS.put("hsa", INVESTMENT);
+        ACCOUNT_TYPE_PATTERNS.put("health savings account", INVESTMENT);
 
         // German
-        ACCOUNT_TYPE_PATTERNS.put("girokonto", "depository");
-        ACCOUNT_TYPE_PATTERNS.put("sparkonto", "depository");
-        ACCOUNT_TYPE_PATTERNS.put("kreditkarte", "credit");
+        ACCOUNT_TYPE_PATTERNS.put("girokonto", DEPOSITORY);
+        ACCOUNT_TYPE_PATTERNS.put("sparkonto", DEPOSITORY);
+        ACCOUNT_TYPE_PATTERNS.put("kreditkarte", CREDIT);
 
         // French
-        ACCOUNT_TYPE_PATTERNS.put("compte courant", "depository");
-        ACCOUNT_TYPE_PATTERNS.put("compte epargne", "depository");
-        ACCOUNT_TYPE_PATTERNS.put("carte de credit", "credit");
+        ACCOUNT_TYPE_PATTERNS.put("compte courant", DEPOSITORY);
+        ACCOUNT_TYPE_PATTERNS.put("compte epargne", DEPOSITORY);
+        ACCOUNT_TYPE_PATTERNS.put("carte de credit", CREDIT);
 
         // Spanish
-        ACCOUNT_TYPE_PATTERNS.put("cuenta corriente", "depository");
-        ACCOUNT_TYPE_PATTERNS.put("cuenta de ahorros", "depository");
-        ACCOUNT_TYPE_PATTERNS.put("tarjeta de credito", "credit");
+        ACCOUNT_TYPE_PATTERNS.put("cuenta corriente", DEPOSITORY);
+        ACCOUNT_TYPE_PATTERNS.put("cuenta de ahorros", DEPOSITORY);
+        ACCOUNT_TYPE_PATTERNS.put("tarjeta de credito", CREDIT);
 
         // Italian
-        ACCOUNT_TYPE_PATTERNS.put("conto corrente", "depository");
-        ACCOUNT_TYPE_PATTERNS.put("conto di risparmio", "depository");
-        ACCOUNT_TYPE_PATTERNS.put("carta di credito", "credit");
+        ACCOUNT_TYPE_PATTERNS.put("conto corrente", DEPOSITORY);
+        ACCOUNT_TYPE_PATTERNS.put("conto di risparmio", DEPOSITORY);
+        ACCOUNT_TYPE_PATTERNS.put("carta di credito", CREDIT);
 
         // Japanese
-        ACCOUNT_TYPE_PATTERNS.put("当座預金", "depository");
-        ACCOUNT_TYPE_PATTERNS.put("普通預金", "depository");
-        ACCOUNT_TYPE_PATTERNS.put("クレジットカード", "credit");
+        ACCOUNT_TYPE_PATTERNS.put("当座預金", DEPOSITORY);
+        ACCOUNT_TYPE_PATTERNS.put("普通預金", DEPOSITORY);
+        ACCOUNT_TYPE_PATTERNS.put("クレジットカード", CREDIT);
 
         // Chinese
-        ACCOUNT_TYPE_PATTERNS.put("活期账户", "depository");
-        ACCOUNT_TYPE_PATTERNS.put("储蓄账户", "depository");
-        ACCOUNT_TYPE_PATTERNS.put("信用卡", "credit");
+        ACCOUNT_TYPE_PATTERNS.put("活期账户", DEPOSITORY);
+        ACCOUNT_TYPE_PATTERNS.put("储蓄账户", DEPOSITORY);
+        ACCOUNT_TYPE_PATTERNS.put("信用卡", CREDIT);
 
         // Korean
-        ACCOUNT_TYPE_PATTERNS.put("당좌예금", "depository");
-        ACCOUNT_TYPE_PATTERNS.put("저축예금", "depository");
-        ACCOUNT_TYPE_PATTERNS.put("신용카드", "credit");
+        ACCOUNT_TYPE_PATTERNS.put("당좌예금", DEPOSITORY);
+        ACCOUNT_TYPE_PATTERNS.put("저축예금", DEPOSITORY);
+        ACCOUNT_TYPE_PATTERNS.put("신용카드", CREDIT);
 
         // Portuguese
-        ACCOUNT_TYPE_PATTERNS.put("conta corrente", "depository");
-        ACCOUNT_TYPE_PATTERNS.put("conta poupança", "depository");
-        ACCOUNT_TYPE_PATTERNS.put("cartão de crédito", "credit");
+        ACCOUNT_TYPE_PATTERNS.put("conta corrente", DEPOSITORY);
+        ACCOUNT_TYPE_PATTERNS.put("conta poupança", DEPOSITORY);
+        ACCOUNT_TYPE_PATTERNS.put("cartão de crédito", CREDIT);
 
         // Russian
-        ACCOUNT_TYPE_PATTERNS.put("текущий счет", "depository");
-        ACCOUNT_TYPE_PATTERNS.put("сберегательный счет", "depository");
-        ACCOUNT_TYPE_PATTERNS.put("кредитная карта", "credit");
+        ACCOUNT_TYPE_PATTERNS.put("текущий счет", DEPOSITORY);
+        ACCOUNT_TYPE_PATTERNS.put("сберегательный счет", DEPOSITORY);
+        ACCOUNT_TYPE_PATTERNS.put("кредитная карта", CREDIT);
 
         // Arabic
-        ACCOUNT_TYPE_PATTERNS.put("حساب جاري", "depository");
-        ACCOUNT_TYPE_PATTERNS.put("حساب توفير", "depository");
-        ACCOUNT_TYPE_PATTERNS.put("بطاقة ائتمان", "credit");
+        ACCOUNT_TYPE_PATTERNS.put("حساب جاري", DEPOSITORY);
+        ACCOUNT_TYPE_PATTERNS.put("حساب توفير", DEPOSITORY);
+        ACCOUNT_TYPE_PATTERNS.put("بطاقة ائتمان", CREDIT);
 
         // Hindi
-        ACCOUNT_TYPE_PATTERNS.put("चालू खाता", "depository");
-        ACCOUNT_TYPE_PATTERNS.put("बचत खाता", "depository");
-        ACCOUNT_TYPE_PATTERNS.put("क्रेडिट कार्ड", "credit");
+        ACCOUNT_TYPE_PATTERNS.put("चालू खाता", DEPOSITORY);
+        ACCOUNT_TYPE_PATTERNS.put("बचत खाता", DEPOSITORY);
+        ACCOUNT_TYPE_PATTERNS.put("क्रेडिट कार्ड", CREDIT);
 
         // Dutch
-        ACCOUNT_TYPE_PATTERNS.put("betaalrekening", "depository");
-        ACCOUNT_TYPE_PATTERNS.put("spaarrekening", "depository");
-        ACCOUNT_TYPE_PATTERNS.put("creditcard", "credit");
+        ACCOUNT_TYPE_PATTERNS.put("betaalrekening", DEPOSITORY);
+        ACCOUNT_TYPE_PATTERNS.put("spaarrekening", DEPOSITORY);
+        ACCOUNT_TYPE_PATTERNS.put("creditcard", CREDIT);
 
         // Polish
-        ACCOUNT_TYPE_PATTERNS.put("rachunek bieżący", "depository");
-        ACCOUNT_TYPE_PATTERNS.put("konto oszczędnościowe", "depository");
-        ACCOUNT_TYPE_PATTERNS.put("karta kredytowa", "credit");
+        ACCOUNT_TYPE_PATTERNS.put("rachunek bieżący", DEPOSITORY);
+        ACCOUNT_TYPE_PATTERNS.put("konto oszczędnościowe", DEPOSITORY);
+        ACCOUNT_TYPE_PATTERNS.put("karta kredytowa", CREDIT);
 
         // Turkish
-        ACCOUNT_TYPE_PATTERNS.put("vadesiz hesap", "depository");
-        ACCOUNT_TYPE_PATTERNS.put("tasarruf hesabı", "depository");
-        ACCOUNT_TYPE_PATTERNS.put("kredi kartı", "credit");
+        ACCOUNT_TYPE_PATTERNS.put("vadesiz hesap", DEPOSITORY);
+        ACCOUNT_TYPE_PATTERNS.put("tasarruf hesabı", DEPOSITORY);
+        ACCOUNT_TYPE_PATTERNS.put("kredi kartı", CREDIT);
 
         // Vietnamese
-        ACCOUNT_TYPE_PATTERNS.put("tài khoản vãng lai", "depository");
-        ACCOUNT_TYPE_PATTERNS.put("tài khoản tiết kiệm", "depository");
-        ACCOUNT_TYPE_PATTERNS.put("thẻ tín dụng", "credit");
+        ACCOUNT_TYPE_PATTERNS.put("tài khoản vãng lai", DEPOSITORY);
+        ACCOUNT_TYPE_PATTERNS.put("tài khoản tiết kiệm", DEPOSITORY);
+        ACCOUNT_TYPE_PATTERNS.put("thẻ tín dụng", CREDIT);
 
         // Thai
-        ACCOUNT_TYPE_PATTERNS.put("บัญชีกระแสรายวัน", "depository");
-        ACCOUNT_TYPE_PATTERNS.put("บัญชีออมทรัพย์", "depository");
-        ACCOUNT_TYPE_PATTERNS.put("บัตรเครดิต", "credit");
+        ACCOUNT_TYPE_PATTERNS.put("บัญชีกระแสรายวัน", DEPOSITORY);
+        ACCOUNT_TYPE_PATTERNS.put("บัญชีออมทรัพย์", DEPOSITORY);
+        ACCOUNT_TYPE_PATTERNS.put("บัตรเครดิต", CREDIT);
 
         // Indonesian
-        ACCOUNT_TYPE_PATTERNS.put("rekening giro", "depository");
-        ACCOUNT_TYPE_PATTERNS.put("rekening tabungan", "depository");
-        ACCOUNT_TYPE_PATTERNS.put("kartu kredit", "credit");
+        ACCOUNT_TYPE_PATTERNS.put("rekening giro", DEPOSITORY);
+        ACCOUNT_TYPE_PATTERNS.put("rekening tabungan", DEPOSITORY);
+        ACCOUNT_TYPE_PATTERNS.put("kartu kredit", CREDIT);
 
         // Malay
-        ACCOUNT_TYPE_PATTERNS.put("akaun semasa", "depository");
-        ACCOUNT_TYPE_PATTERNS.put("akaun simpanan", "depository");
-        ACCOUNT_TYPE_PATTERNS.put("kad kredit", "credit");
+        ACCOUNT_TYPE_PATTERNS.put("akaun semasa", DEPOSITORY);
+        ACCOUNT_TYPE_PATTERNS.put("akaun simpanan", DEPOSITORY);
+        ACCOUNT_TYPE_PATTERNS.put("kad kredit", CREDIT);
     }
 
     /** Detection result with confidence score */
@@ -386,7 +404,7 @@ public class AdvancedAccountDetectionService {
         // 1. Pattern matching in filename
         String accountNum = extractAccountNumberFromText(filename);
         if (accountNum != null) {
-            candidates.add(new DetectionResult(accountNum, 0.7, "filename", "pattern"));
+            candidates.add(new DetectionResult(accountNum, 0.7, FILENAME, PATTERN));
         }
 
         // 2. Pattern matching in headers
@@ -403,7 +421,7 @@ public class AdvancedAccountDetectionService {
                 final String headerText = String.join(" ", nonNullHeaders);
                 accountNum = extractAccountNumberFromText(headerText);
                 if (accountNum != null) {
-                    candidates.add(new DetectionResult(accountNum, 0.8, "header", "pattern"));
+                    candidates.add(new DetectionResult(accountNum, 0.8, HEADER, PATTERN));
                 }
             }
 
@@ -423,7 +441,7 @@ public class AdvancedAccountDetectionService {
                         // formats (****1234)
                         accountNum = extractAccountNumberFromText(rawAccountNum);
                         if (accountNum != null) {
-                            candidates.add(new DetectionResult(accountNum, 0.9, "data", "column"));
+                            candidates.add(new DetectionResult(accountNum, 0.9, "data", COLUMN));
                         }
                     }
                 }
@@ -444,7 +462,7 @@ public class AdvancedAccountDetectionService {
                 if (value != null && !value.isBlank()) {
                     accountNum = extractAccountNumberFromText(value);
                     if (accountNum != null) {
-                        candidates.add(new DetectionResult(accountNum, 0.6, "metadata", "pattern"));
+                        candidates.add(new DetectionResult(accountNum, 0.6, METADATA, PATTERN));
                     }
                 }
             }
@@ -467,13 +485,13 @@ public class AdvancedAccountDetectionService {
         // 1. Exact match in filename
         String institution = detectInstitutionFromText(filename);
         if (institution != null) {
-            candidates.add(new DetectionResult(institution, 0.8, "filename", "exact"));
+            candidates.add(new DetectionResult(institution, 0.8, FILENAME, EXACT));
         }
 
         // 2. Fuzzy match in filename
         institution = fuzzyMatchInstitution(filename);
         if (institution != null) {
-            candidates.add(new DetectionResult(institution, 0.7, "filename", "fuzzy"));
+            candidates.add(new DetectionResult(institution, 0.7, FILENAME, "fuzzy"));
         }
 
         // 3. Header analysis
@@ -481,12 +499,12 @@ public class AdvancedAccountDetectionService {
             final String headerText = String.join(" ", headers);
             institution = detectInstitutionFromText(headerText);
             if (institution != null) {
-                candidates.add(new DetectionResult(institution, 0.85, "header", "exact"));
+                candidates.add(new DetectionResult(institution, 0.85, HEADER, EXACT));
             }
 
             institution = fuzzyMatchInstitution(headerText);
             if (institution != null) {
-                candidates.add(new DetectionResult(institution, 0.75, "header", "fuzzy"));
+                candidates.add(new DetectionResult(institution, 0.75, HEADER, "fuzzy"));
             }
 
             // Check for institution columns
@@ -497,7 +515,7 @@ public class AdvancedAccountDetectionService {
                     if (value != null) {
                         institution = detectInstitutionFromText(value);
                         if (institution != null) {
-                            candidates.add(new DetectionResult(institution, 0.9, "data", "column"));
+                            candidates.add(new DetectionResult(institution, 0.9, "data", COLUMN));
                         }
                     }
                 }
@@ -509,7 +527,7 @@ public class AdvancedAccountDetectionService {
             for (final String value : metadata.values()) {
                 institution = detectInstitutionFromText(value);
                 if (institution != null) {
-                    candidates.add(new DetectionResult(institution, 0.7, "metadata", "exact"));
+                    candidates.add(new DetectionResult(institution, 0.7, METADATA, EXACT));
                 }
             }
         }
@@ -531,7 +549,7 @@ public class AdvancedAccountDetectionService {
         // 1. Pattern matching in filename
         String accountType = detectAccountTypeFromText(filename);
         if (accountType != null) {
-            candidates.add(new DetectionResult(accountType, 0.7, "filename", "pattern"));
+            candidates.add(new DetectionResult(accountType, 0.7, FILENAME, PATTERN));
         }
 
         // 2. Header analysis
@@ -548,7 +566,7 @@ public class AdvancedAccountDetectionService {
                 final String headerText = String.join(" ", nonNullHeaders);
                 accountType = detectAccountTypeFromText(headerText);
                 if (accountType != null) {
-                    candidates.add(new DetectionResult(accountType, 0.8, "header", "pattern"));
+                    candidates.add(new DetectionResult(accountType, 0.8, HEADER, PATTERN));
                 }
             }
 
@@ -565,7 +583,7 @@ public class AdvancedAccountDetectionService {
                     if (value != null && !value.isBlank()) {
                         accountType = detectAccountTypeFromText(value);
                         if (accountType != null) {
-                            candidates.add(new DetectionResult(accountType, 0.9, "data", "column"));
+                            candidates.add(new DetectionResult(accountType, 0.9, "data", COLUMN));
                         }
                     }
                 }
@@ -583,7 +601,7 @@ public class AdvancedAccountDetectionService {
             for (final String value : metadata.values()) {
                 accountType = detectAccountTypeFromText(value);
                 if (accountType != null) {
-                    candidates.add(new DetectionResult(accountType, 0.6, "metadata", "pattern"));
+                    candidates.add(new DetectionResult(accountType, 0.6, METADATA, PATTERN));
                 }
             }
         }
@@ -618,7 +636,7 @@ public class AdvancedAccountDetectionService {
                 if (isAccountNameColumn(header)) {
                     final String value = extractFromDataColumn(dataRows, i, 1);
                     if (value != null && !value.isBlank()) {
-                        candidates.add(new DetectionResult(value.trim(), 0.9, "data", "column"));
+                        candidates.add(new DetectionResult(value.trim(), 0.9, "data", COLUMN));
                     }
                 }
             }
@@ -627,7 +645,7 @@ public class AdvancedAccountDetectionService {
         // 3. Extract from filename
         final String accountName = extractAccountNameFromFilename(filename);
         if (accountName != null) {
-            candidates.add(new DetectionResult(accountName, 0.7, "filename", "pattern"));
+            candidates.add(new DetectionResult(accountName, 0.7, FILENAME, PATTERN));
         }
 
         // Return highest confidence result
@@ -853,7 +871,7 @@ public class AdvancedAccountDetectionService {
             if (rowText.contains("debit") || rowText.contains(" db ")) {
                 debitCount++;
             }
-            if (rowText.contains("credit") && !rowText.contains("card")) {
+            if (rowText.contains(CREDIT) && !rowText.contains("card")) {
                 creditCount++;
             }
             if (rowText.contains("ach") || rowText.contains("direct deposit")) {

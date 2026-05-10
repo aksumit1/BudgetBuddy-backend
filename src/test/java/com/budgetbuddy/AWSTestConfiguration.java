@@ -234,14 +234,14 @@ public class AWSTestConfiguration {
                 .build();
     }
 
-    /**
+    /*
      * AppConfig Client - Not provided in test config AppConfigIntegration will handle this
      * via @ConditionalOnProperty
      */
     // Note: We don't provide AppConfigClient here because AppConfigIntegration
     // uses @ConditionalOnProperty to prevent bean creation when disabled
 
-    /** AppConfig Data Client - Not provided in test config */
+    /* AppConfig Data Client - Not provided in test config */
     // Note: We don't provide AppConfigDataClient here because AppConfigIntegration
     // uses @ConditionalOnProperty to prevent bean creation when disabled
 

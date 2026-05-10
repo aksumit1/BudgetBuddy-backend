@@ -5,8 +5,13 @@ import java.util.Locale;
 import org.springframework.stereotype.Component;
 
 /** Strategy for detecting dining category */
+// PMD's OnlyOneReturn fights guard-clause idiom — the codebase intentionally
+// uses early returns for clarity (validation guards, fail-fast patterns).
+@SuppressWarnings("PMD.OnlyOneReturn")
 @Component
 public class DiningCategoryStrategy extends BaseCategoryStrategy {
+
+    private static final String PIZZERIA = "pizzeria";
 
     @Override
     public String detectCategory(
@@ -272,7 +277,7 @@ public class DiningCategoryStrategy extends BaseCategoryStrategy {
                 || normalizedMerchantName.contains("brew pub")
                 || normalizedMerchantName.contains("brewpub")
                 || normalizedMerchantName.contains("pizza")
-                || normalizedMerchantName.contains("pizzeria")
+                || normalizedMerchantName.contains(PIZZERIA)
                 || normalizedMerchantName.contains("kitchen")
                 || normalizedMerchantName.contains("sandwich")
                 || descriptionLower.contains("dumplings")
@@ -290,7 +295,7 @@ public class DiningCategoryStrategy extends BaseCategoryStrategy {
                 || descriptionLower.contains("brew pub")
                 || descriptionLower.contains("brewpub")
                 || descriptionLower.contains("pizza")
-                || descriptionLower.contains("pizzeria")
+                || descriptionLower.contains(PIZZERIA)
                 || descriptionLower.contains("kitchen")
                 || descriptionLower.contains("sandwich")) {
             LOGGER.debug(
@@ -306,7 +311,7 @@ public class DiningCategoryStrategy extends BaseCategoryStrategy {
                 || normalizedMerchantName.contains("diner")
                 || normalizedMerchantName.contains("bistro")
                 || normalizedMerchantName.contains("steakhouse")
-                || normalizedMerchantName.contains("pizzeria")
+                || normalizedMerchantName.contains(PIZZERIA)
                 || normalizedMerchantName.contains("trattoria")
                 || normalizedMerchantName.contains("tavern")
                 || normalizedMerchantName.contains("pub")

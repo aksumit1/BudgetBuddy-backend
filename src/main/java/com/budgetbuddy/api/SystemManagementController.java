@@ -26,13 +26,15 @@ import org.springframework.web.bind.annotation.RestController;
 // that can't reasonably be enumerated. Broad catches log + recover (or
 // translate to AppException). Suppress at class level since narrowing
 // here would mean catch (RuntimeException) which PMD flags identically.
-@SuppressWarnings("PMD.AvoidCatchingGenericException")
+@SuppressWarnings({"PMD.AvoidCatchingGenericException", "PMD.OnlyOneReturn"})
 @SuppressFBWarnings(
         value = "EI_EXPOSE_REP2",
         justification = "Spring constructor injection — beans are shared by design")
 @RestController
 @RequestMapping("/api/system")
 public class SystemManagementController {
+
+    private static final String STATUS = "status";
 
     private static final Logger LOGGER = LoggerFactory.getLogger(SystemManagementController.class);
 
@@ -57,13 +59,13 @@ public class SystemManagementController {
             dnsCacheConfig.clearDnsCache();
 
             final Map<String, String> response = new HashMap<>();
-            response.put("status", "success");
+            response.put(STATUS, "success");
             response.put("message", "DNS cache cleared successfully");
             return ResponseEntity.ok(response);
         } catch (Exception e) {
             LOGGER.error("Failed to clear DNS cache: {}", e.getMessage(), e);
             final Map<String, String> response = new HashMap<>();
-            response.put("status", "error");
+            response.put(STATUS, "error");
             response.put("message", "Failed to clear DNS cache: " + e.getMessage());
             return ResponseEntity.internalServerError().body(response);
         }
@@ -79,7 +81,7 @@ public class SystemManagementController {
     @PostMapping("/health")
     public ResponseEntity<Map<String, String>> health() {
         final Map<String, String> response = new HashMap<>();
-        response.put("status", "healthy");
+        response.put(STATUS, "healthy");
         response.put("service", "system-management");
         return ResponseEntity.ok(response);
     }

@@ -183,9 +183,9 @@ class PlaidSyncServiceAccountNumberTest {
     void testSyncAccountsWithAccountNumberDeduplicatesByAccountNumber() {
         // Given - Existing account with same account number and institution
         final String accountNumber = "1234";
-        final String institutionName = "ins_test_bank"; // Use institution ID format
-        final String plaidAccountId = "plaid-account-123";
+        final String institutionName = "ins_test_bank";
 
+        // Use institution ID format
         final AccountTable existingAccount = new AccountTable();
         existingAccount.setAccountId(UUID.randomUUID().toString());
         existingAccount.setUserId(testUser.getUserId());

@@ -43,6 +43,9 @@ import java.util.regex.Pattern;
  * early), but their matches are logged at INFO with their status so mismatches with real data are
  * visible.
  */
+// PMD's DataClass fires on Request/Response/Config DTOs by design —
+// they're intentionally data-only; behaviour belongs in the controller/service.
+@SuppressWarnings({"PMD.DataClass", "PMD.OnlyOneReturn"})
 @SuppressFBWarnings(
         value = "EI_EXPOSE_REP",
         justification =

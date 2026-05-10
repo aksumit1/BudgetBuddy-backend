@@ -30,8 +30,6 @@ class ContextAwareCategoryParsingTest {
 
     @InjectMocks private CSVImportService csvImportService;
 
-    private ImportCategoryParser importCategoryParser;
-
     @BeforeEach
     void setUp() {
         // Mock ImportCategoryParser to avoid circular dependency

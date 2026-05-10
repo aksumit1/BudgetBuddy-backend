@@ -31,9 +31,19 @@ import org.springframework.stereotype.Service;
 @SuppressFBWarnings(
         value = "EI_EXPOSE_REP2",
         justification = "Spring constructor injection — beans are shared by design")
-@SuppressWarnings({"PMD.LawOfDemeter", "PMD.AvoidCatchingGenericException"})
+@SuppressWarnings({"PMD.LawOfDemeter", "PMD.AvoidCatchingGenericException", "PMD.OnlyOneReturn"})
 @Service
 public class GoalService {
+
+    private static final String GOAL_ID_IS_REQUIRED = "Goal ID is required";
+
+    private static final String GOAL_DISAPPEARED = "Goal disappeared";
+
+    private static final String GOAL_DOES_NOT_BELONG_TO_USER = "Goal does not belong to user";
+
+    private static final String GOAL_NOT_FOUND_1 = "Goal not found";
+
+    private static final String USER_IS_REQUIRED = "User is required";
 
     private static final Logger LOGGER = LoggerFactory.getLogger(GoalService.class);
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ISO_LOCAL_DATE;
@@ -75,7 +85,7 @@ public class GoalService {
             final BigDecimal currentAmount,
             final List<String> accountIds) {
         if (user == null || user.getUserId() == null || user.getUserId().isEmpty()) {
-            throw new AppException(ErrorCode.INVALID_INPUT, "User is required");
+            throw new AppException(ErrorCode.INVALID_INPUT, USER_IS_REQUIRED);
         }
         if (name == null || name.isBlank()) {
             throw new AppException(ErrorCode.INVALID_INPUT, "Goal name is required");
@@ -285,27 +295,27 @@ public class GoalService {
 
     public List<GoalTable> getActiveGoals(final UserTable user) {
         if (user == null || user.getUserId() == null || user.getUserId().isEmpty()) {
-            throw new AppException(ErrorCode.INVALID_INPUT, "User is required");
+            throw new AppException(ErrorCode.INVALID_INPUT, USER_IS_REQUIRED);
         }
         return goalRepository.findByUserId(user.getUserId());
     }
 
     public GoalTable getGoal(final UserTable user, final String goalId) {
         if (user == null || user.getUserId() == null || user.getUserId().isEmpty()) {
-            throw new AppException(ErrorCode.INVALID_INPUT, "User is required");
+            throw new AppException(ErrorCode.INVALID_INPUT, USER_IS_REQUIRED);
         }
         if (goalId == null || goalId.isEmpty()) {
-            throw new AppException(ErrorCode.INVALID_INPUT, "Goal ID is required");
+            throw new AppException(ErrorCode.INVALID_INPUT, GOAL_ID_IS_REQUIRED);
         }
 
         final GoalTable goal =
                 goalRepository
                         .findById(goalId)
                         .orElseThrow(
-                                () -> new AppException(ErrorCode.GOAL_NOT_FOUND, "Goal not found"));
+                                () -> new AppException(ErrorCode.GOAL_NOT_FOUND, GOAL_NOT_FOUND_1));
 
         if (goal.getUserId() == null || !goal.getUserId().equals(user.getUserId())) {
-            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "Goal does not belong to user");
+            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, GOAL_DOES_NOT_BELONG_TO_USER);
         }
 
         return goal;
@@ -318,10 +328,10 @@ public class GoalService {
     public GoalTable updateGoalProgress(
             final UserTable user, final String goalId, final BigDecimal additionalAmount) {
         if (user == null || user.getUserId() == null || user.getUserId().isEmpty()) {
-            throw new AppException(ErrorCode.INVALID_INPUT, "User is required");
+            throw new AppException(ErrorCode.INVALID_INPUT, USER_IS_REQUIRED);
         }
         if (goalId == null || goalId.isEmpty()) {
-            throw new AppException(ErrorCode.INVALID_INPUT, "Goal ID is required");
+            throw new AppException(ErrorCode.INVALID_INPUT, GOAL_ID_IS_REQUIRED);
         }
         if (additionalAmount == null) {
             throw new AppException(ErrorCode.INVALID_INPUT, "Additional amount is required");
@@ -332,10 +342,10 @@ public class GoalService {
                 goalRepository
                         .findById(goalId)
                         .orElseThrow(
-                                () -> new AppException(ErrorCode.GOAL_NOT_FOUND, "Goal not found"));
+                                () -> new AppException(ErrorCode.GOAL_NOT_FOUND, GOAL_NOT_FOUND_1));
 
         if (goal.getUserId() == null || !goal.getUserId().equals(user.getUserId())) {
-            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "Goal does not belong to user");
+            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, GOAL_DOES_NOT_BELONG_TO_USER);
         }
 
         // Use optimized increment method (more efficient than read-then-write)
@@ -459,7 +469,7 @@ public class GoalService {
                             .orElseThrow(
                                     () ->
                                             new AppException(
-                                                    ErrorCode.GOAL_NOT_FOUND, "Goal disappeared"));
+                                                    ErrorCode.GOAL_NOT_FOUND, GOAL_DISAPPEARED));
             fresh.setCompleted(true);
             fresh.setCompletedAt(Instant.now());
             if (fresh.getTargetAmount() != null
@@ -497,7 +507,7 @@ public class GoalService {
                             .orElseThrow(
                                     () ->
                                             new AppException(
-                                                    ErrorCode.GOAL_NOT_FOUND, "Goal disappeared"));
+                                                    ErrorCode.GOAL_NOT_FOUND, GOAL_DISAPPEARED));
             fresh.setCompleted(false);
             fresh.setCompletedAt(null);
             fresh.setLastMilestoneReached(null);
@@ -516,10 +526,10 @@ public class GoalService {
     public GoalTable associateAccounts(
             final UserTable user, final String goalId, final List<String> accountIds) {
         if (user == null || user.getUserId() == null || user.getUserId().isEmpty()) {
-            throw new AppException(ErrorCode.INVALID_INPUT, "User is required");
+            throw new AppException(ErrorCode.INVALID_INPUT, USER_IS_REQUIRED);
         }
         if (goalId == null || goalId.isEmpty()) {
-            throw new AppException(ErrorCode.INVALID_INPUT, "Goal ID is required");
+            throw new AppException(ErrorCode.INVALID_INPUT, GOAL_ID_IS_REQUIRED);
         }
         if (accountIds == null) {
             throw new AppException(ErrorCode.INVALID_INPUT, "Account IDs list is required");
@@ -540,7 +550,7 @@ public class GoalService {
                             .orElseThrow(
                                     () ->
                                             new AppException(
-                                                    ErrorCode.GOAL_NOT_FOUND, "Goal disappeared"));
+                                                    ErrorCode.GOAL_NOT_FOUND, GOAL_DISAPPEARED));
             fresh.setAccountIds(goal.getAccountIds());
             fresh.setUpdatedAt(Instant.now());
             goalRepository.saveWithLock(fresh);
@@ -664,20 +674,20 @@ public class GoalService {
      */
     public void deleteGoal(final UserTable user, final String goalId) {
         if (user == null || user.getUserId() == null || user.getUserId().isEmpty()) {
-            throw new AppException(ErrorCode.INVALID_INPUT, "User is required");
+            throw new AppException(ErrorCode.INVALID_INPUT, USER_IS_REQUIRED);
         }
         if (goalId == null || goalId.isEmpty()) {
-            throw new AppException(ErrorCode.INVALID_INPUT, "Goal ID is required");
+            throw new AppException(ErrorCode.INVALID_INPUT, GOAL_ID_IS_REQUIRED);
         }
 
         GoalTable goal =
                 goalRepository
                         .findById(goalId)
                         .orElseThrow(
-                                () -> new AppException(ErrorCode.GOAL_NOT_FOUND, "Goal not found"));
+                                () -> new AppException(ErrorCode.GOAL_NOT_FOUND, GOAL_NOT_FOUND_1));
 
         if (goal.getUserId() == null || !goal.getUserId().equals(user.getUserId())) {
-            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "Goal does not belong to user");
+            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, GOAL_DOES_NOT_BELONG_TO_USER);
         }
 
         // 1. Soft-delete stamp. Under lock so a concurrent budget→goal flow

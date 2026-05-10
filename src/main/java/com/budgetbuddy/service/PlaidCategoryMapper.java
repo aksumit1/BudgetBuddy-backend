@@ -13,6 +13,9 @@ import org.springframework.stereotype.Service;
  * hierarchy as a starting point and enhances with custom logic Supports category overrides - users
  * can override Plaid's categorization
  */
+// PMD's OnlyOneReturn fights guard-clause idiom — the codebase intentionally
+// uses early returns for clarity (validation guards, fail-fast patterns).
+@SuppressWarnings("PMD.OnlyOneReturn")
 @Service
 public class PlaidCategoryMapper {
 
@@ -692,7 +695,7 @@ public class PlaidCategoryMapper {
         return new CategoryMapping(mappedPrimary, mappedDetailed, false);
     }
 
-    /**
+    /*
      * Determines specific income category from transaction description and merchant name Scans for
      * keywords to categorize income as: salary, interest, dividend, stipend, rentIncome, tips, or
      * otherIncome

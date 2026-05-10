@@ -41,6 +41,10 @@ import org.springframework.web.bind.annotation.RestController;
 @Tag(name = "Transactions", description = "Transaction management and synchronization")
 public class TransactionSyncController {
 
+    private static final String USER_NOT_AUTHENTICATED = "User not authenticated";
+
+    private static final String USER_NOT_FOUND_1 = "User not found";
+
     private static final Logger LOGGER = LoggerFactory.getLogger(TransactionSyncController.class);
 
     private final TransactionSyncService transactionSyncService;
@@ -63,7 +67,7 @@ public class TransactionSyncController {
             @RequestParam @NotBlank @Parameter(description = "Plaid access token") final String accessToken) {
 
         if (userDetails == null || userDetails.getUsername() == null) {
-            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "User not authenticated");
+            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, USER_NOT_AUTHENTICATED);
         }
 
         if (accessToken == null || accessToken.isEmpty()) {
@@ -74,7 +78,7 @@ public class TransactionSyncController {
                 userService
                         .findByEmail(userDetails.getUsername())
                         .orElseThrow(
-                                () -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
+                                () -> new AppException(ErrorCode.USER_NOT_FOUND, USER_NOT_FOUND_1));
 
         try {
             transactionSyncService.syncTransactions(user.getUserId(), accessToken);
@@ -118,7 +122,7 @@ public class TransactionSyncController {
                     LocalDate sinceDate) {
 
         if (userDetails == null || userDetails.getUsername() == null) {
-            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "User not authenticated");
+            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, USER_NOT_AUTHENTICATED);
         }
 
         if (accessToken == null || accessToken.isEmpty()) {
@@ -133,7 +137,7 @@ public class TransactionSyncController {
                 userService
                         .findByEmail(userDetails.getUsername())
                         .orElseThrow(
-                                () -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
+                                () -> new AppException(ErrorCode.USER_NOT_FOUND, USER_NOT_FOUND_1));
 
         try {
             final CompletableFuture<TransactionSyncService.SyncResult> future =
@@ -188,14 +192,14 @@ public class TransactionSyncController {
             @AuthenticationPrincipal final UserDetails userDetails) {
 
         if (userDetails == null || userDetails.getUsername() == null) {
-            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "User not authenticated");
+            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, USER_NOT_AUTHENTICATED);
         }
 
         final UserTable user =
                 userService
                         .findByEmail(userDetails.getUsername())
                         .orElseThrow(
-                                () -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
+                                () -> new AppException(ErrorCode.USER_NOT_FOUND, USER_NOT_FOUND_1));
 
         // In production, store sync status in database
         // For now, return a placeholder response

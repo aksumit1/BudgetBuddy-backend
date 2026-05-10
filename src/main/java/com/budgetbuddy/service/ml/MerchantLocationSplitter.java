@@ -30,6 +30,9 @@ import java.util.regex.Pattern;
  * preceding 1..3 tokens as the city. 4. Fail soft — when no tail matches, return raw string as
  * merchant with null location (callers tolerate null).
  */
+// PMD's OnlyOneReturn fights guard-clause idiom — the codebase intentionally
+// uses early returns for clarity (validation guards, fail-fast patterns).
+@SuppressWarnings("PMD.OnlyOneReturn")
 public final class MerchantLocationSplitter {
 
     /** Canonical US state + territory abbreviations. Uppercased set. */

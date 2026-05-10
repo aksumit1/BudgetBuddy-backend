@@ -22,6 +22,9 @@ import software.amazon.awssdk.services.dynamodb.model.ResourceNotFoundException;
  * the user opts in — {@code null} keeps the row out of the index, so the query cost is O(opt-ins)
  * rather than O(users).
  */
+// PMD's OnlyOneReturn fights guard-clause idiom — the codebase intentionally
+// uses early returns for clarity (validation guards, fail-fast patterns).
+@SuppressWarnings("PMD.OnlyOneReturn")
 @Repository
 public class UserPreferencesRepository {
 

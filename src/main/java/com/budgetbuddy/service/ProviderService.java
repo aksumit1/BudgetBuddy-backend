@@ -26,6 +26,10 @@ import org.springframework.stereotype.Service;
 @Service
 public class ProviderService {
 
+    private static final String PROVIDER_ID_CANNOT_BE_NULL_OR_EMPTY = "Provider ID cannot be null or empty";
+
+    private static final String USER_ID_CANNOT_BE_NULL_OR_EMPTY = "User ID cannot be null or empty";
+
     private static final Logger LOGGER = LoggerFactory.getLogger(ProviderService.class);
 
     // Thread-safe storage for provider health per user
@@ -35,7 +39,7 @@ public class ProviderService {
     /** Get all providers with health status for a user */
     public List<ProviderController.ProviderHealthResponse> getAllProviders(final String userId) {
         if (userId == null || userId.isEmpty()) {
-            throw new IllegalArgumentException("User ID cannot be null or empty");
+            throw new IllegalArgumentException(USER_ID_CANNOT_BE_NULL_OR_EMPTY);
         }
 
         final Map<String, ProviderHealth> providers =
@@ -68,10 +72,10 @@ public class ProviderService {
     public ProviderController.ProviderHealthResponse getProviderHealth(
             final String userId, final String providerId) {
         if (userId == null || userId.isEmpty()) {
-            throw new IllegalArgumentException("User ID cannot be null or empty");
+            throw new IllegalArgumentException(USER_ID_CANNOT_BE_NULL_OR_EMPTY);
         }
         if (providerId == null || providerId.isEmpty()) {
-            throw new IllegalArgumentException("Provider ID cannot be null or empty");
+            throw new IllegalArgumentException(PROVIDER_ID_CANNOT_BE_NULL_OR_EMPTY);
         }
 
         final Map<String, ProviderHealth> providers =
@@ -92,10 +96,10 @@ public class ProviderService {
             final String lastError) {
 
         if (userId == null || userId.isEmpty()) {
-            throw new IllegalArgumentException("User ID cannot be null or empty");
+            throw new IllegalArgumentException(USER_ID_CANNOT_BE_NULL_OR_EMPTY);
         }
         if (providerId == null || providerId.isEmpty()) {
-            throw new IllegalArgumentException("Provider ID cannot be null or empty");
+            throw new IllegalArgumentException(PROVIDER_ID_CANNOT_BE_NULL_OR_EMPTY);
         }
 
         final Map<String, ProviderHealth> providers =
@@ -138,10 +142,10 @@ public class ProviderService {
     public ProviderController.ProviderHealthResponse markProviderAsStale(
             final String userId, final String providerId) {
         if (userId == null || userId.isEmpty()) {
-            throw new IllegalArgumentException("User ID cannot be null or empty");
+            throw new IllegalArgumentException(USER_ID_CANNOT_BE_NULL_OR_EMPTY);
         }
         if (providerId == null || providerId.isEmpty()) {
-            throw new IllegalArgumentException("Provider ID cannot be null or empty");
+            throw new IllegalArgumentException(PROVIDER_ID_CANNOT_BE_NULL_OR_EMPTY);
         }
 
         final Map<String, ProviderHealth> providers =
@@ -171,10 +175,10 @@ public class ProviderService {
     public ProviderController.ProviderHealthResponse clearStaleStatus(
             final String userId, final String providerId) {
         if (userId == null || userId.isEmpty()) {
-            throw new IllegalArgumentException("User ID cannot be null or empty");
+            throw new IllegalArgumentException(USER_ID_CANNOT_BE_NULL_OR_EMPTY);
         }
         if (providerId == null || providerId.isEmpty()) {
-            throw new IllegalArgumentException("Provider ID cannot be null or empty");
+            throw new IllegalArgumentException(PROVIDER_ID_CANNOT_BE_NULL_OR_EMPTY);
         }
 
         final Map<String, ProviderHealth> providers =

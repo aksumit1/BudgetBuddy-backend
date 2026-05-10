@@ -28,7 +28,38 @@ import java.util.Optional;
  * <p>Extension path is a CSV / table; the in-code map here is the bootstrap. See {@code
  * MCC_PLAN.md} in this directory for the longer-term plan.
  */
+// PMD's OnlyOneReturn fights guard-clause idiom — the codebase intentionally
+// uses early returns for clarity (validation guards, fail-fast patterns).
+@SuppressWarnings("PMD.OnlyOneReturn")
 public final class MccDirectory {
+
+    private static final String CHARITY = "charity";
+
+    private static final String DINING = "dining";
+
+    private static final String EDUCATION = "education";
+
+    private static final String ENTERTAINMENT = "entertainment";
+
+    private static final String GROCERIES = "groceries";
+
+    private static final String HEALTH = "health";
+
+    private static final String HEALTHCARE = "healthcare";
+
+    private static final String HOME_IMPROVEMENT = "homeImprovement";
+
+    private static final String SERVICE = "service";
+
+    private static final String SHOPPING = "shopping";
+
+    private static final String SUBSCRIPTIONS = "subscriptions";
+
+    private static final String TRANSPORTATION = "transportation";
+
+    private static final String TRAVEL = "travel";
+
+    private static final String UTILITIES = "utilities";
 
     private MccDirectory() {
         /* utility class */
@@ -43,68 +74,68 @@ public final class MccDirectory {
     private static Map<String, String> createMccToCategoryMap() {
         final Map<String, String> m = new HashMap<>();
         // Food & dining
-        m.put("5411", "groceries"); // Grocery stores, supermarkets
-        m.put("5412", "groceries"); // Grocery stores, convenience
-        m.put("5441", "groceries"); // Candy / nut / confectionery
-        m.put("5451", "groceries"); // Dairy products stores
-        m.put("5462", "dining"); // Bakeries
-        m.put("5499", "groceries"); // Misc food stores
-        m.put("5811", "dining"); // Caterers
-        m.put("5812", "dining"); // Eating places / restaurants
-        m.put("5813", "dining"); // Drinking places / bars
-        m.put("5814", "dining"); // Fast food restaurants
+        m.put("5411", GROCERIES); // Grocery stores, supermarkets
+        m.put("5412", GROCERIES); // Grocery stores, convenience
+        m.put("5441", GROCERIES); // Candy / nut / confectionery
+        m.put("5451", GROCERIES); // Dairy products stores
+        m.put("5462", DINING); // Bakeries
+        m.put("5499", GROCERIES); // Misc food stores
+        m.put("5811", DINING); // Caterers
+        m.put("5812", DINING); // Eating places / restaurants
+        m.put("5813", DINING); // Drinking places / bars
+        m.put("5814", DINING); // Fast food restaurants
         // Transportation / fuel
-        m.put("5541", "transportation"); // Service stations (fuel + service)
-        m.put("5542", "transportation"); // Automated fuel dispensers
-        m.put("4111", "transportation"); // Local / commuter passenger transport
-        m.put("4121", "transportation"); // Taxis / limos
-        m.put("4112", "transportation"); // Passenger rail
-        m.put("4131", "transportation"); // Bus lines
-        m.put("4511", "travel"); // Airlines
-        m.put("3000", "travel"); // UA / major airlines range start
-        m.put("3999", "travel"); // major airlines range end
-        m.put("4722", "travel"); // Travel agencies
-        m.put("7011", "travel"); // Hotels / lodging
+        m.put("5541", TRANSPORTATION); // Service stations (fuel + service)
+        m.put("5542", TRANSPORTATION); // Automated fuel dispensers
+        m.put("4111", TRANSPORTATION); // Local / commuter passenger transport
+        m.put("4121", TRANSPORTATION); // Taxis / limos
+        m.put("4112", TRANSPORTATION); // Passenger rail
+        m.put("4131", TRANSPORTATION); // Bus lines
+        m.put("4511", TRAVEL); // Airlines
+        m.put("3000", TRAVEL); // UA / major airlines range start
+        m.put("3999", TRAVEL); // major airlines range end
+        m.put("4722", TRAVEL); // Travel agencies
+        m.put("7011", TRAVEL); // Hotels / lodging
         // Utilities & services
-        m.put("4814", "utilities"); // Telecom
-        m.put("4816", "utilities"); // Cable / internet
-        m.put("4899", "subscriptions"); // Cable / streaming
-        m.put("4900", "utilities"); // Utilities (electric, gas, water, sanitary)
-        m.put("4812", "subscriptions"); // Cellular / phone services
-        m.put("5968", "subscriptions"); // Direct-marketing continuity / subscription
+        m.put("4814", UTILITIES); // Telecom
+        m.put("4816", UTILITIES); // Cable / internet
+        m.put("4899", SUBSCRIPTIONS); // Cable / streaming
+        m.put("4900", UTILITIES); // Utilities (electric, gas, water, sanitary)
+        m.put("4812", SUBSCRIPTIONS); // Cellular / phone services
+        m.put("5968", SUBSCRIPTIONS); // Direct-marketing continuity / subscription
         // Healthcare
-        m.put("5912", "healthcare"); // Drug stores / pharmacies
-        m.put("8011", "healthcare"); // Physicians
-        m.put("8021", "healthcare"); // Dentists
-        m.put("8062", "healthcare"); // Hospitals
-        m.put("8071", "healthcare"); // Medical labs
-        m.put("8099", "healthcare"); // Health services (other)
-        m.put("8050", "healthcare"); // Nursing / assisted living
+        m.put("5912", HEALTHCARE); // Drug stores / pharmacies
+        m.put("8011", HEALTHCARE); // Physicians
+        m.put("8021", HEALTHCARE); // Dentists
+        m.put("8062", HEALTHCARE); // Hospitals
+        m.put("8071", HEALTHCARE); // Medical labs
+        m.put("8099", HEALTHCARE); // Health services (other)
+        m.put("8050", HEALTHCARE); // Nursing / assisted living
         // Shopping
-        m.put("5311", "shopping"); // Department stores
-        m.put("5310", "shopping"); // Discount stores
-        m.put("5651", "shopping"); // Family clothing
-        m.put("5661", "shopping"); // Shoe stores
-        m.put("5691", "shopping"); // Men's + women's clothing
-        m.put("5712", "shopping"); // Furniture / home furnishings
+        m.put("5311", SHOPPING); // Department stores
+        m.put("5310", SHOPPING); // Discount stores
+        m.put("5651", SHOPPING); // Family clothing
+        m.put("5661", SHOPPING); // Shoe stores
+        m.put("5691", SHOPPING); // Men's + women's clothing
+        m.put("5712", SHOPPING); // Furniture / home furnishings
         m.put("5732", "tech"); // Electronics stores
         m.put("5734", "tech"); // Computer software stores
         m.put("5818", "tech"); // Digital goods
-        m.put("5942", "shopping"); // Book stores
-        m.put("5945", "shopping"); // Hobby / toy / game
-        m.put("5999", "shopping"); // Misc retail
+        m.put("5942", SHOPPING); // Book stores
+        m.put("5945", SHOPPING); // Hobby / toy / game
+        m.put("5999", SHOPPING); // Misc retail
         // Entertainment
-        m.put("7832", "entertainment"); // Motion picture theaters
-        m.put("7922", "entertainment"); // Theatrical producers
-        m.put("7929", "entertainment"); // Bands / orchestras
-        m.put("7991", "entertainment"); // Tourist attractions
-        m.put("7993", "entertainment"); // Video amusement game supplies
-        m.put("7994", "entertainment"); // Video game arcades
+        m.put("7832", ENTERTAINMENT); // Motion picture theaters
+        m.put("7922", ENTERTAINMENT); // Theatrical producers
+        m.put("7929", ENTERTAINMENT); // Bands / orchestras
+        m.put("7991", ENTERTAINMENT); // Tourist attractions
+        m.put("7993", ENTERTAINMENT); // Video amusement game supplies
+        m.put("7994", ENTERTAINMENT); // Video game arcades
         // Home / services
-        m.put("1711", "homeImprovement"); // HVAC / plumbing / sheet metal
-        m.put("5211", "homeImprovement"); // Lumber / building materials
-        m.put("5200", "homeImprovement"); // Home supply warehouse
-        m.put("5251", "homeImprovement"); // Hardware stores
+        m.put("1711", HOME_IMPROVEMENT); // HVAC / plumbing / sheet metal
+        m.put("5211", HOME_IMPROVEMENT); // Lumber / building materials
+        m.put("5200", HOME_IMPROVEMENT); // Home supply warehouse
+        m.put("5251", HOME_IMPROVEMENT); // Hardware stores
         // Financial / ATMs
         m.put("6010", "cash"); // Manual cash disbursements
         m.put("6011", "cash"); // Automated cash disbursements (ATM)
@@ -112,68 +143,68 @@ public final class MccDirectory {
         // Insurance
         m.put("6300", "insurance"); // Insurance sales / underwriting
         // Education / charity
-        m.put("8211", "education"); // Elementary / secondary schools
-        m.put("8220", "education"); // Colleges / universities
-        m.put("8299", "education"); // Schools — not elsewhere classified
-        m.put("8398", "charity"); // Charitable + social service orgs
-        m.put("8641", "charity"); // Civic / social / fraternal associations
+        m.put("8211", EDUCATION); // Elementary / secondary schools
+        m.put("8220", EDUCATION); // Colleges / universities
+        m.put("8299", EDUCATION); // Schools — not elsewhere classified
+        m.put("8398", CHARITY); // Charitable + social service orgs
+        m.put("8641", CHARITY); // Civic / social / fraternal associations
         // Pets
         m.put("0742", "pet"); // Veterinary services
         m.put("5995", "pet"); // Pet shops
 
         // Expanded coverage added in the second pass:
         // Automotive + repair
-        m.put("5531", "transportation"); // Auto + home supply stores
-        m.put("5533", "transportation"); // Auto parts + accessories
-        m.put("5538", "transportation"); // Auto wholesale
-        m.put("7523", "transportation"); // Parking lots + garages
-        m.put("7538", "transportation"); // Auto service shops
-        m.put("7549", "transportation"); // Towing
+        m.put("5531", TRANSPORTATION); // Auto + home supply stores
+        m.put("5533", TRANSPORTATION); // Auto parts + accessories
+        m.put("5538", TRANSPORTATION); // Auto wholesale
+        m.put("7523", TRANSPORTATION); // Parking lots + garages
+        m.put("7538", TRANSPORTATION); // Auto service shops
+        m.put("7549", TRANSPORTATION); // Towing
         // Travel
-        m.put("7512", "travel"); // Car rental
-        m.put("7513", "travel"); // Truck + trailer rental
-        m.put("4411", "travel"); // Cruise lines
+        m.put("7512", TRAVEL); // Car rental
+        m.put("7513", TRAVEL); // Truck + trailer rental
+        m.put("4411", TRAVEL); // Cruise lines
         // Digital + tech
-        m.put("5815", "entertainment"); // Digital goods — media
-        m.put("5816", "entertainment"); // Digital goods — games
+        m.put("5815", ENTERTAINMENT); // Digital goods — media
+        m.put("5816", ENTERTAINMENT); // Digital goods — games
         m.put("5817", "tech"); // Digital goods — applications
         // Services (professional + personal)
-        m.put("7230", "service"); // Beauty / barber
-        m.put("7297", "service"); // Massage parlours
-        m.put("7298", "health"); // Spas (distinct from services — health/wellness)
-        m.put("7299", "service"); // Misc personal services
-        m.put("7276", "service"); // Tax prep
-        m.put("7392", "service"); // Management consulting
-        m.put("7399", "service"); // Business services (misc)
-        m.put("8911", "service"); // Architectural / engineering
-        m.put("8999", "service"); // Professional services (not elsewhere)
+        m.put("7230", SERVICE); // Beauty / barber
+        m.put("7297", SERVICE); // Massage parlours
+        m.put("7298", HEALTH); // Spas (distinct from services — health/wellness)
+        m.put("7299", SERVICE); // Misc personal services
+        m.put("7276", SERVICE); // Tax prep
+        m.put("7392", SERVICE); // Management consulting
+        m.put("7399", SERVICE); // Business services (misc)
+        m.put("8911", SERVICE); // Architectural / engineering
+        m.put("8999", SERVICE); // Professional services (not elsewhere)
         // Fitness
-        m.put("7997", "health"); // Health clubs / gyms
-        m.put("7941", "health"); // Commercial sports / athletic fields
+        m.put("7997", HEALTH); // Health clubs / gyms
+        m.put("7941", HEALTH); // Commercial sports / athletic fields
         // Shopping expansion
-        m.put("5611", "shopping"); // Men's clothing
-        m.put("5621", "shopping"); // Women's ready-to-wear
-        m.put("5641", "shopping"); // Children's + infants' wear
-        m.put("5691", "shopping"); // Men's + women's clothing
-        m.put("5722", "shopping"); // Household appliances
-        m.put("5941", "shopping"); // Sporting goods
-        m.put("5944", "shopping"); // Jewelry + watches
-        m.put("5946", "shopping"); // Camera + photographic supply
-        m.put("5947", "shopping"); // Gift + card + novelty
-        m.put("5948", "shopping"); // Luggage + leather goods
-        m.put("5992", "shopping"); // Florists
+        m.put("5611", SHOPPING); // Men's clothing
+        m.put("5621", SHOPPING); // Women's ready-to-wear
+        m.put("5641", SHOPPING); // Children's + infants' wear
+        m.put("5691", SHOPPING); // Men's + women's clothing
+        m.put("5722", SHOPPING); // Household appliances
+        m.put("5941", SHOPPING); // Sporting goods
+        m.put("5944", SHOPPING); // Jewelry + watches
+        m.put("5946", SHOPPING); // Camera + photographic supply
+        m.put("5947", SHOPPING); // Gift + card + novelty
+        m.put("5948", SHOPPING); // Luggage + leather goods
+        m.put("5992", SHOPPING); // Florists
         // Alcohol
-        m.put("5921", "groceries"); // Liquor / wine / beer stores
+        m.put("5921", GROCERIES); // Liquor / wine / beer stores
         // Home improvement expansion
-        m.put("1520", "homeImprovement"); // General contractors
-        m.put("1731", "homeImprovement"); // Electrical contractors
-        m.put("5231", "homeImprovement"); // Glass / paint / wallpaper
-        m.put("5261", "homeImprovement"); // Nurseries / garden supply
+        m.put("1520", HOME_IMPROVEMENT); // General contractors
+        m.put("1731", HOME_IMPROVEMENT); // Electrical contractors
+        m.put("5231", HOME_IMPROVEMENT); // Glass / paint / wallpaper
+        m.put("5261", HOME_IMPROVEMENT); // Nurseries / garden supply
         // Real estate + rent
         m.put("6513", "rent"); // Real estate agents + rentals
         // Charity + religious
-        m.put("8651", "charity"); // Political organisations
-        m.put("8661", "charity"); // Religious organisations
+        m.put("8651", CHARITY); // Political organisations
+        m.put("8661", CHARITY); // Religious organisations
         // Investment + brokerage
         m.put("6211", "investment"); // Securities brokers + dealers
         m.put("6051", "transfer"); // FX / money orders / travellers cheques

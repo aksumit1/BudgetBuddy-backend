@@ -37,7 +37,6 @@ import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -66,9 +65,6 @@ import org.springframework.test.web.servlet.MvcResult;
 @ActiveProfiles("test")
 @Import(AWSTestConfiguration.class)
 class BatchImportAccountCreationTest {
-
-    private static final Logger LOGGER =
-            LoggerFactory.getLogger(BatchImportAccountCreationTest.class);
 
     @Autowired private MockMvc mockMvc;
 

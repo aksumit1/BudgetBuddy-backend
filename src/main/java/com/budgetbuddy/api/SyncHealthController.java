@@ -31,10 +31,17 @@ import org.springframework.web.bind.annotation.RestController;
  * <p>Features: - Sync status tracking - Connection health monitoring - Last sync timestamp - Error
  * tracking - Race condition protection
  */
+// PMD's DataClass fires on Request/Response/Config DTOs by design —
+// they're intentionally data-only; behaviour belongs in the controller/service.
+@SuppressWarnings("PMD.DataClass")
 @RestController
 @RequestMapping("/api/sync/health")
 @Tag(name = "Sync Health", description = "Sync health status and monitoring")
 public class SyncHealthController {
+
+    private static final String USER_NOT_AUTHENTICATED = "User not authenticated";
+
+    private static final String USER_NOT_FOUND_1 = "User not found";
 
     private static final Logger LOGGER = LoggerFactory.getLogger(SyncHealthController.class);
 
@@ -74,14 +81,14 @@ public class SyncHealthController {
         if (userDetails == null
                 || userDetails.getUsername() == null
                 || userDetails.getUsername().isEmpty()) {
-            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "User not authenticated");
+            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, USER_NOT_AUTHENTICATED);
         }
 
         final UserTable user =
                 userService
                         .findByEmail(userDetails.getUsername())
                         .orElseThrow(
-                                () -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
+                                () -> new AppException(ErrorCode.USER_NOT_FOUND, USER_NOT_FOUND_1));
 
         if (user.getUserId() == null || user.getUserId().isEmpty()) {
             throw new AppException(ErrorCode.INVALID_INPUT, "User ID is invalid");
@@ -129,7 +136,7 @@ public class SyncHealthController {
         if (userDetails == null
                 || userDetails.getUsername() == null
                 || userDetails.getUsername().isEmpty()) {
-            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "User not authenticated");
+            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, USER_NOT_AUTHENTICATED);
         }
 
         if (request == null || request.getStatus() == null || request.getStatus().isEmpty()) {
@@ -140,7 +147,7 @@ public class SyncHealthController {
                 userService
                         .findByEmail(userDetails.getUsername())
                         .orElseThrow(
-                                () -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
+                                () -> new AppException(ErrorCode.USER_NOT_FOUND, USER_NOT_FOUND_1));
 
         LOGGER.info(
                 "Updating sync status for user: {} to: {}", user.getUserId(), request.getStatus());
@@ -186,14 +193,14 @@ public class SyncHealthController {
         if (userDetails == null
                 || userDetails.getUsername() == null
                 || userDetails.getUsername().isEmpty()) {
-            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "User not authenticated");
+            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, USER_NOT_AUTHENTICATED);
         }
 
         final UserTable user =
                 userService
                         .findByEmail(userDetails.getUsername())
                         .orElseThrow(
-                                () -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
+                                () -> new AppException(ErrorCode.USER_NOT_FOUND, USER_NOT_FOUND_1));
 
         LOGGER.info("Clearing sync errors for user: {}", user.getUserId());
 

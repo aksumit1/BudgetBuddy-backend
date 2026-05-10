@@ -23,11 +23,16 @@ import software.amazon.awssdk.services.dynamodb.model.ConditionalCheckFailedExce
  * handle by re-reading and retrying — the canonical pattern used elsewhere in the app (budgets,
  * transactions).
  */
+// PMD's OnlyOneReturn fights guard-clause idiom — the codebase intentionally
+// uses early returns for clarity (validation guards, fail-fast patterns).
+@SuppressWarnings("PMD.OnlyOneReturn")
 @Repository
 public class HouseholdRepository {
 
     /** Raised when a conditional write fails because the row moved under us. */
     public static class OptimisticLockException extends RuntimeException {
+        private static final long serialVersionUID = 1L;
+
         public OptimisticLockException(final String msg) {
             super(msg);
         }

@@ -50,6 +50,32 @@ import software.amazon.awssdk.services.dynamodb.model.UpdateTimeToLiveRequest;
 @SuppressWarnings("PMD.AvoidCatchingGenericException")
 public class DynamoDBTableManager {
 
+    private static final String CREATED_TABLE = "Created table: {}";
+
+    private static final String FAILED_TO_CREATE_TABLE = "Failed to create table {}: {}";
+
+    private static final String FAILED_TO_CREATE_TABLE_THIS_MAY_BE = "Failed to create table {}: {}. This may be expected if LocalStack is not running.";
+
+    private static final String TABLE_ALREADY_EXISTS = "Table {} already exists";
+
+    private static final String USER_ID_INDEX = "UserIdIndex";
+
+    private static final String USER_ID_UPDATED_AT_INDEX = "UserIdUpdatedAtIndex";
+
+    private static final String ACCOUNT_ID = "accountId";
+
+    private static final String CREATED_AT = "createdAt";
+
+    private static final String GOAL_ID = "goalId";
+
+    private static final String TRANSACTION_DATE = "transactionDate";
+
+    private static final String TRANSACTION_ID = "transactionId";
+
+    private static final String UPDATED_AT_TIMESTAMP = "updatedAtTimestamp";
+
+    private static final String USER_ID = "userId";
+
     private static final Logger LOGGER = LoggerFactory.getLogger(DynamoDBTableManager.class);
 
     private final DynamoDbClient dynamoDbClient;
@@ -101,7 +127,7 @@ public class DynamoDBTableManager {
                                     BillingMode.PAY_PER_REQUEST) // On-demand for cost optimization
                             .attributeDefinitions(
                                     AttributeDefinition.builder()
-                                            .attributeName("userId")
+                                            .attributeName(USER_ID)
                                             .attributeType(ScalarAttributeType.S)
                                             .build(),
                                     AttributeDefinition.builder()
@@ -118,7 +144,7 @@ public class DynamoDBTableManager {
                                             .build())
                             .keySchema(
                                     KeySchemaElement.builder()
-                                            .attributeName("userId")
+                                            .attributeName(USER_ID)
                                             .keyType(KeyType.HASH)
                                             .build())
                             .globalSecondaryIndexes(
@@ -155,12 +181,12 @@ public class DynamoDBTableManager {
                                                             .build())
                                             .build())
                             .build());
-            LOGGER.info("Created table: {}", tableName);
+            LOGGER.info(CREATED_TABLE, tableName);
         } catch (ResourceInUseException e) {
-            LOGGER.debug("Table {} already exists", tableName);
+            LOGGER.debug(TABLE_ALREADY_EXISTS, tableName);
         } catch (Exception e) {
             LOGGER.warn(
-                    "Failed to create table {}: {}. This may be expected if LocalStack is not running.",
+                    FAILED_TO_CREATE_TABLE_THIS_MAY_BE,
                     tableName,
                     e.getMessage());
         }
@@ -175,11 +201,11 @@ public class DynamoDBTableManager {
                             .billingMode(BillingMode.PAY_PER_REQUEST)
                             .attributeDefinitions(
                                     AttributeDefinition.builder()
-                                            .attributeName("accountId")
+                                            .attributeName(ACCOUNT_ID)
                                             .attributeType(ScalarAttributeType.S)
                                             .build(),
                                     AttributeDefinition.builder()
-                                            .attributeName("userId")
+                                            .attributeName(USER_ID)
                                             .attributeType(ScalarAttributeType.S)
                                             .build(),
                                     AttributeDefinition.builder()
@@ -191,20 +217,20 @@ public class DynamoDBTableManager {
                                             .attributeType(ScalarAttributeType.S)
                                             .build(),
                                     AttributeDefinition.builder()
-                                            .attributeName("updatedAtTimestamp")
+                                            .attributeName(UPDATED_AT_TIMESTAMP)
                                             .attributeType(ScalarAttributeType.N)
                                             .build())
                             .keySchema(
                                     KeySchemaElement.builder()
-                                            .attributeName("accountId")
+                                            .attributeName(ACCOUNT_ID)
                                             .keyType(KeyType.HASH)
                                             .build())
                             .globalSecondaryIndexes(
                                     GlobalSecondaryIndex.builder()
-                                            .indexName("UserIdIndex")
+                                            .indexName(USER_ID_INDEX)
                                             .keySchema(
                                                     KeySchemaElement.builder()
-                                                            .attributeName("userId")
+                                                            .attributeName(USER_ID)
                                                             .keyType(KeyType.HASH)
                                                             .build())
                                             .projection(
@@ -237,14 +263,14 @@ public class DynamoDBTableManager {
                                                             .build())
                                             .build(),
                                     GlobalSecondaryIndex.builder()
-                                            .indexName("UserIdUpdatedAtIndex")
+                                            .indexName(USER_ID_UPDATED_AT_INDEX)
                                             .keySchema(
                                                     KeySchemaElement.builder()
-                                                            .attributeName("userId")
+                                                            .attributeName(USER_ID)
                                                             .keyType(KeyType.HASH)
                                                             .build(),
                                                     KeySchemaElement.builder()
-                                                            .attributeName("updatedAtTimestamp")
+                                                            .attributeName(UPDATED_AT_TIMESTAMP)
                                                             .keyType(KeyType.RANGE)
                                                             .build())
                                             .projection(
@@ -253,12 +279,12 @@ public class DynamoDBTableManager {
                                                             .build())
                                             .build())
                             .build());
-            LOGGER.info("Created table: {}", tableName);
+            LOGGER.info(CREATED_TABLE, tableName);
         } catch (ResourceInUseException e) {
-            LOGGER.debug("Table {} already exists", tableName);
+            LOGGER.debug(TABLE_ALREADY_EXISTS, tableName);
         } catch (Exception e) {
             LOGGER.warn(
-                    "Failed to create table {}: {}. This may be expected if LocalStack is not running.",
+                    FAILED_TO_CREATE_TABLE_THIS_MAY_BE,
                     tableName,
                     e.getMessage());
         }
@@ -273,15 +299,15 @@ public class DynamoDBTableManager {
                             .billingMode(BillingMode.PAY_PER_REQUEST)
                             .attributeDefinitions(
                                     AttributeDefinition.builder()
-                                            .attributeName("transactionId")
+                                            .attributeName(TRANSACTION_ID)
                                             .attributeType(ScalarAttributeType.S)
                                             .build(),
                                     AttributeDefinition.builder()
-                                            .attributeName("userId")
+                                            .attributeName(USER_ID)
                                             .attributeType(ScalarAttributeType.S)
                                             .build(),
                                     AttributeDefinition.builder()
-                                            .attributeName("transactionDate")
+                                            .attributeName(TRANSACTION_DATE)
                                             .attributeType(ScalarAttributeType.S)
                                             .build(),
                                     AttributeDefinition.builder()
@@ -289,20 +315,20 @@ public class DynamoDBTableManager {
                                             .attributeType(ScalarAttributeType.S)
                                             .build(),
                                     AttributeDefinition.builder()
-                                            .attributeName("accountId")
+                                            .attributeName(ACCOUNT_ID)
                                             .attributeType(ScalarAttributeType.S)
                                             .build(),
                                     AttributeDefinition.builder()
-                                            .attributeName("updatedAtTimestamp")
+                                            .attributeName(UPDATED_AT_TIMESTAMP)
                                             .attributeType(ScalarAttributeType.N)
                                             .build(),
                                     AttributeDefinition.builder()
-                                            .attributeName("goalId")
+                                            .attributeName(GOAL_ID)
                                             .attributeType(ScalarAttributeType.S)
                                             .build())
                             .keySchema(
                                     KeySchemaElement.builder()
-                                            .attributeName("transactionId")
+                                            .attributeName(TRANSACTION_ID)
                                             .keyType(KeyType.HASH)
                                             .build())
                             .globalSecondaryIndexes(
@@ -310,11 +336,11 @@ public class DynamoDBTableManager {
                                             .indexName("UserIdDateIndex")
                                             .keySchema(
                                                     KeySchemaElement.builder()
-                                                            .attributeName("userId")
+                                                            .attributeName(USER_ID)
                                                             .keyType(KeyType.HASH)
                                                             .build(),
                                                     KeySchemaElement.builder()
-                                                            .attributeName("transactionDate")
+                                                            .attributeName(TRANSACTION_DATE)
                                                             .keyType(KeyType.RANGE)
                                                             .build())
                                             .projection(
@@ -326,11 +352,11 @@ public class DynamoDBTableManager {
                                             .indexName("AccountIdTransactionDateIndex")
                                             .keySchema(
                                                     KeySchemaElement.builder()
-                                                            .attributeName("accountId")
+                                                            .attributeName(ACCOUNT_ID)
                                                             .keyType(KeyType.HASH)
                                                             .build(),
                                                     KeySchemaElement.builder()
-                                                            .attributeName("transactionDate")
+                                                            .attributeName(TRANSACTION_DATE)
                                                             .keyType(KeyType.RANGE)
                                                             .build())
                                             .projection(
@@ -351,14 +377,14 @@ public class DynamoDBTableManager {
                                                             .build())
                                             .build(),
                                     GlobalSecondaryIndex.builder()
-                                            .indexName("UserIdUpdatedAtIndex")
+                                            .indexName(USER_ID_UPDATED_AT_INDEX)
                                             .keySchema(
                                                     KeySchemaElement.builder()
-                                                            .attributeName("userId")
+                                                            .attributeName(USER_ID)
                                                             .keyType(KeyType.HASH)
                                                             .build(),
                                                     KeySchemaElement.builder()
-                                                            .attributeName("updatedAtTimestamp")
+                                                            .attributeName(UPDATED_AT_TIMESTAMP)
                                                             .keyType(KeyType.RANGE)
                                                             .build())
                                             .projection(
@@ -370,11 +396,11 @@ public class DynamoDBTableManager {
                                             .indexName("UserIdGoalIdIndex")
                                             .keySchema(
                                                     KeySchemaElement.builder()
-                                                            .attributeName("userId")
+                                                            .attributeName(USER_ID)
                                                             .keyType(KeyType.HASH)
                                                             .build(),
                                                     KeySchemaElement.builder()
-                                                            .attributeName("goalId")
+                                                            .attributeName(GOAL_ID)
                                                             .keyType(KeyType.RANGE)
                                                             .build())
                                             .projection(
@@ -383,12 +409,12 @@ public class DynamoDBTableManager {
                                                             .build())
                                             .build())
                             .build());
-            LOGGER.info("Created table: {}", tableName);
+            LOGGER.info(CREATED_TABLE, tableName);
         } catch (ResourceInUseException e) {
-            LOGGER.debug("Table {} already exists", tableName);
+            LOGGER.debug(TABLE_ALREADY_EXISTS, tableName);
         } catch (Exception e) {
             LOGGER.warn(
-                    "Failed to create table {}: {}. This may be expected if LocalStack is not running.",
+                    FAILED_TO_CREATE_TABLE_THIS_MAY_BE,
                     tableName,
                     e.getMessage());
         }
@@ -407,11 +433,11 @@ public class DynamoDBTableManager {
                                             .attributeType(ScalarAttributeType.S)
                                             .build(),
                                     AttributeDefinition.builder()
-                                            .attributeName("userId")
+                                            .attributeName(USER_ID)
                                             .attributeType(ScalarAttributeType.S)
                                             .build(),
                                     AttributeDefinition.builder()
-                                            .attributeName("updatedAtTimestamp")
+                                            .attributeName(UPDATED_AT_TIMESTAMP)
                                             .attributeType(ScalarAttributeType.N)
                                             .build())
                             .keySchema(
@@ -421,10 +447,10 @@ public class DynamoDBTableManager {
                                             .build())
                             .globalSecondaryIndexes(
                                     GlobalSecondaryIndex.builder()
-                                            .indexName("UserIdIndex")
+                                            .indexName(USER_ID_INDEX)
                                             .keySchema(
                                                     KeySchemaElement.builder()
-                                                            .attributeName("userId")
+                                                            .attributeName(USER_ID)
                                                             .keyType(KeyType.HASH)
                                                             .build())
                                             .projection(
@@ -433,14 +459,14 @@ public class DynamoDBTableManager {
                                                             .build())
                                             .build(),
                                     GlobalSecondaryIndex.builder()
-                                            .indexName("UserIdUpdatedAtIndex")
+                                            .indexName(USER_ID_UPDATED_AT_INDEX)
                                             .keySchema(
                                                     KeySchemaElement.builder()
-                                                            .attributeName("userId")
+                                                            .attributeName(USER_ID)
                                                             .keyType(KeyType.HASH)
                                                             .build(),
                                                     KeySchemaElement.builder()
-                                                            .attributeName("updatedAtTimestamp")
+                                                            .attributeName(UPDATED_AT_TIMESTAMP)
                                                             .keyType(KeyType.RANGE)
                                                             .build())
                                             .projection(
@@ -449,12 +475,12 @@ public class DynamoDBTableManager {
                                                             .build())
                                             .build())
                             .build());
-            LOGGER.info("Created table: {}", tableName);
+            LOGGER.info(CREATED_TABLE, tableName);
         } catch (ResourceInUseException e) {
-            LOGGER.debug("Table {} already exists", tableName);
+            LOGGER.debug(TABLE_ALREADY_EXISTS, tableName);
         } catch (Exception e) {
             LOGGER.warn(
-                    "Failed to create table {}: {}. This may be expected if LocalStack is not running.",
+                    FAILED_TO_CREATE_TABLE_THIS_MAY_BE,
                     tableName,
                     e.getMessage());
         }
@@ -469,28 +495,28 @@ public class DynamoDBTableManager {
                             .billingMode(BillingMode.PAY_PER_REQUEST)
                             .attributeDefinitions(
                                     AttributeDefinition.builder()
-                                            .attributeName("goalId")
+                                            .attributeName(GOAL_ID)
                                             .attributeType(ScalarAttributeType.S)
                                             .build(),
                                     AttributeDefinition.builder()
-                                            .attributeName("userId")
+                                            .attributeName(USER_ID)
                                             .attributeType(ScalarAttributeType.S)
                                             .build(),
                                     AttributeDefinition.builder()
-                                            .attributeName("updatedAtTimestamp")
+                                            .attributeName(UPDATED_AT_TIMESTAMP)
                                             .attributeType(ScalarAttributeType.N)
                                             .build())
                             .keySchema(
                                     KeySchemaElement.builder()
-                                            .attributeName("goalId")
+                                            .attributeName(GOAL_ID)
                                             .keyType(KeyType.HASH)
                                             .build())
                             .globalSecondaryIndexes(
                                     GlobalSecondaryIndex.builder()
-                                            .indexName("UserIdIndex")
+                                            .indexName(USER_ID_INDEX)
                                             .keySchema(
                                                     KeySchemaElement.builder()
-                                                            .attributeName("userId")
+                                                            .attributeName(USER_ID)
                                                             .keyType(KeyType.HASH)
                                                             .build())
                                             .projection(
@@ -499,14 +525,14 @@ public class DynamoDBTableManager {
                                                             .build())
                                             .build(),
                                     GlobalSecondaryIndex.builder()
-                                            .indexName("UserIdUpdatedAtIndex")
+                                            .indexName(USER_ID_UPDATED_AT_INDEX)
                                             .keySchema(
                                                     KeySchemaElement.builder()
-                                                            .attributeName("userId")
+                                                            .attributeName(USER_ID)
                                                             .keyType(KeyType.HASH)
                                                             .build(),
                                                     KeySchemaElement.builder()
-                                                            .attributeName("updatedAtTimestamp")
+                                                            .attributeName(UPDATED_AT_TIMESTAMP)
                                                             .keyType(KeyType.RANGE)
                                                             .build())
                                             .projection(
@@ -515,12 +541,12 @@ public class DynamoDBTableManager {
                                                             .build())
                                             .build())
                             .build());
-            LOGGER.info("Created table: {}", tableName);
+            LOGGER.info(CREATED_TABLE, tableName);
         } catch (ResourceInUseException e) {
-            LOGGER.debug("Table {} already exists", tableName);
+            LOGGER.debug(TABLE_ALREADY_EXISTS, tableName);
         } catch (Exception e) {
             LOGGER.warn(
-                    "Failed to create table {}: {}. This may be expected if LocalStack is not running.",
+                    FAILED_TO_CREATE_TABLE_THIS_MAY_BE,
                     tableName,
                     e.getMessage());
         }
@@ -539,11 +565,11 @@ public class DynamoDBTableManager {
                                             .attributeType(ScalarAttributeType.S)
                                             .build(),
                                     AttributeDefinition.builder()
-                                            .attributeName("transactionId")
+                                            .attributeName(TRANSACTION_ID)
                                             .attributeType(ScalarAttributeType.S)
                                             .build(),
                                     AttributeDefinition.builder()
-                                            .attributeName("userId")
+                                            .attributeName(USER_ID)
                                             .attributeType(ScalarAttributeType.S)
                                             .build(),
                                     AttributeDefinition.builder()
@@ -555,7 +581,7 @@ public class DynamoDBTableManager {
                                             .attributeType(ScalarAttributeType.S)
                                             .build(),
                                     AttributeDefinition.builder()
-                                            .attributeName("updatedAtTimestamp")
+                                            .attributeName(UPDATED_AT_TIMESTAMP)
                                             .attributeType(ScalarAttributeType.N)
                                             .build())
                             .keySchema(
@@ -568,7 +594,7 @@ public class DynamoDBTableManager {
                                             .indexName("TransactionIdIndex")
                                             .keySchema(
                                                     KeySchemaElement.builder()
-                                                            .attributeName("transactionId")
+                                                            .attributeName(TRANSACTION_ID)
                                                             .keyType(KeyType.HASH)
                                                             .build())
                                             .projection(
@@ -577,10 +603,10 @@ public class DynamoDBTableManager {
                                                             .build())
                                             .build(),
                                     GlobalSecondaryIndex.builder()
-                                            .indexName("UserIdIndex")
+                                            .indexName(USER_ID_INDEX)
                                             .keySchema(
                                                     KeySchemaElement.builder()
-                                                            .attributeName("userId")
+                                                            .attributeName(USER_ID)
                                                             .keyType(KeyType.HASH)
                                                             .build())
                                             .projection(
@@ -605,14 +631,14 @@ public class DynamoDBTableManager {
                                                             .build())
                                             .build(),
                                     GlobalSecondaryIndex.builder()
-                                            .indexName("UserIdUpdatedAtIndex")
+                                            .indexName(USER_ID_UPDATED_AT_INDEX)
                                             .keySchema(
                                                     KeySchemaElement.builder()
-                                                            .attributeName("userId")
+                                                            .attributeName(USER_ID)
                                                             .keyType(KeyType.HASH)
                                                             .build(),
                                                     KeySchemaElement.builder()
-                                                            .attributeName("updatedAtTimestamp")
+                                                            .attributeName(UPDATED_AT_TIMESTAMP)
                                                             .keyType(KeyType.RANGE)
                                                             .build())
                                             .projection(
@@ -621,11 +647,11 @@ public class DynamoDBTableManager {
                                                             .build())
                                             .build())
                             .build());
-            LOGGER.info("Created table: {}", tableName);
+            LOGGER.info(CREATED_TABLE, tableName);
         } catch (ResourceInUseException e) {
-            LOGGER.debug("Table {} already exists", tableName);
+            LOGGER.debug(TABLE_ALREADY_EXISTS, tableName);
         } catch (Exception e) {
-            LOGGER.error("Failed to create table {}: {}", tableName, e.getMessage());
+            LOGGER.error(FAILED_TO_CREATE_TABLE, tableName, e.getMessage());
         }
     }
 
@@ -642,7 +668,7 @@ public class DynamoDBTableManager {
                                             .attributeType(ScalarAttributeType.S)
                                             .build(),
                                     AttributeDefinition.builder()
-                                            .attributeName("userId")
+                                            .attributeName(USER_ID)
                                             .attributeType(ScalarAttributeType.S)
                                             .build())
                             .keySchema(
@@ -652,10 +678,10 @@ public class DynamoDBTableManager {
                                             .build())
                             .globalSecondaryIndexes(
                                     GlobalSecondaryIndex.builder()
-                                            .indexName("UserIdIndex")
+                                            .indexName(USER_ID_INDEX)
                                             .keySchema(
                                                     KeySchemaElement.builder()
-                                                            .attributeName("userId")
+                                                            .attributeName(USER_ID)
                                                             .keyType(KeyType.HASH)
                                                             .build())
                                             .projection(
@@ -664,11 +690,11 @@ public class DynamoDBTableManager {
                                                             .build())
                                             .build())
                             .build());
-            LOGGER.info("Created table: {}", tableName);
+            LOGGER.info(CREATED_TABLE, tableName);
         } catch (ResourceInUseException e) {
-            LOGGER.debug("Table {} already exists", tableName);
+            LOGGER.debug(TABLE_ALREADY_EXISTS, tableName);
         } catch (Exception e) {
-            LOGGER.error("Failed to create table {}: {}", tableName, e.getMessage());
+            LOGGER.error(FAILED_TO_CREATE_TABLE, tableName, e.getMessage());
         }
     }
 
@@ -685,11 +711,11 @@ public class DynamoDBTableManager {
                                             .attributeType(ScalarAttributeType.S)
                                             .build(),
                                     AttributeDefinition.builder()
-                                            .attributeName("userId")
+                                            .attributeName(USER_ID)
                                             .attributeType(ScalarAttributeType.S)
                                             .build(),
                                     AttributeDefinition.builder()
-                                            .attributeName("createdAt")
+                                            .attributeName(CREATED_AT)
                                             .attributeType(ScalarAttributeType.N)
                                             .build(),
                                     AttributeDefinition.builder()
@@ -706,11 +732,11 @@ public class DynamoDBTableManager {
                                             .indexName("UserIdCreatedAtIndex")
                                             .keySchema(
                                                     KeySchemaElement.builder()
-                                                            .attributeName("userId")
+                                                            .attributeName(USER_ID)
                                                             .keyType(KeyType.HASH)
                                                             .build(),
                                                     KeySchemaElement.builder()
-                                                            .attributeName("createdAt")
+                                                            .attributeName(CREATED_AT)
                                                             .keyType(KeyType.RANGE)
                                                             .build())
                                             .projection(
@@ -726,7 +752,7 @@ public class DynamoDBTableManager {
                                                             .keyType(KeyType.HASH)
                                                             .build(),
                                                     KeySchemaElement.builder()
-                                                            .attributeName("createdAt")
+                                                            .attributeName(CREATED_AT)
                                                             .keyType(KeyType.RANGE)
                                                             .build())
                                             .projection(
@@ -735,12 +761,12 @@ public class DynamoDBTableManager {
                                                             .build())
                                             .build())
                             .build());
-            LOGGER.info("Created table: {}", tableName);
+            LOGGER.info(CREATED_TABLE, tableName);
         } catch (ResourceInUseException e) {
-            LOGGER.debug("Table {} already exists", tableName);
+            LOGGER.debug(TABLE_ALREADY_EXISTS, tableName);
         } catch (Exception e) {
             LOGGER.warn(
-                    "Failed to create table {}: {}. This may be expected if LocalStack is not running.",
+                    FAILED_TO_CREATE_TABLE_THIS_MAY_BE,
                     tableName,
                     e.getMessage());
         }
@@ -779,11 +805,11 @@ public class DynamoDBTableManager {
             } catch (Exception e) {
                 LOGGER.warn("Failed to configure TTL for 404 tracking table: {}", e.getMessage());
             }
-            LOGGER.info("Created table: {}", tableName);
+            LOGGER.info(CREATED_TABLE, tableName);
         } catch (ResourceInUseException e) {
-            LOGGER.debug("Table {} already exists", tableName);
+            LOGGER.debug(TABLE_ALREADY_EXISTS, tableName);
         } catch (Exception e) {
-            LOGGER.error("Failed to create table {}: {}", tableName, e.getMessage());
+            LOGGER.error(FAILED_TO_CREATE_TABLE, tableName, e.getMessage());
         }
     }
 
@@ -821,11 +847,11 @@ public class DynamoDBTableManager {
                 LOGGER.warn("Failed to configure TTL for RateLimits table: {}", e.getMessage());
             }
 
-            LOGGER.info("Created table: {}", tableName);
+            LOGGER.info(CREATED_TABLE, tableName);
         } catch (ResourceInUseException e) {
-            LOGGER.debug("Table {} already exists", tableName);
+            LOGGER.debug(TABLE_ALREADY_EXISTS, tableName);
         } catch (Exception e) {
-            LOGGER.error("Failed to create table {}: {}", tableName, e.getMessage());
+            LOGGER.error(FAILED_TO_CREATE_TABLE, tableName, e.getMessage());
         }
     }
 
@@ -863,11 +889,11 @@ public class DynamoDBTableManager {
                 LOGGER.warn("Failed to configure TTL for DDoSProtection table: {}", e.getMessage());
             }
 
-            LOGGER.info("Created table: {}", tableName);
+            LOGGER.info(CREATED_TABLE, tableName);
         } catch (ResourceInUseException e) {
-            LOGGER.debug("Table {} already exists", tableName);
+            LOGGER.debug(TABLE_ALREADY_EXISTS, tableName);
         } catch (Exception e) {
-            LOGGER.error("Failed to create table {}: {}", tableName, e.getMessage());
+            LOGGER.error(FAILED_TO_CREATE_TABLE, tableName, e.getMessage());
         }
     }
 
@@ -884,7 +910,7 @@ public class DynamoDBTableManager {
                                             .attributeType(ScalarAttributeType.S)
                                             .build(),
                                     AttributeDefinition.builder()
-                                            .attributeName("userId")
+                                            .attributeName(USER_ID)
                                             .attributeType(ScalarAttributeType.S)
                                             .build())
                             .keySchema(
@@ -893,7 +919,7 @@ public class DynamoDBTableManager {
                                             .keyType(KeyType.HASH)
                                             .build(),
                                     KeySchemaElement.builder()
-                                            .attributeName("userId")
+                                            .attributeName(USER_ID)
                                             .keyType(KeyType.RANGE)
                                             .build())
                             .build());
@@ -914,11 +940,11 @@ public class DynamoDBTableManager {
                         "Failed to configure TTL for DeviceAttestation table: {}", e.getMessage());
             }
 
-            LOGGER.info("Created table: {}", tableName);
+            LOGGER.info(CREATED_TABLE, tableName);
         } catch (ResourceInUseException e) {
-            LOGGER.debug("Table {} already exists", tableName);
+            LOGGER.debug(TABLE_ALREADY_EXISTS, tableName);
         } catch (Exception e) {
-            LOGGER.error("Failed to create table {}: {}", tableName, e.getMessage());
+            LOGGER.error(FAILED_TO_CREATE_TABLE, tableName, e.getMessage());
         }
     }
 
@@ -935,7 +961,7 @@ public class DynamoDBTableManager {
                                             .attributeType(ScalarAttributeType.S)
                                             .build(),
                                     AttributeDefinition.builder()
-                                            .attributeName("userId")
+                                            .attributeName(USER_ID)
                                             .attributeType(ScalarAttributeType.S)
                                             .build())
                             .keySchema(
@@ -945,10 +971,10 @@ public class DynamoDBTableManager {
                                             .build())
                             .globalSecondaryIndexes(
                                     GlobalSecondaryIndex.builder()
-                                            .indexName("UserIdIndex")
+                                            .indexName(USER_ID_INDEX)
                                             .keySchema(
                                                     KeySchemaElement.builder()
-                                                            .attributeName("userId")
+                                                            .attributeName(USER_ID)
                                                             .keyType(KeyType.HASH)
                                                             .build())
                                             .projection(
@@ -962,11 +988,11 @@ public class DynamoDBTableManager {
                                             .streamViewType(StreamViewType.NEW_AND_OLD_IMAGES)
                                             .build())
                             .build());
-            LOGGER.info("Created table: {}", tableName);
+            LOGGER.info(CREATED_TABLE, tableName);
         } catch (ResourceInUseException e) {
-            LOGGER.debug("Table {} already exists", tableName);
+            LOGGER.debug(TABLE_ALREADY_EXISTS, tableName);
         } catch (Exception e) {
-            LOGGER.error("Failed to create table {}: {}", tableName, e.getMessage());
+            LOGGER.error(FAILED_TO_CREATE_TABLE, tableName, e.getMessage());
         }
     }
 
@@ -1005,11 +1031,11 @@ public class DynamoDBTableManager {
                         "Failed to configure TTL for FIDO2Challenges table: {}", e.getMessage());
             }
 
-            LOGGER.info("Created table: {}", tableName);
+            LOGGER.info(CREATED_TABLE, tableName);
         } catch (ResourceInUseException e) {
-            LOGGER.debug("Table {} already exists", tableName);
+            LOGGER.debug(TABLE_ALREADY_EXISTS, tableName);
         } catch (Exception e) {
-            LOGGER.error("Failed to create table {}: {}", tableName, e.getMessage());
+            LOGGER.error(FAILED_TO_CREATE_TABLE, tableName, e.getMessage());
         }
     }
 
@@ -1022,7 +1048,7 @@ public class DynamoDBTableManager {
                             .billingMode(BillingMode.PAY_PER_REQUEST)
                             .attributeDefinitions(
                                     AttributeDefinition.builder()
-                                            .attributeName("userId")
+                                            .attributeName(USER_ID)
                                             .attributeType(ScalarAttributeType.S)
                                             .build(),
                                     AttributeDefinition.builder()
@@ -1031,7 +1057,7 @@ public class DynamoDBTableManager {
                                             .build())
                             .keySchema(
                                     KeySchemaElement.builder()
-                                            .attributeName("userId")
+                                            .attributeName(USER_ID)
                                             .keyType(KeyType.HASH)
                                             .build(),
                                     KeySchemaElement.builder()
@@ -1044,11 +1070,11 @@ public class DynamoDBTableManager {
                                             .streamViewType(StreamViewType.NEW_AND_OLD_IMAGES)
                                             .build())
                             .build());
-            LOGGER.info("Created table: {}", tableName);
+            LOGGER.info(CREATED_TABLE, tableName);
         } catch (ResourceInUseException e) {
-            LOGGER.debug("Table {} already exists", tableName);
+            LOGGER.debug(TABLE_ALREADY_EXISTS, tableName);
         } catch (Exception e) {
-            LOGGER.error("Failed to create table {}: {}", tableName, e.getMessage());
+            LOGGER.error(FAILED_TO_CREATE_TABLE, tableName, e.getMessage());
         }
     }
 
@@ -1061,7 +1087,7 @@ public class DynamoDBTableManager {
                             .billingMode(BillingMode.PAY_PER_REQUEST)
                             .attributeDefinitions(
                                     AttributeDefinition.builder()
-                                            .attributeName("userId")
+                                            .attributeName(USER_ID)
                                             .attributeType(ScalarAttributeType.S)
                                             .build(),
                                     AttributeDefinition.builder()
@@ -1070,7 +1096,7 @@ public class DynamoDBTableManager {
                                             .build())
                             .keySchema(
                                     KeySchemaElement.builder()
-                                            .attributeName("userId")
+                                            .attributeName(USER_ID)
                                             .keyType(KeyType.HASH)
                                             .build(),
                                     KeySchemaElement.builder()
@@ -1083,11 +1109,11 @@ public class DynamoDBTableManager {
                                             .streamViewType(StreamViewType.NEW_AND_OLD_IMAGES)
                                             .build())
                             .build());
-            LOGGER.info("Created table: {}", tableName);
+            LOGGER.info(CREATED_TABLE, tableName);
         } catch (ResourceInUseException e) {
-            LOGGER.debug("Table {} already exists", tableName);
+            LOGGER.debug(TABLE_ALREADY_EXISTS, tableName);
         } catch (Exception e) {
-            LOGGER.error("Failed to create table {}: {}", tableName, e.getMessage());
+            LOGGER.error(FAILED_TO_CREATE_TABLE, tableName, e.getMessage());
         }
     }
 
@@ -1125,11 +1151,11 @@ public class DynamoDBTableManager {
                 LOGGER.warn("Failed to configure TTL for MFAOTPCodes table: {}", e.getMessage());
             }
 
-            LOGGER.info("Created table: {}", tableName);
+            LOGGER.info(CREATED_TABLE, tableName);
         } catch (ResourceInUseException e) {
-            LOGGER.debug("Table {} already exists", tableName);
+            LOGGER.debug(TABLE_ALREADY_EXISTS, tableName);
         } catch (Exception e) {
-            LOGGER.error("Failed to create table {}: {}", tableName, e.getMessage());
+            LOGGER.error(FAILED_TO_CREATE_TABLE, tableName, e.getMessage());
         }
     }
 
@@ -1146,7 +1172,7 @@ public class DynamoDBTableManager {
                                             .attributeType(ScalarAttributeType.S)
                                             .build(),
                                     AttributeDefinition.builder()
-                                            .attributeName("userId")
+                                            .attributeName(USER_ID)
                                             .attributeType(ScalarAttributeType.S)
                                             .build(),
                                     AttributeDefinition.builder()
@@ -1160,10 +1186,10 @@ public class DynamoDBTableManager {
                                             .build())
                             .globalSecondaryIndexes(
                                     GlobalSecondaryIndex.builder()
-                                            .indexName("UserIdIndex")
+                                            .indexName(USER_ID_INDEX)
                                             .keySchema(
                                                     KeySchemaElement.builder()
-                                                            .attributeName("userId")
+                                                            .attributeName(USER_ID)
                                                             .keyType(KeyType.HASH)
                                                             .build())
                                             .projection(
@@ -1175,7 +1201,7 @@ public class DynamoDBTableManager {
                                             .indexName("UserIdCreatedAtIndex")
                                             .keySchema(
                                                     KeySchemaElement.builder()
-                                                            .attributeName("userId")
+                                                            .attributeName(USER_ID)
                                                             .keyType(KeyType.HASH)
                                                             .build(),
                                                     KeySchemaElement.builder()
@@ -1188,12 +1214,12 @@ public class DynamoDBTableManager {
                                                             .build())
                                             .build())
                             .build());
-            LOGGER.info("Created table: {}", tableName);
+            LOGGER.info(CREATED_TABLE, tableName);
         } catch (ResourceInUseException e) {
-            LOGGER.debug("Table {} already exists", tableName);
+            LOGGER.debug(TABLE_ALREADY_EXISTS, tableName);
         } catch (Exception e) {
             LOGGER.warn(
-                    "Failed to create table {}: {}. This may be expected if LocalStack is not running.",
+                    FAILED_TO_CREATE_TABLE_THIS_MAY_BE,
                     tableName,
                     e.getMessage());
         }
@@ -1212,7 +1238,7 @@ public class DynamoDBTableManager {
                                             .attributeType(ScalarAttributeType.S)
                                             .build(),
                                     AttributeDefinition.builder()
-                                            .attributeName("userId")
+                                            .attributeName(USER_ID)
                                             .attributeType(ScalarAttributeType.S)
                                             .build())
                             .keySchema(
@@ -1222,10 +1248,10 @@ public class DynamoDBTableManager {
                                             .build())
                             .globalSecondaryIndexes(
                                     GlobalSecondaryIndex.builder()
-                                            .indexName("UserIdIndex")
+                                            .indexName(USER_ID_INDEX)
                                             .keySchema(
                                                     KeySchemaElement.builder()
-                                                            .attributeName("userId")
+                                                            .attributeName(USER_ID)
                                                             .keyType(KeyType.HASH)
                                                             .build())
                                             .projection(
@@ -1234,12 +1260,12 @@ public class DynamoDBTableManager {
                                                             .build())
                                             .build())
                             .build());
-            LOGGER.info("Created table: {}", tableName);
+            LOGGER.info(CREATED_TABLE, tableName);
         } catch (ResourceInUseException e) {
-            LOGGER.debug("Table {} already exists", tableName);
+            LOGGER.debug(TABLE_ALREADY_EXISTS, tableName);
         } catch (Exception e) {
             LOGGER.warn(
-                    "Failed to create table {}: {}. This may be expected if LocalStack is not running.",
+                    FAILED_TO_CREATE_TABLE_THIS_MAY_BE,
                     tableName,
                     e.getMessage());
         }

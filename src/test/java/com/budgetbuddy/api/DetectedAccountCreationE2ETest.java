@@ -443,7 +443,7 @@ class DetectedAccountCreationE2ETest {
 
         // Then: Account should be created and transaction should use it
         assertNotNull(response);
-        assertEquals(200, response.getStatusCodeValue());
+        assertEquals(200, response.getStatusCode().value());
         final TransactionController.BatchImportResponse body = response.getBody();
         assertNotNull(body);
         assertEquals(
@@ -499,7 +499,7 @@ class DetectedAccountCreationE2ETest {
 
         // Then: Import should succeed even if account creation fails
         assertNotNull(response);
-        assertEquals(200, response.getStatusCodeValue());
+        assertEquals(200, response.getStatusCode().value());
         final TransactionController.BatchImportResponse body = response.getBody();
         assertNotNull(body);
         // Transaction should still be created (using pseudo account)

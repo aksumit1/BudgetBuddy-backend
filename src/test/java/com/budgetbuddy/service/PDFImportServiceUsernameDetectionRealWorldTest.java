@@ -240,7 +240,6 @@ public class PDFImportServiceUsernameDetectionRealWorldTest {
     @Test
     @DisplayName("International: Accented characters (José, François)")
     void testInternationalAccentedCharacters() throws Exception {
-        final String[] lines = {"Card Member: José García", "Date Description Amount"};
 
         // Note: Currently our validation only checks [a-zA-Z], so accented characters might fail
         // This is a limitation we should be aware of
@@ -474,7 +473,6 @@ public class PDFImportServiceUsernameDetectionRealWorldTest {
     @Test
     @DisplayName("Name with business name (LLC, Inc.)")
     void testNameWithBusinessName() throws Exception {
-        final String[] lines = {"Card Member: ABC Company LLC", "Date Description Amount"};
 
         // Business names should likely be rejected or handled differently
         // Current logic might accept them, which could be a false positive

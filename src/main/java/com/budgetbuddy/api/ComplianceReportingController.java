@@ -22,12 +22,17 @@ import org.springframework.web.bind.annotation.RestController;
 // SpotBugs flags constructor-injected Spring beans as EI_EXPOSE_REP2,
 // but Spring's IoC container intentionally shares the same bean across
 // callers — defensive-copying it would break dependency injection.
+// PMD's DataClass fires on Request/Response/Config DTOs by design —
+// they're intentionally data-only; behaviour belongs in the controller/service.
+@SuppressWarnings({"PMD.DataClass", "PMD.OnlyOneReturn"})
 @SuppressFBWarnings(
         value = "EI_EXPOSE_REP2",
         justification = "Spring constructor injection — beans are shared by design")
 @RestController
 @RequestMapping("/api/compliance/reporting")
 public class ComplianceReportingController {
+
+    private static final String USER_NOT_FOUND_1 = "User not found";
 
     private final SOC2ComplianceService soc2ComplianceService;
 
@@ -63,7 +68,7 @@ public class ComplianceReportingController {
                 userService
                         .findByEmail(userDetails.getUsername())
                         .orElseThrow(
-                                () -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
+                                () -> new AppException(ErrorCode.USER_NOT_FOUND, USER_NOT_FOUND_1));
 
         // Check permissions
         if (!hasComplianceAccess(user)) {
@@ -83,7 +88,7 @@ public class ComplianceReportingController {
                 userService
                         .findByEmail(userDetails.getUsername())
                         .orElseThrow(
-                                () -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
+                                () -> new AppException(ErrorCode.USER_NOT_FOUND, USER_NOT_FOUND_1));
 
         // Check permissions
         if (!hasComplianceAccess(user)) {
@@ -102,7 +107,7 @@ public class ComplianceReportingController {
                 userService
                         .findByEmail(userDetails.getUsername())
                         .orElseThrow(
-                                () -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
+                                () -> new AppException(ErrorCode.USER_NOT_FOUND, USER_NOT_FOUND_1));
 
         // Check permissions
         if (!hasComplianceAccess(user)) {
@@ -123,7 +128,7 @@ public class ComplianceReportingController {
                 userService
                         .findByEmail(userDetails.getUsername())
                         .orElseThrow(
-                                () -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
+                                () -> new AppException(ErrorCode.USER_NOT_FOUND, USER_NOT_FOUND_1));
 
         // Check permissions
         if (!hasComplianceAccess(user)) {

@@ -23,6 +23,8 @@ import org.springframework.context.annotation.Configuration;
 @ConfigurationProperties(prefix = "financial.global")
 public class GlobalFinancialConfig {
 
+    private static final String PENSION = "pension";
+
     /**
      * Region-specific account type mappings Key: Region code (US, UK, CA, AU, IN, EU, etc.) Value:
      * List of account type identifiers for that region
@@ -30,11 +32,11 @@ public class GlobalFinancialConfig {
     private Map<String, List<String>> regionAccountTypes =
             Map.of(
                     "US", List.of("401k", "403b", "ira", "rothira", "hsa", "529", "fsa"),
-                    "UK", List.of("isa", "sip", "pension"),
+                    "UK", List.of("isa", "sip", PENSION),
                     "CA", List.of("rrsp", "tfsa", "resp"),
-                    "AU", List.of("super", "pension"),
+                    "AU", List.of("super", PENSION),
                     "IN", List.of("ppf", "epf", "nps"),
-                    "EU", List.of("pension", "retirement"));
+                    "EU", List.of(PENSION, "retirement"));
 
     /**
      * Region-specific payment system keywords Key: Region code Value: List of payment system

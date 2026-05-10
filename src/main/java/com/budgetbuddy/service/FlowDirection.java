@@ -23,6 +23,9 @@ import java.math.BigDecimal;
  * statement that renders purchases as positive gets flipped before storage). {@link FlowDirection}
  * is the pre-applied label of what the parser decided.
  */
+// PMD's OnlyOneReturn fights guard-clause idiom — the codebase intentionally
+// uses early returns for clarity (validation guards, fail-fast patterns).
+@SuppressWarnings("PMD.OnlyOneReturn")
 public enum FlowDirection {
     /** Money out of the user. Purchases, fees, ATM withdrawals, utility bills. */
     DEBIT,

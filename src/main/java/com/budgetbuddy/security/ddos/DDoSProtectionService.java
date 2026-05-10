@@ -44,12 +44,18 @@ import software.amazon.awssdk.services.dynamodb.model.UpdateTimeToLiveRequest;
 // SDK / Spring / reflection integration — broad catches translate any
 // runtime exception to AppException or log+swallow. Narrowing isn't
 // practical here, so suppress at class level.
-@SuppressWarnings("PMD.AvoidCatchingGenericException")
+@SuppressWarnings({"PMD.AvoidCatchingGenericException", "PMD.OnlyOneReturn"})
 @SuppressFBWarnings(
         value = "EI_EXPOSE_REP2",
         justification = "Spring constructor injection — beans are shared by design")
 @Service
 public class DDoSProtectionService {
+
+    private static final String UNABLE_TO_LOAD_CREDENTIALS = "Unable to load credentials";
+
+    private static final String BLOCKED_UNTIL = "blockedUntil";
+
+    private static final String IP_ADDRESS = "ipAddress";
 
     private static final Logger LOGGER = LoggerFactory.getLogger(DDoSProtectionService.class);
 
@@ -220,7 +226,7 @@ public class DDoSProtectionService {
                             .tableName(tableName)
                             .item(
                                     Map.of(
-                                            "ipAddress",
+                                            IP_ADDRESS,
                                                     AttributeValue.builder().s(ipAddress).build(),
                                             "timestamp",
                                                     AttributeValue.builder()
@@ -304,12 +310,12 @@ public class DDoSProtectionService {
                             .billingMode(BillingMode.PAY_PER_REQUEST)
                             .attributeDefinitions(
                                     AttributeDefinition.builder()
-                                            .attributeName("ipAddress")
+                                            .attributeName(IP_ADDRESS)
                                             .attributeType(ScalarAttributeType.S)
                                             .build())
                             .keySchema(
                                     KeySchemaElement.builder()
-                                            .attributeName("ipAddress")
+                                            .attributeName(IP_ADDRESS)
                                             .keyType(KeyType.HASH)
                                             .build())
                             .build());
@@ -412,12 +418,12 @@ public class DDoSProtectionService {
                                     .tableName(tableName)
                                     .key(
                                             Map.of(
-                                                    "ipAddress",
+                                                    IP_ADDRESS,
                                                     AttributeValue.builder().s(ipAddress).build()))
                                     .build());
 
-            if (response.item() != null && response.item().containsKey("blockedUntil")) {
-                final AttributeValue blockedUntilAttr = response.item().get("blockedUntil");
+            if (response.item() != null && response.item().containsKey(BLOCKED_UNTIL)) {
+                final AttributeValue blockedUntilAttr = response.item().get(BLOCKED_UNTIL);
                 if (blockedUntilAttr != null && blockedUntilAttr.n() != null) {
                     final long blockedUntil = Long.parseLong(blockedUntilAttr.n());
                     if (Instant.now().getEpochSecond() < blockedUntil) {
@@ -454,9 +460,9 @@ public class DDoSProtectionService {
                             .tableName(tableName)
                             .item(
                                     Map.of(
-                                            "ipAddress",
+                                            IP_ADDRESS,
                                                     AttributeValue.builder().s(ipAddress).build(),
-                                            "blockedUntil",
+                                            BLOCKED_UNTIL,
                                                     AttributeValue.builder()
                                                             .n(String.valueOf(blockedUntil))
                                                             .build(),
@@ -574,14 +580,14 @@ public class DDoSProtectionService {
     /** Check if the exception is due to missing AWS credentials */
     private boolean isCredentialsError(final Exception e) {
         final String message = e.getMessage();
-        if (message != null && message.contains("Unable to load credentials")) {
+        if (message != null && message.contains(UNABLE_TO_LOAD_CREDENTIALS)) {
             return true;
         }
         // Check for SdkClientException with credentials error
         if (e instanceof software.amazon.awssdk.core.exception.SdkClientException) {
             final String exceptionMessage = e.getMessage();
             if (exceptionMessage != null
-                    && exceptionMessage.contains("Unable to load credentials")) {
+                    && exceptionMessage.contains(UNABLE_TO_LOAD_CREDENTIALS)) {
                 return true;
             }
         }
@@ -590,7 +596,7 @@ public class DDoSProtectionService {
         while (cause != null) {
             if (cause instanceof software.amazon.awssdk.core.exception.SdkClientException) {
                 final String causeMessage = cause.getMessage();
-                if (causeMessage != null && causeMessage.contains("Unable to load credentials")) {
+                if (causeMessage != null && causeMessage.contains(UNABLE_TO_LOAD_CREDENTIALS)) {
                     return true;
                 }
             }

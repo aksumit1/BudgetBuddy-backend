@@ -29,12 +29,19 @@ import org.springframework.web.context.request.WebRequest;
 // SpotBugs flags constructor-injected Spring beans as EI_EXPOSE_REP2,
 // but Spring's IoC container intentionally shares the same bean across
 // callers — defensive-copying it would break dependency injection.
+// PMD's DataClass fires on Request/Response/Config DTOs by design —
+// they're intentionally data-only; behaviour belongs in the controller/service.
+@SuppressWarnings({"PMD.DataClass", "PMD.OnlyOneReturn"})
 @SuppressFBWarnings(
         value = {"EI_EXPOSE_REP", "EI_EXPOSE_REP2"},
         justification = "JSON DTO / DynamoDB entity getters expose lists by reference; "
                         + "the design is value-semantic and Jackson creates fresh instances; Spring constructor injection — beans are shared by design")
 @RestControllerAdvice
 public class EnhancedGlobalExceptionHandler {
+
+    private static final String CORRELATION_ID = "correlationId";
+
+    private static final String UNKNOWN = "unknown";
 
     private static final Logger LOGGER =
             LoggerFactory.getLogger(EnhancedGlobalExceptionHandler.class);
@@ -47,7 +54,7 @@ public class EnhancedGlobalExceptionHandler {
 
     @ExceptionHandler(AppException.class)
     public ResponseEntity<ErrorResponse> handleAppException(final AppException ex, final WebRequest request) {
-        final String correlationId = MDC.get("correlationId");
+        final String correlationId = MDC.get(CORRELATION_ID);
         // Locale retrieved but not currently used - kept for potential future localization
         @SuppressWarnings("unused") final
         Locale locale = request.getLocale();
@@ -109,7 +116,7 @@ public class EnhancedGlobalExceptionHandler {
     @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
     public ResponseEntity<ErrorResponse> handleMethodNotSupportedException(
             final HttpRequestMethodNotSupportedException ex, final WebRequest request) {
-        final String correlationId = MDC.get("correlationId");
+        final String correlationId = MDC.get(CORRELATION_ID);
 
         // getSupportedHttpMethods() is @Nullable per Spring's API contract.
         final var supported = ex.getSupportedHttpMethods();
@@ -145,7 +152,7 @@ public class EnhancedGlobalExceptionHandler {
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ErrorResponse> handleValidationException(
             final MethodArgumentNotValidException ex, final WebRequest request) {
-        final String correlationId = MDC.get("correlationId");
+        final String correlationId = MDC.get(CORRELATION_ID);
         // Locale retrieved but not currently used - kept for potential future localization
         @SuppressWarnings("unused") final
         Locale locale = request.getLocale();
@@ -196,7 +203,7 @@ public class EnhancedGlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleMissingServletRequestParameterException(
             final org.springframework.web.bind.MissingServletRequestParameterException ex,
             final WebRequest request) {
-        final String correlationId = MDC.get("correlationId");
+        final String correlationId = MDC.get(CORRELATION_ID);
 
         final ErrorResponse errorResponse =
                 ErrorResponse.builder()
@@ -228,7 +235,7 @@ public class EnhancedGlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleHttpMessageNotReadableException(
             final org.springframework.http.converter.HttpMessageNotReadableException ex,
             final WebRequest request) {
-        final String correlationId = MDC.get("correlationId");
+        final String correlationId = MDC.get(CORRELATION_ID);
 
         final ErrorResponse errorResponse =
                 ErrorResponse.builder()
@@ -247,12 +254,12 @@ public class EnhancedGlobalExceptionHandler {
     @ExceptionHandler(HttpMediaTypeNotSupportedException.class)
     public ResponseEntity<ErrorResponse> handleHttpMediaTypeNotSupportedException(
             final HttpMediaTypeNotSupportedException ex, final WebRequest request) {
-        final String correlationId = MDC.get("correlationId");
+        final String correlationId = MDC.get(CORRELATION_ID);
 
         // Store getContentType() once — calling it twice can race a non-null
         // check vs a null deref (SpotBugs flagged this).
         final org.springframework.http.MediaType ct = ex.getContentType();
-        final String contentType = ct != null ? ct.toString() : "unknown";
+        final String contentType = ct != null ? ct.toString() : UNKNOWN;
         final String supportedTypes =
                 ex.getSupportedMediaTypes() != null && !ex.getSupportedMediaTypes().isEmpty()
                         ? String.join(
@@ -288,7 +295,7 @@ public class EnhancedGlobalExceptionHandler {
     @ExceptionHandler(com.fasterxml.jackson.core.JsonParseException.class)
     public ResponseEntity<ErrorResponse> handleJsonParseException(
             final com.fasterxml.jackson.core.JsonParseException ex, final WebRequest request) {
-        final String correlationId = MDC.get("correlationId");
+        final String correlationId = MDC.get(CORRELATION_ID);
 
         final ErrorResponse errorResponse =
                 ErrorResponse.builder()
@@ -311,7 +318,7 @@ public class EnhancedGlobalExceptionHandler {
     @ExceptionHandler(org.springframework.web.multipart.MultipartException.class)
     public ResponseEntity<ErrorResponse> handleMultipartException(
             final org.springframework.web.multipart.MultipartException ex, final WebRequest request) {
-        final String correlationId = MDC.get("correlationId");
+        final String correlationId = MDC.get(CORRELATION_ID);
 
         // Check if this is caused by a client abort
         final Throwable rootCause = ex.getRootCause();
@@ -343,12 +350,12 @@ public class EnhancedGlobalExceptionHandler {
             LOGGER.warn(
                     "Client aborted file upload request | CorrelationId: {} | Root cause: {}",
                     correlationId,
-                    rootCause != null ? rootCause.getClass().getSimpleName() : "unknown");
+                    rootCause != null ? rootCause.getClass().getSimpleName() : UNKNOWN);
         } else {
             LOGGER.warn(
                     "Multipart file upload failed | CorrelationId: {} | Root cause: {}",
                     correlationId,
-                    rootCause != null ? rootCause.getClass().getSimpleName() : "unknown");
+                    rootCause != null ? rootCause.getClass().getSimpleName() : UNKNOWN);
         }
 
         // Return 400 Bad Request for client-side issues (not 500 Internal Server Error)
@@ -362,7 +369,7 @@ public class EnhancedGlobalExceptionHandler {
     @ExceptionHandler(org.apache.catalina.connector.ClientAbortException.class)
     public ResponseEntity<ErrorResponse> handleClientAbortException(
             final org.apache.catalina.connector.ClientAbortException ex, final WebRequest request) {
-        final String correlationId = MDC.get("correlationId");
+        final String correlationId = MDC.get(CORRELATION_ID);
 
         final ErrorResponse errorResponse =
                 ErrorResponse.builder()
@@ -386,7 +393,7 @@ public class EnhancedGlobalExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleGenericException(final Exception ex, final WebRequest request) {
-        final String correlationId = MDC.get("correlationId");
+        final String correlationId = MDC.get(CORRELATION_ID);
 
         // Check if this is a method not supported exception that wasn't caught by the specific
         // handler

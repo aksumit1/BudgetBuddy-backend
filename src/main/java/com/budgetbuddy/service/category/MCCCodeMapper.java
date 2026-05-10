@@ -13,8 +13,35 @@ import org.springframework.stereotype.Component;
  * <p>This provides a standardized, global way to categorize transactions when MCC codes are
  * available from the bank or payment processor.
  */
+// PMD's OnlyOneReturn fights guard-clause idiom — the codebase intentionally
+// uses early returns for clarity (validation guards, fail-fast patterns).
+@SuppressWarnings("PMD.OnlyOneReturn")
 @Component
 public class MCCCodeMapper {
+
+    private static final String AIRLINE = "airline";
+
+    private static final String DINING = "dining";
+
+    private static final String EDUCATION = "education";
+
+    private static final String ENTERTAINMENT = "entertainment";
+
+    private static final String GROCERIES = "groceries";
+
+    private static final String HEALTH = "health";
+
+    private static final String HEALTHCARE = "healthcare";
+
+    private static final String OTHER = "other";
+
+    private static final String SHOPPING = "shopping";
+
+    private static final String TRANSPORTATION = "transportation";
+
+    private static final String TRAVEL = "travel";
+
+    private static final String UTILITIES = "utilities";
 
     public static class CategoryMapping {
         private final String primaryCategory;
@@ -47,229 +74,229 @@ public class MCCCodeMapper {
 
     static {
         // ========== GROCERIES ==========
-        MCC_TO_CATEGORY.put("5411", new CategoryMapping("groceries", "supermarket", 0.95));
-        MCC_TO_CATEGORY.put("5422", new CategoryMapping("groceries", "meat", 0.95));
-        MCC_TO_CATEGORY.put("5441", new CategoryMapping("groceries", "candy", 0.95));
-        MCC_TO_CATEGORY.put("5451", new CategoryMapping("groceries", "dairy", 0.95));
-        MCC_TO_CATEGORY.put("5462", new CategoryMapping("groceries", "bakeries", 0.95));
-        MCC_TO_CATEGORY.put("5499", new CategoryMapping("groceries", "misc_food", 0.90));
+        MCC_TO_CATEGORY.put("5411", new CategoryMapping(GROCERIES, "supermarket", 0.95));
+        MCC_TO_CATEGORY.put("5422", new CategoryMapping(GROCERIES, "meat", 0.95));
+        MCC_TO_CATEGORY.put("5441", new CategoryMapping(GROCERIES, "candy", 0.95));
+        MCC_TO_CATEGORY.put("5451", new CategoryMapping(GROCERIES, "dairy", 0.95));
+        MCC_TO_CATEGORY.put("5462", new CategoryMapping(GROCERIES, "bakeries", 0.95));
+        MCC_TO_CATEGORY.put("5499", new CategoryMapping(GROCERIES, "misc_food", 0.90));
 
         // ========== DINING ==========
-        MCC_TO_CATEGORY.put("5811", new CategoryMapping("dining", "restaurant", 0.95));
-        MCC_TO_CATEGORY.put("5812", new CategoryMapping("dining", "fast_food", 0.95));
-        MCC_TO_CATEGORY.put("5813", new CategoryMapping("dining", "bar", 0.95));
-        MCC_TO_CATEGORY.put("5814", new CategoryMapping("dining", "cafe", 0.95));
-        MCC_TO_CATEGORY.put("5970", new CategoryMapping("dining", "catering", 0.90));
+        MCC_TO_CATEGORY.put("5811", new CategoryMapping(DINING, "restaurant", 0.95));
+        MCC_TO_CATEGORY.put("5812", new CategoryMapping(DINING, "fast_food", 0.95));
+        MCC_TO_CATEGORY.put("5813", new CategoryMapping(DINING, "bar", 0.95));
+        MCC_TO_CATEGORY.put("5814", new CategoryMapping(DINING, "cafe", 0.95));
+        MCC_TO_CATEGORY.put("5970", new CategoryMapping(DINING, "catering", 0.90));
 
         // ========== TRANSPORTATION ==========
-        MCC_TO_CATEGORY.put("5541", new CategoryMapping("transportation", "gas", 0.95));
-        MCC_TO_CATEGORY.put("5542", new CategoryMapping("transportation", "gas", 0.95));
-        MCC_TO_CATEGORY.put("4111", new CategoryMapping("transportation", "transit", 0.90));
-        MCC_TO_CATEGORY.put("4112", new CategoryMapping("transportation", "parking", 0.90));
-        MCC_TO_CATEGORY.put("4121", new CategoryMapping("transportation", "taxi", 0.90));
-        MCC_TO_CATEGORY.put("7512", new CategoryMapping("transportation", "car_rental", 0.95));
-        MCC_TO_CATEGORY.put("7513", new CategoryMapping("transportation", "truck_rental", 0.90));
+        MCC_TO_CATEGORY.put("5541", new CategoryMapping(TRANSPORTATION, "gas", 0.95));
+        MCC_TO_CATEGORY.put("5542", new CategoryMapping(TRANSPORTATION, "gas", 0.95));
+        MCC_TO_CATEGORY.put("4111", new CategoryMapping(TRANSPORTATION, "transit", 0.90));
+        MCC_TO_CATEGORY.put("4112", new CategoryMapping(TRANSPORTATION, "parking", 0.90));
+        MCC_TO_CATEGORY.put("4121", new CategoryMapping(TRANSPORTATION, "taxi", 0.90));
+        MCC_TO_CATEGORY.put("7512", new CategoryMapping(TRANSPORTATION, "car_rental", 0.95));
+        MCC_TO_CATEGORY.put("7513", new CategoryMapping(TRANSPORTATION, "truck_rental", 0.90));
         MCC_TO_CATEGORY.put(
-                "7519", new CategoryMapping("transportation", "motor_home_rental", 0.85));
-        MCC_TO_CATEGORY.put("4784", new CategoryMapping("transportation", "toll", 0.95));
+                "7519", new CategoryMapping(TRANSPORTATION, "motor_home_rental", 0.85));
+        MCC_TO_CATEGORY.put("4784", new CategoryMapping(TRANSPORTATION, "toll", 0.95));
 
         // ========== TRAVEL ==========
-        MCC_TO_CATEGORY.put("3000", new CategoryMapping("travel", "airline", 0.95));
-        MCC_TO_CATEGORY.put("3001", new CategoryMapping("travel", "airline", 0.95));
-        MCC_TO_CATEGORY.put("3002", new CategoryMapping("travel", "airline", 0.95));
-        MCC_TO_CATEGORY.put("3003", new CategoryMapping("travel", "airline", 0.95));
-        MCC_TO_CATEGORY.put("3004", new CategoryMapping("travel", "airline", 0.95));
-        MCC_TO_CATEGORY.put("3005", new CategoryMapping("travel", "airline", 0.95));
-        MCC_TO_CATEGORY.put("3006", new CategoryMapping("travel", "airline", 0.95));
-        MCC_TO_CATEGORY.put("3007", new CategoryMapping("travel", "airline", 0.95));
-        MCC_TO_CATEGORY.put("3008", new CategoryMapping("travel", "airline", 0.95));
-        MCC_TO_CATEGORY.put("3009", new CategoryMapping("travel", "airline", 0.95));
-        MCC_TO_CATEGORY.put("3010", new CategoryMapping("travel", "airline", 0.95));
-        MCC_TO_CATEGORY.put("3011", new CategoryMapping("travel", "airline", 0.95));
-        MCC_TO_CATEGORY.put("3012", new CategoryMapping("travel", "airline", 0.95));
-        MCC_TO_CATEGORY.put("3013", new CategoryMapping("travel", "airline", 0.95));
-        MCC_TO_CATEGORY.put("3014", new CategoryMapping("travel", "airline", 0.95));
-        MCC_TO_CATEGORY.put("3015", new CategoryMapping("travel", "airline", 0.95));
-        MCC_TO_CATEGORY.put("3016", new CategoryMapping("travel", "airline", 0.95));
-        MCC_TO_CATEGORY.put("3017", new CategoryMapping("travel", "airline", 0.95));
-        MCC_TO_CATEGORY.put("3018", new CategoryMapping("travel", "airline", 0.95));
-        MCC_TO_CATEGORY.put("3019", new CategoryMapping("travel", "airline", 0.95));
-        MCC_TO_CATEGORY.put("3020", new CategoryMapping("travel", "airline", 0.95));
-        MCC_TO_CATEGORY.put("3021", new CategoryMapping("travel", "airline", 0.95));
-        MCC_TO_CATEGORY.put("3022", new CategoryMapping("travel", "airline", 0.95));
-        MCC_TO_CATEGORY.put("3023", new CategoryMapping("travel", "airline", 0.95));
-        MCC_TO_CATEGORY.put("3024", new CategoryMapping("travel", "airline", 0.95));
-        MCC_TO_CATEGORY.put("3025", new CategoryMapping("travel", "airline", 0.95));
-        MCC_TO_CATEGORY.put("3026", new CategoryMapping("travel", "airline", 0.95));
-        MCC_TO_CATEGORY.put("3027", new CategoryMapping("travel", "airline", 0.95));
-        MCC_TO_CATEGORY.put("3028", new CategoryMapping("travel", "airline", 0.95));
-        MCC_TO_CATEGORY.put("3029", new CategoryMapping("travel", "airline", 0.95));
-        MCC_TO_CATEGORY.put("3030", new CategoryMapping("travel", "airline", 0.95));
-        MCC_TO_CATEGORY.put("3031", new CategoryMapping("travel", "airline", 0.95));
-        MCC_TO_CATEGORY.put("3032", new CategoryMapping("travel", "airline", 0.95));
-        MCC_TO_CATEGORY.put("3033", new CategoryMapping("travel", "airline", 0.95));
-        MCC_TO_CATEGORY.put("3034", new CategoryMapping("travel", "airline", 0.95));
-        MCC_TO_CATEGORY.put("3035", new CategoryMapping("travel", "airline", 0.95));
-        MCC_TO_CATEGORY.put("3036", new CategoryMapping("travel", "airline", 0.95));
-        MCC_TO_CATEGORY.put("3037", new CategoryMapping("travel", "airline", 0.95));
-        MCC_TO_CATEGORY.put("3038", new CategoryMapping("travel", "airline", 0.95));
-        MCC_TO_CATEGORY.put("3039", new CategoryMapping("travel", "airline", 0.95));
-        MCC_TO_CATEGORY.put("3040", new CategoryMapping("travel", "airline", 0.95));
-        MCC_TO_CATEGORY.put("3041", new CategoryMapping("travel", "airline", 0.95));
-        MCC_TO_CATEGORY.put("3042", new CategoryMapping("travel", "airline", 0.95));
-        MCC_TO_CATEGORY.put("3043", new CategoryMapping("travel", "airline", 0.95));
-        MCC_TO_CATEGORY.put("3044", new CategoryMapping("travel", "airline", 0.95));
-        MCC_TO_CATEGORY.put("3045", new CategoryMapping("travel", "airline", 0.95));
-        MCC_TO_CATEGORY.put("3046", new CategoryMapping("travel", "airline", 0.95));
-        MCC_TO_CATEGORY.put("3047", new CategoryMapping("travel", "airline", 0.95));
-        MCC_TO_CATEGORY.put("3048", new CategoryMapping("travel", "airline", 0.95));
-        MCC_TO_CATEGORY.put("3049", new CategoryMapping("travel", "airline", 0.95));
-        MCC_TO_CATEGORY.put("3050", new CategoryMapping("travel", "airline", 0.95));
-        MCC_TO_CATEGORY.put("3051", new CategoryMapping("travel", "airline", 0.95));
-        MCC_TO_CATEGORY.put("3052", new CategoryMapping("travel", "airline", 0.95));
-        MCC_TO_CATEGORY.put("3053", new CategoryMapping("travel", "airline", 0.95));
-        MCC_TO_CATEGORY.put("3054", new CategoryMapping("travel", "airline", 0.95));
-        MCC_TO_CATEGORY.put("3055", new CategoryMapping("travel", "airline", 0.95));
-        MCC_TO_CATEGORY.put("3056", new CategoryMapping("travel", "airline", 0.95));
-        MCC_TO_CATEGORY.put("3057", new CategoryMapping("travel", "airline", 0.95));
-        MCC_TO_CATEGORY.put("3058", new CategoryMapping("travel", "airline", 0.95));
-        MCC_TO_CATEGORY.put("3059", new CategoryMapping("travel", "airline", 0.95));
-        MCC_TO_CATEGORY.put("3060", new CategoryMapping("travel", "airline", 0.95));
-        MCC_TO_CATEGORY.put("3061", new CategoryMapping("travel", "airline", 0.95));
-        MCC_TO_CATEGORY.put("3062", new CategoryMapping("travel", "airline", 0.95));
-        MCC_TO_CATEGORY.put("3063", new CategoryMapping("travel", "airline", 0.95));
-        MCC_TO_CATEGORY.put("3064", new CategoryMapping("travel", "airline", 0.95));
-        MCC_TO_CATEGORY.put("3065", new CategoryMapping("travel", "airline", 0.95));
-        MCC_TO_CATEGORY.put("3066", new CategoryMapping("travel", "airline", 0.95));
-        MCC_TO_CATEGORY.put("3067", new CategoryMapping("travel", "airline", 0.95));
-        MCC_TO_CATEGORY.put("3068", new CategoryMapping("travel", "airline", 0.95));
-        MCC_TO_CATEGORY.put("3069", new CategoryMapping("travel", "airline", 0.95));
-        MCC_TO_CATEGORY.put("3070", new CategoryMapping("travel", "airline", 0.95));
-        MCC_TO_CATEGORY.put("3071", new CategoryMapping("travel", "airline", 0.95));
-        MCC_TO_CATEGORY.put("3072", new CategoryMapping("travel", "airline", 0.95));
-        MCC_TO_CATEGORY.put("3073", new CategoryMapping("travel", "airline", 0.95));
-        MCC_TO_CATEGORY.put("3074", new CategoryMapping("travel", "airline", 0.95));
-        MCC_TO_CATEGORY.put("3075", new CategoryMapping("travel", "airline", 0.95));
-        MCC_TO_CATEGORY.put("3076", new CategoryMapping("travel", "airline", 0.95));
-        MCC_TO_CATEGORY.put("3077", new CategoryMapping("travel", "airline", 0.95));
-        MCC_TO_CATEGORY.put("3078", new CategoryMapping("travel", "airline", 0.95));
-        MCC_TO_CATEGORY.put("3079", new CategoryMapping("travel", "airline", 0.95));
-        MCC_TO_CATEGORY.put("3080", new CategoryMapping("travel", "airline", 0.95));
-        MCC_TO_CATEGORY.put("3081", new CategoryMapping("travel", "airline", 0.95));
-        MCC_TO_CATEGORY.put("3082", new CategoryMapping("travel", "airline", 0.95));
-        MCC_TO_CATEGORY.put("3083", new CategoryMapping("travel", "airline", 0.95));
-        MCC_TO_CATEGORY.put("3084", new CategoryMapping("travel", "airline", 0.95));
-        MCC_TO_CATEGORY.put("3085", new CategoryMapping("travel", "airline", 0.95));
-        MCC_TO_CATEGORY.put("3086", new CategoryMapping("travel", "airline", 0.95));
-        MCC_TO_CATEGORY.put("3087", new CategoryMapping("travel", "airline", 0.95));
-        MCC_TO_CATEGORY.put("3088", new CategoryMapping("travel", "airline", 0.95));
-        MCC_TO_CATEGORY.put("3089", new CategoryMapping("travel", "airline", 0.95));
-        MCC_TO_CATEGORY.put("3090", new CategoryMapping("travel", "airline", 0.95));
-        MCC_TO_CATEGORY.put("3091", new CategoryMapping("travel", "airline", 0.95));
-        MCC_TO_CATEGORY.put("3092", new CategoryMapping("travel", "airline", 0.95));
-        MCC_TO_CATEGORY.put("3093", new CategoryMapping("travel", "airline", 0.95));
-        MCC_TO_CATEGORY.put("3094", new CategoryMapping("travel", "airline", 0.95));
-        MCC_TO_CATEGORY.put("3095", new CategoryMapping("travel", "airline", 0.95));
-        MCC_TO_CATEGORY.put("3096", new CategoryMapping("travel", "airline", 0.95));
-        MCC_TO_CATEGORY.put("3097", new CategoryMapping("travel", "airline", 0.95));
-        MCC_TO_CATEGORY.put("3098", new CategoryMapping("travel", "airline", 0.95));
-        MCC_TO_CATEGORY.put("3099", new CategoryMapping("travel", "airline", 0.95));
+        MCC_TO_CATEGORY.put("3000", new CategoryMapping(TRAVEL, AIRLINE, 0.95));
+        MCC_TO_CATEGORY.put("3001", new CategoryMapping(TRAVEL, AIRLINE, 0.95));
+        MCC_TO_CATEGORY.put("3002", new CategoryMapping(TRAVEL, AIRLINE, 0.95));
+        MCC_TO_CATEGORY.put("3003", new CategoryMapping(TRAVEL, AIRLINE, 0.95));
+        MCC_TO_CATEGORY.put("3004", new CategoryMapping(TRAVEL, AIRLINE, 0.95));
+        MCC_TO_CATEGORY.put("3005", new CategoryMapping(TRAVEL, AIRLINE, 0.95));
+        MCC_TO_CATEGORY.put("3006", new CategoryMapping(TRAVEL, AIRLINE, 0.95));
+        MCC_TO_CATEGORY.put("3007", new CategoryMapping(TRAVEL, AIRLINE, 0.95));
+        MCC_TO_CATEGORY.put("3008", new CategoryMapping(TRAVEL, AIRLINE, 0.95));
+        MCC_TO_CATEGORY.put("3009", new CategoryMapping(TRAVEL, AIRLINE, 0.95));
+        MCC_TO_CATEGORY.put("3010", new CategoryMapping(TRAVEL, AIRLINE, 0.95));
+        MCC_TO_CATEGORY.put("3011", new CategoryMapping(TRAVEL, AIRLINE, 0.95));
+        MCC_TO_CATEGORY.put("3012", new CategoryMapping(TRAVEL, AIRLINE, 0.95));
+        MCC_TO_CATEGORY.put("3013", new CategoryMapping(TRAVEL, AIRLINE, 0.95));
+        MCC_TO_CATEGORY.put("3014", new CategoryMapping(TRAVEL, AIRLINE, 0.95));
+        MCC_TO_CATEGORY.put("3015", new CategoryMapping(TRAVEL, AIRLINE, 0.95));
+        MCC_TO_CATEGORY.put("3016", new CategoryMapping(TRAVEL, AIRLINE, 0.95));
+        MCC_TO_CATEGORY.put("3017", new CategoryMapping(TRAVEL, AIRLINE, 0.95));
+        MCC_TO_CATEGORY.put("3018", new CategoryMapping(TRAVEL, AIRLINE, 0.95));
+        MCC_TO_CATEGORY.put("3019", new CategoryMapping(TRAVEL, AIRLINE, 0.95));
+        MCC_TO_CATEGORY.put("3020", new CategoryMapping(TRAVEL, AIRLINE, 0.95));
+        MCC_TO_CATEGORY.put("3021", new CategoryMapping(TRAVEL, AIRLINE, 0.95));
+        MCC_TO_CATEGORY.put("3022", new CategoryMapping(TRAVEL, AIRLINE, 0.95));
+        MCC_TO_CATEGORY.put("3023", new CategoryMapping(TRAVEL, AIRLINE, 0.95));
+        MCC_TO_CATEGORY.put("3024", new CategoryMapping(TRAVEL, AIRLINE, 0.95));
+        MCC_TO_CATEGORY.put("3025", new CategoryMapping(TRAVEL, AIRLINE, 0.95));
+        MCC_TO_CATEGORY.put("3026", new CategoryMapping(TRAVEL, AIRLINE, 0.95));
+        MCC_TO_CATEGORY.put("3027", new CategoryMapping(TRAVEL, AIRLINE, 0.95));
+        MCC_TO_CATEGORY.put("3028", new CategoryMapping(TRAVEL, AIRLINE, 0.95));
+        MCC_TO_CATEGORY.put("3029", new CategoryMapping(TRAVEL, AIRLINE, 0.95));
+        MCC_TO_CATEGORY.put("3030", new CategoryMapping(TRAVEL, AIRLINE, 0.95));
+        MCC_TO_CATEGORY.put("3031", new CategoryMapping(TRAVEL, AIRLINE, 0.95));
+        MCC_TO_CATEGORY.put("3032", new CategoryMapping(TRAVEL, AIRLINE, 0.95));
+        MCC_TO_CATEGORY.put("3033", new CategoryMapping(TRAVEL, AIRLINE, 0.95));
+        MCC_TO_CATEGORY.put("3034", new CategoryMapping(TRAVEL, AIRLINE, 0.95));
+        MCC_TO_CATEGORY.put("3035", new CategoryMapping(TRAVEL, AIRLINE, 0.95));
+        MCC_TO_CATEGORY.put("3036", new CategoryMapping(TRAVEL, AIRLINE, 0.95));
+        MCC_TO_CATEGORY.put("3037", new CategoryMapping(TRAVEL, AIRLINE, 0.95));
+        MCC_TO_CATEGORY.put("3038", new CategoryMapping(TRAVEL, AIRLINE, 0.95));
+        MCC_TO_CATEGORY.put("3039", new CategoryMapping(TRAVEL, AIRLINE, 0.95));
+        MCC_TO_CATEGORY.put("3040", new CategoryMapping(TRAVEL, AIRLINE, 0.95));
+        MCC_TO_CATEGORY.put("3041", new CategoryMapping(TRAVEL, AIRLINE, 0.95));
+        MCC_TO_CATEGORY.put("3042", new CategoryMapping(TRAVEL, AIRLINE, 0.95));
+        MCC_TO_CATEGORY.put("3043", new CategoryMapping(TRAVEL, AIRLINE, 0.95));
+        MCC_TO_CATEGORY.put("3044", new CategoryMapping(TRAVEL, AIRLINE, 0.95));
+        MCC_TO_CATEGORY.put("3045", new CategoryMapping(TRAVEL, AIRLINE, 0.95));
+        MCC_TO_CATEGORY.put("3046", new CategoryMapping(TRAVEL, AIRLINE, 0.95));
+        MCC_TO_CATEGORY.put("3047", new CategoryMapping(TRAVEL, AIRLINE, 0.95));
+        MCC_TO_CATEGORY.put("3048", new CategoryMapping(TRAVEL, AIRLINE, 0.95));
+        MCC_TO_CATEGORY.put("3049", new CategoryMapping(TRAVEL, AIRLINE, 0.95));
+        MCC_TO_CATEGORY.put("3050", new CategoryMapping(TRAVEL, AIRLINE, 0.95));
+        MCC_TO_CATEGORY.put("3051", new CategoryMapping(TRAVEL, AIRLINE, 0.95));
+        MCC_TO_CATEGORY.put("3052", new CategoryMapping(TRAVEL, AIRLINE, 0.95));
+        MCC_TO_CATEGORY.put("3053", new CategoryMapping(TRAVEL, AIRLINE, 0.95));
+        MCC_TO_CATEGORY.put("3054", new CategoryMapping(TRAVEL, AIRLINE, 0.95));
+        MCC_TO_CATEGORY.put("3055", new CategoryMapping(TRAVEL, AIRLINE, 0.95));
+        MCC_TO_CATEGORY.put("3056", new CategoryMapping(TRAVEL, AIRLINE, 0.95));
+        MCC_TO_CATEGORY.put("3057", new CategoryMapping(TRAVEL, AIRLINE, 0.95));
+        MCC_TO_CATEGORY.put("3058", new CategoryMapping(TRAVEL, AIRLINE, 0.95));
+        MCC_TO_CATEGORY.put("3059", new CategoryMapping(TRAVEL, AIRLINE, 0.95));
+        MCC_TO_CATEGORY.put("3060", new CategoryMapping(TRAVEL, AIRLINE, 0.95));
+        MCC_TO_CATEGORY.put("3061", new CategoryMapping(TRAVEL, AIRLINE, 0.95));
+        MCC_TO_CATEGORY.put("3062", new CategoryMapping(TRAVEL, AIRLINE, 0.95));
+        MCC_TO_CATEGORY.put("3063", new CategoryMapping(TRAVEL, AIRLINE, 0.95));
+        MCC_TO_CATEGORY.put("3064", new CategoryMapping(TRAVEL, AIRLINE, 0.95));
+        MCC_TO_CATEGORY.put("3065", new CategoryMapping(TRAVEL, AIRLINE, 0.95));
+        MCC_TO_CATEGORY.put("3066", new CategoryMapping(TRAVEL, AIRLINE, 0.95));
+        MCC_TO_CATEGORY.put("3067", new CategoryMapping(TRAVEL, AIRLINE, 0.95));
+        MCC_TO_CATEGORY.put("3068", new CategoryMapping(TRAVEL, AIRLINE, 0.95));
+        MCC_TO_CATEGORY.put("3069", new CategoryMapping(TRAVEL, AIRLINE, 0.95));
+        MCC_TO_CATEGORY.put("3070", new CategoryMapping(TRAVEL, AIRLINE, 0.95));
+        MCC_TO_CATEGORY.put("3071", new CategoryMapping(TRAVEL, AIRLINE, 0.95));
+        MCC_TO_CATEGORY.put("3072", new CategoryMapping(TRAVEL, AIRLINE, 0.95));
+        MCC_TO_CATEGORY.put("3073", new CategoryMapping(TRAVEL, AIRLINE, 0.95));
+        MCC_TO_CATEGORY.put("3074", new CategoryMapping(TRAVEL, AIRLINE, 0.95));
+        MCC_TO_CATEGORY.put("3075", new CategoryMapping(TRAVEL, AIRLINE, 0.95));
+        MCC_TO_CATEGORY.put("3076", new CategoryMapping(TRAVEL, AIRLINE, 0.95));
+        MCC_TO_CATEGORY.put("3077", new CategoryMapping(TRAVEL, AIRLINE, 0.95));
+        MCC_TO_CATEGORY.put("3078", new CategoryMapping(TRAVEL, AIRLINE, 0.95));
+        MCC_TO_CATEGORY.put("3079", new CategoryMapping(TRAVEL, AIRLINE, 0.95));
+        MCC_TO_CATEGORY.put("3080", new CategoryMapping(TRAVEL, AIRLINE, 0.95));
+        MCC_TO_CATEGORY.put("3081", new CategoryMapping(TRAVEL, AIRLINE, 0.95));
+        MCC_TO_CATEGORY.put("3082", new CategoryMapping(TRAVEL, AIRLINE, 0.95));
+        MCC_TO_CATEGORY.put("3083", new CategoryMapping(TRAVEL, AIRLINE, 0.95));
+        MCC_TO_CATEGORY.put("3084", new CategoryMapping(TRAVEL, AIRLINE, 0.95));
+        MCC_TO_CATEGORY.put("3085", new CategoryMapping(TRAVEL, AIRLINE, 0.95));
+        MCC_TO_CATEGORY.put("3086", new CategoryMapping(TRAVEL, AIRLINE, 0.95));
+        MCC_TO_CATEGORY.put("3087", new CategoryMapping(TRAVEL, AIRLINE, 0.95));
+        MCC_TO_CATEGORY.put("3088", new CategoryMapping(TRAVEL, AIRLINE, 0.95));
+        MCC_TO_CATEGORY.put("3089", new CategoryMapping(TRAVEL, AIRLINE, 0.95));
+        MCC_TO_CATEGORY.put("3090", new CategoryMapping(TRAVEL, AIRLINE, 0.95));
+        MCC_TO_CATEGORY.put("3091", new CategoryMapping(TRAVEL, AIRLINE, 0.95));
+        MCC_TO_CATEGORY.put("3092", new CategoryMapping(TRAVEL, AIRLINE, 0.95));
+        MCC_TO_CATEGORY.put("3093", new CategoryMapping(TRAVEL, AIRLINE, 0.95));
+        MCC_TO_CATEGORY.put("3094", new CategoryMapping(TRAVEL, AIRLINE, 0.95));
+        MCC_TO_CATEGORY.put("3095", new CategoryMapping(TRAVEL, AIRLINE, 0.95));
+        MCC_TO_CATEGORY.put("3096", new CategoryMapping(TRAVEL, AIRLINE, 0.95));
+        MCC_TO_CATEGORY.put("3097", new CategoryMapping(TRAVEL, AIRLINE, 0.95));
+        MCC_TO_CATEGORY.put("3098", new CategoryMapping(TRAVEL, AIRLINE, 0.95));
+        MCC_TO_CATEGORY.put("3099", new CategoryMapping(TRAVEL, AIRLINE, 0.95));
 
         // Hotels (3501-3799)
         for (int i = 3501; i <= 3799; i++) {
-            MCC_TO_CATEGORY.put(String.valueOf(i), new CategoryMapping("travel", "hotel", 0.95));
+            MCC_TO_CATEGORY.put(String.valueOf(i), new CategoryMapping(TRAVEL, "hotel", 0.95));
         }
 
         // ========== EDUCATION ==========
-        MCC_TO_CATEGORY.put("5192", new CategoryMapping("education", "books", 0.90));
-        MCC_TO_CATEGORY.put("5193", new CategoryMapping("education", "school_supplies", 0.90));
-        MCC_TO_CATEGORY.put("5942", new CategoryMapping("education", "books", 0.90));
-        MCC_TO_CATEGORY.put("5943", new CategoryMapping("education", "office_supplies", 0.90));
-        MCC_TO_CATEGORY.put("5970", new CategoryMapping("education", "art_supplies", 0.90));
-        MCC_TO_CATEGORY.put("5971", new CategoryMapping("education", "art_supplies", 0.90));
-        MCC_TO_CATEGORY.put("5973", new CategoryMapping("education", "stationery", 0.90));
-        MCC_TO_CATEGORY.put("5976", new CategoryMapping("education", "printer_supplies", 0.90));
-        MCC_TO_CATEGORY.put("8211", new CategoryMapping("education", "elementary_school", 0.95));
-        MCC_TO_CATEGORY.put("8220", new CategoryMapping("education", "university", 0.95));
+        MCC_TO_CATEGORY.put("5192", new CategoryMapping(EDUCATION, "books", 0.90));
+        MCC_TO_CATEGORY.put("5193", new CategoryMapping(EDUCATION, "school_supplies", 0.90));
+        MCC_TO_CATEGORY.put("5942", new CategoryMapping(EDUCATION, "books", 0.90));
+        MCC_TO_CATEGORY.put("5943", new CategoryMapping(EDUCATION, "office_supplies", 0.90));
+        MCC_TO_CATEGORY.put("5970", new CategoryMapping(EDUCATION, "art_supplies", 0.90));
+        MCC_TO_CATEGORY.put("5971", new CategoryMapping(EDUCATION, "art_supplies", 0.90));
+        MCC_TO_CATEGORY.put("5973", new CategoryMapping(EDUCATION, "stationery", 0.90));
+        MCC_TO_CATEGORY.put("5976", new CategoryMapping(EDUCATION, "printer_supplies", 0.90));
+        MCC_TO_CATEGORY.put("8211", new CategoryMapping(EDUCATION, "elementary_school", 0.95));
+        MCC_TO_CATEGORY.put("8220", new CategoryMapping(EDUCATION, "university", 0.95));
         MCC_TO_CATEGORY.put(
-                "8241", new CategoryMapping("education", "correspondence_school", 0.90));
-        MCC_TO_CATEGORY.put("8244", new CategoryMapping("education", "business_school", 0.90));
-        MCC_TO_CATEGORY.put("8249", new CategoryMapping("education", "vocational_school", 0.90));
-        MCC_TO_CATEGORY.put("8299", new CategoryMapping("education", "schools", 0.90));
+                "8241", new CategoryMapping(EDUCATION, "correspondence_school", 0.90));
+        MCC_TO_CATEGORY.put("8244", new CategoryMapping(EDUCATION, "business_school", 0.90));
+        MCC_TO_CATEGORY.put("8249", new CategoryMapping(EDUCATION, "vocational_school", 0.90));
+        MCC_TO_CATEGORY.put("8299", new CategoryMapping(EDUCATION, "schools", 0.90));
 
         // ========== HEALTHCARE ==========
-        MCC_TO_CATEGORY.put("5912", new CategoryMapping("healthcare", "pharmacy", 0.95));
-        MCC_TO_CATEGORY.put("8011", new CategoryMapping("healthcare", "doctor", 0.95));
-        MCC_TO_CATEGORY.put("8021", new CategoryMapping("healthcare", "dentist", 0.95));
-        MCC_TO_CATEGORY.put("8031", new CategoryMapping("healthcare", "ophthalmologist", 0.95));
-        MCC_TO_CATEGORY.put("8041", new CategoryMapping("healthcare", "chiropractor", 0.95));
-        MCC_TO_CATEGORY.put("8042", new CategoryMapping("healthcare", "optometrist", 0.95));
-        MCC_TO_CATEGORY.put("8043", new CategoryMapping("healthcare", "optician", 0.95));
-        MCC_TO_CATEGORY.put("8049", new CategoryMapping("healthcare", "podiatrist", 0.95));
-        MCC_TO_CATEGORY.put("8050", new CategoryMapping("healthcare", "nursing", 0.95));
-        MCC_TO_CATEGORY.put("8062", new CategoryMapping("healthcare", "hospital", 0.95));
-        MCC_TO_CATEGORY.put("8071", new CategoryMapping("healthcare", "medical_lab", 0.95));
-        MCC_TO_CATEGORY.put("8099", new CategoryMapping("healthcare", "medical_service", 0.90));
+        MCC_TO_CATEGORY.put("5912", new CategoryMapping(HEALTHCARE, "pharmacy", 0.95));
+        MCC_TO_CATEGORY.put("8011", new CategoryMapping(HEALTHCARE, "doctor", 0.95));
+        MCC_TO_CATEGORY.put("8021", new CategoryMapping(HEALTHCARE, "dentist", 0.95));
+        MCC_TO_CATEGORY.put("8031", new CategoryMapping(HEALTHCARE, "ophthalmologist", 0.95));
+        MCC_TO_CATEGORY.put("8041", new CategoryMapping(HEALTHCARE, "chiropractor", 0.95));
+        MCC_TO_CATEGORY.put("8042", new CategoryMapping(HEALTHCARE, "optometrist", 0.95));
+        MCC_TO_CATEGORY.put("8043", new CategoryMapping(HEALTHCARE, "optician", 0.95));
+        MCC_TO_CATEGORY.put("8049", new CategoryMapping(HEALTHCARE, "podiatrist", 0.95));
+        MCC_TO_CATEGORY.put("8050", new CategoryMapping(HEALTHCARE, "nursing", 0.95));
+        MCC_TO_CATEGORY.put("8062", new CategoryMapping(HEALTHCARE, "hospital", 0.95));
+        MCC_TO_CATEGORY.put("8071", new CategoryMapping(HEALTHCARE, "medical_lab", 0.95));
+        MCC_TO_CATEGORY.put("8099", new CategoryMapping(HEALTHCARE, "medical_service", 0.90));
 
         // ========== HEALTH/FITNESS ==========
-        MCC_TO_CATEGORY.put("7911", new CategoryMapping("health", "dance_hall", 0.90));
-        MCC_TO_CATEGORY.put("7932", new CategoryMapping("health", "billiards", 0.85));
-        MCC_TO_CATEGORY.put("7933", new CategoryMapping("health", "bowling", 0.90));
-        MCC_TO_CATEGORY.put("7941", new CategoryMapping("health", "sports", 0.90));
-        MCC_TO_CATEGORY.put("7992", new CategoryMapping("health", "golf", 0.90));
-        MCC_TO_CATEGORY.put("7997", new CategoryMapping("health", "recreation", 0.85));
-        MCC_TO_CATEGORY.put("7832", new CategoryMapping("health", "gym", 0.90));
+        MCC_TO_CATEGORY.put("7911", new CategoryMapping(HEALTH, "dance_hall", 0.90));
+        MCC_TO_CATEGORY.put("7932", new CategoryMapping(HEALTH, "billiards", 0.85));
+        MCC_TO_CATEGORY.put("7933", new CategoryMapping(HEALTH, "bowling", 0.90));
+        MCC_TO_CATEGORY.put("7941", new CategoryMapping(HEALTH, "sports", 0.90));
+        MCC_TO_CATEGORY.put("7992", new CategoryMapping(HEALTH, "golf", 0.90));
+        MCC_TO_CATEGORY.put("7997", new CategoryMapping(HEALTH, "recreation", 0.85));
+        MCC_TO_CATEGORY.put("7832", new CategoryMapping(HEALTH, "gym", 0.90));
 
         // ========== UTILITIES ==========
-        MCC_TO_CATEGORY.put("4900", new CategoryMapping("utilities", "electric", 0.95));
-        MCC_TO_CATEGORY.put("4814", new CategoryMapping("utilities", "telecom", 0.95));
-        MCC_TO_CATEGORY.put("4899", new CategoryMapping("utilities", "cable", 0.95));
-        MCC_TO_CATEGORY.put("5983", new CategoryMapping("utilities", "fuel", 0.95));
+        MCC_TO_CATEGORY.put("4900", new CategoryMapping(UTILITIES, "electric", 0.95));
+        MCC_TO_CATEGORY.put("4814", new CategoryMapping(UTILITIES, "telecom", 0.95));
+        MCC_TO_CATEGORY.put("4899", new CategoryMapping(UTILITIES, "cable", 0.95));
+        MCC_TO_CATEGORY.put("5983", new CategoryMapping(UTILITIES, "fuel", 0.95));
 
         // ========== ENTERTAINMENT ==========
-        MCC_TO_CATEGORY.put("7832", new CategoryMapping("entertainment", "movie", 0.95));
-        MCC_TO_CATEGORY.put("7841", new CategoryMapping("entertainment", "video_rental", 0.90));
-        MCC_TO_CATEGORY.put("7922", new CategoryMapping("entertainment", "theater", 0.95));
-        MCC_TO_CATEGORY.put("7929", new CategoryMapping("entertainment", "band", 0.85));
+        MCC_TO_CATEGORY.put("7832", new CategoryMapping(ENTERTAINMENT, "movie", 0.95));
+        MCC_TO_CATEGORY.put("7841", new CategoryMapping(ENTERTAINMENT, "video_rental", 0.90));
+        MCC_TO_CATEGORY.put("7922", new CategoryMapping(ENTERTAINMENT, "theater", 0.95));
+        MCC_TO_CATEGORY.put("7929", new CategoryMapping(ENTERTAINMENT, "band", 0.85));
         MCC_TO_CATEGORY.put(
-                "7991", new CategoryMapping("entertainment", "tourist_attraction", 0.90));
-        MCC_TO_CATEGORY.put("7993", new CategoryMapping("entertainment", "video_game", 0.90));
+                "7991", new CategoryMapping(ENTERTAINMENT, "tourist_attraction", 0.90));
+        MCC_TO_CATEGORY.put("7993", new CategoryMapping(ENTERTAINMENT, "video_game", 0.90));
         MCC_TO_CATEGORY.put(
-                "7994", new CategoryMapping("entertainment", "video_game_arcade", 0.90));
-        MCC_TO_CATEGORY.put("7995", new CategoryMapping("entertainment", "betting", 0.85));
-        MCC_TO_CATEGORY.put("7996", new CategoryMapping("entertainment", "amusement_park", 0.95));
-        MCC_TO_CATEGORY.put("7997", new CategoryMapping("entertainment", "aquarium", 0.90));
-        MCC_TO_CATEGORY.put("7998", new CategoryMapping("entertainment", "aquarium", 0.90));
-        MCC_TO_CATEGORY.put("7999", new CategoryMapping("entertainment", "recreation", 0.85));
+                "7994", new CategoryMapping(ENTERTAINMENT, "video_game_arcade", 0.90));
+        MCC_TO_CATEGORY.put("7995", new CategoryMapping(ENTERTAINMENT, "betting", 0.85));
+        MCC_TO_CATEGORY.put("7996", new CategoryMapping(ENTERTAINMENT, "amusement_park", 0.95));
+        MCC_TO_CATEGORY.put("7997", new CategoryMapping(ENTERTAINMENT, "aquarium", 0.90));
+        MCC_TO_CATEGORY.put("7998", new CategoryMapping(ENTERTAINMENT, "aquarium", 0.90));
+        MCC_TO_CATEGORY.put("7999", new CategoryMapping(ENTERTAINMENT, "recreation", 0.85));
 
         // ========== SHOPPING ==========
-        MCC_TO_CATEGORY.put("5310", new CategoryMapping("shopping", "department_store", 0.95));
-        MCC_TO_CATEGORY.put("5311", new CategoryMapping("shopping", "department_store", 0.95));
-        MCC_TO_CATEGORY.put("5331", new CategoryMapping("shopping", "variety_store", 0.90));
-        MCC_TO_CATEGORY.put("5399", new CategoryMapping("shopping", "misc_general", 0.85));
-        MCC_TO_CATEGORY.put("5611", new CategoryMapping("shopping", "mens_clothing", 0.95));
-        MCC_TO_CATEGORY.put("5621", new CategoryMapping("shopping", "womens_clothing", 0.95));
-        MCC_TO_CATEGORY.put("5631", new CategoryMapping("shopping", "womens_clothing", 0.95));
-        MCC_TO_CATEGORY.put("5641", new CategoryMapping("shopping", "childrens_clothing", 0.95));
-        MCC_TO_CATEGORY.put("5651", new CategoryMapping("shopping", "family_clothing", 0.95));
-        MCC_TO_CATEGORY.put("5655", new CategoryMapping("shopping", "sports_clothing", 0.95));
-        MCC_TO_CATEGORY.put("5661", new CategoryMapping("shopping", "shoe_store", 0.95));
-        MCC_TO_CATEGORY.put("5712", new CategoryMapping("shopping", "furniture", 0.95));
-        MCC_TO_CATEGORY.put("5713", new CategoryMapping("shopping", "floor_covering", 0.95));
-        MCC_TO_CATEGORY.put("5714", new CategoryMapping("shopping", "drapery", 0.90));
-        MCC_TO_CATEGORY.put("5718", new CategoryMapping("shopping", "fireplace", 0.90));
-        MCC_TO_CATEGORY.put("5719", new CategoryMapping("shopping", "misc_home", 0.90));
-        MCC_TO_CATEGORY.put("5722", new CategoryMapping("shopping", "household_appliance", 0.95));
-        MCC_TO_CATEGORY.put("5732", new CategoryMapping("shopping", "electronics", 0.95));
-        MCC_TO_CATEGORY.put("5733", new CategoryMapping("shopping", "office_supplies", 0.90));
-        MCC_TO_CATEGORY.put("5734", new CategoryMapping("shopping", "computer", 0.95));
-        MCC_TO_CATEGORY.put("5735", new CategoryMapping("shopping", "record_store", 0.90));
-        MCC_TO_CATEGORY.put("5944", new CategoryMapping("shopping", "jewelry", 0.95));
-        MCC_TO_CATEGORY.put("5945", new CategoryMapping("shopping", "toy", 0.95));
-        MCC_TO_CATEGORY.put("5946", new CategoryMapping("shopping", "camera", 0.95));
-        MCC_TO_CATEGORY.put("5947", new CategoryMapping("shopping", "gift", 0.90));
-        MCC_TO_CATEGORY.put("5948", new CategoryMapping("shopping", "luggage", 0.95));
-        MCC_TO_CATEGORY.put("5949", new CategoryMapping("shopping", "sewing", 0.90));
+        MCC_TO_CATEGORY.put("5310", new CategoryMapping(SHOPPING, "department_store", 0.95));
+        MCC_TO_CATEGORY.put("5311", new CategoryMapping(SHOPPING, "department_store", 0.95));
+        MCC_TO_CATEGORY.put("5331", new CategoryMapping(SHOPPING, "variety_store", 0.90));
+        MCC_TO_CATEGORY.put("5399", new CategoryMapping(SHOPPING, "misc_general", 0.85));
+        MCC_TO_CATEGORY.put("5611", new CategoryMapping(SHOPPING, "mens_clothing", 0.95));
+        MCC_TO_CATEGORY.put("5621", new CategoryMapping(SHOPPING, "womens_clothing", 0.95));
+        MCC_TO_CATEGORY.put("5631", new CategoryMapping(SHOPPING, "womens_clothing", 0.95));
+        MCC_TO_CATEGORY.put("5641", new CategoryMapping(SHOPPING, "childrens_clothing", 0.95));
+        MCC_TO_CATEGORY.put("5651", new CategoryMapping(SHOPPING, "family_clothing", 0.95));
+        MCC_TO_CATEGORY.put("5655", new CategoryMapping(SHOPPING, "sports_clothing", 0.95));
+        MCC_TO_CATEGORY.put("5661", new CategoryMapping(SHOPPING, "shoe_store", 0.95));
+        MCC_TO_CATEGORY.put("5712", new CategoryMapping(SHOPPING, "furniture", 0.95));
+        MCC_TO_CATEGORY.put("5713", new CategoryMapping(SHOPPING, "floor_covering", 0.95));
+        MCC_TO_CATEGORY.put("5714", new CategoryMapping(SHOPPING, "drapery", 0.90));
+        MCC_TO_CATEGORY.put("5718", new CategoryMapping(SHOPPING, "fireplace", 0.90));
+        MCC_TO_CATEGORY.put("5719", new CategoryMapping(SHOPPING, "misc_home", 0.90));
+        MCC_TO_CATEGORY.put("5722", new CategoryMapping(SHOPPING, "household_appliance", 0.95));
+        MCC_TO_CATEGORY.put("5732", new CategoryMapping(SHOPPING, "electronics", 0.95));
+        MCC_TO_CATEGORY.put("5733", new CategoryMapping(SHOPPING, "office_supplies", 0.90));
+        MCC_TO_CATEGORY.put("5734", new CategoryMapping(SHOPPING, "computer", 0.95));
+        MCC_TO_CATEGORY.put("5735", new CategoryMapping(SHOPPING, "record_store", 0.90));
+        MCC_TO_CATEGORY.put("5944", new CategoryMapping(SHOPPING, "jewelry", 0.95));
+        MCC_TO_CATEGORY.put("5945", new CategoryMapping(SHOPPING, "toy", 0.95));
+        MCC_TO_CATEGORY.put("5946", new CategoryMapping(SHOPPING, "camera", 0.95));
+        MCC_TO_CATEGORY.put("5947", new CategoryMapping(SHOPPING, "gift", 0.90));
+        MCC_TO_CATEGORY.put("5948", new CategoryMapping(SHOPPING, "luggage", 0.95));
+        MCC_TO_CATEGORY.put("5949", new CategoryMapping(SHOPPING, "sewing", 0.90));
 
         // ========== PET ==========
         MCC_TO_CATEGORY.put("5995", new CategoryMapping("pet", "pet_shop", 0.90));
@@ -293,7 +320,7 @@ public class MCCCodeMapper {
      */
     public CategoryMapping getCategoryFromMCC(final String mccCode) {
         if (mccCode == null || mccCode.isBlank()) {
-            return new CategoryMapping("other", "other", 0.50);
+            return new CategoryMapping(OTHER, OTHER, 0.50);
         }
 
         // Normalize MCC code (remove leading zeros, ensure 4 digits)
@@ -303,7 +330,7 @@ public class MCCCodeMapper {
         }
 
         return MCC_TO_CATEGORY.getOrDefault(
-                normalized, new CategoryMapping("other", "other", 0.50));
+                normalized, new CategoryMapping(OTHER, OTHER, 0.50));
     }
 
     /** Check if MCC code is available and mapped */

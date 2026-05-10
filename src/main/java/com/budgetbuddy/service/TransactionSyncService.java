@@ -33,9 +33,13 @@ import org.springframework.stereotype.Service;
 @SuppressFBWarnings(
         value = "EI_EXPOSE_REP2",
         justification = "Spring constructor injection — beans are shared by design")
-@SuppressWarnings({"PMD.LawOfDemeter", "PMD.AvoidCatchingGenericException"})
+@SuppressWarnings({"PMD.LawOfDemeter", "PMD.AvoidCatchingGenericException", "PMD.DataClass", "PMD.OnlyOneReturn"})
 @Service
 public class TransactionSyncService {
+
+    private static final String A_6BA7B811_9DAD_11D1_80B4_00C04FD430C8 = "6ba7b811-9dad-11d1-80b4-00c04fd430c8";
+
+    private static final String THIS_MATCHES_I_OS_APP_FALLBACK_BEHAVIOR = "This matches iOS app fallback behavior.";
 
     private static final Logger LOGGER = LoggerFactory.getLogger(TransactionSyncService.class);
     private static final DateTimeFormatter DATE_FORMATTER =
@@ -670,11 +674,11 @@ public class TransactionSyncService {
                             // generateTransactionIdFallback(plaidTransactionId:) method
                             LOGGER.warn(
                                     "⚠️ Failed to generate transaction ID, using deterministic UUID fallback: {}. "
-                                            + "This matches iOS app fallback behavior.",
+                                            + THIS_MATCHES_I_OS_APP_FALLBACK_BEHAVIOR,
                                     e.getMessage());
                             final java.util.UUID namespaceUUID =
                                     java.util.UUID.fromString(
-                                            "6ba7b811-9dad-11d1-80b4-00c04fd430c8"); // TRANSACTION_NAMESPACE
+                                            A_6BA7B811_9DAD_11D1_80B4_00C04FD430C8); // TRANSACTION_NAMESPACE
                             transaction.setTransactionId(
                                     IdGenerator.generateDeterministicUUID(
                                             namespaceUUID, plaidTransactionId));
@@ -692,11 +696,11 @@ public class TransactionSyncService {
                         // method
                         LOGGER.warn(
                                 "⚠️ Institution name or account ID missing for account {}, using deterministic UUID fallback. "
-                                        + "This matches iOS app fallback behavior.",
+                                        + THIS_MATCHES_I_OS_APP_FALLBACK_BEHAVIOR,
                                 plaidAccountId);
                         final java.util.UUID namespaceUUID =
                                 java.util.UUID.fromString(
-                                        "6ba7b811-9dad-11d1-80b4-00c04fd430c8"); // TRANSACTION_NAMESPACE
+                                        A_6BA7B811_9DAD_11D1_80B4_00C04FD430C8); // TRANSACTION_NAMESPACE
                         transaction.setTransactionId(
                                 IdGenerator.generateDeterministicUUID(
                                         namespaceUUID, plaidTransactionId));
@@ -723,7 +727,7 @@ public class TransactionSyncService {
                             plaidTransactionId);
                     final java.util.UUID namespaceUUID =
                             java.util.UUID.fromString(
-                                    "6ba7b811-9dad-11d1-80b4-00c04fd430c8"); // TRANSACTION_NAMESPACE
+                                    A_6BA7B811_9DAD_11D1_80B4_00C04FD430C8); // TRANSACTION_NAMESPACE
                     transaction.setTransactionId(
                             IdGenerator.generateDeterministicUUID(
                                     namespaceUUID, plaidTransactionId));
@@ -740,10 +744,10 @@ public class TransactionSyncService {
                 // This matches iOS app's generateTransactionIdFallback(plaidTransactionId:) method
                 LOGGER.warn(
                         "⚠️ Account ID not found in Plaid transaction, using deterministic UUID fallback. "
-                                + "This matches iOS app fallback behavior.");
+                                + THIS_MATCHES_I_OS_APP_FALLBACK_BEHAVIOR);
                 final java.util.UUID namespaceUUID =
                         java.util.UUID.fromString(
-                                "6ba7b811-9dad-11d1-80b4-00c04fd430c8"); // TRANSACTION_NAMESPACE
+                                A_6BA7B811_9DAD_11D1_80B4_00C04FD430C8); // TRANSACTION_NAMESPACE
                 transaction.setTransactionId(
                         IdGenerator.generateDeterministicUUID(namespaceUUID, plaidTransactionId));
                 transaction.setAccountId(
@@ -761,7 +765,7 @@ public class TransactionSyncService {
             transaction.setTransactionId(java.util.UUID.randomUUID().toString());
             LOGGER.warn(
                     "⚠️ Plaid transaction ID is null or empty, generated random UUID: {}. "
-                            + "This matches iOS app fallback behavior.",
+                            + THIS_MATCHES_I_OS_APP_FALLBACK_BEHAVIOR,
                     transaction.getTransactionId());
             transaction.setAccountId(
                     java.util.UUID.randomUUID().toString()); // Temporary account ID

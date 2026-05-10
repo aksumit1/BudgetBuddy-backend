@@ -24,9 +24,17 @@ import org.springframework.stereotype.Component;
 // standard library types (BigDecimal, String, Optional) and DTO
 // getters; this class has many such idiomatic uses. Suppress at
 // class level rather than littering every method.
-@SuppressWarnings({"PMD.LawOfDemeter", "PMD.AvoidCatchingGenericException"})
+@SuppressWarnings({"PMD.LawOfDemeter", "PMD.AvoidCatchingGenericException", "PMD.DataClass", "PMD.OnlyOneReturn"})
 @Component
 public class RewardExtractor {
+
+    private static final String D_1_2_D_1_2_D_2_4 = "(?![\\d/]{1,2}/[\\d/]{1,2}/[\\d]{2,4})";
+
+    private static final String S_S_S_D_S_S = "([\\$€£¥₹]?\\s*(?:\\(\\s*[\\$€£¥₹]?\\s*)?[\\d\\s,.]+(?:\\s*\\))?)";
+
+    private static final String D_1_7_D_3 = "(\\d{1,7}(?:,\\d{3})*)";
+
+    private static final String EXTRACTED_CASH_BACK_BALANCE_PATTERN = "✓ Extracted cash back balance: {} (pattern: '{}')";
 
     private static final Logger LOGGER = LoggerFactory.getLogger(RewardExtractor.class);
 
@@ -139,7 +147,7 @@ public class RewardExtractor {
                         Pattern.compile(
                                 "(?i)(?:points|pts|rewards\\s+points|membership\\s+rewards\\s+points|thank\\s+you\\s+points|citi\\s+thank\\s+you\\s+points)"
                                         + "\\s+as\\s+of\\s+\\d{1,2}/\\d{1,2}/\\d{2,4}[\\s:]+"
-                                        + "(\\d{1,7}(?:,\\d{3})*)"),
+                                        + D_1_7_D_3),
                         RewardType.POINTS,
                         100));
 
@@ -149,7 +157,7 @@ public class RewardExtractor {
                         "points_transferred_to",
                         Pattern.compile(
                                 "(?i)total\\s+points\\s+transferred\\s+to\\s+[a-z\\s]+\\s+"
-                                        + "(\\d{1,7}(?:,\\d{3})*)"),
+                                        + D_1_7_D_3),
                         RewardType.POINTS,
                         95));
 
@@ -159,7 +167,7 @@ public class RewardExtractor {
                         "points_available_for_redemption",
                         Pattern.compile(
                                 "(?i)total\\s+points\\s+available\\s+for\\s+(?:redemption|redeeming|use)\\s+"
-                                        + "(\\d{1,7}(?:,\\d{3})*)"),
+                                        + D_1_7_D_3),
                         RewardType.POINTS,
                         90));
 
@@ -169,9 +177,9 @@ public class RewardExtractor {
                         "points_available",
                         Pattern.compile(
                                 "(?i)(?:points|pts|rewards\\s+points)\\s+available[:\\s]+"
-                                        + "(?![\\d/]{1,2}/[\\d/]{1,2}/[\\d]{2,4})"
+                                        + D_1_2_D_1_2_D_2_4
                                         + // Negative lookahead: don't match dates
-                                        "(\\d{1,7}(?:,\\d{3})*)"),
+                                        D_1_7_D_3),
                         RewardType.POINTS,
                         85));
 
@@ -181,8 +189,8 @@ public class RewardExtractor {
                         "available_points",
                         Pattern.compile(
                                 "(?i)available\\s+(?:points|pts|rewards\\s+points)[:\\s]+"
-                                        + "(?![\\d/]{1,2}/[\\d/]{1,2}/[\\d]{2,4})"
-                                        + "(\\d{1,7}(?:,\\d{3})*)"),
+                                        + D_1_2_D_1_2_D_2_4
+                                        + D_1_7_D_3),
                         RewardType.POINTS,
                         80));
 
@@ -193,8 +201,8 @@ public class RewardExtractor {
                         Pattern.compile(
                                 "(?i)(?:membership\\s+rewards\\s+points|thank\\s+you\\s+points|citi\\s+thank\\s+you\\s+points|"
                                         + "rewards\\s+points|points|pts)[\\s:]+"
-                                        + "(?![\\d/]{1,2}/[\\d/]{1,2}/[\\d]{2,4})"
-                                        + "(\\d{1,7}(?:,\\d{3})*)"),
+                                        + D_1_2_D_1_2_D_2_4
+                                        + D_1_7_D_3),
                         RewardType.POINTS,
                         70));
 
@@ -204,7 +212,7 @@ public class RewardExtractor {
                         "points_balance",
                         Pattern.compile(
                                 "(?i)(?:points|pts|rewards\\s+points)\\s+balance[:\\s]+"
-                                        + "(\\d{1,7}(?:,\\d{3})*)"),
+                                        + D_1_7_D_3),
                         RewardType.POINTS,
                         65));
 
@@ -214,8 +222,8 @@ public class RewardExtractor {
                         "points_simple",
                         Pattern.compile(
                                 "(?i)(?:points|pts)[\\s:]+"
-                                        + "(?![\\d/]{1,2}/[\\d/]{1,2}/[\\d]{2,4})"
-                                        + "(\\d{1,7}(?:,\\d{3})*)"),
+                                        + D_1_2_D_1_2_D_2_4
+                                        + D_1_7_D_3),
                         RewardType.POINTS,
                         60));
 
@@ -228,7 +236,7 @@ public class RewardExtractor {
                         "cash_back_rewards_balance",
                         Pattern.compile(
                                 "(?i)cash\\s+back\\s+rewards?\\s+balance[:\\s]*[\\n\\r\\s]*"
-                                        + "([\\$€£¥₹]?\\s*(?:\\(\\s*[\\$€£¥₹]?\\s*)?[\\d\\s,.]+(?:\\s*\\))?)"),
+                                        + S_S_S_D_S_S),
                         RewardType.CASH_BACK,
                         90));
 
@@ -239,7 +247,7 @@ public class RewardExtractor {
                         "cash_back_balance",
                         Pattern.compile(
                                 "(?i)cash\\s+back\\s+balance[:\\s]*[\\n\\r\\s]*"
-                                        + "([\\$€£¥₹]?\\s*(?:\\(\\s*[\\$€£¥₹]?\\s*)?[\\d\\s,.]+(?:\\s*\\))?)"),
+                                        + S_S_S_D_S_S),
                         RewardType.CASH_BACK,
                         85));
 
@@ -250,7 +258,7 @@ public class RewardExtractor {
                         "rewards_balance",
                         Pattern.compile(
                                 "(?i)rewards?\\s+balance[:\\s]*[\\n\\r\\s]*"
-                                        + "([\\$€£¥₹]?\\s*(?:\\(\\s*[\\$€£¥₹]?\\s*)?[\\d\\s,.]+(?:\\s*\\))?)"),
+                                        + S_S_S_D_S_S),
                         RewardType.CASH_BACK,
                         80));
 
@@ -262,8 +270,8 @@ public class RewardExtractor {
                         "miles",
                         Pattern.compile(
                                 "(?i)(?:available\\s+)?miles?[:\\s]+"
-                                        + "(?![\\d/]{1,2}/[\\d/]{1,2}/[\\d]{2,4})"
-                                        + "(\\d{1,7}(?:,\\d{3})*)"),
+                                        + D_1_2_D_1_2_D_2_4
+                                        + D_1_7_D_3),
                         RewardType.POINTS, // Miles are treated as points internally
                         75));
 
@@ -497,7 +505,7 @@ public class RewardExtractor {
                 && result.getType() == RewardType.CASH_BACK
                 && result.getCashBack() != null) {
             LOGGER.debug(
-                    "✓ Extracted cash back balance: {} (pattern: '{}')",
+                    EXTRACTED_CASH_BACK_BALANCE_PATTERN,
                     result.getCashBack(),
                     result.getLabel());
             return result.getCashBack();
@@ -517,7 +525,7 @@ public class RewardExtractor {
                     && result.getType() == RewardType.CASH_BACK
                     && result.getCashBack() != null) {
                 LOGGER.debug(
-                        "✓ Extracted cash back balance: {} (pattern: '{}')",
+                        EXTRACTED_CASH_BACK_BALANCE_PATTERN,
                         result.getCashBack(),
                         result.getLabel());
                 return result.getCashBack();
@@ -532,7 +540,7 @@ public class RewardExtractor {
                         && result.getType() == RewardType.CASH_BACK
                         && result.getCashBack() != null) {
                     LOGGER.debug(
-                            "✓ Extracted cash back balance: {} (pattern: '{}')",
+                            EXTRACTED_CASH_BACK_BALANCE_PATTERN,
                             result.getCashBack(),
                             result.getLabel());
                     return result.getCashBack();

@@ -30,8 +30,14 @@ import org.springframework.web.filter.OncePerRequestFilter;
 // standard library types (BigDecimal, String, Optional) and DTO
 // getters; this class has many such idiomatic uses. Suppress at
 // class level rather than littering every method.
-@SuppressWarnings({"PMD.LawOfDemeter", "PMD.AvoidCatchingGenericException"})
+@SuppressWarnings({"PMD.LawOfDemeter", "PMD.AvoidCatchingGenericException", "PMD.OnlyOneReturn"})
 public class DDoSProtectionFilter extends OncePerRequestFilter {
+
+    private static final String APPLICATION_JSON = "application/json";
+
+    private static final String CORRELATION_ID = "correlationId";
+
+    private static final String UNKNOWN = "unknown";
 
     private static final Logger LOGGER = LoggerFactory.getLogger(DDoSProtectionFilter.class);
 
@@ -76,11 +82,11 @@ public class DDoSProtectionFilter extends OncePerRequestFilter {
             LOGGER.warn(
                     "DDoS protection: Blocked request from IP: {} | CorrelationId: {}",
                     clientIp,
-                    MDC.get("correlationId"));
-            String correlationId = MDC.get("correlationId");
+                    MDC.get(CORRELATION_ID));
+            String correlationId = MDC.get(CORRELATION_ID);
             if (correlationId == null) {
                 correlationId = java.util.UUID.randomUUID().toString();
-                MDC.put("correlationId", correlationId);
+                MDC.put(CORRELATION_ID, correlationId);
             }
             sendRateLimitError(
                     response,
@@ -97,12 +103,12 @@ public class DDoSProtectionFilter extends OncePerRequestFilter {
                     "Rate limit: Blocked request from user: {} for endpoint: {} | CorrelationId: {}",
                     userId,
                     request.getRequestURI(),
-                    MDC.get("correlationId"));
+                    MDC.get(CORRELATION_ID));
             final int retryAfter = rateLimitService.getRetryAfter(userId, request.getRequestURI());
-            String correlationId = MDC.get("correlationId");
+            String correlationId = MDC.get(CORRELATION_ID);
             if (correlationId == null) {
                 correlationId = java.util.UUID.randomUUID().toString();
-                MDC.put("correlationId", correlationId);
+                MDC.put(CORRELATION_ID, correlationId);
             }
             sendRateLimitError(
                     response,
@@ -120,7 +126,7 @@ public class DDoSProtectionFilter extends OncePerRequestFilter {
         if (contentLength > MAX_REQUEST_SIZE) {
             LOGGER.warn("Request too large: {} bytes from IP: {}", contentLength, clientIp);
             response.setStatus(413); // SC_REQUEST_ENTITY_TOO_LARGE
-            response.setContentType("application/json");
+            response.setContentType(APPLICATION_JSON);
             response.getWriter().write("{\"error\":\"Request payload too large\"}");
             return;
         }
@@ -129,7 +135,7 @@ public class DDoSProtectionFilter extends OncePerRequestFilter {
         if (getTotalHeaderSize(request) > MAX_HEADER_SIZE) {
             LOGGER.warn("Headers too large from IP: {}", clientIp);
             response.setStatus(431); // SC_REQUEST_HEADER_FIELDS_TOO_LARGE
-            response.setContentType("application/json");
+            response.setContentType(APPLICATION_JSON);
             response.getWriter().write("{\"error\":\"Request headers too large\"}");
             return;
         }
@@ -158,7 +164,7 @@ public class DDoSProtectionFilter extends OncePerRequestFilter {
         }
 
         // If X-Forwarded-For is not available or invalid, check X-Real-IP
-        if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
+        if (ip == null || ip.isEmpty() || UNKNOWN.equalsIgnoreCase(ip)) {
             ip = request.getHeader("X-Real-IP");
             if (ip != null) {
                 ip = ip.trim();
@@ -166,7 +172,7 @@ public class DDoSProtectionFilter extends OncePerRequestFilter {
         }
 
         // Fallback to RemoteAddr if both headers are unavailable
-        if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
+        if (ip == null || ip.isEmpty() || UNKNOWN.equalsIgnoreCase(ip)) {
             ip = request.getRemoteAddr();
         }
 
@@ -182,7 +188,7 @@ public class DDoSProtectionFilter extends OncePerRequestFilter {
         }
 
         // Final validation and fallback
-        if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
+        if (ip == null || ip.isEmpty() || UNKNOWN.equalsIgnoreCase(ip)) {
             ip = request.getRemoteAddr();
         }
 
@@ -283,7 +289,7 @@ public class DDoSProtectionFilter extends OncePerRequestFilter {
 
         response.setStatus(429); // SC_TOO_MANY_REQUESTS
         response.setHeader("Retry-After", String.valueOf(retryAfter));
-        response.setContentType("application/json");
+        response.setContentType(APPLICATION_JSON);
         response.setCharacterEncoding("UTF-8");
 
         objectMapper.writeValue(response.getWriter(), errorResponse);

@@ -5,8 +5,25 @@ import java.util.Locale;
 import org.springframework.stereotype.Component;
 
 /** Strategy for detecting utilities category */
+// PMD's OnlyOneReturn fights guard-clause idiom — the codebase intentionally
+// uses early returns for clarity (validation guards, fail-fast patterns).
+@SuppressWarnings("PMD.OnlyOneReturn")
 @Component
 public class UtilitiesCategoryStrategy extends BaseCategoryStrategy {
+
+    private static final String ELECTRIC = "electric";
+
+    private static final String ENERGY = "energy";
+
+    private static final String PARKING = "parking";
+
+    private static final String PAY_BY_PHONE = "pay by phone";
+
+    private static final String PAYBYPHONE = "paybyphone";
+
+    private static final String UTILITIES = "utilities";
+
+    private static final String UTILITY = "utility";
 
     @Override
     public String detectCategory(
@@ -19,10 +36,10 @@ public class UtilitiesCategoryStrategy extends BaseCategoryStrategy {
         // CRITICAL: Check for municipal utilities FIRST (e.g., "CITY OF BELLEVUE UTILITY")
         // This prevents "CITY" from matching transportation patterns
         if ((normalizedMerchantName.contains("city of") || descriptionLower.contains("city of"))
-                && (normalizedMerchantName.contains("utility")
-                        || normalizedMerchantName.contains("utilities")
-                        || descriptionLower.contains("utility")
-                        || descriptionLower.contains("utilities"))) {
+                && (normalizedMerchantName.contains(UTILITY)
+                        || normalizedMerchantName.contains(UTILITIES)
+                        || descriptionLower.contains(UTILITY)
+                        || descriptionLower.contains(UTILITIES))) {
             LOGGER.debug(
                     "🏷️ detectCategoryFromMerchantName: Detected municipal utility (city of ... utility) → 'utilities'");
             return "utilities";
@@ -80,26 +97,26 @@ public class UtilitiesCategoryStrategy extends BaseCategoryStrategy {
 
         // Utility patterns (energy, electric, gas, water, etc.)
         // CRITICAL: Check for "utility" keyword BEFORE transportation to prevent false matches
-        if (normalizedMerchantName.contains("energy")
+        if (normalizedMerchantName.contains(ENERGY)
                 || normalizedMerchantName.contains("ener ")
                 || normalizedMerchantName.contains("ener billpay")
-                || normalizedMerchantName.contains("electric")
+                || normalizedMerchantName.contains(ELECTRIC)
                 || normalizedMerchantName.contains("electricity")
-                || normalizedMerchantName.contains("utility")
-                || normalizedMerchantName.contains("utilities")
+                || normalizedMerchantName.contains(UTILITY)
+                || normalizedMerchantName.contains(UTILITIES)
                 || normalizedMerchantName.contains("gas company")
                 || normalizedMerchantName.contains("gascompany")
                 || normalizedMerchantName.contains("water company")
                 || normalizedMerchantName.contains("watercompany")
                 || normalizedMerchantName.contains("power company")
                 || normalizedMerchantName.contains("powercompany")
-                || descriptionLower.contains("energy")
+                || descriptionLower.contains(ENERGY)
                 || descriptionLower.contains("ener ")
                 || descriptionLower.contains("ener billpay")
-                || descriptionLower.contains("electric")
+                || descriptionLower.contains(ELECTRIC)
                 || descriptionLower.contains("electricity")
-                || descriptionLower.contains("utility")
-                || descriptionLower.contains("utilities")
+                || descriptionLower.contains(UTILITY)
+                || descriptionLower.contains(UTILITIES)
                 || descriptionLower.contains("gas company")
                 || descriptionLower.contains("water company")
                 || descriptionLower.contains("power company")) {
@@ -114,17 +131,17 @@ public class UtilitiesCategoryStrategy extends BaseCategoryStrategy {
                         || descriptionLower.contains("billpay")
                         || descriptionLower.contains("bill pay"))
                 && (normalizedMerchantName.contains("ener")
-                        || normalizedMerchantName.contains("energy")
-                        || normalizedMerchantName.contains("electric")
+                        || normalizedMerchantName.contains(ENERGY)
+                        || normalizedMerchantName.contains(ELECTRIC)
                         || normalizedMerchantName.contains("gas")
                         || normalizedMerchantName.contains("water")
-                        || normalizedMerchantName.contains("utility")
+                        || normalizedMerchantName.contains(UTILITY)
                         || descriptionLower.contains("ener")
-                        || descriptionLower.contains("energy")
-                        || descriptionLower.contains("electric")
+                        || descriptionLower.contains(ENERGY)
+                        || descriptionLower.contains(ELECTRIC)
                         || descriptionLower.contains("gas")
                         || descriptionLower.contains("water")
-                        || descriptionLower.contains("utility"))) {
+                        || descriptionLower.contains(UTILITY))) {
             LOGGER.debug(
                     "🏷️ detectCategoryFromMerchantName: Detected utility bill payment → 'utilities'");
             return "utilities";
@@ -215,10 +232,10 @@ public class UtilitiesCategoryStrategy extends BaseCategoryStrategy {
         // ========== TRANSPORTATION ==========
         // CRITICAL: Parking services must be checked BEFORE general utility patterns
         // Pay by Phone is a parking payment service, not a utility
-        if (normalizedMerchantName.contains("pay by phone")
-                || normalizedMerchantName.contains("paybyphone")
-                || descriptionLower.contains("pay by phone")
-                || descriptionLower.contains("paybyphone")
+        if (normalizedMerchantName.contains(PAY_BY_PHONE)
+                || normalizedMerchantName.contains(PAYBYPHONE)
+                || descriptionLower.contains(PAY_BY_PHONE)
+                || descriptionLower.contains(PAYBYPHONE)
                 || (merchantName != null && merchantName.toUpperCase(Locale.ROOT).contains("PAY BY PHONE"))
                 || (merchantName != null && merchantName.toUpperCase(Locale.ROOT).contains("PAYBYPHONE"))) {
             LOGGER.debug(
@@ -248,10 +265,10 @@ public class UtilitiesCategoryStrategy extends BaseCategoryStrategy {
 
         // UW pay by phone is parking, not utilities
         if ((normalizedMerchantName.contains("uw") || descriptionLower.contains("uw"))
-                && (normalizedMerchantName.contains("pay by phone")
-                        || normalizedMerchantName.contains("paybyphone")
-                        || descriptionLower.contains("pay by phone")
-                        || descriptionLower.contains("paybyphone"))) {
+                && (normalizedMerchantName.contains(PAY_BY_PHONE)
+                        || normalizedMerchantName.contains(PAYBYPHONE)
+                        || descriptionLower.contains(PAY_BY_PHONE)
+                        || descriptionLower.contains(PAYBYPHONE))) {
             LOGGER.debug(
                     "🏷️ detectCategoryFromMerchantName: Detected UW pay by phone (parking) → 'transportation'");
             return "transportation";
@@ -259,8 +276,8 @@ public class UtilitiesCategoryStrategy extends BaseCategoryStrategy {
 
         // Metropolis parking
         if (normalizedMerchantName.contains("metropolis")
-                && (normalizedMerchantName.contains("parking")
-                        || descriptionLower.contains("parking"))) {
+                && (normalizedMerchantName.contains(PARKING)
+                        || descriptionLower.contains(PARKING))) {
             LOGGER.debug(
                     "🏷️ detectCategoryFromMerchantName: Detected Metropolis parking → 'transportation'");
             return "transportation";
@@ -285,7 +302,7 @@ public class UtilitiesCategoryStrategy extends BaseCategoryStrategy {
                 "bus ",
                 "transit",
                 "metro",
-                "parking",
+                PARKING,
                 "parking meter",
                 "parkingmeter",
                 "garage",

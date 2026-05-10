@@ -1,6 +1,9 @@
 package com.budgetbuddy.exception;
 
 /** Comprehensive Error Code Enum Categorizes all possible errors in the system */
+// PMD's OnlyOneReturn fights guard-clause idiom — the codebase intentionally
+// uses early returns for clarity (validation guards, fail-fast patterns).
+@SuppressWarnings("PMD.OnlyOneReturn")
 public enum ErrorCode {
     // Authentication & Authorization (1xxx)
     AUTHENTICATION_FAILED(1001, "Authentication failed"),

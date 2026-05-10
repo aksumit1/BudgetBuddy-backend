@@ -40,7 +40,7 @@ import org.springframework.stereotype.Service;
 @SuppressFBWarnings(
         value = "EI_EXPOSE_REP2",
         justification = "Spring constructor injection — beans are shared by design")
-@SuppressWarnings({"PMD.LawOfDemeter", "PMD.AvoidCatchingGenericException"})
+@SuppressWarnings({"PMD.LawOfDemeter", "PMD.AvoidCatchingGenericException", "PMD.OnlyOneReturn"})
 @Service
 public class TransactionService {
 
@@ -2595,7 +2595,7 @@ public class TransactionService {
         return transaction;
     }
 
-    /**
+    /*
      * Soft-delete a transaction (Flow 4 / O9). Sets {@code deletedAt} and bumps {@code updatedAt}
      * so incremental sync propagates the tombstone to every device. The row stays in storage for
      * the undo window; a scheduled purge job removes rows older than 30 days.

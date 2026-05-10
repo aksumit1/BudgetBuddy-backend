@@ -26,7 +26,7 @@ import software.amazon.awssdk.services.dynamodb.model.ProvisionedThroughputExcee
 // that can't reasonably be enumerated. Broad catches log + recover (or
 // translate to AppException). Suppress at class level since narrowing
 // here would mean catch (RuntimeException) which PMD flags identically.
-@SuppressWarnings("PMD.AvoidCatchingGenericException")
+@SuppressWarnings({"PMD.AvoidCatchingGenericException", "PMD.OnlyOneReturn"})
 public final class RetryHelper {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(RetryHelper.class);

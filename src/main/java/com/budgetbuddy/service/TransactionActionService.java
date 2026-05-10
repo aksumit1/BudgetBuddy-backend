@@ -24,11 +24,16 @@ import org.springframework.stereotype.Service;
 // SpotBugs flags constructor-injected Spring beans as EI_EXPOSE_REP2,
 // but Spring's IoC container intentionally shares the same bean across
 // callers — defensive-copying it would break dependency injection.
+// PMD's OnlyOneReturn fights guard-clause idiom — the codebase intentionally
+// uses early returns for clarity (validation guards, fail-fast patterns).
+@SuppressWarnings("PMD.OnlyOneReturn")
 @SuppressFBWarnings(
         value = "EI_EXPOSE_REP2",
         justification = "Spring constructor injection — beans are shared by design")
 @Service
 public class TransactionActionService {
+
+    private static final String USER_IS_REQUIRED = "User is required";
 
     private static final Logger LOGGER = LoggerFactory.getLogger(TransactionActionService.class);
 
@@ -88,7 +93,7 @@ public class TransactionActionService {
             final String actionId,
             final String plaidTransactionId) {
         if (user == null || user.getUserId() == null || user.getUserId().isEmpty()) {
-            throw new AppException(ErrorCode.INVALID_INPUT, "User is required");
+            throw new AppException(ErrorCode.INVALID_INPUT, USER_IS_REQUIRED);
         }
         if (transactionId == null || transactionId.isEmpty()) {
             throw new AppException(ErrorCode.INVALID_INPUT, "Transaction ID is required");
@@ -250,7 +255,7 @@ public class TransactionActionService {
             final String priority,
             final Boolean reminderDismissed) {
         if (user == null || user.getUserId() == null || user.getUserId().isEmpty()) {
-            throw new AppException(ErrorCode.INVALID_INPUT, "User is required");
+            throw new AppException(ErrorCode.INVALID_INPUT, USER_IS_REQUIRED);
         }
         if (actionId == null || actionId.isEmpty()) {
             throw new AppException(ErrorCode.INVALID_INPUT, "Action ID is required");
@@ -309,7 +314,7 @@ public class TransactionActionService {
     /** Delete a transaction action */
     public void deleteAction(final UserTable user, final String actionId) {
         if (user == null || user.getUserId() == null || user.getUserId().isEmpty()) {
-            throw new AppException(ErrorCode.INVALID_INPUT, "User is required");
+            throw new AppException(ErrorCode.INVALID_INPUT, USER_IS_REQUIRED);
         }
         if (actionId == null || actionId.isEmpty()) {
             throw new AppException(ErrorCode.INVALID_INPUT, "Action ID is required");
@@ -339,7 +344,7 @@ public class TransactionActionService {
     public List<TransactionActionTable> getActionsByTransactionId(
             final UserTable user, final String transactionId) {
         if (user == null || user.getUserId() == null || user.getUserId().isEmpty()) {
-            throw new AppException(ErrorCode.INVALID_INPUT, "User is required");
+            throw new AppException(ErrorCode.INVALID_INPUT, USER_IS_REQUIRED);
         }
         if (transactionId == null || transactionId.isEmpty()) {
             throw new AppException(ErrorCode.INVALID_INPUT, "Transaction ID is required");
@@ -383,7 +388,7 @@ public class TransactionActionService {
     /** Get all actions for a user */
     public List<TransactionActionTable> getActionsByUserId(final UserTable user) {
         if (user == null || user.getUserId() == null || user.getUserId().isEmpty()) {
-            throw new AppException(ErrorCode.INVALID_INPUT, "User is required");
+            throw new AppException(ErrorCode.INVALID_INPUT, USER_IS_REQUIRED);
         }
         return actionRepository.findByUserId(user.getUserId());
     }

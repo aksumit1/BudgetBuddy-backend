@@ -303,8 +303,8 @@ class PDFImportIntegrationTest {
 
             final ByteArrayOutputStream baos = new ByteArrayOutputStream();
             document.save(baos);
-            document.close();
-
+            // try-with-resources auto-closes — drop the explicit close to avoid a
+            // double-close warning from javac.
             return new ByteArrayInputStream(baos.toByteArray());
         }
     }
@@ -340,8 +340,8 @@ class PDFImportIntegrationTest {
 
             final ByteArrayOutputStream baos = new ByteArrayOutputStream();
             document.save(baos);
-            document.close();
-
+            // try-with-resources auto-closes — drop the explicit close to avoid a
+            // double-close warning from javac.
             return new ByteArrayInputStream(baos.toByteArray());
         }
     }

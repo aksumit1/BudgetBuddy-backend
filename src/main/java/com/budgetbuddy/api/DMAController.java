@@ -33,10 +33,19 @@ import org.springframework.web.bind.annotation.RestController;
  * <p>DMA Requirements: - Article 6: Data Portability - Article 7: Interoperability - Article 8:
  * Fair Access - Article 9: Data Sharing
  */
+// PMD's DataClass fires on Request/Response/Config DTOs by design —
+// they're intentionally data-only; behaviour belongs in the controller/service.
+@SuppressWarnings("PMD.DataClass")
 @RestController
 @RequestMapping("/api/dma")
 @CrossOrigin(origins = "*", maxAge = 3600)
 public class DMAController {
+
+    private static final String USER_NOT_AUTHENTICATED = "User not authenticated";
+
+    private static final String USER_NOT_FOUND_1 = "User not found";
+
+    private static final String MESSAGE = "message";
 
     private static final Logger LOGGER = LoggerFactory.getLogger(DMAController.class);
 
@@ -69,14 +78,14 @@ public class DMAController {
             @AuthenticationPrincipal final UserDetails userDetails,
             @RequestParam(defaultValue = "JSON") final String format) {
         if (userDetails == null || userDetails.getUsername() == null) {
-            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "User not authenticated");
+            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, USER_NOT_AUTHENTICATED);
         }
 
         final UserTable user =
                 userService
                         .findByEmail(userDetails.getUsername())
                         .orElseThrow(
-                                () -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
+                                () -> new AppException(ErrorCode.USER_NOT_FOUND, USER_NOT_FOUND_1));
 
         final String data = dmaComplianceService.exportDataPortable(user.getUserId(), format);
 
@@ -109,21 +118,21 @@ public class DMAController {
     public ResponseEntity<Map<String, Object>> getInteroperabilityEndpoint(
             @AuthenticationPrincipal final UserDetails userDetails) {
         if (userDetails == null || userDetails.getUsername() == null) {
-            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "User not authenticated");
+            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, USER_NOT_AUTHENTICATED);
         }
 
         final UserTable user =
                 userService
                         .findByEmail(userDetails.getUsername())
                         .orElseThrow(
-                                () -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
+                                () -> new AppException(ErrorCode.USER_NOT_FOUND, USER_NOT_FOUND_1));
 
         final String endpoint = dmaComplianceService.getInteroperabilityEndpoint(user.getUserId());
 
         final Map<String, Object> response = new HashMap<>();
         response.put("endpoint", endpoint);
         response.put("userId", user.getUserId());
-        response.put("message", "Use this endpoint with proper authentication to access your data");
+        response.put(MESSAGE, "Use this endpoint with proper authentication to access your data");
 
         return ResponseEntity.ok(response);
     }
@@ -141,7 +150,7 @@ public class DMAController {
             @AuthenticationPrincipal final UserDetails userDetails,
             @RequestBody final AuthorizeThirdPartyRequest request) {
         if (userDetails == null || userDetails.getUsername() == null) {
-            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "User not authenticated");
+            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, USER_NOT_AUTHENTICATED);
         }
         if (request == null || request.getThirdPartyId() == null || request.getScope() == null) {
             throw new AppException(
@@ -152,7 +161,7 @@ public class DMAController {
                 userService
                         .findByEmail(userDetails.getUsername())
                         .orElseThrow(
-                                () -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
+                                () -> new AppException(ErrorCode.USER_NOT_FOUND, USER_NOT_FOUND_1));
 
         final boolean authorized =
                 dmaComplianceService.authorizeThirdPartyAccess(
@@ -163,7 +172,7 @@ public class DMAController {
         response.put("thirdPartyId", request.getThirdPartyId());
         response.put("scope", request.getScope());
         response.put(
-                "message",
+                MESSAGE,
                 authorized ? "Third-party access authorized" : "Third-party access denied");
 
         LOGGER.info(
@@ -189,7 +198,7 @@ public class DMAController {
             @AuthenticationPrincipal final UserDetails userDetails,
             @RequestBody final ShareDataRequest request) {
         if (userDetails == null || userDetails.getUsername() == null) {
-            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "User not authenticated");
+            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, USER_NOT_AUTHENTICATED);
         }
         if (request == null || request.getThirdPartyId() == null || request.getDataType() == null) {
             throw new AppException(
@@ -200,7 +209,7 @@ public class DMAController {
                 userService
                         .findByEmail(userDetails.getUsername())
                         .orElseThrow(
-                                () -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
+                                () -> new AppException(ErrorCode.USER_NOT_FOUND, USER_NOT_FOUND_1));
 
         final String data =
                 dmaComplianceService.shareDataWithThirdParty(
@@ -210,7 +219,7 @@ public class DMAController {
         response.put("data", data);
         response.put("thirdPartyId", request.getThirdPartyId());
         response.put("dataType", request.getDataType());
-        response.put("message", "Data shared successfully with authorized third party");
+        response.put(MESSAGE, "Data shared successfully with authorized third party");
 
         LOGGER.info(
                 "DMA: Data shared with third party - User: {}, ThirdParty: {}, DataType: {}",

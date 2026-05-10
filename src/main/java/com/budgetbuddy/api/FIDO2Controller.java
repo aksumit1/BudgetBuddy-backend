@@ -39,11 +39,17 @@ import org.springframework.web.bind.annotation.RestController;
 @SuppressFBWarnings(
         value = "EI_EXPOSE_REP2",
         justification = "Spring constructor injection — beans are shared by design")
-@SuppressWarnings("PMD.LawOfDemeter")
+@SuppressWarnings({"PMD.LawOfDemeter", "PMD.DataClass"})
 @RestController
 @RequestMapping("/api/fido2")
 @CrossOrigin(origins = "*", maxAge = 3600)
 public class FIDO2Controller {
+
+    private static final String USER_NOT_AUTHENTICATED = "User not authenticated";
+
+    private static final String USER_NOT_FOUND_1 = "User not found";
+
+    private static final String MESSAGE = "message";
 
     private static final Logger LOGGER = LoggerFactory.getLogger(FIDO2Controller.class);
 
@@ -67,14 +73,14 @@ public class FIDO2Controller {
     public ResponseEntity<Map<String, Object>> generateRegistrationChallenge(
             @AuthenticationPrincipal final UserDetails userDetails) {
         if (userDetails == null || userDetails.getUsername() == null) {
-            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "User not authenticated");
+            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, USER_NOT_AUTHENTICATED);
         }
 
         final UserTable user =
                 userService
                         .findByEmail(userDetails.getUsername())
                         .orElseThrow(
-                                () -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
+                                () -> new AppException(ErrorCode.USER_NOT_FOUND, USER_NOT_FOUND_1));
 
         final FIDO2Service.RegistrationChallengeResult result =
                 fido2Service.generateRegistrationChallenge(user.getUserId(), user.getEmail());
@@ -82,7 +88,7 @@ public class FIDO2Controller {
         final Map<String, Object> response = new HashMap<>();
         response.put("challenge", result.getOptions().getChallenge().getBase64Url());
         response.put("options", result.getOptions());
-        response.put("message", "Registration challenge generated. Use this to create a passkey.");
+        response.put(MESSAGE, "Registration challenge generated. Use this to create a passkey.");
 
         LOGGER.info("Registration challenge generated for user: {}", user.getUserId());
         return ResponseEntity.ok(response);
@@ -100,7 +106,7 @@ public class FIDO2Controller {
             @AuthenticationPrincipal final UserDetails userDetails,
             @RequestBody final RegisterPasskeyRequest request) {
         if (userDetails == null || userDetails.getUsername() == null) {
-            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "User not authenticated");
+            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, USER_NOT_AUTHENTICATED);
         }
         if (request == null
                 || request.getCredentialJson() == null
@@ -112,7 +118,7 @@ public class FIDO2Controller {
                 userService
                         .findByEmail(userDetails.getUsername())
                         .orElseThrow(
-                                () -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
+                                () -> new AppException(ErrorCode.USER_NOT_FOUND, USER_NOT_FOUND_1));
 
         final boolean isValid =
                 fido2Service.verifyRegistration(user.getUserId(), request.getCredentialJson());
@@ -123,7 +129,7 @@ public class FIDO2Controller {
 
         final Map<String, Object> response = new HashMap<>();
         response.put("success", true);
-        response.put("message", "Passkey registered successfully");
+        response.put(MESSAGE, "Passkey registered successfully");
 
         LOGGER.info("Passkey registered for user: {}", user.getUserId());
         return ResponseEntity.ok(response);
@@ -151,7 +157,7 @@ public class FIDO2Controller {
         response.put("challenge", result.getOptions().getChallenge().getBase64Url());
         response.put("options", result.getOptions());
         response.put(
-                "message",
+                MESSAGE,
                 "Authentication challenge generated. Use this to authenticate with your passkey.");
 
         LOGGER.info("Authentication challenge generated for user: {}", request.getUserId());
@@ -181,7 +187,7 @@ public class FIDO2Controller {
 
         final Map<String, Object> response = new HashMap<>();
         response.put("success", true);
-        response.put("message", "Passkey authentication successful");
+        response.put(MESSAGE, "Passkey authentication successful");
 
         LOGGER.info("Passkey authentication successful for user: {}", request.getUserId());
         return ResponseEntity.ok(response);
@@ -197,14 +203,14 @@ public class FIDO2Controller {
     public ResponseEntity<Map<String, Object>> listPasskeys(
             @AuthenticationPrincipal final UserDetails userDetails) {
         if (userDetails == null || userDetails.getUsername() == null) {
-            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "User not authenticated");
+            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, USER_NOT_AUTHENTICATED);
         }
 
         final UserTable user =
                 userService
                         .findByEmail(userDetails.getUsername())
                         .orElseThrow(
-                                () -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
+                                () -> new AppException(ErrorCode.USER_NOT_FOUND, USER_NOT_FOUND_1));
 
         final List<FIDO2Service.PasskeyInfo> passkeys = fido2Service.listPasskeys(user.getUserId());
 
@@ -226,7 +232,7 @@ public class FIDO2Controller {
     public ResponseEntity<Void> deletePasskey(
             @AuthenticationPrincipal final UserDetails userDetails, @PathVariable final String credentialId) {
         if (userDetails == null || userDetails.getUsername() == null) {
-            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "User not authenticated");
+            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, USER_NOT_AUTHENTICATED);
         }
         if (credentialId == null || credentialId.isEmpty()) {
             throw new AppException(ErrorCode.INVALID_INPUT, "Credential ID is required");
@@ -236,7 +242,7 @@ public class FIDO2Controller {
                 userService
                         .findByEmail(userDetails.getUsername())
                         .orElseThrow(
-                                () -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
+                                () -> new AppException(ErrorCode.USER_NOT_FOUND, USER_NOT_FOUND_1));
 
         fido2Service.deletePasskey(user.getUserId(), credentialId);
 

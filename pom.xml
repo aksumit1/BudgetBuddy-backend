@@ -589,6 +589,15 @@
                         <recipe>org.openrewrite.staticanalysis.UnnecessaryParentheses</recipe>
                         <recipe>org.openrewrite.staticanalysis.UseDiamondOperator</recipe>
                         <recipe>org.openrewrite.java.format.EmptyNewlineAtEndOfFile</recipe>
+                        <!-- Crucial dead-code removal — SpotBugs UPM/URF + PMD UnusedLocalVariable -->
+                        <recipe>org.openrewrite.staticanalysis.RemoveUnusedPrivateMethods</recipe>
+                        <recipe>org.openrewrite.staticanalysis.RemoveUnusedPrivateFields</recipe>
+                        <recipe>org.openrewrite.staticanalysis.RemoveUnusedLocalVariables</recipe>
+                        <!-- Mass-fixable mechanical improvements -->
+                        <recipe>org.openrewrite.staticanalysis.ChainStringBuilderAppendCalls</recipe>
+                        <recipe>org.openrewrite.staticanalysis.NewStringBuilderBufferWithCharArgument</recipe>
+                        <!-- PMD AvoidDuplicateLiterals — extracts strings repeated 3+ times into constants -->
+                        <recipe>org.openrewrite.staticanalysis.ReplaceDuplicateStringLiterals</recipe>
                     </activeRecipes>
                 </configuration>
                 <dependencies>

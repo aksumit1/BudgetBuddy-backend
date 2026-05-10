@@ -43,11 +43,19 @@ import org.springframework.web.bind.annotation.RestController;
 @SuppressFBWarnings(
         value = "EI_EXPOSE_REP2",
         justification = "Spring constructor injection — beans are shared by design")
-@SuppressWarnings("PMD.AvoidCatchingGenericException")
+@SuppressWarnings({"PMD.AvoidCatchingGenericException", "PMD.DataClass"})
 @RestController
 @RequestMapping("/api/mfa")
 @CrossOrigin(origins = "*", maxAge = 3600)
 public class MFAController {
+
+    private static final String USER_NOT_AUTHENTICATED = "User not authenticated";
+
+    private static final String USER_NOT_FOUND_1 = "User not found";
+
+    private static final String MESSAGE = "message";
+
+    private static final String SUCCESS = "success";
 
     private static final Logger LOGGER = LoggerFactory.getLogger(MFAController.class);
 
@@ -80,14 +88,14 @@ public class MFAController {
     public ResponseEntity<Map<String, Object>> setupTOTP(
             @AuthenticationPrincipal final UserDetails userDetails) {
         if (userDetails == null || userDetails.getUsername() == null) {
-            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "User not authenticated");
+            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, USER_NOT_AUTHENTICATED);
         }
 
         final UserTable user =
                 userService
                         .findByEmail(userDetails.getUsername())
                         .orElseThrow(
-                                () -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
+                                () -> new AppException(ErrorCode.USER_NOT_FOUND, USER_NOT_FOUND_1));
 
         final MFAService.TOTPSetupResult result = mfaService.setupTOTP(user.getUserId(), user.getEmail());
 
@@ -95,7 +103,7 @@ public class MFAController {
         response.put("secret", result.getSecret());
         response.put("qrCodeUrl", result.getQrCodeUrl());
         response.put(
-                "message", "TOTP setup successful. Scan the QR code with your authenticator app.");
+                MESSAGE, "TOTP setup successful. Scan the QR code with your authenticator app.");
 
         LOGGER.info("TOTP setup initiated for user: {}", user.getUserId());
         return ResponseEntity.ok(response);
@@ -113,7 +121,7 @@ public class MFAController {
             @AuthenticationPrincipal final UserDetails userDetails,
             @RequestBody final VerifyTOTPRequest request) {
         if (userDetails == null || userDetails.getUsername() == null) {
-            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "User not authenticated");
+            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, USER_NOT_AUTHENTICATED);
         }
         if (request == null || request.getCode() == null) {
             throw new AppException(ErrorCode.INVALID_INPUT, "TOTP code is required");
@@ -123,7 +131,7 @@ public class MFAController {
                 userService
                         .findByEmail(userDetails.getUsername())
                         .orElseThrow(
-                                () -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
+                                () -> new AppException(ErrorCode.USER_NOT_FOUND, USER_NOT_FOUND_1));
 
         final boolean isValid = mfaService.verifyTOTP(user.getUserId(), request.getCode());
 
@@ -138,8 +146,8 @@ public class MFAController {
         final List<String> backupCodes = mfaService.generateBackupCodes(user.getUserId());
 
         final Map<String, Object> response = new HashMap<>();
-        response.put("success", true);
-        response.put("message", "TOTP verified and MFA enabled");
+        response.put(SUCCESS, true);
+        response.put(MESSAGE, "TOTP verified and MFA enabled");
         response.put("backupCodes", backupCodes);
         response.put(
                 "warning",
@@ -169,8 +177,8 @@ public class MFAController {
         }
 
         final Map<String, Object> response = new HashMap<>();
-        response.put("success", true);
-        response.put("message", "TOTP verified successfully");
+        response.put(SUCCESS, true);
+        response.put(MESSAGE, "TOTP verified successfully");
 
         LOGGER.info("TOTP authenticated for user: {}", request.getUserId());
         return ResponseEntity.ok(response);
@@ -183,14 +191,14 @@ public class MFAController {
     @ApiResponse(responseCode = "401", description = "User not authenticated")
     public ResponseEntity<Void> removeTOTP(@AuthenticationPrincipal final UserDetails userDetails) {
         if (userDetails == null || userDetails.getUsername() == null) {
-            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "User not authenticated");
+            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, USER_NOT_AUTHENTICATED);
         }
 
         final UserTable user =
                 userService
                         .findByEmail(userDetails.getUsername())
                         .orElseThrow(
-                                () -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
+                                () -> new AppException(ErrorCode.USER_NOT_FOUND, USER_NOT_FOUND_1));
 
         mfaService.removeTOTP(user.getUserId());
 
@@ -208,14 +216,14 @@ public class MFAController {
     public ResponseEntity<Map<String, Object>> generateBackupCodes(
             @AuthenticationPrincipal final UserDetails userDetails) {
         if (userDetails == null || userDetails.getUsername() == null) {
-            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "User not authenticated");
+            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, USER_NOT_AUTHENTICATED);
         }
 
         final UserTable user =
                 userService
                         .findByEmail(userDetails.getUsername())
                         .orElseThrow(
-                                () -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
+                                () -> new AppException(ErrorCode.USER_NOT_FOUND, USER_NOT_FOUND_1));
 
         final List<String> backupCodes = mfaService.generateBackupCodes(user.getUserId());
 
@@ -249,8 +257,8 @@ public class MFAController {
         }
 
         final Map<String, Object> response = new HashMap<>();
-        response.put("success", true);
-        response.put("message", "Backup code verified successfully");
+        response.put(SUCCESS, true);
+        response.put(MESSAGE, "Backup code verified successfully");
 
         LOGGER.info("Backup code verified for user: {}", request.getUserId());
         return ResponseEntity.ok(response);
@@ -264,14 +272,14 @@ public class MFAController {
     public ResponseEntity<Map<String, Object>> requestSMSOTP(
             @AuthenticationPrincipal final UserDetails userDetails) {
         if (userDetails == null || userDetails.getUsername() == null) {
-            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "User not authenticated");
+            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, USER_NOT_AUTHENTICATED);
         }
 
         final UserTable user =
                 userService
                         .findByEmail(userDetails.getUsername())
                         .orElseThrow(
-                                () -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
+                                () -> new AppException(ErrorCode.USER_NOT_FOUND, USER_NOT_FOUND_1));
 
         if (user.getPhoneNumber() == null || user.getPhoneNumber().isEmpty()) {
             throw new AppException(ErrorCode.INVALID_INPUT, "Phone number not configured");
@@ -315,7 +323,7 @@ public class MFAController {
         }
 
         final Map<String, Object> response = new HashMap<>();
-        response.put("message", "SMS OTP sent to your phone number");
+        response.put(MESSAGE, "SMS OTP sent to your phone number");
 
         // Only return OTP in dev/test environments (controlled by app.mfa.return-otp-in-response)
         // In production/staging, OTP is only sent via SMS, never returned in response
@@ -336,14 +344,14 @@ public class MFAController {
     public ResponseEntity<Map<String, Object>> requestEmailOTP(
             @AuthenticationPrincipal final UserDetails userDetails) {
         if (userDetails == null || userDetails.getUsername() == null) {
-            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "User not authenticated");
+            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, USER_NOT_AUTHENTICATED);
         }
 
         final UserTable user =
                 userService
                         .findByEmail(userDetails.getUsername())
                         .orElseThrow(
-                                () -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
+                                () -> new AppException(ErrorCode.USER_NOT_FOUND, USER_NOT_FOUND_1));
 
         // Generate OTP
         final String otp = mfaService.generateOTP(user.getUserId(), MFAService.OTPType.EMAIL);
@@ -390,7 +398,7 @@ public class MFAController {
         }
 
         final Map<String, Object> response = new HashMap<>();
-        response.put("message", "Email OTP sent to your email address");
+        response.put(MESSAGE, "Email OTP sent to your email address");
 
         // Only return OTP in dev/test environments (controlled by app.mfa.return-otp-in-response)
         // In production/staging, OTP is only sent via email, never returned in response
@@ -423,8 +431,8 @@ public class MFAController {
         }
 
         final Map<String, Object> response = new HashMap<>();
-        response.put("success", true);
-        response.put("message", "SMS OTP verified successfully");
+        response.put(SUCCESS, true);
+        response.put(MESSAGE, "SMS OTP verified successfully");
 
         LOGGER.info("SMS OTP verified for user: {}", request.getUserId());
         return ResponseEntity.ok(response);
@@ -451,8 +459,8 @@ public class MFAController {
         }
 
         final Map<String, Object> response = new HashMap<>();
-        response.put("success", true);
-        response.put("message", "Email OTP verified successfully");
+        response.put(SUCCESS, true);
+        response.put(MESSAGE, "Email OTP verified successfully");
 
         LOGGER.info("Email OTP verified for user: {}", request.getUserId());
         return ResponseEntity.ok(response);
@@ -468,14 +476,14 @@ public class MFAController {
     public ResponseEntity<Map<String, Object>> getMFAStatus(
             @AuthenticationPrincipal final UserDetails userDetails) {
         if (userDetails == null || userDetails.getUsername() == null) {
-            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "User not authenticated");
+            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, USER_NOT_AUTHENTICATED);
         }
 
         final UserTable user =
                 userService
                         .findByEmail(userDetails.getUsername())
                         .orElseThrow(
-                                () -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
+                                () -> new AppException(ErrorCode.USER_NOT_FOUND, USER_NOT_FOUND_1));
 
         final boolean mfaEnabled = mfaService.isMFAEnabled(user.getUserId());
         final boolean hasBackupCodes = mfaService.hasBackupCodes(user.getUserId());
@@ -495,14 +503,14 @@ public class MFAController {
     @ApiResponse(responseCode = "401", description = "User not authenticated")
     public ResponseEntity<Void> disableMFA(@AuthenticationPrincipal final UserDetails userDetails) {
         if (userDetails == null || userDetails.getUsername() == null) {
-            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "User not authenticated");
+            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, USER_NOT_AUTHENTICATED);
         }
 
         final UserTable user =
                 userService
                         .findByEmail(userDetails.getUsername())
                         .orElseThrow(
-                                () -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
+                                () -> new AppException(ErrorCode.USER_NOT_FOUND, USER_NOT_FOUND_1));
 
         mfaService.disableMFA(user.getUserId());
 

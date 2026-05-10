@@ -14,6 +14,9 @@ import software.amazon.awssdk.services.dynamodb.model.ConditionalCheckFailedExce
  * expected value - If mismatch, throw exception indicating concurrent modification - Client can
  * retry with fresh data
  */
+// PMD's OnlyOneReturn fights guard-clause idiom — the codebase intentionally
+// uses early returns for clarity (validation guards, fail-fast patterns).
+@SuppressWarnings("PMD.OnlyOneReturn")
 public final class OptimisticLockingHelper {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(OptimisticLockingHelper.class);

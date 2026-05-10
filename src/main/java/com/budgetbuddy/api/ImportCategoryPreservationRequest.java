@@ -8,6 +8,9 @@ import java.util.List;
  * Request body for preserving categories from preview during import Used to avoid re-categorizing
  * transactions when account hasn't changed
  */
+// PMD's DataClass fires on Request/Response/Config DTOs by design —
+// they're intentionally data-only; behaviour belongs in the controller/service.
+@SuppressWarnings("PMD.DataClass")
 @SuppressFBWarnings(
         value = "EI_EXPOSE_REP",
         justification =

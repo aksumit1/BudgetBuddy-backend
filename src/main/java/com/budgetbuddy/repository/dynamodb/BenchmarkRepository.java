@@ -17,6 +17,9 @@ import software.amazon.awssdk.services.dynamodb.model.ResourceNotFoundException;
  * com.budgetbuddy.service.benchmark.BenchmarkAggregationService} cron; the API controller reads by
  * bucketId.
  */
+// PMD's OnlyOneReturn fights guard-clause idiom — the codebase intentionally
+// uses early returns for clarity (validation guards, fail-fast patterns).
+@SuppressWarnings("PMD.OnlyOneReturn")
 @Repository
 public class BenchmarkRepository {
 

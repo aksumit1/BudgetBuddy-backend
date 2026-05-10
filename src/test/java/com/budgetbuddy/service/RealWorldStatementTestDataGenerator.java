@@ -88,21 +88,6 @@ public final class RealWorldStatementTestDataGenerator {
         "COLUMBUS OH", "FORT WORTH TX", "CHARLOTTE NC", "DETROIT MI", "EL PASO TX"
     };
 
-    // Transaction types
-    private static final String[] TRANSACTION_TYPES = {
-        "PURCHASE",
-        "PAYMENT",
-        "DEPOSIT",
-        "WITHDRAWAL",
-        "FEE",
-        "INTEREST",
-        "REFUND",
-        "CREDIT",
-        "DEBIT",
-        "TRANSFER",
-        "AUTOMATIC PAYMENT"
-    };
-
     /** Generate a realistic transaction line in Pattern 1 format */
     public static String generatePattern1Transaction(
             final int month, final int day, final int year, final String merchant, final double amount) {

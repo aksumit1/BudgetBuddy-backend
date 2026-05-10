@@ -18,7 +18,6 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
@@ -43,11 +42,10 @@ import org.springframework.stereotype.Service;
 @SuppressFBWarnings(
         value = "EI_EXPOSE_REP2",
         justification = "Spring constructor injection — beans are shared by design")
-@SuppressWarnings({"PMD.LawOfDemeter", "PMD.AvoidCatchingGenericException"})
+@SuppressWarnings({"PMD.LawOfDemeter", "PMD.AvoidCatchingGenericException", "PMD.DataClass", "PMD.OnlyOneReturn"})
 @Service
 public class RecurringIncomeDetector {
-
-    private static final Logger LOGGER = LoggerFactory.getLogger(RecurringIncomeDetector.class);
+    private static final String DUE_DATE = "dueDate";
     private static final DateTimeFormatter DATE = DateTimeFormatter.ISO_LOCAL_DATE;
 
     private final TransactionRepository transactionRepository;
@@ -347,13 +345,13 @@ public class RecurringIncomeDetector {
                                 .getAmount()
                                 .abs()
                                 .setScale(2, RoundingMode.HALF_UP));
-                bill.put("dueDate", next.toString());
+                bill.put(DUE_DATE, next.toString());
                 bill.put("category", txs.get(txs.size() - 1).getCategoryPrimary());
                 out.add(bill);
                 next = next.plusDays(cadence);
             }
         }
-        out.sort((a, b) -> ((String) a.get("dueDate")).compareTo((String) b.get("dueDate")));
+        out.sort((a, b) -> ((String) a.get(DUE_DATE)).compareTo((String) b.get(DUE_DATE)));
         return out;
     }
 }

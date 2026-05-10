@@ -15,6 +15,9 @@ import org.springframework.stereotype.Service;
  * <p>Supports: - Levenshtein distance for typos - Partial string matching for abbreviations -
  * Pattern-based matching for variations
  */
+// PMD's DataClass fires on Request/Response/Config DTOs by design —
+// they're intentionally data-only; behaviour belongs in the controller/service.
+@SuppressWarnings({"PMD.DataClass", "PMD.OnlyOneReturn"})
 @Service
 public class FuzzyMatchingService {
 

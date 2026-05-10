@@ -6,6 +6,9 @@ import java.util.regex.Pattern;
 import org.springframework.stereotype.Component;
 
 /** Email validator implementation Uses RFC 5322 compliant email pattern */
+// PMD's OnlyOneReturn fights guard-clause idiom — the codebase intentionally
+// uses early returns for clarity (validation guards, fail-fast patterns).
+@SuppressWarnings("PMD.OnlyOneReturn")
 @Component
 public class EmailValidator implements ConstraintValidator<ValidEmail, String> {
 

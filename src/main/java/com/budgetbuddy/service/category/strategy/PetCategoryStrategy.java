@@ -5,8 +5,15 @@ import java.util.Locale;
 import org.springframework.stereotype.Component;
 
 /** Strategy for detecting pet category */
+// PMD's OnlyOneReturn fights guard-clause idiom — the codebase intentionally
+// uses early returns for clarity (validation guards, fail-fast patterns).
+@SuppressWarnings("PMD.OnlyOneReturn")
 @Component
 public class PetCategoryStrategy extends BaseCategoryStrategy {
+
+    private static final String BARRON = "barron";
+
+    private static final String BARRONS = "barrons";
 
     @Override
     public String detectCategory(
@@ -75,9 +82,9 @@ public class PetCategoryStrategy extends BaseCategoryStrategy {
         final String descLowerForJournals = descriptionLower != null ? descriptionLower : "";
 
         final String[] newsJournals = {
-                "barrons",
+                BARRONS,
                 "barron's",
-                "barron",
+                BARRON,
                 "new york times",
                 "nytimes",
                 "ny times",
@@ -121,9 +128,9 @@ public class PetCategoryStrategy extends BaseCategoryStrategy {
             }
         }
         // Special handling for patterns with asterisks (e.g., "J*Barrons")
-        if ((merchantLower.contains("barrons") || merchantLower.contains("barron"))
-                || (descLowerForJournals.contains("barrons")
-                        || descLowerForJournals.contains("barron"))) {
+        if ((merchantLower.contains(BARRONS) || merchantLower.contains(BARRON))
+                || (descLowerForJournals.contains(BARRONS)
+                        || descLowerForJournals.contains(BARRON))) {
             LOGGER.debug(
                     "🏷️ detectCategoryFromMerchantName: Detected Barrons (with special chars) → 'subscriptions'");
             return "subscriptions";

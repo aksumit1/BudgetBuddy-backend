@@ -26,18 +26,18 @@ import org.springframework.web.multipart.MultipartFile;
 // standard library types (BigDecimal, String, Optional) and DTO
 // getters; this class has many such idiomatic uses. Suppress at
 // class level rather than littering every method.
-@SuppressWarnings({"PMD.LawOfDemeter", "PMD.AvoidCatchingGenericException"})
+@SuppressWarnings({"PMD.LawOfDemeter", "PMD.AvoidCatchingGenericException", "PMD.OnlyOneReturn"})
 @Component
 public class FileSecurityValidator {
+
+    private static final String INVALID_FILE_PATH_ABSOLUTE_PATHS_ARE_NOT = "Invalid file path: absolute paths are not allowed";
+
+    private static final String INVALID_FILE_PATH_PATH_TRAVERSAL = "Invalid file path: path traversal detected";
 
     private static final Logger LOGGER = LoggerFactory.getLogger(FileSecurityValidator.class);
 
     // Maximum file size: 10MB
     private static final long MAX_FILE_SIZE = 10 * 1024 * 1024;
-
-    // Allowed file extensions for imports
-    private static final Set<String> ALLOWED_EXTENSIONS =
-            new HashSet<>(Arrays.asList("csv", "xlsx", "xls", "pdf"));
 
     // Dangerous file extensions that should never be allowed
     private static final Set<String> DANGEROUS_EXTENSIONS =
@@ -135,7 +135,7 @@ public class FileSecurityValidator {
         if (PATH_TRAVERSAL_PATTERN.matcher(key).find()) {
             LOGGER.warn("Path traversal attempt detected in S3 key: {}", key);
             throw new AppException(
-                    ErrorCode.INVALID_INPUT, "Invalid file path: path traversal detected");
+                    ErrorCode.INVALID_INPUT, INVALID_FILE_PATH_PATH_TRAVERSAL);
         }
 
         // Check for null bytes
@@ -210,7 +210,7 @@ public class FileSecurityValidator {
                 LOGGER.warn("Absolute path detected (not in trusted directory): {}", filePath);
                 throw new AppException(
                         ErrorCode.INVALID_INPUT,
-                        "Invalid file path: absolute paths are not allowed");
+                        INVALID_FILE_PATH_ABSOLUTE_PATHS_ARE_NOT);
             }
             // For trusted paths, continue validation for path traversal
         }
@@ -219,7 +219,7 @@ public class FileSecurityValidator {
         if (filePath.matches("^[A-Za-z]:[/\\\\].*")) {
             LOGGER.warn("Windows absolute path detected: {}", filePath);
             throw new AppException(
-                    ErrorCode.INVALID_INPUT, "Invalid file path: absolute paths are not allowed");
+                    ErrorCode.INVALID_INPUT, INVALID_FILE_PATH_ABSOLUTE_PATHS_ARE_NOT);
         }
 
         // Check for null bytes (before normalization)
@@ -241,7 +241,7 @@ public class FileSecurityValidator {
                 LOGGER.warn(
                         "Path traversal attempt detected after normalization: {}", normalizedPath);
                 throw new AppException(
-                        ErrorCode.INVALID_INPUT, "Invalid file path: path traversal detected");
+                        ErrorCode.INVALID_INPUT, INVALID_FILE_PATH_PATH_TRAVERSAL);
             }
 
             // CRITICAL: Double-check for absolute paths after normalization
@@ -281,7 +281,7 @@ public class FileSecurityValidator {
                             normalized);
                     throw new AppException(
                             ErrorCode.INVALID_INPUT,
-                            "Invalid file path: absolute paths are not allowed");
+                            INVALID_FILE_PATH_ABSOLUTE_PATHS_ARE_NOT);
                 }
             }
 
@@ -289,7 +289,7 @@ public class FileSecurityValidator {
             if (normalized.toString().contains("..")) {
                 LOGGER.warn("Path traversal detected after normalization: {}", normalized);
                 throw new AppException(
-                        ErrorCode.INVALID_INPUT, "Invalid file path: path traversal detected");
+                        ErrorCode.INVALID_INPUT, INVALID_FILE_PATH_PATH_TRAVERSAL);
             }
 
             return normalized;

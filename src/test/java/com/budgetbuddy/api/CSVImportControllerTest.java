@@ -13,11 +13,6 @@ import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
-import static org.mockito.Mockito.any;
-import static org.mockito.Mockito.anyLong;
-import static org.mockito.Mockito.anyString;
-import static org.mockito.Mockito.eq;
-import static org.mockito.Mockito.isNull;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -752,16 +747,6 @@ class CSVImportControllerTest {
         parsed.setCategoryDetailed("other");
         parsed.setMerchantName(description);
         return parsed;
-    }
-
-    private TransactionTable createTransaction(final String id) {
-        final TransactionTable tx = new TransactionTable();
-        tx.setTransactionId(id);
-        tx.setUserId("user-123");
-        tx.setAmount(new BigDecimal("-10.00"));
-        tx.setTransactionDate("2025-12-01");
-        tx.setDescription("Test Transaction");
-        return tx;
     }
 
     private TransactionTable createExistingTransaction() {

@@ -29,6 +29,9 @@ import org.springframework.stereotype.Service;
  * bucket. Rounded further and we'd swallow genuine anomalies; rounded finer and we never match. $20
  * is the compromise.
  */
+// PMD's OnlyOneReturn fights guard-clause idiom — the codebase intentionally
+// uses early returns for clarity (validation guards, fail-fast patterns).
+@SuppressWarnings("PMD.OnlyOneReturn")
 @Service
 public class AnomalyFeedbackService {
 

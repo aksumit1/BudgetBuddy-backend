@@ -26,12 +26,14 @@ import org.springframework.stereotype.Service;
 // that can't reasonably be enumerated. Broad catches log + recover (or
 // translate to AppException). Suppress at class level since narrowing
 // here would mean catch (RuntimeException) which PMD flags identically.
-@SuppressWarnings("PMD.AvoidCatchingGenericException")
+@SuppressWarnings({"PMD.AvoidCatchingGenericException", "PMD.DataClass"})
 @SuppressFBWarnings(
         value = "EI_EXPOSE_REP2",
         justification = "Spring constructor injection — beans are shared by design")
 @Service
 public class PasswordResetService {
+
+    private static final String EMAIL_IS_REQUIRED = "Email is required";
 
     private static final Logger LOGGER = LoggerFactory.getLogger(PasswordResetService.class);
     private static final int CODE_LENGTH = 6;
@@ -58,7 +60,7 @@ public class PasswordResetService {
     /** Request password reset - generates and sends 6-digit code via email */
     public void requestPasswordReset(final String email) {
         if (email == null || email.isEmpty()) {
-            throw new AppException(ErrorCode.INVALID_INPUT, "Email is required");
+            throw new AppException(ErrorCode.INVALID_INPUT, EMAIL_IS_REQUIRED);
         }
 
         // Check if user exists
@@ -128,7 +130,7 @@ public class PasswordResetService {
     /** Verify reset code */
     public void verifyResetCode(final String email, final String code) {
         if (email == null || email.isEmpty()) {
-            throw new AppException(ErrorCode.INVALID_INPUT, "Email is required");
+            throw new AppException(ErrorCode.INVALID_INPUT, EMAIL_IS_REQUIRED);
         }
         if (code == null || code.isEmpty() || code.length() != CODE_LENGTH) {
             throw new AppException(ErrorCode.INVALID_INPUT, "Invalid verification code format");
@@ -179,7 +181,7 @@ public class PasswordResetService {
      */
     public void resetPassword(final String email, final String code, final String passwordHash) {
         if (email == null || email.isEmpty()) {
-            throw new AppException(ErrorCode.INVALID_INPUT, "Email is required");
+            throw new AppException(ErrorCode.INVALID_INPUT, EMAIL_IS_REQUIRED);
         }
         if (code == null || code.isEmpty()) {
             throw new AppException(ErrorCode.INVALID_INPUT, "Verification code is required");

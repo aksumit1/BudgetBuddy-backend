@@ -37,7 +37,7 @@ import org.springframework.stereotype.Component;
         justification =
                 "executeWithLock generic functional interface throws Exception; "
                         + "Spring constructor injection — beans are shared by design")
-@SuppressWarnings("PMD.AvoidCatchingGenericException")
+@SuppressWarnings({"PMD.AvoidCatchingGenericException", "PMD.OnlyOneReturn"})
 @Component
 public class DistributedLock {
 

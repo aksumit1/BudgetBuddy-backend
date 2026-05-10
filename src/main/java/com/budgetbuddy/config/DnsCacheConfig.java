@@ -31,6 +31,10 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class DnsCacheConfig {
 
+    private static final String NETWORKADDRESS_CACHE_NEGATIVE_TTL = "networkaddress.cache.negative.ttl";
+
+    private static final String NETWORKADDRESS_CACHE_TTL = "networkaddress.cache.ttl";
+
     private static final Logger LOGGER = LoggerFactory.getLogger(DnsCacheConfig.class);
 
     @Value("${app.dns.cache.ttl-seconds:3600}")
@@ -52,14 +56,14 @@ public class DnsCacheConfig {
             // Long TTL allows continued operation using cached addresses when DNS server is
             // unavailable
             // Default Java is -1 (cache forever), we use configurable TTL (default: 1 hour)
-            Security.setProperty("networkaddress.cache.ttl", String.valueOf(dnsCacheTtlSeconds));
+            Security.setProperty(NETWORKADDRESS_CACHE_TTL, String.valueOf(dnsCacheTtlSeconds));
 
             // Set DNS cache TTL for negative lookups (failed DNS resolutions)
             // Very short TTL ensures errors are not cached, allowing quick retry when DNS/server
             // recovers
             // Default Java is 10 seconds, we use much shorter (default: 1 second)
             Security.setProperty(
-                    "networkaddress.cache.negative.ttl",
+                    NETWORKADDRESS_CACHE_NEGATIVE_TTL,
                     String.valueOf(dnsCacheNegativeTtlSeconds));
 
             LOGGER.info(
@@ -77,18 +81,18 @@ public class DnsCacheConfig {
     public void clearDnsCache() {
         try {
             // Clear positive cache by setting TTL to 0 temporarily
-            final String originalTtl = Security.getProperty("networkaddress.cache.ttl");
-            Security.setProperty("networkaddress.cache.ttl", "0");
+            final String originalTtl = Security.getProperty(NETWORKADDRESS_CACHE_TTL);
+            Security.setProperty(NETWORKADDRESS_CACHE_TTL, "0");
             // Restore original TTL
             Security.setProperty(
-                    "networkaddress.cache.ttl",
+                    NETWORKADDRESS_CACHE_TTL,
                     originalTtl != null ? originalTtl : String.valueOf(dnsCacheTtlSeconds));
 
             // Clear negative cache
-            final String originalNegativeTtl = Security.getProperty("networkaddress.cache.negative.ttl");
-            Security.setProperty("networkaddress.cache.negative.ttl", "0");
+            final String originalNegativeTtl = Security.getProperty(NETWORKADDRESS_CACHE_NEGATIVE_TTL);
+            Security.setProperty(NETWORKADDRESS_CACHE_NEGATIVE_TTL, "0");
             Security.setProperty(
-                    "networkaddress.cache.negative.ttl",
+                    NETWORKADDRESS_CACHE_NEGATIVE_TTL,
                     originalNegativeTtl != null
                             ? originalNegativeTtl
                             : String.valueOf(dnsCacheNegativeTtlSeconds));

@@ -29,6 +29,10 @@ import org.springframework.stereotype.Component;
 @ConditionalOnBean(StringRedisTemplate.class)
 public class RedisConnectionWarmup implements CommandLineRunner {
 
+    private static final String NETWORKADDRESS_CACHE_NEGATIVE_TTL = "networkaddress.cache.negative.ttl";
+
+    private static final String NETWORKADDRESS_CACHE_TTL = "networkaddress.cache.ttl";
+
     private static final Logger LOGGER = LoggerFactory.getLogger(RedisConnectionWarmup.class);
 
     private final StringRedisTemplate redisTemplate;
@@ -103,18 +107,18 @@ public class RedisConnectionWarmup implements CommandLineRunner {
     private void clearDnsCache() {
         try {
             // Clear DNS cache by setting TTL to 0 temporarily
-            final String originalTtl = java.security.Security.getProperty("networkaddress.cache.ttl");
+            final String originalTtl = java.security.Security.getProperty(NETWORKADDRESS_CACHE_TTL);
             final String originalNegativeTtl =
-                    java.security.Security.getProperty("networkaddress.cache.negative.ttl");
+                    java.security.Security.getProperty(NETWORKADDRESS_CACHE_NEGATIVE_TTL);
 
-            java.security.Security.setProperty("networkaddress.cache.ttl", "0");
-            java.security.Security.setProperty("networkaddress.cache.negative.ttl", "0");
+            java.security.Security.setProperty(NETWORKADDRESS_CACHE_TTL, "0");
+            java.security.Security.setProperty(NETWORKADDRESS_CACHE_NEGATIVE_TTL, "0");
 
             // Restore original TTL values
             java.security.Security.setProperty(
-                    "networkaddress.cache.ttl", originalTtl != null ? originalTtl : "3600");
+                    NETWORKADDRESS_CACHE_TTL, originalTtl != null ? originalTtl : "3600");
             java.security.Security.setProperty(
-                    "networkaddress.cache.negative.ttl",
+                    NETWORKADDRESS_CACHE_NEGATIVE_TTL,
                     originalNegativeTtl != null ? originalNegativeTtl : "1");
         } catch (Exception e) {
             LOGGER.debug("Failed to clear DNS cache: {}", e.getMessage());

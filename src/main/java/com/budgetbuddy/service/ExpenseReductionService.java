@@ -38,14 +38,15 @@ import org.springframework.stereotype.Service;
 @SuppressFBWarnings(
         value = "EI_EXPOSE_REP2",
         justification = "Spring constructor injection — beans are shared by design")
-@SuppressWarnings("PMD.AvoidCatchingGenericException")
+@SuppressWarnings({"PMD.AvoidCatchingGenericException", "PMD.DataClass", "PMD.OnlyOneReturn"})
 @Service
 public class ExpenseReductionService {
+
+    private static final String SUBSCRIPTION = "Subscription";
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ExpenseReductionService.class);
 
     private static final int ANALYSIS_WINDOW_DAYS = 90;
-    private static final double DUPLICATE_SERVICE_THRESHOLD = 0.8; // 80% similarity
     private static final BigDecimal MIN_RECOMMENDATION_AMOUNT =
             BigDecimal.valueOf(10); // Minimum $10/month savings
 
@@ -116,7 +117,7 @@ public class ExpenseReductionService {
 
                 if (isUnused) {
                     final String merchantName =
-                            sub.getMerchantName() != null ? sub.getMerchantName() : "Subscription";
+                            sub.getMerchantName() != null ? sub.getMerchantName() : SUBSCRIPTION;
                     recommendations.add(
                             new ExpenseRecommendation(
                                     RecommendationType.CANCEL,
@@ -142,7 +143,7 @@ public class ExpenseReductionService {
                         final String merchantName =
                                 sub.getMerchantName() != null
                                         ? sub.getMerchantName()
-                                        : "Subscription";
+                                        : SUBSCRIPTION;
                         recommendations.add(
                                 new ExpenseRecommendation(
                                         RecommendationType.DOWNGRADE,
@@ -218,7 +219,7 @@ public class ExpenseReductionService {
             final String displayName =
                     subscription.getMerchantName() != null
                             ? subscription.getMerchantName()
-                            : "Subscription";
+                            : SUBSCRIPTION;
             return String.format(
                     "Consider downgrading %s to a basic tier to save money", displayName);
         }

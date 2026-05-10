@@ -35,6 +35,9 @@ import org.springframework.web.bind.annotation.RestController;
 // SpotBugs flags constructor-injected Spring beans as EI_EXPOSE_REP2,
 // but Spring's IoC container intentionally shares the same bean across
 // callers — defensive-copying it would break dependency injection.
+// PMD's DataClass fires on Request/Response/Config DTOs by design —
+// they're intentionally data-only; behaviour belongs in the controller/service.
+@SuppressWarnings({"PMD.DataClass", "PMD.OnlyOneReturn"})
 @SuppressFBWarnings(
         value = {"EI_EXPOSE_REP", "EI_EXPOSE_REP2"},
         justification = "JSON DTO / DynamoDB entity getters expose lists by reference; "
@@ -42,6 +45,14 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/api/categories")
 public class CategoryController {
+
+    private static final String USER_NOT_AUTHENTICATED = "User not authenticated";
+
+    private static final String USER_NOT_FOUND_1 = "User not found";
+
+    private static final String MESSAGE = "message";
+
+    private static final String SUCCESS = "success";
 
     private static final Logger LOGGER = LoggerFactory.getLogger(CategoryController.class);
 
@@ -69,7 +80,7 @@ public class CategoryController {
 
         // Edge case: Validate authentication
         if (userDetails == null || userDetails.getUsername() == null) {
-            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "User not authenticated");
+            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, USER_NOT_AUTHENTICATED);
         }
 
         // Edge case: Validate request
@@ -87,7 +98,7 @@ public class CategoryController {
                 userService
                         .findByEmail(userDetails.getUsername())
                         .orElseThrow(
-                                () -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
+                                () -> new AppException(ErrorCode.USER_NOT_FOUND, USER_NOT_FOUND_1));
 
         // Get original transaction to capture original category
         final TransactionTable transaction =
@@ -116,9 +127,9 @@ public class CategoryController {
                     request.getTransactionId());
             return ResponseEntity.ok(
                     Map.of(
-                            "success",
+                            SUCCESS,
                             true,
-                            "message",
+                            MESSAGE,
                             "Category unchanged, no correction recorded"));
         }
 
@@ -160,7 +171,7 @@ public class CategoryController {
                 request.getCategoryPrimary());
 
         return ResponseEntity.ok(
-                Map.of("success", true, "message", "Correction recorded successfully"));
+                Map.of(SUCCESS, true, MESSAGE, "Correction recorded successfully"));
     }
 
     /** Create or update a custom merchant mapping POST /api/categories/custom-mappings */
@@ -171,7 +182,7 @@ public class CategoryController {
 
         // Edge case: Validate authentication
         if (userDetails == null || userDetails.getUsername() == null) {
-            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "User not authenticated");
+            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, USER_NOT_AUTHENTICATED);
         }
 
         // Edge case: Validate request
@@ -189,7 +200,7 @@ public class CategoryController {
                 userService
                         .findByEmail(userDetails.getUsername())
                         .orElseThrow(
-                                () -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
+                                () -> new AppException(ErrorCode.USER_NOT_FOUND, USER_NOT_FOUND_1));
 
         final CustomMerchantMappingTable mapping =
                 learningService.createOrUpdateCustomMapping(
@@ -215,14 +226,14 @@ public class CategoryController {
             @AuthenticationPrincipal final UserDetails userDetails) {
 
         if (userDetails == null || userDetails.getUsername() == null) {
-            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "User not authenticated");
+            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, USER_NOT_AUTHENTICATED);
         }
 
         final UserTable user =
                 userService
                         .findByEmail(userDetails.getUsername())
                         .orElseThrow(
-                                () -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
+                                () -> new AppException(ErrorCode.USER_NOT_FOUND, USER_NOT_FOUND_1));
 
         final List<CustomMerchantMappingTable> mappings =
                 learningService.getUserCustomMappings(user.getUserId());
@@ -237,7 +248,7 @@ public class CategoryController {
 
         // Edge case: Validate authentication
         if (userDetails == null || userDetails.getUsername() == null) {
-            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "User not authenticated");
+            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, USER_NOT_AUTHENTICATED);
         }
 
         // Edge case: Validate path parameter
@@ -249,7 +260,7 @@ public class CategoryController {
                 userService
                         .findByEmail(userDetails.getUsername())
                         .orElseThrow(
-                                () -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
+                                () -> new AppException(ErrorCode.USER_NOT_FOUND, USER_NOT_FOUND_1));
 
         try {
             learningService.deleteCustomMapping(user.getUserId(), mappingId);
@@ -262,7 +273,7 @@ public class CategoryController {
         LOGGER.info("Deleted custom mapping {} for user {}", mappingId, user.getUserId());
 
         return ResponseEntity.ok(
-                Map.of("success", true, "message", "Custom mapping deleted successfully"));
+                Map.of(SUCCESS, true, MESSAGE, "Custom mapping deleted successfully"));
     }
 
     // ========== Request DTOs ==========

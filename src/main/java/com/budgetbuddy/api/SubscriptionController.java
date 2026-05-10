@@ -55,6 +55,18 @@ import org.springframework.web.bind.annotation.RestController;
 @Tag(name = "Subscriptions", description = "Subscription detection and management endpoints")
 public class SubscriptionController {
 
+    private static final String USER_NOT_AUTHENTICATED = "User not authenticated";
+
+    private static final String USER_NOT_FOUND_1 = "User not found";
+
+    private static final String CANCELLATION_RECOMMENDATIONS = "cancellationRecommendations";
+
+    private static final String POTENTIAL_SAVINGS = "potentialSavings";
+
+    private static final String REASON = "reason";
+
+    private static final String SUBSCRIPTION = "subscription";
+
     private static final Logger LOGGER = LoggerFactory.getLogger(SubscriptionController.class);
 
     // Race condition protection: Prevent concurrent subscription detection for same user
@@ -96,14 +108,14 @@ public class SubscriptionController {
     public ResponseEntity<List<Subscription>> detectSubscriptions(
             @AuthenticationPrincipal final UserDetails userDetails) {
         if (userDetails == null || userDetails.getUsername() == null) {
-            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "User not authenticated");
+            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, USER_NOT_AUTHENTICATED);
         }
 
         final UserTable user =
                 userService
                         .findByEmail(userDetails.getUsername())
                         .orElseThrow(
-                                () -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
+                                () -> new AppException(ErrorCode.USER_NOT_FOUND, USER_NOT_FOUND_1));
 
         // RACE CONDITION PROTECTION: Acquire per-user lock
         final ReentrantLock userLock =
@@ -164,14 +176,14 @@ public class SubscriptionController {
     public ResponseEntity<List<Subscription>> getSubscriptions(
             @AuthenticationPrincipal final UserDetails userDetails) {
         if (userDetails == null || userDetails.getUsername() == null) {
-            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "User not authenticated");
+            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, USER_NOT_AUTHENTICATED);
         }
 
         final UserTable user =
                 userService
                         .findByEmail(userDetails.getUsername())
                         .orElseThrow(
-                                () -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
+                                () -> new AppException(ErrorCode.USER_NOT_FOUND, USER_NOT_FOUND_1));
 
         try {
             final List<Subscription> subscriptions =
@@ -208,14 +220,14 @@ public class SubscriptionController {
     public ResponseEntity<List<Subscription>> getActiveSubscriptions(
             @AuthenticationPrincipal final UserDetails userDetails) {
         if (userDetails == null || userDetails.getUsername() == null) {
-            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "User not authenticated");
+            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, USER_NOT_AUTHENTICATED);
         }
 
         final UserTable user =
                 userService
                         .findByEmail(userDetails.getUsername())
                         .orElseThrow(
-                                () -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
+                                () -> new AppException(ErrorCode.USER_NOT_FOUND, USER_NOT_FOUND_1));
 
         try {
             final List<Subscription> subscriptions =
@@ -272,14 +284,14 @@ public class SubscriptionController {
         }
 
         if (userDetails == null || userDetails.getUsername() == null) {
-            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "User not authenticated");
+            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, USER_NOT_AUTHENTICATED);
         }
 
         final UserTable user =
                 userService
                         .findByEmail(userDetails.getUsername())
                         .orElseThrow(
-                                () -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
+                                () -> new AppException(ErrorCode.USER_NOT_FOUND, USER_NOT_FOUND_1));
 
         // Verify subscription belongs to user
         final List<Subscription> userSubscriptions =
@@ -331,14 +343,14 @@ public class SubscriptionController {
     public ResponseEntity<List<Map<String, Object>>> getUnusedSubscriptions(
             @AuthenticationPrincipal final UserDetails userDetails) {
         if (userDetails == null || userDetails.getUsername() == null) {
-            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "User not authenticated");
+            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, USER_NOT_AUTHENTICATED);
         }
 
         final UserTable user =
                 userService
                         .findByEmail(userDetails.getUsername())
                         .orElseThrow(
-                                () -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
+                                () -> new AppException(ErrorCode.USER_NOT_FOUND, USER_NOT_FOUND_1));
 
         try {
             final List<SubscriptionInsightsService.UnusedSubscriptionInsight> insights =
@@ -378,14 +390,14 @@ public class SubscriptionController {
     public ResponseEntity<List<Map<String, Object>>> getPriceChanges(
             @AuthenticationPrincipal final UserDetails userDetails) {
         if (userDetails == null || userDetails.getUsername() == null) {
-            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "User not authenticated");
+            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, USER_NOT_AUTHENTICATED);
         }
 
         final UserTable user =
                 userService
                         .findByEmail(userDetails.getUsername())
                         .orElseThrow(
-                                () -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
+                                () -> new AppException(ErrorCode.USER_NOT_FOUND, USER_NOT_FOUND_1));
 
         try {
             final List<SubscriptionInsightsService.PriceChangeAlert> alerts =
@@ -420,13 +432,13 @@ public class SubscriptionController {
     public ResponseEntity<Map<String, Object>> getAllSubscriptionInsights(
             @AuthenticationPrincipal final UserDetails userDetails) {
         if (userDetails == null) {
-            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "User not authenticated");
+            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, USER_NOT_AUTHENTICATED);
         }
         final UserTable user =
                 userService
                         .findByEmail(userDetails.getUsername())
                         .orElseThrow(
-                                () -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
+                                () -> new AppException(ErrorCode.USER_NOT_FOUND, USER_NOT_FOUND_1));
 
         final Map<String, Object> out = new HashMap<>();
         try {
@@ -449,12 +461,12 @@ public class SubscriptionController {
         }
         try {
             out.put(
-                    "cancellationRecommendations",
+                    CANCELLATION_RECOMMENDATIONS,
                     insightsService.getCancellationRecommendations(user.getUserId()).stream()
                             .map(this::toCancellationRecommendationMap)
                             .collect(Collectors.toList()));
         } catch (Exception e) {
-            out.put("cancellationRecommendations", List.of());
+            out.put(CANCELLATION_RECOMMENDATIONS, List.of());
         }
         return ResponseEntity.ok(out);
     }
@@ -475,14 +487,14 @@ public class SubscriptionController {
     public ResponseEntity<List<Map<String, Object>>> getCancellationRecommendations(
             @AuthenticationPrincipal final UserDetails userDetails) {
         if (userDetails == null || userDetails.getUsername() == null) {
-            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "User not authenticated");
+            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, USER_NOT_AUTHENTICATED);
         }
 
         final UserTable user =
                 userService
                         .findByEmail(userDetails.getUsername())
                         .orElseThrow(
-                                () -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
+                                () -> new AppException(ErrorCode.USER_NOT_FOUND, USER_NOT_FOUND_1));
 
         try {
             final List<SubscriptionInsightsService.CancellationRecommendation> recommendations =
@@ -533,14 +545,14 @@ public class SubscriptionController {
         }
 
         if (userDetails == null || userDetails.getUsername() == null) {
-            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "User not authenticated");
+            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, USER_NOT_AUTHENTICATED);
         }
 
         final UserTable user =
                 userService
                         .findByEmail(userDetails.getUsername())
                         .orElseThrow(
-                                () -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
+                                () -> new AppException(ErrorCode.USER_NOT_FOUND, USER_NOT_FOUND_1));
 
         // Verify subscription belongs to user
         final List<Subscription> userSubscriptions =
@@ -597,14 +609,14 @@ public class SubscriptionController {
     public ResponseEntity<List<Map<String, Object>>> getTrialExpirations(
             @AuthenticationPrincipal final UserDetails userDetails) {
         if (userDetails == null || userDetails.getUsername() == null) {
-            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "User not authenticated");
+            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, USER_NOT_AUTHENTICATED);
         }
 
         final UserTable user =
                 userService
                         .findByEmail(userDetails.getUsername())
                         .orElseThrow(
-                                () -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
+                                () -> new AppException(ErrorCode.USER_NOT_FOUND, USER_NOT_FOUND_1));
 
         try {
             final List<SubscriptionAdvancedService.TrialExpirationAlert> alerts =
@@ -615,7 +627,7 @@ public class SubscriptionController {
                             .map(
                                     alert ->
                                             Map.of(
-                                                    "subscription",
+                                                    SUBSCRIPTION,
                                                     toSubscriptionMap(
                                                             alert.getSubscription()),
                                                     "expirationDate",
@@ -657,14 +669,14 @@ public class SubscriptionController {
     public ResponseEntity<List<Map<String, Object>>> getBundlingRecommendations(
             @AuthenticationPrincipal final UserDetails userDetails) {
         if (userDetails == null || userDetails.getUsername() == null) {
-            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "User not authenticated");
+            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, USER_NOT_AUTHENTICATED);
         }
 
         final UserTable user =
                 userService
                         .findByEmail(userDetails.getUsername())
                         .orElseThrow(
-                                () -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
+                                () -> new AppException(ErrorCode.USER_NOT_FOUND, USER_NOT_FOUND_1));
 
         try {
             final List<SubscriptionAdvancedService.BundlingRecommendation> recommendations =
@@ -680,7 +692,7 @@ public class SubscriptionController {
                                                     rec.getSubscriptions().stream()
                                                             .map(this::toSubscriptionMap)
                                                             .collect(Collectors.toList()),
-                                                    "potentialSavings", rec.getPotentialSavings(),
+                                                    POTENTIAL_SAVINGS, rec.getPotentialSavings(),
                                                     "estimatedBundlePrice",
                                                     rec.getEstimatedBundlePrice(),
                                                     "description", rec.getDescription()))
@@ -717,14 +729,14 @@ public class SubscriptionController {
     public ResponseEntity<List<Map<String, Object>>> getAlternativeRecommendations(
             @AuthenticationPrincipal final UserDetails userDetails) {
         if (userDetails == null || userDetails.getUsername() == null) {
-            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "User not authenticated");
+            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, USER_NOT_AUTHENTICATED);
         }
 
         final UserTable user =
                 userService
                         .findByEmail(userDetails.getUsername())
                         .orElseThrow(
-                                () -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
+                                () -> new AppException(ErrorCode.USER_NOT_FOUND, USER_NOT_FOUND_1));
 
         try {
             final List<SubscriptionAdvancedService.AlternativeRecommendation> recommendations =
@@ -740,8 +752,8 @@ public class SubscriptionController {
                                                             rec.getCurrentSubscription()),
                                                     "alternativeName", rec.getAlternativeName(),
                                                     "alternativePrice", rec.getAlternativePrice(),
-                                                    "potentialSavings", rec.getPotentialSavings(),
-                                                    "reason", rec.getReason()))
+                                                    POTENTIAL_SAVINGS, rec.getPotentialSavings(),
+                                                    REASON, rec.getReason()))
                             .collect(Collectors.toList());
 
             return ResponseEntity.ok(response);
@@ -776,14 +788,14 @@ public class SubscriptionController {
     public ResponseEntity<List<Map<String, Object>>> getPredictiveCancellations(
             @AuthenticationPrincipal final UserDetails userDetails) {
         if (userDetails == null || userDetails.getUsername() == null) {
-            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "User not authenticated");
+            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, USER_NOT_AUTHENTICATED);
         }
 
         final UserTable user =
                 userService
                         .findByEmail(userDetails.getUsername())
                         .orElseThrow(
-                                () -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
+                                () -> new AppException(ErrorCode.USER_NOT_FOUND, USER_NOT_FOUND_1));
 
         try {
             final List<SubscriptionAdvancedService.PredictiveCancellation> predictions =
@@ -794,12 +806,12 @@ public class SubscriptionController {
                             .map(
                                     pred ->
                                             Map.of(
-                                                    "subscription",
+                                                    SUBSCRIPTION,
                                                     toSubscriptionMap(
                                                             pred.getSubscription()),
                                                     "cancellationProbability",
                                                     pred.getCancellationProbability(),
-                                                    "reason", pred.getReason(),
+                                                    REASON, pred.getReason(),
                                                     "healthScore", pred.getHealthScore()))
                             .collect(Collectors.toList());
 
@@ -835,14 +847,14 @@ public class SubscriptionController {
     public ResponseEntity<Map<String, Object>> getOptimization(
             @AuthenticationPrincipal final UserDetails userDetails) {
         if (userDetails == null || userDetails.getUsername() == null) {
-            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "User not authenticated");
+            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, USER_NOT_AUTHENTICATED);
         }
 
         final UserTable user =
                 userService
                         .findByEmail(userDetails.getUsername())
                         .orElseThrow(
-                                () -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
+                                () -> new AppException(ErrorCode.USER_NOT_FOUND, USER_NOT_FOUND_1));
 
         try {
             final SubscriptionAdvancedService.SubscriptionOptimization optimization =
@@ -856,7 +868,7 @@ public class SubscriptionController {
                             "cancellationSavings", optimization.getCancellationSavings(),
                             "bundlingSavings", optimization.getBundlingSavings(),
                             "alternativeSavings", optimization.getAlternativeSavings(),
-                            "cancellationRecommendations",
+                            CANCELLATION_RECOMMENDATIONS,
                             optimization.getCancellationRecommendations().stream()
                                     .map(this::toCancellationRecommendationMap)
                                     .collect(Collectors.toList()),
@@ -867,7 +879,7 @@ public class SubscriptionController {
                                                     Map.of(
                                                             "bundleType",
                                                             rec.getBundleType(),
-                                                            "potentialSavings",
+                                                            POTENTIAL_SAVINGS,
                                                             rec
                                                                     .getPotentialSavings(),
                                                             "description",
@@ -884,7 +896,7 @@ public class SubscriptionController {
                                                             "alternativeName",
                                                             rec
                                                                     .getAlternativeName(),
-                                                            "potentialSavings",
+                                                            POTENTIAL_SAVINGS,
                                                             rec
                                                                     .getPotentialSavings()))
                                     .collect(Collectors.toList()),
@@ -893,7 +905,7 @@ public class SubscriptionController {
                                     .map(
                                             alert ->
                                                     Map.of(
-                                                            "subscription",
+                                                            SUBSCRIPTION,
                                                             alert.getSubscription()
                                                                     .getMerchantName(),
                                                             "daysUntilExpiration",
@@ -921,16 +933,16 @@ public class SubscriptionController {
     private Map<String, Object> toUnusedInsightMap(
             final SubscriptionInsightsService.UnusedSubscriptionInsight insight) {
         return Map.of(
-                "subscription", toSubscriptionMap(insight.getSubscription()),
-                "reason", insight.getReason(),
-                "potentialSavings", insight.getPotentialSavings(),
+                SUBSCRIPTION, toSubscriptionMap(insight.getSubscription()),
+                REASON, insight.getReason(),
+                POTENTIAL_SAVINGS, insight.getPotentialSavings(),
                 "severity", insight.getSeverity().name());
     }
 
     private Map<String, Object> toPriceChangeMap(
             final SubscriptionInsightsService.PriceChangeAlert alert) {
         return Map.of(
-                "subscription", toSubscriptionMap(alert.getSubscription()),
+                SUBSCRIPTION, toSubscriptionMap(alert.getSubscription()),
                 "newAmount", alert.getNewAmount(),
                 "oldAmount", alert.getOldAmount(),
                 "percentChange", alert.getPercentChange(),
@@ -940,9 +952,9 @@ public class SubscriptionController {
     private Map<String, Object> toCancellationRecommendationMap(
             final SubscriptionInsightsService.CancellationRecommendation recommendation) {
         return Map.of(
-                "subscription", toSubscriptionMap(recommendation.getSubscription()),
-                "reason", recommendation.getReason(),
-                "potentialSavings", recommendation.getPotentialSavings(),
+                SUBSCRIPTION, toSubscriptionMap(recommendation.getSubscription()),
+                REASON, recommendation.getReason(),
+                POTENTIAL_SAVINGS, recommendation.getPotentialSavings(),
                 "priority", recommendation.getPriority().name());
     }
 

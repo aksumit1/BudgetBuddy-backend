@@ -33,9 +33,11 @@ import software.amazon.awssdk.services.sns.model.PublishResponse;
         value = {"EI_EXPOSE_REP", "EI_EXPOSE_REP2"},
         justification = "JSON DTO / DynamoDB entity getters expose lists by reference; "
                         + "the design is value-semantic and Jackson creates fresh instances; Spring constructor injection — beans are shared by design")
-@SuppressWarnings({"PMD.LawOfDemeter", "PMD.AvoidCatchingGenericException"})
+@SuppressWarnings({"PMD.LawOfDemeter", "PMD.AvoidCatchingGenericException", "PMD.DataClass", "PMD.OnlyOneReturn"})
 @Service
 public class NotificationService {
+
+    private static final String UNKNOWN = "UNKNOWN";
 
     private static final Logger LOGGER = LoggerFactory.getLogger(NotificationService.class);
 
@@ -168,7 +170,7 @@ public class NotificationService {
                                                     .stringValue(
                                                             request.getType() != null
                                                                     ? request.getType().name()
-                                                                    : "UNKNOWN")
+                                                                    : UNKNOWN)
                                                     .build()))
                             .build();
 
@@ -223,7 +225,7 @@ public class NotificationService {
         try {
             final Map<String, Object> message = new HashMap<>();
             message.put("userId", request.getUserId() != null ? request.getUserId() : "unknown");
-            message.put("type", request.getType() != null ? request.getType().name() : "UNKNOWN");
+            message.put("type", request.getType() != null ? request.getType().name() : UNKNOWN);
             message.put("title", request.getTitle() != null ? request.getTitle() : "");
             message.put("body", request.getBody() != null ? request.getBody() : "");
             message.put(
@@ -246,7 +248,7 @@ public class NotificationService {
                                                     .stringValue(
                                                             request.getType() != null
                                                                     ? request.getType().name()
-                                                                    : "UNKNOWN")
+                                                                    : UNKNOWN)
                                                     .build()))
                             .build();
 

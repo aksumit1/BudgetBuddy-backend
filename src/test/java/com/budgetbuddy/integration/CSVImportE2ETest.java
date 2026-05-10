@@ -111,9 +111,6 @@ class CSVImportE2ETest {
                 "INTEREST PAYMENT",
                 "FEE CHARGE"
         };
-
-        final int currentMonth = 12;
-        final int currentDay = 8;
         double balance = 9340.30;
 
         for (int i = 14; i < numEntries; i++) {
@@ -174,26 +171,6 @@ class CSVImportE2ETest {
 
         return csv.toString();
     }
-
-    // Actual CSV content from user's bank statement (14 entries)
-    private static final String CSV_CONTENT_SMALL =
-            """
-            Details,Posting Date,Description,Amount,Type,Balance,Check or Slip #
-            DEBIT,12/19/2025,"Online Transfer to CHK ...9994 transaction#: 27398998006 12/19",-250.00,ACCT_XFER,4714.71,
-            DEBIT,12/19/2025,"Online Transfer to CHK ...9994 transaction#: 27390930759 12/19",-600.00,ACCT_XFER,4964.71,
-            DEBIT,12/18/2025,"WITHDRAWAL 12/18",-2000.00,MISC_DEBIT,5564.71,
-            CHECK,12/18/2025,"CHECK 176  ",-450.00,CHECK_PAID,7564.71,176,
-            DEBIT,12/18/2025,"PUGET SOUND ENER BILLPAY                    PPD ID: 0000000160",-286.18,ACH_DEBIT,8014.71,
-            DEBIT,12/17/2025,"CITI AUTOPAY     PAYMENT    291883502120566 WEB ID: CITICARDAP",-2681.98,ACH_DEBIT,8300.89,
-            DEBIT,12/15/2025,"CHASE CREDIT CRD AUTOPAY                    PPD ID: 4760039224",-1746.59,ACH_DEBIT,10982.87,
-            DEBIT,12/15/2025,"WF Credit Card   AUTO PAY                   PPD ID: 50260000",-405.59,ACH_DEBIT,12729.46,
-            DEBIT,12/12/2025,"Online Transfer to CHK ...9994 transaction#: 27295296155 12/12",-500.00,ACCT_XFER,13135.05,
-            DEBIT,12/10/2025,"CHASE CREDIT CRD AUTOPAY                    PPD ID: 4760039224",-377.32,ACH_DEBIT,13635.05,
-            CREDIT,12/10/2025,"Online Transfer 27265796721 from Morganstanley #########7477 transaction #: 27265796721 12/10",10000.00,ACCT_XFER,14012.37,
-            CHECK,12/09/2025,"CHECK 175  ",-5203.00,CHECK_PAID,4012.37,175,
-            DEBIT,12/09/2025,"AMZ_STORECRD_PMT PAYMENT    604578162822612 WEB ID: 9130142001",-124.93,ACH_DEBIT,9215.37,
-            CHECK,12/08/2025,"CHECK 173  ",-2000.00,CHECK_PAID,9340.30,173,
-            """;
 
     // Large CSV content with 500 entries for scale testing
     private static final String CSV_CONTENT = generateCSVContent(500);

@@ -40,7 +40,6 @@ public class LoadTest {
         final List<CompletableFuture<Void>> futures = new ArrayList<>();
 
         for (int i = 0; i < transactionCount; i++) {
-            final int index = i;
             final CompletableFuture<Void> future =
                     CompletableFuture.runAsync(
                             () -> {

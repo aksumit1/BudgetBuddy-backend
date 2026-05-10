@@ -40,9 +40,13 @@ import software.amazon.awssdk.services.dynamodb.model.UpdateTimeToLiveRequest;
 @SuppressFBWarnings(
         value = "EI_EXPOSE_REP2",
         justification = "Spring constructor injection — beans are shared by design")
-@SuppressWarnings("PMD.AvoidCatchingGenericException")
+@SuppressWarnings({"PMD.AvoidCatchingGenericException", "PMD.OnlyOneReturn"})
 @Service
 public class DeviceAttestationService {
+
+    private static final String DEVICE_ID = "deviceId";
+
+    private static final String USER_ID = "userId";
 
     private static final Logger LOGGER = LoggerFactory.getLogger(DeviceAttestationService.class);
 
@@ -105,11 +109,11 @@ public class DeviceAttestationService {
                                     .tableName(tableName)
                                     .key(
                                             Map.of(
-                                                    "deviceId",
+                                                    DEVICE_ID,
                                                     AttributeValue.builder()
                                                             .s(deviceId)
                                                             .build(),
-                                                    "userId",
+                                                    USER_ID,
                                                     AttributeValue.builder()
                                                             .s(userId)
                                                             .build()))
@@ -233,8 +237,8 @@ public class DeviceAttestationService {
 
         try {
             final Map<String, AttributeValue> item = new java.util.HashMap<>();
-            item.put("deviceId", AttributeValue.builder().s(deviceId).build());
-            item.put("userId", AttributeValue.builder().s(userId).build());
+            item.put(DEVICE_ID, AttributeValue.builder().s(deviceId).build());
+            item.put(USER_ID, AttributeValue.builder().s(userId).build());
             item.put("trusted", AttributeValue.builder().bool(shouldTrust).build());
             item.put(
                     "registeredAt",
@@ -307,9 +311,9 @@ public class DeviceAttestationService {
                             .tableName(tableName)
                             .key(
                                     Map.of(
-                                            "deviceId",
+                                            DEVICE_ID,
                                                     AttributeValue.builder().s(deviceId).build(),
-                                            "userId", AttributeValue.builder().s(userId).build()))
+                                            USER_ID, AttributeValue.builder().s(userId).build()))
                             .updateExpression("SET lastVerified = :timestamp")
                             .expressionAttributeValues(
                                     Map.of(
@@ -352,20 +356,20 @@ public class DeviceAttestationService {
                             .billingMode(BillingMode.PAY_PER_REQUEST)
                             .attributeDefinitions(
                                     AttributeDefinition.builder()
-                                            .attributeName("deviceId")
+                                            .attributeName(DEVICE_ID)
                                             .attributeType(ScalarAttributeType.S)
                                             .build(),
                                     AttributeDefinition.builder()
-                                            .attributeName("userId")
+                                            .attributeName(USER_ID)
                                             .attributeType(ScalarAttributeType.S)
                                             .build())
                             .keySchema(
                                     KeySchemaElement.builder()
-                                            .attributeName("deviceId")
+                                            .attributeName(DEVICE_ID)
                                             .keyType(KeyType.HASH)
                                             .build(),
                                     KeySchemaElement.builder()
-                                            .attributeName("userId")
+                                            .attributeName(USER_ID)
                                             .keyType(KeyType.RANGE)
                                             .build())
                             .build());

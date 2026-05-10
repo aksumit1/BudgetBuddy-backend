@@ -13,9 +13,15 @@ import org.springframework.stereotype.Service;
  */
 // NotificationService.NotificationType.* enum field access is flagged by
 // PMD's LawOfDemeter — false positive on standard enum dispatch.
-@SuppressWarnings({"PMD.LawOfDemeter", "PMD.AvoidCatchingGenericException"})
+@SuppressWarnings({"PMD.LawOfDemeter", "PMD.AvoidCatchingGenericException", "PMD.OnlyOneReturn"})
 @Service
 public class DataChangeNotificationService {
+
+    private static final String ENTITY_TYPE = "entityType";
+
+    private static final String TRANSACTION = "transaction";
+
+    private static final String TRANSACTION_ID = "transactionId";
 
     private static final Logger LOGGER =
             LoggerFactory.getLogger(DataChangeNotificationService.class);
@@ -98,24 +104,24 @@ public class DataChangeNotificationService {
     /** Notify transaction created */
     public void notifyTransactionCreated(final String userId, final String transactionId) {
         final Map<String, Object> data = new HashMap<>();
-        data.put("transactionId", transactionId);
-        data.put("entityType", "transaction");
+        data.put(TRANSACTION_ID, transactionId);
+        data.put(ENTITY_TYPE, TRANSACTION);
         notifyDataChanged(userId, NotificationService.NotificationType.TRANSACTION_CREATED, data);
     }
 
     /** Notify transaction updated */
     public void notifyTransactionUpdated(final String userId, final String transactionId) {
         final Map<String, Object> data = new HashMap<>();
-        data.put("transactionId", transactionId);
-        data.put("entityType", "transaction");
+        data.put(TRANSACTION_ID, transactionId);
+        data.put(ENTITY_TYPE, TRANSACTION);
         notifyDataChanged(userId, NotificationService.NotificationType.TRANSACTION_UPDATED, data);
     }
 
     /** Notify transaction deleted */
     public void notifyTransactionDeleted(final String userId, final String transactionId) {
         final Map<String, Object> data = new HashMap<>();
-        data.put("transactionId", transactionId);
-        data.put("entityType", "transaction");
+        data.put(TRANSACTION_ID, transactionId);
+        data.put(ENTITY_TYPE, TRANSACTION);
         notifyDataChanged(userId, NotificationService.NotificationType.TRANSACTION_UPDATED, data);
     }
 
@@ -123,7 +129,7 @@ public class DataChangeNotificationService {
     public void notifyAccountChanged(final String userId, final String accountId) {
         final Map<String, Object> data = new HashMap<>();
         data.put("accountId", accountId);
-        data.put("entityType", "account");
+        data.put(ENTITY_TYPE, "account");
         notifyDataChanged(userId, NotificationService.NotificationType.ACCOUNT_LINKED, data);
     }
 
@@ -131,7 +137,7 @@ public class DataChangeNotificationService {
     public void notifyBudgetChanged(final String userId, final String budgetId) {
         final Map<String, Object> data = new HashMap<>();
         data.put("budgetId", budgetId);
-        data.put("entityType", "budget");
+        data.put(ENTITY_TYPE, "budget");
         notifyDataChanged(userId, NotificationService.NotificationType.BUDGET_WARNING, data);
     }
 
@@ -139,7 +145,7 @@ public class DataChangeNotificationService {
     public void notifyGoalChanged(final String userId, final String goalId) {
         final Map<String, Object> data = new HashMap<>();
         data.put("goalId", goalId);
-        data.put("entityType", "goal");
+        data.put(ENTITY_TYPE, "goal");
         notifyDataChanged(userId, NotificationService.NotificationType.GOAL_PROGRESS, data);
     }
 
@@ -147,7 +153,7 @@ public class DataChangeNotificationService {
     public void notifyBatchTransactionsImported(final String userId, final int count) {
         final Map<String, Object> data = new HashMap<>();
         data.put("count", count);
-        data.put("entityType", "transaction");
+        data.put(ENTITY_TYPE, TRANSACTION);
         data.put("batch", true);
         notifyDataChanged(userId, NotificationService.NotificationType.TRANSACTION_CREATED, data);
     }
@@ -167,7 +173,7 @@ public class DataChangeNotificationService {
         data.put("goalName", goalName);
         data.put("milestone", milestone);
         data.put("completed", completed);
-        data.put("entityType", "goal-milestone");
+        data.put(ENTITY_TYPE, "goal-milestone");
         notifyDataChanged(
                 userId,
                 completed
@@ -196,7 +202,7 @@ public class DataChangeNotificationService {
         data.put("category", category);
         data.put("threshold", crossedThreshold);
         data.put("percentSpent", percentSpent);
-        data.put("entityType", "budget-threshold");
+        data.put(ENTITY_TYPE, "budget-threshold");
         notifyDataChanged(userId, NotificationService.NotificationType.BUDGET_WARNING, data);
     }
 }

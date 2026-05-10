@@ -3,8 +3,13 @@ package com.budgetbuddy.service.category.strategy;
 import org.springframework.stereotype.Component;
 
 /** Strategy for detecting groceries category */
+// PMD's OnlyOneReturn fights guard-clause idiom — the codebase intentionally
+// uses early returns for clarity (validation guards, fail-fast patterns).
+@SuppressWarnings("PMD.OnlyOneReturn")
 @Component
 public class GroceriesCategoryStrategy extends BaseCategoryStrategy {
+
+    private static final String SAFEWAY = "safeway";
 
     @Override
     public String detectCategory(
@@ -16,10 +21,10 @@ public class GroceriesCategoryStrategy extends BaseCategoryStrategy {
         // US Grocery Chains
         // CRITICAL FIX: Check for safeway with more lenient matching (handles variations like
         // "SAFEWAY #1444")
-        if (normalizedMerchantName.contains("safeway")
+        if (normalizedMerchantName.contains(SAFEWAY)
                 || normalizedMerchantName.contains("safeway.com")
-                || normalizedMerchantName.startsWith("safeway")
-                || normalizedMerchantName.endsWith("safeway")) {
+                || normalizedMerchantName.startsWith(SAFEWAY)
+                || normalizedMerchantName.endsWith(SAFEWAY)) {
             LOGGER.debug(
                     "detectCategoryFromMerchantName: Detected Safeway in normalizedMerchantName='{}' → 'groceries'",
                     normalizedMerchantName);

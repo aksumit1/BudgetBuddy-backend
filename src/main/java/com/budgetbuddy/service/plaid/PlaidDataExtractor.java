@@ -26,9 +26,17 @@ import org.springframework.stereotype.Component;
 @SuppressFBWarnings(
         value = "EI_EXPOSE_REP2",
         justification = "Spring constructor injection — beans are shared by design")
-@SuppressWarnings({"PMD.LawOfDemeter", "PMD.AvoidCatchingGenericException"})
+@SuppressWarnings({"PMD.LawOfDemeter", "PMD.AvoidCatchingGenericException", "PMD.OnlyOneReturn"})
 @Component
 public class PlaidDataExtractor {
+
+    private static final String TRANSACTION = "Transaction";
+
+    private static final String UNKNOWN_ACCOUNT = "Unknown Account";
+
+    private static final String OTHER = "other";
+
+    private static final String PAYMENT = "payment";
 
     private static final Logger LOGGER = LoggerFactory.getLogger(PlaidDataExtractor.class);
     private final AccountRepository accountRepository;
@@ -212,7 +220,7 @@ public class PlaidDataExtractor {
                             if (mask != null && !mask.isEmpty()) {
                                 account.setAccountName("Account " + mask);
                             } else {
-                                account.setAccountName("Unknown Account");
+                                account.setAccountName(UNKNOWN_ACCOUNT);
                             }
                         }
                     }
@@ -299,7 +307,7 @@ public class PlaidDataExtractor {
                     account.setActive(true);
                 }
                 if (account.getAccountName() == null) {
-                    account.setAccountName("Unknown Account");
+                    account.setAccountName(UNKNOWN_ACCOUNT);
                 }
                 if (account.getBalance() == null) {
                     account.setBalance(java.math.BigDecimal.ZERO);
@@ -315,7 +323,7 @@ public class PlaidDataExtractor {
                 account.setActive(true);
             }
             if (account.getAccountName() == null) {
-                account.setAccountName("Unknown Account");
+                account.setAccountName(UNKNOWN_ACCOUNT);
             }
             if (account.getBalance() == null) {
                 account.setBalance(java.math.BigDecimal.ZERO);
@@ -397,7 +405,7 @@ public class PlaidDataExtractor {
                 } else if (merchantName != null && !merchantName.isEmpty()) {
                     transaction.setDescription(merchantName);
                 } else {
-                    transaction.setDescription("Transaction");
+                    transaction.setDescription(TRANSACTION);
                 }
 
                 // Extract Plaid categories
@@ -493,7 +501,7 @@ public class PlaidDataExtractor {
                                 // HSA debit (negative raw amount from Plaid) -> healthcare
                                 // Only override if category is generic (other) or null
                                 if (determinedPrimary == null
-                                        || "other".equals(determinedPrimary)) {
+                                        || OTHER.equals(determinedPrimary)) {
                                     determinedPrimary = "healthcare";
                                     determinedDetailed = "healthcare";
                                     LOGGER.debug(
@@ -553,8 +561,8 @@ public class PlaidDataExtractor {
                                             || accountType.contains("creditline");
 
                             final boolean isPaymentCategory =
-                                    "payment".equalsIgnoreCase(determinedPrimary)
-                                            || "payment".equalsIgnoreCase(determinedDetailed);
+                                    PAYMENT.equalsIgnoreCase(determinedPrimary)
+                                            || PAYMENT.equalsIgnoreCase(determinedDetailed);
 
                             if (isCreditCardOrLoan
                                     && isPaymentCategory
@@ -591,8 +599,8 @@ public class PlaidDataExtractor {
                         }
                     } else {
                         // Fallback
-                        transaction.setCategoryPrimary("other");
-                        transaction.setCategoryDetailed("other");
+                        transaction.setCategoryPrimary(OTHER);
+                        transaction.setCategoryDetailed(OTHER);
                         transaction.setCategoryOverridden(false);
                     }
                 } else {
@@ -617,8 +625,8 @@ public class PlaidDataExtractor {
                         final String existingCategoryPrimary = transaction.getCategoryPrimary();
                         final String existingCategoryDetailed = transaction.getCategoryDetailed();
                         final boolean isPaymentCategory =
-                                "payment".equalsIgnoreCase(existingCategoryPrimary)
-                                        || "payment".equalsIgnoreCase(existingCategoryDetailed);
+                                PAYMENT.equalsIgnoreCase(existingCategoryPrimary)
+                                        || PAYMENT.equalsIgnoreCase(existingCategoryDetailed);
 
                         if (isCreditCardOrLoan
                                 && isPaymentCategory
@@ -746,7 +754,7 @@ public class PlaidDataExtractor {
 
                 if (transaction.getDescription() == null
                         || transaction.getDescription().isEmpty()) {
-                    transaction.setDescription("Transaction");
+                    transaction.setDescription(TRANSACTION);
                 }
                 if (transaction.getTransactionDate() == null
                         || transaction.getTransactionDate().isEmpty()) {
@@ -771,7 +779,7 @@ public class PlaidDataExtractor {
                                 .format(java.time.format.DateTimeFormatter.ISO_LOCAL_DATE));
             }
             if (transaction.getDescription() == null || transaction.getDescription().isEmpty()) {
-                transaction.setDescription("Transaction");
+                transaction.setDescription(TRANSACTION);
             }
             if (transaction.getAmount() == null) {
                 transaction.setAmount(java.math.BigDecimal.ZERO);

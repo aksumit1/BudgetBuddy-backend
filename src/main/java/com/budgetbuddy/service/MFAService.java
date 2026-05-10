@@ -39,9 +39,11 @@ import org.springframework.stereotype.Service;
 @SuppressFBWarnings(
         value = "EI_EXPOSE_REP2",
         justification = "Spring constructor injection — beans are shared by design")
-@SuppressWarnings("PMD.LawOfDemeter")
+@SuppressWarnings({"PMD.LawOfDemeter", "PMD.OnlyOneReturn"})
 @Service
 public class MFAService {
+
+    private static final String USER_ID_IS_REQUIRED = "User ID is required";
 
     private static final Logger LOGGER = LoggerFactory.getLogger(MFAService.class);
 
@@ -94,7 +96,7 @@ public class MFAService {
     /** Generate TOTP secret for a user Returns the secret and QR code URL for setup */
     public TOTPSetupResult setupTOTP(final String userId, final String email) {
         if (userId == null || userId.isEmpty()) {
-            throw new AppException(ErrorCode.INVALID_INPUT, "User ID is required");
+            throw new AppException(ErrorCode.INVALID_INPUT, USER_ID_IS_REQUIRED);
         }
         if (email == null || email.isEmpty()) {
             throw new AppException(ErrorCode.INVALID_INPUT, "Email is required");
@@ -118,7 +120,7 @@ public class MFAService {
     /** Verify TOTP code */
     public boolean verifyTOTP(final String userId, final int code) {
         if (userId == null || userId.isEmpty()) {
-            throw new AppException(ErrorCode.INVALID_INPUT, "User ID is required");
+            throw new AppException(ErrorCode.INVALID_INPUT, USER_ID_IS_REQUIRED);
         }
 
         final String secret = totpSecrets.get(userId);
@@ -141,7 +143,7 @@ public class MFAService {
     /** Remove TOTP for a user */
     public void removeTOTP(final String userId) {
         if (userId == null || userId.isEmpty()) {
-            throw new AppException(ErrorCode.INVALID_INPUT, "User ID is required");
+            throw new AppException(ErrorCode.INVALID_INPUT, USER_ID_IS_REQUIRED);
         }
 
         totpSecrets.remove(userId);
@@ -156,7 +158,7 @@ public class MFAService {
      */
     public List<String> generateBackupCodes(final String userId) {
         if (userId == null || userId.isEmpty()) {
-            throw new AppException(ErrorCode.INVALID_INPUT, "User ID is required");
+            throw new AppException(ErrorCode.INVALID_INPUT, USER_ID_IS_REQUIRED);
         }
 
         final List<String> codes = new ArrayList<>();
@@ -180,7 +182,7 @@ public class MFAService {
     /** Verify backup code */
     public boolean verifyBackupCode(final String userId, final String code) {
         if (userId == null || userId.isEmpty()) {
-            throw new AppException(ErrorCode.INVALID_INPUT, "User ID is required");
+            throw new AppException(ErrorCode.INVALID_INPUT, USER_ID_IS_REQUIRED);
         }
         if (code == null || code.isEmpty()) {
             return false;
@@ -220,7 +222,7 @@ public class MFAService {
      */
     public String generateOTP(final String userId, final OTPType type) {
         if (userId == null || userId.isEmpty()) {
-            throw new AppException(ErrorCode.INVALID_INPUT, "User ID is required");
+            throw new AppException(ErrorCode.INVALID_INPUT, USER_ID_IS_REQUIRED);
         }
 
         // Generate 6-digit OTP
@@ -247,7 +249,7 @@ public class MFAService {
     /** Verify OTP code (SMS or Email) */
     public boolean verifyOTP(final String userId, final OTPType type, final String code) {
         if (userId == null || userId.isEmpty()) {
-            throw new AppException(ErrorCode.INVALID_INPUT, "User ID is required");
+            throw new AppException(ErrorCode.INVALID_INPUT, USER_ID_IS_REQUIRED);
         }
         if (code == null || code.isEmpty()) {
             return false;
@@ -301,7 +303,7 @@ public class MFAService {
     /** Enable MFA for a user */
     public void enableMFA(final String userId) {
         if (userId == null || userId.isEmpty()) {
-            throw new AppException(ErrorCode.INVALID_INPUT, "User ID is required");
+            throw new AppException(ErrorCode.INVALID_INPUT, USER_ID_IS_REQUIRED);
         }
 
         final UserTable user =
@@ -320,7 +322,7 @@ public class MFAService {
     /** Disable MFA for a user */
     public void disableMFA(final String userId) {
         if (userId == null || userId.isEmpty()) {
-            throw new AppException(ErrorCode.INVALID_INPUT, "User ID is required");
+            throw new AppException(ErrorCode.INVALID_INPUT, USER_ID_IS_REQUIRED);
         }
 
         final UserTable user =

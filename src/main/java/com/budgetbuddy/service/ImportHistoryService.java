@@ -29,9 +29,11 @@ import org.springframework.stereotype.Service;
 @SuppressFBWarnings(
         value = "EI_EXPOSE_REP2",
         justification = "Spring constructor injection — beans are shared by design")
-@SuppressWarnings("PMD.LawOfDemeter")
+@SuppressWarnings({"PMD.LawOfDemeter", "PMD.OnlyOneReturn"})
 @Service
 public class ImportHistoryService {
+
+    private static final String PARTIAL = "PARTIAL";
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ImportHistoryService.class);
 
@@ -194,7 +196,7 @@ public class ImportHistoryService {
         final Optional<ImportHistoryTable> tableOpt = importHistoryRepository.findById(importId);
         if (tableOpt.isPresent()) {
             final ImportHistoryTable table = tableOpt.get();
-            table.setStatus("PARTIAL");
+            table.setStatus(PARTIAL);
             table.setLastProcessedIndex(lastProcessedIndex);
             table.setResumeToken(resumeToken);
             table.setCanResume(true);
@@ -235,7 +237,7 @@ public class ImportHistoryService {
     public List<ImportHistory> getResumableImports(final String userId) {
         return getUserImportHistory(userId).stream()
                 .filter(ImportHistory::isCanResume)
-                .filter(h -> "PARTIAL".equals(h.getStatus()))
+                .filter(h -> PARTIAL.equals(h.getStatus()))
                 .collect(Collectors.toList());
     }
 
@@ -278,7 +280,7 @@ public class ImportHistoryService {
                 history.stream().filter(h -> "FAILED".equals(h.getStatus())).count());
         stats.put(
                 "partialImports",
-                history.stream().filter(h -> "PARTIAL".equals(h.getStatus())).count());
+                history.stream().filter(h -> PARTIAL.equals(h.getStatus())).count());
         stats.put(
                 "totalTransactionsImported",
                 history.stream().mapToInt(ImportHistory::getSuccessfulTransactions).sum());

@@ -48,9 +48,11 @@ import software.amazon.awssdk.services.dynamodb.model.PutItemRequest;
 @SuppressFBWarnings(
         value = "EI_EXPOSE_REP2",
         justification = "Spring constructor injection — beans are shared by design")
-@SuppressWarnings("PMD.AvoidCatchingGenericException")
+@SuppressWarnings({"PMD.AvoidCatchingGenericException", "PMD.OnlyOneReturn"})
 @Service
 public class IdempotencyService {
+
+    private static final String RESULT_ID = "resultId";
 
     private static final Logger LOG = LoggerFactory.getLogger(IdempotencyService.class);
 
@@ -118,18 +120,18 @@ public class IdempotencyService {
                                     .key(Map.of("key", AttributeValue.fromS(storageKey)))
                                     .consistentRead(true)
                                     .build());
-            if (resp.hasItem() && resp.item().containsKey("resultId")) {
+            if (resp.hasItem() && resp.item().containsKey(RESULT_ID)) {
                 final AttributeValue ttl = resp.item().get("ttl");
                 if (ttl != null && ttl.n() != null) {
                     final long ttlSec = Long.parseLong(ttl.n());
                     if (ttlSec > Instant.now().getEpochSecond()) {
-                        return Optional.of(resp.item().get("resultId").s());
+                        return Optional.of(resp.item().get(RESULT_ID).s());
                     }
                     // TTL already expired — treat as miss; DynamoDB sweeper
                     // will eventually reap the row.
                     return Optional.empty();
                 }
-                return Optional.of(resp.item().get("resultId").s());
+                return Optional.of(resp.item().get(RESULT_ID).s());
             }
         } catch (Exception e) {
             LOG.debug("Idempotency lookup failed for {}: {}", storageKey, e.getMessage());
@@ -144,7 +146,7 @@ public class IdempotencyService {
         final long expiresAt = Instant.now().getEpochSecond() + TTL_SECONDS;
         final Map<String, AttributeValue> item = new HashMap<>();
         item.put("key", AttributeValue.fromS(storageKey));
-        item.put("resultId", AttributeValue.fromS(resultId));
+        item.put(RESULT_ID, AttributeValue.fromS(resultId));
         item.put("ttl", AttributeValue.fromN(Long.toString(expiresAt)));
         try {
             // Conditional on non-existence — if a concurrent request inserted

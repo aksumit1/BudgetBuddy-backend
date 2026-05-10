@@ -34,6 +34,9 @@ import org.springframework.web.bind.annotation.RestController;
 // SpotBugs flags constructor-injected Spring beans as EI_EXPOSE_REP2,
 // but Spring's IoC container intentionally shares the same bean across
 // callers — defensive-copying it would break dependency injection.
+// PMD's DataClass fires on Request/Response/Config DTOs by design —
+// they're intentionally data-only; behaviour belongs in the controller/service.
+@SuppressWarnings("PMD.DataClass")
 @SuppressFBWarnings(
         value = "EI_EXPOSE_REP2",
         justification = "Spring constructor injection — beans are shared by design")
@@ -41,6 +44,12 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/providers")
 @Tag(name = "Providers", description = "Financial data provider management")
 public class ProviderController {
+
+    private static final String PROVIDER_ID_IS_REQUIRED = "Provider ID is required";
+
+    private static final String USER_NOT_AUTHENTICATED = "User not authenticated";
+
+    private static final String USER_NOT_FOUND_1 = "User not found";
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ProviderController.class);
 
@@ -75,14 +84,14 @@ public class ProviderController {
         if (userDetails == null
                 || userDetails.getUsername() == null
                 || userDetails.getUsername().isEmpty()) {
-            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "User not authenticated");
+            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, USER_NOT_AUTHENTICATED);
         }
 
         final UserTable user =
                 userService
                         .findByEmail(userDetails.getUsername())
                         .orElseThrow(
-                                () -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
+                                () -> new AppException(ErrorCode.USER_NOT_FOUND, USER_NOT_FOUND_1));
 
         LOGGER.debug("Get providers request for user: {}", user.getUserId());
 
@@ -118,18 +127,18 @@ public class ProviderController {
         if (userDetails == null
                 || userDetails.getUsername() == null
                 || userDetails.getUsername().isEmpty()) {
-            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "User not authenticated");
+            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, USER_NOT_AUTHENTICATED);
         }
 
         if (providerId == null || providerId.isEmpty()) {
-            throw new AppException(ErrorCode.INVALID_INPUT, "Provider ID is required");
+            throw new AppException(ErrorCode.INVALID_INPUT, PROVIDER_ID_IS_REQUIRED);
         }
 
         final UserTable user =
                 userService
                         .findByEmail(userDetails.getUsername())
                         .orElseThrow(
-                                () -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
+                                () -> new AppException(ErrorCode.USER_NOT_FOUND, USER_NOT_FOUND_1));
 
         LOGGER.debug(
                 "Get provider health request for user: {}, provider: {}",
@@ -177,11 +186,11 @@ public class ProviderController {
         if (userDetails == null
                 || userDetails.getUsername() == null
                 || userDetails.getUsername().isEmpty()) {
-            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "User not authenticated");
+            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, USER_NOT_AUTHENTICATED);
         }
 
         if (providerId == null || providerId.isEmpty()) {
-            throw new AppException(ErrorCode.INVALID_INPUT, "Provider ID is required");
+            throw new AppException(ErrorCode.INVALID_INPUT, PROVIDER_ID_IS_REQUIRED);
         }
 
         if (request == null) {
@@ -192,7 +201,7 @@ public class ProviderController {
                 userService
                         .findByEmail(userDetails.getUsername())
                         .orElseThrow(
-                                () -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
+                                () -> new AppException(ErrorCode.USER_NOT_FOUND, USER_NOT_FOUND_1));
 
         LOGGER.info(
                 "Updating provider health for user: {}, provider: {}, healthy: {}",
@@ -234,18 +243,18 @@ public class ProviderController {
         if (userDetails == null
                 || userDetails.getUsername() == null
                 || userDetails.getUsername().isEmpty()) {
-            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "User not authenticated");
+            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, USER_NOT_AUTHENTICATED);
         }
 
         if (providerId == null || providerId.isEmpty()) {
-            throw new AppException(ErrorCode.INVALID_INPUT, "Provider ID is required");
+            throw new AppException(ErrorCode.INVALID_INPUT, PROVIDER_ID_IS_REQUIRED);
         }
 
         final UserTable user =
                 userService
                         .findByEmail(userDetails.getUsername())
                         .orElseThrow(
-                                () -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
+                                () -> new AppException(ErrorCode.USER_NOT_FOUND, USER_NOT_FOUND_1));
 
         LOGGER.info(
                 "Marking provider as stale for user: {}, provider: {}",
@@ -279,18 +288,18 @@ public class ProviderController {
         if (userDetails == null
                 || userDetails.getUsername() == null
                 || userDetails.getUsername().isEmpty()) {
-            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "User not authenticated");
+            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, USER_NOT_AUTHENTICATED);
         }
 
         if (providerId == null || providerId.isEmpty()) {
-            throw new AppException(ErrorCode.INVALID_INPUT, "Provider ID is required");
+            throw new AppException(ErrorCode.INVALID_INPUT, PROVIDER_ID_IS_REQUIRED);
         }
 
         final UserTable user =
                 userService
                         .findByEmail(userDetails.getUsername())
                         .orElseThrow(
-                                () -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
+                                () -> new AppException(ErrorCode.USER_NOT_FOUND, USER_NOT_FOUND_1));
 
         LOGGER.info(
                 "Clearing stale status for user: {}, provider: {}", user.getUserId(), providerId);

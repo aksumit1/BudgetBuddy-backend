@@ -29,6 +29,8 @@ import software.amazon.awssdk.services.dynamodb.model.ConditionalCheckFailedExce
 public final class OptimisticLockHelper {
 
     public static class OptimisticLockException extends RuntimeException {
+        private static final long serialVersionUID = 1L;
+
         public OptimisticLockException(final String msg) {
             super(msg);
         }
@@ -67,11 +69,13 @@ public final class OptimisticLockHelper {
                             .build();
         }
 
+        @SuppressWarnings("unchecked")
+        final Class<T> rowClass = (Class<T>) row.getClass();
         try {
             com.budgetbuddy.util.RetryHelper.executeDynamoDbWithRetry(
                     () -> {
                         table.putItem(
-                                PutItemEnhancedRequest.builder((Class<T>) row.getClass())
+                                PutItemEnhancedRequest.builder(rowClass)
                                         .item(row)
                                         .conditionExpression(condition)
                                         .build());

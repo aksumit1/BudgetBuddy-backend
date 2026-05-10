@@ -5,7 +5,6 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.List;
-import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
@@ -17,11 +16,9 @@ import org.springframework.stereotype.Service;
 // standard library types (BigDecimal, String, Optional) and DTO
 // getters; this class has many such idiomatic uses. Suppress at
 // class level rather than littering every method.
-@SuppressWarnings("PMD.LawOfDemeter")
+@SuppressWarnings({"PMD.LawOfDemeter", "PMD.DataClass", "PMD.OnlyOneReturn"})
 @Service
 public class GoalMilestoneService {
-
-    private static final Logger LOGGER = LoggerFactory.getLogger(GoalMilestoneService.class);
 
     // Milestone percentages
     private static final BigDecimal MILESTONE_25 = new BigDecimal("0.25");

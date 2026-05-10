@@ -36,6 +36,10 @@ import org.springframework.stereotype.Service;
 @Service
 public class StripeService {
 
+    private static final String NUMBER = "number";
+
+    private static final String USER_ID = "userId";
+
     private static final Logger LOGGER = LoggerFactory.getLogger(StripeService.class);
 
     private final PCIDSSComplianceService pciDSSComplianceService;
@@ -84,7 +88,7 @@ public class StripeService {
                             .setAmount(amount)
                             .setCurrency(currency)
                             .setDescription(description)
-                            .putMetadata("userId", userId)
+                            .putMetadata(USER_ID, userId)
                             .putAllMetadata(metadata != null ? metadata : new HashMap<>())
                             .build();
 
@@ -104,7 +108,7 @@ public class StripeService {
             throw new AppException(
                     ErrorCode.STRIPE_PAYMENT_FAILED,
                     "Failed to create payment intent",
-                    Map.of("userId", userId, "amount", amount),
+                    Map.of(USER_ID, userId, "amount", amount),
                     null,
                     e);
         }
@@ -123,7 +127,7 @@ public class StripeService {
             // Get userId from the original payment intent before confirming
             String userId =
                     paymentIntent.getMetadata() != null
-                            ? paymentIntent.getMetadata().get("userId")
+                            ? paymentIntent.getMetadata().get(USER_ID)
                             : null;
             paymentIntent = paymentIntent.confirm(params);
 
@@ -131,7 +135,7 @@ public class StripeService {
             // Use userId from original intent, or try to get it from confirmed intent if not
             // available
             if (userId == null && paymentIntent.getMetadata() != null) {
-                userId = paymentIntent.getMetadata().get("userId");
+                userId = paymentIntent.getMetadata().get(USER_ID);
             }
             pciDSSComplianceService.logCardholderDataAccess(
                     userId, "PAYMENT_INTENT", "CONFIRM", true);
@@ -165,7 +169,7 @@ public class StripeService {
                     CustomerCreateParams.builder()
                             .setEmail(email)
                             .setName(name)
-                            .putMetadata("userId", userId)
+                            .putMetadata(USER_ID, userId)
                             .putAllMetadata(metadata != null ? metadata : new HashMap<>())
                             .build();
 
@@ -178,7 +182,7 @@ public class StripeService {
             throw new AppException(
                     ErrorCode.STRIPE_CONNECTION_FAILED,
                     "Failed to create customer",
-                    Map.of("userId", userId, "email", email),
+                    Map.of(USER_ID, userId, "email", email),
                     null,
                     e);
         }
@@ -197,7 +201,7 @@ public class StripeService {
 
             // Build card details map for Stripe API
             final Map<String, Object> cardMap = new HashMap<>();
-            cardMap.put("number", cardDetails.get("number"));
+            cardMap.put(NUMBER, cardDetails.get(NUMBER));
             final Object expMonthObj = cardDetails.get("expMonth");
             final Object expYearObj = cardDetails.get("expYear");
             if (expMonthObj instanceof Number) {
@@ -217,7 +221,7 @@ public class StripeService {
             final PaymentMethod paymentMethod = PaymentMethod.create(params);
 
             // PCI-DSS: Mask and validate card number
-            pciDSSComplianceService.maskPAN((String) cardDetails.get("number"));
+            pciDSSComplianceService.maskPAN((String) cardDetails.get(NUMBER));
             // Note: logCardDataAccess is on auditLogService, not pciDSSComplianceService
 
             LOGGER.info(

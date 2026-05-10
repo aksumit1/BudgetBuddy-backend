@@ -163,10 +163,4 @@ class FinancialRoundingArchTest {
                         .allowEmptyShould(true);
         rule.check(MAIN_CLASSES);
     }
-
-    private static void assertRuleDefined(final ArchRule rule) {
-        if (rule == null) {
-            throw new AssertionError("Rule should be defined");
-        }
-    }
 }

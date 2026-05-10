@@ -57,7 +57,6 @@ class JwtAuthenticationIntegrationTest {
 
     private String testEmail;
     private String testPasswordHash;
-    private String testSalt;
     private UserTable testUser;
 
     @BeforeEach

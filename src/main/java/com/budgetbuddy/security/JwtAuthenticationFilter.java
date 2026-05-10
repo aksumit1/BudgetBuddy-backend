@@ -27,9 +27,11 @@ import org.springframework.web.filter.OncePerRequestFilter;
 // that can't reasonably be enumerated. Broad catches log + recover (or
 // translate to AppException). Suppress at class level since narrowing
 // here would mean catch (RuntimeException) which PMD flags identically.
-@SuppressWarnings("PMD.AvoidCatchingGenericException")
+@SuppressWarnings({"PMD.AvoidCatchingGenericException", "PMD.OnlyOneReturn"})
 @Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
+
+    private static final String CORRELATION_ID = "correlationId";
 
     private static final Logger LOGGER = LoggerFactory.getLogger(JwtAuthenticationFilter.class);
     private static final String AUTHORIZATION_HEADER = "Authorization";
@@ -63,7 +65,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             if (StringUtils.hasText(jwt)) {
                 LOGGER.debug(
                         "JWT token extracted from request | CorrelationId: {} | Token length: {} | Endpoint: {}",
-                        MDC.get("correlationId"),
+                        MDC.get(CORRELATION_ID),
                         jwt.length(),
                         requestURI);
                 try {
@@ -74,7 +76,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                         if (username == null || username.isEmpty()) {
                             LOGGER.warn(
                                     "JWT token contains empty username. Token will be ignored. | CorrelationId: {} | Endpoint: {}",
-                                    MDC.get("correlationId"),
+                                    MDC.get(CORRELATION_ID),
                                     requestURI);
                             filterChain.doFilter(request, response);
                             return;
@@ -83,7 +85,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                         LOGGER.debug(
                                 "JWT token validated successfully for user: {} | CorrelationId: {} | Endpoint: {}",
                                 username,
-                                MDC.get("correlationId"),
+                                MDC.get(CORRELATION_ID),
                                 requestURI);
 
                         // Load user details
@@ -95,7 +97,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                             LOGGER.warn(
                                     "JWT token valid but user not found: {} | CorrelationId: {} | Endpoint: {}",
                                     username,
-                                    MDC.get("correlationId"),
+                                    MDC.get(CORRELATION_ID),
                                     requestURI);
                             filterChain.doFilter(request, response);
                             return;
@@ -106,7 +108,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                             LOGGER.warn(
                                     "UserDetailsService returned null for username: {} | CorrelationId: {} | Endpoint: {}",
                                     username,
-                                    MDC.get("correlationId"),
+                                    MDC.get(CORRELATION_ID),
                                     requestURI);
                             filterChain.doFilter(request, response);
                             return;
@@ -124,14 +126,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                         LOGGER.debug(
                                 "Successfully authenticated user: {} | CorrelationId: {} | Endpoint: {}",
                                 username,
-                                MDC.get("correlationId"),
+                                MDC.get(CORRELATION_ID),
                                 requestURI);
                     } else {
                         // Token validation failed - log at WARN level with endpoint for debugging
                         LOGGER.warn(
                                 "JWT token validation failed | CorrelationId: {} | Token length: {} | Endpoint: {} | "
                                         + "Check JwtTokenProvider logs for specific validation error (expired, malformed, signature mismatch, etc.)",
-                                MDC.get("correlationId"),
+                                MDC.get(CORRELATION_ID),
                                 jwt != null ? jwt.length() : 0,
                                 requestURI);
                     }
@@ -141,7 +143,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     LOGGER.warn(
                             "JWT token parsing/validation error: {} | CorrelationId: {} | Token preview: {}",
                             ex.getMessage(),
-                            MDC.get("correlationId"),
+                            MDC.get(CORRELATION_ID),
                             jwt != null && jwt.length() > 20
                                     ? jwt.substring(0, 20) + "..."
                                     : "null");
@@ -150,7 +152,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     LOGGER.warn(
                             "Invalid JWT token format: {} | CorrelationId: {} | Token preview: {}",
                             ex.getMessage(),
-                            MDC.get("correlationId"),
+                            MDC.get(CORRELATION_ID),
                             jwt != null && jwt.length() > 20
                                     ? jwt.substring(0, 20) + "..."
                                     : "null");
@@ -160,7 +162,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     LOGGER.error(
                             "Unexpected runtime error during JWT token validation: {} | CorrelationId: {} | Token preview: {}",
                             ex.getMessage(),
-                            MDC.get("correlationId"),
+                            MDC.get(CORRELATION_ID),
                             jwt != null && jwt.length() > 20
                                     ? jwt.substring(0, 20) + "..."
                                     : "null",
@@ -172,10 +174,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             LOGGER.warn(
                     "User not found during JWT authentication: {} | CorrelationId: {}",
                     ex.getMessage(),
-                    MDC.get("correlationId"));
+                    MDC.get(CORRELATION_ID));
         } catch (Exception ex) {
             // Unexpected error - log with full context
-            final String correlationId = MDC.get("correlationId");
+            final String correlationId = MDC.get(CORRELATION_ID);
             LOGGER.error(
                     "Unexpected error setting user authentication in security context | CorrelationId: {} | Error: {}",
                     correlationId,
@@ -252,7 +254,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 LOGGER.warn(
                         "Removed control character (code {}) from JWT token | CorrelationId: {}",
                         (int) c,
-                        MDC.get("correlationId"));
+                        MDC.get(CORRELATION_ID));
             }
         }
         return cleaned.toString();

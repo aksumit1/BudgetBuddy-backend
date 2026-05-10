@@ -26,10 +26,18 @@ import org.springframework.web.bind.annotation.RestController;
 // that can't reasonably be enumerated. Broad catches log + recover (or
 // translate to AppException). Suppress at class level since narrowing
 // here would mean catch (RuntimeException) which PMD flags identically.
-@SuppressWarnings("PMD.AvoidCatchingGenericException")
+@SuppressWarnings({"PMD.AvoidCatchingGenericException", "PMD.OnlyOneReturn"})
 @RestController
 @RequestMapping("/api/tax")
 public class TaxExportController {
+
+    private static final String AUTHENTICATION_REQUIRED = "Authentication required";
+
+    private static final String INVALID_REQUEST_PARAMETERS = "Invalid request parameters: {}";
+
+    private static final String ATTACHMENT = "attachment";
+
+    private static final String TEXT_CSV = "text/csv";
 
     private static final Logger LOGGER = LoggerFactory.getLogger(TaxExportController.class);
 
@@ -67,7 +75,7 @@ public class TaxExportController {
             if (userDetails == null || userDetails.getUsername() == null) {
                 LOGGER.error("Export request with null userDetails");
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                        .body("Authentication required");
+                        .body(AUTHENTICATION_REQUIRED);
             }
 
             final String userId = userDetails.getUsername();
@@ -114,14 +122,14 @@ public class TaxExportController {
             final String csv = taxExportService.exportToCSV(result, taxYear);
 
             final HttpHeaders headers = new HttpHeaders();
-            headers.setContentType(MediaType.parseMediaType("text/csv"));
+            headers.setContentType(MediaType.parseMediaType(TEXT_CSV));
             headers.setContentDispositionFormData(
-                    "attachment", String.format("tax_export_%d.csv", taxYear));
+                    ATTACHMENT, String.format("tax_export_%d.csv", taxYear));
 
             return new ResponseEntity<>(csv, headers, HttpStatus.OK);
 
         } catch (IllegalArgumentException e) {
-            LOGGER.warn("Invalid request parameters: {}", e.getMessage());
+            LOGGER.warn(INVALID_REQUEST_PARAMETERS, e.getMessage());
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                     .body("Invalid request: " + e.getMessage());
         } catch (Exception e) {
@@ -153,7 +161,7 @@ public class TaxExportController {
         try {
             if (userDetails == null || userDetails.getUsername() == null) {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                        .body("Authentication required");
+                        .body(AUTHENTICATION_REQUIRED);
             }
 
             final String userId = userDetails.getUsername();
@@ -182,9 +190,9 @@ public class TaxExportController {
             final String csv = taxExportService.exportToCSVMultiYear(result, yearArray);
 
             final HttpHeaders headers = new HttpHeaders();
-            headers.setContentType(MediaType.parseMediaType("text/csv"));
+            headers.setContentType(MediaType.parseMediaType(TEXT_CSV));
             headers.setContentDispositionFormData(
-                    "attachment", String.format("tax_export_%s.csv", years.replace(",", "_")));
+                    ATTACHMENT, String.format("tax_export_%s.csv", years.replace(",", "_")));
 
             return new ResponseEntity<>(csv, headers, HttpStatus.OK);
 
@@ -217,7 +225,7 @@ public class TaxExportController {
         try {
             if (userDetails == null || userDetails.getUsername() == null) {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                        .body("Authentication required");
+                        .body(AUTHENTICATION_REQUIRED);
             }
 
             final String userId = userDetails.getUsername();
@@ -240,9 +248,9 @@ public class TaxExportController {
             final String csv = taxExportService.exportToScheduleA(result, taxYear);
 
             final HttpHeaders headers = new HttpHeaders();
-            headers.setContentType(MediaType.parseMediaType("text/csv"));
+            headers.setContentType(MediaType.parseMediaType(TEXT_CSV));
             headers.setContentDispositionFormData(
-                    "attachment", String.format("schedule_a_%d.csv", taxYear));
+                    ATTACHMENT, String.format("schedule_a_%d.csv", taxYear));
 
             return new ResponseEntity<>(csv, headers, HttpStatus.OK);
 
@@ -270,7 +278,7 @@ public class TaxExportController {
         try {
             if (userDetails == null || userDetails.getUsername() == null) {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                        .body("Authentication required");
+                        .body(AUTHENTICATION_REQUIRED);
             }
 
             final String userId = userDetails.getUsername();
@@ -284,9 +292,9 @@ public class TaxExportController {
             final String csv = taxExportService.exportToScheduleB(result, taxYear);
 
             final HttpHeaders headers = new HttpHeaders();
-            headers.setContentType(MediaType.parseMediaType("text/csv"));
+            headers.setContentType(MediaType.parseMediaType(TEXT_CSV));
             headers.setContentDispositionFormData(
-                    "attachment", String.format("schedule_b_%d.csv", taxYear));
+                    ATTACHMENT, String.format("schedule_b_%d.csv", taxYear));
 
             return new ResponseEntity<>(csv, headers, HttpStatus.OK);
 
@@ -314,7 +322,7 @@ public class TaxExportController {
         try {
             if (userDetails == null || userDetails.getUsername() == null) {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                        .body("Authentication required");
+                        .body(AUTHENTICATION_REQUIRED);
             }
 
             final String userId = userDetails.getUsername();
@@ -328,9 +336,9 @@ public class TaxExportController {
             final String csv = taxExportService.exportToScheduleD(result, taxYear);
 
             final HttpHeaders headers = new HttpHeaders();
-            headers.setContentType(MediaType.parseMediaType("text/csv"));
+            headers.setContentType(MediaType.parseMediaType(TEXT_CSV));
             headers.setContentDispositionFormData(
-                    "attachment", String.format("schedule_d_%d.csv", taxYear));
+                    ATTACHMENT, String.format("schedule_d_%d.csv", taxYear));
 
             return new ResponseEntity<>(csv, headers, HttpStatus.OK);
 
@@ -401,7 +409,7 @@ public class TaxExportController {
             return new ResponseEntity<>(json, headers, HttpStatus.OK);
 
         } catch (IllegalArgumentException e) {
-            LOGGER.warn("Invalid request parameters: {}", e.getMessage());
+            LOGGER.warn(INVALID_REQUEST_PARAMETERS, e.getMessage());
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                     .body("{\"error\": \"" + e.getMessage() + "\"}");
         } catch (Exception e) {
@@ -464,7 +472,7 @@ public class TaxExportController {
             return ResponseEntity.ok(result.getSummary());
 
         } catch (IllegalArgumentException e) {
-            LOGGER.warn("Invalid request parameters: {}", e.getMessage());
+            LOGGER.warn(INVALID_REQUEST_PARAMETERS, e.getMessage());
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
         } catch (Exception e) {
             LOGGER.error("Error getting tax summary: {}", e.getMessage(), e);

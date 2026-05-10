@@ -31,10 +31,14 @@ import org.springframework.web.bind.annotation.RestController;
 // standard library types (BigDecimal, String, Optional) and DTO
 // getters; this class has many such idiomatic uses. Suppress at
 // class level rather than littering every method.
-@SuppressWarnings({"PMD.LawOfDemeter", "PMD.AvoidCatchingGenericException"})
+@SuppressWarnings({"PMD.LawOfDemeter", "PMD.AvoidCatchingGenericException", "PMD.DataClass"})
 @RestController
 @RequestMapping("/api/budgets")
 public class BudgetController {
+
+    private static final String USER_NOT_AUTHENTICATED = "User not authenticated";
+
+    private static final String USER_NOT_FOUND_1 = "User not found";
 
     private final BudgetService budgetService;
     private final UserService userService;
@@ -71,14 +75,14 @@ public class BudgetController {
     public ResponseEntity<List<BudgetTable>> getBudgets(
             @AuthenticationPrincipal final UserDetails userDetails) {
         if (userDetails == null || userDetails.getUsername() == null) {
-            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "User not authenticated");
+            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, USER_NOT_AUTHENTICATED);
         }
 
         final UserTable user =
                 userService
                         .findByEmail(userDetails.getUsername())
                         .orElseThrow(
-                                () -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
+                                () -> new AppException(ErrorCode.USER_NOT_FOUND, USER_NOT_FOUND_1));
 
         final List<BudgetTable> budgets = budgetService.getBudgets(user);
 
@@ -96,13 +100,13 @@ public class BudgetController {
     public ResponseEntity<List<com.budgetbuddy.service.BudgetSummaryService.BudgetSummaryDto>>
             getBudgetSummaries(@AuthenticationPrincipal final UserDetails userDetails) {
         if (userDetails == null || userDetails.getUsername() == null) {
-            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "User not authenticated");
+            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, USER_NOT_AUTHENTICATED);
         }
         final UserTable user =
                 userService
                         .findByEmail(userDetails.getUsername())
                         .orElseThrow(
-                                () -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
+                                () -> new AppException(ErrorCode.USER_NOT_FOUND, USER_NOT_FOUND_1));
         return ResponseEntity.ok(budgetSummaryService.buildSummaries(user));
     }
 
@@ -114,7 +118,7 @@ public class BudgetController {
                             required = false) final String idempotencyKey,
             @Valid @RequestBody final CreateBudgetRequest request) {
         if (userDetails == null || userDetails.getUsername() == null) {
-            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "User not authenticated");
+            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, USER_NOT_AUTHENTICATED);
         }
 
         if (request == null) {
@@ -125,7 +129,7 @@ public class BudgetController {
                 userService
                         .findByEmail(userDetails.getUsername())
                         .orElseThrow(
-                                () -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
+                                () -> new AppException(ErrorCode.USER_NOT_FOUND, USER_NOT_FOUND_1));
 
         // Allow zero budgets for zero-based budgeting support
         if (request.getMonthlyLimit() == null
@@ -190,7 +194,7 @@ public class BudgetController {
     public ResponseEntity<Void> deleteBudget(
             @AuthenticationPrincipal final UserDetails userDetails, @PathVariable final String id) {
         if (userDetails == null || userDetails.getUsername() == null) {
-            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "User not authenticated");
+            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, USER_NOT_AUTHENTICATED);
         }
 
         if (id == null || id.isEmpty()) {
@@ -201,7 +205,7 @@ public class BudgetController {
                 userService
                         .findByEmail(userDetails.getUsername())
                         .orElseThrow(
-                                () -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
+                                () -> new AppException(ErrorCode.USER_NOT_FOUND, USER_NOT_FOUND_1));
 
         // TO DO: Check if the budget and User ID matches
 

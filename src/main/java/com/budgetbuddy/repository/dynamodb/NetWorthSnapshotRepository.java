@@ -18,6 +18,9 @@ import software.amazon.awssdk.enhanced.dynamodb.model.QueryConditional;
  * chart loading the last N snapshots). The job uses a deterministic primary key so re-running it
  * for the same day is idempotent.
  */
+// PMD's OnlyOneReturn fights guard-clause idiom — the codebase intentionally
+// uses early returns for clarity (validation guards, fail-fast patterns).
+@SuppressWarnings("PMD.OnlyOneReturn")
 @Repository
 public class NetWorthSnapshotRepository {
 

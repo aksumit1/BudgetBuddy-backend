@@ -51,11 +51,21 @@ import org.springframework.web.bind.annotation.RestController;
         value = {"EI_EXPOSE_REP", "EI_EXPOSE_REP2"},
         justification = "JSON DTO / DynamoDB entity getters expose lists by reference; "
                         + "the design is value-semantic and Jackson creates fresh instances; Spring constructor injection — beans are shared by design")
-@SuppressWarnings({"PMD.LawOfDemeter", "PMD.AvoidCatchingGenericException"})
+@SuppressWarnings({"PMD.LawOfDemeter", "PMD.AvoidCatchingGenericException", "PMD.DataClass", "PMD.OnlyOneReturn"})
 @RestController
 @RequestMapping("/api/plaid")
 @Tag(name = "Plaid", description = "Plaid financial data integration")
 public class PlaidController {
+
+    private static final String USER_NOT_AUTHENTICATED = "User not authenticated";
+
+    private static final String USER_NOT_FOUND_1 = "User not found";
+
+    private static final String MESSAGE = "message";
+
+    private static final String STATUS = "status";
+
+    private static final String SUCCESS = "success";
 
     private static final Logger LOGGER = LoggerFactory.getLogger(PlaidController.class);
 
@@ -96,14 +106,14 @@ public class PlaidController {
     public ResponseEntity<LinkTokenResponse> createLinkToken(
             @AuthenticationPrincipal final UserDetails userDetails) {
         if (userDetails == null || userDetails.getUsername() == null) {
-            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "User not authenticated");
+            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, USER_NOT_AUTHENTICATED);
         }
 
         final UserTable user =
                 userService
                         .findByEmail(userDetails.getUsername())
                         .orElseThrow(
-                                () -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
+                                () -> new AppException(ErrorCode.USER_NOT_FOUND, USER_NOT_FOUND_1));
 
         try {
             final var response = plaidService.createLinkToken(user.getUserId(), "BudgetBuddy");
@@ -149,7 +159,7 @@ public class PlaidController {
             @AuthenticationPrincipal final UserDetails userDetails,
             @Valid @RequestBody final ExchangeTokenRequest request) {
         if (userDetails == null || userDetails.getUsername() == null) {
-            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "User not authenticated");
+            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, USER_NOT_AUTHENTICATED);
         }
 
         if (request == null
@@ -162,7 +172,7 @@ public class PlaidController {
                 userService
                         .findByEmail(userDetails.getUsername())
                         .orElseThrow(
-                                () -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
+                                () -> new AppException(ErrorCode.USER_NOT_FOUND, USER_NOT_FOUND_1));
 
         try {
             final var response = plaidService.exchangePublicToken(request.getPublicToken());
@@ -220,14 +230,14 @@ public class PlaidController {
             @RequestParam(required = false)
                     @Parameter(description = "Plaid access token (optional)") final String accessToken) {
         if (userDetails == null || userDetails.getUsername() == null) {
-            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "User not authenticated");
+            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, USER_NOT_AUTHENTICATED);
         }
 
         final UserTable user =
                 userService
                         .findByEmail(userDetails.getUsername())
                         .orElseThrow(
-                                () -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
+                                () -> new AppException(ErrorCode.USER_NOT_FOUND, USER_NOT_FOUND_1));
 
         try {
             final AccountsResponse accountsResponse = new AccountsResponse();
@@ -356,14 +366,14 @@ public class PlaidController {
                     @RequestParam(required = false)
                             @Parameter(description = "End date (YYYY-MM-DD)") final String end) {
         if (userDetails == null || userDetails.getUsername() == null) {
-            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "User not authenticated");
+            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, USER_NOT_AUTHENTICATED);
         }
 
         final UserTable user =
                 userService
                         .findByEmail(userDetails.getUsername())
                         .orElseThrow(
-                                () -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
+                                () -> new AppException(ErrorCode.USER_NOT_FOUND, USER_NOT_FOUND_1));
 
         try {
             // Default to last 30 days if dates not provided
@@ -467,7 +477,7 @@ public class PlaidController {
             @AuthenticationPrincipal final UserDetails userDetails,
             @Valid @RequestBody final SyncRequest request) {
         if (userDetails == null || userDetails.getUsername() == null) {
-            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "User not authenticated");
+            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, USER_NOT_AUTHENTICATED);
         }
 
         if (request == null
@@ -480,7 +490,7 @@ public class PlaidController {
                 userService
                         .findByEmail(userDetails.getUsername())
                         .orElseThrow(
-                                () -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
+                                () -> new AppException(ErrorCode.USER_NOT_FOUND, USER_NOT_FOUND_1));
 
         try {
             // Note: itemId is not available in sync request, so pass null
@@ -490,7 +500,7 @@ public class PlaidController {
 
             LOGGER.info("Data synchronized for user: {}", user.getUserId());
             return ResponseEntity.ok(
-                    Map.of("status", "success", "message", "Data synchronized successfully"));
+                    Map.of(STATUS, SUCCESS, MESSAGE, "Data synchronized successfully"));
         } catch (Exception e) {
             LOGGER.error(
                     "Failed to sync data for user {}: {}", user.getUserId(), e.getMessage(), e);
@@ -654,14 +664,14 @@ public class PlaidController {
             @AuthenticationPrincipal final UserDetails userDetails,
             @RequestBody(required = false) final List<AccountSyncSettingRequest> requests) {
         if (userDetails == null || userDetails.getUsername() == null) {
-            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "User not authenticated");
+            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, USER_NOT_AUTHENTICATED);
         }
 
         final UserTable user =
                 userService
                         .findByEmail(userDetails.getUsername())
                         .orElseThrow(
-                                () -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
+                                () -> new AppException(ErrorCode.USER_NOT_FOUND, USER_NOT_FOUND_1));
 
         try {
             int updatedCount = 0;
@@ -717,7 +727,7 @@ public class PlaidController {
                 if (userAccounts.isEmpty()) {
                     LOGGER.warn("No accounts found for user: {}", user.getUserId());
                     return ResponseEntity.ok(
-                            Map.of("status", "success", "message", "No accounts to update"));
+                            Map.of(STATUS, SUCCESS, MESSAGE, "No accounts to update"));
                 }
 
                 final java.time.Instant now = java.time.Instant.now();
@@ -734,8 +744,8 @@ public class PlaidController {
                     user.getUserId());
             return ResponseEntity.ok(
                     Map.of(
-                            "status", "success",
-                            "message", "Sync settings updated",
+                            STATUS, SUCCESS,
+                            MESSAGE, "Sync settings updated",
                             "accountsUpdated", String.valueOf(updatedCount)));
         } catch (Exception e) {
             LOGGER.error(

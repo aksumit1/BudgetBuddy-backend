@@ -37,10 +37,22 @@ import org.springframework.web.bind.annotation.RestController;
 // standard library types (BigDecimal, String, Optional) and DTO
 // getters; this class has many such idiomatic uses. Suppress at
 // class level rather than littering every method.
-@SuppressWarnings({"PMD.LawOfDemeter", "PMD.AvoidCatchingGenericException"})
+@SuppressWarnings({"PMD.LawOfDemeter", "PMD.AvoidCatchingGenericException", "PMD.DataClass", "PMD.OnlyOneReturn"})
 @RestController
 @RequestMapping("/api/accounts")
 public class AccountController {
+
+    private static final String ACCOUNT_ID_IS_REQUIRED = "Account ID is required";
+
+    private static final String ACCOUNT_NOT_FOUND_1 = "Account not found";
+
+    private static final String USER_ID_IS_INVALID = "User ID is invalid";
+
+    private static final String USER_NOT_AUTHENTICATED = "User not authenticated";
+
+    private static final String USER_NOT_FOUND_1 = "User not found";
+
+    private static final String UNKNOWN = "unknown";
 
     private final AccountRepository accountRepository;
     private final UserService userService;
@@ -70,17 +82,17 @@ public class AccountController {
         if (userDetails == null
                 || userDetails.getUsername() == null
                 || userDetails.getUsername().isEmpty()) {
-            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "User not authenticated");
+            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, USER_NOT_AUTHENTICATED);
         }
 
         final UserTable user =
                 userService
                         .findByEmail(userDetails.getUsername())
                         .orElseThrow(
-                                () -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
+                                () -> new AppException(ErrorCode.USER_NOT_FOUND, USER_NOT_FOUND_1));
 
         if (user.getUserId() == null || user.getUserId().isEmpty()) {
-            throw new AppException(ErrorCode.INVALID_INPUT, "User ID is invalid");
+            throw new AppException(ErrorCode.INVALID_INPUT, USER_ID_IS_INVALID);
         }
 
         final List<AccountTable> accounts = accountRepository.findByUserId(user.getUserId());
@@ -93,18 +105,18 @@ public class AccountController {
     public ResponseEntity<AccountTable> getAccount(
             @AuthenticationPrincipal final UserDetails userDetails, @PathVariable final String id) {
         if (userDetails == null || userDetails.getUsername() == null) {
-            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "User not authenticated");
+            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, USER_NOT_AUTHENTICATED);
         }
 
         if (id == null || id.isEmpty()) {
-            throw new AppException(ErrorCode.INVALID_INPUT, "Account ID is required");
+            throw new AppException(ErrorCode.INVALID_INPUT, ACCOUNT_ID_IS_REQUIRED);
         }
 
         final UserTable user =
                 userService
                         .findByEmail(userDetails.getUsername())
                         .orElseThrow(
-                                () -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
+                                () -> new AppException(ErrorCode.USER_NOT_FOUND, USER_NOT_FOUND_1));
 
         final AccountTable account =
                 accountRepository
@@ -112,7 +124,7 @@ public class AccountController {
                         .orElseThrow(
                                 () ->
                                         new AppException(
-                                                ErrorCode.ACCOUNT_NOT_FOUND, "Account not found"));
+                                                ErrorCode.ACCOUNT_NOT_FOUND, ACCOUNT_NOT_FOUND_1));
 
         if (account.getUserId() == null || !account.getUserId().equals(user.getUserId())) {
             // Use SECURITY_VIOLATION (8004) which maps to 403 Forbidden via ErrorCode range
@@ -120,12 +132,12 @@ public class AccountController {
             final java.util.Map<String, Object> context = new java.util.HashMap<>();
             context.put(
                     "accountId",
-                    account.getAccountId() != null ? account.getAccountId() : "unknown");
+                    account.getAccountId() != null ? account.getAccountId() : UNKNOWN);
             context.put(
                     "requestedUserId",
-                    account.getUserId() != null ? account.getUserId() : "unknown");
+                    account.getUserId() != null ? account.getUserId() : UNKNOWN);
             context.put(
-                    "authenticatedUserId", user.getUserId() != null ? user.getUserId() : "unknown");
+                    "authenticatedUserId", user.getUserId() != null ? user.getUserId() : UNKNOWN);
             throw new AppException(
                     ErrorCode.SECURITY_VIOLATION,
                     "Access to account denied: User attempted to access account belonging to another user",
@@ -145,17 +157,17 @@ public class AccountController {
         if (userDetails == null
                 || userDetails.getUsername() == null
                 || userDetails.getUsername().isEmpty()) {
-            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "User not authenticated");
+            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, USER_NOT_AUTHENTICATED);
         }
 
         final UserTable user =
                 userService
                         .findByEmail(userDetails.getUsername())
                         .orElseThrow(
-                                () -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
+                                () -> new AppException(ErrorCode.USER_NOT_FOUND, USER_NOT_FOUND_1));
 
         if (user.getUserId() == null || user.getUserId().isEmpty()) {
-            throw new AppException(ErrorCode.INVALID_INPUT, "User ID is invalid");
+            throw new AppException(ErrorCode.INVALID_INPUT, USER_ID_IS_INVALID);
         }
 
         // TO DO: validate the len of each fields to prevent any buffere overrun scenarios
@@ -259,21 +271,21 @@ public class AccountController {
         if (userDetails == null
                 || userDetails.getUsername() == null
                 || userDetails.getUsername().isEmpty()) {
-            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "User not authenticated");
+            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, USER_NOT_AUTHENTICATED);
         }
 
         if (id == null || id.isEmpty()) {
-            throw new AppException(ErrorCode.INVALID_INPUT, "Account ID is required");
+            throw new AppException(ErrorCode.INVALID_INPUT, ACCOUNT_ID_IS_REQUIRED);
         }
 
         final UserTable user =
                 userService
                         .findByEmail(userDetails.getUsername())
                         .orElseThrow(
-                                () -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
+                                () -> new AppException(ErrorCode.USER_NOT_FOUND, USER_NOT_FOUND_1));
 
         if (user.getUserId() == null || user.getUserId().isEmpty()) {
-            throw new AppException(ErrorCode.INVALID_INPUT, "User ID is invalid");
+            throw new AppException(ErrorCode.INVALID_INPUT, USER_ID_IS_INVALID);
         }
 
         // Find existing account
@@ -283,7 +295,7 @@ public class AccountController {
                         .orElseThrow(
                                 () ->
                                         new AppException(
-                                                ErrorCode.ACCOUNT_NOT_FOUND, "Account not found"));
+                                                ErrorCode.ACCOUNT_NOT_FOUND, ACCOUNT_NOT_FOUND_1));
 
         // Verify account belongs to user
         if (account.getUserId() == null || !account.getUserId().equals(user.getUserId())) {
@@ -372,21 +384,21 @@ public class AccountController {
         if (userDetails == null
                 || userDetails.getUsername() == null
                 || userDetails.getUsername().isEmpty()) {
-            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "User not authenticated");
+            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, USER_NOT_AUTHENTICATED);
         }
 
         if (id == null || id.isEmpty()) {
-            throw new AppException(ErrorCode.INVALID_INPUT, "Account ID is required");
+            throw new AppException(ErrorCode.INVALID_INPUT, ACCOUNT_ID_IS_REQUIRED);
         }
 
         final UserTable user =
                 userService
                         .findByEmail(userDetails.getUsername())
                         .orElseThrow(
-                                () -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
+                                () -> new AppException(ErrorCode.USER_NOT_FOUND, USER_NOT_FOUND_1));
 
         if (user.getUserId() == null || user.getUserId().isEmpty()) {
-            throw new AppException(ErrorCode.INVALID_INPUT, "User ID is invalid");
+            throw new AppException(ErrorCode.INVALID_INPUT, USER_ID_IS_INVALID);
         }
 
         // TO DO: Check for invalid IDs
@@ -398,7 +410,7 @@ public class AccountController {
                         .orElseThrow(
                                 () ->
                                         new AppException(
-                                                ErrorCode.ACCOUNT_NOT_FOUND, "Account not found"));
+                                                ErrorCode.ACCOUNT_NOT_FOUND, ACCOUNT_NOT_FOUND_1));
 
         // Verify account belongs to user
         if (account.getUserId() == null || !account.getUserId().equals(user.getUserId())) {
@@ -483,21 +495,21 @@ public class AccountController {
         if (userDetails == null
                 || userDetails.getUsername() == null
                 || userDetails.getUsername().isEmpty()) {
-            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "User not authenticated");
+            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, USER_NOT_AUTHENTICATED);
         }
 
         if (id == null || id.isEmpty()) {
-            throw new AppException(ErrorCode.INVALID_INPUT, "Account ID is required");
+            throw new AppException(ErrorCode.INVALID_INPUT, ACCOUNT_ID_IS_REQUIRED);
         }
 
         final UserTable user =
                 userService
                         .findByEmail(userDetails.getUsername())
                         .orElseThrow(
-                                () -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
+                                () -> new AppException(ErrorCode.USER_NOT_FOUND, USER_NOT_FOUND_1));
 
         if (user.getUserId() == null || user.getUserId().isEmpty()) {
-            throw new AppException(ErrorCode.INVALID_INPUT, "User ID is invalid");
+            throw new AppException(ErrorCode.INVALID_INPUT, USER_ID_IS_INVALID);
         }
 
         // Validate date range if both dates provided

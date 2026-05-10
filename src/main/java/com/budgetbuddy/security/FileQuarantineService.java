@@ -29,9 +29,11 @@ import org.springframework.stereotype.Service;
 // standard library types (BigDecimal, String, Optional) and DTO
 // getters; this class has many such idiomatic uses. Suppress at
 // class level rather than littering every method.
-@SuppressWarnings({"PMD.LawOfDemeter", "PMD.AvoidCatchingGenericException"})
+@SuppressWarnings({"PMD.LawOfDemeter", "PMD.AvoidCatchingGenericException", "PMD.DataClass", "PMD.OnlyOneReturn"})
 @Service
 public class FileQuarantineService {
+
+    private static final String JAVA_IO_TMPDIR = "java.io.tmpdir";
 
     private static final Logger LOGGER = LoggerFactory.getLogger(FileQuarantineService.class);
 
@@ -60,7 +62,7 @@ public class FileQuarantineService {
             String effectiveDirectory = quarantineDirectory;
             if (effectiveDirectory == null || effectiveDirectory.isBlank()) {
                 // Default to temp directory - this is always writable
-                String tempDir = System.getProperty("java.io.tmpdir");
+                String tempDir = System.getProperty(JAVA_IO_TMPDIR);
                 if (tempDir == null || tempDir.isBlank()) {
                     // Last resort: use /tmp (standard on Unix systems)
                     tempDir = "/tmp";
@@ -82,7 +84,7 @@ public class FileQuarantineService {
                     e);
             // Set safe defaults for quarantine directory
             try {
-                String tempDir = System.getProperty("java.io.tmpdir");
+                String tempDir = System.getProperty(JAVA_IO_TMPDIR);
                 if (tempDir == null || tempDir.isBlank()) {
                     tempDir = "/tmp";
                 }
@@ -343,7 +345,7 @@ public class FileQuarantineService {
 
             // Fallback to system temp directory (should always be writable)
             try {
-                String tempDir = System.getProperty("java.io.tmpdir");
+                String tempDir = System.getProperty(JAVA_IO_TMPDIR);
                 if (tempDir == null || tempDir.isBlank()) {
                     tempDir = "/tmp"; // Standard Unix temp directory
                 }

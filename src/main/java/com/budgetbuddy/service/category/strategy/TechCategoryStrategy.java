@@ -3,8 +3,17 @@ package com.budgetbuddy.service.category.strategy;
 import org.springframework.stereotype.Component;
 
 /** Strategy for detecting tech category */
+// PMD's OnlyOneReturn fights guard-clause idiom — the codebase intentionally
+// uses early returns for clarity (validation guards, fail-fast patterns).
+@SuppressWarnings("PMD.OnlyOneReturn")
 @Component
 public class TechCategoryStrategy extends BaseCategoryStrategy {
+
+    private static final String CURSOR = "cursor";
+
+    private static final String CURSOR_AI = "cursor ai";
+
+    private static final String SOFTWARE = "software";
 
     @Override
     public String detectCategory(
@@ -26,8 +35,8 @@ public class TechCategoryStrategy extends BaseCategoryStrategy {
                 "cohere",
                 "hugging face",
                 "huggingface",
-                "cursor",
-                "cursor ai",
+                CURSOR,
+                CURSOR_AI,
                 "github copilot",
                 "copilot",
                 "replicate",
@@ -42,10 +51,10 @@ public class TechCategoryStrategy extends BaseCategoryStrategy {
                 return "tech";
             }
         }
-        if (normalizedMerchantName.contains("cursor")
-                || descriptionLower.contains("cursor")
-                || normalizedMerchantName.contains("cursor ai")
-                || descriptionLower.contains("cursor ai")) {
+        if (normalizedMerchantName.contains(CURSOR)
+                || descriptionLower.contains(CURSOR)
+                || normalizedMerchantName.contains(CURSOR_AI)
+                || descriptionLower.contains(CURSOR_AI)) {
             LOGGER.debug("🏷️ detectCategoryFromMerchantName: Detected Cursor → 'tech'");
             return "tech";
         }
@@ -87,15 +96,15 @@ public class TechCategoryStrategy extends BaseCategoryStrategy {
         }
 
         // Software/Technology Patterns
-        if (normalizedMerchantName.contains("software")
+        if (normalizedMerchantName.contains(SOFTWARE)
                 || normalizedMerchantName.contains("saas")
                 || normalizedMerchantName.contains("cloud")
                 || normalizedMerchantName.contains("api")
                 || normalizedMerchantName.contains("developer")
                 || normalizedMerchantName.contains("dev tools")
-                || descriptionLower.contains("software")
+                || descriptionLower.contains(SOFTWARE)
                 || (descriptionLower.contains("subscription")
-                        && (normalizedMerchantName.contains("software")
+                        && (normalizedMerchantName.contains(SOFTWARE)
                                 || normalizedMerchantName.contains("saas")
                                 || normalizedMerchantName.contains("tech")
                                 || normalizedMerchantName.contains("cloud")

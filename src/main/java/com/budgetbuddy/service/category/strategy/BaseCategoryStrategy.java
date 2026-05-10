@@ -4,6 +4,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /** Base class for category detection strategies Provides common utility methods */
+// PMD's OnlyOneReturn fights guard-clause idiom — the codebase intentionally
+// uses early returns for clarity (validation guards, fail-fast patterns).
+@SuppressWarnings("PMD.OnlyOneReturn")
 public abstract class BaseCategoryStrategy implements CategoryDetectionStrategy {
     protected static final Logger LOGGER = LoggerFactory.getLogger(BaseCategoryStrategy.class);
 

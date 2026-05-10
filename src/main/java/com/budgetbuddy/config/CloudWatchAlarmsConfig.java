@@ -14,8 +14,13 @@ import org.springframework.context.annotation.Configuration;
  * <p>Critical Alarms: - Error rate spikes - High latency (p95, p99) - Database connection pool
  * exhaustion - Memory/CPU thresholds - Failed health checks - Rate limit violations
  */
+// PMD's DataClass fires on Request/Response/Config DTOs by design —
+// they're intentionally data-only; behaviour belongs in the controller/service.
+@SuppressWarnings("PMD.DataClass")
 @Configuration
 public class CloudWatchAlarmsConfig {
+
+    private static final String GREATER_THAN_THRESHOLD = "GreaterThanThreshold";
 
     private static final Logger LOGGER = LoggerFactory.getLogger(CloudWatchAlarmsConfig.class);
 
@@ -67,7 +72,7 @@ public class CloudWatchAlarmsConfig {
                 "ErrorRate",
                 errorRateThreshold,
                 errorRateEvaluationPeriods,
-                "GreaterThanThreshold");
+                GREATER_THAN_THRESHOLD);
     }
 
     /** Get latency alarm configuration */
@@ -76,7 +81,7 @@ public class CloudWatchAlarmsConfig {
                 "LatencyP95",
                 latencyP95ThresholdMs,
                 latencyEvaluationPeriods,
-                "GreaterThanThreshold");
+                GREATER_THAN_THRESHOLD);
     }
 
     /** Get latency alarm configuration */
@@ -85,7 +90,7 @@ public class CloudWatchAlarmsConfig {
                 "LatencyP99",
                 latencyP99ThresholdMs,
                 latencyEvaluationPeriods,
-                "GreaterThanThreshold");
+                GREATER_THAN_THRESHOLD);
     }
 
     /** Get database connection pool alarm configuration */
@@ -94,19 +99,19 @@ public class CloudWatchAlarmsConfig {
                 "DatabaseConnectionPool",
                 databaseConnectionPoolThreshold,
                 resourceEvaluationPeriods,
-                "GreaterThanThreshold");
+                GREATER_THAN_THRESHOLD);
     }
 
     /** Get memory alarm configuration */
     public AlarmConfig getMemoryAlarmConfig() {
         return new AlarmConfig(
-                "MemoryUsage", memoryThreshold, resourceEvaluationPeriods, "GreaterThanThreshold");
+                "MemoryUsage", memoryThreshold, resourceEvaluationPeriods, GREATER_THAN_THRESHOLD);
     }
 
     /** Get CPU alarm configuration */
     public AlarmConfig getCpuAlarmConfig() {
         return new AlarmConfig(
-                "CpuUsage", cpuThreshold, resourceEvaluationPeriods, "GreaterThanThreshold");
+                "CpuUsage", cpuThreshold, resourceEvaluationPeriods, GREATER_THAN_THRESHOLD);
     }
 
     /** Alarm configuration data class */

@@ -27,9 +27,13 @@ import org.springframework.stereotype.Service;
 @SuppressFBWarnings(
         value = "EI_EXPOSE_REP2",
         justification = "Spring constructor injection — beans are shared by design")
-@SuppressWarnings("PMD.AvoidCatchingGenericException")
+@SuppressWarnings({"PMD.AvoidCatchingGenericException", "PMD.OnlyOneReturn"})
 @Service
 public class UserService {
+
+    private static final String PASSWORD_HASH_IS_REQUIRED = "Password hash is required";
+
+    private static final String USER_ID_IS_REQUIRED = "User ID is required";
 
     private static final Logger LOGGER = LoggerFactory.getLogger(UserService.class);
 
@@ -75,7 +79,7 @@ public class UserService {
             throw new AppException(ErrorCode.INVALID_INPUT, "Email is required");
         }
         if (passwordHash == null || passwordHash.isEmpty()) {
-            throw new AppException(ErrorCode.INVALID_INPUT, "Password hash is required");
+            throw new AppException(ErrorCode.INVALID_INPUT, PASSWORD_HASH_IS_REQUIRED);
         }
 
         // Perform server-side hashing (defense in depth)
@@ -193,7 +197,7 @@ public class UserService {
             throw new AppException(ErrorCode.INVALID_INPUT, "User cannot be null");
         }
         if (user.getUserId() == null || user.getUserId().isEmpty()) {
-            throw new AppException(ErrorCode.INVALID_INPUT, "User ID is required");
+            throw new AppException(ErrorCode.INVALID_INPUT, USER_ID_IS_REQUIRED);
         }
         user.setUpdatedAt(Instant.now());
         dynamoDBUserRepository.save(user);
@@ -225,10 +229,10 @@ public class UserService {
      */
     public void changePasswordSecure(final String userId, final String passwordHash) {
         if (userId == null || userId.isEmpty()) {
-            throw new AppException(ErrorCode.INVALID_INPUT, "User ID is required");
+            throw new AppException(ErrorCode.INVALID_INPUT, USER_ID_IS_REQUIRED);
         }
         if (passwordHash == null || passwordHash.isEmpty()) {
-            throw new AppException(ErrorCode.INVALID_INPUT, "Password hash is required");
+            throw new AppException(ErrorCode.INVALID_INPUT, PASSWORD_HASH_IS_REQUIRED);
         }
 
         final UserTable user =
@@ -280,7 +284,7 @@ public class UserService {
             throw new AppException(ErrorCode.INVALID_INPUT, "Email is required");
         }
         if (passwordHash == null || passwordHash.isEmpty()) {
-            throw new AppException(ErrorCode.INVALID_INPUT, "Password hash is required");
+            throw new AppException(ErrorCode.INVALID_INPUT, PASSWORD_HASH_IS_REQUIRED);
         }
 
         // Find user by email
@@ -299,7 +303,7 @@ public class UserService {
     /** Verify email (cost-optimized: uses UpdateItem instead of read-before-write) */
     public void verifyEmail(final String userId) {
         if (userId == null || userId.isEmpty()) {
-            throw new AppException(ErrorCode.INVALID_INPUT, "User ID is required");
+            throw new AppException(ErrorCode.INVALID_INPUT, USER_ID_IS_REQUIRED);
         }
         try {
             dynamoDBUserRepository.updateField(userId, "emailVerified", true);

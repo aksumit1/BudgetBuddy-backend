@@ -38,9 +38,91 @@ import org.springframework.stereotype.Service;
 @SuppressFBWarnings(
         value = "EI_EXPOSE_REP2",
         justification = "Spring constructor injection — beans are shared by design")
-@SuppressWarnings("PMD.AvoidCatchingGenericException")
+@SuppressWarnings({"PMD.AvoidCatchingGenericException", "PMD.OnlyOneReturn"})
 @Service
 public class SemanticMatchingService {
+
+    private static final String AUTO_PAY = "auto pay";
+
+    private static final String AUTOPAY = "autopay";
+
+    private static final String BADMINTON = "badminton";
+
+    private static final String BILL_PAY = "bill pay";
+
+    private static final String BILL_PAYMENT = "bill payment";
+
+    private static final String BILLPAY = "billpay";
+
+    private static final String BROKERAGE = "brokerage";
+
+    private static final String CARD_PAY = "card pay";
+
+    private static final String CHECK_PAYMENT = "check payment";
+
+    private static final String CLINIC = "clinic";
+
+    private static final String CREDIT = "credit";
+
+    private static final String CREDIT_CARD_AUTOPAY = "credit card autopay";
+
+    private static final String CROSSFIT = "crossfit";
+
+    private static final String DEPOSIT = "deposit";
+
+    private static final String DINING = "dining";
+
+    private static final String ELECTRIC_BILL = "electric bill";
+
+    private static final String ENTERTAINMENT = "entertainment";
+
+    private static final String FAST_FOOD = "fast food";
+
+    private static final String GAS_BILL = "gas bill";
+
+    private static final String GROCERIES = "groceries";
+
+    private static final String HEALTH = "health";
+
+    private static final String HEALTHCARE = "healthcare";
+
+    private static final String INCOME = "income";
+
+    private static final String INVESTMENT = "investment";
+
+    private static final String LOAN_PAYMENT = "loan payment";
+
+    private static final String MARTIAL_ARTS = "martial arts";
+
+    private static final String MEDICAL = "medical";
+
+    private static final String MONTHLY_PAYMENT = "monthly payment";
+
+    private static final String MORTGAGE = "mortgage";
+
+    private static final String NETFLIX = "netflix";
+
+    private static final String PAYMENT = "payment";
+
+    private static final String PILATES = "pilates";
+
+    private static final String SEATTLE_BADMINTON_CLUB = "seattle badminton club";
+
+    private static final String SHOPPING = "shopping";
+
+    private static final String STORE = "store";
+
+    private static final String SUBSCRIPTIONS = "subscriptions";
+
+    private static final String SUBWAY = "subway";
+
+    private static final String TRANSFER = "transfer";
+
+    private static final String URGENT_CARE = "urgent care";
+
+    private static final String UTILITIES = "utilities";
+
+    private static final String WATER_BILL = "water bill";
 
     private static final Logger LOGGER = LoggerFactory.getLogger(SemanticMatchingService.class);
 
@@ -247,7 +329,7 @@ public class SemanticMatchingService {
                                 "food shopping",
                                 "produce",
                                 "fresh food",
-                                "groceries",
+                                GROCERIES,
                                 "food shop",
                                 "grocery market",
                                 "food mart",
@@ -256,7 +338,7 @@ public class SemanticMatchingService {
                                 "grocery center",
                                 "supermarket shopping",
                                 "pantry",
-                                "store", // Test case: "Supermarket Shopping"
+                                STORE, // Test case: "Supermarket Shopping"
                                 // Major Grocery Stores
                                 "safeway",
                                 "pcc",
@@ -312,7 +394,7 @@ public class SemanticMatchingService {
                                 // Grocery Delivery
                                 "instacart",
                                 "shipt"));
-        categorySemanticClusters.put("groceries", groceries);
+        categorySemanticClusters.put(GROCERIES, groceries);
 
         // Dining cluster - EXPANDED (includes all major food chains, delivery services, and MCC
         // codes)
@@ -327,14 +409,14 @@ public class SemanticMatchingService {
                                 "bistro",
                                 "eatery",
                                 "food",
-                                "dining",
+                                DINING,
                                 "meal",
                                 "lunch",
                                 "dinner",
                                 "breakfast",
                                 "brunch",
                                 "breakfast",
-                                "fast food",
+                                FAST_FOOD,
                                 "takeout",
                                 "take-out",
                                 "delivery",
@@ -411,7 +493,7 @@ public class SemanticMatchingService {
                                 "dumpling",
                                 "burger",
                                 "burgers",
-                                "fast food",
+                                FAST_FOOD,
                                 "fastfood",
                                 "grill",
                                 "grilled",
@@ -549,7 +631,7 @@ public class SemanticMatchingService {
                                 "french",
                                 "spanish",
                                 "mexican",
-                                "subway",
+                                SUBWAY,
                                 "panda express",
                                 "starbucks",
                                 "starbucks coffee",
@@ -644,7 +726,7 @@ public class SemanticMatchingService {
                                 // MCC Code 5812 - Eating Places, Restaurants
                                 "mcc 5812",
                                 "mcc5812"));
-        categorySemanticClusters.put("dining", dining);
+        categorySemanticClusters.put(DINING, dining);
 
         // Transportation cluster - EXPANDED (includes all gas stations, ride services, state DOTs,
         // and MCC codes)
@@ -678,7 +760,7 @@ public class SemanticMatchingService {
                                 "public transport",
                                 "transit",
                                 "metro",
-                                "subway",
+                                SUBWAY,
                                 "bus",
                                 "train",
                                 "car",
@@ -953,7 +1035,7 @@ public class SemanticMatchingService {
                 new HashSet<>(
                         Arrays.asList(
                                 "utility",
-                                "utilities",
+                                UTILITIES,
                                 "electric",
                                 "electricity",
                                 "power",
@@ -979,9 +1061,9 @@ public class SemanticMatchingService {
                                 "internet service",
                                 "internet",
                                 "cable tv", // Test case: "Cable TV"
-                                "electric bill",
-                                "water bill",
-                                "gas bill",
+                                ELECTRIC_BILL,
+                                WATER_BILL,
+                                GAS_BILL,
                                 "utility bill",
                                 "power bill",
                                 "energy bill",
@@ -989,9 +1071,9 @@ public class SemanticMatchingService {
                                 "water service",
                                 "gas service",
                                 "utility payment",
-                                "bill payment",
-                                "billpay",
-                                "bill pay",
+                                BILL_PAYMENT,
+                                BILLPAY,
+                                BILL_PAY,
                                 "billpaying",
                                 "utility payment",
                                 "ener billpay",
@@ -1104,7 +1186,7 @@ public class SemanticMatchingService {
                                 "mcc 4816",
                                 "mcc4816" // Computer Network/Information Services
                         ));
-        categorySemanticClusters.put("utilities", utilities);
+        categorySemanticClusters.put(UTILITIES, utilities);
 
         // Healthcare cluster - EXPANDED (includes MCC codes and health/fitness facilities)
         final Set<String> healthcare =
@@ -1118,17 +1200,17 @@ public class SemanticMatchingService {
                                 "doctor",
                                 "physician",
                                 "hospital",
-                                "clinic",
-                                "medical",
-                                "health",
-                                "healthcare",
+                                CLINIC,
+                                MEDICAL,
+                                HEALTH,
+                                HEALTHCARE,
                                 "dental",
                                 "dentist",
                                 "optometry",
                                 "optometrist",
                                 "eye care",
                                 "vision",
-                                "healthcare",
+                                HEALTHCARE,
                                 "health care",
                                 "medical care",
                                 "health service",
@@ -1141,23 +1223,23 @@ public class SemanticMatchingService {
                                 "safeway pharmacy",
                                 "costco pharmacy",
                                 "emergency",
-                                "urgent care",
+                                URGENT_CARE,
                                 "cvs pharmacy",
                                 "cvs pharmacy store",
                                 "cvs pharmacy store and clinic",
                                 "cvs pharmacy store and clinic",
                                 "target pharmacy",
                                 "emergency",
-                                "urgent care",
+                                URGENT_CARE,
                                 "emergency care",
-                                "medical",
+                                MEDICAL,
                                 "chiropractor",
                                 "orthodontist",
                                 "optometrist",
                                 "optician",
                                 "optical goods",
                                 "eyeglasses",
-                                "clinic",
+                                CLINIC,
                                 "Kaiser",
                                 "Overlake",
                                 "Seattle Children's",
@@ -1183,7 +1265,7 @@ public class SemanticMatchingService {
                                 "mcc 8062",
                                 "mcc8062" // Hospitals
                         ));
-        categorySemanticClusters.put("healthcare", healthcare);
+        categorySemanticClusters.put(HEALTHCARE, healthcare);
 
         // Insurance cluster - NEW
         final Set<String> insurance =
@@ -1270,7 +1352,7 @@ public class SemanticMatchingService {
         final Set<String> income =
                 new HashSet<>(
                         Arrays.asList(
-                                "income",
+                                INCOME,
                                 "salary",
                                 "payroll",
                                 "paycheck",
@@ -1278,7 +1360,7 @@ public class SemanticMatchingService {
                                 "wages",
                                 "earnings",
                                 "pay",
-                                "payment",
+                                PAYMENT,
                                 "compensation",
                                 "remuneration",
                                 "stipend",
@@ -1407,13 +1489,13 @@ public class SemanticMatchingService {
                         // Major Employers (Fortune 500)
 
                         ));
-        categorySemanticClusters.put("income", income);
+        categorySemanticClusters.put(INCOME, income);
 
         // Deposit cluster - EXPANDED (includes BAI2 deposit codes, ISO 20022, ACH)
         final Set<String> deposit =
                 new HashSet<>(
                         Arrays.asList(
-                                "deposit",
+                                DEPOSIT,
                                 "deposits",
                                 "deposited",
                                 "depositing",
@@ -1492,15 +1574,15 @@ public class SemanticMatchingService {
                                 "ach 21",
                                 "ach 31",
                                 "ach 41"));
-        categorySemanticClusters.put("deposit", deposit);
+        categorySemanticClusters.put(DEPOSIT, deposit);
 
         // Shopping cluster - EXPANDED (includes clothing/apparel)
         final Set<String> shopping =
                 new HashSet<>(
                         Arrays.asList(
-                                "shopping",
+                                SHOPPING,
                                 "retail",
-                                "store",
+                                STORE,
                                 "shop",
                                 "merchandise",
                                 "purchase",
@@ -1532,20 +1614,20 @@ public class SemanticMatchingService {
                                 "garment",
                                 "attire",
                                 "wardrobe"));
-        categorySemanticClusters.put("shopping", shopping);
+        categorySemanticClusters.put(SHOPPING, shopping);
 
         // Entertainment cluster - EXPANDED (includes streaming services and MCC codes)
         final Set<String> entertainment =
                 new HashSet<>(
                         Arrays.asList(
-                                "entertainment",
+                                ENTERTAINMENT,
                                 "movie",
                                 "cinema",
                                 "theater",
                                 "theatre",
                                 "film",
                                 "streaming",
-                                "netflix",
+                                NETFLIX,
                                 "hulu",
                                 "huluplus",
                                 "hulu plus",
@@ -1591,27 +1673,27 @@ public class SemanticMatchingService {
                                 "mcc 7922",
                                 "mcc7922" // Theatrical Producers and Ticket Agencies
                         ));
-        categorySemanticClusters.put("entertainment", entertainment);
+        categorySemanticClusters.put(ENTERTAINMENT, entertainment);
 
         // Subscriptions cluster - NEW (separate from entertainment for better categorization)
         final Set<String> subscriptions =
                 new HashSet<>(
                         Arrays.asList(
                                 "subscription",
-                                "subscriptions",
+                                SUBSCRIPTIONS,
                                 "recurring",
                                 "monthly subscription",
                                 "annual subscription",
                                 "yearly subscription",
                                 "premium",
                                 "premium membership",
-                                "netflix",
+                                NETFLIX,
                                 "hulu",
                                 "disney+",
                                 "disney plus",
                                 "amazon prime",
                                 "prime video",
-                                "netflix",
+                                NETFLIX,
                                 "subscription", // Test case: "NETFLIX" with "Subscription"
                                 "spotify",
                                 "apple music",
@@ -1686,34 +1768,34 @@ public class SemanticMatchingService {
                                 "chicago tribune",
                                 "boston globe",
                                 "the boston globe"));
-        categorySemanticClusters.put("subscriptions", subscriptions);
+        categorySemanticClusters.put(SUBSCRIPTIONS, subscriptions);
 
         // Payment cluster - EXPANDED (includes credit card payments, loan payments, ACH SEC codes,
         // IRS tax payments, GAAP expenses)
         final Set<String> payment =
                 new HashSet<>(
                         Arrays.asList(
-                                "payment",
+                                PAYMENT,
                                 "pay",
                                 "paying",
-                                "autopay",
-                                "auto pay",
+                                AUTOPAY,
+                                AUTO_PAY,
                                 "auto-pay",
                                 "automatic payment",
-                                "bill payment",
-                                "billpay",
-                                "bill pay",
+                                BILL_PAYMENT,
+                                BILLPAY,
+                                BILL_PAY,
                                 "credit card payment",
                                 "card payment",
-                                "card pay",
+                                CARD_PAY,
                                 "credit payment",
-                                "loan payment",
+                                LOAN_PAYMENT,
                                 "loan pay",
                                 "debt payment",
                                 "debt pay",
                                 "installment",
                                 "installment payment",
-                                "monthly payment",
+                                MONTHLY_PAYMENT,
                                 "e-payment",
                                 "e payment",
                                 "electronic payment",
@@ -1721,7 +1803,7 @@ public class SemanticMatchingService {
                                 "payment processing",
                                 "payment service",
                                 "payment gateway",
-                                "credit card autopay",
+                                CREDIT_CARD_AUTOPAY,
                                 "card autopay",
                                 "credit autopay",
                                 "loan autopay",
@@ -1808,7 +1890,7 @@ public class SemanticMatchingService {
                                 "gaap accrued expenses",
                                 "gaap long-term debt",
                                 "gaap prepaid expenses"));
-        categorySemanticClusters.put("payment", payment);
+        categorySemanticClusters.put(PAYMENT, payment);
 
         // Credit Card Payment cluster - NEW (specific for credit card payments)
         final Set<String> creditCardPayment =
@@ -1820,9 +1902,9 @@ public class SemanticMatchingService {
                                 "card payment",
                                 "credit card payment",
                                 "credit payment",
-                                "card pay",
+                                CARD_PAY,
                                 "credit pay",
-                                "credit card autopay",
+                                CREDIT_CARD_AUTOPAY,
                                 "card autopay",
                                 "credit autopay",
                                 "credit card auto pay",
@@ -1841,7 +1923,7 @@ public class SemanticMatchingService {
                                 "card balance",
                                 "credit balance",
                                 "credit card pay",
-                                "card pay",
+                                CARD_PAY,
                                 "credit pay",
                                 "citi autopay",
                                 "chase credit",
@@ -1852,8 +1934,8 @@ public class SemanticMatchingService {
                                 "citi",
                                 "citi credit",
                                 "chase credit",
-                                "auto pay",
-                                "autopay", // Test case: "CHASE CREDIT" with "Auto Pay"
+                                AUTO_PAY,
+                                AUTOPAY, // Test case: "CHASE CREDIT" with "Auto Pay"
                                 "discover payment",
                                 "amex payment",
                                 "american express payment",
@@ -1877,14 +1959,14 @@ public class SemanticMatchingService {
                                 "amz credit card payment"));
         // CRITICAL FIX: Merge with payment instead of overwriting
         payment.addAll(creditCardPayment);
-        categorySemanticClusters.put("payment", payment);
+        categorySemanticClusters.put(PAYMENT, payment);
 
         // Loan Payment cluster - NEW
         final Set<String> loanPayment =
                 new HashSet<>(
                         Arrays.asList(
                                 "loan",
-                                "loan payment",
+                                LOAN_PAYMENT,
                                 "loan pay",
                                 "loan repayment",
                                 "loan repay",
@@ -1893,7 +1975,7 @@ public class SemanticMatchingService {
                                 "debt pay",
                                 "debt repayment",
                                 "debt repay",
-                                "mortgage",
+                                MORTGAGE,
                                 "mortgage payment",
                                 "mortgage pay",
                                 "mortgage repay",
@@ -1903,7 +1985,7 @@ public class SemanticMatchingService {
                                 "car payment",
                                 "auto payment",
                                 "car loan",
-                                "monthly payment", // Test case: "CAR LOAN" with "Monthly Payment"
+                                MONTHLY_PAYMENT, // Test case: "CAR LOAN" with "Monthly Payment"
                                 "student loan",
                                 "student loan payment",
                                 "education loan",
@@ -1925,7 +2007,7 @@ public class SemanticMatchingService {
                                 "debt service",
                                 "loan provider",
                                 "debt provider",
-                                "loan payment",
+                                LOAN_PAYMENT,
                                 "loan repayment", // Test case: "Loan Payment"
                                 "citi autopay payment",
                                 "citi autopay",
@@ -1933,16 +2015,16 @@ public class SemanticMatchingService {
                                 "citi",
                                 "chase autopay",
                                 "bank autopay",
-                                "credit card autopay"));
+                                CREDIT_CARD_AUTOPAY));
         // CRITICAL FIX: Merge with payment instead of overwriting
         payment.addAll(loanPayment);
-        categorySemanticClusters.put("payment", payment);
+        categorySemanticClusters.put(PAYMENT, payment);
 
         // Investment cluster - NEW (comprehensive)
         final Set<String> investment =
                 new HashSet<>(
                         Arrays.asList(
-                                "investment",
+                                INVESTMENT,
                                 "invest",
                                 "investing",
                                 "invested",
@@ -1961,7 +2043,7 @@ public class SemanticMatchingService {
                                 "trade",
                                 "trader",
                                 "trading account",
-                                "brokerage",
+                                BROKERAGE,
                                 "broker",
                                 "brokerage account",
                                 "investment account",
@@ -2045,7 +2127,7 @@ public class SemanticMatchingService {
                                 "investment return",
                                 "return on investment",
                                 "roi"));
-        categorySemanticClusters.put("investment", investment);
+        categorySemanticClusters.put(INVESTMENT, investment);
 
         // Stocks cluster - EXPANDED (merged with investment)
         // Add stock keywords to investment cluster
@@ -2090,7 +2172,7 @@ public class SemanticMatchingService {
                         "stock dividend",
                         "equity dividend",
                         "share dividend"));
-        categorySemanticClusters.put("investment", investment);
+        categorySemanticClusters.put(INVESTMENT, investment);
 
         // Bill Pay cluster - EXPANDED (merged with utilities for bill payments)
         // Add bill pay keywords to utilities cluster
@@ -2098,9 +2180,9 @@ public class SemanticMatchingService {
                 Arrays.asList(
                         "bill",
                         "bills",
-                        "bill payment",
-                        "bill pay",
-                        "billpay",
+                        BILL_PAYMENT,
+                        BILL_PAY,
+                        BILLPAY,
                         "billpaying",
                         "bill payment service",
                         "bill pay service",
@@ -2117,9 +2199,9 @@ public class SemanticMatchingService {
                         "utility bill",
                         "utility bill pay",
                         "utility bill payment",
-                        "electric bill",
-                        "water bill",
-                        "gas bill",
+                        ELECTRIC_BILL,
+                        WATER_BILL,
+                        GAS_BILL,
                         "phone bill",
                         "internet bill",
                         "cable bill",
@@ -2137,13 +2219,13 @@ public class SemanticMatchingService {
                         "bill due",
                         "bill statement",
                         "bill invoice"));
-        categorySemanticClusters.put("utilities", utilities);
+        categorySemanticClusters.put(UTILITIES, utilities);
 
         // Store cluster - EXPANDED (merged with shopping)
         // Add store keywords to shopping cluster
         shopping.addAll(
                 Arrays.asList(
-                        "store",
+                        STORE,
                         "stores",
                         "shop",
                         "shops",
@@ -2181,7 +2263,7 @@ public class SemanticMatchingService {
                         "sportsequipment",
                         "outdoor gear",
                         "outdoorgear"));
-        categorySemanticClusters.put("shopping", shopping);
+        categorySemanticClusters.put(SHOPPING, shopping);
 
         // Transfer cluster - NEW
         // Transfer cluster - COMPREHENSIVE (includes ISO 20022, SWIFT, ACH SEC, IBAN/SEPA,
@@ -2189,7 +2271,7 @@ public class SemanticMatchingService {
         final Set<String> transfer =
                 new HashSet<>(
                         Arrays.asList(
-                                "transfer",
+                                TRANSFER,
                                 "transfers",
                                 "transferring",
                                 "transferred",
@@ -2391,7 +2473,7 @@ public class SemanticMatchingService {
                                 "mcc6012",
                                 "mcc 6010",
                                 "mcc6010"));
-        categorySemanticClusters.put("transfer", transfer);
+        categorySemanticClusters.put(TRANSFER, transfer);
 
         // Cash cluster - NEW
         final Set<String> cash =
@@ -2482,7 +2564,7 @@ public class SemanticMatchingService {
                                 "crunch fitness",
                                 "anytime fitness",
                                 "orange theory",
-                                "crossfit",
+                                CROSSFIT,
                                 "beauty salon",
                                 "beautysalon",
                                 "beauty parlor",
@@ -2543,13 +2625,13 @@ public class SemanticMatchingService {
                                 "baseball",
                                 "swimming",
                                 "yoga",
-                                "pilates",
-                                "martial arts",
+                                PILATES,
+                                MARTIAL_ARTS,
                                 "ski resort",
                                 "ski",
                                 "summit at snoqualmie",
-                                "badminton",
-                                "seattle badminton club",
+                                BADMINTON,
+                                SEATTLE_BADMINTON_CLUB,
                                 // Health and Fitness Facilities
                                 "health club",
                                 "fitness club",
@@ -2561,18 +2643,18 @@ public class SemanticMatchingService {
                                 "health center",
                                 "wellness center",
                                 "recreation center",
-                                "badminton",
+                                BADMINTON,
                                 "badminton club",
-                                "seattle badminton club",
+                                SEATTLE_BADMINTON_CLUB,
                                 "tennis club",
                                 "swimming club",
                                 "yoga",
                                 "yoga studio",
-                                "pilates",
+                                PILATES,
                                 "pilates studio",
-                                "crossfit",
+                                CROSSFIT,
                                 "crossfit gym",
-                                "martial arts",
+                                MARTIAL_ARTS,
                                 "karate",
                                 "judo",
                                 "taekwondo",
@@ -2592,22 +2674,22 @@ public class SemanticMatchingService {
                                 "baseball",
                                 "swimming",
                                 "yoga",
-                                "pilates",
-                                "martial arts",
+                                PILATES,
+                                MARTIAL_ARTS,
                                 "ski resort",
                                 "ski",
                                 "summit at snoqualmie",
-                                "badminton",
-                                "seattle badminton club",
+                                BADMINTON,
+                                SEATTLE_BADMINTON_CLUB,
                                 "tennis club",
                                 "swimming club",
                                 "yoga",
                                 "yoga studio",
-                                "pilates",
+                                PILATES,
                                 "pilates studio",
-                                "crossfit",
+                                CROSSFIT,
                                 "crossfit gym",
-                                "martial arts",
+                                MARTIAL_ARTS,
                                 "karate",
                                 "judo",
                                 "taekwondo",
@@ -2619,7 +2701,7 @@ public class SemanticMatchingService {
                                 "sports facility",
                                 "athletic facility",
                                 "fitness facility"));
-        categorySemanticClusters.put("health", health);
+        categorySemanticClusters.put(HEALTH, health);
 
         // Charity cluster - NEW (donations, NOT schools - schools are education)
         // CRITICAL FIX: Schools (middle school, high school, elementary, etc.) are now EDUCATION,
@@ -2650,7 +2732,7 @@ public class SemanticMatchingService {
                                 "checks",
                                 "cheque",
                                 "cheques",
-                                "check payment",
+                                CHECK_PAYMENT,
                                 "check pay",
                                 "check number",
                                 "check #",
@@ -2659,16 +2741,16 @@ public class SemanticMatchingService {
                                 "written check",
                                 "check written",
                                 "check issued",
-                                "check payment",
+                                CHECK_PAYMENT,
                                 "check transaction",
                                 "check purchase",
-                                "check payment",
+                                CHECK_PAYMENT,
                                 "check deposit",
                                 "check cashing",
                                 "check clearing"));
         // CRITICAL FIX: Merge with payment instead of overwriting
         payment.addAll(check);
-        categorySemanticClusters.put("payment", payment);
+        categorySemanticClusters.put(PAYMENT, payment);
 
         LOGGER.info(
                 "Initialized semantic clusters for {} categories with comprehensive financial mappings",
@@ -2818,7 +2900,7 @@ public class SemanticMatchingService {
                     || combinedTextUpper.contains(" TST ")) {
                 LOGGER.debug(
                         "POS code detected: TST* (Toast) - categorizing as dining with high confidence");
-                return new SemanticMatchResult("dining", 0.95, "POS_CODE_TST");
+                return new SemanticMatchResult(DINING, 0.95, "POS_CODE_TST");
             }
             if (combinedTextUpper.startsWith("SQ*")
                     || combinedTextUpper.startsWith("SQ ")
@@ -2837,7 +2919,7 @@ public class SemanticMatchingService {
                 if (!isNonDiningSquare) {
                     LOGGER.debug(
                             "POS code detected: SQ* (Square) - defaulting to dining with high confidence");
-                    return new SemanticMatchResult("dining", 0.90, "POS_CODE_SQ");
+                    return new SemanticMatchResult(DINING, 0.90, "POS_CODE_SQ");
                 } else {
                     LOGGER.debug(
                             "POS code detected: SQ* (Square) but non-dining indicators found - skipping POS code match");
@@ -2966,16 +3048,16 @@ public class SemanticMatchingService {
 
                 // ACH payments are typically bill payments, utilities, or transfers
                 if (channelLower.contains("ach")) {
-                    if ("utilities".equals(category)
-                            || "payment".equals(category)
-                            || "transfer".equals(category)) {
+                    if (UTILITIES.equals(category)
+                            || PAYMENT.equals(category)
+                            || TRANSFER.equals(category)) {
                         boost += 0.15; // Strong boost for ACH + utilities/payment
                     }
                     // ACH with positive amount might be deposit/income
                     if (amount != null && amount.compareTo(java.math.BigDecimal.ZERO) > 0) {
-                        if ("deposit".equals(category)
-                                || "income".equals(category)
-                                || "investment".equals(category)) {
+                        if (DEPOSIT.equals(category)
+                                || INCOME.equals(category)
+                                || INVESTMENT.equals(category)) {
                             boost += 0.10; // Boost for ACH credit
                         }
                     }
@@ -2983,9 +3065,9 @@ public class SemanticMatchingService {
 
                 // POS (Point of Sale) is typically shopping, dining, groceries
                 if (channelLower.contains("pos") || channelLower.contains("point of sale")) {
-                    if ("shopping".equals(category)
-                            || "dining".equals(category)
-                            || "groceries".equals(category)) {
+                    if (SHOPPING.equals(category)
+                            || DINING.equals(category)
+                            || GROCERIES.equals(category)) {
                         boost += 0.12; // Boost for POS + shopping/dining
                     }
                 }
@@ -2993,10 +3075,10 @@ public class SemanticMatchingService {
                 // Online payments might be subscriptions, shopping, entertainment
                 if (channelLower.contains("online")) {
                     // Prioritize subscriptions and entertainment for online payments
-                    if ("subscriptions".equals(category) || "entertainment".equals(category)) {
+                    if (SUBSCRIPTIONS.equals(category) || ENTERTAINMENT.equals(category)) {
                         boost += 0.35; // Very strong boost for subscriptions/entertainment
                         // (increased from 0.25) to ensure similarity >= 0.6
-                    } else if ("shopping".equals(category)) {
+                    } else if (SHOPPING.equals(category)) {
                         boost += 0.10; // Moderate boost for shopping
                     }
                 }
@@ -3007,22 +3089,22 @@ public class SemanticMatchingService {
                 final String accountTypeLower = accountType.toLowerCase(Locale.ROOT);
 
                 // Investment accounts → boost investment category
-                if (accountTypeLower.contains("investment")
-                        || accountTypeLower.contains("brokerage")
+                if (accountTypeLower.contains(INVESTMENT)
+                        || accountTypeLower.contains(BROKERAGE)
                         || accountTypeLower.contains("retirement")
                         || accountTypeLower.contains("ira")
                         || accountTypeLower.contains("401k")
                         || accountTypeLower.contains("403b")) {
-                    if ("investment".equals(category)) {
+                    if (INVESTMENT.equals(category)) {
                         boost += 0.20; // Strong boost for investment account
                     }
                 }
 
                 // Loan/credit accounts → boost payment category
                 if (accountTypeLower.contains("loan")
-                        || accountTypeLower.contains("credit")
-                        || accountTypeLower.contains("mortgage")) {
-                    if ("payment".equals(category)) {
+                        || accountTypeLower.contains(CREDIT)
+                        || accountTypeLower.contains(MORTGAGE)) {
+                    if (PAYMENT.equals(category)) {
                         boost += 0.40; // Extremely strong boost for loan/credit account (increased
                         // from 0.25) to override other matches
                     }
@@ -3033,10 +3115,10 @@ public class SemanticMatchingService {
                         || accountTypeLower.contains("savings")
                         || accountTypeLower.contains("depository")) {
                     // No specific boost, but don't penalize common categories
-                    if ("utilities".equals(category)
-                            || "groceries".equals(category)
-                            || "dining".equals(category)
-                            || "shopping".equals(category)) {
+                    if (UTILITIES.equals(category)
+                            || GROCERIES.equals(category)
+                            || DINING.equals(category)
+                            || SHOPPING.equals(category)) {
                         boost += 0.05; // Small boost for common categories
                     }
                 }
@@ -3046,7 +3128,7 @@ public class SemanticMatchingService {
             if (amount != null) {
                 // Large positive amounts might be investment, income, or large purchases
                 if (amount.compareTo(java.math.BigDecimal.valueOf(1000)) > 0) {
-                    if ("investment".equals(category) || "income".equals(category)) {
+                    if (INVESTMENT.equals(category) || INCOME.equals(category)) {
                         boost += 0.10; // Boost for large positive amounts
                     }
                 }
@@ -3054,9 +3136,9 @@ public class SemanticMatchingService {
                 // Small amounts are typically groceries, dining, small purchases
                 if (amount.compareTo(java.math.BigDecimal.valueOf(100)) < 0
                         && amount.compareTo(java.math.BigDecimal.ZERO) < 0) {
-                    if ("groceries".equals(category)
-                            || "dining".equals(category)
-                            || "shopping".equals(category)) {
+                    if (GROCERIES.equals(category)
+                            || DINING.equals(category)
+                            || SHOPPING.equals(category)) {
                         boost += 0.08; // Boost for small amounts
                     }
                 }
@@ -3065,12 +3147,12 @@ public class SemanticMatchingService {
                 if (amount.compareTo(java.math.BigDecimal.valueOf(10)) < 0
                         && amount.compareTo(java.math.BigDecimal.ZERO) < 0) {
                     // Prioritize dining for very small amounts (coffee, snacks)
-                    if ("dining".equals(category)) {
+                    if (DINING.equals(category)) {
                         boost += 0.30; // Very strong boost for very small amounts → dining
                         // (prioritize over shopping)
-                    } else if ("groceries".equals(category)) {
+                    } else if (GROCERIES.equals(category)) {
                         boost += 0.15; // Moderate boost for groceries
-                    } else if ("shopping".equals(category)) {
+                    } else if (SHOPPING.equals(category)) {
                         boost += 0.05; // Small boost for shopping (lower priority for very small
                         // amounts)
                     }
@@ -3086,14 +3168,14 @@ public class SemanticMatchingService {
                         || subtypeLower.contains("certificate")
                         || subtypeLower.contains("money market")
                         || subtypeLower.contains("money_market")) {
-                    if ("investment".equals(category)) {
+                    if (INVESTMENT.equals(category)) {
                         boost += 0.15; // Boost for CD/money market
                     }
                 }
 
                 // Credit card subtypes → payment
-                if (subtypeLower.contains("credit") || subtypeLower.contains("card")) {
-                    if ("payment".equals(category)) {
+                if (subtypeLower.contains(CREDIT) || subtypeLower.contains("card")) {
+                    if (PAYMENT.equals(category)) {
                         boost += 0.35; // Very strong boost for credit card subtype (increased from
                         // 0.20+0.12) to override other matches
                     }
@@ -3112,28 +3194,6 @@ public class SemanticMatchingService {
         }
 
         return boost;
-    }
-
-    /** Build context info string for logging */
-    private String buildContextInfo(
-            final java.math.BigDecimal amount, final String paymentChannel, final String accountType) {
-        final StringBuilder info = new StringBuilder();
-        if (amount != null) {
-            info.append("amount=").append(amount);
-        }
-        if (paymentChannel != null) {
-            if (info.length() > 0) {
-                info.append(", ");
-            }
-            info.append("channel=").append(paymentChannel);
-        }
-        if (accountType != null) {
-            if (info.length() > 0) {
-                info.append(", ");
-            }
-            info.append("account=").append(accountType);
-        }
-        return info.length() > 0 ? info.toString() : "none";
     }
 
     /**
@@ -3693,23 +3753,23 @@ public class SemanticMatchingService {
     /** Phrases that unambiguously indicate a payment-action verb in the text. */
     private static final Set<String> PAYMENT_ACTION_PHRASES =
             Set.of(
-                    "auto pay",
-                    "autopay",
+                    AUTO_PAY,
+                    AUTOPAY,
                     "auto-pay",
-                    "bill payment",
-                    "bill pay",
-                    "monthly payment",
+                    BILL_PAYMENT,
+                    BILL_PAY,
+                    MONTHLY_PAYMENT,
                     "direct debit",
                     "pmt");
 
     /** Account-type keyword sets grouped by the category they resolve to. */
     private static final Set<String> INVESTMENT_ACCOUNT_KEYWORDS =
-            Set.of("investment", "brokerage", "ira", "401k", "cd");
+            Set.of(INVESTMENT, BROKERAGE, "ira", "401k", "cd");
 
     private static final Set<String> LOAN_ACCOUNT_KEYWORDS =
-            Set.of("loan", "mortgage");
+            Set.of("loan", MORTGAGE);
     private static final Set<String> CREDIT_ACCOUNT_KEYWORDS =
-            Set.of("credit", "credit card");
+            Set.of(CREDIT, "credit card");
 
     /** Merchant archetype keyword groups. */
     private static final Set<String> GROCERY_KEYWORDS =
@@ -3728,8 +3788,8 @@ public class SemanticMatchingService {
                     "cafe",
                     "restaurant",
                     "diner",
-                    "fast food",
-                    "dining",
+                    FAST_FOOD,
+                    DINING,
                     "takeout",
                     "take out",
                     "delivery meal",
@@ -3746,22 +3806,22 @@ public class SemanticMatchingService {
                     "rideshare",
                     "ride share",
                     "transit",
-                    "subway");
+                    SUBWAY);
     private static final Set<String> HEALTH_KEYWORDS =
             Set.of(
                     "pharmacy",
                     "drug store",
                     "doctor",
                     "hospital",
-                    "medical",
-                    "clinic",
+                    MEDICAL,
+                    CLINIC,
                     "dentist",
-                    "urgent care");
+                    URGENT_CARE);
     private static final Set<String> UTILITIES_KEYWORDS =
             Set.of(
-                    "electric bill",
-                    "water bill",
-                    "gas bill",
+                    ELECTRIC_BILL,
+                    WATER_BILL,
+                    GAS_BILL,
                     "internet bill",
                     "cable bill",
                     "phone bill",
@@ -3785,12 +3845,12 @@ public class SemanticMatchingService {
                     // --- Account type ----------------------------------------------------
                     new ContextRule(
                             "CONTEXT_INVESTMENT",
-                            "investment",
+                            INVESTMENT,
                             0.70,
                             ctx -> ctx.accountMatchesAny(INVESTMENT_ACCOUNT_KEYWORDS)),
                     new ContextRule(
                             "CONTEXT_LOAN",
-                            "payment",
+                            PAYMENT,
                             0.70,
                             ctx -> ctx.accountMatchesAny(LOAN_ACCOUNT_KEYWORDS)),
                     // Credit-card account only yields "payment" when the text also
@@ -3798,7 +3858,7 @@ public class SemanticMatchingService {
                     // any category, so we don't force "payment" on all of them.
                     new ContextRule(
                             "CONTEXT_CREDIT_PAYMENT",
-                            "payment",
+                            PAYMENT,
                             0.70,
                             ctx ->
                                     ctx.accountMatchesAny(CREDIT_ACCOUNT_KEYWORDS)
@@ -3807,14 +3867,14 @@ public class SemanticMatchingService {
                     // --- Explicit payment phrase (any account) --------------------------
                     new ContextRule(
                             "CONTEXT_PAYMENT_PHRASE",
-                            "payment",
+                            PAYMENT,
                             0.65,
                             SemanticMatchingService::hasPaymentPhrase),
 
                     // --- Payment channel + amount ---------------------------------------
                     new ContextRule(
                             "CONTEXT_POS_SMALL",
-                            "dining",
+                            DINING,
                             0.65,
                             ctx ->
                                     ("pos".equals(ctx.channelLower)
@@ -3828,26 +3888,26 @@ public class SemanticMatchingService {
                                                     < 0),
                     new ContextRule(
                             "CONTEXT_ACH",
-                            "utilities",
+                            UTILITIES,
                             0.65,
                             ctx -> "ach".equals(ctx.channelLower)),
                     new ContextRule(
                             "CONTEXT_POS",
-                            "shopping",
+                            SHOPPING,
                             0.60,
                             ctx ->
                                     "pos".equals(ctx.channelLower)
                                             || "in_store".equals(ctx.channelLower)),
                     new ContextRule(
                             "CONTEXT_ONLINE",
-                            "subscriptions",
+                            SUBSCRIPTIONS,
                             0.60,
                             ctx -> "online".equals(ctx.channelLower)),
 
                     // --- Amount-magnitude heuristics ------------------------------------
                     new ContextRule(
                             "CONTEXT_LARGE_POSITIVE",
-                            "deposit",
+                            DEPOSIT,
                             0.65,
                             ctx ->
                                     ctx.amount != null
@@ -3871,12 +3931,12 @@ public class SemanticMatchingService {
                     // --- Merchant keyword archetypes ------------------------------------
                     new ContextRule(
                             "CONTEXT_GROCERY_KEYWORD",
-                            "groceries",
+                            GROCERIES,
                             0.65,
                             ctx -> ctx.textContainsAny(GROCERY_KEYWORDS)),
                     new ContextRule(
                             "CONTEXT_DINING_KEYWORD",
-                            "dining",
+                            DINING,
                             0.65,
                             ctx -> ctx.textContainsAny(DINING_KEYWORDS)),
                     new ContextRule(
@@ -3886,12 +3946,12 @@ public class SemanticMatchingService {
                             ctx -> ctx.textContainsAny(TRANSPORT_KEYWORDS)),
                     new ContextRule(
                             "CONTEXT_HEALTH_KEYWORD",
-                            "health",
+                            HEALTH,
                             0.65,
                             ctx -> ctx.textContainsAny(HEALTH_KEYWORDS)),
                     new ContextRule(
                             "CONTEXT_UTILITIES_KEYWORD",
-                            "utilities",
+                            UTILITIES,
                             0.65,
                             ctx -> ctx.textContainsAny(UTILITIES_KEYWORDS)));
 }

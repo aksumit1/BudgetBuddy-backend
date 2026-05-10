@@ -42,6 +42,14 @@ import org.springframework.stereotype.Service;
 @Service
 public class AuthService {
 
+    private static final String ACCOUNT_IS_DISABLED = "Account is disabled";
+
+    private static final String INVALID_EMAIL_OR_PASSWORD = "Invalid email or password";
+
+    private static final String ROLE = "ROLE_";
+
+    private static final String ROLE_USER = "ROLE_USER";
+
     private static final Logger LOGGER = LoggerFactory.getLogger(AuthService.class);
 
     private final JwtTokenProvider tokenProvider;
@@ -78,10 +86,10 @@ public class AuthService {
                                 () ->
                                         new AppException(
                                                 ErrorCode.INVALID_CREDENTIALS,
-                                                "Invalid email or password"));
+                                                INVALID_EMAIL_OR_PASSWORD));
 
         if (user.getEnabled() == null || !user.getEnabled()) {
-            throw new AppException(ErrorCode.ACCOUNT_DISABLED, "Account is disabled");
+            throw new AppException(ErrorCode.ACCOUNT_DISABLED, ACCOUNT_IS_DISABLED);
         }
 
         // Authenticate based on format
@@ -92,7 +100,7 @@ public class AuthService {
             if (user.getPasswordHash() == null || user.getPasswordHash().isEmpty()) {
                 LOGGER.warn(
                         "User {} has no password hash stored. Legacy account?", request.getEmail());
-                throw new AppException(ErrorCode.INVALID_CREDENTIALS, "Invalid email or password");
+                throw new AppException(ErrorCode.INVALID_CREDENTIALS, INVALID_EMAIL_OR_PASSWORD);
             }
 
             // Get server salt from user (stored during registration)
@@ -101,7 +109,7 @@ public class AuthService {
                 LOGGER.warn(
                         "User {} has no server salt. Account may need password reset.",
                         request.getEmail());
-                throw new AppException(ErrorCode.INVALID_CREDENTIALS, "Invalid email or password");
+                throw new AppException(ErrorCode.INVALID_CREDENTIALS, INVALID_EMAIL_OR_PASSWORD);
             }
 
             // Validate that client hash is provided
@@ -144,7 +152,7 @@ public class AuthService {
 
         if (!authenticated) {
             LOGGER.warn("Authentication failed for user: {}", request.getEmail());
-            throw new AppException(ErrorCode.INVALID_CREDENTIALS, "Invalid email or password");
+            throw new AppException(ErrorCode.INVALID_CREDENTIALS, INVALID_EMAIL_OR_PASSWORD);
         }
 
         // Create UserDetails object for token generation
@@ -154,10 +162,10 @@ public class AuthService {
         if (roles != null && !roles.isEmpty()) {
             authorities =
                     roles.stream()
-                            .map(role -> new SimpleGrantedAuthority("ROLE_" + role.toUpperCase(Locale.ROOT)))
+                            .map(role -> new SimpleGrantedAuthority(ROLE + role.toUpperCase(Locale.ROOT)))
                             .collect(java.util.stream.Collectors.toList());
         } else {
-            authorities = Collections.singletonList(new SimpleGrantedAuthority("ROLE_USER"));
+            authorities = Collections.singletonList(new SimpleGrantedAuthority(ROLE_USER));
         }
 
         // Create UserDetails object for JWT token generation
@@ -248,7 +256,7 @@ public class AuthService {
                                                 ErrorCode.INVALID_CREDENTIALS, "User not found"));
 
         if (user.getEnabled() == null || !user.getEnabled()) {
-            throw new AppException(ErrorCode.ACCOUNT_DISABLED, "Account is disabled");
+            throw new AppException(ErrorCode.ACCOUNT_DISABLED, ACCOUNT_IS_DISABLED);
         }
 
         // Verify password hash (same logic as authenticate, but without challenge verification)
@@ -272,10 +280,10 @@ public class AuthService {
         if (roles != null && !roles.isEmpty()) {
             authorities =
                     roles.stream()
-                            .map(role -> new SimpleGrantedAuthority("ROLE_" + role.toUpperCase(Locale.ROOT)))
+                            .map(role -> new SimpleGrantedAuthority(ROLE + role.toUpperCase(Locale.ROOT)))
                             .collect(java.util.stream.Collectors.toList());
         } else {
-            authorities = Collections.singletonList(new SimpleGrantedAuthority("ROLE_USER"));
+            authorities = Collections.singletonList(new SimpleGrantedAuthority(ROLE_USER));
         }
 
         final org.springframework.security.core.userdetails.UserDetails userDetails =
@@ -358,7 +366,7 @@ public class AuthService {
 
         if (user.getEnabled() == null || !user.getEnabled()) {
             LOGGER.warn("Account disabled for user: {}", email);
-            throw new AppException(ErrorCode.ACCOUNT_DISABLED, "Account is disabled");
+            throw new AppException(ErrorCode.ACCOUNT_DISABLED, ACCOUNT_IS_DISABLED);
         }
 
         // Get user roles from UserTable
@@ -367,10 +375,10 @@ public class AuthService {
         if (roles != null && !roles.isEmpty()) {
             authorities =
                     roles.stream()
-                            .map(role -> new SimpleGrantedAuthority("ROLE_" + role.toUpperCase(Locale.ROOT)))
+                            .map(role -> new SimpleGrantedAuthority(ROLE + role.toUpperCase(Locale.ROOT)))
                             .collect(java.util.stream.Collectors.toList());
         } else {
-            authorities = Collections.singletonList(new SimpleGrantedAuthority("ROLE_USER"));
+            authorities = Collections.singletonList(new SimpleGrantedAuthority(ROLE_USER));
         }
 
         // Generate new tokens (Zero Trust: token rotation)
@@ -435,7 +443,7 @@ public class AuthService {
         }
 
         if (user.getEnabled() == null || !user.getEnabled()) {
-            throw new AppException(ErrorCode.ACCOUNT_DISABLED, "Account is disabled");
+            throw new AppException(ErrorCode.ACCOUNT_DISABLED, ACCOUNT_IS_DISABLED);
         }
 
         // Get user roles from UserTable
@@ -444,10 +452,10 @@ public class AuthService {
         if (roles != null && !roles.isEmpty()) {
             authorities =
                     roles.stream()
-                            .map(role -> new SimpleGrantedAuthority("ROLE_" + role.toUpperCase(Locale.ROOT)))
+                            .map(role -> new SimpleGrantedAuthority(ROLE + role.toUpperCase(Locale.ROOT)))
                             .collect(java.util.stream.Collectors.toList());
         } else {
-            authorities = Collections.singletonList(new SimpleGrantedAuthority("ROLE_USER"));
+            authorities = Collections.singletonList(new SimpleGrantedAuthority(ROLE_USER));
         }
 
         // Create UserDetails object for token generation

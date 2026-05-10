@@ -59,9 +59,15 @@ import org.springframework.stereotype.Service;
 @SuppressFBWarnings(
         value = "EI_EXPOSE_REP2",
         justification = "Spring constructor injection — beans are shared by design")
-@SuppressWarnings({"PMD.LawOfDemeter", "PMD.AvoidCatchingGenericException"})
+@SuppressWarnings({"PMD.LawOfDemeter", "PMD.AvoidCatchingGenericException", "PMD.OnlyOneReturn"})
 @Service
 public class FIDO2Service {
+
+    private static final String USER_ID_IS_REQUIRED = "User ID is required";
+
+    private static final String AUTHENTICATION = "authentication";
+
+    private static final String REGISTRATION = "registration";
 
     private static final Logger LOGGER = LoggerFactory.getLogger(FIDO2Service.class);
 
@@ -118,7 +124,7 @@ public class FIDO2Service {
     public RegistrationChallengeResult generateRegistrationChallenge(
             final String userId, final String username) {
         if (userId == null || userId.isEmpty()) {
-            throw new AppException(ErrorCode.INVALID_INPUT, "User ID is required");
+            throw new AppException(ErrorCode.INVALID_INPUT, USER_ID_IS_REQUIRED);
         }
         if (username == null || username.isEmpty()) {
             throw new AppException(ErrorCode.INVALID_INPUT, "Username is required");
@@ -146,9 +152,9 @@ public class FIDO2Service {
                     new com.budgetbuddy.model.dynamodb.FIDO2ChallengeTable();
             challenge.setChallengeKey(
                     com.budgetbuddy.repository.dynamodb.FIDO2ChallengeRepository
-                            .generateChallengeKey(userId, "registration"));
+                            .generateChallengeKey(userId, REGISTRATION));
             challenge.setChallenge(creationOptions.getChallenge().getBase64Url());
-            challenge.setChallengeType("registration");
+            challenge.setChallengeType(REGISTRATION);
             challenge.setUserId(userId);
             challenge.setExpiresAt(Instant.now().plusSeconds(challengeExpirationSeconds));
             challengeRepository.save(challenge);
@@ -174,7 +180,7 @@ public class FIDO2Service {
      */
     public boolean verifyRegistration(final String userId, final String credentialJson) {
         if (userId == null || userId.isEmpty()) {
-            throw new AppException(ErrorCode.INVALID_INPUT, "User ID is required");
+            throw new AppException(ErrorCode.INVALID_INPUT, USER_ID_IS_REQUIRED);
         }
         if (credentialJson == null || credentialJson.isEmpty()) {
             throw new AppException(ErrorCode.INVALID_INPUT, "Credential JSON is required");
@@ -183,7 +189,7 @@ public class FIDO2Service {
         // Get stored challenge from DynamoDB
         final String challengeKey =
                 com.budgetbuddy.repository.dynamodb.FIDO2ChallengeRepository.generateChallengeKey(
-                        userId, "registration");
+                        userId, REGISTRATION);
         final Optional<com.budgetbuddy.model.dynamodb.FIDO2ChallengeTable> challengeOpt =
                 challengeRepository.findByChallengeKey(challengeKey);
         if (challengeOpt.isEmpty()) {
@@ -292,7 +298,7 @@ public class FIDO2Service {
     /** Generate authentication challenge Returns challenge for passkey authentication */
     public AuthenticationChallengeResult generateAuthenticationChallenge(final String userId) {
         if (userId == null || userId.isEmpty()) {
-            throw new AppException(ErrorCode.INVALID_INPUT, "User ID is required");
+            throw new AppException(ErrorCode.INVALID_INPUT, USER_ID_IS_REQUIRED);
         }
 
         // Check if user has passkeys
@@ -317,13 +323,13 @@ public class FIDO2Service {
                     new com.budgetbuddy.model.dynamodb.FIDO2ChallengeTable();
             challenge.setChallengeKey(
                     com.budgetbuddy.repository.dynamodb.FIDO2ChallengeRepository
-                            .generateChallengeKey(userId, "authentication"));
+                            .generateChallengeKey(userId, AUTHENTICATION));
             challenge.setChallenge(
                     requestOptions
                             .getPublicKeyCredentialRequestOptions()
                             .getChallenge()
                             .getBase64Url());
-            challenge.setChallengeType("authentication");
+            challenge.setChallengeType(AUTHENTICATION);
             challenge.setUserId(userId);
             challenge.setExpiresAt(Instant.now().plusSeconds(challengeExpirationSeconds));
             challengeRepository.save(challenge);
@@ -347,7 +353,7 @@ public class FIDO2Service {
      */
     public boolean verifyAuthentication(final String userId, final String credentialJson) {
         if (userId == null || userId.isEmpty()) {
-            throw new AppException(ErrorCode.INVALID_INPUT, "User ID is required");
+            throw new AppException(ErrorCode.INVALID_INPUT, USER_ID_IS_REQUIRED);
         }
         if (credentialJson == null || credentialJson.isEmpty()) {
             throw new AppException(ErrorCode.INVALID_INPUT, "Credential JSON is required");
@@ -356,7 +362,7 @@ public class FIDO2Service {
         // Get stored challenge from DynamoDB
         final String challengeKey =
                 com.budgetbuddy.repository.dynamodb.FIDO2ChallengeRepository.generateChallengeKey(
-                        userId, "authentication");
+                        userId, AUTHENTICATION);
         final Optional<com.budgetbuddy.model.dynamodb.FIDO2ChallengeTable> challengeOpt =
                 challengeRepository.findByChallengeKey(challengeKey);
         if (challengeOpt.isEmpty()) {
@@ -485,7 +491,7 @@ public class FIDO2Service {
     /** List passkeys for a user */
     public List<PasskeyInfo> listPasskeys(final String userId) {
         if (userId == null || userId.isEmpty()) {
-            throw new AppException(ErrorCode.INVALID_INPUT, "User ID is required");
+            throw new AppException(ErrorCode.INVALID_INPUT, USER_ID_IS_REQUIRED);
         }
 
         final List<com.budgetbuddy.model.dynamodb.FIDO2CredentialTable> credentials =
@@ -512,7 +518,7 @@ public class FIDO2Service {
     /** Delete a passkey */
     public void deletePasskey(final String userId, final String credentialId) {
         if (userId == null || userId.isEmpty()) {
-            throw new AppException(ErrorCode.INVALID_INPUT, "User ID is required");
+            throw new AppException(ErrorCode.INVALID_INPUT, USER_ID_IS_REQUIRED);
         }
         if (credentialId == null || credentialId.isEmpty()) {
             throw new AppException(ErrorCode.INVALID_INPUT, "Credential ID is required");

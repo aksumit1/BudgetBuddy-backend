@@ -41,7 +41,7 @@ import org.springframework.stereotype.Service;
 @SuppressFBWarnings(
         value = "EI_EXPOSE_REP2",
         justification = "Spring constructor injection — beans are shared by design")
-@SuppressWarnings("PMD.AvoidCatchingGenericException")
+@SuppressWarnings({"PMD.AvoidCatchingGenericException", "PMD.OnlyOneReturn"})
 @Service
 public class TransactionTypeCategoryService {
 
@@ -1521,7 +1521,7 @@ public class TransactionTypeCategoryService {
                 null);
     }
 
-    /**
+    /*
      * Applies iOS fallback logic for ACH credits, interest payments, and income category
      * determination. ✅ COMPLETED: iOS fallback logic is now fully consolidated in backend (no
      * longer in iOS)
@@ -1533,14 +1533,14 @@ public class TransactionTypeCategoryService {
      * @return Fallback category if detected, null otherwise
      */
 
-    /** Checks if the category is a specific income category (not generic "income") */
+    /* Checks if the category is a specific income category (not generic "income") */
 
-    /**
+    /*
      * Determines income category from description and merchant name. ✅ COMPLETED: Logic
      * consolidated from iOS BackendModels.determineIncomeCategoryFromDescription()
      */
 
-    /** Reasons about which category is best using rules */
+    /* Reasons about which category is best using rules */
 
     /**
      * Account type information structure for intelligent transaction type and category
@@ -1639,7 +1639,7 @@ public class TransactionTypeCategoryService {
         return new AccountTypeInfo(accountType, accountSubtype);
     }
 
-    /** Gets category hint from account type (enhanced with comprehensive account type detection) */
+    /* Gets category hint from account type (enhanced with comprehensive account type detection) */
 
     /**
      * Checks if a payment is actually a payment (credit card, mortgage, student loan, car loan,
@@ -1986,17 +1986,17 @@ public class TransactionTypeCategoryService {
         return globalFinancialConfig.getDefaultRegion();
     }
 
-    /**
+    /*
      * Helper method to determine if importer category is clearly wrong compared to merchant
      * detection This prevents incorrect overrides when importer is actually correct
      */
 
-    /**
+    /*
      * Helper method to determine if importer category is high-confidence High-confidence categories
      * are from reliable sources (Plaid) or specific categories
      */
 
-    /**
+    /*
      * Detects category from merchant name and description patterns This runs BEFORE trusting
      * importer categories to fix incorrect categorizations
      *

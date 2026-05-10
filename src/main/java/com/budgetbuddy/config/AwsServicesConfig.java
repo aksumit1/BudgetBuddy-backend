@@ -30,7 +30,7 @@ import software.amazon.awssdk.services.secretsmanager.SecretsManagerClient;
 // that can't reasonably be enumerated. Broad catches log + recover (or
 // translate to AppException). Suppress at class level since narrowing
 // here would mean catch (RuntimeException) which PMD flags identically.
-@SuppressWarnings("PMD.AvoidCatchingGenericException")
+@SuppressWarnings({"PMD.AvoidCatchingGenericException", "PMD.OnlyOneReturn"})
 public class AwsServicesConfig {
 
     @Value("${app.aws.region:us-east-1}")

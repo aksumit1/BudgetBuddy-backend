@@ -19,11 +19,18 @@ import org.springframework.stereotype.Service;
 // SpotBugs flags constructor-injected Spring beans as EI_EXPOSE_REP2,
 // but Spring's IoC container intentionally shares the same bean across
 // callers — defensive-copying it would break dependency injection.
+// PMD's OnlyOneReturn fights guard-clause idiom — the codebase intentionally
+// uses early returns for clarity (validation guards, fail-fast patterns).
+@SuppressWarnings("PMD.OnlyOneReturn")
 @SuppressFBWarnings(
         value = "EI_EXPOSE_REP2",
         justification = "Spring constructor injection — beans are shared by design")
 @Service
 public class PerformanceMetricsService {
+
+    private static final String ENDPOINT = "endpoint";
+
+    private static final String METHOD = "method";
 
     @SuppressWarnings("unused") // Reserved for future logging
     private static final Logger LOGGER = LoggerFactory.getLogger(PerformanceMetricsService.class);
@@ -69,8 +76,8 @@ public class PerformanceMetricsService {
 
         // Record request by endpoint and method
         Counter.builder("http.requests")
-                .tag("endpoint", sanitizeEndpoint(endpoint))
-                .tag("method", method)
+                .tag(ENDPOINT, sanitizeEndpoint(endpoint))
+                .tag(METHOD, method)
                 .description("Number of requests by endpoint and method")
                 .register(meterRegistry)
                 .increment();
@@ -87,8 +94,8 @@ public class PerformanceMetricsService {
         if (sample != null) {
             final Timer timer =
                     Timer.builder("http.request.duration")
-                            .tag("endpoint", sanitizeEndpoint(endpoint))
-                            .tag("method", method)
+                            .tag(ENDPOINT, sanitizeEndpoint(endpoint))
+                            .tag(METHOD, method)
                             .tag("status", String.valueOf(statusCode))
                             .description("Request duration by endpoint, " + "method, and status")
                             .register(meterRegistry);
@@ -101,8 +108,8 @@ public class PerformanceMetricsService {
         if (isError || statusCode >= errorThreshold) {
             totalErrors.increment();
             Counter.builder("http.errors")
-                    .tag("endpoint", sanitizeEndpoint(endpoint))
-                    .tag("method", method)
+                    .tag(ENDPOINT, sanitizeEndpoint(endpoint))
+                    .tag(METHOD, method)
                     .tag("status", String.valueOf(statusCode))
                     .description("Number of errors by endpoint, " + "method, and status")
                     .register(meterRegistry)
@@ -115,7 +122,7 @@ public class PerformanceMetricsService {
     /** Record throughput (requests per second) */
     public void recordThroughput(final String endpoint, final double requestsPerSecond) {
         io.micrometer.core.instrument.Gauge.builder("http.throughput", () -> requestsPerSecond)
-                .tag("endpoint", sanitizeEndpoint(endpoint))
+                .tag(ENDPOINT, sanitizeEndpoint(endpoint))
                 .register(meterRegistry);
     }
 
@@ -142,7 +149,7 @@ public class PerformanceMetricsService {
             final boolean success) {
         Timer.builder("external.api.duration")
                 .tag("service", service)
-                .tag("endpoint", sanitizeEndpoint(endpoint))
+                .tag(ENDPOINT, sanitizeEndpoint(endpoint))
                 .tag("success", String.valueOf(success))
                 .description("External API call duration")
                 .register(meterRegistry)

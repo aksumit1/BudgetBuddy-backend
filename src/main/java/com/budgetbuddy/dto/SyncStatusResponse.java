@@ -7,6 +7,9 @@ import com.fasterxml.jackson.annotation.JsonProperty;
  * Response DTO for /api/sync/status endpoint Returns sync status information for offline mode
  * support
  */
+// PMD's DataClass fires on Request/Response/Config DTOs by design —
+// they're intentionally data-only; behaviour belongs in the controller/service.
+@SuppressWarnings("PMD.DataClass")
 @SuppressFBWarnings(
         value = "EI_EXPOSE_REP",
         justification =

@@ -36,9 +36,11 @@ import org.springframework.stereotype.Service;
 @SuppressFBWarnings(
         value = "EI_EXPOSE_REP2",
         justification = "Spring constructor injection — beans are shared by design")
-@SuppressWarnings({"PMD.LawOfDemeter", "PMD.AvoidCatchingGenericException"})
+@SuppressWarnings({"PMD.LawOfDemeter", "PMD.AvoidCatchingGenericException", "PMD.OnlyOneReturn"})
 @Service
 public class SyncService {
+
+    private static final String USER_ID_IS_REQUIRED = "User ID is required";
 
     private static final Logger LOGGER = LoggerFactory.getLogger(SyncService.class);
 
@@ -68,7 +70,7 @@ public class SyncService {
      */
     public SyncAllResponse getAllData(final String userId) {
         if (userId == null || userId.isEmpty()) {
-            throw new AppException(ErrorCode.INVALID_INPUT, "User ID is required");
+            throw new AppException(ErrorCode.INVALID_INPUT, USER_ID_IS_REQUIRED);
         }
 
         LOGGER.info("Fetching all data for user: {}", userId);
@@ -191,7 +193,7 @@ public class SyncService {
     public IncrementalSyncResponse getIncrementalChanges(
             final String userId, final Long sinceTimestamp) {
         if (userId == null || userId.isEmpty()) {
-            throw new AppException(ErrorCode.INVALID_INPUT, "User ID is required");
+            throw new AppException(ErrorCode.INVALID_INPUT, USER_ID_IS_REQUIRED);
         }
 
         if (sinceTimestamp == null || sinceTimestamp <= 0) {
@@ -273,7 +275,7 @@ public class SyncService {
      */
     public SyncStatusResponse getSyncStatus(final String userId) {
         if (userId == null || userId.isEmpty()) {
-            throw new AppException(ErrorCode.INVALID_INPUT, "User ID is required");
+            throw new AppException(ErrorCode.INVALID_INPUT, USER_ID_IS_REQUIRED);
         }
 
         LOGGER.info("Fetching sync status for user: {}", userId);

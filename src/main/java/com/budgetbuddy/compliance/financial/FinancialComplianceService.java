@@ -32,6 +32,8 @@ import software.amazon.awssdk.services.cloudwatch.model.PutMetricDataRequest;
 @Service
 public class FinancialComplianceService {
 
+    private static final String DATA_TYPE = "DataType";
+
     private static final Logger LOGGER = LoggerFactory.getLogger(FinancialComplianceService.class);
     private static final String NAMESPACE = "BudgetBuddy/FinancialCompliance";
 
@@ -78,7 +80,7 @@ public class FinancialComplianceService {
     public void logFinancialDataAccess(
             final String userId, final String dataType, final String action) {
         auditLogService.logFinancialDataAccess(userId, dataType, action);
-        putMetric("FinancialDataAccess", 1.0, Map.of("DataType", dataType, "Action", action));
+        putMetric("FinancialDataAccess", 1.0, Map.of(DATA_TYPE, dataType, "Action", action));
     }
 
     /**
@@ -91,7 +93,7 @@ public class FinancialComplianceService {
             final String beforeValue,
             final String afterValue) {
         auditLogService.logFinancialDataModification(userId, dataType, beforeValue, afterValue);
-        putMetric("FinancialDataModification", 1.0, Map.of("DataType", dataType));
+        putMetric("FinancialDataModification", 1.0, Map.of(DATA_TYPE, dataType));
 
         // Alert on significant changes
         if (isSignificantChange(dataType, beforeValue, afterValue)) {
@@ -99,7 +101,7 @@ public class FinancialComplianceService {
                     "SOX: Significant financial data modification: User={}, Type={}",
                     userId,
                     dataType);
-            putMetric("SignificantFinancialChange", 1.0, Map.of("DataType", dataType));
+            putMetric("SignificantFinancialChange", 1.0, Map.of(DATA_TYPE, dataType));
         }
     }
 
@@ -226,7 +228,7 @@ public class FinancialComplianceService {
     /** Data Retention Compliance Ensure data is retained according to regulations */
     public void logDataRetention(final String dataType, final Instant retentionUntil) {
         auditLogService.logDataRetention(dataType, retentionUntil);
-        putMetric("DataRetention", 1.0, Map.of("DataType", dataType));
+        putMetric("DataRetention", 1.0, Map.of(DATA_TYPE, dataType));
     }
 
     private boolean isSignificantChange(

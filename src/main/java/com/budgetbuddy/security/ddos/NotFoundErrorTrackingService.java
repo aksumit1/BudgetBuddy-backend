@@ -49,9 +49,13 @@ import software.amazon.awssdk.services.dynamodb.model.UpdateTimeToLiveRequest;
 @SuppressFBWarnings(
         value = "EI_EXPOSE_REP2",
         justification = "Spring constructor injection — beans are shared by design")
-@SuppressWarnings("PMD.AvoidCatchingGenericException")
+@SuppressWarnings({"PMD.AvoidCatchingGenericException", "PMD.OnlyOneReturn"})
 @Service
 public class NotFoundErrorTrackingService {
+
+    private static final String BLOCKED_UNTIL = "blockedUntil";
+
+    private static final String SOURCE_ID = "sourceId";
 
     private static final Logger LOGGER =
             LoggerFactory.getLogger(NotFoundErrorTrackingService.class);
@@ -261,12 +265,12 @@ public class NotFoundErrorTrackingService {
                             .billingMode(BillingMode.PAY_PER_REQUEST)
                             .attributeDefinitions(
                                     AttributeDefinition.builder()
-                                            .attributeName("sourceId")
+                                            .attributeName(SOURCE_ID)
                                             .attributeType(ScalarAttributeType.S)
                                             .build())
                             .keySchema(
                                     KeySchemaElement.builder()
-                                            .attributeName("sourceId")
+                                            .attributeName(SOURCE_ID)
                                             .keyType(KeyType.HASH)
                                             .build())
                             .build());
@@ -325,12 +329,12 @@ public class NotFoundErrorTrackingService {
                                     .tableName(tableName)
                                     .key(
                                             Map.of(
-                                                    "sourceId",
+                                                    SOURCE_ID,
                                                     AttributeValue.builder().s(sourceId).build()))
                                     .build());
 
-            if (response.item() != null && response.item().containsKey("blockedUntil")) {
-                final AttributeValue blockedUntilAttr = response.item().get("blockedUntil");
+            if (response.item() != null && response.item().containsKey(BLOCKED_UNTIL)) {
+                final AttributeValue blockedUntilAttr = response.item().get(BLOCKED_UNTIL);
                 if (blockedUntilAttr != null && blockedUntilAttr.n() != null) {
                     final long blockedUntil = Long.parseLong(blockedUntilAttr.n());
                     if (Instant.now().getEpochSecond() < blockedUntil) {
@@ -363,9 +367,9 @@ public class NotFoundErrorTrackingService {
                             .tableName(tableName)
                             .item(
                                     Map.of(
-                                            "sourceId",
+                                            SOURCE_ID,
                                                     AttributeValue.builder().s(sourceId).build(),
-                                            "blockedUntil",
+                                            BLOCKED_UNTIL,
                                                     AttributeValue.builder()
                                                             .n(String.valueOf(blockedUntil))
                                                             .build(),

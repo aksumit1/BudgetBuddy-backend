@@ -162,7 +162,8 @@ class BulkOperationPerformanceTest {
                     .append(",")
                     .append(-(i + 1) * 10.00)
                     .append(",")
-                    .append("CSV Transaction " + i)
+                    .append("CSV Transaction ")
+                    .append(i)
                     .append(",")
                     .append("dining")
                     .append("\n");

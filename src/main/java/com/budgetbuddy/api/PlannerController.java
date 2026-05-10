@@ -58,10 +58,16 @@ import org.springframework.web.bind.annotation.RestController;
 @SuppressFBWarnings(
         value = "EI_EXPOSE_REP2",
         justification = "Spring constructor injection — beans are shared by design")
-@SuppressWarnings("PMD.LawOfDemeter")
+@SuppressWarnings({"PMD.LawOfDemeter", "PMD.DataClass", "PMD.OnlyOneReturn"})
 @RestController
 @RequestMapping("/api/planner")
 public class PlannerController {
+
+    private static final String MONTHS_DELAYED = "monthsDelayed";
+
+    private static final String PROJECTED_REWARD = "projectedReward";
+
+    private static final String SUGGESTED_CUT = "suggestedCut";
 
     private static final DateTimeFormatter DATE = DateTimeFormatter.ISO_LOCAL_DATE;
 
@@ -217,7 +223,7 @@ public class PlannerController {
             final Map<String, Object> entry = new LinkedHashMap<>();
             entry.put("goalId", g.getGoalId());
             entry.put("goalName", g.getName());
-            entry.put("monthsDelayed", delay);
+            entry.put(MONTHS_DELAYED, delay);
             entry.put(
                     "severity", delay >= 6 ? "significant" : delay >= 2 ? "notable" : "negligible");
             out.add(entry);
@@ -225,7 +231,7 @@ public class PlannerController {
         out.sort(
                 (a, b) ->
                         Integer.compare(
-                                (int) b.get("monthsDelayed"), (int) a.get("monthsDelayed")));
+                                (int) b.get(MONTHS_DELAYED), (int) a.get(MONTHS_DELAYED)));
         return out;
     }
 
@@ -272,15 +278,15 @@ public class PlannerController {
             entry.put("accountId", a.getAccountId());
             entry.put("cardName", a.getAccountName());
             entry.put("rewardMultiplier", multiplier);
-            entry.put("projectedReward", grossReward);
+            entry.put(PROJECTED_REWARD, grossReward);
             entry.put("rewardType", a.getRewardType());
             entry.put("availableCredit", available);
             out.add(entry);
         }
         out.sort(
                 (x, y) -> {
-                    final BigDecimal px = (BigDecimal) x.get("projectedReward");
-                    final BigDecimal py = (BigDecimal) y.get("projectedReward");
+                    final BigDecimal px = (BigDecimal) x.get(PROJECTED_REWARD);
+                    final BigDecimal py = (BigDecimal) y.get(PROJECTED_REWARD);
                     return py.compareTo(px);
                 });
         return out;
@@ -327,7 +333,7 @@ public class PlannerController {
             final Map<String, Object> entry = new LinkedHashMap<>();
             entry.put("category", e.getKey());
             entry.put("recentMonthlySpend", monthly);
-            entry.put("suggestedCut", cut);
+            entry.put(SUGGESTED_CUT, cut);
             entry.put(
                     "trimPercent",
                     cut.divide(monthly, 4, RoundingMode.HALF_UP)
@@ -337,8 +343,8 @@ public class PlannerController {
         }
         out.sort(
                 (x, y) ->
-                        ((BigDecimal) y.get("suggestedCut"))
-                                .compareTo((BigDecimal) x.get("suggestedCut")));
+                        ((BigDecimal) y.get(SUGGESTED_CUT))
+                                .compareTo((BigDecimal) x.get(SUGGESTED_CUT)));
         return out;
     }
 

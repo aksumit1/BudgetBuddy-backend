@@ -23,6 +23,9 @@ import software.amazon.awssdk.services.dynamodb.model.WriteRequest;
  * <p>Features: - Handles 25-item limit per batch - Automatic retry for unprocessed items -
  * Exponential backoff for throttling
  */
+// PMD's OnlyOneReturn fights guard-clause idiom — the codebase intentionally
+// uses early returns for clarity (validation guards, fail-fast patterns).
+@SuppressWarnings("PMD.OnlyOneReturn")
 public final class BatchOperationsHelper {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(BatchOperationsHelper.class);

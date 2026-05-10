@@ -37,10 +37,14 @@ import org.springframework.web.bind.annotation.RestController;
 @SuppressFBWarnings(
         value = "EI_EXPOSE_REP2",
         justification = "Spring constructor injection — beans are shared by design")
-@SuppressWarnings("PMD.AvoidCatchingGenericException")
+@SuppressWarnings({"PMD.AvoidCatchingGenericException", "PMD.OnlyOneReturn"})
 @RestController
 @RequestMapping("/api/goals")
 public class GoalEnhancementController {
+
+    private static final String USER_NOT_FOUND = "User not found";
+
+    private static final String ERROR = "error";
 
     private static final Logger LOGGER = LoggerFactory.getLogger(GoalEnhancementController.class);
 
@@ -71,7 +75,7 @@ public class GoalEnhancementController {
             final UserTable user =
                     userService
                             .findByEmail(userDetails.getUsername())
-                            .orElseThrow(() -> new RuntimeException("User not found"));
+                            .orElseThrow(() -> new RuntimeException(USER_NOT_FOUND));
 
             final var goal = goalService.getGoal(user, id);
             final List<GoalMilestoneService.Milestone> milestones = milestoneService.getMilestones(goal);
@@ -84,7 +88,7 @@ public class GoalEnhancementController {
             return ResponseEntity.ok(response);
         } catch (Exception e) {
             LOGGER.error("Error getting milestones for goal {}: {}", id, e.getMessage(), e);
-            return ResponseEntity.internalServerError().body(Map.of("error", e.getMessage()));
+            return ResponseEntity.internalServerError().body(Map.of(ERROR, e.getMessage()));
         }
     }
 
@@ -96,7 +100,7 @@ public class GoalEnhancementController {
             final UserTable user =
                     userService
                             .findByEmail(userDetails.getUsername())
-                            .orElseThrow(() -> new RuntimeException("User not found"));
+                            .orElseThrow(() -> new RuntimeException(USER_NOT_FOUND));
 
             final var goal = goalService.getGoal(user, id);
             final GoalAnalyticsService.GoalProjection projection =
@@ -104,13 +108,13 @@ public class GoalEnhancementController {
 
             if (projection == null) {
                 return ResponseEntity.badRequest()
-                        .body(Map.of("error", "Goal projection not available"));
+                        .body(Map.of(ERROR, "Goal projection not available"));
             }
 
             return ResponseEntity.ok(projection);
         } catch (Exception e) {
             LOGGER.error("Error getting projections for goal {}: {}", id, e.getMessage(), e);
-            return ResponseEntity.internalServerError().body(Map.of("error", e.getMessage()));
+            return ResponseEntity.internalServerError().body(Map.of(ERROR, e.getMessage()));
         }
     }
 
@@ -122,7 +126,7 @@ public class GoalEnhancementController {
             final UserTable user =
                     userService
                             .findByEmail(userDetails.getUsername())
-                            .orElseThrow(() -> new RuntimeException("User not found"));
+                            .orElseThrow(() -> new RuntimeException(USER_NOT_FOUND));
 
             final var goal = goalService.getGoal(user, id);
             final GoalAnalyticsService.ContributionInsights insights =
@@ -131,7 +135,7 @@ public class GoalEnhancementController {
             return ResponseEntity.ok(insights);
         } catch (Exception e) {
             LOGGER.error("Error getting insights for goal {}: {}", id, e.getMessage(), e);
-            return ResponseEntity.internalServerError().body(Map.of("error", e.getMessage()));
+            return ResponseEntity.internalServerError().body(Map.of(ERROR, e.getMessage()));
         }
     }
 
@@ -143,7 +147,7 @@ public class GoalEnhancementController {
             final UserTable user =
                     userService
                             .findByEmail(userDetails.getUsername())
-                            .orElseThrow(() -> new RuntimeException("User not found"));
+                            .orElseThrow(() -> new RuntimeException(USER_NOT_FOUND));
 
             // Verify goal ownership
             goalService.getGoal(user, id);
@@ -152,7 +156,7 @@ public class GoalEnhancementController {
             return ResponseEntity.ok(Map.of("message", "Round-up enabled for goal", "goalId", id));
         } catch (Exception e) {
             LOGGER.error("Error enabling round-up for goal {}: {}", id, e.getMessage(), e);
-            return ResponseEntity.internalServerError().body(Map.of("error", e.getMessage()));
+            return ResponseEntity.internalServerError().body(Map.of(ERROR, e.getMessage()));
         }
     }
 
@@ -164,7 +168,7 @@ public class GoalEnhancementController {
             final UserTable user =
                     userService
                             .findByEmail(userDetails.getUsername())
-                            .orElseThrow(() -> new RuntimeException("User not found"));
+                            .orElseThrow(() -> new RuntimeException(USER_NOT_FOUND));
 
             // Verify goal ownership
             goalService.getGoal(user, id);
@@ -173,7 +177,7 @@ public class GoalEnhancementController {
             return ResponseEntity.ok(Map.of("message", "Round-up disabled for goal", "goalId", id));
         } catch (Exception e) {
             LOGGER.error("Error disabling round-up for goal {}: {}", id, e.getMessage(), e);
-            return ResponseEntity.internalServerError().body(Map.of("error", e.getMessage()));
+            return ResponseEntity.internalServerError().body(Map.of(ERROR, e.getMessage()));
         }
     }
 
@@ -187,7 +191,7 @@ public class GoalEnhancementController {
             final UserTable user =
                     userService
                             .findByEmail(userDetails.getUsername())
-                            .orElseThrow(() -> new RuntimeException("User not found"));
+                            .orElseThrow(() -> new RuntimeException(USER_NOT_FOUND));
 
             final var goal = goalService.getGoal(user, id);
             final var total = roundUpService.getRoundUpTotal(goal, user.getUserId(), days);
@@ -195,7 +199,7 @@ public class GoalEnhancementController {
             return ResponseEntity.ok(Map.of("total", total, "days", days));
         } catch (Exception e) {
             LOGGER.error("Error getting round-up total for goal {}: {}", id, e.getMessage(), e);
-            return ResponseEntity.internalServerError().body(Map.of("error", e.getMessage()));
+            return ResponseEntity.internalServerError().body(Map.of(ERROR, e.getMessage()));
         }
     }
 }

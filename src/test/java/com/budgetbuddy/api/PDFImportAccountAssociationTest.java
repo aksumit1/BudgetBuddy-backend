@@ -138,7 +138,7 @@ class PDFImportAccountAssociationTest {
                 transactionController.importPDF(
                         userDetails, pdf1File, null, "chase_checking_1234.pdf");
 
-        assertEquals(200, response1.getStatusCodeValue());
+        assertEquals(200, response1.getStatusCode().value());
         assertNotNull(response1.getBody());
         assertTrue(response1.getBody().getCreated() > 0, "Should create transactions from PDF 1");
 
@@ -179,7 +179,7 @@ class PDFImportAccountAssociationTest {
                 transactionController.importPDF(
                         userDetails, pdf2File, null, "wells_fargo_savings_5678.pdf");
 
-        assertEquals(200, response2.getStatusCodeValue());
+        assertEquals(200, response2.getStatusCode().value());
         assertNotNull(response2.getBody());
         assertTrue(response2.getBody().getCreated() > 0, "Should create transactions from PDF 2");
 
@@ -363,8 +363,8 @@ class PDFImportAccountAssociationTest {
 
             final ByteArrayOutputStream baos = new ByteArrayOutputStream();
             document.save(baos);
-            document.close();
-
+            // try-with-resources auto-closes — drop the explicit close to avoid a
+            // double-close warning from javac.
             return baos.toByteArray();
         }
     }

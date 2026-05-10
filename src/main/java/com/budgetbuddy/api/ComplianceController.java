@@ -26,12 +26,17 @@ import org.springframework.web.bind.annotation.RestController;
 // SpotBugs flags constructor-injected Spring beans as EI_EXPOSE_REP2,
 // but Spring's IoC container intentionally shares the same bean across
 // callers — defensive-copying it would break dependency injection.
+// PMD's DataClass fires on Request/Response/Config DTOs by design —
+// they're intentionally data-only; behaviour belongs in the controller/service.
+@SuppressWarnings({"PMD.DataClass", "PMD.OnlyOneReturn"})
 @SuppressFBWarnings(
         value = "EI_EXPOSE_REP2",
         justification = "Spring constructor injection — beans are shared by design")
 @RestController
 @RequestMapping("/api/compliance")
 public class ComplianceController {
+
+    private static final String USER_NOT_FOUND_1 = "User not found";
 
     private final GDPRComplianceService gdprComplianceService;
     private final com.budgetbuddy.service.UserService userService;
@@ -51,7 +56,7 @@ public class ComplianceController {
                 userService
                         .findByEmail(userDetails.getUsername())
                         .orElseThrow(
-                                () -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
+                                () -> new AppException(ErrorCode.USER_NOT_FOUND, USER_NOT_FOUND_1));
 
         final GDPRComplianceService.GDPRDataExport export =
                 gdprComplianceService.exportUserData(user.getUserId());
@@ -66,7 +71,7 @@ public class ComplianceController {
                 userService
                         .findByEmail(userDetails.getUsername())
                         .orElseThrow(
-                                () -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
+                                () -> new AppException(ErrorCode.USER_NOT_FOUND, USER_NOT_FOUND_1));
 
         final String json = gdprComplianceService.exportDataPortable(user.getUserId());
         return ResponseEntity.ok()
@@ -87,7 +92,7 @@ public class ComplianceController {
                 userService
                         .findByEmail(userDetails.getUsername())
                         .orElseThrow(
-                                () -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
+                                () -> new AppException(ErrorCode.USER_NOT_FOUND, USER_NOT_FOUND_1));
 
         gdprComplianceService.deleteUserData(user.getUserId());
         return ResponseEntity.noContent().build();
@@ -102,7 +107,7 @@ public class ComplianceController {
                 userService
                         .findByEmail(userDetails.getUsername())
                         .orElseThrow(
-                                () -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
+                                () -> new AppException(ErrorCode.USER_NOT_FOUND, USER_NOT_FOUND_1));
 
         final com.budgetbuddy.model.dynamodb.UserTable updatedData =
                 new com.budgetbuddy.model.dynamodb.UserTable();

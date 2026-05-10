@@ -383,10 +383,9 @@ class InfrastructurePropagationIntegrationTest {
 
     @Test
     void testSSLCertificateExists() {
-        // Given - Certificate domain pattern
-        final String domainPattern = "api.budgetbuddy.com";
 
         // When
+        // Given - Certificate domain pattern
         final List<CertificateSummary> certificates = listCertificates();
 
         // Then - Certificate may not exist in test environment

@@ -80,7 +80,7 @@ import org.springframework.web.multipart.MultipartFile;
                 "JSON DTO / DynamoDB entity getters expose lists by reference (design is "
                         + "value-semantic, Jackson creates fresh instances); Spring constructor "
                         + "injection — beans are shared by design")
-@SuppressWarnings({"PMD.LawOfDemeter", "PMD.AvoidCatchingGenericException"})
+@SuppressWarnings({"PMD.LawOfDemeter", "PMD.AvoidCatchingGenericException", "PMD.OnlyOneReturn"})
 @RestController
 @RequestMapping("/api/transactions")
 public class TransactionController {
@@ -5088,7 +5088,7 @@ public class TransactionController {
         }
     }
 
-    /**
+    /*
      * Auto-create account if detected during import but not matched to existing account
      *
      * @param user The user
@@ -5530,7 +5530,7 @@ public class TransactionController {
         return digitsOnly;
     }
 
-    /**
+    /*
      * Sanitize account name/institution name - remove control characters and truncate if too long
      */
     /**

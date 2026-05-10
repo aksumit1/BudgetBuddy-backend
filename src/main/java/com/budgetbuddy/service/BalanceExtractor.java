@@ -28,9 +28,15 @@ import org.springframework.stereotype.Component;
 // that can't reasonably be enumerated. Broad catches log + recover (or
 // translate to AppException). Suppress at class level since narrowing
 // here would mean catch (RuntimeException) which PMD flags identically.
-@SuppressWarnings("PMD.AvoidCatchingGenericException")
+@SuppressWarnings({"PMD.AvoidCatchingGenericException", "PMD.OnlyOneReturn"})
 @Component
 public class BalanceExtractor {
+
+    private static final String DEBET = "debet";
+
+    private static final String SALDO = "saldo";
+
+    private static final String SALDO_FINAL = "saldo final";
 
     private static final Logger LOGGER = LoggerFactory.getLogger(BalanceExtractor.class);
 
@@ -69,7 +75,7 @@ public class BalanceExtractor {
                     "saldo total",
                     "saldo vencido",
                     "saldo al cierre",
-                    "saldo final",
+                    SALDO_FINAL,
                     // French
                     "nouveau solde",
                     "solde nouveau",
@@ -102,7 +108,7 @@ public class BalanceExtractor {
                     "saldo atual",
                     "saldo devido",
                     "saldo total",
-                    "saldo final",
+                    SALDO_FINAL,
                     "saldo de fechamento",
                     // Japanese (Romaji)
                     "atarashii zandaka",
@@ -135,13 +141,13 @@ public class BalanceExtractor {
                     "statement balance",
                     "balance forward",
                     // Spanish
-                    "saldo",
+                    SALDO,
                     "saldo actual",
                     "saldo disponible",
                     "saldo contable",
                     "saldo de cuenta",
                     "saldo al cierre",
-                    "saldo final",
+                    SALDO_FINAL,
                     // French
                     "solde",
                     "solde actuel",
@@ -151,7 +157,7 @@ public class BalanceExtractor {
                     "solde de clôture",
                     "solde final",
                     // German
-                    "saldo",
+                    SALDO,
                     "aktueller saldo",
                     "verfügbarer saldo",
                     "buchsaldo",
@@ -159,19 +165,19 @@ public class BalanceExtractor {
                     "abschluss saldo",
                     "endsaldo",
                     // Italian
-                    "saldo",
+                    SALDO,
                     "saldo corrente",
                     "saldo disponibile",
                     "saldo contabile",
                     "saldo conto",
                     "saldo finale",
                     // Portuguese
-                    "saldo",
+                    SALDO,
                     "saldo atual",
                     "saldo disponível",
                     "saldo contábil",
                     "saldo da conta",
-                    "saldo final",
+                    SALDO_FINAL,
                     // Japanese (Romaji)
                     "zandaka",
                     "genzai zandaka",
@@ -211,8 +217,8 @@ public class BalanceExtractor {
 
     private static final List<String> DEBIT_INDICATORS =
             Arrays.asList(
-                    "dr", "debit", "débit", "débito", "schuld", "debito", "debito", "debet",
-                    "debet", "lån", "資産", "资产", "debet");
+                    "dr", "debit", "débit", "débito", "schuld", "debito", "debito", DEBET,
+                    DEBET, "lån", "資産", "资产", DEBET);
 
     /**
      * Extract balance from headers/text based on account type
@@ -563,84 +569,6 @@ public class BalanceExtractor {
     }
 
     /**
-     * Build regex pattern for amount matching Handles multiple formats: US (1,234.56), European
-     * (1.234,56), Indian (12,34,567.89), etc.
-     */
-    private String buildAmountPattern() {
-        // Pattern components:
-        // 1. Optional currency symbol
-        // 2. Optional sign (+/-)
-        // 3. Optional whitespace
-        // 4. Amount with various separators
-
-        // Build currency symbol pattern using alternation (not character class, to handle
-        // multi-char symbols)
-        // Single-char symbols: $, €, £, ¥, ₹, etc.
-        // Multi-char symbols: R$, A$, NZ$, C$, CHF, kr, etc.
-        final List<String> allSymbols = new ArrayList<>();
-
-        for (final String symbol : CURRENCY_SYMBOLS) {
-            // Escape special regex characters for each symbol
-            allSymbols.add(Pattern.quote(symbol));
-        }
-
-        // Use alternation for all symbols (simpler and handles both single and multi-char)
-        final String currencyPattern = "(?:(?:" + String.join("|", allSymbols) + ")\\s*)?";
-
-        final String signPart = "[+-]?";
-
-        // Amount formats:
-        // - US: 1,234.56 or 1234.56
-        // - European: 1.234,56 or 1234,56
-        // - Indian: 12,34,567.89
-        // - Japanese/Chinese: 1234.56 or 1234,56 (no thousands separator sometimes)
-        // - Scientific notation (rare but possible)
-
-        // Build amount pattern - match complete monetary amounts
-        // Order matters: more specific patterns first (they're tried in order)
-        final String amountPart =
-                "("
-                        +
-                        // Pattern 1: US format with comma thousands and period decimal (e.g.,
-                        // 1,234.56)
-                        "\\d{1,3}(?:[,\\s]\\d{3})+(?:\\.\\d{1,2})?"
-                        + "|"
-                        +
-                        // Pattern 2: European format with period thousands and comma decimal (e.g.,
-                        // 1.234,56)
-                        "\\d{1,3}(?:\\.\\d{3})+(?:,\\d{1,2})?"
-                        + "|"
-                        +
-                        // Pattern 3: Indian format (e.g., 12,34,567.89)
-                        "\\d{1,2}(?:,\\d{2}){2,}(?:\\.\\d{1,2})?"
-                        + "|"
-                        +
-                        // Pattern 4: Number with decimal but no thousands (e.g., 1234.56 or
-                        // 1234,56)
-                        "\\d{4,}(?:[.,]\\d{1,2})"
-                        + "|"
-                        +
-                        // Pattern 5: Integer with thousands separators (e.g., 1,234 or 1.234)
-                        "\\d{1,3}(?:[,\\s]\\d{3})+"
-                        + "|"
-                        +
-                        // Pattern 6: Integer with period thousands (e.g., 1.234)
-                        "\\d{1,3}(?:\\.\\d{3})+"
-                        + "|"
-                        +
-                        // Pattern 7: Simple integer (at least 3 digits to avoid matching
-                        // dates/account numbers in headers)
-                        "\\d{3,}"
-                        + ")";
-
-        // Handle parentheses for negative (US accounting format)
-        final String parenthesesPattern = "\\(" + amountPart + "\\)";
-
-        // Return pattern: parentheses match or regular match
-        return currencyPattern + signPart + "(?:" + parenthesesPattern + "|" + amountPart + ")";
-    }
-
-    /**
      * Parse amount string to BigDecimal Handles multiple number formats
      *
      * @param amountStr Amount string to parse
@@ -684,11 +612,6 @@ public class BalanceExtractor {
             LOGGER.debug("Failed to parse amount: {}", amountStr);
             return null;
         }
-    }
-
-    /** Parse amount string to BigDecimal (overload without parentheses flag) */
-    private BigDecimal parseAmount(final String amountStr) {
-        return parseAmount(amountStr, false);
     }
 
     /**

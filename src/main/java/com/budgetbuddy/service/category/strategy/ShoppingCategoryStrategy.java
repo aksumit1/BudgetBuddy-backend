@@ -5,8 +5,17 @@ import java.util.Locale;
 import org.springframework.stereotype.Component;
 
 /** Strategy for detecting shopping category */
+// PMD's OnlyOneReturn fights guard-clause idiom — the codebase intentionally
+// uses early returns for clarity (validation guards, fail-fast patterns).
+@SuppressWarnings("PMD.OnlyOneReturn")
 @Component
 public class ShoppingCategoryStrategy extends BaseCategoryStrategy {
+
+    private static final String APPAREL = "apparel";
+
+    private static final String CLOTHING = "clothing";
+
+    private static final String DAISO = "daiso";
 
     @Override
     public String detectCategory(
@@ -46,8 +55,8 @@ public class ShoppingCategoryStrategy extends BaseCategoryStrategy {
         final String merchantLowerForShopping = merchantName != null ? merchantName.toLowerCase(Locale.ROOT) : "";
         final String descLowerForShopping = descriptionLower != null ? descriptionLower : "";
 
-        if (normalizedMerchantName.contains("clothing")
-                || normalizedMerchantName.contains("apparel")
+        if (normalizedMerchantName.contains(CLOTHING)
+                || normalizedMerchantName.contains(APPAREL)
                 || normalizedMerchantName.contains("men's clothing")
                 || normalizedMerchantName.contains("mens clothing")
                 || normalizedMerchantName.contains("women's clothing")
@@ -56,20 +65,20 @@ public class ShoppingCategoryStrategy extends BaseCategoryStrategy {
                 || normalizedMerchantName.contains("mens apparel")
                 || normalizedMerchantName.contains("women's apparel")
                 || normalizedMerchantName.contains("womens apparel")
-                || descriptionLower.contains("clothing")
-                || descriptionLower.contains("apparel")
+                || descriptionLower.contains(CLOTHING)
+                || descriptionLower.contains(APPAREL)
                 || descriptionLower.contains("men's clothing")
                 || descriptionLower.contains("mens clothing")
                 || descriptionLower.contains("women's clothing")
                 || descriptionLower.contains("womens clothing")
-                || merchantLowerForShopping.contains("clothing")
-                || merchantLowerForShopping.contains("apparel")
+                || merchantLowerForShopping.contains(CLOTHING)
+                || merchantLowerForShopping.contains(APPAREL)
                 || merchantLowerForShopping.contains("men's")
                 || merchantLowerForShopping.contains("mens")
                 || merchantLowerForShopping.contains("women's")
                 || merchantLowerForShopping.contains("womens")
-                || descLowerForShopping.contains("clothing")
-                || descLowerForShopping.contains("apparel")
+                || descLowerForShopping.contains(CLOTHING)
+                || descLowerForShopping.contains(APPAREL)
                 || descLowerForShopping.contains("men's")
                 || descLowerForShopping.contains("mens")
                 || descLowerForShopping.contains("women's")
@@ -95,7 +104,7 @@ public class ShoppingCategoryStrategy extends BaseCategoryStrategy {
                 "burlington",
                 "kohl's",
                 "kohls",
-                "daiso",
+                DAISO,
                 "michaels",
                 "michaels stores",
                 "michaelsstores",
@@ -115,7 +124,7 @@ public class ShoppingCategoryStrategy extends BaseCategoryStrategy {
             }
         }
         // Daiso (retail chain)
-        if (normalizedMerchantName.contains("daiso") || descriptionLower.contains("daiso")) {
+        if (normalizedMerchantName.contains(DAISO) || descriptionLower.contains(DAISO)) {
             LOGGER.debug("🏷️ detectCategoryFromMerchantName: Detected Daiso → 'shopping'");
             return "shopping";
         }

@@ -39,7 +39,7 @@ class SystemManagementControllerTest {
         final ResponseEntity<Map<String, String>> response = controller.clearDnsCache();
 
         // Then
-        assertEquals(200, response.getStatusCodeValue());
+        assertEquals(200, response.getStatusCode().value());
         assertNotNull(response.getBody());
         assertEquals("success", response.getBody().get("status"));
         assertEquals("DNS cache cleared successfully", response.getBody().get("message"));
@@ -56,7 +56,7 @@ class SystemManagementControllerTest {
         final ResponseEntity<Map<String, String>> response = controller.clearDnsCache();
 
         // Then
-        assertEquals(500, response.getStatusCodeValue());
+        assertEquals(500, response.getStatusCode().value());
         assertNotNull(response.getBody());
         assertEquals("error", response.getBody().get("status"));
         assertTrue(response.getBody().get("message").contains("Failed to clear DNS cache"));
@@ -69,7 +69,7 @@ class SystemManagementControllerTest {
         final ResponseEntity<Map<String, String>> response = controller.health();
 
         // Then
-        assertEquals(200, response.getStatusCodeValue());
+        assertEquals(200, response.getStatusCode().value());
         assertNotNull(response.getBody());
         assertEquals("healthy", response.getBody().get("status"));
         assertEquals("system-management", response.getBody().get("service"));

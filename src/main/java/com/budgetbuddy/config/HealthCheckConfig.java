@@ -20,9 +20,15 @@ import software.amazon.awssdk.services.dynamodb.model.ListTablesRequest;
 // that can't reasonably be enumerated. Broad catches log + recover (or
 // translate to AppException). Suppress at class level since narrowing
 // here would mean catch (RuntimeException) which PMD flags identically.
-@SuppressWarnings("PMD.AvoidCatchingGenericException")
+@SuppressWarnings({"PMD.AvoidCatchingGenericException", "PMD.OnlyOneReturn"})
 @Configuration
 public class HealthCheckConfig {
+
+    private static final String DYNAMO_DB = "DynamoDB";
+
+    private static final String SERVICE = "service";
+
+    private static final String STATUS = "status";
 
     @Value("${management.health.redis.timeout:2s}")
     private Duration redisHealthTimeout;
@@ -44,12 +50,12 @@ public class HealthCheckConfig {
                                             dynamoDbClient.listTables(
                                                     ListTablesRequest.builder().build());
                                             return Health.up()
-                                                    .withDetail("service", "DynamoDB")
-                                                    .withDetail("status", "connected")
+                                                    .withDetail(SERVICE, DYNAMO_DB)
+                                                    .withDetail(STATUS, "connected")
                                                     .build();
                                         } catch (Exception e) {
                                             return Health.down()
-                                                    .withDetail("service", "DynamoDB")
+                                                    .withDetail(SERVICE, DYNAMO_DB)
                                                     .withDetail("error", e.getMessage())
                                                     .build();
                                         }
@@ -60,7 +66,7 @@ public class HealthCheckConfig {
                     return future.get(timeoutSeconds, TimeUnit.SECONDS);
                 } catch (Exception e) {
                     return Health.down()
-                            .withDetail("service", "DynamoDB")
+                            .withDetail(SERVICE, DYNAMO_DB)
                             .withDetail("error", "Health check timeout: " + e.getMessage())
                             .build();
                 }
@@ -75,7 +81,7 @@ public class HealthCheckConfig {
             public Health health() {
                 // Check if application is ready to serve traffic
                 // Add checks for critical dependencies
-                return Health.up().withDetail("status", "ready").build();
+                return Health.up().withDetail(STATUS, "ready").build();
             }
         };
     }
@@ -86,7 +92,7 @@ public class HealthCheckConfig {
             @Override
             public Health health() {
                 // Simple liveness check - application is running
-                return Health.up().withDetail("status", "alive").build();
+                return Health.up().withDetail(STATUS, "alive").build();
             }
         };
     }

@@ -8,6 +8,9 @@ import java.time.LocalDateTime;
  * Subscription entity representing a recurring subscription Tracks subscriptions that occur on a
  * regular basis (monthly, quarterly, semi-annually, annually)
  */
+// PMD's OnlyOneReturn fights guard-clause idiom — the codebase intentionally
+// uses early returns for clarity (validation guards, fail-fast patterns).
+@SuppressWarnings("PMD.OnlyOneReturn")
 public final class Subscription implements java.io.Serializable {
     private static final long serialVersionUID = 1L;
 

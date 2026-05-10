@@ -28,9 +28,27 @@ import org.springframework.stereotype.Service;
 @SuppressFBWarnings(
         value = "EI_EXPOSE_REP2",
         justification = "Spring constructor injection — beans are shared by design")
-@SuppressWarnings("PMD.AvoidCatchingGenericException")
+@SuppressWarnings({"PMD.AvoidCatchingGenericException", "PMD.OnlyOneReturn"})
 @Service
 public class AuditLogService {
+
+    private static final String CONSENT = "CONSENT";
+
+    private static final String CONTROL = "CONTROL";
+
+    private static final String SYSTEM = "SYSTEM";
+
+    private static final String UNKNOWN = "UNKNOWN";
+
+    private static final String ACTION = "action";
+
+    private static final String ACTIVITY = "activity";
+
+    private static final String CHANGE_TYPE = "changeType";
+
+    private static final String DETAILS = "details";
+
+    private static final String STATUS = "status";
 
     private static final Logger LOGGER = LoggerFactory.getLogger(AuditLogService.class);
 
@@ -66,9 +84,9 @@ public class AuditLogService {
         try {
             final AuditLogTable auditLog = new AuditLogTable();
             auditLog.setAuditLogId(UUID.randomUUID().toString());
-            auditLog.setUserId(userId != null ? userId : "SYSTEM");
+            auditLog.setUserId(userId != null ? userId : SYSTEM);
             auditLog.setAction(action);
-            auditLog.setResourceType(resourceType != null ? resourceType : "UNKNOWN");
+            auditLog.setResourceType(resourceType != null ? resourceType : UNKNOWN);
             auditLog.setResourceId(resourceId);
             auditLog.setDetails(convertToJson(details));
             auditLog.setIpAddress(ipAddress);
@@ -88,10 +106,10 @@ public class AuditLogService {
         logAction(
                 userId,
                 "CONTROL_ACTIVITY",
-                "CONTROL",
+                CONTROL,
                 controlId,
                 Map.of(
-                        "activity",
+                        ACTIVITY,
                         activity != null ? activity : "",
                         "controlId",
                         controlId != null ? controlId : ""),
@@ -104,10 +122,10 @@ public class AuditLogService {
         logAction(
                 userId,
                 "SYSTEM_CHANGE",
-                "SYSTEM",
+                SYSTEM,
                 null,
                 Map.of(
-                        "changeType", changeType != null ? changeType : "",
+                        CHANGE_TYPE, changeType != null ? changeType : "",
                         "description", description != null ? description : ""),
                 null,
                 null);
@@ -140,9 +158,9 @@ public class AuditLogService {
         logAction(
                 userId,
                 "ACCESS_CONTROL",
-                resource != null ? resource : "UNKNOWN",
+                resource != null ? resource : UNKNOWN,
                 null,
-                Map.of("action", action != null ? action : "", "allowed", allowed),
+                Map.of(ACTION, action != null ? action : "", "allowed", allowed),
                 null,
                 null);
     }
@@ -153,9 +171,9 @@ public class AuditLogService {
             return;
         }
         logAction(
-                "SYSTEM",
+                SYSTEM,
                 "HEALTH_CHECK",
-                "SYSTEM",
+                SYSTEM,
                 null,
                 Map.of(
                         "availability", health.getAvailability(),
@@ -176,7 +194,7 @@ public class AuditLogService {
                 "CHANGE",
                 changeId,
                 Map.of(
-                        "changeType", changeType != null ? changeType : "",
+                        CHANGE_TYPE, changeType != null ? changeType : "",
                         "description", description != null ? description : ""),
                 null,
                 null);
@@ -191,9 +209,9 @@ public class AuditLogService {
         logAction(
                 userId,
                 "PHI_ACCESS",
-                phiType != null ? phiType : "UNKNOWN",
+                phiType != null ? phiType : UNKNOWN,
                 null,
-                Map.of("action", action != null ? action : "", "authorized", authorized),
+                Map.of(ACTION, action != null ? action : "", "authorized", authorized),
                 null,
                 null);
     }
@@ -206,8 +224,8 @@ public class AuditLogService {
                 "PHI",
                 phiId,
                 Map.of(
-                        "activity", activity != null ? activity : "",
-                        "details", details != null ? details : ""),
+                        ACTIVITY, activity != null ? activity : "",
+                        DETAILS, details != null ? details : ""),
                 null,
                 null);
     }
@@ -243,7 +261,7 @@ public class AuditLogService {
                 report.getPhiId(),
                 Map.of(
                         "breachType", report.getBreachType() != null ? report.getBreachType() : "",
-                        "details", report.getDetails() != null ? report.getDetails() : ""),
+                        DETAILS, report.getDetails() != null ? report.getDetails() : ""),
                 null,
                 null);
     }
@@ -253,7 +271,7 @@ public class AuditLogService {
         logAction(
                 userId,
                 "WORKFORCE_ACCESS",
-                resource != null ? resource : "UNKNOWN",
+                resource != null ? resource : UNKNOWN,
                 null,
                 Map.of("role", role != null ? role : "", "granted", granted),
                 null,
@@ -288,7 +306,7 @@ public class AuditLogService {
         logAction(
                 userId,
                 "ACCESS_PROVISIONING",
-                resource != null ? resource : "UNKNOWN",
+                resource != null ? resource : UNKNOWN,
                 null,
                 Map.of("accessLevel", accessLevel != null ? accessLevel : ""),
                 null,
@@ -300,7 +318,7 @@ public class AuditLogService {
         logAction(
                 userId,
                 "PRIVILEGED_ACCESS",
-                resource != null ? resource : "UNKNOWN",
+                resource != null ? resource : UNKNOWN,
                 null,
                 Map.of("privilege", privilege != null ? privilege : ""),
                 null,
@@ -313,7 +331,7 @@ public class AuditLogService {
                 "CREDENTIAL_CHANGE",
                 "CREDENTIAL",
                 null,
-                Map.of("changeType", changeType != null ? changeType : ""),
+                Map.of(CHANGE_TYPE, changeType != null ? changeType : ""),
                 null,
                 null);
     }
@@ -329,7 +347,7 @@ public class AuditLogService {
                 "ACCESS_REVIEW",
                 "ACCESS",
                 null,
-                Map.of("status", review.getStatus() != null ? review.getStatus() : ""),
+                Map.of(STATUS, review.getStatus() != null ? review.getStatus() : ""),
                 null,
                 null);
     }
@@ -338,7 +356,7 @@ public class AuditLogService {
         logAction(
                 userId,
                 "ACCESS_REMOVAL",
-                resource != null ? resource : "UNKNOWN",
+                resource != null ? resource : UNKNOWN,
                 null,
                 Map.of("reason", reason != null ? reason : ""),
                 null,
@@ -362,7 +380,7 @@ public class AuditLogService {
                 "PASSWORD_MANAGEMENT",
                 "CREDENTIAL",
                 null,
-                Map.of("activity", activity != null ? activity : ""),
+                Map.of(ACTIVITY, activity != null ? activity : ""),
                 null,
                 null);
     }
@@ -370,25 +388,25 @@ public class AuditLogService {
     public void logSecurityEvent(
             final String eventType, final String severity, final String details) {
         logAction(
-                "SYSTEM",
+                SYSTEM,
                 "SECURITY_EVENT",
                 "SECURITY",
                 null,
                 Map.of(
                         "eventType", eventType != null ? eventType : "",
                         "severity", severity != null ? severity : "",
-                        "details", details != null ? details : ""),
+                        DETAILS, details != null ? details : ""),
                 null,
                 null);
     }
 
     public void protectLogInformation(final String logId) {
         logAction(
-                "SYSTEM",
+                SYSTEM,
                 "LOG_PROTECTION",
                 "LOG",
-                logId != null ? logId : "UNKNOWN",
-                Map.of("action", "protect"),
+                logId != null ? logId : UNKNOWN,
+                Map.of(ACTION, "protect"),
                 null,
                 null);
     }
@@ -398,18 +416,18 @@ public class AuditLogService {
         logAction(
                 adminId,
                 "ADMINISTRATOR_ACTIVITY",
-                resource != null ? resource : "UNKNOWN",
+                resource != null ? resource : UNKNOWN,
                 null,
-                Map.of("activity", activity != null ? activity : ""),
+                Map.of(ACTIVITY, activity != null ? activity : ""),
                 null,
                 null);
     }
 
     public void logClockSynchronization(final long systemTime) {
         logAction(
-                "SYSTEM",
+                SYSTEM,
                 "CLOCK_SYNCHRONIZATION",
-                "SYSTEM",
+                SYSTEM,
                 null,
                 Map.of("systemTime", systemTime),
                 null,
@@ -423,7 +441,7 @@ public class AuditLogService {
             return;
         }
         logAction(
-                "SYSTEM",
+                SYSTEM,
                 "SECURITY_INCIDENT",
                 "SECURITY",
                 null,
@@ -433,15 +451,15 @@ public class AuditLogService {
                                         ? incident.getIncidentType()
                                         : "",
                         "severity", incident.getSeverity() != null ? incident.getSeverity() : "",
-                        "details", incident.getDetails() != null ? incident.getDetails() : "",
-                        "status", incident.getStatus() != null ? incident.getStatus() : ""),
+                        DETAILS, incident.getDetails() != null ? incident.getDetails() : "",
+                        STATUS, incident.getStatus() != null ? incident.getStatus() : ""),
                 null,
                 null);
     }
 
     public void logComplianceCheck(final String legislation, final boolean compliant) {
         logAction(
-                "SYSTEM",
+                SYSTEM,
                 "COMPLIANCE_CHECK",
                 "COMPLIANCE",
                 null,
@@ -461,7 +479,7 @@ public class AuditLogService {
                 userId,
                 "CARD_DATA_ACCESS",
                 "CARD",
-                cardLast4 != null ? cardLast4 : "UNKNOWN",
+                cardLast4 != null ? cardLast4 : UNKNOWN,
                 Map.of("encrypted", encrypted),
                 null,
                 null);
@@ -472,7 +490,7 @@ public class AuditLogService {
         logAction(
                 userId,
                 "CARDHOLDER_DATA_ACCESS",
-                resource != null ? resource : "UNKNOWN",
+                resource != null ? resource : UNKNOWN,
                 null,
                 Map.of("authorized", authorized),
                 null,
@@ -484,9 +502,9 @@ public class AuditLogService {
         logAction(
                 userId,
                 "FINANCIAL_DATA_ACCESS",
-                dataType != null ? dataType : "UNKNOWN",
+                dataType != null ? dataType : UNKNOWN,
                 null,
-                Map.of("action", action != null ? action : ""),
+                Map.of(ACTION, action != null ? action : ""),
                 null,
                 null);
     }
@@ -499,7 +517,7 @@ public class AuditLogService {
         logAction(
                 userId,
                 "FINANCIAL_DATA_MODIFICATION",
-                dataType != null ? dataType : "UNKNOWN",
+                dataType != null ? dataType : UNKNOWN,
                 null,
                 Map.of(
                         "before", beforeValue != null ? beforeValue : "",
@@ -511,22 +529,22 @@ public class AuditLogService {
     public void logInternalControl(
             final String controlId, final String activity, final boolean effective) {
         logAction(
-                "SYSTEM",
+                SYSTEM,
                 "INTERNAL_CONTROL",
-                "CONTROL",
-                controlId != null ? controlId : "UNKNOWN",
-                Map.of("activity", activity != null ? activity : "", "effective", effective),
+                CONTROL,
+                controlId != null ? controlId : UNKNOWN,
+                Map.of(ACTIVITY, activity != null ? activity : "", "effective", effective),
                 null,
                 null);
     }
 
     public void logSecurityControl(final String controlId, final String status) {
         logAction(
-                "SYSTEM",
+                SYSTEM,
                 "SECURITY_CONTROL",
-                "CONTROL",
-                controlId != null ? controlId : "UNKNOWN",
-                Map.of("status", status != null ? status : ""),
+                CONTROL,
+                controlId != null ? controlId : UNKNOWN,
+                Map.of(STATUS, status != null ? status : ""),
                 null,
                 null);
     }
@@ -539,9 +557,9 @@ public class AuditLogService {
         logAction(
                 userId,
                 "CUSTOMER_ASSET_ACCESS",
-                assetType != null ? assetType : "UNKNOWN",
+                assetType != null ? assetType : UNKNOWN,
                 customerId,
-                Map.of("action", action != null ? action : ""),
+                Map.of(ACTION, action != null ? action : ""),
                 null,
                 null);
     }
@@ -552,7 +570,7 @@ public class AuditLogService {
                 userId,
                 "SUSPICIOUS_TRANSACTION",
                 "TRANSACTION",
-                transactionId != null ? transactionId : "UNKNOWN",
+                transactionId != null ? transactionId : UNKNOWN,
                 Map.of("amount", amount),
                 null,
                 null);
@@ -560,10 +578,10 @@ public class AuditLogService {
 
     public void logDataRetention(final String dataType, final Instant retentionUntil) {
         logAction(
-                "SYSTEM",
+                SYSTEM,
                 "DATA_RETENTION",
                 "DATA",
-                dataType != null ? dataType : "UNKNOWN",
+                dataType != null ? dataType : UNKNOWN,
                 Map.of("retentionUntil", retentionUntil != null ? retentionUntil.toString() : ""),
                 null,
                 null);
@@ -575,7 +593,7 @@ public class AuditLogService {
                 userId,
                 "DATA_EXPORT",
                 "DATA",
-                exportId != null ? exportId : "UNKNOWN",
+                exportId != null ? exportId : UNKNOWN,
                 Map.of("exportId", exportId != null ? exportId : ""),
                 null,
                 null);
@@ -593,9 +611,9 @@ public class AuditLogService {
     public void logRecordKeeping(
             final String recordType, final String recordId, final Instant retentionUntil) {
         logAction(
-                "SYSTEM",
+                SYSTEM,
                 "RECORD_KEEPING",
-                recordType != null ? recordType : "UNKNOWN",
+                recordType != null ? recordType : UNKNOWN,
                 recordId,
                 Map.of("retentionUntil", retentionUntil != null ? retentionUntil.toString() : ""),
                 null,
@@ -612,7 +630,7 @@ public class AuditLogService {
                 "SUPERVISION",
                 "SUPERVISION",
                 supervisedUserId,
-                Map.of("activity", activity != null ? activity : "", "approved", approved),
+                Map.of(ACTIVITY, activity != null ? activity : "", "approved", approved),
                 null,
                 null);
     }
@@ -626,7 +644,7 @@ public class AuditLogService {
                 null,
                 Map.of(
                         "activityType", activityType != null ? activityType : "",
-                        "details", details != null ? details : ""),
+                        DETAILS, details != null ? details : ""),
                 null,
                 null);
     }
@@ -639,7 +657,7 @@ public class AuditLogService {
         logAction(
                 userId,
                 "COMMUNICATION",
-                communicationType != null ? communicationType : "UNKNOWN",
+                communicationType != null ? communicationType : UNKNOWN,
                 customerId,
                 Map.of("content", content != null ? content : ""),
                 null,
@@ -659,7 +677,7 @@ public class AuditLogService {
                 report.getPhiId(),
                 Map.of(
                         "breachType", report.getBreachType() != null ? report.getBreachType() : "",
-                        "details", report.getDetails() != null ? report.getDetails() : "",
+                        DETAILS, report.getDetails() != null ? report.getDetails() : "",
                         "reported", report.isReported()),
                 null,
                 null);
@@ -673,8 +691,8 @@ public class AuditLogService {
             final String purpose) {
         logAction(
                 userId,
-                "CONSENT",
-                "CONSENT",
+                CONSENT,
+                CONSENT,
                 null,
                 Map.of(
                         "consentType", consentType != null ? consentType : "",
@@ -688,7 +706,7 @@ public class AuditLogService {
         logAction(
                 userId,
                 "CONSENT_WITHDRAWAL",
-                "CONSENT",
+                CONSENT,
                 null,
                 Map.of("consentType", consentType != null ? consentType : ""),
                 null,

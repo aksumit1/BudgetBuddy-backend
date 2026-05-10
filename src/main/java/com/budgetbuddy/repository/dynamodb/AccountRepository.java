@@ -46,7 +46,7 @@ import software.amazon.awssdk.services.dynamodb.model.WriteRequest;
 @SuppressFBWarnings(
         value = "EI_EXPOSE_REP2",
         justification = "Spring constructor injection — beans are shared by design")
-@SuppressWarnings("PMD.AvoidCatchingGenericException")
+@SuppressWarnings({"PMD.AvoidCatchingGenericException", "PMD.OnlyOneReturn"})
 @Repository
 public class AccountRepository {
 

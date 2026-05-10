@@ -251,7 +251,6 @@ class TransactionTypeAndCategoryComprehensiveTest {
     void testTransactionAmountSignExpenseIsNegative() {
         // Given - Expense transaction (positive amount on checking = debit = expense)
         final String description = "Coffee Shop";
-        final String merchantName = "Starbucks";
         final BigDecimal amount = new BigDecimal("-25.50"); // Negative = expense
 
         // When - Determine type
@@ -271,7 +270,6 @@ class TransactionTypeAndCategoryComprehensiveTest {
     void testTransactionAmountSignIncomeIsPositive() {
         // Given - Income transaction (positive amount on checking = credit = income)
         final String description = "Paycheck";
-        final String merchantName = "EMPLOYER";
         final BigDecimal amount = new BigDecimal("3000.00"); // Positive = income
 
         // When - Determine type
@@ -365,7 +363,6 @@ class TransactionTypeAndCategoryComprehensiveTest {
     void testRecurringACHPaymentDetectedAsPayment() {
         // Given - Recurring ACH payment
         final String description = "Monthly Recurring Payment - Utilities";
-        final String merchantName = "Utility Company";
         final BigDecimal amount = new BigDecimal("-100.00");
 
         // When - Determine type
@@ -392,7 +389,6 @@ class TransactionTypeAndCategoryComprehensiveTest {
     void testAutopayDetectedAsPayment() {
         // Given - Autopay transaction
         final String description = "AUTOPAY - Loan Payment";
-        final String merchantName = "Loan Company";
         final BigDecimal amount = new BigDecimal("-250.00");
 
         // When - Determine type (checking account with negative amount = EXPENSE by default)

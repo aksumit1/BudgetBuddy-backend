@@ -34,14 +34,6 @@ class PlaidServiceTest {
 
     private PlaidService plaidService;
 
-    // Helper method to parse error response using reflection
-    private Object parseErrorResponse(final String errorBody) throws Exception {
-        final java.lang.reflect.Method method =
-                PlaidService.class.getDeclaredMethod("parsePlaidErrorResponse", String.class);
-        method.setAccessible(true);
-        return method.invoke(plaidService, errorBody);
-    }
-
     // Helper method to get field value from error response object
     private String getErrorField(final Object errorObj, final String fieldName)
             throws NoSuchFieldException, IllegalAccessException {

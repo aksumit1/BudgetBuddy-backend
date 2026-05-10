@@ -36,7 +36,7 @@ import org.springframework.stereotype.Service;
                 "JSON DTO / DynamoDB entity getters expose lists by reference; "
                         + "the design is value-semantic and Jackson creates fresh instances. "
                         + "Spring constructor injection — beans are shared by design.")
-@SuppressWarnings("PMD.AvoidCatchingGenericException")
+@SuppressWarnings({"PMD.AvoidCatchingGenericException", "PMD.DataClass", "PMD.OnlyOneReturn"})
 @Service
 public class SubscriptionInsightsService {
 

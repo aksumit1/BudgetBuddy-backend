@@ -36,10 +36,18 @@ import org.springframework.web.util.ContentCachingResponseWrapper;
 // that can't reasonably be enumerated. Broad catches log + recover (or
 // translate to AppException). Suppress at class level since narrowing
 // here would mean catch (RuntimeException) which PMD flags identically.
-@SuppressWarnings("PMD.AvoidCatchingGenericException")
+@SuppressWarnings({"PMD.AvoidCatchingGenericException", "PMD.OnlyOneReturn"})
 @Component
 @Order(Ordered.HIGHEST_PRECEDENCE)
 public class RequestResponseLoggingFilter extends OncePerRequestFilter {
+
+    private static final String A_1_REDACTED_3 = "$1[REDACTED]$3";
+
+    private static final String EMPTY = "[empty]";
+
+    private static final String FIELDS = "fields: ";
+
+    private static final String MULTIPART_FORM_DATA = "multipart/form-data";
 
     private static final Logger LOGGER =
             LoggerFactory.getLogger(RequestResponseLoggingFilter.class);
@@ -87,8 +95,12 @@ public class RequestResponseLoggingFilter extends OncePerRequestFilter {
         MDC.put("correlationId", correlationId);
         response.setHeader("X-Request-ID", correlationId);
 
-        // Wrap request and response for body reading
-        final ContentCachingRequestWrapper wrappedRequest = new ContentCachingRequestWrapper(request);
+        // Wrap request and response for body reading. The 1-arg constructor
+        // is deprecated for removal in Spring 7 — use the explicit cache-size
+        // form. 256 KiB matches Spring's prior default; we don't ingest larger
+        // request bodies on any logged endpoint.
+        final ContentCachingRequestWrapper wrappedRequest =
+                new ContentCachingRequestWrapper(request, 256 * 1024);
         final ContentCachingResponseWrapper wrappedResponse = new ContentCachingResponseWrapper(response);
 
         final long startTime = System.currentTimeMillis();
@@ -262,13 +274,13 @@ public class RequestResponseLoggingFilter extends OncePerRequestFilter {
 
             // Handle multipart requests specially
             final String contentType = request.getContentType();
-            String body = "[empty]";
+            String body = EMPTY;
 
             // Try to get multipart information if available
-            if (contentType != null && contentType.startsWith("multipart/form-data")) {
+            if (contentType != null && contentType.startsWith(MULTIPART_FORM_DATA)) {
                 body = getMultipartRequestInfo(request);
                 // If multipart info extraction failed, at least log that it's multipart
-                if (body == null || body.isEmpty() || "[empty]".equals(body)) {
+                if (body == null || body.isEmpty() || EMPTY.equals(body)) {
                     body =
                             "[multipart/form-data - body not readable in filter (consumed by Spring multipart resolver)]";
                 }
@@ -304,8 +316,8 @@ public class RequestResponseLoggingFilter extends OncePerRequestFilter {
                     .append(body);
 
             // For multipart requests, add a note if body is empty (expected behavior)
-            if (contentType != null && contentType.startsWith("multipart/form-data")) {
-                if (body == null || body.isEmpty() || "[empty]".equals(body)) {
+            if (contentType != null && contentType.startsWith(MULTIPART_FORM_DATA)) {
+                if (body == null || body.isEmpty() || EMPTY.equals(body)) {
                     logMessage.append(
                             " [NOTE: Multipart body consumed by Spring multipart resolver - see controller logs for file details]");
                 }
@@ -330,7 +342,7 @@ public class RequestResponseLoggingFilter extends OncePerRequestFilter {
 
             // Also log to main LOGGER for multipart requests and import endpoints to ensure
             // visibility
-            if (contentType != null && contentType.startsWith("multipart/form-data")) {
+            if (contentType != null && contentType.startsWith(MULTIPART_FORM_DATA)) {
                 try {
                     LOGGER.info("📤 MULTIPART REQUEST: {}", logMsg);
                 } catch (Exception e) {
@@ -398,7 +410,7 @@ public class RequestResponseLoggingFilter extends OncePerRequestFilter {
                     }
                 }
                 if (!paramNames.isEmpty()) {
-                    info.append("fields: ").append(String.join(", ", paramNames)).append("; ");
+                    info.append(FIELDS).append(String.join(", ", paramNames)).append("; ");
                 }
 
                 return info.toString();
@@ -442,7 +454,7 @@ public class RequestResponseLoggingFilter extends OncePerRequestFilter {
                     }
                 }
                 if (!fields.isEmpty()) {
-                    info.append("fields: ").append(String.join(", ", fields)).append("; ");
+                    info.append(FIELDS).append(String.join(", ", fields)).append("; ");
                 }
 
                 info.append("size: ").append(bodyBytes.length).append(" bytes");
@@ -502,7 +514,7 @@ public class RequestResponseLoggingFilter extends OncePerRequestFilter {
 
         try {
             // Handle multipart/form-data specially (file uploads)
-            if (contentType != null && contentType.startsWith("multipart/form-data")) {
+            if (contentType != null && contentType.startsWith(MULTIPART_FORM_DATA)) {
                 // Extract metadata from multipart body without logging binary data
                 final String bodyStr = new String(bodyBytes, StandardCharsets.UTF_8);
 
@@ -531,7 +543,7 @@ public class RequestResponseLoggingFilter extends OncePerRequestFilter {
                     }
                 }
                 if (!fields.isEmpty()) {
-                    metadata.append("fields: ").append(String.join(", ", fields)).append("; ");
+                    metadata.append(FIELDS).append(String.join(", ", fields)).append("; ");
                 }
 
                 // Add file size info
@@ -544,9 +556,9 @@ public class RequestResponseLoggingFilter extends OncePerRequestFilter {
             String body = new String(bodyBytes, StandardCharsets.UTF_8);
 
             // Sanitize sensitive data
-            body = PASSWORD_PATTERN.matcher(body).replaceAll("$1[REDACTED]$3");
-            body = TOKEN_PATTERN.matcher(body).replaceAll("$1[REDACTED]$3");
-            body = SECRET_PATTERN.matcher(body).replaceAll("$1[REDACTED]$3");
+            body = PASSWORD_PATTERN.matcher(body).replaceAll(A_1_REDACTED_3);
+            body = TOKEN_PATTERN.matcher(body).replaceAll(A_1_REDACTED_3);
+            body = SECRET_PATTERN.matcher(body).replaceAll(A_1_REDACTED_3);
             body = EMAIL_PATTERN.matcher(body).replaceAll("$1@[REDACTED]");
             body = CARD_PATTERN.matcher(body).replaceAll("[REDACTED]");
 

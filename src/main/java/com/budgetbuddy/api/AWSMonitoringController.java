@@ -19,9 +19,14 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 /** AWS Monitoring REST Controller Provides endpoints for AWS service monitoring */
+// PMD's OnlyOneReturn fights guard-clause idiom — the codebase intentionally
+// uses early returns for clarity (validation guards, fail-fast patterns).
+@SuppressWarnings("PMD.OnlyOneReturn")
 @RestController
 @RequestMapping("/api/aws/monitoring")
 public class AWSMonitoringController {
+
+    private static final String USER_NOT_FOUND_1 = "User not found";
 
     private final CloudWatchService cloudWatchService;
     private final CloudTrailService cloudTrailService;
@@ -57,7 +62,7 @@ public class AWSMonitoringController {
                 userService
                         .findByEmail(userDetails.getUsername())
                         .orElseThrow(
-                                () -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
+                                () -> new AppException(ErrorCode.USER_NOT_FOUND, USER_NOT_FOUND_1));
 
         if (!hasMonitoringAccess(user)) {
             return ResponseEntity.status(403).build();
@@ -79,7 +84,7 @@ public class AWSMonitoringController {
                 userService
                         .findByEmail(userDetails.getUsername())
                         .orElseThrow(
-                                () -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
+                                () -> new AppException(ErrorCode.USER_NOT_FOUND, USER_NOT_FOUND_1));
 
         if (!hasMonitoringAccess(user)) {
             return ResponseEntity.status(403).build();
@@ -99,7 +104,7 @@ public class AWSMonitoringController {
                 userService
                         .findByEmail(userDetails.getUsername())
                         .orElseThrow(
-                                () -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
+                                () -> new AppException(ErrorCode.USER_NOT_FOUND, USER_NOT_FOUND_1));
 
         if (!hasMonitoringAccess(user)) {
             return ResponseEntity.status(403).build();
@@ -118,7 +123,7 @@ public class AWSMonitoringController {
                 userService
                         .findByEmail(userDetails.getUsername())
                         .orElseThrow(
-                                () -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
+                                () -> new AppException(ErrorCode.USER_NOT_FOUND, USER_NOT_FOUND_1));
 
         if (!hasMonitoringAccess(user)) {
             return ResponseEntity.status(403).build();

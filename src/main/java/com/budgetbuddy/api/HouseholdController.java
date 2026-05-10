@@ -30,7 +30,7 @@ import org.springframework.web.bind.annotation.RestController;
 // standard library types (BigDecimal, String, Optional) and DTO
 // getters; this class has many such idiomatic uses. Suppress at
 // class level rather than littering every method.
-@SuppressWarnings("PMD.LawOfDemeter")
+@SuppressWarnings({"PMD.LawOfDemeter", "PMD.DataClass", "PMD.OnlyOneReturn"})
 @RestController
 @RequestMapping("/api/household")
 public class HouseholdController {

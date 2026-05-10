@@ -38,11 +38,25 @@ import org.springframework.web.bind.annotation.RestController;
 @SuppressFBWarnings(
         value = "EI_EXPOSE_REP2",
         justification = "Spring constructor injection — beans are shared by design")
-@SuppressWarnings("PMD.AvoidCatchingGenericException")
+@SuppressWarnings({"PMD.AvoidCatchingGenericException", "PMD.OnlyOneReturn"})
 @RestController
 @RequestMapping("/api/user")
 @Tag(name = "User Deletion", description = "User data and account deletion endpoints")
 public class UserDeletionController {
+
+    private static final String CONFIRMATION_REQUIRED_SET_CONFIRM_TRUE = "Confirmation required. Set confirm=true to proceed.";
+
+    private static final String USER_NOT_AUTHENTICATED = "User not authenticated";
+
+    private static final String USER_NOT_FOUND_1 = "User not found";
+
+    private static final String ERROR = "error";
+
+    private static final String MESSAGE = "message";
+
+    private static final String STATUS = "status";
+
+    private static final String SUCCESS = "success";
 
     private static final Logger LOGGER = LoggerFactory.getLogger(UserDeletionController.class);
 
@@ -79,27 +93,27 @@ public class UserDeletionController {
             @RequestParam(required = false, defaultValue = "false") final boolean confirm) {
 
         if (userDetails == null || userDetails.getUsername() == null) {
-            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "User not authenticated");
+            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, USER_NOT_AUTHENTICATED);
         }
 
         if (!confirm) {
             return ResponseEntity.badRequest()
-                    .body(Map.of("error", "Confirmation required. Set confirm=true to proceed."));
+                    .body(Map.of(ERROR, CONFIRMATION_REQUIRED_SET_CONFIRM_TRUE));
         }
 
         final UserTable user =
                 userService
                         .findByEmail(userDetails.getUsername())
                         .orElseThrow(
-                                () -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
+                                () -> new AppException(ErrorCode.USER_NOT_FOUND, USER_NOT_FOUND_1));
 
         try {
             userDeletionService.deleteAllUserData(user.getUserId());
             LOGGER.info("User {} deleted all their data", user.getUserId());
             return ResponseEntity.ok(
                     Map.of(
-                            "status", "success",
-                            "message", "All user data deleted successfully"));
+                            STATUS, SUCCESS,
+                            MESSAGE, "All user data deleted successfully"));
         } catch (Exception e) {
             LOGGER.error(
                     "Failed to delete user data for user {}: {}",
@@ -137,27 +151,27 @@ public class UserDeletionController {
             @RequestParam(required = false, defaultValue = "false") final boolean confirm) {
 
         if (userDetails == null || userDetails.getUsername() == null) {
-            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "User not authenticated");
+            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, USER_NOT_AUTHENTICATED);
         }
 
         if (!confirm) {
             return ResponseEntity.badRequest()
-                    .body(Map.of("error", "Confirmation required. Set confirm=true to proceed."));
+                    .body(Map.of(ERROR, CONFIRMATION_REQUIRED_SET_CONFIRM_TRUE));
         }
 
         final UserTable user =
                 userService
                         .findByEmail(userDetails.getUsername())
                         .orElseThrow(
-                                () -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
+                                () -> new AppException(ErrorCode.USER_NOT_FOUND, USER_NOT_FOUND_1));
 
         try {
             userDeletionService.deletePlaidIntegration(user.getUserId());
             LOGGER.info("User {} deleted Plaid integration", user.getUserId());
             return ResponseEntity.ok(
                     Map.of(
-                            "status", "success",
-                            "message", "Plaid integration deleted successfully"));
+                            STATUS, SUCCESS,
+                            MESSAGE, "Plaid integration deleted successfully"));
         } catch (Exception e) {
             LOGGER.error(
                     "Failed to delete Plaid integration for user {}: {}",
@@ -200,27 +214,27 @@ public class UserDeletionController {
             @RequestParam(required = false, defaultValue = "false") final boolean confirm) {
 
         if (userDetails == null || userDetails.getUsername() == null) {
-            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "User not authenticated");
+            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, USER_NOT_AUTHENTICATED);
         }
 
         if (!confirm) {
             return ResponseEntity.badRequest()
-                    .body(Map.of("error", "Confirmation required. Set confirm=true to proceed."));
+                    .body(Map.of(ERROR, CONFIRMATION_REQUIRED_SET_CONFIRM_TRUE));
         }
 
         final UserTable user =
                 userService
                         .findByEmail(userDetails.getUsername())
                         .orElseThrow(
-                                () -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
+                                () -> new AppException(ErrorCode.USER_NOT_FOUND, USER_NOT_FOUND_1));
 
         try {
             userDeletionService.deleteAccountCompletely(user.getUserId());
             LOGGER.info("User {} deleted their account completely", user.getUserId());
             return ResponseEntity.ok(
                     Map.of(
-                            "status", "success",
-                            "message", "Account deleted successfully"));
+                            STATUS, SUCCESS,
+                            MESSAGE, "Account deleted successfully"));
         } catch (Exception e) {
             LOGGER.error(
                     "Failed to delete account for user {}: {}",

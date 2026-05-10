@@ -46,9 +46,19 @@ import org.springframework.stereotype.Service;
         justification = "Spring constructor injection — beans are shared by design")
 // Plaid SDK calls + reflection bootstrap — broad catches translate any
 // runtime/SDK exception into AppException; narrowing is impractical here.
-@SuppressWarnings("PMD.AvoidCatchingGenericException")
+@SuppressWarnings({"PMD.AvoidCatchingGenericException", "PMD.OnlyOneReturn"})
 @Service
 public class PlaidService {
+
+    private static final String ACCESS_TOKEN_CANNOT_BE_NULL_OR_EMPTY = "Access token cannot be null or empty";
+
+    private static final String NO_ERROR_BODY = "No error body";
+
+    private static final String RATE_LIMIT_EXCEEDED = "RATE_LIMIT_EXCEEDED";
+
+    private static final String RATE_LIMIT_EXCEEDED_FOR_TRANSACTIONS = "Rate limit exceeded for transactions";
+
+    private static final String TRANSACTIONS_LIMIT = "TRANSACTIONS_LIMIT";
 
     private static final Logger LOGGER = LoggerFactory.getLogger(PlaidService.class);
 
@@ -304,7 +314,7 @@ public class PlaidService {
             final var callResponse = plaidApi.linkTokenCreate(request).execute();
 
             if (!callResponse.isSuccessful()) {
-                String errorBody = "No error body";
+                String errorBody = NO_ERROR_BODY;
                 // Use try-with-resources to ensure ResponseBody is closed to prevent connection
                 // leaks
                 try (okhttp3.ResponseBody errorBodyResponse = callResponse.errorBody()) {
@@ -387,7 +397,7 @@ public class PlaidService {
     @Retry(name = "plaid")
     public AccountsGetResponse getAccounts(final String accessToken) {
         if (accessToken == null || accessToken.isEmpty()) {
-            throw new AppException(ErrorCode.INVALID_INPUT, "Access token cannot be null or empty");
+            throw new AppException(ErrorCode.INVALID_INPUT, ACCESS_TOKEN_CANNOT_BE_NULL_OR_EMPTY);
         }
 
         try {
@@ -421,7 +431,7 @@ public class PlaidService {
     public TransactionsGetResponse getTransactions(
             final String accessToken, final String startDate, final String endDate) {
         if (accessToken == null || accessToken.isEmpty()) {
-            throw new AppException(ErrorCode.INVALID_INPUT, "Access token cannot be null or empty");
+            throw new AppException(ErrorCode.INVALID_INPUT, ACCESS_TOKEN_CANNOT_BE_NULL_OR_EMPTY);
         }
         if (startDate == null || startDate.isEmpty()) {
             throw new AppException(ErrorCode.INVALID_INPUT, "Start date cannot be null or empty");
@@ -471,7 +481,7 @@ public class PlaidService {
                     plaidApi.transactionsGet(request).execute();
 
             if (!httpResponse.isSuccessful()) {
-                String errorBody = "No error body";
+                String errorBody = NO_ERROR_BODY;
                 // Use try-with-resources to ensure ResponseBody is closed to prevent connection
                 // leaks
                 try (var errorBodyStream = httpResponse.errorBody()) {
@@ -490,9 +500,9 @@ public class PlaidService {
                     final PlaidErrorResponse plaidError = parsePlaidErrorResponse(errorBody);
                     if (plaidError != null
                             && (plaidError.errorCode != null
-                                    && ("TRANSACTIONS_LIMIT".equals(plaidError.errorCode)
-                                            || "RATE_LIMIT_EXCEEDED".equals(plaidError.errorCode)
-                                            || ("RATE_LIMIT_EXCEEDED".equals(plaidError.errorType))))) {
+                                    && (TRANSACTIONS_LIMIT.equals(plaidError.errorCode)
+                                            || RATE_LIMIT_EXCEEDED.equals(plaidError.errorCode)
+                                            || (RATE_LIMIT_EXCEEDED.equals(plaidError.errorType))))) {
                         LOGGER.warn(
                                 "Plaid rate limit exceeded: {} - {}. Request ID: {}",
                                 plaidError.errorCode,
@@ -504,10 +514,10 @@ public class PlaidService {
                                         "Plaid rate limit exceeded: %s. %s. Please try again later.",
                                         plaidError.errorCode != null
                                                 ? plaidError.errorCode
-                                                : "RATE_LIMIT_EXCEEDED",
+                                                : RATE_LIMIT_EXCEEDED,
                                         plaidError.errorMessage != null
                                                 ? plaidError.errorMessage
-                                                : "Rate limit exceeded for transactions"));
+                                                : RATE_LIMIT_EXCEEDED_FOR_TRANSACTIONS));
                     }
                 }
 
@@ -604,7 +614,7 @@ public class PlaidService {
                             plaidApi.transactionsGet(nextRequest).execute();
 
                     if (!nextHttpResponse.isSuccessful()) {
-                        String errorBody = "No error body";
+                        String errorBody = NO_ERROR_BODY;
                         // Use try-with-resources to ensure ResponseBody is closed to prevent
                         // connection leaks
                         try (var errorBodyStream = nextHttpResponse.errorBody()) {
@@ -620,9 +630,9 @@ public class PlaidService {
                             final PlaidErrorResponse plaidError = parsePlaidErrorResponse(errorBody);
                             if (plaidError != null
                                     && (plaidError.errorCode != null
-                                            && ("TRANSACTIONS_LIMIT".equals(plaidError.errorCode)
-                                                    || "RATE_LIMIT_EXCEEDED".equals(plaidError.errorCode)
-                                                    || ("RATE_LIMIT_EXCEEDED".equals(plaidError.errorType))))) {
+                                            && (TRANSACTIONS_LIMIT.equals(plaidError.errorCode)
+                                                    || RATE_LIMIT_EXCEEDED.equals(plaidError.errorCode)
+                                                    || (RATE_LIMIT_EXCEEDED.equals(plaidError.errorType))))) {
                                 LOGGER.warn(
                                         "Plaid rate limit exceeded during pagination (page {}): {} - {}. Request ID: {}",
                                         pageCount + 1,
@@ -635,10 +645,10 @@ public class PlaidService {
                                                 "Plaid rate limit exceeded during pagination: %s. %s. Please try again later.",
                                                 plaidError.errorCode != null
                                                         ? plaidError.errorCode
-                                                        : "RATE_LIMIT_EXCEEDED",
+                                                        : RATE_LIMIT_EXCEEDED,
                                                 plaidError.errorMessage != null
                                                         ? plaidError.errorMessage
-                                                        : "Rate limit exceeded for transactions"));
+                                                        : RATE_LIMIT_EXCEEDED_FOR_TRANSACTIONS));
                             }
                         }
 
@@ -750,9 +760,9 @@ public class PlaidService {
                 final PlaidErrorResponse plaidError = parsePlaidErrorResponse(errorBody);
                 if (plaidError != null
                         && (plaidError.errorCode != null
-                                && ("TRANSACTIONS_LIMIT".equals(plaidError.errorCode)
-                                        || "RATE_LIMIT_EXCEEDED".equals(plaidError.errorCode)
-                                        || "RATE_LIMIT_EXCEEDED".equals(plaidError.errorType)))) {
+                                && (TRANSACTIONS_LIMIT.equals(plaidError.errorCode)
+                                        || RATE_LIMIT_EXCEEDED.equals(plaidError.errorCode)
+                                        || RATE_LIMIT_EXCEEDED.equals(plaidError.errorType)))) {
                     LOGGER.warn(
                             "Plaid rate limit exceeded: {} - {}. Request ID: {}",
                             plaidError.errorCode,
@@ -764,10 +774,10 @@ public class PlaidService {
                                     "Plaid rate limit exceeded: %s. %s. Please try again later.",
                                     plaidError.errorCode != null
                                             ? plaidError.errorCode
-                                            : "RATE_LIMIT_EXCEEDED",
+                                            : RATE_LIMIT_EXCEEDED,
                                     plaidError.errorMessage != null
                                             ? plaidError.errorMessage
-                                            : "Rate limit exceeded for transactions"));
+                                            : RATE_LIMIT_EXCEEDED_FOR_TRANSACTIONS));
                 }
             }
 
@@ -866,7 +876,7 @@ public class PlaidService {
     @Retry(name = "plaid")
     public ItemRemoveResponse removeItem(final String accessToken) {
         if (accessToken == null || accessToken.isEmpty()) {
-            throw new AppException(ErrorCode.INVALID_INPUT, "Access token cannot be null or empty");
+            throw new AppException(ErrorCode.INVALID_INPUT, ACCESS_TOKEN_CANNOT_BE_NULL_OR_EMPTY);
         }
 
         try {

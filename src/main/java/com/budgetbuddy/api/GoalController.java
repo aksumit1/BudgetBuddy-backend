@@ -42,10 +42,16 @@ import org.springframework.web.bind.annotation.RestController;
         value = {"EI_EXPOSE_REP", "EI_EXPOSE_REP2"},
         justification = "JSON DTO / DynamoDB entity getters expose lists by reference; "
                         + "the design is value-semantic and Jackson creates fresh instances; Spring constructor injection — beans are shared by design")
-@SuppressWarnings({"PMD.LawOfDemeter", "PMD.AvoidCatchingGenericException"})
+@SuppressWarnings({"PMD.LawOfDemeter", "PMD.AvoidCatchingGenericException", "PMD.DataClass"})
 @RestController
 @RequestMapping("/api/goals")
 public class GoalController {
+
+    private static final String GOAL_ID_IS_REQUIRED = "Goal ID is required";
+
+    private static final String USER_NOT_AUTHENTICATED = "User not authenticated";
+
+    private static final String USER_NOT_FOUND_1 = "User not found";
 
     private final GoalService goalService;
     private final GoalProgressService goalProgressService;
@@ -81,14 +87,14 @@ public class GoalController {
     public ResponseEntity<List<GoalTable>> getGoals(
             @AuthenticationPrincipal final UserDetails userDetails) {
         if (userDetails == null || userDetails.getUsername() == null) {
-            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "User not authenticated");
+            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, USER_NOT_AUTHENTICATED);
         }
 
         final UserTable user =
                 userService
                         .findByEmail(userDetails.getUsername())
                         .orElseThrow(
-                                () -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
+                                () -> new AppException(ErrorCode.USER_NOT_FOUND, USER_NOT_FOUND_1));
 
         final List<GoalTable> goals = goalService.getActiveGoals(user);
 
@@ -110,13 +116,13 @@ public class GoalController {
                                     .FinancialGoalRecommendation>>
             recommendations(@AuthenticationPrincipal final UserDetails userDetails) {
         if (userDetails == null || userDetails.getUsername() == null) {
-            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "User not authenticated");
+            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, USER_NOT_AUTHENTICATED);
         }
         final UserTable user =
                 userService
                         .findByEmail(userDetails.getUsername())
                         .orElseThrow(
-                                () -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
+                                () -> new AppException(ErrorCode.USER_NOT_FOUND, USER_NOT_FOUND_1));
         return ResponseEntity.ok(recommendationService.getRecommendations(user.getUserId()));
     }
 
@@ -130,13 +136,13 @@ public class GoalController {
     public ResponseEntity<GoalTable> markComplete(
             @AuthenticationPrincipal final UserDetails userDetails, @PathVariable final String id) {
         if (userDetails == null) {
-            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "User not authenticated");
+            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, USER_NOT_AUTHENTICATED);
         }
         final UserTable user =
                 userService
                         .findByEmail(userDetails.getUsername())
                         .orElseThrow(
-                                () -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
+                                () -> new AppException(ErrorCode.USER_NOT_FOUND, USER_NOT_FOUND_1));
         final GoalTable updated = goalService.manualMarkComplete(user, id);
         // Fire-and-forget push notification; SNS / device-token failures must not
         // fail the user-facing mark-complete request.
@@ -161,13 +167,13 @@ public class GoalController {
     public ResponseEntity<GoalTable> reopen(
             @AuthenticationPrincipal final UserDetails userDetails, @PathVariable final String id) {
         if (userDetails == null) {
-            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "User not authenticated");
+            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, USER_NOT_AUTHENTICATED);
         }
         final UserTable user =
                 userService
                         .findByEmail(userDetails.getUsername())
                         .orElseThrow(
-                                () -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
+                                () -> new AppException(ErrorCode.USER_NOT_FOUND, USER_NOT_FOUND_1));
         final GoalTable updated = goalService.reopen(user, id);
         auditInterceptor.goalChanged(user.getUserId(), id, "REOPEN", "Goal reopened");
         return ResponseEntity.ok(updated);
@@ -181,7 +187,7 @@ public class GoalController {
                             required = false) final String idempotencyKey,
             @Valid @RequestBody final CreateGoalRequest request) {
         if (userDetails == null || userDetails.getUsername() == null) {
-            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "User not authenticated");
+            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, USER_NOT_AUTHENTICATED);
         }
 
         if (request == null) {
@@ -192,7 +198,7 @@ public class GoalController {
                 userService
                         .findByEmail(userDetails.getUsername())
                         .orElseThrow(
-                                () -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
+                                () -> new AppException(ErrorCode.USER_NOT_FOUND, USER_NOT_FOUND_1));
 
         if (request.getTargetAmount() == null
                 || request.getTargetAmount().compareTo(BigDecimal.ZERO) <= 0) {
@@ -255,11 +261,11 @@ public class GoalController {
             @PathVariable final String id,
             @RequestBody final UpdateProgressRequest request) {
         if (userDetails == null || userDetails.getUsername() == null) {
-            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "User not authenticated");
+            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, USER_NOT_AUTHENTICATED);
         }
 
         if (id == null || id.isEmpty()) {
-            throw new AppException(ErrorCode.INVALID_INPUT, "Goal ID is required");
+            throw new AppException(ErrorCode.INVALID_INPUT, GOAL_ID_IS_REQUIRED);
         }
 
         if (request == null || request.getAmount() == null) {
@@ -270,7 +276,7 @@ public class GoalController {
                 userService
                         .findByEmail(userDetails.getUsername())
                         .orElseThrow(
-                                () -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
+                                () -> new AppException(ErrorCode.USER_NOT_FOUND, USER_NOT_FOUND_1));
 
         final GoalTable goal = goalService.updateGoalProgress(user, id, request.getAmount());
 
@@ -294,11 +300,11 @@ public class GoalController {
             @PathVariable final String id,
             @RequestBody final AssociateAccountsRequest request) {
         if (userDetails == null || userDetails.getUsername() == null) {
-            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "User not authenticated");
+            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, USER_NOT_AUTHENTICATED);
         }
 
         if (id == null || id.isEmpty()) {
-            throw new AppException(ErrorCode.INVALID_INPUT, "Goal ID is required");
+            throw new AppException(ErrorCode.INVALID_INPUT, GOAL_ID_IS_REQUIRED);
         }
 
         if (request == null || request.getAccountIds() == null) {
@@ -309,7 +315,7 @@ public class GoalController {
                 userService
                         .findByEmail(userDetails.getUsername())
                         .orElseThrow(
-                                () -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
+                                () -> new AppException(ErrorCode.USER_NOT_FOUND, USER_NOT_FOUND_1));
 
         final GoalTable goal = goalService.associateAccounts(user, id, request.getAccountIds());
 
@@ -331,18 +337,18 @@ public class GoalController {
     public ResponseEntity<GoalTable> recalculateProgress(
             @AuthenticationPrincipal final UserDetails userDetails, @PathVariable final String id) {
         if (userDetails == null || userDetails.getUsername() == null) {
-            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "User not authenticated");
+            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, USER_NOT_AUTHENTICATED);
         }
 
         if (id == null || id.isEmpty()) {
-            throw new AppException(ErrorCode.INVALID_INPUT, "Goal ID is required");
+            throw new AppException(ErrorCode.INVALID_INPUT, GOAL_ID_IS_REQUIRED);
         }
 
         final UserTable user =
                 userService
                         .findByEmail(userDetails.getUsername())
                         .orElseThrow(
-                                () -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
+                                () -> new AppException(ErrorCode.USER_NOT_FOUND, USER_NOT_FOUND_1));
 
         final GoalTable goal = goalProgressService.calculateAndUpdateProgress(user, id);
 
@@ -364,18 +370,18 @@ public class GoalController {
     public ResponseEntity<Void> deleteGoal(
             @AuthenticationPrincipal final UserDetails userDetails, @PathVariable final String id) {
         if (userDetails == null || userDetails.getUsername() == null) {
-            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "User not authenticated");
+            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, USER_NOT_AUTHENTICATED);
         }
 
         if (id == null || id.isEmpty()) {
-            throw new AppException(ErrorCode.INVALID_INPUT, "Goal ID is required");
+            throw new AppException(ErrorCode.INVALID_INPUT, GOAL_ID_IS_REQUIRED);
         }
 
         final UserTable user =
                 userService
                         .findByEmail(userDetails.getUsername())
                         .orElseThrow(
-                                () -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
+                                () -> new AppException(ErrorCode.USER_NOT_FOUND, USER_NOT_FOUND_1));
 
         goalService.deleteGoal(user, id);
 

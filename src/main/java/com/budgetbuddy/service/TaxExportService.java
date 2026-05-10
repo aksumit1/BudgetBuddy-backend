@@ -34,9 +34,19 @@ import org.springframework.stereotype.Service;
         value = {"EI_EXPOSE_REP", "EI_EXPOSE_REP2"},
         justification = "JSON DTO / DynamoDB entity getters expose lists by reference; "
                         + "the design is value-semantic and Jackson creates fresh instances; Spring constructor injection — beans are shared by design")
-@SuppressWarnings({"PMD.LawOfDemeter", "PMD.AvoidCatchingGenericException"})
+@SuppressWarnings({"PMD.LawOfDemeter", "PMD.AvoidCatchingGenericException", "PMD.DataClass", "PMD.OnlyOneReturn"})
 @Service
 public class TaxExportService {
+
+    private static final String GENERATED = "Generated: ";
+
+    private static final String OTHER = "OTHER";
+
+    private static final String SUMMARY = "SUMMARY\n";
+
+    private static final String TAX_YEAR = "Tax Year: ";
+
+    private static final String INTEREST = "interest";
 
     private static final Logger LOGGER = LoggerFactory.getLogger(TaxExportService.class);
 
@@ -615,10 +625,10 @@ public class TaxExportService {
         }
         // Check for mortgage interest FIRST (before general interest)
         final String descLower = description.toLowerCase(Locale.ROOT);
-        if (descLower.contains("mortgage") && descLower.contains("interest")) {
+        if (descLower.contains("mortgage") && descLower.contains(INTEREST)) {
             return "MORTGAGE_INTEREST";
         }
-        if ("interest".equals(category) || descLower.contains("interest")) {
+        if (INTEREST.equals(category) || descLower.contains(INTEREST)) {
             return "INTEREST";
         }
         if ("dividend".equals(category) || description.contains("dividend")) {
@@ -880,11 +890,11 @@ public class TaxExportService {
         final StringBuilder csv = new StringBuilder();
 
         // Header
-        csv.append("Tax Year: ").append(year).append('\n');
-        csv.append("Generated: ").append(LocalDate.now()).append("\n\n");
+        csv.append(TAX_YEAR).append(year).append('\n');
+        csv.append(GENERATED).append(LocalDate.now()).append("\n\n");
 
         // Summary section
-        csv.append("SUMMARY\n");
+        csv.append(SUMMARY);
         csv.append("Category,Total Amount\n");
         final TaxSummary summary = result.getSummary();
         csv.append("Salary,").append(summary.getTotalSalary()).append('\n');
@@ -930,13 +940,13 @@ public class TaxExportService {
                     }
 
                     // Null-safe field extraction
-                    final String category = entry.getKey() != null ? entry.getKey() : "OTHER";
+                    final String category = entry.getKey() != null ? entry.getKey() : OTHER;
                     final String dateStr = tx.getDate() != null ? tx.getDate().toString() : "";
                     final String description = tx.getDescription() != null ? tx.getDescription() : "";
                     final String merchantName = tx.getMerchantName() != null ? tx.getMerchantName() : "";
                     final String userName = tx.getUserName() != null ? tx.getUserName() : "";
                     final String amountStr = tx.getAmount() != null ? tx.getAmount().toString() : "0.00";
-                    final String taxTag = tx.getTaxTag() != null ? tx.getTaxTag() : "OTHER";
+                    final String taxTag = tx.getTaxTag() != null ? tx.getTaxTag() : OTHER;
 
                     // Proper CSV escaping: replace quotes with double quotes, escape newlines and
                     // commas
@@ -1178,7 +1188,7 @@ public class TaxExportService {
         csv.append("Years: ")
                 .append(Arrays.toString(years).replaceAll("[\\[\\] ]", ""))
                 .append('\n');
-        csv.append("Generated: ").append(LocalDate.now()).append("\n\n");
+        csv.append(GENERATED).append(LocalDate.now()).append("\n\n");
 
         // Summary section
         csv.append("SUMMARY (Combined Across All Years)\n");
@@ -1215,13 +1225,13 @@ public class TaxExportService {
                     continue;
                 }
 
-                final String category = entry.getKey() != null ? entry.getKey() : "OTHER";
+                final String category = entry.getKey() != null ? entry.getKey() : OTHER;
                 final String dateStr = tx.getDate() != null ? tx.getDate().toString() : "";
                 final String description = tx.getDescription() != null ? tx.getDescription() : "";
                 final String merchantName = tx.getMerchantName() != null ? tx.getMerchantName() : "";
                 final String userName = tx.getUserName() != null ? tx.getUserName() : "";
                 final String amountStr = tx.getAmount() != null ? tx.getAmount().toString() : "0.00";
-                final String taxTag = tx.getTaxTag() != null ? tx.getTaxTag() : "OTHER";
+                final String taxTag = tx.getTaxTag() != null ? tx.getTaxTag() : OTHER;
                 final int year = tx.getDate() != null ? tx.getDate().getYear() : 0;
 
                 // Proper CSV escaping
@@ -1278,8 +1288,8 @@ public class TaxExportService {
         final StringBuilder csv = new StringBuilder();
 
         csv.append("Schedule A - Itemized Deductions\n");
-        csv.append("Tax Year: ").append(year).append('\n');
-        csv.append("Generated: ").append(LocalDate.now()).append("\n\n");
+        csv.append(TAX_YEAR).append(year).append('\n');
+        csv.append(GENERATED).append(LocalDate.now()).append("\n\n");
 
         final TaxSummary summary = result.getSummary();
 
@@ -1375,12 +1385,12 @@ public class TaxExportService {
         final StringBuilder csv = new StringBuilder();
 
         csv.append("Schedule B - Interest and Dividends\n");
-        csv.append("Tax Year: ").append(year).append('\n');
-        csv.append("Generated: ").append(LocalDate.now()).append("\n\n");
+        csv.append(TAX_YEAR).append(year).append('\n');
+        csv.append(GENERATED).append(LocalDate.now()).append("\n\n");
 
         final TaxSummary summary = result.getSummary();
 
-        csv.append("SUMMARY\n");
+        csv.append(SUMMARY);
         csv.append("Total Interest Income,").append(summary.getTotalInterest()).append('\n');
         csv.append("Total Dividend Income,").append(summary.getTotalDividends()).append('\n');
         csv.append('\n');
@@ -1483,12 +1493,12 @@ public class TaxExportService {
         final StringBuilder csv = new StringBuilder();
 
         csv.append("Schedule D - Capital Gains and Losses\n");
-        csv.append("Tax Year: ").append(year).append('\n');
-        csv.append("Generated: ").append(LocalDate.now()).append("\n\n");
+        csv.append(TAX_YEAR).append(year).append('\n');
+        csv.append(GENERATED).append(LocalDate.now()).append("\n\n");
 
         final TaxSummary summary = result.getSummary();
 
-        csv.append("SUMMARY\n");
+        csv.append(SUMMARY);
         csv.append("Total Capital Gains,").append(summary.getTotalCapitalGains()).append('\n');
         csv.append("Total Capital Losses,").append(summary.getTotalCapitalLosses()).append('\n');
         csv.append("Net Capital Gain/Loss,")

@@ -22,6 +22,9 @@ import java.util.Set;
  * overbroad entries (like a bare "payment" substring) are appropriate because they're usually
  * preceded by an issuer/account name in real descriptions.
  */
+// PMD's OnlyOneReturn fights guard-clause idiom — the codebase intentionally
+// uses early returns for clarity (validation guards, fail-fast patterns).
+@SuppressWarnings("PMD.OnlyOneReturn")
 public final class PaymentPhrases {
 
     /**

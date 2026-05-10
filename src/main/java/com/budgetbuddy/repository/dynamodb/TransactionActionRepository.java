@@ -26,7 +26,7 @@ import software.amazon.awssdk.services.dynamodb.model.ResourceNotFoundException;
 // that can't reasonably be enumerated. Broad catches log + recover (or
 // translate to AppException). Suppress at class level since narrowing
 // here would mean catch (RuntimeException) which PMD flags identically.
-@SuppressWarnings("PMD.AvoidCatchingGenericException")
+@SuppressWarnings({"PMD.AvoidCatchingGenericException", "PMD.OnlyOneReturn"})
 @Repository
 public class TransactionActionRepository {
 
@@ -113,7 +113,7 @@ public class TransactionActionRepository {
         return results;
     }
 
-    /**
+    /*
      * Find transaction actions updated after a specific timestamp using GSI Optimized for
      * incremental sync - queries only changed items
      */

@@ -42,7 +42,7 @@ import software.amazon.awssdk.services.dynamodb.model.ResourceNotFoundException;
 @SuppressFBWarnings(
         value = "EI_EXPOSE_REP2",
         justification = "Spring constructor injection — beans are shared by design")
-@SuppressWarnings("PMD.AvoidCatchingGenericException")
+@SuppressWarnings({"PMD.AvoidCatchingGenericException", "PMD.OnlyOneReturn"})
 @Repository
 @org.springframework.context.annotation.DependsOn({
     "dynamoDBTableManager",
@@ -50,6 +50,10 @@ import software.amazon.awssdk.services.dynamodb.model.ResourceNotFoundException;
     "dynamoDbClient"
 })
 public class UserRepository {
+
+    private static final String USER_ID_CANNOT_BE_NULL_OR_EMPTY = "User ID cannot be null or empty";
+
+    private static final String USER_ID = "userId";
 
     private final DynamoDbTable<UserTable> userTable;
     private final DynamoDbIndex<UserTable> emailIndex;
@@ -253,7 +257,7 @@ public class UserRepository {
     @CacheEvict(value = "users", allEntries = true)
     public void updateLastLogin(final String userId, final Instant lastLogin) {
         if (userId == null || userId.isEmpty()) {
-            throw new IllegalArgumentException("User ID cannot be null or empty");
+            throw new IllegalArgumentException(USER_ID_CANNOT_BE_NULL_OR_EMPTY);
         }
         if (lastLogin == null) {
             throw new IllegalArgumentException("Last login timestamp cannot be null");
@@ -274,7 +278,7 @@ public class UserRepository {
     @CacheEvict(value = "users", allEntries = true)
     public void updateTimestamp(final String userId) {
         if (userId == null || userId.isEmpty()) {
-            throw new IllegalArgumentException("User ID cannot be null or empty");
+            throw new IllegalArgumentException(USER_ID_CANNOT_BE_NULL_OR_EMPTY);
         }
 
         final UserTable user = new UserTable();
@@ -291,7 +295,7 @@ public class UserRepository {
     @CacheEvict(value = "users", allEntries = true)
     public void updateField(final String userId, final String fieldName, final Object value) {
         if (userId == null || userId.isEmpty()) {
-            throw new IllegalArgumentException("User ID cannot be null or empty");
+            throw new IllegalArgumentException(USER_ID_CANNOT_BE_NULL_OR_EMPTY);
         }
         if (fieldName == null || fieldName.isEmpty()) {
             throw new IllegalArgumentException("Field name cannot be null or empty");
@@ -387,7 +391,7 @@ public class UserRepository {
 
             // Build key
             final Map<String, AttributeValue> key = new HashMap<>();
-            key.put("userId", AttributeValue.builder().s(userId).build());
+            key.put(USER_ID, AttributeValue.builder().s(userId).build());
 
             // Build GetItem request with projection
             final GetItemRequest request =
@@ -421,8 +425,8 @@ public class UserRepository {
     private UserTable convertAttributeValueMapToUser(final Map<String, AttributeValue> item) {
         final UserTable user = new UserTable();
 
-        if (item.containsKey("userId")) {
-            user.setUserId(item.get("userId").s());
+        if (item.containsKey(USER_ID)) {
+            user.setUserId(item.get(USER_ID).s());
         }
         if (item.containsKey("email")) {
             user.setEmail(item.get("email").s());

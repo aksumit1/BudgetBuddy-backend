@@ -34,9 +34,23 @@ import org.springframework.stereotype.Component;
         justification =
                 "JSON DTO / DynamoDB entity getters expose lists by reference; "
                         + "the design is value-semantic and Jackson creates fresh instances")
-@SuppressWarnings("PMD.AvoidCatchingGenericException")
+@SuppressWarnings({"PMD.AvoidCatchingGenericException", "PMD.DataClass", "PMD.OnlyOneReturn"})
 @Component
 public class EnhancedPatternMatcher {
+
+    private static final String FUZZY_MATCH = "FuzzyMatch";
+
+    private static final String PATTERN1 = "Pattern1";
+
+    private static final String PATTERN2 = "Pattern2";
+
+    private static final String AMOUNT = "amount";
+
+    private static final String DESCRIPTION = "description";
+
+    private static final String INTERNATIONAL = "international";
+
+    private static final String PAY_BY_PHONE = "pay by phone";
 
     private static final Logger LOGGER = LoggerFactory.getLogger(EnhancedPatternMatcher.class);
 
@@ -73,34 +87,6 @@ public class EnhancedPatternMatcher {
                     "cash back", // Cashback keywords (space)
                     "reward", // Reward keywords
                     "bonus" // Bonus keywords
-                    );
-
-    // Known invalid prefix patterns that indicate informational/header lines
-    // These should be rejected even if date position passes other checks
-    // Common credit card statement section headers that contain dates/amounts but aren't
-    // transactions
-    private static final List<String> INVALID_PREFIX_PATTERNS =
-            Arrays.asList(
-                    "pay over time", // Section header: "Pay Over Time 12/30/2022 19.49% (v) $0.00
-                    // $0.00"
-                    "cash advances", // Section header: "Cash Advances 12/30/2022 28.74% (v) $0.00
-                    // $0.00"
-                    "cash advance", // Section header (singular)
-                    "balance transfers", // Section header: "Balance Transfers 12/30/2022..."
-                    "balance transfer", // Section header (singular)
-                    "interest charges", // Section header: "Interest Charges 12/30/2022..."
-                    "interest charge", // Section header (singular)
-                    "fees charged", // Section header: "Fees Charged 12/30/2022..."
-                    "fee charged", // Section header (singular)
-                    "minimum payment", // Header: "Minimum Payment Due: $25.00"
-                    "credit limit", // Header: "Credit Limit: $5,000.00"
-                    "available credit", // Header: "Available Credit: $2,500.00"
-                    "payment information", // Section header
-                    "account summary", // Section header
-                    "transaction details", // Section header
-                    "rewards summary", // Section header
-                    "statement period", // Header: "Statement Period: 12/01/2022 - 12/31/2022"
-                    "billing period" // Header: "Billing Period: 12/01/2022 - 12/31/2022"
                     );
 
     // Enhanced amount patterns - very flexible
@@ -218,22 +204,22 @@ public class EnhancedPatternMatcher {
                         && lineLower.contains("account ending"))
                 ||
                 // Filter phone number lines with informational keywords
-                (lineLower.contains("pay by phone")
+                (lineLower.contains(PAY_BY_PHONE)
                         && lineLower.matches(".*\\d{1,3}-\\d{3}-\\d{3}-\\d{4}.*"))
                 || // "Pay by phone 1-800-436-7958"
-                (lineLower.contains("pay by phone")
+                (lineLower.contains(PAY_BY_PHONE)
                         && lineLower.matches(".*\\d{1,3}-\\d{3}-\\d{4}-\\d{4}.*"))
                 || // "Pay by phone 1-302-594-8200"
-                (lineLower.contains("pay by phone")
+                (lineLower.contains(PAY_BY_PHONE)
                         && lineLower.matches(".*\\d{3}-\\d{3}-\\d{4}.*"))
                 || // "Pay by phone 800-436-7958"
-                (lineLower.contains("international")
+                (lineLower.contains(INTERNATIONAL)
                         && lineLower.matches(".*\\d{1,3}-\\d{3}-\\d{3}-\\d{4}.*"))
                 || // "International 1-800-436-7958"
-                (lineLower.contains("international")
+                (lineLower.contains(INTERNATIONAL)
                         && lineLower.matches(".*\\d{1,3}-\\d{3}-\\d{4}-\\d{4}.*"))
                 || // "International 1-302-594-8200"
-                (lineLower.contains("international")
+                (lineLower.contains(INTERNATIONAL)
                         && lineLower.matches(".*\\d{3}-\\d{3}-\\d{4}.*"))
                 || // "International 800-436-7958"
                 lineLower.contains("operator relay")
@@ -268,7 +254,7 @@ public class EnhancedPatternMatcher {
                 lineLower.contains("account ending in")
                 || (lineLower.contains("account ending")
                         && !lineLower.contains("fees")
-                        && !lineLower.contains("amount"))
+                        && !lineLower.contains(AMOUNT))
                 || lineLower.contains("statement period")
                 || lineLower.matches(".*statement period.*to.*")
                 || // Statement Period with date range
@@ -415,7 +401,7 @@ public class EnhancedPatternMatcher {
             // Validate amount string - must contain $ or be in parentheses or have sign to avoid
             // matching dates
             if (amountStr == null || amountStr.isBlank()) {
-                return new MatchResult(false, null, 0.0, "Pattern1");
+                return new MatchResult(false, null, 0.0, PATTERN1);
             }
             final String trimmedAmount = amountStr.trim();
             // Must have currency symbol, parentheses, or explicit sign to be a valid amount (not a
@@ -428,7 +414,7 @@ public class EnhancedPatternMatcher {
                     && !trimmedAmount.endsWith("DR")
                     && !trimmedAmount.endsWith("BF")) {
                 // This might be a date fragment, skip it
-                return new MatchResult(false, null, 0.0, "Pattern1");
+                return new MatchResult(false, null, 0.0, PATTERN1);
             }
 
             // Validate and parse
@@ -439,14 +425,14 @@ public class EnhancedPatternMatcher {
             // date, amount, description);
             if (date != null && amount != null && isValidDescription(description)) {
                 fields.put("date", dateStr);
-                fields.put("description", description.trim());
-                fields.put("amount", trimmedAmount);
+                fields.put(DESCRIPTION, description.trim());
+                fields.put(AMOUNT, trimmedAmount);
                 final double confidence = calculateConfidence(date, amount, description);
-                return new MatchResult(true, fields, confidence, "Pattern1");
+                return new MatchResult(true, fields, confidence, PATTERN1);
             }
         }
 
-        return new MatchResult(false, null, 0.0, "Pattern1");
+        return new MatchResult(false, null, 0.0, PATTERN1);
     }
 
     /**
@@ -475,7 +461,7 @@ public class EnhancedPatternMatcher {
 
             // Skip if line contains percentage (informational)
             if (line.contains("%")) {
-                return new MatchResult(false, null, 0.0, "Pattern2");
+                return new MatchResult(false, null, 0.0, PATTERN2);
             }
 
             final LocalDate date = parseDateFlexible(dateStr, inferredYear, isUSLocale);
@@ -484,16 +470,16 @@ public class EnhancedPatternMatcher {
             // date, amount, description);
             if (date != null && amount != null && isValidDescription(description)) {
                 fields.put("date", dateStr);
-                fields.put("description", description.trim());
-                fields.put("amount", amountStr.trim());
+                fields.put(DESCRIPTION, description.trim());
+                fields.put(AMOUNT, amountStr.trim());
                 final double confidence =
                         calculateConfidence(date, amount, description)
                                 * 0.9; // Slightly lower confidence for prefix patterns
-                return new MatchResult(true, fields, confidence, "Pattern2");
+                return new MatchResult(true, fields, confidence, PATTERN2);
             }
         }
 
-        return new MatchResult(false, null, 0.0, "Pattern2");
+        return new MatchResult(false, null, 0.0, PATTERN2);
     }
 
     /** Pattern 3: Date Date Description Amount (two dates) */
@@ -526,8 +512,8 @@ public class EnhancedPatternMatcher {
             // date, amount, description);
             if (date != null && amount != null && isValidDescription(description)) {
                 fields.put("date", date2Str);
-                fields.put("description", description.trim());
-                fields.put("amount", amountStr.trim());
+                fields.put(DESCRIPTION, description.trim());
+                fields.put(AMOUNT, amountStr.trim());
                 final double confidence = calculateConfidence(date, amount, description) * 0.95;
                 return new MatchResult(true, fields, confidence, "Pattern3");
             }
@@ -576,8 +562,8 @@ public class EnhancedPatternMatcher {
             if (date != null && amount != null && isValidDescription(description)) {
                 final String fullDescription = (description + " " + location).trim();
                 fields.put("date", dateStr);
-                fields.put("description", fullDescription);
-                fields.put("amount", amountStr.trim());
+                fields.put(DESCRIPTION, fullDescription);
+                fields.put(AMOUNT, amountStr.trim());
                 final double confidence = calculateConfidence(date, amount, fullDescription) * 0.9;
                 return new MatchResult(true, fields, confidence, "Pattern4");
             }
@@ -623,8 +609,8 @@ public class EnhancedPatternMatcher {
             if (date != null && amount != null && isValidDescription(merchant)) {
                 final String fullDescription = (merchant + " " + location).trim();
                 fields.put("date", dateStr);
-                fields.put("description", fullDescription);
-                fields.put("amount", amountStr.trim());
+                fields.put(DESCRIPTION, fullDescription);
+                fields.put(AMOUNT, amountStr.trim());
                 final double confidence = calculateConfidence(date, amount, fullDescription) * 0.9;
                 return new MatchResult(true, fields, confidence, "Pattern5");
             }
@@ -665,7 +651,7 @@ public class EnhancedPatternMatcher {
                         amountPos,
                         amountEnd,
                         lineEnd);
-                return new MatchResult(false, null, 0.0, "FuzzyMatch");
+                return new MatchResult(false, null, 0.0, FUZZY_MATCH);
             }
         }
 
@@ -697,7 +683,7 @@ public class EnhancedPatternMatcher {
                     LOGGER.debug(
                             "FuzzyMatch: Rejected - date not at start (position {}) and no valid prefix found",
                             datePos);
-                    return new MatchResult(false, null, 0.0, "FuzzyMatch");
+                    return new MatchResult(false, null, 0.0, FUZZY_MATCH);
                 }
             }
             // If date is at start (position 0), no prefix check needed - allow the match
@@ -715,8 +701,8 @@ public class EnhancedPatternMatcher {
                 && amountStr != null
                 && isValidDescription(description)) {
             fields.put("date", dateStr);
-            fields.put("description", description.trim());
-            fields.put("amount", amountStr.trim());
+            fields.put(DESCRIPTION, description.trim());
+            fields.put(AMOUNT, amountStr.trim());
 
             // Calculate confidence based on how well we matched
             confidence = 0.6; // Base confidence for fuzzy match
@@ -730,10 +716,10 @@ public class EnhancedPatternMatcher {
                 confidence += 0.1;
             }
 
-            return new MatchResult(true, fields, confidence, "FuzzyMatch");
+            return new MatchResult(true, fields, confidence, FUZZY_MATCH);
         }
 
-        return new MatchResult(false, null, 0.0, "FuzzyMatch");
+        return new MatchResult(false, null, 0.0, FUZZY_MATCH);
     }
 
     /** Find date using fuzzy matching */

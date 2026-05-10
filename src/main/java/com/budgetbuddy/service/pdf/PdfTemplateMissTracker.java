@@ -9,7 +9,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
-import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
@@ -46,8 +45,6 @@ import org.springframework.stereotype.Service;
  */
 @Service
 public class PdfTemplateMissTracker {
-
-    private static final Logger LOGGER = LoggerFactory.getLogger(PdfTemplateMissTracker.class);
 
     /**
      * Cap per (institution, accountType) bucket — prevents one noisy bank from eating unbounded

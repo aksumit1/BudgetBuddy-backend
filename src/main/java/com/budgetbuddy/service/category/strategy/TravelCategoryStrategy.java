@@ -5,6 +5,9 @@ import java.util.Locale;
 import org.springframework.stereotype.Component;
 
 /** Strategy for detecting travel category */
+// PMD's OnlyOneReturn fights guard-clause idiom — the codebase intentionally
+// uses early returns for clarity (validation guards, fail-fast patterns).
+@SuppressWarnings("PMD.OnlyOneReturn")
 @Component
 public class TravelCategoryStrategy extends BaseCategoryStrategy {
 

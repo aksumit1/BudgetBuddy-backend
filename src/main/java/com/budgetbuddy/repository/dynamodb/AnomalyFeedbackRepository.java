@@ -19,6 +19,9 @@ import software.amazon.awssdk.enhanced.dynamodb.model.QueryConditional;
  * previously-dismissed patterns — callers should cache it for the window of a single detection
  * pass.
  */
+// PMD's OnlyOneReturn fights guard-clause idiom — the codebase intentionally
+// uses early returns for clarity (validation guards, fail-fast patterns).
+@SuppressWarnings("PMD.OnlyOneReturn")
 @Repository
 public class AnomalyFeedbackRepository {
 

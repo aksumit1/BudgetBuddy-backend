@@ -82,7 +82,6 @@ class MemoryLeakTest {
         final List<Long> lastSampleTimes = new java.util.concurrent.CopyOnWriteArrayList<>();
 
         for (int i = 0; i < iterations; i += batchSize) {
-            final int batchStart = i;
             executor.submit(
                     () -> {
                         try {

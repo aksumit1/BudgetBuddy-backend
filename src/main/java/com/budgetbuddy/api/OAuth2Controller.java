@@ -24,6 +24,9 @@ import org.springframework.web.bind.annotation.RestController;
 // SpotBugs flags constructor-injected Spring beans as EI_EXPOSE_REP2,
 // but Spring's IoC container intentionally shares the same bean across
 // callers — defensive-copying it would break dependency injection.
+// PMD's DataClass fires on Request/Response/Config DTOs by design —
+// they're intentionally data-only; behaviour belongs in the controller/service.
+@SuppressWarnings("PMD.DataClass")
 @SuppressFBWarnings(
         value = {"EI_EXPOSE_REP", "EI_EXPOSE_REP2"},
         justification = "JSON DTO / DynamoDB entity getters expose lists by reference; "
@@ -32,6 +35,10 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/oauth2")
 @Tag(name = "OAuth2", description = "OAuth2 authentication and authorization")
 public class OAuth2Controller {
+
+    private static final String EMAIL = "email";
+
+    private static final String PREFERRED_USERNAME = "preferred_username";
 
     @SuppressWarnings("unused") // Reserved for future logging
     private static final Logger LOGGER = LoggerFactory.getLogger(OAuth2Controller.class);
@@ -58,7 +65,7 @@ public class OAuth2Controller {
         config.setTokenEndpoint("https://auth.budgetbuddy.com/oauth2/token");
         config.setUserInfoEndpoint("https://auth.budgetbuddy.com/oauth2/userinfo");
         config.setClientId("budgetbuddy-client");
-        config.setScopes(java.util.List.of("openid", "profile", "email", "financial_data"));
+        config.setScopes(java.util.List.of("openid", "profile", EMAIL, "financial_data"));
 
         return ResponseEntity.ok(config);
     }
@@ -77,17 +84,17 @@ public class OAuth2Controller {
         final Map<String, Object> userInfo =
                 Map.of(
                         "sub", jwt.getSubject() != null ? jwt.getSubject() : "unknown",
-                        "email",
-                        jwt.getClaimAsString("email") != null
-                                ? jwt.getClaimAsString("email")
+                        EMAIL,
+                        jwt.getClaimAsString(EMAIL) != null
+                                ? jwt.getClaimAsString(EMAIL)
                                 : "",
                         "name",
                         jwt.getClaimAsString("name") != null
                                 ? jwt.getClaimAsString("name")
                                 : "",
-                        "preferred_username",
-                        jwt.getClaimAsString("preferred_username") != null
-                                ? jwt.getClaimAsString("preferred_username")
+                        PREFERRED_USERNAME,
+                        jwt.getClaimAsString(PREFERRED_USERNAME) != null
+                                ? jwt.getClaimAsString(PREFERRED_USERNAME)
                                 : "");
 
         return ResponseEntity.ok(userInfo);

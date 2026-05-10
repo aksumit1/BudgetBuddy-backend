@@ -24,6 +24,9 @@ import org.springframework.web.bind.annotation.RestController;
  * Device Attestation REST Controller Handles device attestation verification for Zero Trust
  * security
  */
+// PMD's DataClass fires on Request/Response/Config DTOs by design —
+// they're intentionally data-only; behaviour belongs in the controller/service.
+@SuppressWarnings("PMD.DataClass")
 @RestController
 @RequestMapping("/api/device/attestation")
 @CrossOrigin(origins = "*", maxAge = 3600)

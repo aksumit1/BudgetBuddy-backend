@@ -27,9 +27,11 @@ import org.springframework.stereotype.Service;
 @SuppressFBWarnings(
         value = "EI_EXPOSE_REP2",
         justification = "Spring constructor injection — beans are shared by design")
-@SuppressWarnings({"PMD.LawOfDemeter", "PMD.AvoidCatchingGenericException"})
+@SuppressWarnings({"PMD.LawOfDemeter", "PMD.AvoidCatchingGenericException", "PMD.OnlyOneReturn"})
 @Service
 public class BudgetService {
+
+    private static final String USER_IS_REQUIRED = "User is required";
 
     private static final Logger LOGGER = LoggerFactory.getLogger(BudgetService.class);
 
@@ -98,7 +100,7 @@ public class BudgetService {
             final String period,
             final String currencyCode) {
         if (user == null || user.getUserId() == null || user.getUserId().isEmpty()) {
-            throw new AppException(ErrorCode.INVALID_INPUT, "User is required");
+            throw new AppException(ErrorCode.INVALID_INPUT, USER_IS_REQUIRED);
         }
         if (category == null || category.isEmpty()) {
             throw new AppException(ErrorCode.INVALID_INPUT, "Category is required");
@@ -346,14 +348,14 @@ public class BudgetService {
 
     public List<BudgetTable> getBudgets(final UserTable user) {
         if (user == null || user.getUserId() == null || user.getUserId().isEmpty()) {
-            throw new AppException(ErrorCode.INVALID_INPUT, "User is required");
+            throw new AppException(ErrorCode.INVALID_INPUT, USER_IS_REQUIRED);
         }
         return budgetRepository.findByUserId(user.getUserId());
     }
 
     public BudgetTable getBudget(final UserTable user, final String budgetId) {
         if (user == null || user.getUserId() == null || user.getUserId().isEmpty()) {
-            throw new AppException(ErrorCode.INVALID_INPUT, "User is required");
+            throw new AppException(ErrorCode.INVALID_INPUT, USER_IS_REQUIRED);
         }
         if (budgetId == null || budgetId.isEmpty()) {
             throw new AppException(ErrorCode.INVALID_INPUT, "Budget ID is required");
@@ -376,7 +378,7 @@ public class BudgetService {
 
     public void deleteBudget(final UserTable user, final String budgetId) {
         if (user == null || user.getUserId() == null || user.getUserId().isEmpty()) {
-            throw new AppException(ErrorCode.INVALID_INPUT, "User is required");
+            throw new AppException(ErrorCode.INVALID_INPUT, USER_IS_REQUIRED);
         }
         if (budgetId == null || budgetId.isEmpty()) {
             throw new AppException(ErrorCode.INVALID_INPUT, "Budget ID is required");

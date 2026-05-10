@@ -31,7 +31,7 @@ import software.amazon.awssdk.services.ses.model.SendTemplatedEmailResponse;
 @SuppressFBWarnings(
         value = "EI_EXPOSE_REP2",
         justification = "Spring constructor injection — beans are shared by design")
-@SuppressWarnings("PMD.AvoidCatchingGenericException")
+@SuppressWarnings({"PMD.AvoidCatchingGenericException", "PMD.OnlyOneReturn"})
 @Service
 public class EmailNotificationService {
 

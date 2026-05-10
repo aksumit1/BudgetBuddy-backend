@@ -1,16 +1,12 @@
 package com.budgetbuddy.scripts;
 
-import com.budgetbuddy.model.Subscription;
 import com.budgetbuddy.model.dynamodb.SubscriptionTable;
 import com.budgetbuddy.repository.dynamodb.SubscriptionRepository;
 import com.budgetbuddy.service.SubscriptionService;
-import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
-import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -104,126 +100,5 @@ public class SubscriptionScanner implements CommandLineRunner {
         } catch (Exception e) {
             LOGGER.error("Error scanning subscriptions: {}", e.getMessage(), e);
         }
-    }
-
-    private void analyzeSubscriptionsForUser(final String userId) {
-        LOGGER.info("Analyzing subscriptions for user: {}", userId);
-
-        final List<Subscription> allSubscriptions = subscriptionService.getSubscriptions(userId);
-        final List<Subscription> activeSubscriptions = subscriptionService.getActiveSubscriptions(userId);
-
-        LOGGER.info("Total Subscriptions: {}", allSubscriptions.size());
-        LOGGER.info("Active Subscriptions: {}", activeSubscriptions.size());
-        LOGGER.info(
-                "Inactive Subscriptions: {}", allSubscriptions.size() - activeSubscriptions.size());
-
-        final LocalDate now = LocalDate.now();
-
-        // Analyze by merchant
-        final Map<String, Long> byMerchant =
-                allSubscriptions.stream()
-                        .collect(
-                                Collectors.groupingBy(
-                                        sub ->
-                                                sub.getMerchantName() != null
-                                                        ? sub.getMerchantName()
-                                                        : "Unknown",
-                                        Collectors.counting()));
-
-        LOGGER.info("\nSubscriptions by Merchant:");
-        byMerchant.entrySet().stream()
-                .sorted(Map.Entry.<String, Long>comparingByValue().reversed())
-                .forEach(entry -> LOGGER.info("  {}: {}", entry.getKey(), entry.getValue()));
-
-        // Analyze by frequency
-        final Map<String, Long> byFrequency =
-                allSubscriptions.stream()
-                        .collect(
-                                Collectors.groupingBy(
-                                        sub ->
-                                                sub.getFrequency() != null
-                                                        ? sub.getFrequency().name()
-                                                        : "Unknown",
-                                        Collectors.counting()));
-
-        LOGGER.info("\nSubscriptions by Frequency:");
-        byFrequency.entrySet().stream()
-                .sorted(Map.Entry.<String, Long>comparingByValue().reversed())
-                .forEach(entry -> LOGGER.info("  {}: {}", entry.getKey(), entry.getValue()));
-
-        // Find overdue subscriptions
-        final List<Subscription> overdue =
-                allSubscriptions.stream()
-                        .filter(
-                                sub -> {
-                                    if (sub.getNextPaymentDate() == null) {
-                                        return false;
-                                    }
-                                    return sub.getNextPaymentDate().isBefore(now);
-                                })
-                        .collect(Collectors.toList());
-
-        if (!overdue.isEmpty()) {
-            LOGGER.warn("\n⚠️  Overdue Subscriptions ({}):", overdue.size());
-            overdue.forEach(
-                    sub -> {
-                        final long daysOverdue =
-                                java.time.temporal.ChronoUnit.DAYS.between(
-                                        sub.getNextPaymentDate(), now);
-                        LOGGER.warn(
-                                "  {} - {} days overdue (Next: {}, Active: {})",
-                                sub.getMerchantName(),
-                                daysOverdue,
-                                sub.getNextPaymentDate(),
-                                sub.getActive());
-                    });
-        }
-
-        // Find subscriptions with missing required fields
-        final List<Subscription> missingFields =
-                allSubscriptions.stream()
-                        .filter(
-                                sub ->
-                                        sub.getNextPaymentDate() == null
-                                                || sub.getStartDate() == null
-                                                || sub.getFrequency() == null)
-                        .collect(Collectors.toList());
-
-        if (!missingFields.isEmpty()) {
-            LOGGER.warn("\n⚠️  Subscriptions with Missing Fields ({}):", missingFields.size());
-            missingFields.forEach(
-                    sub -> {
-                        final List<String> missing = new ArrayList<>();
-                        if (sub.getNextPaymentDate() == null) {
-                            missing.add("nextPaymentDate");
-                        }
-                        if (sub.getStartDate() == null) {
-                            missing.add("startDate");
-                        }
-                        if (sub.getFrequency() == null) {
-                            missing.add("frequency");
-                        }
-                        LOGGER.warn(
-                                "  {} - Missing: {}",
-                                sub.getMerchantName(),
-                                String.join(", ", missing));
-                    });
-        }
-
-        // Show sample subscriptions
-        LOGGER.info("\nSample Subscriptions (First 5):");
-        allSubscriptions.stream()
-                .limit(5)
-                .forEach(
-                        sub -> {
-                            LOGGER.info("  Merchant: {}", sub.getMerchantName());
-                            LOGGER.info("    Amount: {}", sub.getAmount());
-                            LOGGER.info("    Frequency: {}", sub.getFrequency());
-                            LOGGER.info("    Active: {}", sub.getActive());
-                            LOGGER.info("    Start Date: {}", sub.getStartDate());
-                            LOGGER.info("    Next Payment: {}", sub.getNextPaymentDate());
-                            LOGGER.info("    Last Payment: {}", sub.getLastPaymentDate());
-                            LOGGER.info("");
-                        });
     }
 }

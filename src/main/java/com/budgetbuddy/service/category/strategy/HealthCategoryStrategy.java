@@ -3,6 +3,9 @@ package com.budgetbuddy.service.category.strategy;
 import org.springframework.stereotype.Component;
 
 /** Strategy for detecting health category */
+// PMD's OnlyOneReturn fights guard-clause idiom — the codebase intentionally
+// uses early returns for clarity (validation guards, fail-fast patterns).
+@SuppressWarnings("PMD.OnlyOneReturn")
 @Component
 public class HealthCategoryStrategy extends BaseCategoryStrategy {
 

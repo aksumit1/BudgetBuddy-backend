@@ -34,12 +34,18 @@ import org.springframework.stereotype.Service;
 // SDK / Spring / reflection integration — broad catches translate any
 // runtime exception to AppException or log+swallow. Narrowing isn't
 // practical here, so suppress at class level.
-@SuppressWarnings("PMD.AvoidCatchingGenericException")
+@SuppressWarnings({"PMD.AvoidCatchingGenericException", "PMD.OnlyOneReturn"})
 @SuppressFBWarnings(
         value = "EI_EXPOSE_REP2",
         justification = "Spring constructor injection — beans are shared by design")
 @Service
 public class PlaidWebhookService {
+
+    private static final String USER_NOT_FOUND_FOR_ITEM = "User not found for item: {}";
+
+    private static final String ITEM_ID = "item_id";
+
+    private static final String WEBHOOK_CODE = "webhook_code";
 
     private static final Logger LOGGER = LoggerFactory.getLogger(PlaidWebhookService.class);
     private static final String HMAC_SHA256_ALGORITHM = "HmacSHA256";
@@ -131,8 +137,8 @@ public class PlaidWebhookService {
 
     /** Handle TRANSACTIONS webhook Processes transaction updates from Plaid */
     public void handleTransactionWebhook(final Map<String, Object> payload) {
-        final String webhookCode = extractString(payload, "webhook_code");
-        final String itemId = extractString(payload, "item_id");
+        final String webhookCode = extractString(payload, WEBHOOK_CODE);
+        final String itemId = extractString(payload, ITEM_ID);
 
         if (itemId == null || itemId.isEmpty()) {
             LOGGER.error("Item ID is missing in TRANSACTIONS webhook");
@@ -165,8 +171,8 @@ public class PlaidWebhookService {
 
     /** Handle ITEM webhook Processes item status changes */
     public void handleItemWebhook(final Map<String, Object> payload) {
-        final String webhookCode = extractString(payload, "webhook_code");
-        final String itemId = extractString(payload, "item_id");
+        final String webhookCode = extractString(payload, WEBHOOK_CODE);
+        final String itemId = extractString(payload, ITEM_ID);
 
         if (itemId == null || itemId.isEmpty()) {
             LOGGER.error("Item ID is missing in ITEM webhook");
@@ -195,8 +201,8 @@ public class PlaidWebhookService {
 
     /** Handle AUTH webhook Processes authentication events */
     public void handleAuthWebhook(final Map<String, Object> payload) {
-        final String webhookCode = extractString(payload, "webhook_code");
-        final String itemId = extractString(payload, "item_id");
+        final String webhookCode = extractString(payload, WEBHOOK_CODE);
+        final String itemId = extractString(payload, ITEM_ID);
 
         LOGGER.info("Processing AUTH webhook: code={}, itemId={}", webhookCode, itemId);
         // Handle authentication events
@@ -204,8 +210,8 @@ public class PlaidWebhookService {
 
     /** Handle INCOME webhook Processes income verification events */
     public void handleIncomeWebhook(final Map<String, Object> payload) {
-        final String webhookCode = extractString(payload, "webhook_code");
-        final String itemId = extractString(payload, "item_id");
+        final String webhookCode = extractString(payload, WEBHOOK_CODE);
+        final String itemId = extractString(payload, ITEM_ID);
 
         LOGGER.info("Processing INCOME webhook: code={}, itemId={}", webhookCode, itemId);
         // Handle income verification events
@@ -234,7 +240,7 @@ public class PlaidWebhookService {
             // Find user by item ID
             final Optional<UserTable> userOpt = findUserByItemId(itemId);
             if (userOpt.isEmpty()) {
-                LOGGER.warn("User not found for item: {}", itemId);
+                LOGGER.warn(USER_NOT_FOUND_FOR_ITEM, itemId);
                 return;
             }
 
@@ -276,7 +282,7 @@ public class PlaidWebhookService {
             // Find user by item ID
             final Optional<UserTable> userOpt = findUserByItemId(itemId);
             if (userOpt.isEmpty()) {
-                LOGGER.warn("User not found for item: {}", itemId);
+                LOGGER.warn(USER_NOT_FOUND_FOR_ITEM, itemId);
                 return;
             }
 
@@ -304,7 +310,7 @@ public class PlaidWebhookService {
     }
 
     private void handleTransactionsRemoved(final Map<String, Object> payload) {
-        final String itemId = extractString(payload, "item_id");
+        final String itemId = extractString(payload, ITEM_ID);
         final List<String> removedTransactionIds = extractList(payload, "removed_transactions");
 
         if (removedTransactionIds == null || removedTransactionIds.isEmpty()) {
@@ -318,7 +324,7 @@ public class PlaidWebhookService {
             // Find user by item ID
             final Optional<UserTable> userOpt = findUserByItemId(itemId);
             if (userOpt.isEmpty()) {
-                LOGGER.warn("User not found for item: {}", itemId);
+                LOGGER.warn(USER_NOT_FOUND_FOR_ITEM, itemId);
                 return;
             }
 
@@ -373,7 +379,7 @@ public class PlaidWebhookService {
     }
 
     private void handleItemError(final Map<String, Object> payload) {
-        final String itemId = extractString(payload, "item_id");
+        final String itemId = extractString(payload, ITEM_ID);
         final String errorCode = extractString(payload, "error_code");
         final String errorMessage = extractString(payload, "error_message");
 
@@ -384,7 +390,7 @@ public class PlaidWebhookService {
             // Find user by item ID
             final Optional<UserTable> userOpt = findUserByItemId(itemId);
             if (userOpt.isEmpty()) {
-                LOGGER.warn("User not found for item: {}", itemId);
+                LOGGER.warn(USER_NOT_FOUND_FOR_ITEM, itemId);
                 return;
             }
 
@@ -422,7 +428,7 @@ public class PlaidWebhookService {
     }
 
     private void handlePendingExpiration(final Map<String, Object> payload) {
-        final String itemId = extractString(payload, "item_id");
+        final String itemId = extractString(payload, ITEM_ID);
 
         LOGGER.warn("Credentials expiring soon for item: {} - user action required", itemId);
 
@@ -430,7 +436,7 @@ public class PlaidWebhookService {
             // Find user by item ID
             final Optional<UserTable> userOpt = findUserByItemId(itemId);
             if (userOpt.isEmpty()) {
-                LOGGER.warn("User not found for item: {}", itemId);
+                LOGGER.warn(USER_NOT_FOUND_FOR_ITEM, itemId);
                 return;
             }
 
@@ -466,7 +472,7 @@ public class PlaidWebhookService {
     }
 
     private void handlePermissionRevoked(final Map<String, Object> payload) {
-        final String itemId = extractString(payload, "item_id");
+        final String itemId = extractString(payload, ITEM_ID);
 
         LOGGER.info("User revoked permissions for item: {} - disconnecting item", itemId);
 
@@ -474,7 +480,7 @@ public class PlaidWebhookService {
             // Find user by item ID
             final Optional<UserTable> userOpt = findUserByItemId(itemId);
             if (userOpt.isEmpty()) {
-                LOGGER.warn("User not found for item: {}", itemId);
+                LOGGER.warn(USER_NOT_FOUND_FOR_ITEM, itemId);
                 return;
             }
 

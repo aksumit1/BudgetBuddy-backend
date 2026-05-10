@@ -32,10 +32,15 @@ import org.springframework.web.util.ContentCachingResponseWrapper;
 // SpotBugs flags constructor-injected Spring beans as EI_EXPOSE_REP2,
 // but Spring's IoC container intentionally shares the same bean across
 // callers — defensive-copying it would break dependency injection.
+// PMD's OnlyOneReturn fights guard-clause idiom — the codebase intentionally
+// uses early returns for clarity (validation guards, fail-fast patterns).
+@SuppressWarnings("PMD.OnlyOneReturn")
 @SuppressFBWarnings(
         value = "EI_EXPOSE_REP2",
         justification = "Spring constructor injection — beans are shared by design")
 public class NotFoundErrorTrackingFilter extends OncePerRequestFilter {
+
+    private static final String UNKNOWN = "unknown";
 
     private static final Logger LOGGER = LoggerFactory.getLogger(NotFoundErrorTrackingFilter.class);
     private static final ObjectMapper OBJECT_MAPPER;
@@ -66,7 +71,7 @@ public class NotFoundErrorTrackingFilter extends OncePerRequestFilter {
         final String userId = getUserIdFromRequest(request);
 
         // Use IP as primary identifier, fallback to userId if IP is not available
-        final String sourceId = clientIp != null ? clientIp : (userId != null ? userId : "unknown");
+        final String sourceId = clientIp != null ? clientIp : (userId != null ? userId : UNKNOWN);
 
         // Check if source is already blocked due to excessive 404s
         if (notFoundTrackingService.isBlocked(sourceId)) {
@@ -130,7 +135,7 @@ public class NotFoundErrorTrackingFilter extends OncePerRequestFilter {
         }
 
         // If X-Forwarded-For is not available or invalid, check X-Real-IP
-        if (ip == null || "unknown".equalsIgnoreCase(ip)) {
+        if (ip == null || UNKNOWN.equalsIgnoreCase(ip)) {
             ip = request.getHeader("X-Real-IP");
             if (ip != null) {
                 ip = ip.trim();
@@ -142,7 +147,7 @@ public class NotFoundErrorTrackingFilter extends OncePerRequestFilter {
         }
 
         // Fallback to RemoteAddr if both headers are unavailable
-        if (ip == null || "unknown".equalsIgnoreCase(ip)) {
+        if (ip == null || UNKNOWN.equalsIgnoreCase(ip)) {
             ip = request.getRemoteAddr();
         }
 
@@ -162,7 +167,7 @@ public class NotFoundErrorTrackingFilter extends OncePerRequestFilter {
         }
 
         // Final validation and fallback
-        if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
+        if (ip == null || ip.isEmpty() || UNKNOWN.equalsIgnoreCase(ip)) {
             ip = request.getRemoteAddr();
         }
 

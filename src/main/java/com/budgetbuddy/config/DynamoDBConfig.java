@@ -27,6 +27,9 @@ import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 @Configuration
 @org.springframework.context.annotation.Profile(
         "!test") // Don't load in tests - use AWSTestConfiguration instead
+// PMD's OnlyOneReturn fights guard-clause idiom — the codebase intentionally
+// uses early returns for clarity (validation guards, fail-fast patterns).
+@SuppressWarnings("PMD.OnlyOneReturn")
 public class DynamoDBConfig {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(DynamoDBConfig.class);

@@ -25,12 +25,19 @@ import org.springframework.web.bind.annotation.RestController;
 // SpotBugs flags constructor-injected Spring beans as EI_EXPOSE_REP2,
 // but Spring's IoC container intentionally shares the same bean across
 // callers — defensive-copying it would break dependency injection.
+// PMD's DataClass fires on Request/Response/Config DTOs by design —
+// they're intentionally data-only; behaviour belongs in the controller/service.
+@SuppressWarnings("PMD.DataClass")
 @SuppressFBWarnings(
         value = "EI_EXPOSE_REP2",
         justification = "Spring constructor injection — beans are shared by design")
 @RestController
 @RequestMapping("/api/transactions")
 public class TransactionActionController {
+
+    private static final String USER_NOT_AUTHENTICATED = "User not authenticated";
+
+    private static final String USER_NOT_FOUND_1 = "User not found";
 
     private final TransactionActionService actionService;
     private final UserService userService;
@@ -45,7 +52,7 @@ public class TransactionActionController {
     public ResponseEntity<List<TransactionActionTable>> getActions(
             @AuthenticationPrincipal final UserDetails userDetails, @PathVariable final String transactionId) {
         if (userDetails == null || userDetails.getUsername() == null) {
-            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "User not authenticated");
+            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, USER_NOT_AUTHENTICATED);
         }
         if (transactionId == null || transactionId.isEmpty()) {
             throw new AppException(ErrorCode.INVALID_INPUT, "Transaction ID is required");
@@ -55,7 +62,7 @@ public class TransactionActionController {
                 userService
                         .findByEmail(userDetails.getUsername())
                         .orElseThrow(
-                                () -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
+                                () -> new AppException(ErrorCode.USER_NOT_FOUND, USER_NOT_FOUND_1));
 
         final List<TransactionActionTable> actions =
                 actionService.getActionsByTransactionId(user, transactionId);
@@ -68,7 +75,7 @@ public class TransactionActionController {
             @PathVariable("transactionId") final String transactionId,
             @RequestBody final CreateActionRequest request) {
         if (userDetails == null || userDetails.getUsername() == null) {
-            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "User not authenticated");
+            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, USER_NOT_AUTHENTICATED);
         }
         if (transactionId == null || transactionId.isEmpty()) {
             throw new AppException(ErrorCode.INVALID_INPUT, "Transaction ID is required");
@@ -81,7 +88,7 @@ public class TransactionActionController {
                 userService
                         .findByEmail(userDetails.getUsername())
                         .orElseThrow(
-                                () -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
+                                () -> new AppException(ErrorCode.USER_NOT_FOUND, USER_NOT_FOUND_1));
 
         final TransactionActionTable action =
                 actionService.createAction(
@@ -107,7 +114,7 @@ public class TransactionActionController {
             @PathVariable final String actionId,
             @RequestBody final UpdateActionRequest request) {
         if (userDetails == null || userDetails.getUsername() == null) {
-            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "User not authenticated");
+            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, USER_NOT_AUTHENTICATED);
         }
         if (actionId == null || actionId.isEmpty()) {
             throw new AppException(ErrorCode.INVALID_INPUT, "Action ID is required");
@@ -117,7 +124,7 @@ public class TransactionActionController {
                 userService
                         .findByEmail(userDetails.getUsername())
                         .orElseThrow(
-                                () -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
+                                () -> new AppException(ErrorCode.USER_NOT_FOUND, USER_NOT_FOUND_1));
 
         final TransactionActionTable action =
                 actionService.updateAction(
@@ -140,7 +147,7 @@ public class TransactionActionController {
             @PathVariable final String transactionId,
             @PathVariable final String actionId) {
         if (userDetails == null || userDetails.getUsername() == null) {
-            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "User not authenticated");
+            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, USER_NOT_AUTHENTICATED);
         }
         if (actionId == null || actionId.isEmpty()) {
             throw new AppException(ErrorCode.INVALID_INPUT, "Action ID is required");
@@ -150,7 +157,7 @@ public class TransactionActionController {
                 userService
                         .findByEmail(userDetails.getUsername())
                         .orElseThrow(
-                                () -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
+                                () -> new AppException(ErrorCode.USER_NOT_FOUND, USER_NOT_FOUND_1));
 
         actionService.deleteAction(user, actionId);
         return ResponseEntity.noContent().build();
@@ -165,14 +172,14 @@ public class TransactionActionController {
     public ResponseEntity<List<TransactionActionTable>> getAllActionsForUser(
             @AuthenticationPrincipal final UserDetails userDetails) {
         if (userDetails == null || userDetails.getUsername() == null) {
-            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "User not authenticated");
+            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, USER_NOT_AUTHENTICATED);
         }
 
         final UserTable user =
                 userService
                         .findByEmail(userDetails.getUsername())
                         .orElseThrow(
-                                () -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
+                                () -> new AppException(ErrorCode.USER_NOT_FOUND, USER_NOT_FOUND_1));
 
         final List<TransactionActionTable> actions = actionService.getActionsByUserId(user);
         return ResponseEntity.ok(actions);

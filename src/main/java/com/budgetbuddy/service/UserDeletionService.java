@@ -48,6 +48,8 @@ import org.springframework.stereotype.Service;
 @Service
 public class UserDeletionService {
 
+    private static final String USER_ID_IS_REQUIRED = "User ID is required";
+
     private static final Logger LOGGER = LoggerFactory.getLogger(UserDeletionService.class);
 
     private final UserRepository userRepository;
@@ -101,7 +103,7 @@ public class UserDeletionService {
      */
     public void deleteAllUserData(final String userId) {
         if (userId == null || userId.isEmpty()) {
-            throw new AppException(ErrorCode.INVALID_INPUT, "User ID is required");
+            throw new AppException(ErrorCode.INVALID_INPUT, USER_ID_IS_REQUIRED);
         }
 
         LOGGER.info("Deleting all data for user: {}", userId);
@@ -164,7 +166,7 @@ public class UserDeletionService {
      */
     public void deletePlaidIntegration(final String userId) {
         if (userId == null || userId.isEmpty()) {
-            throw new AppException(ErrorCode.INVALID_INPUT, "User ID is required");
+            throw new AppException(ErrorCode.INVALID_INPUT, USER_ID_IS_REQUIRED);
         }
 
         LOGGER.info("Deleting Plaid integration for user: {}", userId);
@@ -208,7 +210,7 @@ public class UserDeletionService {
     /** Delete account completely Removes: everything including user account This is irreversible */
     public void deleteAccountCompletely(final String userId) {
         if (userId == null || userId.isEmpty()) {
-            throw new AppException(ErrorCode.INVALID_INPUT, "User ID is required");
+            throw new AppException(ErrorCode.INVALID_INPUT, USER_ID_IS_REQUIRED);
         }
 
         LOGGER.info("Deleting account completely for user: {}", userId);

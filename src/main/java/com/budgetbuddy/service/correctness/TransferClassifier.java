@@ -19,6 +19,9 @@ import java.util.Set;
  * mildly inflates a projection, but a paycheck mis-classified as a transfer would silently drop it
  * from cash-flow and destroy user trust in a more visible way.
  */
+// PMD's OnlyOneReturn fights guard-clause idiom — the codebase intentionally
+// uses early returns for clarity (validation guards, fail-fast patterns).
+@SuppressWarnings("PMD.OnlyOneReturn")
 public final class TransferClassifier {
 
     /**

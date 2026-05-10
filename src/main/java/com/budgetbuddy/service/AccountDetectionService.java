@@ -36,9 +36,179 @@ import org.springframework.stereotype.Service;
 @SuppressFBWarnings(
         value = "EI_EXPOSE_REP2",
         justification = "Spring constructor injection — beans are shared by design")
-@SuppressWarnings({"PMD.LawOfDemeter", "PMD.AvoidCatchingGenericException"})
+@SuppressWarnings({"PMD.LawOfDemeter", "PMD.AvoidCatchingGenericException", "PMD.DataClass", "PMD.OnlyOneReturn"})
 @Service
 public class AccountDetectionService {
+
+    private static final String A_Z = ".*[A-Z].*";
+
+    private static final String B_D_5_D_4_B = ".*\\b\\d{5}(?:-\\d{4})?\\b.*";
+
+    private static final String CAPITAL_ONE = "Capital One";
+
+    private static final String CITIBANK = "Citibank";
+
+    private static final String ACCOUNT = "account";
+
+    private static final String ACCOUNT_NAME = "account name";
+
+    private static final String ACTIVE_CASH = "active cash";
+
+    private static final String AMAZON_PRIME_CARD = "amazon prime card";
+
+    private static final String AMAZON_PRIME_REWARDS = "amazon prime rewards";
+
+    private static final String AMAZON_PRIME_VISA = "amazon prime visa";
+
+    private static final String AMERICAN_EXPRESS = "american express";
+
+    private static final String AMEX_GOLD = "amex gold";
+
+    private static final String AMEX_PLATINUM = "amex platinum";
+
+    private static final String AMOUNT = "amount";
+
+    private static final String AND_ACCOUNT_NUMBER = "and account number";
+
+    private static final String BALANCE = "balance";
+
+    private static final String BLACK = "black";
+
+    private static final String BLUE_CASH = "blue cash";
+
+    private static final String BONVOY = "bonvoy";
+
+    private static final String BUSINESS = "business";
+
+    private static final String CARDMEMBER_AGREEMENT = "cardmember agreement";
+
+    private static final String CASH_BACK = "cash back";
+
+    private static final String CHECK = "check";
+
+    private static final String CHECKING = "checking";
+
+    private static final String CLASSIC = "classic";
+
+    private static final String CONTACT_US = "contact us";
+
+    private static final String CREDIT = "credit";
+
+    private static final String CREDIT_CARD = "credit card";
+
+    private static final String DEBIT = "debit";
+
+    private static final String DELTA = "delta";
+
+    private static final String DEPOSITORY = "depository";
+
+    private static final String DESCRIPTION = "description";
+
+    private static final String DETAILS = "details";
+
+    private static final String DIAMOND = "diamond";
+
+    private static final String DISCOVER = "discover";
+
+    private static final String DOUBLE_CASH = "double cash";
+
+    private static final String ELITE = "elite";
+
+    private static final String EVERYDAY = "everyday";
+
+    private static final String EXCLUSIVE = "exclusive";
+
+    private static final String FIDELITY = "fidelity";
+
+    private static final String FREEDOM = "freedom";
+
+    private static final String FREEDOM_ULTIMATE = "freedom ultimate";
+
+    private static final String FREEDOM_UNLIMITED = "freedom unlimited";
+
+    private static final String HILTON = "hilton";
+
+    private static final String HYATT = "hyatt";
+
+    private static final String IMPERIAL = "imperial";
+
+    private static final String INFINITE = "infinite";
+
+    private static final String INVESTMENT = "investment";
+
+    private static final String MARRIOTT = "marriott";
+
+    private static final String MARRIOTT_BONVOY = "marriott bonvoy";
+
+    private static final String MARRIOTT_BONVOY_PREMIER = "marriott bonvoy premier";
+
+    private static final String MASTERCARD = "mastercard";
+
+    private static final String MASTERCARD_WORLD = "mastercard world";
+
+    private static final String MASTERCARD_WORLD_ELITE = "mastercard world elite";
+
+    private static final String MILES = "miles";
+
+    private static final String PLATINUM = "platinum";
+
+    private static final String POINTS = "points";
+
+    private static final String PREFERRED = "preferred";
+
+    private static final String PREMIER = "premier";
+
+    private static final String PREMIUM = "premium";
+
+    private static final String PRESTIGE = "prestige";
+
+    private static final String PRIME_REWARDS_VISA = "prime rewards visa";
+
+    private static final String PRIME_VISA = "prime visa";
+
+    private static final String PRIME_VISA_SIGNATURE = "prime visa signature";
+
+    private static final String QUICKSILVER = "quicksilver";
+
+    private static final String RESERVE = "reserve";
+
+    private static final String REWARDS = "rewards";
+
+    private static final String ROYAL = "royal";
+
+    private static final String SAPPHIRE = "sapphire";
+
+    private static final String SAPPHIRE_PREFERRED = "sapphire preferred";
+
+    private static final String SAPPHIRE_RESERVE = "sapphire reserve";
+
+    private static final String SAVINGS = "savings";
+
+    private static final String SAVOR = "savor";
+
+    private static final String SCHWAB = "schwab";
+
+    private static final String SIGNATURE = "signature";
+
+    private static final String SILVER = "silver";
+
+    private static final String SPARK = "spark";
+
+    private static final String TRAVEL = "travel";
+
+    private static final String UNLIMITED = "unlimited";
+
+    private static final String VANGUARD = "vanguard";
+
+    private static final String VENTURE = "venture";
+
+    private static final String VISA_INFINITE = "visa infinite";
+
+    private static final String VISA_PLATINUM = "visa platinum";
+
+    private static final String VISA_SIGNATURE = "visa signature";
+
+    private static final String WORLD = "world";
 
     private static final Logger LOGGER = LoggerFactory.getLogger(AccountDetectionService.class);
 
@@ -63,11 +233,11 @@ public class AccountDetectionService {
                     "citicards",
                     "us bank",
                     "capital one",
-                    "american express",
-                    "discover",
+                    AMERICAN_EXPRESS,
+                    DISCOVER,
                     "synchrony",
                     "visa",
-                    "mastercard",
+                    MASTERCARD,
                     "amex",
                     "jpmorgan",
                     "jpm",
@@ -104,9 +274,9 @@ public class AccountDetectionService {
                     "teachers federal",
                     "alliant",
                     // US Investment/Wealth Management
-                    "fidelity",
-                    "schwab",
-                    "vanguard",
+                    FIDELITY,
+                    SCHWAB,
+                    VANGUARD,
                     "morgan stanley",
                     "goldman sachs",
                     "merrill lynch",
@@ -444,11 +614,11 @@ public class AccountDetectionService {
                     "cooperative bank",
                     "diamond trust",
                     // Global Credit Card Networks
-                    "mastercard",
+                    MASTERCARD,
                     "visa",
-                    "american express",
+                    AMERICAN_EXPRESS,
                     "amex",
-                    "discover",
+                    DISCOVER,
                     "jcb",
                     "unionpay",
                     "diners club",
@@ -456,9 +626,9 @@ public class AccountDetectionService {
                     "dinersclub",
                     "rupay",
                     // Global Investment Platforms
-                    "fidelity",
-                    "vanguard",
-                    "schwab",
+                    FIDELITY,
+                    VANGUARD,
+                    SCHWAB,
                     "td ameritrade",
                     "etrade",
                     "robinhood",
@@ -507,36 +677,36 @@ public class AccountDetectionService {
 
     static {
         // Deposit Accounts - Global variations
-        ACCOUNT_TYPE_PATTERNS.put("checking", "depository");
-        ACCOUNT_TYPE_PATTERNS.put("check", "depository");
-        ACCOUNT_TYPE_PATTERNS.put("savings", "depository");
-        ACCOUNT_TYPE_PATTERNS.put("saving", "depository");
-        ACCOUNT_TYPE_PATTERNS.put("current", "depository"); // UK/India/Australia
-        ACCOUNT_TYPE_PATTERNS.put("giro", "depository"); // European
-        ACCOUNT_TYPE_PATTERNS.put("transaction", "depository"); // Australia/New Zealand
-        ACCOUNT_TYPE_PATTERNS.put("transactional", "depository");
-        ACCOUNT_TYPE_PATTERNS.put("demand", "depository"); // India/Asia
-        ACCOUNT_TYPE_PATTERNS.put("term deposit", "depository"); // Fixed deposit
-        ACCOUNT_TYPE_PATTERNS.put("fixed deposit", "depository"); // India/Asia
-        ACCOUNT_TYPE_PATTERNS.put("fd", "depository"); // Fixed deposit abbreviation
-        ACCOUNT_TYPE_PATTERNS.put("recurring deposit", "depository"); // RD - India
-        ACCOUNT_TYPE_PATTERNS.put("rd", "depository"); // Recurring deposit abbreviation
-        ACCOUNT_TYPE_PATTERNS.put("time deposit", "depository"); // US term
-        ACCOUNT_TYPE_PATTERNS.put("certificate of deposit", "depository"); // CD - US
-        ACCOUNT_TYPE_PATTERNS.put("cd", "depository"); // Certificate of deposit
-        ACCOUNT_TYPE_PATTERNS.put("money market", "depository"); // Money market account
-        ACCOUNT_TYPE_PATTERNS.put("mm", "depository"); // Money market abbreviation
+        ACCOUNT_TYPE_PATTERNS.put(CHECKING, DEPOSITORY);
+        ACCOUNT_TYPE_PATTERNS.put(CHECK, DEPOSITORY);
+        ACCOUNT_TYPE_PATTERNS.put(SAVINGS, DEPOSITORY);
+        ACCOUNT_TYPE_PATTERNS.put("saving", DEPOSITORY);
+        ACCOUNT_TYPE_PATTERNS.put("current", DEPOSITORY); // UK/India/Australia
+        ACCOUNT_TYPE_PATTERNS.put("giro", DEPOSITORY); // European
+        ACCOUNT_TYPE_PATTERNS.put("transaction", DEPOSITORY); // Australia/New Zealand
+        ACCOUNT_TYPE_PATTERNS.put("transactional", DEPOSITORY);
+        ACCOUNT_TYPE_PATTERNS.put("demand", DEPOSITORY); // India/Asia
+        ACCOUNT_TYPE_PATTERNS.put("term deposit", DEPOSITORY); // Fixed deposit
+        ACCOUNT_TYPE_PATTERNS.put("fixed deposit", DEPOSITORY); // India/Asia
+        ACCOUNT_TYPE_PATTERNS.put("fd", DEPOSITORY); // Fixed deposit abbreviation
+        ACCOUNT_TYPE_PATTERNS.put("recurring deposit", DEPOSITORY); // RD - India
+        ACCOUNT_TYPE_PATTERNS.put("rd", DEPOSITORY); // Recurring deposit abbreviation
+        ACCOUNT_TYPE_PATTERNS.put("time deposit", DEPOSITORY); // US term
+        ACCOUNT_TYPE_PATTERNS.put("certificate of deposit", DEPOSITORY); // CD - US
+        ACCOUNT_TYPE_PATTERNS.put("cd", DEPOSITORY); // Certificate of deposit
+        ACCOUNT_TYPE_PATTERNS.put("money market", DEPOSITORY); // Money market account
+        ACCOUNT_TYPE_PATTERNS.put("mm", DEPOSITORY); // Money market abbreviation
         // Credit Cards
-        ACCOUNT_TYPE_PATTERNS.put("credit", "credit");
-        ACCOUNT_TYPE_PATTERNS.put("card", "credit");
-        ACCOUNT_TYPE_PATTERNS.put("creditcard", "credit");
-        ACCOUNT_TYPE_PATTERNS.put("credit card", "credit");
-        ACCOUNT_TYPE_PATTERNS.put("citi cash card", "credit"); // Cash card is a type of credit card
-        ACCOUNT_TYPE_PATTERNS.put("Citi cashcard", "credit");
-        ACCOUNT_TYPE_PATTERNS.put("visa", "credit");
-        ACCOUNT_TYPE_PATTERNS.put("mastercard", "credit");
-        ACCOUNT_TYPE_PATTERNS.put("amex", "credit");
-        ACCOUNT_TYPE_PATTERNS.put("american express", "credit");
+        ACCOUNT_TYPE_PATTERNS.put(CREDIT, CREDIT);
+        ACCOUNT_TYPE_PATTERNS.put("card", CREDIT);
+        ACCOUNT_TYPE_PATTERNS.put("creditcard", CREDIT);
+        ACCOUNT_TYPE_PATTERNS.put(CREDIT_CARD, CREDIT);
+        ACCOUNT_TYPE_PATTERNS.put("citi cash card", CREDIT); // Cash card is a type of credit card
+        ACCOUNT_TYPE_PATTERNS.put("Citi cashcard", CREDIT);
+        ACCOUNT_TYPE_PATTERNS.put("visa", CREDIT);
+        ACCOUNT_TYPE_PATTERNS.put(MASTERCARD, CREDIT);
+        ACCOUNT_TYPE_PATTERNS.put("amex", CREDIT);
+        ACCOUNT_TYPE_PATTERNS.put(AMERICAN_EXPRESS, CREDIT);
         // Loans - Global variations
         ACCOUNT_TYPE_PATTERNS.put("loan", "loan");
         ACCOUNT_TYPE_PATTERNS.put("mortgage", "loan");
@@ -558,68 +728,68 @@ public class AccountDetectionService {
         ACCOUNT_TYPE_PATTERNS.put("heloc", "loan"); // Home equity line of credit
         ACCOUNT_TYPE_PATTERNS.put("home equity", "loan");
         // Investment Accounts - Global variations
-        ACCOUNT_TYPE_PATTERNS.put("investment", "investment");
-        ACCOUNT_TYPE_PATTERNS.put("brokerage", "investment");
-        ACCOUNT_TYPE_PATTERNS.put("trading", "investment");
-        ACCOUNT_TYPE_PATTERNS.put("stock", "investment");
-        ACCOUNT_TYPE_PATTERNS.put("stocks", "investment");
-        ACCOUNT_TYPE_PATTERNS.put("equity", "investment");
-        ACCOUNT_TYPE_PATTERNS.put("mutual fund", "investment");
-        ACCOUNT_TYPE_PATTERNS.put("mutualfund", "investment");
-        ACCOUNT_TYPE_PATTERNS.put("mf", "investment"); // Mutual fund abbreviation
-        ACCOUNT_TYPE_PATTERNS.put("etf", "investment");
-        ACCOUNT_TYPE_PATTERNS.put("bond", "investment");
-        ACCOUNT_TYPE_PATTERNS.put("bonds", "investment");
-        ACCOUNT_TYPE_PATTERNS.put("government bond", "investment");
-        ACCOUNT_TYPE_PATTERNS.put("corporate bond", "investment");
-        ACCOUNT_TYPE_PATTERNS.put("t-bill", "investment"); // Treasury bill
-        ACCOUNT_TYPE_PATTERNS.put("treasury", "investment");
-        ACCOUNT_TYPE_PATTERNS.put("commodity", "investment");
-        ACCOUNT_TYPE_PATTERNS.put("forex", "investment");
-        ACCOUNT_TYPE_PATTERNS.put("derivatives", "investment");
-        ACCOUNT_TYPE_PATTERNS.put("options", "investment");
-        ACCOUNT_TYPE_PATTERNS.put("futures", "investment");
-        ACCOUNT_TYPE_PATTERNS.put("crypto", "investment");
-        ACCOUNT_TYPE_PATTERNS.put("cryptocurrency", "investment");
-        ACCOUNT_TYPE_PATTERNS.put("bitcoin", "investment");
-        ACCOUNT_TYPE_PATTERNS.put("demat", "investment"); // Dematerialized - India
-        ACCOUNT_TYPE_PATTERNS.put("demat account", "investment"); // India stock trading
-        ACCOUNT_TYPE_PATTERNS.put("demat ac", "investment");
+        ACCOUNT_TYPE_PATTERNS.put(INVESTMENT, INVESTMENT);
+        ACCOUNT_TYPE_PATTERNS.put("brokerage", INVESTMENT);
+        ACCOUNT_TYPE_PATTERNS.put("trading", INVESTMENT);
+        ACCOUNT_TYPE_PATTERNS.put("stock", INVESTMENT);
+        ACCOUNT_TYPE_PATTERNS.put("stocks", INVESTMENT);
+        ACCOUNT_TYPE_PATTERNS.put("equity", INVESTMENT);
+        ACCOUNT_TYPE_PATTERNS.put("mutual fund", INVESTMENT);
+        ACCOUNT_TYPE_PATTERNS.put("mutualfund", INVESTMENT);
+        ACCOUNT_TYPE_PATTERNS.put("mf", INVESTMENT); // Mutual fund abbreviation
+        ACCOUNT_TYPE_PATTERNS.put("etf", INVESTMENT);
+        ACCOUNT_TYPE_PATTERNS.put("bond", INVESTMENT);
+        ACCOUNT_TYPE_PATTERNS.put("bonds", INVESTMENT);
+        ACCOUNT_TYPE_PATTERNS.put("government bond", INVESTMENT);
+        ACCOUNT_TYPE_PATTERNS.put("corporate bond", INVESTMENT);
+        ACCOUNT_TYPE_PATTERNS.put("t-bill", INVESTMENT); // Treasury bill
+        ACCOUNT_TYPE_PATTERNS.put("treasury", INVESTMENT);
+        ACCOUNT_TYPE_PATTERNS.put("commodity", INVESTMENT);
+        ACCOUNT_TYPE_PATTERNS.put("forex", INVESTMENT);
+        ACCOUNT_TYPE_PATTERNS.put("derivatives", INVESTMENT);
+        ACCOUNT_TYPE_PATTERNS.put("options", INVESTMENT);
+        ACCOUNT_TYPE_PATTERNS.put("futures", INVESTMENT);
+        ACCOUNT_TYPE_PATTERNS.put("crypto", INVESTMENT);
+        ACCOUNT_TYPE_PATTERNS.put("cryptocurrency", INVESTMENT);
+        ACCOUNT_TYPE_PATTERNS.put("bitcoin", INVESTMENT);
+        ACCOUNT_TYPE_PATTERNS.put("demat", INVESTMENT); // Dematerialized - India
+        ACCOUNT_TYPE_PATTERNS.put("demat account", INVESTMENT); // India stock trading
+        ACCOUNT_TYPE_PATTERNS.put("demat ac", INVESTMENT);
         // Retirement Accounts (US)
-        ACCOUNT_TYPE_PATTERNS.put("ira", "investment");
-        ACCOUNT_TYPE_PATTERNS.put("roth", "investment");
-        ACCOUNT_TYPE_PATTERNS.put("rothira", "investment");
-        ACCOUNT_TYPE_PATTERNS.put("401k", "investment");
-        ACCOUNT_TYPE_PATTERNS.put("403b", "investment");
-        ACCOUNT_TYPE_PATTERNS.put("pension", "investment");
+        ACCOUNT_TYPE_PATTERNS.put("ira", INVESTMENT);
+        ACCOUNT_TYPE_PATTERNS.put("roth", INVESTMENT);
+        ACCOUNT_TYPE_PATTERNS.put("rothira", INVESTMENT);
+        ACCOUNT_TYPE_PATTERNS.put("401k", INVESTMENT);
+        ACCOUNT_TYPE_PATTERNS.put("403b", INVESTMENT);
+        ACCOUNT_TYPE_PATTERNS.put("pension", INVESTMENT);
         // Retirement Accounts (Other Regions)
-        ACCOUNT_TYPE_PATTERNS.put("superannuation", "investment"); // Australia
-        ACCOUNT_TYPE_PATTERNS.put("super", "investment"); // Australia abbreviation
-        ACCOUNT_TYPE_PATTERNS.put("kiwisaver", "investment"); // New Zealand
-        ACCOUNT_TYPE_PATTERNS.put("ppf", "investment"); // India - Public Provident Fund
-        ACCOUNT_TYPE_PATTERNS.put("epf", "investment"); // India - Employee Provident Fund
-        ACCOUNT_TYPE_PATTERNS.put("provident", "investment"); // India/Asia
-        ACCOUNT_TYPE_PATTERNS.put("retirement", "investment");
-        ACCOUNT_TYPE_PATTERNS.put("pension", "investment");
-        ACCOUNT_TYPE_PATTERNS.put("cpf", "investment"); // Central Provident Fund - Singapore
-        ACCOUNT_TYPE_PATTERNS.put("epf malaysia", "investment"); // Malaysia EPF
-        ACCOUNT_TYPE_PATTERNS.put("kwsp", "investment"); // Malaysia EPF abbreviation
-        ACCOUNT_TYPE_PATTERNS.put("social security", "investment"); // US/Global
-        ACCOUNT_TYPE_PATTERNS.put("national pension", "investment"); // Korea/Japan
-        ACCOUNT_TYPE_PATTERNS.put("npf", "investment"); // National Pension Fund
+        ACCOUNT_TYPE_PATTERNS.put("superannuation", INVESTMENT); // Australia
+        ACCOUNT_TYPE_PATTERNS.put("super", INVESTMENT); // Australia abbreviation
+        ACCOUNT_TYPE_PATTERNS.put("kiwisaver", INVESTMENT); // New Zealand
+        ACCOUNT_TYPE_PATTERNS.put("ppf", INVESTMENT); // India - Public Provident Fund
+        ACCOUNT_TYPE_PATTERNS.put("epf", INVESTMENT); // India - Employee Provident Fund
+        ACCOUNT_TYPE_PATTERNS.put("provident", INVESTMENT); // India/Asia
+        ACCOUNT_TYPE_PATTERNS.put("retirement", INVESTMENT);
+        ACCOUNT_TYPE_PATTERNS.put("pension", INVESTMENT);
+        ACCOUNT_TYPE_PATTERNS.put("cpf", INVESTMENT); // Central Provident Fund - Singapore
+        ACCOUNT_TYPE_PATTERNS.put("epf malaysia", INVESTMENT); // Malaysia EPF
+        ACCOUNT_TYPE_PATTERNS.put("kwsp", INVESTMENT); // Malaysia EPF abbreviation
+        ACCOUNT_TYPE_PATTERNS.put("social security", INVESTMENT); // US/Global
+        ACCOUNT_TYPE_PATTERNS.put("national pension", INVESTMENT); // Korea/Japan
+        ACCOUNT_TYPE_PATTERNS.put("npf", INVESTMENT); // National Pension Fund
         // Investment Platforms
-        ACCOUNT_TYPE_PATTERNS.put("fidelity", "investment");
-        ACCOUNT_TYPE_PATTERNS.put("vanguard", "investment");
-        ACCOUNT_TYPE_PATTERNS.put("schwab", "investment");
-        ACCOUNT_TYPE_PATTERNS.put("robinhood", "investment");
-        ACCOUNT_TYPE_PATTERNS.put("etrade", "investment");
-        ACCOUNT_TYPE_PATTERNS.put("td ameritrade", "investment");
-        ACCOUNT_TYPE_PATTERNS.put("icici direct", "investment");
-        ACCOUNT_TYPE_PATTERNS.put("hdfc securities", "investment");
-        ACCOUNT_TYPE_PATTERNS.put("zerodha", "investment");
-        ACCOUNT_TYPE_PATTERNS.put("upstox", "investment");
-        ACCOUNT_TYPE_PATTERNS.put("groww", "investment");
-        ACCOUNT_TYPE_PATTERNS.put("paytm money", "investment");
+        ACCOUNT_TYPE_PATTERNS.put(FIDELITY, INVESTMENT);
+        ACCOUNT_TYPE_PATTERNS.put(VANGUARD, INVESTMENT);
+        ACCOUNT_TYPE_PATTERNS.put(SCHWAB, INVESTMENT);
+        ACCOUNT_TYPE_PATTERNS.put("robinhood", INVESTMENT);
+        ACCOUNT_TYPE_PATTERNS.put("etrade", INVESTMENT);
+        ACCOUNT_TYPE_PATTERNS.put("td ameritrade", INVESTMENT);
+        ACCOUNT_TYPE_PATTERNS.put("icici direct", INVESTMENT);
+        ACCOUNT_TYPE_PATTERNS.put("hdfc securities", INVESTMENT);
+        ACCOUNT_TYPE_PATTERNS.put("zerodha", INVESTMENT);
+        ACCOUNT_TYPE_PATTERNS.put("upstox", INVESTMENT);
+        ACCOUNT_TYPE_PATTERNS.put("groww", INVESTMENT);
+        ACCOUNT_TYPE_PATTERNS.put("paytm money", INVESTMENT);
     }
 
     // Enhanced patterns for account numbers with better keyword matching
@@ -986,15 +1156,15 @@ public class AccountDetectionService {
             detected.setAccountType(accountType);
             LOGGER.info("✓ Detected account type from filename: {}", accountType);
             // Set subtype based on type
-            if ("depository".equals(accountType)) {
-                if (nameWithoutExt.contains("checking") || nameWithoutExt.contains("check")) {
-                    detected.setAccountSubtype("checking");
-                } else if (nameWithoutExt.contains("savings")
+            if (DEPOSITORY.equals(accountType)) {
+                if (nameWithoutExt.contains(CHECKING) || nameWithoutExt.contains(CHECK)) {
+                    detected.setAccountSubtype(CHECKING);
+                } else if (nameWithoutExt.contains(SAVINGS)
                         || nameWithoutExt.contains("saving")) {
-                    detected.setAccountSubtype("savings");
+                    detected.setAccountSubtype(SAVINGS);
                 }
-            } else if ("credit".equals(accountType)) {
-                detected.setAccountSubtype("credit card");
+            } else if (CREDIT.equals(accountType)) {
+                detected.setAccountSubtype(CREDIT_CARD);
             }
         } else {
             LOGGER.info("⚠️ No account type detected from filename: {}", nameWithoutExt);
@@ -1117,16 +1287,16 @@ public class AccountDetectionService {
         final boolean isCreditCard = detectCreditCardFromContent(lowerHeader);
 
         if (isCreditCard) {
-            detected.setAccountType("credit");
-            detected.setAccountSubtype("credit card");
+            detected.setAccountType(CREDIT);
+            detected.setAccountSubtype(CREDIT_CARD);
             LOGGER.info("✓ Detected credit card account type from PDF content");
-        } else if (lowerHeader.contains("checking") || lowerHeader.contains("checking account")) {
-            detected.setAccountType("depository");
-            detected.setAccountSubtype("checking");
+        } else if (lowerHeader.contains(CHECKING) || lowerHeader.contains("checking account")) {
+            detected.setAccountType(DEPOSITORY);
+            detected.setAccountSubtype(CHECKING);
             LOGGER.info("✓ Detected checking account type from PDF content");
-        } else if (lowerHeader.contains("savings") || lowerHeader.contains("savings account")) {
-            detected.setAccountType("depository");
-            detected.setAccountSubtype("savings");
+        } else if (lowerHeader.contains(SAVINGS) || lowerHeader.contains("savings account")) {
+            detected.setAccountType(DEPOSITORY);
+            detected.setAccountSubtype(SAVINGS);
             LOGGER.info("✓ Detected savings account type from PDF content");
         } else if (lowerHeader.contains("loan") || lowerHeader.contains("mortgage")) {
             detected.setAccountType("loan");
@@ -1244,7 +1414,7 @@ public class AccountDetectionService {
                 findColumnIndex(
                         headerMap,
                         headerIndexMap,
-                        Arrays.asList("account name", "accountname", "account", "acct name"));
+                        Arrays.asList(ACCOUNT_NAME, "accountname", ACCOUNT, "acct name"));
         if (accountNameColumnIndex != null) {
             final String headerName = headers.get(accountNameColumnIndex);
             LOGGER.info(
@@ -1476,9 +1646,9 @@ public class AccountDetectionService {
         } else {
             // Check if it's just the label without a value
             final String lower = value.toLowerCase(Locale.ROOT);
-            if (lower.contains("account name")
+            if (lower.contains(ACCOUNT_NAME)
                     || lower.contains("accountname")
-                    || (lower.contains("account") && !lower.contains("number"))) {
+                    || (lower.contains(ACCOUNT) && !lower.contains("number"))) {
                 // This is just the label, no value - return placeholder to indicate column exists
                 // The actual value will be extracted from data rows during import
                 return ""; // Empty string indicates column exists but value not yet extracted
@@ -1634,20 +1804,6 @@ public class AccountDetectionService {
             if (lower.contains(entry.getKey())) {
                 return entry.getValue();
             }
-        }
-
-        return null;
-    }
-
-    /** Extract institution name from text */
-    private String extractInstitutionFromText(final String text) {
-        if (text == null || text.isEmpty()) {
-            return null;
-        }
-
-        final String institution = detectInstitutionFromText(text);
-        if (institution != null) {
-            return institution;
         }
 
         return null;
@@ -1839,25 +1995,6 @@ public class AccountDetectionService {
         return null;
     }
 
-    private String detectInstitutionFromText(String text) {
-        if (text == null || text.isEmpty()) {
-            return null;
-        }
-
-        // CRITICAL: Limit text length to prevent performance issues and regex DoS
-        if (text.length() > 10_000) {
-            text = text.substring(0, 10_000);
-        }
-
-        final String lower = text.toLowerCase(Locale.ROOT);
-        for (final String keyword : INSTITUTION_KEYWORDS) {
-            if (keyword != null && lower.contains(keyword)) {
-                return normalizeInstitutionName(keyword);
-            }
-        }
-        return null;
-    }
-
     // Cache compiled patterns for institution keywords to avoid recompiling in loops
     private static final Map<String, Pattern> INSTITUTION_PATTERN_CACHE = new HashMap<>();
 
@@ -1936,12 +2073,12 @@ public class AccountDetectionService {
                         "posting date",
                         "transaction date",
                         "value date",
-                        "amount",
-                        "debit",
-                        "credit",
-                        "balance",
-                        "description",
-                        "details",
+                        AMOUNT,
+                        DEBIT,
+                        CREDIT,
+                        BALANCE,
+                        DESCRIPTION,
+                        DETAILS,
                         "memo",
                         "notes");
 
@@ -2154,18 +2291,18 @@ public class AccountDetectionService {
                         "posting date",
                         "transaction date",
                         "value date",
-                        "amount",
-                        "debit",
-                        "credit",
-                        "balance",
-                        "description",
-                        "details",
+                        AMOUNT,
+                        DEBIT,
+                        CREDIT,
+                        BALANCE,
+                        DESCRIPTION,
+                        DETAILS,
                         "memo",
                         "notes",
                         "type",
                         "transaction type",
                         "category",
-                        "check",
+                        CHECK,
                         "check number",
                         "check or slip",
                         "reference",
@@ -2216,17 +2353,17 @@ public class AccountDetectionService {
         normalizations.put("wells fargo", "Wells Fargo");
         normalizations.put("usbank", "U.S. Bank");
         normalizations.put("us bank", "U.S. Bank");
-        normalizations.put("capone", "Capital One");
-        normalizations.put("capitol one", "Capital One");
-        normalizations.put("capital one", "Capital One");
+        normalizations.put("capone", CAPITAL_ONE);
+        normalizations.put("capitol one", CAPITAL_ONE);
+        normalizations.put("capital one", CAPITAL_ONE);
         normalizations.put("jpm", "JPMorgan Chase");
         normalizations.put("jpmorgan", "JPMorgan Chase");
         normalizations.put("amex", "American Express");
-        normalizations.put("american express", "American Express");
+        normalizations.put(AMERICAN_EXPRESS, "American Express");
         normalizations.put("chase", "Chase");
-        normalizations.put("citi", "Citibank");
-        normalizations.put("citibank", "Citibank");
-        normalizations.put("citicards", "Citibank");
+        normalizations.put("citi", CITIBANK);
+        normalizations.put("citibank", CITIBANK);
+        normalizations.put("citicards", CITIBANK);
         normalizations.put("east west bank", "East West Bank");
         normalizations.put("eastwest bank", "East West Bank");
 
@@ -2262,7 +2399,7 @@ public class AccountDetectionService {
 
         // CRITICAL: Prioritize credit card patterns over checking/savings patterns
         // Check credit card patterns first (more specific)
-        final String[] creditCardPatterns = {"credit card", "creditcard", "card"};
+        final String[] creditCardPatterns = {CREDIT_CARD, "creditcard", "card"};
         for (final String pattern : creditCardPatterns) {
             if (lower.contains(pattern)) {
                 return "credit";
@@ -2323,7 +2460,7 @@ public class AccountDetectionService {
         // General credit card indicators that work for all issuers
         final List<String> creditCardIndicators =
                 Arrays.asList(
-                        "credit card",
+                        CREDIT_CARD,
                         "card statement",
                         "credit limit",
                         "available credit",
@@ -2362,60 +2499,60 @@ public class AccountDetectionService {
         final List<String> cardProductKeywords =
                 Arrays.asList(
                         "card",
-                        "rewards",
-                        "platinum",
+                        REWARDS,
+                        PLATINUM,
                         "gold",
-                        "silver",
-                        "preferred",
-                        "signature",
-                        "world",
-                        "elite",
-                        "infinite",
-                        "reserve",
-                        "freedom",
-                        "sapphire",
-                        "double cash",
-                        "cash back",
-                        "miles",
-                        "points",
+                        SILVER,
+                        PREFERRED,
+                        SIGNATURE,
+                        WORLD,
+                        ELITE,
+                        INFINITE,
+                        RESERVE,
+                        FREEDOM,
+                        SAPPHIRE,
+                        DOUBLE_CASH,
+                        CASH_BACK,
+                        MILES,
+                        POINTS,
                         // US Card Products
-                        "venture",
-                        "savor",
-                        "quicksilver",
-                        "spark",
-                        "freedom unlimited",
-                        "unlimited",
-                        "blue cash",
-                        "everyday",
-                        "delta",
-                        "marriott",
-                        "hilton",
-                        "hyatt",
+                        VENTURE,
+                        SAVOR,
+                        QUICKSILVER,
+                        SPARK,
+                        FREEDOM_UNLIMITED,
+                        UNLIMITED,
+                        BLUE_CASH,
+                        EVERYDAY,
+                        DELTA,
+                        MARRIOTT,
+                        HILTON,
+                        HYATT,
                         "ihg",
                         "aeroplan",
                         "avios",
                         "skywards",
                         // European Card Products
-                        "classic",
-                        "premium",
-                        "black",
+                        CLASSIC,
+                        PREMIUM,
+                        BLACK,
                         "titanium",
                         "carbon",
                         "metal",
                         // Asian Card Products
-                        "diamond",
-                        "imperial",
-                        "royal",
-                        "prestige",
-                        "exclusive",
+                        DIAMOND,
+                        IMPERIAL,
+                        ROYAL,
+                        PRESTIGE,
+                        EXCLUSIVE,
                         // General Terms
-                        "credit",
-                        "debit",
+                        CREDIT,
+                        DEBIT,
                         "charge",
                         "prepaid",
                         "gift",
-                        "travel",
-                        "business");
+                        TRAVEL,
+                        BUSINESS);
 
         if (hasInstitution) {
             for (final String keyword : cardProductKeywords) {
@@ -2457,7 +2594,7 @@ public class AccountDetectionService {
                 Arrays.asList(
                         "service agreement",
                         "cardholder agreement",
-                        "cardmember agreement",
+                        CARDMEMBER_AGREEMENT,
                         "terms and conditions",
                         "card agreement",
                         "account agreement");
@@ -2618,84 +2755,84 @@ public class AccountDetectionService {
                         Arrays.asList(
                                 // Multi-word card names (most specific first)
                                 // Amazon/Prime Cards
-                                "prime visa",
-                                "amazon prime visa",
-                                "amazon prime card",
-                                "prime rewards visa",
-                                "prime visa signature",
-                                "amazon prime rewards",
+                                PRIME_VISA,
+                                AMAZON_PRIME_VISA,
+                                AMAZON_PRIME_CARD,
+                                PRIME_REWARDS_VISA,
+                                PRIME_VISA_SIGNATURE,
+                                AMAZON_PRIME_REWARDS,
                                 "prime card",
                                 // Chase Cards
-                                "marriott bonvoy premier",
-                                "marriott bonvoy",
-                                "double cash",
-                                "cash back",
-                                "active cash",
-                                "blue cash",
-                                "freedom ultimate",
-                                "freedom unlimited",
-                                "freedom",
-                                "sapphire reserve",
-                                "sapphire preferred",
-                                "sapphire",
+                                MARRIOTT_BONVOY_PREMIER,
+                                MARRIOTT_BONVOY,
+                                DOUBLE_CASH,
+                                CASH_BACK,
+                                ACTIVE_CASH,
+                                BLUE_CASH,
+                                FREEDOM_ULTIMATE,
+                                FREEDOM_UNLIMITED,
+                                FREEDOM,
+                                SAPPHIRE_RESERVE,
+                                SAPPHIRE_PREFERRED,
+                                SAPPHIRE,
                                 // Visa/Mastercard/Amex Tier Cards
-                                "visa signature",
-                                "visa infinite",
-                                "visa platinum",
+                                VISA_SIGNATURE,
+                                VISA_INFINITE,
+                                VISA_PLATINUM,
                                 "visa classic",
-                                "mastercard world",
-                                "mastercard world elite",
+                                MASTERCARD_WORLD,
+                                MASTERCARD_WORLD_ELITE,
                                 "mastercard platinum",
                                 "mastercard gold",
-                                "amex platinum",
-                                "amex gold",
+                                AMEX_PLATINUM,
+                                AMEX_GOLD,
                                 "amex green",
                                 "amex blue",
                                 // Capital One Cards
-                                "quicksilver",
-                                "venture",
-                                "savor",
-                                "spark",
+                                QUICKSILVER,
+                                VENTURE,
+                                SAVOR,
+                                SPARK,
                                 // Citi Cards
-                                "double cash",
-                                "premier",
+                                DOUBLE_CASH,
+                                PREMIER,
                                 "diamond preferred",
                                 // Discover Cards
                                 "it",
-                                "miles",
-                                "cash back",
+                                MILES,
+                                CASH_BACK,
                                 // Single-word and other specific indicators
-                                "unlimited",
-                                "everyday",
-                                "miles",
-                                "points",
-                                "hilton",
-                                "hyatt",
-                                "delta",
-                                "marriott",
-                                "bonvoy",
-                                "platinum",
+                                UNLIMITED,
+                                EVERYDAY,
+                                MILES,
+                                POINTS,
+                                HILTON,
+                                HYATT,
+                                DELTA,
+                                MARRIOTT,
+                                BONVOY,
+                                PLATINUM,
                                 "gold",
-                                "silver",
+                                SILVER,
                                 "titanium",
-                                "signature",
-                                "world",
-                                "elite",
-                                "infinite",
-                                "reserve",
-                                "preferred",
+                                SIGNATURE,
+                                WORLD,
+                                ELITE,
+                                INFINITE,
+                                RESERVE,
+                                PREFERRED,
                                 "ultimate",
-                                "classic",
-                                "premium",
-                                "black",
-                                "diamond",
-                                "imperial",
-                                "royal",
-                                "prestige",
-                                "exclusive",
-                                "travel",
-                                "business",
-                                "rewards",
+                                CLASSIC,
+                                PREMIUM,
+                                BLACK,
+                                DIAMOND,
+                                IMPERIAL,
+                                ROYAL,
+                                PRESTIGE,
+                                EXCLUSIVE,
+                                TRAVEL,
+                                BUSINESS,
+                                REWARDS,
                                 "card",
                                 "®",
                                 "™");
@@ -2724,7 +2861,7 @@ public class AccountDetectionService {
                                 "app",
                                 "website",
                                 "statement",
-                                "account",
+                                ACCOUNT,
                                 "login",
                                 "register",
                                 "contact",
@@ -2747,38 +2884,38 @@ public class AccountDetectionService {
                 final List<String> strongProductIndicators =
                         Arrays.asList(
                                 // Amazon/Prime Cards (highest priority - very specific)
-                                "prime visa",
-                                "amazon prime visa",
-                                "amazon prime card",
-                                "prime rewards visa",
-                                "prime visa signature",
-                                "amazon prime rewards",
+                                PRIME_VISA,
+                                AMAZON_PRIME_VISA,
+                                AMAZON_PRIME_CARD,
+                                PRIME_REWARDS_VISA,
+                                PRIME_VISA_SIGNATURE,
+                                AMAZON_PRIME_REWARDS,
                                 // Chase Cards
-                                "freedom ultimate",
-                                "freedom unlimited",
-                                "freedom",
-                                "sapphire reserve",
-                                "sapphire preferred",
-                                "sapphire",
-                                "active cash",
-                                "double cash",
-                                "cash back",
-                                "blue cash",
-                                "marriott bonvoy premier",
-                                "marriott bonvoy",
+                                FREEDOM_ULTIMATE,
+                                FREEDOM_UNLIMITED,
+                                FREEDOM,
+                                SAPPHIRE_RESERVE,
+                                SAPPHIRE_PREFERRED,
+                                SAPPHIRE,
+                                ACTIVE_CASH,
+                                DOUBLE_CASH,
+                                CASH_BACK,
+                                BLUE_CASH,
+                                MARRIOTT_BONVOY_PREMIER,
+                                MARRIOTT_BONVOY,
                                 // Visa/Mastercard/Amex Tier Cards
-                                "visa signature",
-                                "visa infinite",
-                                "visa platinum",
-                                "mastercard world",
-                                "mastercard world elite",
-                                "amex platinum",
-                                "amex gold",
+                                VISA_SIGNATURE,
+                                VISA_INFINITE,
+                                VISA_PLATINUM,
+                                MASTERCARD_WORLD,
+                                MASTERCARD_WORLD_ELITE,
+                                AMEX_PLATINUM,
+                                AMEX_GOLD,
                                 // Other specific cards
-                                "quicksilver",
-                                "spark",
-                                "venture",
-                                "savor");
+                                QUICKSILVER,
+                                SPARK,
+                                VENTURE,
+                                SAVOR);
 
                 boolean hasGenericTerm = false;
                 // CRITICAL: More aggressive filtering for generic terms
@@ -2846,7 +2983,7 @@ public class AccountDetectionService {
                                 "register",
                                 "enroll",
                                 "call",
-                                "contact us",
+                                CONTACT_US,
                                 "customer service");
                 boolean hasActionPhrase = false;
                 for (final String phrase : actionPhrases) {
@@ -2872,7 +3009,7 @@ public class AccountDetectionService {
                                 "questions",
                                 "question",
                                 "if you have",
-                                "contact us",
+                                CONTACT_US,
                                 "call us",
                                 "email us",
                                 "mail us",
@@ -3011,67 +3148,67 @@ public class AccountDetectionService {
             final List<String> specificCardNames =
                     Arrays.asList(
                             // Amazon/Prime Cards (highest priority - very specific)
-                            "prime visa",
-                            "amazon prime visa",
-                            "amazon prime card",
-                            "prime rewards visa",
-                            "prime visa signature",
-                            "amazon prime rewards",
+                            PRIME_VISA,
+                            AMAZON_PRIME_VISA,
+                            AMAZON_PRIME_CARD,
+                            PRIME_REWARDS_VISA,
+                            PRIME_VISA_SIGNATURE,
+                            AMAZON_PRIME_REWARDS,
                             "prime card",
                             // Chase Cards
-                            "marriott bonvoy premier",
-                            "marriott bonvoy",
+                            MARRIOTT_BONVOY_PREMIER,
+                            MARRIOTT_BONVOY,
                             "bonvoy premier",
-                            "bonvoy",
-                            "freedom ultimate",
-                            "freedom unlimited",
-                            "freedom",
-                            "active cash",
-                            "sapphire reserve",
-                            "sapphire preferred",
-                            "sapphire",
-                            "double cash",
-                            "cash back",
-                            "blue cash",
+                            BONVOY,
+                            FREEDOM_ULTIMATE,
+                            FREEDOM_UNLIMITED,
+                            FREEDOM,
+                            ACTIVE_CASH,
+                            SAPPHIRE_RESERVE,
+                            SAPPHIRE_PREFERRED,
+                            SAPPHIRE,
+                            DOUBLE_CASH,
+                            CASH_BACK,
+                            BLUE_CASH,
                             // Visa/Mastercard/Amex Tier Cards
-                            "visa signature",
-                            "visa infinite",
-                            "visa platinum",
+                            VISA_SIGNATURE,
+                            VISA_INFINITE,
+                            VISA_PLATINUM,
                             "visa classic",
-                            "mastercard world elite",
-                            "mastercard world",
+                            MASTERCARD_WORLD_ELITE,
+                            MASTERCARD_WORLD,
                             "mastercard platinum",
-                            "amex platinum",
-                            "amex gold",
+                            AMEX_PLATINUM,
+                            AMEX_GOLD,
                             "amex green",
                             // Capital One Cards
-                            "quicksilver",
-                            "spark",
-                            "venture",
-                            "savor",
+                            QUICKSILVER,
+                            SPARK,
+                            VENTURE,
+                            SAVOR,
                             // Citi Cards
-                            "double cash",
-                            "premier",
+                            DOUBLE_CASH,
+                            PREMIER,
                             "diamond preferred",
                             // Discover Cards
                             "it",
-                            "miles",
-                            "cash back",
+                            MILES,
+                            CASH_BACK,
                             // Other specific cards
-                            "unlimited",
-                            "everyday",
-                            "platinum",
+                            UNLIMITED,
+                            EVERYDAY,
+                            PLATINUM,
                             "gold",
-                            "silver",
-                            "signature",
-                            "world",
-                            "elite",
-                            "infinite",
+                            SILVER,
+                            SIGNATURE,
+                            WORLD,
+                            ELITE,
+                            INFINITE,
                             "ultimate",
-                            "hilton",
-                            "hyatt",
-                            "delta",
-                            "marriott");
+                            HILTON,
+                            HYATT,
+                            DELTA,
+                            MARRIOTT);
 
             // First pass: prioritize by matched indicator (most specific first)
             for (final String cardName : specificCardNames) {
@@ -3156,13 +3293,13 @@ public class AccountDetectionService {
 
         // Handle special cases
         final String lower = cardName.toLowerCase(Locale.ROOT);
-        if (lower.contains("prime visa")) {
+        if (lower.contains(PRIME_VISA)) {
             // Capitalize "Prime Visa" properly
             if (lower.startsWith("amazon")) {
                 return "Amazon Prime Visa";
-            } else if (lower.contains("rewards")) {
+            } else if (lower.contains(REWARDS)) {
                 return "Prime Rewards Visa";
-            } else if (lower.contains("signature")) {
+            } else if (lower.contains(SIGNATURE)) {
                 return "Prime Visa Signature";
             } else {
                 return "Prime Visa";
@@ -3199,35 +3336,35 @@ public class AccountDetectionService {
                 Arrays.asList(
                         "prime",
                         "visa",
-                        "mastercard",
+                        MASTERCARD,
                         "amex",
-                        "american express",
-                        "discover",
-                        "platinum",
+                        AMERICAN_EXPRESS,
+                        DISCOVER,
+                        PLATINUM,
                         "gold",
-                        "silver",
-                        "signature",
-                        "world",
-                        "elite",
-                        "infinite",
-                        "reserve",
-                        "preferred",
-                        "freedom",
-                        "sapphire",
-                        "bonvoy",
-                        "marriott",
-                        "hilton",
-                        "hyatt",
-                        "delta",
-                        "venture",
-                        "savor",
-                        "quicksilver",
-                        "spark",
-                        "cash back",
+                        SILVER,
+                        SIGNATURE,
+                        WORLD,
+                        ELITE,
+                        INFINITE,
+                        RESERVE,
+                        PREFERRED,
+                        FREEDOM,
+                        SAPPHIRE,
+                        BONVOY,
+                        MARRIOTT,
+                        HILTON,
+                        HYATT,
+                        DELTA,
+                        VENTURE,
+                        SAVOR,
+                        QUICKSILVER,
+                        SPARK,
+                        CASH_BACK,
                         "cashback",
-                        "rewards",
-                        "miles",
-                        "points",
+                        REWARDS,
+                        MILES,
+                        POINTS,
                         "card");
 
         for (final String keyword : cardKeywords) {
@@ -3293,51 +3430,51 @@ public class AccountDetectionService {
                         // in statements)
                         final List<String> lowercaseCardKeywords =
                                 Arrays.asList(
-                                        "platinum",
+                                        PLATINUM,
                                         "gold",
-                                        "silver",
-                                        "signature",
-                                        "world",
-                                        "elite",
-                                        "infinite",
-                                        "reserve",
-                                        "preferred",
-                                        "freedom",
-                                        "sapphire",
-                                        "bonvoy",
-                                        "marriott",
-                                        "hilton",
-                                        "hyatt",
-                                        "delta",
-                                        "venture",
-                                        "savor",
-                                        "quicksilver",
-                                        "spark",
-                                        "unlimited",
-                                        "everyday",
-                                        "premier",
-                                        "classic",
-                                        "premium",
-                                        "black",
+                                        SILVER,
+                                        SIGNATURE,
+                                        WORLD,
+                                        ELITE,
+                                        INFINITE,
+                                        RESERVE,
+                                        PREFERRED,
+                                        FREEDOM,
+                                        SAPPHIRE,
+                                        BONVOY,
+                                        MARRIOTT,
+                                        HILTON,
+                                        HYATT,
+                                        DELTA,
+                                        VENTURE,
+                                        SAVOR,
+                                        QUICKSILVER,
+                                        SPARK,
+                                        UNLIMITED,
+                                        EVERYDAY,
+                                        PREMIER,
+                                        CLASSIC,
+                                        PREMIUM,
+                                        BLACK,
                                         "coral",
-                                        "diamond",
-                                        "imperial",
-                                        "royal",
-                                        "prestige",
-                                        "exclusive",
-                                        "travel",
-                                        "business",
-                                        "rewards",
-                                        "miles",
-                                        "points",
+                                        DIAMOND,
+                                        IMPERIAL,
+                                        ROYAL,
+                                        PRESTIGE,
+                                        EXCLUSIVE,
+                                        TRAVEL,
+                                        BUSINESS,
+                                        REWARDS,
+                                        MILES,
+                                        POINTS,
                                         "cash",
-                                        "double cash",
-                                        "active cash",
-                                        "blue cash",
+                                        DOUBLE_CASH,
+                                        ACTIVE_CASH,
+                                        BLUE_CASH,
                                         "simplicity",
-                                        "cash back",
+                                        CASH_BACK,
                                         "latitude",
-                                        "mastercard");
+                                        MASTERCARD);
                         if (!lowercaseCardKeywords.contains(cleanWord.toLowerCase(Locale.ROOT))) {
                             // Rejected product name - invalid lowercase word
                             return false;
@@ -3360,7 +3497,7 @@ public class AccountDetectionService {
                         "write us",
                         "questions",
                         "if you have",
-                        "contact us",
+                        CONTACT_US,
                         "call us",
                         "p.o. box",
                         "po box",
@@ -3383,7 +3520,7 @@ public class AccountDetectionService {
         }
 
         // Reject if contains address patterns (ZIP codes, state abbreviations with numbers)
-        if (trimmed.matches(".*\\b\\d{5}(?:-\\d{4})?\\b.*")
+        if (trimmed.matches(B_D_5_D_4_B)
                 || // ZIP code
                 trimmed.matches(".*\\b[A-Z]{2}\\s+\\d{5}\\b.*")) { // State + ZIP
             // Rejected product name - contains address pattern
@@ -3420,8 +3557,8 @@ public class AccountDetectionService {
                         "sale",
                         "post",
                         "date",
-                        "description",
-                        "amount",
+                        DESCRIPTION,
+                        AMOUNT,
                         "payments",
                         "credits",
                         "adjustments",
@@ -3525,7 +3662,7 @@ public class AccountDetectionService {
                 final boolean isAllLowercase =
                         name.equals(name.toLowerCase(Locale.ROOT))
                                 && name.matches(".*[a-z].*")
-                                && !name.matches(".*[A-Z].*");
+                                && !name.matches(A_Z);
                 final double allLowercasePenalty = isAllLowercase ? -3000.0 : 0.0;
                 if (allLowercasePenalty < 0) {
                     LOGGER.debug("Applying all lowercase penalty (-3000) to candidate '{}'", name);
@@ -3583,16 +3720,16 @@ public class AccountDetectionService {
                     || lowerLine.contains("transaction history")
                     || lowerLine.contains("account information")
                     || lowerLine.contains("your name")
-                    || lowerLine.contains("and account number")
+                    || lowerLine.contains(AND_ACCOUNT_NUMBER)
                     || lowerLine.contains("If you have")
-                    || lowerLine.contains("balance")
+                    || lowerLine.contains(BALANCE)
                     || lowerLine.contains("card member agreement")
                     || lowerLine.contains("card member information")
                     || lowerLine.contains("card member benefits")
                     || lowerLine.contains("card member services")
                     || lowerLine.contains("card member service")
                     || lowerLine.contains("cardmember service")
-                    || lowerLine.contains("cardmember agreement")
+                    || lowerLine.contains(CARDMEMBER_AGREEMENT)
                     || lowerLine.contains("cardmember information")
                     || lowerLine.contains("cardmember benefits")
                     || lowerLine.contains("cardmember services")
@@ -3606,7 +3743,7 @@ public class AccountDetectionService {
                     || lowerLine.contains("account holder support")
                     || lowerLine.contains("account holder rewards")
                     || lowerLine.contains("passenger name")
-                    || lowerLine.contains("account name")
+                    || lowerLine.contains(ACCOUNT_NAME)
                     || lowerLine.contains("person name")
                     || lowerLine.contains("card name")
                     || lowerLine.contains("minimum payment")
@@ -3615,7 +3752,7 @@ public class AccountDetectionService {
                     || // Column headers
                     lowerLine.matches(".*\\btransaction\\s+date.*")
                     || // Transaction table headers
-                    (lowerLine.contains("date") && lowerLine.contains("amount"))) {
+                    (lowerLine.contains("date") && lowerLine.contains(AMOUNT))) {
                 continue;
             }
 
@@ -3648,7 +3785,7 @@ public class AccountDetectionService {
                     final String name = extractAndValidateName(rawName, excludedWords);
                     if (name != null) {
                         final boolean isAllCaps =
-                                name.equals(name.toUpperCase(Locale.ROOT)) && name.matches(".*[A-Z].*");
+                                name.equals(name.toUpperCase(Locale.ROOT)) && name.matches(A_Z);
                         final String patternType = "direct_pattern_" + (i + 1);
                         // Normalize name for map key (trim and normalize case for consistent
                         // merging)
@@ -3712,7 +3849,7 @@ public class AccountDetectionService {
                     || currentLineLower.matches(".*\\bp\\.o\\.\\s+box\\b.*")
                     || currentLineLower.matches(".*\\bapt\\.?\\b.*")
                     || currentLineLower.matches(".*\\bapartment\\b.*")
-                    || currentLineLower.matches(".*\\b\\d{5}(?:-\\d{4})?\\b.*")
+                    || currentLineLower.matches(B_D_5_D_4_B)
                     || // ZIP code with optional +4
                     currentLineLower.matches(
                             "^\\d+\\s+.*")) { // Line starting with number (street address)
@@ -3727,7 +3864,7 @@ public class AccountDetectionService {
                 final String nextLineLower = nextLine.toLowerCase(Locale.ROOT);
                 if (!nextLine.isEmpty()) {
                     // Check if next line has ZIP code pattern (confirms it's a 3-line address)
-                    if (nextLineLower.matches(".*\\b\\d{5}(?:-\\d{4})?\\b.*")
+                    if (nextLineLower.matches(B_D_5_D_4_B)
                             || // ZIP code with optional +4 (like "98119-3579")
                             nextLineLower.matches(
                                     ".*\\b\\d{5}\\s+\\d{4}\\b.*")) { // ZIP+4 separated by space
@@ -3749,7 +3886,7 @@ public class AccountDetectionService {
                 final String name = extractAndValidateName(previousLine, excludedWords);
                 if (name != null) {
                     final boolean isAllCaps =
-                            name.equals(name.toUpperCase(Locale.ROOT)) && name.matches(".*[A-Z].*");
+                            name.equals(name.toUpperCase(Locale.ROOT)) && name.matches(A_Z);
                     final int priority =
                             isThreeLineAddress ? 90 : 80; // Higher priority for 3-line address
                     final String patternType = isThreeLineAddress ? "3_line_address" : "address";
@@ -3774,7 +3911,7 @@ public class AccountDetectionService {
                 final String name = extractAndValidateName(previousLine, excludedWords);
                 if (name != null) {
                     final boolean isAllCaps =
-                            name.equals(name.toUpperCase(Locale.ROOT)) && name.matches(".*[A-Z].*");
+                            name.equals(name.toUpperCase(Locale.ROOT)) && name.matches(A_Z);
                     // Normalize name for map key (trim and lowercase for consistent merging)
                     final String normalizedName = name.trim().toLowerCase(Locale.ROOT);
                     final NameCandidate existing = candidateMap.get(normalizedName);
@@ -3799,7 +3936,7 @@ public class AccountDetectionService {
                 final String name = extractAndValidateName(previousLine, excludedWords);
                 if (name != null) {
                     final boolean isAllCaps =
-                            name.equals(name.toUpperCase(Locale.ROOT)) && name.matches(".*[A-Z].*");
+                            name.equals(name.toUpperCase(Locale.ROOT)) && name.matches(A_Z);
                     // Normalize name for map key (trim and lowercase for consistent merging)
                     final String normalizedName = name.trim().toLowerCase(Locale.ROOT);
                     final NameCandidate existing = candidateMap.get(normalizedName);
@@ -3823,7 +3960,7 @@ public class AccountDetectionService {
                 final String name = extractAndValidateName(previousLine, excludedWords);
                 if (name != null) {
                     final boolean isAllCaps =
-                            name.equals(name.toUpperCase(Locale.ROOT)) && name.matches(".*[A-Z].*");
+                            name.equals(name.toUpperCase(Locale.ROOT)) && name.matches(A_Z);
                     // Normalize name for map key (trim and lowercase for consistent merging)
                     final String normalizedName = name.trim().toLowerCase(Locale.ROOT);
                     final NameCandidate existing = candidateMap.get(normalizedName);
@@ -3848,7 +3985,7 @@ public class AccountDetectionService {
                 final String name = extractAndValidateName(nameMatcher.group(1).trim(), excludedWords);
                 if (name != null) {
                     final boolean isAllCaps =
-                            name.equals(name.toUpperCase(Locale.ROOT)) && name.matches(".*[A-Z].*");
+                            name.equals(name.toUpperCase(Locale.ROOT)) && name.matches(A_Z);
                     // Normalize name for map key (trim and lowercase for consistent merging)
                     final String normalizedName = name.trim().toLowerCase(Locale.ROOT);
                     final NameCandidate existing = candidateMap.get(normalizedName);
@@ -3874,7 +4011,7 @@ public class AccountDetectionService {
                 final String name = extractAndValidateName(nameMatcher.group(1).trim(), excludedWords);
                 if (name != null) {
                     final boolean isAllCaps =
-                            name.equals(name.toUpperCase(Locale.ROOT)) && name.matches(".*[A-Z].*");
+                            name.equals(name.toUpperCase(Locale.ROOT)) && name.matches(A_Z);
                     // Normalize name for map key (trim and lowercase for consistent merging)
                     final String normalizedName = name.trim().toLowerCase(Locale.ROOT);
                     final NameCandidate existing = candidateMap.get(normalizedName);
@@ -3908,7 +4045,7 @@ public class AccountDetectionService {
                 final String name = extractAndValidateName(nameMatcher.group(1).trim(), excludedWords);
                 if (name != null) {
                     final boolean isAllCaps =
-                            name.equals(name.toUpperCase(Locale.ROOT)) && name.matches(".*[A-Z].*");
+                            name.equals(name.toUpperCase(Locale.ROOT)) && name.matches(A_Z);
                     // Normalize name for map key (trim and lowercase for consistent merging)
                     final String normalizedName = name.trim().toLowerCase(Locale.ROOT);
                     final NameCandidate existing = candidateMap.get(normalizedName);
@@ -3936,7 +4073,7 @@ public class AccountDetectionService {
                 final String name = extractAndValidateName(nameMatcher.group(1).trim(), excludedWords);
                 if (name != null) {
                     final boolean isAllCaps =
-                            name.equals(name.toUpperCase(Locale.ROOT)) && name.matches(".*[A-Z].*");
+                            name.equals(name.toUpperCase(Locale.ROOT)) && name.matches(A_Z);
                     // Normalize name for map key (trim and lowercase for consistent merging)
                     final String normalizedName = name.trim().toLowerCase(Locale.ROOT);
                     final NameCandidate existing = candidateMap.get(normalizedName);
@@ -4127,7 +4264,7 @@ public class AccountDetectionService {
         // Reject phrases that are clearly not names (like "and account number", "your name", etc.)
         // Check this BEFORE cleaning up trailing punctuation
         final String lowerName = name.toLowerCase(Locale.ROOT);
-        if (lowerName.contains("and account number")
+        if (lowerName.contains(AND_ACCOUNT_NUMBER)
                 || lowerName.contains("your name and")
                 || lowerName.contains("account information")
                 || lowerName.contains("autopay")
@@ -4136,7 +4273,7 @@ public class AccountDetectionService {
                 || lowerName.matches(".*\\baccount\\s+number\\b.*")
                 || lowerName.matches(".*\\bcard\\s+number\\b.*")
                 || lowerName.startsWith("your name")
-                || "and account number".equals(lowerName)
+                || AND_ACCOUNT_NUMBER.equals(lowerName)
                 || "account number".equals(lowerName)
                 || lowerName.contains("send general inquiries")
                 || lowerName.contains("general inquiries")
@@ -4149,15 +4286,15 @@ public class AccountDetectionService {
         // Reject agreement-related phrases that are clearly not names
         // These are informational header phrases, not actual account holder names
         if (lowerName.contains("agreement for details")
-                || lowerName.contains("cardmember agreement")
+                || lowerName.contains(CARDMEMBER_AGREEMENT)
                 || lowerName.contains("cardholder agreement")
                 || lowerName.contains("cardmember service")
                 || lowerName.contains("account holder service")
                 || "agreement".equals(lowerName)
-                || "details".equals(lowerName)
+                || DETAILS.equals(lowerName)
                 || "continued".equals(lowerName)
                 || // Reject standalone "continued" (common in statement footers)
-                (lowerName.contains("agreement") && lowerName.contains("details"))) {
+                (lowerName.contains("agreement") && lowerName.contains(DETAILS))) {
             LOGGER.debug(
                     "Rejected account holder name candidate '{}' - contains agreement-related phrase or 'continued'",
                     name);
