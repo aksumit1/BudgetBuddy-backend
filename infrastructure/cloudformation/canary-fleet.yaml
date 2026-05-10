@@ -199,6 +199,7 @@ Resources:
     Properties:
       TopicName: !Sub '${AWS::StackName}-canary-alarms'
       DisplayName: Canary Fleet Alarms
+      KmsMasterKeyId: alias/aws/sns  # CKV_AWS_26
 
   VPC:
     Type: String

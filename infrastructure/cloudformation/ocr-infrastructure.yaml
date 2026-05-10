@@ -16,7 +16,9 @@ Resources:
       RepositoryName: !Sub 'budgetbuddy-backend-ocr-${Environment}'
       ImageScanningConfiguration:
         ScanOnPush: true
-      ImageTagMutability: MUTABLE
+      ImageTagMutability: IMMUTABLE  # CKV_AWS_51
+      EncryptionConfiguration:
+        EncryptionType: KMS  # CKV_AWS_136 — uses AWS-managed alias/aws/ecr
       LifecyclePolicy:
         LifecyclePolicyText: |
           {

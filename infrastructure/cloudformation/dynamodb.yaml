@@ -380,6 +380,9 @@ Resources:
           - !Ref KMSKeyId
           - !Ref AWS::NoValue
           # Uses AWS managed key (alias/aws/dynamodb) if KMSKeyId is empty
+      # PITR enabled for Checkov CKV_AWS_28 compliance.
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
       Tags:
         - Key: Environment
           Value: !Ref Environment
@@ -412,6 +415,9 @@ Resources:
           - !Ref KMSKeyId
           - !Ref AWS::NoValue
           # Uses AWS managed key (alias/aws/dynamodb) if KMSKeyId is empty
+      # PITR enabled for Checkov CKV_AWS_28 compliance.
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
       Tags:
         - Key: Environment
           Value: !Ref Environment
@@ -444,6 +450,9 @@ Resources:
           - !Ref KMSKeyId
           - !Ref AWS::NoValue
           # Uses AWS managed key (alias/aws/dynamodb) if KMSKeyId is empty
+      # PITR enabled for Checkov CKV_AWS_28 compliance.
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
       Tags:
         - Key: Environment
           Value: !Ref Environment
@@ -480,6 +489,9 @@ Resources:
           - !Ref KMSKeyId
           - !Ref AWS::NoValue
           # Uses AWS managed key (alias/aws/dynamodb) if KMSKeyId is empty
+      # PITR enabled for Checkov CKV_AWS_28 compliance.
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
       Tags:
         - Key: Environment
           Value: !Ref Environment
@@ -517,6 +529,9 @@ Resources:
           - !Ref KMSKeyId
           - !Ref AWS::NoValue
           # Uses AWS managed key (alias/aws/dynamodb) if KMSKeyId is empty
+      # PITR enabled for Checkov CKV_AWS_28 compliance.
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
       Tags:
         - Key: Environment
           Value: !Ref Environment
@@ -553,6 +568,9 @@ Resources:
           - !Ref KMSKeyId
           - !Ref AWS::NoValue
           # Uses AWS managed key (alias/aws/dynamodb) if KMSKeyId is empty
+      # PITR enabled for Checkov CKV_AWS_28 compliance.
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
       Tags:
         - Key: Environment
           Value: !Ref Environment
@@ -585,6 +603,9 @@ Resources:
           - !Ref KMSKeyId
           - !Ref AWS::NoValue
           # Uses AWS managed key (alias/aws/dynamodb) if KMSKeyId is empty
+      # PITR enabled for Checkov CKV_AWS_28 compliance.
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
       Tags:
         - Key: Environment
           Value: !Ref Environment
@@ -659,6 +680,9 @@ Resources:
           - !Ref KMSKeyId
           - !Ref AWS::NoValue
           # Uses AWS managed key (alias/aws/dynamodb) if KMSKeyId is empty
+      # PITR enabled for Checkov CKV_AWS_28 compliance.
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
       Tags:
         - Key: Environment
           Value: !Ref Environment
@@ -695,6 +719,9 @@ Resources:
           - !Ref KMSKeyId
           - !Ref AWS::NoValue
           # Uses AWS managed key (alias/aws/dynamodb) if KMSKeyId is empty
+      # PITR enabled for Checkov CKV_AWS_28 compliance.
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
       Tags:
         - Key: Environment
           Value: !Ref Environment
@@ -731,6 +758,9 @@ Resources:
           - !Ref KMSKeyId
           - !Ref AWS::NoValue
           # Uses AWS managed key (alias/aws/dynamodb) if KMSKeyId is empty
+      # PITR enabled for Checkov CKV_AWS_28 compliance.
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
       Tags:
         - Key: Environment
           Value: !Ref Environment
@@ -763,6 +793,9 @@ Resources:
           - !Ref KMSKeyId
           - !Ref AWS::NoValue
           # Uses AWS managed key (alias/aws/dynamodb) if KMSKeyId is empty
+      # PITR enabled for Checkov CKV_AWS_28 compliance.
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
       Tags:
         - Key: Environment
           Value: !Ref Environment
@@ -818,6 +851,9 @@ Resources:
           - !Ref KMSKeyId
           - !Ref AWS::NoValue
           # Uses AWS managed key (alias/aws/dynamodb) if KMSKeyId is empty
+      # PITR enabled for Checkov CKV_AWS_28 compliance.
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
       Tags:
         - Key: Environment
           Value: !Ref Environment
@@ -863,6 +899,9 @@ Resources:
           - !Ref KMSKeyId
           - !Ref AWS::NoValue
           # Uses AWS managed key (alias/aws/dynamodb) if KMSKeyId is empty
+      # PITR enabled for Checkov CKV_AWS_28 compliance.
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
       Tags:
         - Key: Environment
           Value: !Ref Environment
@@ -901,6 +940,9 @@ Resources:
           - HasKMSKey
           - !Ref KMSKeyId
           - !Ref AWS::NoValue
+      # PITR enabled for Checkov CKV_AWS_28 compliance.
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
       Tags:
         - Key: Environment
           Value: !Ref Environment
@@ -933,6 +975,9 @@ Resources:
           - HasKMSKey
           - !Ref KMSKeyId
           - !Ref AWS::NoValue
+      # PITR enabled for Checkov CKV_AWS_28 compliance.
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
       Tags:
         - Key: Environment
           Value: !Ref Environment
@@ -985,6 +1030,9 @@ Resources:
           - HasKMSKey
           - !Ref KMSKeyId
           - !Ref AWS::NoValue
+      # PITR enabled for Checkov CKV_AWS_28 compliance.
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
       Tags:
         - Key: Environment
           Value: !Ref Environment

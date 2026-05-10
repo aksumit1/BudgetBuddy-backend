@@ -23,6 +23,7 @@ Resources:
     Properties:
       TopicName: !Sub '${TablePrefix}-Notifications-${Environment}'
       DisplayName: !Sub 'BudgetBuddy Notifications ${Environment}'
+      KmsMasterKeyId: alias/aws/sns  # CKV_AWS_26
       Tags:
         - Key: Environment
           Value: !Ref Environment

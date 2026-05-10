@@ -26,6 +26,11 @@ Parameters:
     Default: ''
     Description: SNS topic ARN for alarm notifications (optional)
 
+  LogGroupKmsKeyArn:
+    Type: String
+    Default: ''
+    Description: ARN of customer-managed KMS key for encrypting CloudWatch Logs (optional; main-stack exports as ${StackName}-AppDataKeyArn)
+
 Resources:
   # CloudWatch Log Group for ECS
   ECSLogGroup:
@@ -33,6 +38,7 @@ Resources:
     Properties:
       LogGroupName: !Sub '/ecs/budgetbuddy-backend-${Environment}'
       RetentionInDays: 3  # Reduced to 3 days for cost optimization
+      KmsKeyId: !If [HasLogGroupKmsKey, !Ref LogGroupKmsKeyArn, !Ref AWS::NoValue]  # CKV_AWS_158
       Tags:
         - Key: Environment
           Value: !Ref Environment
@@ -162,6 +168,7 @@ Resources:
     Properties:
       TopicName: !Sub 'budgetbuddy-${Environment}-alarms'
       DisplayName: !Sub 'BudgetBuddy ${Environment} Alarms'
+      KmsMasterKeyId: alias/aws/sns  # CKV_AWS_26
       Tags:
         - Key: Environment
           Value: !Ref Environment
@@ -386,6 +393,7 @@ Resources:
 Conditions:
   CreateSnsTopic: !Equals [!Ref SnsTopicArn, '']
   UseSnsTopic: !Not [!Equals [!Ref SnsTopicArn, '']]
+  HasLogGroupKmsKey: !Not [!Equals [!Ref LogGroupKmsKeyArn, '']]
 
 Outputs:
   DashboardUrl:

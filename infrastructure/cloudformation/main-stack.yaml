@@ -576,6 +576,9 @@ Resources:
       RepositoryName: budgetbuddy-backend
       ImageScanningConfiguration:
         ScanOnPush: true
+      ImageTagMutability: IMMUTABLE  # CKV_AWS_51
+      EncryptionConfiguration:
+        EncryptionType: KMS  # CKV_AWS_136 — uses AWS-managed alias/aws/ecr
       LifecyclePolicy:
         LifecyclePolicyText: |
           {
@@ -747,6 +750,7 @@ Resources:
     Properties:
       LogGroupName: !Sub '/aws/ecs/${AWS::StackName}'
       RetentionInDays: 3  # Reduced to 3 days for cost optimization (no NAT Gateway costs)
+      KmsKeyId: !GetAtt AppDataKey.Arn  # CKV_AWS_158 — encrypts log data with the app CMK
       Tags:
         - Key: Name
           Value: !Sub '${AWS::StackName}-logs'

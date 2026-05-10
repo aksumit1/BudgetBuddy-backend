@@ -3590,242 +3590,12 @@ public class AccountDetectionService {
         //     "card number", "card information", "statement information"
         // );
 
-        // Helper class to store candidate with priority and pattern type
-        class NameCandidate {
-            final String name;
-            int priority; // Higher = better (direct patterns > contextual patterns) - mutable
-            // for merging
-            String patternType; // For logging - primary pattern type - mutable for merging
-            boolean isAllCaps; // For preference - mutable for merging
-            boolean isContextual; // 3-line address, etc. - mutable for merging
-            int frequency = 1; // Number of times this name appears
-            Set<String> patternTypes = new HashSet<>(); // All pattern types this name appears in
-
-            NameCandidate(
-                    final String name,
-                    final int priority,
-                    final String patternType,
-                    final boolean isAllCaps,
-                    final boolean isContextual) {
-                this.name = name;
-                this.priority = priority;
-                this.patternType = patternType;
-                this.isAllCaps = isAllCaps;
-                this.isContextual = isContextual;
-                this.patternTypes.add(patternType);
-            }
-
-            // Merge another candidate with the same name
-            void merge(final NameCandidate other) {
-                this.frequency++;
-                this.patternTypes.addAll(other.patternTypes);
-                // Update priority to highest seen
-                if (other.priority > this.priority) {
-                    this.priority = other.priority;
-                    this.patternType = other.patternType; // Use pattern type from highest priority
-                }
-                // Update flags if other candidate has better flags
-                if (other.isAllCaps && !this.isAllCaps) {
-                    this.isAllCaps = true;
-                }
-                if (other.isContextual && !this.isContextual) {
-                    this.isContextual = true;
-                }
-            }
-
-            /**
-             * Calculate composite score combining all factors with appropriate weightings Score
-             * components: - Priority: 100 points per priority point (primary factor) - Frequency:
-             * 50 points per occurrence with log scaling (diminishing returns) - Pattern types: 20
-             * points per unique pattern type (cross-pattern presence) - All-caps: 100 point bonus
-             * (statement headers preference) - Contextual: 50 point bonus (3-line address, etc.) -
-             * Single word: -5000 point penalty (terrible reduction - single words are less likely
-             * to be full names) - All lowercase: -3000 point penalty (terrible reduction - names
-             * are typically capitalized)
-             *
-             * @return Composite score (higher is better)
-             */
-            double calculateCompositeScore() {
-                // Priority: 90 points per priority point (most important)
-                // Priority range: 70-100, so contributes 7000-10000 points
-                final double priorityScore = priority * 90.0;
-
-                // Frequency: 50 points per occurrence with log scaling to prevent overwhelming
-                // log1p(x) = ln(1+x), so log1p(1) ≈ 0.69, log1p(3) ≈ 1.39, log1p(10) ≈ 2.40
-                // This gives diminishing returns: 1 occurrence = 34.5, 3 = 69.5, 10 = 120 points
-                final double frequencyScore = Math.log1p(frequency) * 50.0;
-
-                // Pattern types: 20 points per unique pattern type
-                // More pattern types = more confidence (appears in multiple contexts)
-                final double patternTypesScore = patternTypes.size() * 20.0;
-
-                // All-caps bonus: 100 points (statement headers are often all-caps)
-                final double allCapsBonus = isAllCaps ? 100.0 : 0.0;
-
-                // Contextual bonus: 50 points (3-line address, etc. are strong indicators)
-                final double contextualBonus = isContextual ? 50.0 : 0.0;
-
-                // Single word penalty: -5000 points (terrible reduction - single words are less
-                // likely to be full names)
-                // Check if name has only one word
-                final String[] words = name.trim().split("\\s+");
-                final double singleWordPenalty = words.length == 1 ? -5000.0 : 0.0;
-                if (singleWordPenalty < 0) {
-                    LOGGER.debug("Applying single word penalty (-5000) to candidate '{}'", name);
-                }
-
-                // All lowercase penalty: -3000 points (terrible reduction - names are typically
-                // capitalized)
-                // Check if name is all lowercase (but not empty and has letters)
-                final boolean isAllLowercase =
-                        name.equals(name.toLowerCase(Locale.ROOT))
-                                && name.matches(".*[a-z].*")
-                                && !name.matches(A_Z);
-                final double allLowercasePenalty = isAllLowercase ? -3000.0 : 0.0;
-                if (allLowercasePenalty < 0) {
-                    LOGGER.debug("Applying all lowercase penalty (-3000) to candidate '{}'", name);
-                }
-
-                final double totalScore =
-                        priorityScore
-                                + frequencyScore
-                                + patternTypesScore
-                                + allCapsBonus
-                                + contextualBonus
-                                + singleWordPenalty
-                                + allLowercasePenalty;
-
-                return totalScore;
-            }
-        }
-
-        // Use Map to track candidates by name (normalized) to merge duplicates
+        // NameCandidate is lifted to a private static nested class (see end of
+        // file) so the collect/filter/select phases can be extracted as
+        // helper methods. Map keyed by normalized name so duplicates merge.
         final Map<String, NameCandidate> candidateMap = new HashMap<>();
 
-        // Patterns to match account holder name directly
-        final Pattern[] directPatterns = {
-            // Pattern 1: "Card Member: John Doe" or "Cardmember: John Doe"
-            Pattern.compile("(?i)card\\s*member\\s*:?\\s*(.+)"),
-            // Pattern 2: "Name: John Doe" or "User: John Doe" or "Cardholder:" or "Holder:"
-            Pattern.compile("(?i)(?:name|user|cardholder|holder)\\s*:?\\s*(.+)"),
-            // Pattern 3: "Account Holder: John Doe"
-            Pattern.compile("(?i)account\\s*holder\\s*:?\\s*(.+)"),
-            // Pattern 4: "Primary Account Holder: John Doe"
-            Pattern.compile("(?i)primary\\s+account\\s+holder\\s*:?\\s*(.+)"),
-            // Pattern 5: "Primary Cardholder: John Doe"
-            Pattern.compile("(?i)primary\\s+cardholder\\s*:?\\s*(.+)"),
-            // Pattern 6: "Account Owner: John Doe" (for investment accounts)
-            Pattern.compile("(?i)account\\s+owner\\s*:?\\s*(.+)"),
-            // Pattern 7: "Beneficial Owner: John Doe" (for trust/beneficiary accounts)
-            Pattern.compile("(?i)beneficial\\s+owner\\s*:?\\s*(.+)"),
-            // Pattern 8: "Beneficiary: John Doe"
-            Pattern.compile("(?i)beneficiary\\s*:?\\s*(.+)")
-        };
-
-        // STEP 1: Collect all candidates from direct patterns (priority 100)
-        for (final String line : lines) {
-            final String trimmed = line.trim();
-            if (trimmed.isEmpty()) {
-                continue;
-            }
-
-            // Skip lines that are clearly not name lines
-            final String lowerLine = trimmed.toLowerCase(Locale.ROOT);
-            if (lowerLine.contains("statement period")
-                    || lowerLine.contains("account summary")
-                    || lowerLine.contains("transaction summary")
-                    || lowerLine.contains("payment history")
-                    || lowerLine.contains("transaction history")
-                    || lowerLine.contains("account information")
-                    || lowerLine.contains("your name")
-                    || lowerLine.contains(AND_ACCOUNT_NUMBER)
-                    || lowerLine.contains("If you have")
-                    || lowerLine.contains(BALANCE)
-                    || lowerLine.contains("card member agreement")
-                    || lowerLine.contains("card member information")
-                    || lowerLine.contains("card member benefits")
-                    || lowerLine.contains("card member services")
-                    || lowerLine.contains("card member service")
-                    || lowerLine.contains("cardmember service")
-                    || lowerLine.contains(CARDMEMBER_AGREEMENT)
-                    || lowerLine.contains("cardmember information")
-                    || lowerLine.contains("cardmember benefits")
-                    || lowerLine.contains("cardmember services")
-                    || lowerLine.contains("cardmember support")
-                    || lowerLine.contains("cardmember rewards")
-                    || lowerLine.contains("account holder agreement")
-                    || lowerLine.contains("account holder information")
-                    || lowerLine.contains("account holder benefits")
-                    || lowerLine.contains("account holder services")
-                    || lowerLine.contains("account holder service")
-                    || lowerLine.contains("account holder support")
-                    || lowerLine.contains("account holder rewards")
-                    || lowerLine.contains("passenger name")
-                    || lowerLine.contains(ACCOUNT_NAME)
-                    || lowerLine.contains("person name")
-                    || lowerLine.contains("card name")
-                    || lowerLine.contains("minimum payment")
-                    || lowerLine.contains("alternate payment")
-                    || lowerLine.matches(".*\\bdate\\s+description\\s+amount.*")
-                    || // Column headers
-                    lowerLine.matches(".*\\btransaction\\s+date.*")
-                    || // Transaction table headers
-                    (lowerLine.contains("date") && lowerLine.contains(AMOUNT))) {
-                continue;
-            }
-
-            // Try each direct pattern
-            for (int i = 0; i < directPatterns.length; i++) {
-                final Pattern pattern = directPatterns[i];
-                final Matcher matcher = pattern.matcher(trimmed);
-                if (matcher.find()) {
-                    // Extract name and clean it (remove newlines, extra spaces, etc.)
-                    String rawName = matcher.group(1).trim();
-                    // Remove any newlines or carriage returns that might be in the captured text
-                    rawName = rawName.replaceAll("[\\r\\n]+", " ").trim();
-                    // Also stop if we see common context markers in the captured text
-                    if (rawName.contains("Account Number")
-                            || rawName.contains("Card Number")
-                            || rawName.contains("Account Ending")
-                            || rawName.contains("Card Ending")) {
-                        // Extract only the part before the context marker
-                        final String[] parts =
-                                rawName.split("(?:Account|Card)\\s+(?:Number|Ending)", 2);
-                        rawName = parts[0].trim();
-                    }
-                    // CRITICAL: Remove any remaining pattern prefixes (e.g., "Name:" if it wasn't
-                    // properly excluded)
-                    rawName =
-                            rawName.replaceFirst(
-                                            "^(?:name|user|cardholder|holder|card\\s*member)\\s*:?\\s*",
-                                            "")
-                                    .trim();
-                    LOGGER.debug("Pattern {} matched, raw name: '{}'", i + 1, rawName);
-                    final String name = extractAndValidateName(rawName, excludedWords);
-                    if (name != null) {
-                        final boolean isAllCaps =
-                                name.equals(name.toUpperCase(Locale.ROOT)) && name.matches(A_Z);
-                        final String patternType = "direct_pattern_" + (i + 1);
-                        // Normalize name for map key (trim and normalize case for consistent
-                        // merging)
-                        // Use lowercase for key to handle case variations (e.g., "John Doe" vs
-                        // "JOHN DOE")
-                        final String normalizedName = name.trim().toLowerCase(Locale.ROOT);
-                        // Merge with existing candidate if same name found
-                        final NameCandidate existing = candidateMap.get(normalizedName);
-                        if (existing != null) {
-                            existing.merge(
-                                    new NameCandidate(name, 100, patternType, isAllCaps, false));
-                            // Merged account holder name candidate
-                        } else {
-                            final NameCandidate candidate =
-                                    new NameCandidate(name, 100, patternType, isAllCaps, false);
-                            candidateMap.put(normalizedName, candidate);
-                        }
-                    }
-                }
-            }
-        }
+        collectFromDirectNamePatterns(lines, excludedWords, candidateMap);
 
         // STEP 2: Collect candidates from contextual patterns (name in previous line before certain
         // keywords)
@@ -4122,140 +3892,247 @@ public class AccountDetectionService {
             }
         }
 
-        // STEP 3: Filter candidates - reject bank names, US state abbreviations, and invalid
-        // candidates
-        // US state abbreviations (50 states + DC)
-        final List<String> usStateAbbreviations =
-                Arrays.asList(
-                        "AL", "AK", "AZ", "AR", "CA", "CO", "CT", "DE", "FL", "GA", "HI", "ID",
-                        "IL", "IN", "IA", "KS", "KY", "LA", "ME", "MD", "MA", "MI", "MN", "MS",
-                        "MO", "MT", "NE", "NV", "NH", "NJ", "NM", "NY", "NC", "ND", "OH", "OK",
-                        "OR", "PA", "RI", "SC", "SD", "TN", "TX", "UT", "VT", "VA", "WA", "WV",
-                        "WI", "WY", "DC");
-
-        final List<NameCandidate> validCandidates = new ArrayList<>();
-        LOGGER.debug("Filtering {} candidates", candidateMap.size());
-        for (final NameCandidate candidate : candidateMap.values()) {
-            final String lowerName = candidate.name.toLowerCase(Locale.ROOT);
-
-            // Reject bank/institution names
-            // CRITICAL: Use word boundaries to avoid false positives (e.g., "O'Brien" contains
-            // "bri" but is not a bank name)
-            boolean isBankName = false;
-            for (final String bankName : INSTITUTION_KEYWORDS) {
-                // Use word boundaries to match whole words only
-                // This prevents "O'Brien" from matching "bri" or "BRI"
-                final Pattern bankPattern =
-                        Pattern.compile(
-                                "\\b" + Pattern.quote(bankName) + "\\b", Pattern.CASE_INSENSITIVE);
-                if (bankPattern.matcher(lowerName).find()) {
-                    isBankName = true;
-                    LOGGER.debug(
-                            "Rejected account holder name candidate '{}' - contains bank/institution name '{}'",
-                            candidate.name,
-                            bankName);
-                    break;
-                }
-            }
-            if (isBankName) {
-                continue;
-            }
-
-            // Reject names containing US state abbreviations (as whole words) - indicates address,
-            // not name
-            // Check for 2-letter state abbreviations as whole words
-            final String[] words = candidate.name.split("\\s+");
-            boolean containsStateAbbreviation = false;
-            for (final String word : words) {
-                // Remove punctuation for comparison (e.g., "WA," -> "WA")
-                final String cleanWord =
-                        word.replaceAll("[.,;:]+$", "").trim().toUpperCase(Locale.ROOT);
-                if (usStateAbbreviations.contains(cleanWord)) {
-                    containsStateAbbreviation = true;
-                    LOGGER.debug(
-                            "Rejected account holder name candidate '{}' - contains US state abbreviation '{}' (likely address, not name)",
-                            candidate.name,
-                            cleanWord);
-                    break;
-                }
-            }
-            if (containsStateAbbreviation) {
-                continue;
-            }
-
-            LOGGER.debug("Accepted candidate: '{}'", candidate.name);
-            validCandidates.add(candidate);
-        }
-
+        final List<NameCandidate> validCandidates = filterNameCandidates(candidateMap);
         if (validCandidates.isEmpty()) {
             LOGGER.info("No valid account holder name candidates found after filtering");
             return null;
         }
+        return selectBestNameCandidate(validCandidates).name;
+    }
 
-        // STEP 4: Apply composite scoring and select the best candidate
-        // Composite score combines all factors with appropriate weightings:
-        // - Priority: 100 points per priority point (primary factor, range 7000-10000)
-        // - Frequency: 50 points per occurrence with log scaling (diminishing returns)
-        // - Pattern types: 20 points per unique pattern type (cross-pattern presence)
-        // - All-caps: 100 point bonus (statement headers preference)
-        // - Contextual: 50 point bonus (3-line address, etc.)
-        //
-        // This allows a high-frequency candidate to potentially beat a low-frequency candidate
-        // with slightly higher priority, while still strongly favoring high-priority patterns.
+    /**
+     * Direct "Name: ..." style patterns. Order matters only for the
+     * pattern-index used in the candidate's debug log; matches are weighted
+     * uniformly at priority 100.
+     */
+    private static final Pattern[] DIRECT_NAME_PATTERNS = {
+        Pattern.compile("(?i)card\\s*member\\s*:?\\s*(.+)"),
+        Pattern.compile("(?i)(?:name|user|cardholder|holder)\\s*:?\\s*(.+)"),
+        Pattern.compile("(?i)account\\s*holder\\s*:?\\s*(.+)"),
+        Pattern.compile("(?i)primary\\s+account\\s+holder\\s*:?\\s*(.+)"),
+        Pattern.compile("(?i)primary\\s+cardholder\\s*:?\\s*(.+)"),
+        Pattern.compile("(?i)account\\s+owner\\s*:?\\s*(.+)"),
+        Pattern.compile("(?i)beneficial\\s+owner\\s*:?\\s*(.+)"),
+        Pattern.compile("(?i)beneficiary\\s*:?\\s*(.+)")
+    };
 
-        // Calculate composite scores for all candidates
-        for (final NameCandidate candidate : validCandidates) {
-            final double score = candidate.calculateCompositeScore();
-            LOGGER.debug(
-                    "Candidate '{}' composite score: {:.2f} (priority: {}={:.0f}, frequency: {}={:.2f}, patterns: {}={:.0f}, all-caps: {}, contextual: {})",
-                    candidate.name,
-                    score,
-                    candidate.priority,
-                    candidate.priority * 100.0,
-                    candidate.frequency,
-                    Math.log1p(candidate.frequency) * 50.0,
-                    candidate.patternTypes.size(),
-                    candidate.patternTypes.size() * 20.0,
-                    candidate.isAllCaps ? 100.0 : 0.0,
-                    candidate.isContextual ? 50.0 : 0.0);
+    /**
+     * STEP 1: for each non-empty line, try every {@link #DIRECT_NAME_PATTERNS}
+     * regex and add valid hits to {@code candidateMap} (merging on
+     * case-insensitive name).
+     */
+    private void collectFromDirectNamePatterns(
+            final String[] lines,
+            final List<String> excludedWords,
+            final Map<String, NameCandidate> candidateMap) {
+        for (final String line : lines) {
+            final String trimmed = line.trim();
+            if (trimmed.isEmpty() || isObviouslyNotANameLine(trimmed.toLowerCase(Locale.ROOT))) {
+                continue;
+            }
+            for (int i = 0; i < DIRECT_NAME_PATTERNS.length; i++) {
+                final Matcher matcher = DIRECT_NAME_PATTERNS[i].matcher(trimmed);
+                if (!matcher.find()) {
+                    continue;
+                }
+                final String rawName = cleanCapturedName(matcher.group(1).trim());
+                final String name = extractAndValidateName(rawName, excludedWords);
+                if (name == null) {
+                    continue;
+                }
+                addOrMergeCandidate(candidateMap, name, 100, "direct_pattern_" + (i + 1), false);
+            }
         }
+    }
 
-        // Sort by composite score (descending - higher score is better)
+    /**
+     * Header lines that are documents-style ("Statement Period", "Account
+     * Summary", column headers, etc.) — never a person's name. Filtering
+     * these early prevents pattern false-positives downstream.
+     */
+    private boolean isObviouslyNotANameLine(final String lowerLine) {
+        if (lowerLine.contains("statement period")
+                || lowerLine.contains("account summary")
+                || lowerLine.contains("transaction summary")
+                || lowerLine.contains("payment history")
+                || lowerLine.contains("transaction history")
+                || lowerLine.contains("account information")
+                || lowerLine.contains("your name")
+                || lowerLine.contains(AND_ACCOUNT_NUMBER)
+                || lowerLine.contains("If you have")
+                || lowerLine.contains(BALANCE)) {
+            return true;
+        }
+        if (lowerLine.contains("card member agreement")
+                || lowerLine.contains("card member information")
+                || lowerLine.contains("card member benefits")
+                || lowerLine.contains("card member services")
+                || lowerLine.contains("card member service")
+                || lowerLine.contains("cardmember service")
+                || lowerLine.contains(CARDMEMBER_AGREEMENT)
+                || lowerLine.contains("cardmember information")
+                || lowerLine.contains("cardmember benefits")
+                || lowerLine.contains("cardmember services")
+                || lowerLine.contains("cardmember support")
+                || lowerLine.contains("cardmember rewards")) {
+            return true;
+        }
+        if (lowerLine.contains("account holder agreement")
+                || lowerLine.contains("account holder information")
+                || lowerLine.contains("account holder benefits")
+                || lowerLine.contains("account holder services")
+                || lowerLine.contains("account holder service")
+                || lowerLine.contains("account holder support")
+                || lowerLine.contains("account holder rewards")) {
+            return true;
+        }
+        if (lowerLine.contains("passenger name")
+                || lowerLine.contains(ACCOUNT_NAME)
+                || lowerLine.contains("person name")
+                || lowerLine.contains("card name")
+                || lowerLine.contains("minimum payment")
+                || lowerLine.contains("alternate payment")) {
+            return true;
+        }
+        return lowerLine.matches(".*\\bdate\\s+description\\s+amount.*")
+                || lowerLine.matches(".*\\btransaction\\s+date.*")
+                || (lowerLine.contains("date") && lowerLine.contains(AMOUNT));
+    }
+
+    /**
+     * Strip newlines / context markers / lingering "Name:" prefixes from a raw
+     * regex-captured name fragment.
+     */
+    private String cleanCapturedName(final String rawCapture) {
+        String rawName = rawCapture.replaceAll("[\\r\\n]+", " ").trim();
+        if (rawName.contains("Account Number")
+                || rawName.contains("Card Number")
+                || rawName.contains("Account Ending")
+                || rawName.contains("Card Ending")) {
+            final String[] parts = rawName.split("(?:Account|Card)\\s+(?:Number|Ending)", 2);
+            rawName = parts[0].trim();
+        }
+        rawName =
+                rawName.replaceFirst(
+                                "^(?:name|user|cardholder|holder|card\\s*member)\\s*:?\\s*", "")
+                        .trim();
+        return rawName;
+    }
+
+    /**
+     * Merge into existing candidate if the (case-insensitive) name has been
+     * seen, otherwise add a new entry.
+     */
+    private void addOrMergeCandidate(
+            final Map<String, NameCandidate> candidateMap,
+            final String name,
+            final int priority,
+            final String patternType,
+            final boolean isContextual) {
+        final boolean isAllCaps =
+                name.equals(name.toUpperCase(Locale.ROOT)) && name.matches(A_Z);
+        final String normalizedName = name.trim().toLowerCase(Locale.ROOT);
+        final NameCandidate fresh = new NameCandidate(name, priority, patternType, isAllCaps, isContextual);
+        final NameCandidate existing = candidateMap.get(normalizedName);
+        if (existing != null) {
+            existing.merge(fresh);
+        } else {
+            candidateMap.put(normalizedName, fresh);
+        }
+    }
+
+    /** US state abbreviations (50 states + DC), used to reject address-y "name" candidates. */
+    private static final List<String> US_STATE_ABBREVIATIONS = List.of(
+            "AL", "AK", "AZ", "AR", "CA", "CO", "CT", "DE", "FL", "GA", "HI", "ID",
+            "IL", "IN", "IA", "KS", "KY", "LA", "ME", "MD", "MA", "MI", "MN", "MS",
+            "MO", "MT", "NE", "NV", "NH", "NJ", "NM", "NY", "NC", "ND", "OH", "OK",
+            "OR", "PA", "RI", "SC", "SD", "TN", "TX", "UT", "VT", "VA", "WA", "WV",
+            "WI", "WY", "DC");
+
+    /**
+     * Drop candidates that are obviously not a person's name: bank/institution
+     * keywords, or names that include a US state abbreviation (we picked up an
+     * address line, not a name).
+     */
+    private List<NameCandidate> filterNameCandidates(final Map<String, NameCandidate> candidateMap) {
+        final List<NameCandidate> valid = new ArrayList<>();
+        LOGGER.debug("Filtering {} candidates", candidateMap.size());
+        for (final NameCandidate candidate : candidateMap.values()) {
+            if (containsInstitutionKeyword(candidate)) {
+                continue;
+            }
+            if (containsStateAbbreviation(candidate)) {
+                continue;
+            }
+            LOGGER.debug("Accepted candidate: '{}'", candidate.name);
+            valid.add(candidate);
+        }
+        return valid;
+    }
+
+    private boolean containsInstitutionKeyword(final NameCandidate candidate) {
+        final String lowerName = candidate.name.toLowerCase(Locale.ROOT);
+        for (final String bankName : INSTITUTION_KEYWORDS) {
+            // Word boundaries so e.g. "O'Brien" doesn't match "bri".
+            final Pattern bankPattern =
+                    Pattern.compile(
+                            "\\b" + Pattern.quote(bankName) + "\\b", Pattern.CASE_INSENSITIVE);
+            if (bankPattern.matcher(lowerName).find()) {
+                LOGGER.debug(
+                        "Rejected candidate '{}' - contains bank/institution name '{}'",
+                        candidate.name,
+                        bankName);
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private boolean containsStateAbbreviation(final NameCandidate candidate) {
+        for (final String word : candidate.name.split("\\s+")) {
+            final String cleanWord =
+                    word.replaceAll("[.,;:]+$", "").trim().toUpperCase(Locale.ROOT);
+            if (US_STATE_ABBREVIATIONS.contains(cleanWord)) {
+                LOGGER.debug(
+                        "Rejected candidate '{}' - contains US state abbreviation '{}'",
+                        candidate.name,
+                        cleanWord);
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Sort by composite score and return the winner. Logs every candidate's
+     * score breakdown at DEBUG so a misidentified name can be traced back to
+     * which signal pushed it to the top.
+     */
+    private NameCandidate selectBestNameCandidate(final List<NameCandidate> validCandidates) {
         validCandidates.sort(
-                (a, b) -> {
-                    final double scoreA = a.calculateCompositeScore();
-                    final double scoreB = b.calculateCompositeScore();
-                    return Double.compare(scoreB, scoreA); // Descending order
-                });
-
-        for (final NameCandidate candidate : validCandidates) {
-            final double score = candidate.calculateCompositeScore();
-            LOGGER.debug(
-                    "Candidate: '{}' (score: {:.2f}, priority: {}, frequency: {}, pattern_types: {}, all-caps: {}, contextual: {})",
-                    candidate.name,
-                    String.format("%.2f", score),
-                    candidate.priority,
-                    candidate.frequency,
-                    candidate.patternTypes,
-                    candidate.isAllCaps,
-                    candidate.isContextual);
+                (a, b) -> Double.compare(b.calculateCompositeScore(), a.calculateCompositeScore()));
+        if (LOGGER.isDebugEnabled()) {
+            for (final NameCandidate candidate : validCandidates) {
+                LOGGER.debug(
+                        "Candidate: '{}' score={} priority={} frequency={} patternTypes={} allCaps={} contextual={}",
+                        candidate.name,
+                        String.format(Locale.ROOT, "%.2f", candidate.calculateCompositeScore()),
+                        candidate.priority,
+                        candidate.frequency,
+                        candidate.patternTypes,
+                        candidate.isAllCaps,
+                        candidate.isContextual);
+            }
         }
-
-        final NameCandidate bestCandidate = validCandidates.get(0);
-        final double bestScore = bestCandidate.calculateCompositeScore();
+        final NameCandidate best = validCandidates.get(0);
         LOGGER.debug(
-                "Selected account holder name '{}' from {} candidates (score: {:.2f}, pattern: {}, priority: {}, frequency: {}, pattern_types: {}, all-caps: {}, contextual: {})",
-                bestCandidate.name,
+                "Selected account holder name '{}' from {} candidates (score={}, pattern={}, priority={})",
+                best.name,
                 validCandidates.size(),
-                String.format("%.2f", bestScore),
-                bestCandidate.patternType,
-                bestCandidate.priority,
-                bestCandidate.frequency,
-                bestCandidate.patternTypes,
-                bestCandidate.isAllCaps,
-                bestCandidate.isContextual);
-
-        return bestCandidate.name;
+                String.format(Locale.ROOT, "%.2f", best.calculateCompositeScore()),
+                best.patternType,
+                best.priority);
+        return best;
     }
 
     /**
@@ -4533,5 +4410,84 @@ public class AccountDetectionService {
 
     public List<String> getAccountTypeKeywords() {
         return new ArrayList<>(ACCOUNT_TYPE_KEYWORDS);
+    }
+
+    /**
+     * Account-holder name candidate found in PDF header text. One instance per
+     * unique normalized name (case-insensitive); subsequent occurrences merge
+     * via {@link #merge}. Composite scoring is in {@link #calculateCompositeScore}.
+     *
+     * <p>Extracted from {@link #extractAccountHolderNameFromPDF} to keep the
+     * extractor method's cyclomatic complexity manageable.
+     */
+    private static final class NameCandidate {
+        final String name;
+        int priority;        // higher = better
+        String patternType;  // for logging; updated when a higher-priority hit lands
+        boolean isAllCaps;
+        boolean isContextual;
+        int frequency = 1;
+        final Set<String> patternTypes = new HashSet<>();
+
+        NameCandidate(
+                final String name,
+                final int priority,
+                final String patternType,
+                final boolean isAllCaps,
+                final boolean isContextual) {
+            this.name = name;
+            this.priority = priority;
+            this.patternType = patternType;
+            this.isAllCaps = isAllCaps;
+            this.isContextual = isContextual;
+            this.patternTypes.add(patternType);
+        }
+
+        /** Merge another candidate with the same (normalized) name into this one. */
+        void merge(final NameCandidate other) {
+            this.frequency++;
+            this.patternTypes.addAll(other.patternTypes);
+            if (other.priority > this.priority) {
+                this.priority = other.priority;
+                this.patternType = other.patternType;
+            }
+            if (other.isAllCaps && !this.isAllCaps) {
+                this.isAllCaps = true;
+            }
+            if (other.isContextual && !this.isContextual) {
+                this.isContextual = true;
+            }
+        }
+
+        /**
+         * Composite score; higher is better. Weighting rationale lives at
+         * each component below. The single-word and all-lowercase penalties
+         * are large enough to dominate ties — proper names should not be one
+         * lowercase token.
+         */
+        double calculateCompositeScore() {
+            final double priorityScore = priority * 90.0;
+            final double frequencyScore = Math.log1p(frequency) * 50.0;
+            final double patternTypesScore = patternTypes.size() * 20.0;
+            final double allCapsBonus = isAllCaps ? 100.0 : 0.0;
+            final double contextualBonus = isContextual ? 50.0 : 0.0;
+
+            final String[] words = name.trim().split("\\s+");
+            final double singleWordPenalty = words.length == 1 ? -5000.0 : 0.0;
+
+            final boolean isAllLowercase =
+                    name.equals(name.toLowerCase(Locale.ROOT))
+                            && name.matches(".*[a-z].*")
+                            && !name.matches(A_Z);
+            final double allLowercasePenalty = isAllLowercase ? -3000.0 : 0.0;
+
+            return priorityScore
+                    + frequencyScore
+                    + patternTypesScore
+                    + allCapsBonus
+                    + contextualBonus
+                    + singleWordPenalty
+                    + allLowercasePenalty;
+        }
     }
 }
