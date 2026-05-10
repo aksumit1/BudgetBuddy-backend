@@ -1,5 +1,6 @@
 package com.budgetbuddy.config;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.HashMap;
 import java.util.Map;
 import org.springframework.beans.factory.annotation.Value;
@@ -7,6 +8,12 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 /** Feature Flag Configuration Enables feature toggling for gradual rollouts and A/B testing */
+// SpotBugs flags constructor-injected Spring beans as EI_EXPOSE_REP2,
+// but Spring's IoC container intentionally shares the same bean across
+// callers — defensive-copying it would break dependency injection.
+@SuppressFBWarnings(
+        value = "EI_EXPOSE_REP2",
+        justification = "Spring constructor injection — beans are shared by design")
 @Configuration
 public class FeatureFlagConfig {
 

@@ -1,5 +1,6 @@
 package com.budgetbuddy.service;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -35,6 +36,11 @@ import org.mockito.junit.jupiter.MockitoExtension;
  * Unit Tests for User Registration Race Condition Tests the fix for concurrent registration
  * attempts causing duplicate users
  */
+// Test methods declare `throws Exception` for setup convenience —
+// JUnit idiom; the rule is a noise generator on test classes.
+@SuppressFBWarnings(
+        value = "THROWS_METHOD_THROWS_CLAUSE_BASIC_EXCEPTION",
+        justification = "JUnit idiom — test methods accept any setup exception")
 @ExtendWith(MockitoExtension.class)
 @org.mockito.junit.jupiter.MockitoSettings(strictness = org.mockito.quality.Strictness.LENIENT)
 class UserServiceRegistrationRaceConditionTest {

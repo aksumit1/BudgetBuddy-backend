@@ -1,5 +1,6 @@
 package com.budgetbuddy.service;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -10,6 +11,11 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 /** Tests for "continued" false positive and all-caps preference bug fixes */
+// Test methods declare `throws Exception` for setup convenience —
+// JUnit idiom; the rule is a noise generator on test classes.
+@SuppressFBWarnings(
+        value = "THROWS_METHOD_THROWS_CLAUSE_BASIC_EXCEPTION",
+        justification = "JUnit idiom — test methods accept any setup exception")
 @DisplayName("PDFImportService Username Detection - Continued and All-Caps Preference Tests")
 public class PDFImportServiceUsernameDetectionContinuedTest {
 

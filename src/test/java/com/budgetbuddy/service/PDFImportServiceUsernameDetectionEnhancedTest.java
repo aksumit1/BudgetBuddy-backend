@@ -1,5 +1,6 @@
 package com.budgetbuddy.service;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -29,6 +30,15 @@ import org.junit.jupiter.params.provider.ValueSource;
  *
  * <p>Also tests error handling, edge cases, boundary conditions, and thread safety
  */
+// Tests intentionally pass null to verify graceful handling /
+// AppException paths; SpotBugs's NP_LOAD_OF_KNOWN_NULL_VALUE is expected.
+// Test methods declare `throws Exception` for setup convenience —
+// JUnit idiom; the rule is a noise generator on test classes.
+@SuppressFBWarnings(
+        value = {"THROWS_METHOD_THROWS_CLAUSE_BASIC_EXCEPTION", "NP_LOAD_OF_KNOWN_NULL_VALUE"},
+        justification =
+                "JUnit idiom — test methods accept any setup exception; "
+                        + "tests deliberately exercise null-input paths")
 @DisplayName("PDFImportService Username Detection - Enhanced Features Tests")
 public class PDFImportServiceUsernameDetectionEnhancedTest {
 

@@ -1,5 +1,6 @@
 package com.budgetbuddy.plaid;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -16,6 +17,15 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 /** Unit Tests for PlaidService */
+// Tests intentionally pass null to verify graceful handling /
+// AppException paths; SpotBugs's NP_LOAD_OF_KNOWN_NULL_VALUE is expected.
+// Test methods declare `throws Exception` for setup convenience —
+// JUnit idiom; the rule is a noise generator on test classes.
+@SuppressFBWarnings(
+        value = {"THROWS_METHOD_THROWS_CLAUSE_BASIC_EXCEPTION", "NP_LOAD_OF_KNOWN_NULL_VALUE"},
+        justification =
+                "JUnit idiom — test methods accept any setup exception; "
+                        + "tests deliberately exercise null-input paths")
 @ExtendWith(MockitoExtension.class)
 @org.mockito.junit.jupiter.MockitoSettings(strictness = org.mockito.quality.Strictness.LENIENT)
 class PlaidServiceTest {

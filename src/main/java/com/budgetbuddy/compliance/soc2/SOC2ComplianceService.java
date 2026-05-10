@@ -1,5 +1,6 @@
 package com.budgetbuddy.compliance.soc2;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import com.budgetbuddy.compliance.AuditLogService;
 import java.time.Instant;
 import java.util.List;
@@ -21,6 +22,12 @@ import software.amazon.awssdk.services.cloudwatch.model.PutMetricDataRequest;
  * confidential is protected 5. Privacy - Personal information is collected, used, retained,
  * disclosed, and disposed in conformity with commitments
  */
+// SpotBugs flags constructor-injected Spring beans as EI_EXPOSE_REP2,
+// but Spring's IoC container intentionally shares the same bean across
+// callers — defensive-copying it would break dependency injection.
+@SuppressFBWarnings(
+        value = "EI_EXPOSE_REP2",
+        justification = "Spring constructor injection — beans are shared by design")
 @Service
 public class SOC2ComplianceService {
 

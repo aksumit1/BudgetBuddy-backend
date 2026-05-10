@@ -1,5 +1,6 @@
 package com.budgetbuddy.security.ddos;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -24,6 +25,11 @@ import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
  * Unit tests for Thread Pool Executor Injection Verifies that all services properly use
  * Spring-managed executors
  */
+// Test methods declare `throws Exception` for setup convenience —
+// JUnit idiom; the rule is a noise generator on test classes.
+@SuppressFBWarnings(
+        value = "THROWS_METHOD_THROWS_CLAUSE_BASIC_EXCEPTION",
+        justification = "JUnit idiom — test methods accept any setup exception")
 @SpringBootTest(classes = com.budgetbuddy.BudgetBuddyApplication.class)
 @ActiveProfiles("test")
 @Import(AWSTestConfiguration.class)

@@ -32,7 +32,7 @@ import software.amazon.awssdk.services.dynamodb.model.ScalarAttributeType;
 // here would mean catch (RuntimeException) which PMD flags identically.
 @SuppressWarnings("PMD.AvoidCatchingGenericException")
 @Repository
-public class DeviceTokenRepository {
+public final class DeviceTokenRepository {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(DeviceTokenRepository.class);
     private final DynamoDbTable<DeviceTokenTable> table;

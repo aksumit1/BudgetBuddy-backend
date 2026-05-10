@@ -1,5 +1,6 @@
 package com.budgetbuddy.service;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import com.budgetbuddy.exception.AppException;
 import com.budgetbuddy.exception.ErrorCode;
 import java.io.IOException;
@@ -38,7 +39,13 @@ import org.springframework.stereotype.Service;
 // that can't reasonably be enumerated. Broad catches log + recover (or
 // translate to AppException). Suppress at class level since narrowing
 // here would mean catch (RuntimeException) which PMD flags identically.
-@SuppressWarnings("PMD.AvoidCatchingGenericException")
+// SpotBugs flags constructor-injected Spring beans as EI_EXPOSE_REP2,
+// but Spring's IoC container intentionally shares the same bean across
+// callers — defensive-copying it would break dependency injection.
+@SuppressFBWarnings(
+        value = "EI_EXPOSE_REP2",
+        justification = "Spring constructor injection — beans are shared by design")
+@SuppressWarnings({"PMD.AvoidCatchingGenericException", "PMD.LawOfDemeter"})
 @Service
 public class PDFImportService {
 
@@ -4388,11 +4395,6 @@ public class PDFImportService {
                 // test compatibility
                 // Row has values but missing standard transaction fields
             }
-            dateStr.isEmpty();
-            isDateString(dateStr);
-            amountStr.isEmpty();
-            isAmountString(amountStr);
-            description.isBlank();
 
             return row;
         }
@@ -6151,7 +6153,6 @@ public class PDFImportService {
                 }
             }
         }
-        currentUsername.isBlank();
         return trimmed;
     }
 

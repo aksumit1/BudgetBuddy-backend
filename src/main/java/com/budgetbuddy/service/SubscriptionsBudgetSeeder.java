@@ -1,5 +1,6 @@
 package com.budgetbuddy.service;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import com.budgetbuddy.model.Subscription;
 import com.budgetbuddy.model.dynamodb.BudgetTable;
 import com.budgetbuddy.model.dynamodb.UserTable;
@@ -24,6 +25,12 @@ import org.springframework.stereotype.Service;
  * <p>One-shot by design — if the user edits or deletes the seeded budget later, we never re-create
  * it. The trigger is "missing", not "different from detected".
  */
+// SpotBugs flags constructor-injected Spring beans as EI_EXPOSE_REP2,
+// but Spring's IoC container intentionally shares the same bean across
+// callers — defensive-copying it would break dependency injection.
+@SuppressFBWarnings(
+        value = "EI_EXPOSE_REP2",
+        justification = "Spring constructor injection — beans are shared by design")
 @Service
 public class SubscriptionsBudgetSeeder {
 

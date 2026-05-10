@@ -102,7 +102,7 @@ public class PlaidWebhookController {
                         "WEBHOOK",
                         itemId != null ? itemId : "unknown",
                         Map.of(
-                                "webhookType", webhookType != null ? webhookType : "unknown",
+                                "webhookType", webhookType,
                                 "webhookCode", webhookCode != null ? webhookCode : "unknown"),
                         null,
                         null);

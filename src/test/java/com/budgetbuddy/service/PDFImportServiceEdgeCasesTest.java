@@ -1,6 +1,7 @@
 package com.budgetbuddy.service;
 
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.nio.charset.StandardCharsets;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -24,6 +25,15 @@ import org.junit.jupiter.api.Test;
 /**
  * Edge cases, boundary conditions, race conditions, and error handling tests for PDF Import Service
  */
+// Test methods declare `throws Exception` for setup convenience —
+// JUnit idiom; the rule is a noise generator on test classes.
+// `\n` in the format strings here is a literal LF (CSV rows / raw
+// HTTP body templates), not a platform newline — we do NOT want %n.
+@SuppressFBWarnings(
+        value = {"VA_FORMAT_STRING_USES_NEWLINE", "THROWS_METHOD_THROWS_CLAUSE_BASIC_EXCEPTION"},
+        justification =
+                "literal LF in CSV / wire format (not platform newline); "
+                        + "JUnit idiom — test methods accept any setup exception")
 @DisplayName("PDF Import Service Edge Cases and Error Handling Tests")
 class PDFImportServiceEdgeCasesTest {
 

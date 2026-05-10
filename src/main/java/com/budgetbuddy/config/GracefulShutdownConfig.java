@@ -1,5 +1,6 @@
 package com.budgetbuddy.config;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.Executor;
@@ -22,6 +23,12 @@ import org.springframework.context.event.ContextClosedEvent;
  *
  * <p>Features: - Graceful thread pool shutdown - Configurable timeout - Proper resource cleanup
  */
+// SpotBugs flags constructor-injected Spring beans as EI_EXPOSE_REP2,
+// but Spring's IoC container intentionally shares the same bean across
+// callers — defensive-copying it would break dependency injection.
+@SuppressFBWarnings(
+        value = "EI_EXPOSE_REP2",
+        justification = "Spring constructor injection — beans are shared by design")
 @Configuration
 public class GracefulShutdownConfig {
 

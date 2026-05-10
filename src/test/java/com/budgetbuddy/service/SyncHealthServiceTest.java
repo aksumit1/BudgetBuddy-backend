@@ -1,5 +1,6 @@
 package com.budgetbuddy.service;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -14,6 +15,11 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 /** Tests for SyncHealthService Tests health calculation, error handling, and time formatting */
+// Tests intentionally pass null to verify graceful handling /
+// AppException paths; SpotBugs's NP_LOAD_OF_KNOWN_NULL_VALUE is expected.
+@SuppressFBWarnings(
+        value = "NP_LOAD_OF_KNOWN_NULL_VALUE",
+        justification = "Tests deliberately exercise null-input paths")
 class SyncHealthServiceTest {
 
     private SyncHealthService service;

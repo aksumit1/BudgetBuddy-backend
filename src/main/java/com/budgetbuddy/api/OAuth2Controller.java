@@ -1,5 +1,6 @@
 package com.budgetbuddy.api;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import com.budgetbuddy.exception.AppException;
 import com.budgetbuddy.exception.ErrorCode;
 import io.swagger.v3.oas.annotations.Operation;
@@ -20,6 +21,12 @@ import org.springframework.web.bind.annotation.RestController;
  *
  * <p>Features: - OAuth2 configuration - User info endpoint - JWT token validation
  */
+// SpotBugs flags constructor-injected Spring beans as EI_EXPOSE_REP2,
+// but Spring's IoC container intentionally shares the same bean across
+// callers — defensive-copying it would break dependency injection.
+@SuppressFBWarnings(
+        value = "EI_EXPOSE_REP2",
+        justification = "Spring constructor injection — beans are shared by design")
 @RestController
 @RequestMapping("/api/oauth2")
 @Tag(name = "OAuth2", description = "OAuth2 authentication and authorization")

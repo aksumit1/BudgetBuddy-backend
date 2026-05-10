@@ -1,5 +1,6 @@
 package com.budgetbuddy.util;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.List;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -10,6 +11,12 @@ import org.springframework.stereotype.Component;
  *
  * <p>Note: This is a Spring component but maintains static methods for backward compatibility
  */
+// SpotBugs flags constructor-injected Spring beans as EI_EXPOSE_REP2,
+// but Spring's IoC container intentionally shares the same bean across
+// callers — defensive-copying it would break dependency injection.
+@SuppressFBWarnings(
+        value = "EI_EXPOSE_REP2",
+        justification = "Spring constructor injection — beans are shared by design")
 @Component
 public final class PaginationHelper {
 

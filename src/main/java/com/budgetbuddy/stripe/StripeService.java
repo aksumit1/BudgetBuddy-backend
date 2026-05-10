@@ -1,6 +1,7 @@
 package com.budgetbuddy.stripe;
 
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.Locale;
 import com.budgetbuddy.compliance.pcidss.PCIDSSComplianceService;
 import com.budgetbuddy.exception.AppException;
@@ -26,6 +27,12 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 /** Comprehensive Stripe Integration Service Handles payment processing with PCI-DSS compliance */
+// SpotBugs flags constructor-injected Spring beans as EI_EXPOSE_REP2,
+// but Spring's IoC container intentionally shares the same bean across
+// callers — defensive-copying it would break dependency injection.
+@SuppressFBWarnings(
+        value = "EI_EXPOSE_REP2",
+        justification = "Spring constructor injection — beans are shared by design")
 @Service
 public class StripeService {
 

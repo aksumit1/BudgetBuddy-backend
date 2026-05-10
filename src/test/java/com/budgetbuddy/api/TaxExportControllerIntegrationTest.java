@@ -1,6 +1,7 @@
 package com.budgetbuddy.api;
 
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.nio.charset.StandardCharsets;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
@@ -39,6 +40,11 @@ import org.springframework.test.web.servlet.MockMvc;
  * Integration Tests for TaxExportController Tests REST API endpoints with MockMvc to verify HTTP
  * layer behavior including content negotiation and Accept header handling
  */
+// Test methods declare `throws Exception` for setup convenience —
+// JUnit idiom; the rule is a noise generator on test classes.
+@SuppressFBWarnings(
+        value = "THROWS_METHOD_THROWS_CLAUSE_BASIC_EXCEPTION",
+        justification = "JUnit idiom — test methods accept any setup exception")
 @SpringBootTest(
         classes = com.budgetbuddy.BudgetBuddyApplication.class,
         webEnvironment = org.springframework.boot.test.context.SpringBootTest.WebEnvironment.MOCK)

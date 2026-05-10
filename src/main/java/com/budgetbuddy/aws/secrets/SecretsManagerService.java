@@ -1,5 +1,6 @@
 package com.budgetbuddy.aws.secrets;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import java.util.Map;
@@ -20,6 +21,12 @@ import software.amazon.awssdk.services.secretsmanager.model.SecretsManagerExcept
  * AWS Secrets Manager Service Fetches and caches secrets from AWS Secrets Manager Supports
  * automatic refresh and fallback to environment variables
  */
+// SpotBugs flags constructor-injected Spring beans as EI_EXPOSE_REP2,
+// but Spring's IoC container intentionally shares the same bean across
+// callers — defensive-copying it would break dependency injection.
+@SuppressFBWarnings(
+        value = "EI_EXPOSE_REP2",
+        justification = "Spring constructor injection — beans are shared by design")
 @Service
 public class SecretsManagerService {
 

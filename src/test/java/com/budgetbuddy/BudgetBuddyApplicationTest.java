@@ -1,5 +1,6 @@
 package com.budgetbuddy;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
@@ -32,6 +33,11 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 // that can't reasonably be enumerated. Broad catches log + recover (or
 // translate to AppException). Suppress at class level since narrowing
 // here would mean catch (RuntimeException) which PMD flags identically.
+// Test methods declare `throws Exception` for setup convenience —
+// JUnit idiom; the rule is a noise generator on test classes.
+@SuppressFBWarnings(
+        value = "THROWS_METHOD_THROWS_CLAUSE_BASIC_EXCEPTION",
+        justification = "JUnit idiom — test methods accept any setup exception")
 @SuppressWarnings("PMD.AvoidCatchingGenericException")
 class BudgetBuddyApplicationTest {
 

@@ -1,5 +1,6 @@
 package com.budgetbuddy.security.zerotrust;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import com.budgetbuddy.security.zerotrust.device.DeviceAttestationService;
 import com.budgetbuddy.security.zerotrust.identity.IdentityVerificationService;
 import java.util.Map;
@@ -14,6 +15,12 @@ import org.springframework.stereotype.Service;
  * <p>Zero Trust Principles: 1. Verify explicitly - Always authenticate and authorize 2. Use least
  * privilege access - Limit user access 3. Assume breach - Minimize blast radius
  */
+// SpotBugs flags constructor-injected Spring beans as EI_EXPOSE_REP2,
+// but Spring's IoC container intentionally shares the same bean across
+// callers — defensive-copying it would break dependency injection.
+@SuppressFBWarnings(
+        value = "EI_EXPOSE_REP2",
+        justification = "Spring constructor injection — beans are shared by design")
 @Service
 public class ZeroTrustService {
 

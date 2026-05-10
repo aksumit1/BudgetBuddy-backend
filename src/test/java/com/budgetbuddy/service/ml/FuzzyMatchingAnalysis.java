@@ -1,6 +1,7 @@
 package com.budgetbuddy.service.ml;
 
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.Locale;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -8,6 +9,11 @@ import java.util.Set;
 import org.apache.commons.text.similarity.JaroWinklerSimilarity;
 
 /** Analysis tool to compare fuzzy matching algorithms */
+// `\n` in the format strings here is a literal LF (CSV rows / raw
+// HTTP body templates), not a platform newline — we do NOT want %n.
+@SuppressFBWarnings(
+        value = "VA_FORMAT_STRING_USES_NEWLINE",
+        justification = "literal LF in CSV / wire format, not platform newline")
 public class FuzzyMatchingAnalysis {
 
     private static final JaroWinklerSimilarity JARO_WINKLER = new JaroWinklerSimilarity();

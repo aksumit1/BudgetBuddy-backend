@@ -1,5 +1,6 @@
 package com.budgetbuddy.api.config;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import com.budgetbuddy.notification.DataChangeNotificationService;
 import com.budgetbuddy.security.FileContentScanner;
 import com.budgetbuddy.security.FileIntegrityService;
@@ -24,6 +25,12 @@ import org.springframework.stereotype.Component;
  * Configuration object for TransactionController dependencies Groups related services to reduce
  * constructor parameter count
  */
+// SpotBugs flags constructor-injected Spring beans as EI_EXPOSE_REP2,
+// but Spring's IoC container intentionally shares the same bean across
+// callers — defensive-copying it would break dependency injection.
+@SuppressFBWarnings(
+        value = "EI_EXPOSE_REP2",
+        justification = "Spring constructor injection — beans are shared by design")
 @Component
 public class TransactionControllerConfig {
 

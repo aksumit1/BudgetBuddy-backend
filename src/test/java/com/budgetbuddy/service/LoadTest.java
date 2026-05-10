@@ -1,5 +1,6 @@
 package com.budgetbuddy.service;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import com.budgetbuddy.AWSTestConfiguration;
 import java.util.ArrayList;
 import java.util.List;
@@ -15,6 +16,11 @@ import org.springframework.test.context.ActiveProfiles;
 /**
  * P3: Load tests for concurrent imports and category determination Tests system behavior under load
  */
+// Test methods declare `throws Exception` for setup convenience —
+// JUnit idiom; the rule is a noise generator on test classes.
+@SuppressFBWarnings(
+        value = "THROWS_METHOD_THROWS_CLAUSE_BASIC_EXCEPTION",
+        justification = "JUnit idiom — test methods accept any setup exception")
 @SpringBootTest
 @ActiveProfiles("test")
 @Import(AWSTestConfiguration.class)

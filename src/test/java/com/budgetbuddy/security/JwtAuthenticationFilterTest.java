@@ -1,5 +1,6 @@
 package com.budgetbuddy.security;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -31,6 +32,11 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
  * Unit Tests for JwtAuthenticationFilter Tests JWT token processing and authentication context
  * setup
  */
+// Test methods declare `throws Exception` for setup convenience —
+// JUnit idiom; the rule is a noise generator on test classes.
+@SuppressFBWarnings(
+        value = "THROWS_METHOD_THROWS_CLAUSE_BASIC_EXCEPTION",
+        justification = "JUnit idiom — test methods accept any setup exception")
 @ExtendWith(MockitoExtension.class)
 class JwtAuthenticationFilterTest {
 

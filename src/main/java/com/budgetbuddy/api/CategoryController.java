@@ -1,5 +1,6 @@
 package com.budgetbuddy.api;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import com.budgetbuddy.exception.AppException;
 import com.budgetbuddy.exception.ErrorCode;
 import com.budgetbuddy.model.dynamodb.CustomMerchantMappingTable;
@@ -31,6 +32,12 @@ import org.springframework.web.bind.annotation.RestController;
  * <p>Features: - Record user corrections for learning - Create/update/delete custom merchant
  * mappings - Get user's custom mappings
  */
+// SpotBugs flags constructor-injected Spring beans as EI_EXPOSE_REP2,
+// but Spring's IoC container intentionally shares the same bean across
+// callers — defensive-copying it would break dependency injection.
+@SuppressFBWarnings(
+        value = "EI_EXPOSE_REP2",
+        justification = "Spring constructor injection — beans are shared by design")
 @RestController
 @RequestMapping("/api/categories")
 public class CategoryController {

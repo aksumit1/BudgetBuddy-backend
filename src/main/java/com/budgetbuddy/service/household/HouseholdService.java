@@ -1,5 +1,6 @@
 package com.budgetbuddy.service.household;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import com.budgetbuddy.model.dynamodb.HouseholdTable;
 import com.budgetbuddy.repository.dynamodb.HouseholdRepository;
 import java.time.Instant;
@@ -12,6 +13,12 @@ import org.springframework.stereotype.Service;
  * <p>One row per inviter. When an invitee accepts, a signed-token endpoint (future commit) stamps
  * {@code acceptedAt} and grants the acceptor read scope keyed on the row's preferences.
  */
+// SpotBugs flags constructor-injected Spring beans as EI_EXPOSE_REP2,
+// but Spring's IoC container intentionally shares the same bean across
+// callers — defensive-copying it would break dependency injection.
+@SuppressFBWarnings(
+        value = "EI_EXPOSE_REP2",
+        justification = "Spring constructor injection — beans are shared by design")
 @Service
 public class HouseholdService {
 

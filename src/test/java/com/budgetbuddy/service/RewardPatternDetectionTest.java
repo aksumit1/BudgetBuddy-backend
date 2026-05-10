@@ -1,5 +1,6 @@
 package com.budgetbuddy.service;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.lang.reflect.Method;
@@ -13,6 +14,11 @@ import org.junit.jupiter.api.Test;
  * Tests for detecting reward patterns: - "Cash Back Rewards Balance: $488.97" - "Cash Back Rewards
  * Balance:\n $488.97" (with newline) - "Total points transferred to Marriott 8,733"
  */
+// Test methods declare `throws Exception` for setup convenience —
+// JUnit idiom; the rule is a noise generator on test classes.
+@SuppressFBWarnings(
+        value = "THROWS_METHOD_THROWS_CLAUSE_BASIC_EXCEPTION",
+        justification = "JUnit idiom — test methods accept any setup exception")
 class RewardPatternDetectionTest {
 
     private PDFImportService pdfImportService;

@@ -1,5 +1,6 @@
 package com.budgetbuddy.repository.dynamodb;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import com.budgetbuddy.model.dynamodb.GoalTable;
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -31,6 +32,12 @@ import software.amazon.awssdk.services.dynamodb.model.UpdateItemRequest;
 // that can't reasonably be enumerated. Broad catches log + recover (or
 // translate to AppException). Suppress at class level since narrowing
 // here would mean catch (RuntimeException) which PMD flags identically.
+// SpotBugs flags constructor-injected Spring beans as EI_EXPOSE_REP2,
+// but Spring's IoC container intentionally shares the same bean across
+// callers — defensive-copying it would break dependency injection.
+@SuppressFBWarnings(
+        value = "EI_EXPOSE_REP2",
+        justification = "Spring constructor injection — beans are shared by design")
 @SuppressWarnings("PMD.AvoidCatchingGenericException")
 @Repository
 public class GoalRepository {

@@ -1,5 +1,6 @@
 package com.budgetbuddy.plaid;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import com.budgetbuddy.compliance.pcidss.PCIDSSComplianceService;
 import com.budgetbuddy.exception.AppException;
 import com.budgetbuddy.exception.ErrorCode;
@@ -37,8 +38,14 @@ import org.springframework.stereotype.Service;
  *
  * <p>Thread-safe implementation with proper dependency injection
  */
+// SpotBugs flags constructor-injected Spring beans as EI_EXPOSE_REP2,
+// but Spring's IoC container intentionally shares the same bean across
+// callers — defensive-copying it would break dependency injection.
+@SuppressFBWarnings(
+        value = "EI_EXPOSE_REP2",
+        justification = "Spring constructor injection — beans are shared by design")
 @Service
-public class PlaidService {
+public final class PlaidService {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(PlaidService.class);
 

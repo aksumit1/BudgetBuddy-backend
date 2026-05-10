@@ -1,5 +1,6 @@
 package com.budgetbuddy.aws.cloudformation;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.Collections;
 import java.util.List;
 import org.slf4j.Logger;
@@ -29,9 +30,15 @@ import software.amazon.awssdk.services.cloudformation.model.StackSummary;
 // that can't reasonably be enumerated. Broad catches log + recover (or
 // translate to AppException). Suppress at class level since narrowing
 // here would mean catch (RuntimeException) which PMD flags identically.
+// SpotBugs flags constructor-injected Spring beans as EI_EXPOSE_REP2,
+// but Spring's IoC container intentionally shares the same bean across
+// callers — defensive-copying it would break dependency injection.
+@SuppressFBWarnings(
+        value = "EI_EXPOSE_REP2",
+        justification = "Spring constructor injection — beans are shared by design")
 @SuppressWarnings("PMD.AvoidCatchingGenericException")
 @Service
-public class CloudFormationService {
+public final class CloudFormationService {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(CloudFormationService.class);
 

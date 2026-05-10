@@ -1,5 +1,6 @@
 package com.budgetbuddy.service;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -15,6 +16,11 @@ import org.junit.jupiter.api.Test;
  * Tests various bank, credit card, loan, and investment account statement formats Covers
  * international formats, different header patterns, and edge cases
  */
+// Test methods declare `throws Exception` for setup convenience —
+// JUnit idiom; the rule is a noise generator on test classes.
+@SuppressFBWarnings(
+        value = "THROWS_METHOD_THROWS_CLAUSE_BASIC_EXCEPTION",
+        justification = "JUnit idiom — test methods accept any setup exception")
 @DisplayName("PDFImportService Username Detection - Real World Scenarios")
 public class PDFImportServiceUsernameDetectionRealWorldTest {
 

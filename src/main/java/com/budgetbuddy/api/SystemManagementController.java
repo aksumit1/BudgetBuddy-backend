@@ -1,5 +1,6 @@
 package com.budgetbuddy.api;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import com.budgetbuddy.config.DnsCacheConfig;
 import java.util.HashMap;
 import java.util.Map;
@@ -17,6 +18,12 @@ import org.springframework.web.bind.annotation.RestController;
  *
  * <p>Security: These endpoints should be restricted to admin users or internal services only
  */
+// SpotBugs flags constructor-injected Spring beans as EI_EXPOSE_REP2,
+// but Spring's IoC container intentionally shares the same bean across
+// callers — defensive-copying it would break dependency injection.
+@SuppressFBWarnings(
+        value = "EI_EXPOSE_REP2",
+        justification = "Spring constructor injection — beans are shared by design")
 @RestController
 @RequestMapping("/api/system")
 public class SystemManagementController {

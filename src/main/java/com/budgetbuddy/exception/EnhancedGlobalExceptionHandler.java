@@ -1,5 +1,6 @@
 package com.budgetbuddy.exception;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import com.budgetbuddy.util.MessageUtil;
 import java.time.Instant;
 import java.util.HashMap;
@@ -25,6 +26,12 @@ import org.springframework.web.context.request.WebRequest;
  * <p>Features: - Localized error messages - Correlation ID tracking - Detailed error responses -
  * Validation error mapping - Proper HTTP status code mapping
  */
+// SpotBugs flags constructor-injected Spring beans as EI_EXPOSE_REP2,
+// but Spring's IoC container intentionally shares the same bean across
+// callers — defensive-copying it would break dependency injection.
+@SuppressFBWarnings(
+        value = "EI_EXPOSE_REP2",
+        justification = "Spring constructor injection — beans are shared by design")
 @RestControllerAdvice
 public class EnhancedGlobalExceptionHandler {
 

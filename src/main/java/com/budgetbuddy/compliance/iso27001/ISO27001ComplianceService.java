@@ -1,5 +1,6 @@
 package com.budgetbuddy.compliance.iso27001;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import com.budgetbuddy.compliance.AuditLogService;
 import java.time.Instant;
 import java.util.List;
@@ -22,6 +23,12 @@ import software.amazon.awssdk.services.cloudwatch.model.PutMetricDataRequest;
  * Relationships - A.16 Information Security Incident Management - A.17 Information Security Aspects
  * of Business Continuity Management - A.18 Compliance
  */
+// SpotBugs flags constructor-injected Spring beans as EI_EXPOSE_REP2,
+// but Spring's IoC container intentionally shares the same bean across
+// callers — defensive-copying it would break dependency injection.
+@SuppressFBWarnings(
+        value = "EI_EXPOSE_REP2",
+        justification = "Spring constructor injection — beans are shared by design")
 @Service
 public class ISO27001ComplianceService {
 

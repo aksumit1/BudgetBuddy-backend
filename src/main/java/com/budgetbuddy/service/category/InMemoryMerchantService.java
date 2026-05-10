@@ -1,6 +1,7 @@
 package com.budgetbuddy.service.category;
 
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.Locale;
 import com.budgetbuddy.service.TransactionTypeCategoryService;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -24,6 +25,12 @@ import org.springframework.stereotype.Service;
  * <p>Memory footprint: ~2-3MB for 10,000 merchants, ~20-30MB for 100,000 merchants Lookup time:
  * <1ms (in-memory HashMap) Cost: $0 (no database calls)
  */
+// SpotBugs flags constructor-injected Spring beans as EI_EXPOSE_REP2,
+// but Spring's IoC container intentionally shares the same bean across
+// callers — defensive-copying it would break dependency injection.
+@SuppressFBWarnings(
+        value = "EI_EXPOSE_REP2",
+        justification = "Spring constructor injection — beans are shared by design")
 @Service
 public class InMemoryMerchantService {
 

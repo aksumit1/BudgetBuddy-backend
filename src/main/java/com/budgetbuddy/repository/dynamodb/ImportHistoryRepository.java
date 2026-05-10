@@ -23,7 +23,7 @@ import software.amazon.awssdk.enhanced.dynamodb.model.QueryConditional;
     "dynamoDBTableManager",
     "dynamoDbEnhancedClient"
 })
-public class ImportHistoryRepository {
+public final class ImportHistoryRepository {
 
     private final DynamoDbTable<ImportHistoryTable> importHistoryTable;
     private final DynamoDbIndex<ImportHistoryTable> userIdIndex;

@@ -1,5 +1,6 @@
 package com.budgetbuddy.compliance.hipaa;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import com.budgetbuddy.compliance.AuditLogService;
 import com.budgetbuddy.security.zerotrust.identity.IdentityVerificationService;
 import java.time.Instant;
@@ -19,6 +20,12 @@ import software.amazon.awssdk.services.cloudwatch.model.PutMetricDataRequest;
  * <p>HIPAA Requirements: - Administrative Safeguards (164.308) - Physical Safeguards (164.310) -
  * Technical Safeguards (164.312) - Breach Notification (164.400-414)
  */
+// SpotBugs flags constructor-injected Spring beans as EI_EXPOSE_REP2,
+// but Spring's IoC container intentionally shares the same bean across
+// callers — defensive-copying it would break dependency injection.
+@SuppressFBWarnings(
+        value = "EI_EXPOSE_REP2",
+        justification = "Spring constructor injection — beans are shared by design")
 @Service
 public class HIPAAComplianceService {
 

@@ -1,5 +1,6 @@
 package com.budgetbuddy.service;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -21,6 +22,11 @@ import org.junit.jupiter.api.Test;
  * field. Deliberately reflection-based rather than constructor-coupled so it doesn't need to be
  * updated when unrelated fields are added or renamed.
  */
+// Test methods declare `throws Exception` for setup convenience —
+// JUnit idiom; the rule is a noise generator on test classes.
+@SuppressFBWarnings(
+        value = "THROWS_METHOD_THROWS_CLAUSE_BASIC_EXCEPTION",
+        justification = "JUnit idiom — test methods accept any setup exception")
 class PerRowFieldCompletenessTest {
 
     private static final Set<String> REQUIRED_FIELDS =

@@ -1,5 +1,6 @@
 package com.budgetbuddy.compliance.dma;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import com.budgetbuddy.compliance.AuditLogService;
 import com.budgetbuddy.compliance.gdpr.GDPRComplianceService;
 import com.budgetbuddy.model.dynamodb.UserTable;
@@ -29,6 +30,16 @@ import org.springframework.stereotype.Service;
 // that can't reasonably be enumerated. Broad catches log + recover (or
 // translate to AppException). Suppress at class level since narrowing
 // here would mean catch (RuntimeException) which PMD flags identically.
+// SpotBugs flags constructor-injected Spring beans as EI_EXPOSE_REP2,
+// but Spring's IoC container intentionally shares the same bean across
+// callers — defensive-copying it would break dependency injection.
+// `\n` in the format strings here is a literal LF (CSV rows / raw
+// HTTP body templates), not a platform newline — we do NOT want %n.
+@SuppressFBWarnings(
+        value = {"VA_FORMAT_STRING_USES_NEWLINE", "EI_EXPOSE_REP2"},
+        justification =
+                "literal LF in CSV / wire format (not platform newline); "
+                        + "Spring constructor injection — beans are shared by design")
 @SuppressWarnings("PMD.AvoidCatchingGenericException")
 @Service
 public class DMAComplianceService {

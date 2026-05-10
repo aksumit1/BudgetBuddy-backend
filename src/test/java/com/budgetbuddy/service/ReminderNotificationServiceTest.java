@@ -1,5 +1,6 @@
 package com.budgetbuddy.service;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -20,6 +21,11 @@ import org.mockito.junit.jupiter.MockitoExtension;
  * When both due date and reminder date are present 2. When only reminder date is present (without
  * due date)
  */
+// Tests intentionally pass null to verify graceful handling /
+// AppException paths; SpotBugs's NP_LOAD_OF_KNOWN_NULL_VALUE is expected.
+@SuppressFBWarnings(
+        value = "NP_LOAD_OF_KNOWN_NULL_VALUE",
+        justification = "Tests deliberately exercise null-input paths")
 @ExtendWith(MockitoExtension.class)
 class ReminderNotificationServiceTest {
 

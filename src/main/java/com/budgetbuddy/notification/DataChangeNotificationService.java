@@ -11,6 +11,9 @@ import org.springframework.stereotype.Service;
  * Service for sending data change notifications to all user's devices Handles real-time sync via
  * push notifications
  */
+// NotificationService.NotificationType.* enum field access is flagged by
+// PMD's LawOfDemeter — false positive on standard enum dispatch.
+@SuppressWarnings("PMD.LawOfDemeter")
 @Service
 public class DataChangeNotificationService {
 

@@ -1,6 +1,7 @@
 package com.budgetbuddy.compliance.pcidss;
 
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.Locale;
 import com.budgetbuddy.compliance.AuditLogService;
 import java.time.Instant;
@@ -28,6 +29,12 @@ import software.amazon.awssdk.services.kms.KmsClient;
  * and cardholder data 11. Test security of systems and networks regularly 12. Support information
  * security with organizational policies and programs
  */
+// SpotBugs flags constructor-injected Spring beans as EI_EXPOSE_REP2,
+// but Spring's IoC container intentionally shares the same bean across
+// callers — defensive-copying it would break dependency injection.
+@SuppressFBWarnings(
+        value = "EI_EXPOSE_REP2",
+        justification = "Spring constructor injection — beans are shared by design")
 @Service
 public class PCIDSSComplianceService {
 

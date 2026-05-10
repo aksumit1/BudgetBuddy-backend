@@ -1,6 +1,7 @@
 package com.budgetbuddy.service;
 
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.Locale;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -18,6 +19,11 @@ import org.junit.jupiter.api.Test;
  * informational lines and false positives, and positive test cases for ensuring legitimate
  * transactions are not filtered out (false negatives)
  */
+// Test methods declare `throws Exception` for setup convenience —
+// JUnit idiom; the rule is a noise generator on test classes.
+@SuppressFBWarnings(
+        value = "THROWS_METHOD_THROWS_CLAUSE_BASIC_EXCEPTION",
+        justification = "JUnit idiom — test methods accept any setup exception")
 class PDFImportServicePatternTest {
 
     private PDFImportService pdfImportService;

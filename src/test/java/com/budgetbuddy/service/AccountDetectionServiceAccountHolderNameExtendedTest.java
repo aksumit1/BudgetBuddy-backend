@@ -1,5 +1,6 @@
 package com.budgetbuddy.service;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -14,6 +15,11 @@ import org.junit.jupiter.api.Test;
  * Extended tests for account holder name extraction from PDF Covers international formats, edge
  * cases, and world-class patterns
  */
+// Test methods declare `throws Exception` for setup convenience —
+// JUnit idiom; the rule is a noise generator on test classes.
+@SuppressFBWarnings(
+        value = "THROWS_METHOD_THROWS_CLAUSE_BASIC_EXCEPTION",
+        justification = "JUnit idiom — test methods accept any setup exception")
 @DisplayName("AccountDetectionService Account Holder Name Extraction - Extended Tests")
 public class AccountDetectionServiceAccountHolderNameExtendedTest {
 

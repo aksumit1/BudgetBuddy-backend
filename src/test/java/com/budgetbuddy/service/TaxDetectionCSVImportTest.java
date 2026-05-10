@@ -1,6 +1,7 @@
 package com.budgetbuddy.service;
 
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.Locale;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -17,6 +18,11 @@ import org.junit.jupiter.api.Test;
  * Tests for tax-related transaction detection in CSV import Includes RSU, ACH, Salary, Charity,
  * DMV, CPA, Tuition detection
  */
+// Test methods declare `throws Exception` for setup convenience —
+// JUnit idiom; the rule is a noise generator on test classes.
+@SuppressFBWarnings(
+        value = "THROWS_METHOD_THROWS_CLAUSE_BASIC_EXCEPTION",
+        justification = "JUnit idiom — test methods accept any setup exception")
 @DisplayName("Tax Detection in CSV Import")
 class TaxDetectionCSVImportTest {
 

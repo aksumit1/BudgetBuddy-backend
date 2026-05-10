@@ -1,5 +1,6 @@
 package com.budgetbuddy.config;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.List;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Configuration;
@@ -8,6 +9,12 @@ import org.springframework.context.annotation.Configuration;
  * P2: Configuration for import category keywords and patterns Moves hard-coded keywords to
  * configuration for easier maintenance and internationalization
  */
+// SpotBugs flags constructor-injected Spring beans as EI_EXPOSE_REP2,
+// but Spring's IoC container intentionally shares the same bean across
+// callers — defensive-copying it would break dependency injection.
+@SuppressFBWarnings(
+        value = "EI_EXPOSE_REP2",
+        justification = "Spring constructor injection — beans are shared by design")
 @Configuration
 @ConfigurationProperties(prefix = "import.category")
 public class ImportCategoryConfig {

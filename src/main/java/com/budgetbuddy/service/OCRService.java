@@ -24,7 +24,7 @@ import org.springframework.stereotype.Service;
  * <p>Supports multiple languages for global financial statements
  */
 @Service
-public class OCRService {
+public final class OCRService {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(OCRService.class);
 

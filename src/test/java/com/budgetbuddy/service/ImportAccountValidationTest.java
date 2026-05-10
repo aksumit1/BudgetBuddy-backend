@@ -1,5 +1,6 @@
 package com.budgetbuddy.service;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -26,6 +27,11 @@ import org.mockito.junit.jupiter.MockitoExtension;
  * Tests for account validation during import Tests that transactions are not created without valid
  * account IDs
  */
+// Tests intentionally pass null to verify graceful handling /
+// AppException paths; SpotBugs's NP_LOAD_OF_KNOWN_NULL_VALUE is expected.
+@SuppressFBWarnings(
+        value = "NP_LOAD_OF_KNOWN_NULL_VALUE",
+        justification = "Tests deliberately exercise null-input paths")
 @ExtendWith(MockitoExtension.class)
 class ImportAccountValidationTest {
 

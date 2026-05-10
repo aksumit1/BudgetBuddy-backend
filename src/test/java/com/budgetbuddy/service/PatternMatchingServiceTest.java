@@ -1,6 +1,7 @@
 package com.budgetbuddy.service;
 
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.Locale;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -17,6 +18,11 @@ import org.mockito.junit.jupiter.MockitoExtension;
  * Comprehensive tests for Pattern Matching in category detection Tests: regex patterns, string
  * patterns, global patterns, edge cases
  */
+// Tests intentionally pass null to verify graceful handling /
+// AppException paths; SpotBugs's NP_LOAD_OF_KNOWN_NULL_VALUE is expected.
+@SuppressFBWarnings(
+        value = "NP_LOAD_OF_KNOWN_NULL_VALUE",
+        justification = "Tests deliberately exercise null-input paths")
 @ExtendWith(MockitoExtension.class)
 @DisplayName("Pattern Matching Tests")
 class PatternMatchingServiceTest {

@@ -1,5 +1,6 @@
 package com.budgetbuddy.service;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
@@ -8,6 +9,11 @@ import java.util.Random;
  * Generates realistic test data for bank and credit card statements Simulates various real-world
  * scenarios, edge cases, and boundary conditions
  */
+// `new Random(seed)` is intentional — seeded for reproducible test data; the
+// generator scope is one method per call, so it's fine to reuse-once.
+@SuppressFBWarnings(
+        value = "DMI_RANDOM_USED_ONLY_ONCE",
+        justification = "seeded Random per generator call for reproducible test data")
 public final class RealWorldStatementTestDataGenerator {
 
     // Real-world merchant names including payment services

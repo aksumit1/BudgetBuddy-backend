@@ -1,5 +1,6 @@
 package com.budgetbuddy.security.ddos;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import com.budgetbuddy.exception.EnhancedGlobalExceptionHandler;
 import com.budgetbuddy.exception.ErrorCode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -28,7 +29,13 @@ import org.springframework.web.util.ContentCachingResponseWrapper;
  */
 @Component
 @Order(2) // After DDoSProtectionFilter (Order 1)
-public class NotFoundErrorTrackingFilter extends OncePerRequestFilter {
+// SpotBugs flags constructor-injected Spring beans as EI_EXPOSE_REP2,
+// but Spring's IoC container intentionally shares the same bean across
+// callers — defensive-copying it would break dependency injection.
+@SuppressFBWarnings(
+        value = "EI_EXPOSE_REP2",
+        justification = "Spring constructor injection — beans are shared by design")
+public final class NotFoundErrorTrackingFilter extends OncePerRequestFilter {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(NotFoundErrorTrackingFilter.class);
     private static final ObjectMapper OBJECT_MAPPER;

@@ -1,6 +1,7 @@
 package com.budgetbuddy.config;
 
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.Locale;
 import java.util.List;
 import java.util.Map;
@@ -11,6 +12,12 @@ import org.springframework.context.annotation.Configuration;
  * Global financial configuration for international support Supports region-specific account types,
  * payment systems, and category mappings
  */
+// SpotBugs flags constructor-injected Spring beans as EI_EXPOSE_REP2,
+// but Spring's IoC container intentionally shares the same bean across
+// callers — defensive-copying it would break dependency injection.
+@SuppressFBWarnings(
+        value = "EI_EXPOSE_REP2",
+        justification = "Spring constructor injection — beans are shared by design")
 @Configuration
 @ConfigurationProperties(prefix = "financial.global")
 public class GlobalFinancialConfig {

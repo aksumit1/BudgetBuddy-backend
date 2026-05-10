@@ -1,5 +1,6 @@
 package com.budgetbuddy.security.ddos;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.time.Instant;
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -37,8 +38,14 @@ import software.amazon.awssdk.services.dynamodb.model.UpdateTimeToLiveRequest;
  *
  * <p>Thread-safe implementation with proper synchronization
  */
+// SpotBugs flags constructor-injected Spring beans as EI_EXPOSE_REP2,
+// but Spring's IoC container intentionally shares the same bean across
+// callers — defensive-copying it would break dependency injection.
+@SuppressFBWarnings(
+        value = "EI_EXPOSE_REP2",
+        justification = "Spring constructor injection — beans are shared by design")
 @Service
-public class DDoSProtectionService {
+public final class DDoSProtectionService {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(DDoSProtectionService.class);
 

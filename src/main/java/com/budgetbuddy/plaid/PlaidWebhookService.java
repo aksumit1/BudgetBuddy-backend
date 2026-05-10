@@ -1,5 +1,6 @@
 package com.budgetbuddy.plaid;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import com.budgetbuddy.aws.secrets.SecretsManagerService;
 import com.budgetbuddy.model.dynamodb.AccountTable;
 import com.budgetbuddy.model.dynamodb.UserTable;
@@ -27,6 +28,12 @@ import org.springframework.stereotype.Service;
  *
  * <p>Features: - Webhook signature verification - Event type handling - Error handling - Logging
  */
+// SpotBugs flags constructor-injected Spring beans as EI_EXPOSE_REP2,
+// but Spring's IoC container intentionally shares the same bean across
+// callers — defensive-copying it would break dependency injection.
+@SuppressFBWarnings(
+        value = "EI_EXPOSE_REP2",
+        justification = "Spring constructor injection — beans are shared by design")
 @Service
 public class PlaidWebhookService {
 

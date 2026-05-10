@@ -8,7 +8,7 @@ import java.time.LocalDateTime;
  * Subscription entity representing a recurring subscription Tracks subscriptions that occur on a
  * regular basis (monthly, quarterly, semi-annually, annually)
  */
-public class Subscription implements java.io.Serializable {
+public final class Subscription implements java.io.Serializable {
     private static final long serialVersionUID = 1L;
 
     private String subscriptionId;

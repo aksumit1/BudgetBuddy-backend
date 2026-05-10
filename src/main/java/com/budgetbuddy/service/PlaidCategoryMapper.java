@@ -645,7 +645,7 @@ public class PlaidCategoryMapper {
 
         // If still no detailed category, use primary or default
         if (mappedDetailed == null) {
-            mappedDetailed = mappedPrimary != null ? mappedPrimary : "UNKNOWN_CATEGORY";
+            mappedDetailed = mappedPrimary;
         }
 
         // CRITICAL: If mappedDetailed is "income", determine specific income category from

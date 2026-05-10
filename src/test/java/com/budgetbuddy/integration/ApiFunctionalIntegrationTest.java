@@ -1,6 +1,7 @@
 package com.budgetbuddy.integration;
 
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.nio.charset.StandardCharsets;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
@@ -42,6 +43,11 @@ import org.springframework.test.web.servlet.MockMvc;
 /**
  * Comprehensive Functional Integration Tests for All APIs Tests all endpoints used by the iOS app
  */
+// `\n` in the format strings here is a literal LF (CSV rows / raw
+// HTTP body templates), not a platform newline — we do NOT want %n.
+@SuppressFBWarnings(
+        value = "VA_FORMAT_STRING_USES_NEWLINE",
+        justification = "literal LF in CSV / wire format, not platform newline")
 @SpringBootTest(
         classes = com.budgetbuddy.BudgetBuddyApplication.class,
         webEnvironment = org.springframework.boot.test.context.SpringBootTest.WebEnvironment.MOCK)

@@ -1,5 +1,6 @@
 package com.budgetbuddy.api;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import com.budgetbuddy.compliance.gdpr.GDPRComplianceService;
 import com.budgetbuddy.exception.AppException;
 import com.budgetbuddy.exception.ErrorCode;
@@ -22,6 +23,12 @@ import org.springframework.web.bind.annotation.RestController;
  * <p>Note: DMA-specific endpoints are now in DMAController This controller maintains GDPR endpoints
  * for backward compatibility
  */
+// SpotBugs flags constructor-injected Spring beans as EI_EXPOSE_REP2,
+// but Spring's IoC container intentionally shares the same bean across
+// callers — defensive-copying it would break dependency injection.
+@SuppressFBWarnings(
+        value = "EI_EXPOSE_REP2",
+        justification = "Spring constructor injection — beans are shared by design")
 @RestController
 @RequestMapping("/api/compliance")
 public class ComplianceController {

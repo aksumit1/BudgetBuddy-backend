@@ -25,6 +25,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 /** Comprehensive tests for TransactionAnomalyService */
 @ExtendWith(MockitoExtension.class)
+@SuppressWarnings("PMD.LawOfDemeter") // DTO/BigDecimal getter chains in assertions
 class TransactionAnomalyServiceTest {
 
     @Mock private TransactionRepository transactionRepository;

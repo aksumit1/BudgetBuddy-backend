@@ -1,6 +1,7 @@
 package com.budgetbuddy.api;
 
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.Locale;
 import com.budgetbuddy.exception.AppException;
 import com.budgetbuddy.exception.ErrorCode;
@@ -43,6 +44,12 @@ import org.springframework.web.bind.annotation.RestController;
  * <p>Response is cached under the tight analytics manager (5-min TTL, Flow 7 / O13) so repeat hits
  * from the chart don't hammer DynamoDB.
  */
+// SpotBugs flags constructor-injected Spring beans as EI_EXPOSE_REP2,
+// but Spring's IoC container intentionally shares the same bean across
+// callers — defensive-copying it would break dependency injection.
+@SuppressFBWarnings(
+        value = "EI_EXPOSE_REP2",
+        justification = "Spring constructor injection — beans are shared by design")
 @RestController
 @RequestMapping("/api/analytics")
 public class AnalyticsTrendsController {

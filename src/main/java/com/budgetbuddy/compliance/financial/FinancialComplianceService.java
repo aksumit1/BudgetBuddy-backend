@@ -1,5 +1,6 @@
 package com.budgetbuddy.compliance.financial;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
@@ -16,6 +17,12 @@ import software.amazon.awssdk.services.cloudwatch.model.PutMetricDataRequest;
  * Security Standard) - GLBA (Gramm-Leach-Bliley Act) - SOX (Sarbanes-Oxley Act) - FFIEC (Federal
  * Financial Institutions Examination Council) - FINRA (Financial Industry Regulatory Authority)
  */
+// SpotBugs flags constructor-injected Spring beans as EI_EXPOSE_REP2,
+// but Spring's IoC container intentionally shares the same bean across
+// callers — defensive-copying it would break dependency injection.
+@SuppressFBWarnings(
+        value = "EI_EXPOSE_REP2",
+        justification = "Spring constructor injection — beans are shared by design")
 @Service
 public class FinancialComplianceService {
 

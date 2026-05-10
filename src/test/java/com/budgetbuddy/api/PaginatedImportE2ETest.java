@@ -1,6 +1,7 @@
 package com.budgetbuddy.api;
 
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.Locale;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -52,6 +53,15 @@ import org.springframework.test.web.servlet.MockMvc;
 // that can't reasonably be enumerated. Broad catches log + recover (or
 // translate to AppException). Suppress at class level since narrowing
 // here would mean catch (RuntimeException) which PMD flags identically.
+// Test methods declare `throws Exception` for setup convenience —
+// JUnit idiom; the rule is a noise generator on test classes.
+// `\n` in the format strings here is a literal LF (CSV rows / raw
+// HTTP body templates), not a platform newline — we do NOT want %n.
+@SuppressFBWarnings(
+        value = {"VA_FORMAT_STRING_USES_NEWLINE", "THROWS_METHOD_THROWS_CLAUSE_BASIC_EXCEPTION"},
+        justification =
+                "literal LF in CSV / wire format (not platform newline); "
+                        + "JUnit idiom — test methods accept any setup exception")
 @SuppressWarnings("PMD.AvoidCatchingGenericException")
 @SpringBootTest(
         classes = com.budgetbuddy.BudgetBuddyApplication.class,
