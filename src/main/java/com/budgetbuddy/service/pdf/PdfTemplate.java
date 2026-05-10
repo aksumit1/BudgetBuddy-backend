@@ -1,5 +1,6 @@
 package com.budgetbuddy.service.pdf;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
@@ -42,6 +43,11 @@ import java.util.regex.Pattern;
  * early), but their matches are logged at INFO with their status so mismatches with real data are
  * visible.
  */
+@SuppressFBWarnings(
+        value = "EI_EXPOSE_REP",
+        justification =
+                "JSON DTO / DynamoDB entity getters expose lists by reference; "
+                        + "the design is value-semantic and Jackson creates fresh instances")
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class PdfTemplate {
 

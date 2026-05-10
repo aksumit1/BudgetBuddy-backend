@@ -200,15 +200,16 @@ class PlaidSyncServiceTest {
         // queries
         when(accountRepository.findByUserId(testUserId))
                 .thenReturn(Collections.singletonList(existingAccount));
-        doNothing().when(accountRepository).save(any(AccountTable.class));
+        when(accountRepository.saveWithLock(any(AccountTable.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
 
         // When
         assertDoesNotThrow(() -> plaidSyncService.syncAccounts(testUser, testAccessToken, null));
 
-        // Then
-        verify(accountRepository, times(1)).save(existingAccount);
+        // Then — existing accounts persist via saveWithLock (optimistic concurrency).
+        verify(accountRepository, times(1)).saveWithLock(existingAccount);
         final ArgumentCaptor<AccountTable> accountCaptor = ArgumentCaptor.forClass(AccountTable.class);
-        verify(accountRepository).save(accountCaptor.capture());
+        verify(accountRepository).saveWithLock(accountCaptor.capture());
         final AccountTable savedAccount = accountCaptor.getValue();
         assertTrue(savedAccount.getActive(), "Account should be marked as active");
         assertNotNull(savedAccount.getUpdatedAt(), "UpdatedAt should be set");

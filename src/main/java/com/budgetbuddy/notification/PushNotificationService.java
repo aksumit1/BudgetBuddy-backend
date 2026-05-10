@@ -1,5 +1,7 @@
 package com.budgetbuddy.notification;
 
+import com.budgetbuddy.exception.AppException;
+import com.budgetbuddy.exception.ErrorCode;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import com.budgetbuddy.model.dynamodb.DeviceTokenTable;
 import com.budgetbuddy.repository.dynamodb.DeviceTokenRepository;
@@ -279,7 +281,7 @@ public class PushNotificationService {
             return response.endpointArn();
         } catch (Exception e) {
             LOGGER.error("Failed to create SNS endpoint: {}", e.getMessage());
-            throw new RuntimeException("Failed to create SNS endpoint", e);
+            throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to create SNS endpoint", e);
         }
     }
 

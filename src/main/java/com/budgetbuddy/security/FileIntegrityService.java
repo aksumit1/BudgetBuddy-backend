@@ -1,5 +1,7 @@
 package com.budgetbuddy.security;
 
+import com.budgetbuddy.exception.AppException;
+import com.budgetbuddy.exception.ErrorCode;
 import java.io.InputStream;
 import java.security.MessageDigest;
 import java.util.Base64;
@@ -49,7 +51,7 @@ public class FileIntegrityService {
             return Base64.getEncoder().encodeToString(hashBytes);
         } catch (Exception e) {
             LOGGER.error("Failed to calculate checksum: {}", e.getMessage(), e);
-            throw new RuntimeException("Failed to calculate file checksum", e);
+            throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to calculate file checksum", e);
         }
     }
 

@@ -1,5 +1,6 @@
 package com.budgetbuddy.model;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import jakarta.validation.constraints.NotNull;
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -9,6 +10,11 @@ import java.time.LocalDateTime;
  * Goal entity representing a financial goal Note: This is a domain model. For DynamoDB persistence,
  * use GoalTable.
  */
+@SuppressFBWarnings(
+        value = "EI_EXPOSE_REP",
+        justification =
+                "JSON DTO / DynamoDB entity getters expose lists by reference; "
+                        + "the design is value-semantic and Jackson creates fresh instances")
 public class Goal implements java.io.Serializable {
     private static final long serialVersionUID = 1L;
 

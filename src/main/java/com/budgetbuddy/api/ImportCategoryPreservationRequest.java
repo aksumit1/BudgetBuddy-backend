@@ -1,5 +1,6 @@
 package com.budgetbuddy.api;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.List;
 
@@ -7,6 +8,11 @@ import java.util.List;
  * Request body for preserving categories from preview during import Used to avoid re-categorizing
  * transactions when account hasn't changed
  */
+@SuppressFBWarnings(
+        value = "EI_EXPOSE_REP",
+        justification =
+                "JSON DTO / DynamoDB entity getters expose lists by reference; "
+                        + "the design is value-semantic and Jackson creates fresh instances")
 public class ImportCategoryPreservationRequest {
 
     /**

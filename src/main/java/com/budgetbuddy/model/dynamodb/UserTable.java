@@ -1,5 +1,6 @@
 package com.budgetbuddy.model.dynamodb;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.time.Instant;
 import java.util.Set;
 import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbAttribute;
@@ -13,6 +14,11 @@ import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbSecon
  *
  * <p>Security: Stores server-side hashed passwords with server salt
  */
+@SuppressFBWarnings(
+        value = "EI_EXPOSE_REP",
+        justification =
+                "JSON DTO / DynamoDB entity getters expose lists by reference; "
+                        + "the design is value-semantic and Jackson creates fresh instances")
 @DynamoDbBean
 public class UserTable {
 

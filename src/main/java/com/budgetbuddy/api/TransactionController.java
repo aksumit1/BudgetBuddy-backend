@@ -75,8 +75,11 @@ import org.springframework.web.multipart.MultipartFile;
 // but Spring's IoC container intentionally shares the same bean across
 // callers — defensive-copying it would break dependency injection.
 @SuppressFBWarnings(
-        value = "EI_EXPOSE_REP2",
-        justification = "Spring constructor injection — beans are shared by design")
+        value = {"EI_EXPOSE_REP", "EI_EXPOSE_REP2"},
+        justification =
+                "JSON DTO / DynamoDB entity getters expose lists by reference (design is "
+                        + "value-semantic, Jackson creates fresh instances); Spring constructor "
+                        + "injection — beans are shared by design")
 @SuppressWarnings({"PMD.LawOfDemeter", "PMD.AvoidCatchingGenericException"})
 @RestController
 @RequestMapping("/api/transactions")

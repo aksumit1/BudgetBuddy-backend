@@ -1,11 +1,17 @@
 package com.budgetbuddy.dto;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 /**
  * Response DTO for /api/sync/status endpoint Returns sync status information for offline mode
  * support
  */
+@SuppressFBWarnings(
+        value = "EI_EXPOSE_REP",
+        justification =
+                "JSON DTO / DynamoDB entity getters expose lists by reference; "
+                        + "the design is value-semantic and Jackson creates fresh instances")
 public class SyncStatusResponse {
 
     @JsonProperty("isOnline")

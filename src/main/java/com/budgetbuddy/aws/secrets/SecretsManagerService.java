@@ -1,5 +1,7 @@
 package com.budgetbuddy.aws.secrets;
 
+import com.budgetbuddy.exception.AppException;
+import com.budgetbuddy.exception.ErrorCode;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
@@ -144,7 +146,7 @@ public class SecretsManagerService {
                         secretName);
                 return envValue;
             }
-            throw new RuntimeException(
+            throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR, 
                     "Failed to fetch secret " + secretName + " and no fallback available", e);
         }
     }

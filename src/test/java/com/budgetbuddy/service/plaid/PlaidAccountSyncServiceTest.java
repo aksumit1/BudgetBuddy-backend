@@ -122,7 +122,8 @@ class PlaidAccountSyncServiceTest {
         // The existing account should be in the list returned by findByUserId
         when(accountRepository.findByUserId(testUserId))
                 .thenReturn(Collections.singletonList(existingAccount));
-        doNothing().when(accountRepository).save(any(AccountTable.class));
+        when(accountRepository.saveWithLock(any(AccountTable.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
 
         // When
         assertDoesNotThrow(
@@ -131,10 +132,12 @@ class PlaidAccountSyncServiceTest {
         // Then
         // OPTIMIZATION: Verify findByUserId is called once (not per account)
         verify(accountRepository, times(1)).findByUserId(testUserId);
-        // Account is saved in batch at the end
-        verify(accountRepository, atLeastOnce()).save(any(AccountTable.class));
+        // Existing accounts are persisted via saveWithLock (optimistic concurrency)
+        // — see PlaidAccountSyncService.persistWithConflictRetry. The legacy save()
+        // path is reserved for new accounts created via saveIfNotExists.
+        verify(accountRepository, atLeastOnce()).saveWithLock(any(AccountTable.class));
         final ArgumentCaptor<AccountTable> accountCaptor = ArgumentCaptor.forClass(AccountTable.class);
-        verify(accountRepository, atLeastOnce()).save(accountCaptor.capture());
+        verify(accountRepository, atLeastOnce()).saveWithLock(accountCaptor.capture());
         final AccountTable savedAccount =
                 accountCaptor.getAllValues().get(accountCaptor.getAllValues().size() - 1);
         assertTrue(savedAccount.getActive(), "Account should be marked as active");

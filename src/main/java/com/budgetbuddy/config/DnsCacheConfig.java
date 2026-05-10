@@ -1,5 +1,7 @@
 package com.budgetbuddy.config;
 
+import com.budgetbuddy.exception.AppException;
+import com.budgetbuddy.exception.ErrorCode;
 import jakarta.annotation.PostConstruct;
 import java.security.Security;
 import org.slf4j.Logger;
@@ -94,7 +96,7 @@ public class DnsCacheConfig {
             LOGGER.info("DNS cache cleared successfully");
         } catch (Exception e) {
             LOGGER.error("Failed to clear DNS cache: {}", e.getMessage(), e);
-            throw new RuntimeException("Failed to clear DNS cache", e);
+            throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to clear DNS cache", e);
         }
     }
 }

@@ -1,6 +1,8 @@
 package com.budgetbuddy.service;
 
 
+import com.budgetbuddy.exception.AppException;
+import com.budgetbuddy.exception.ErrorCode;
 import java.util.Locale;
 import com.budgetbuddy.model.dynamodb.CustomMerchantMappingTable;
 import com.budgetbuddy.model.dynamodb.UserCorrectionTable;
@@ -251,10 +253,10 @@ public class CategoryLearningService {
                     "Failed to create/update custom mapping (DynamoDB error): {}",
                     e.getMessage(),
                     e);
-            throw new RuntimeException("Failed to save custom mapping due to database error", e);
+            throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to save custom mapping due to database error", e);
         } catch (Exception e) {
             LOGGER.error("Failed to create/update custom mapping: {}", e.getMessage(), e);
-            throw new RuntimeException("Failed to save custom mapping", e);
+            throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to save custom mapping", e);
         }
     }
 
@@ -324,10 +326,10 @@ public class CategoryLearningService {
             throw e; // Re-throw validation/security errors
         } catch (DynamoDbException e) {
             LOGGER.error("Failed to delete custom mapping (DynamoDB error): {}", e.getMessage(), e);
-            throw new RuntimeException("Failed to delete custom mapping due to database error", e);
+            throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to delete custom mapping due to database error", e);
         } catch (Exception e) {
             LOGGER.error("Failed to delete custom mapping: {}", e.getMessage(), e);
-            throw new RuntimeException("Failed to delete custom mapping", e);
+            throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to delete custom mapping", e);
         }
     }
 

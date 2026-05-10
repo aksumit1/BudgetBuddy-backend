@@ -1,6 +1,8 @@
 package com.budgetbuddy.util;
 
 
+import com.budgetbuddy.exception.AppException;
+import com.budgetbuddy.exception.ErrorCode;
 import java.util.Locale;
 import java.time.Duration;
 import java.util.Random;
@@ -109,7 +111,7 @@ public final class RetryHelper {
                             maxRetries,
                             e.getMessage(),
                             e);
-                    throw new RuntimeException(
+                    throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR, 
                             "Operation failed after " + maxRetries + " retries", e);
                 }
 
@@ -129,7 +131,7 @@ public final class RetryHelper {
                     Thread.sleep(delayWithJitter);
                 } catch (InterruptedException ie) {
                     Thread.currentThread().interrupt();
-                    throw new RuntimeException("Retry interrupted", ie);
+                    throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR, "Retry interrupted", ie);
                 }
 
                 currentDelay =
@@ -138,7 +140,7 @@ public final class RetryHelper {
             }
         }
 
-        throw new RuntimeException("Operation failed after " + maxRetries + " retries");
+        throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR, "Operation failed after " + maxRetries + " retries");
     }
 
     /** Execute operation with default retry settings */

@@ -1,5 +1,6 @@
 package com.budgetbuddy.model;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import java.math.BigDecimal;
@@ -9,6 +10,11 @@ import java.time.LocalDateTime;
  * Account entity representing a linked financial account Note: This is a domain model. For DynamoDB
  * persistence, use AccountTable.
  */
+@SuppressFBWarnings(
+        value = "EI_EXPOSE_REP",
+        justification =
+                "JSON DTO / DynamoDB entity getters expose lists by reference; "
+                        + "the design is value-semantic and Jackson creates fresh instances")
 public class Account implements java.io.Serializable {
     private static final long serialVersionUID = 1L;
 

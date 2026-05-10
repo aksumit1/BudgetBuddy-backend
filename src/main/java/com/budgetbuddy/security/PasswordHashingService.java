@@ -1,5 +1,7 @@
 package com.budgetbuddy.security;
 
+import com.budgetbuddy.exception.AppException;
+import com.budgetbuddy.exception.ErrorCode;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.security.spec.InvalidKeySpecException;
@@ -77,7 +79,7 @@ public class PasswordHashingService {
                     Base64.getEncoder().encodeToString(finalServerSalt));
         } catch (NoSuchAlgorithmException | InvalidKeySpecException e) {
             LOGGER.error("Failed to hash password", e);
-            throw new RuntimeException("Password hashing failed", e);
+            throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR, "Password hashing failed", e);
         }
     }
 
@@ -111,7 +113,7 @@ public class PasswordHashingService {
                     Base64.getEncoder().encodeToString(finalSalt));
         } catch (NoSuchAlgorithmException | InvalidKeySpecException e) {
             LOGGER.error("Failed to hash password", e);
-            throw new RuntimeException("Password hashing failed", e);
+            throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR, "Password hashing failed", e);
         }
     }
 

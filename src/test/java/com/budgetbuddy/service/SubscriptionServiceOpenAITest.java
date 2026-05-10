@@ -136,9 +136,9 @@ public class SubscriptionServiceOpenAITest {
         assertEquals(
                 new BigDecimal("-22.04"), openAISubscription.getAmount(), "Amount should match");
         assertEquals(
-                "software",
+                "ai_service",
                 openAISubscription.getSubscriptionType(),
-                "Should be classified as software subscription");
+                "Should be classified as ai_service subscription");
     }
 
     @Test

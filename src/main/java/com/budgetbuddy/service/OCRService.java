@@ -1,5 +1,7 @@
 package com.budgetbuddy.service;
 
+import com.budgetbuddy.exception.AppException;
+import com.budgetbuddy.exception.ErrorCode;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.io.InputStream;
@@ -87,7 +89,7 @@ public class OCRService {
             LOGGER.info("OCR Service initialized successfully");
         } catch (Exception e) {
             LOGGER.error("Failed to initialize OCR Service: {}", e.getMessage(), e);
-            throw new RuntimeException("OCR Service initialization failed", e);
+            throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR, "OCR Service initialization failed", e);
         }
     }
 
@@ -114,7 +116,7 @@ public class OCRService {
             pdfBytes = pdfInputStream.readAllBytes();
         } catch (IOException e) {
             LOGGER.error("Error reading PDF input stream: {}", e.getMessage(), e);
-            throw new RuntimeException("Failed to read PDF input stream", e);
+            throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to read PDF input stream", e);
         }
 
         // Validate PDF size (prevent OOM attacks)
@@ -185,7 +187,7 @@ public class OCRService {
 
         } catch (IOException e) {
             LOGGER.error("Error loading PDF for OCR: {}", e.getMessage(), e);
-            throw new RuntimeException("Failed to extract text from PDF using OCR", e);
+            throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to extract text from PDF using OCR", e);
         }
     }
 
@@ -231,10 +233,10 @@ public class OCRService {
 
         } catch (IOException e) {
             LOGGER.error("Error reading image for OCR: {}", e.getMessage(), e);
-            throw new RuntimeException("Failed to read image for OCR", e);
+            throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to read image for OCR", e);
         } catch (TesseractException e) {
             LOGGER.error("OCR failed for image: {}", e.getMessage(), e);
-            throw new RuntimeException("Failed to extract text from image using OCR", e);
+            throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to extract text from image using OCR", e);
         }
     }
 

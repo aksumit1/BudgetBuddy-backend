@@ -115,7 +115,9 @@ class AuthControllerPasswordResetTest {
                                 .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("success"))
-                .andExpect(jsonPath("$.message").value("Verification code sent to your email"));
+                .andExpect(
+                        jsonPath("$.message")
+                                .value("Verification code sent to your email if it's valid."));
 
         verify(passwordResetService).requestPasswordReset(testEmail);
     }

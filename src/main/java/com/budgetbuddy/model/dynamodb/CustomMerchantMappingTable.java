@@ -1,5 +1,6 @@
 package com.budgetbuddy.model.dynamodb;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.time.Instant;
 import java.util.List;
 import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbAttribute;
@@ -12,6 +13,11 @@ import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbSecon
  * DynamoDB table for user-defined custom merchant/category mappings Allows users to set custom
  * categories for specific merchants
  */
+@SuppressFBWarnings(
+        value = "EI_EXPOSE_REP",
+        justification =
+                "JSON DTO / DynamoDB entity getters expose lists by reference; "
+                        + "the design is value-semantic and Jackson creates fresh instances")
 @DynamoDbBean
 public class CustomMerchantMappingTable {
 

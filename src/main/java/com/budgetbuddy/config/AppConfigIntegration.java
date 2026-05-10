@@ -1,5 +1,7 @@
 package com.budgetbuddy.config;
 
+import com.budgetbuddy.exception.AppException;
+import com.budgetbuddy.exception.ErrorCode;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.annotation.PreDestroy;
@@ -368,7 +370,7 @@ public class AppConfigIntegration {
                 }
             }
         } catch (Exception e) {
-            throw new RuntimeException("Failed to get configuration from AppConfig API", e);
+            throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to get configuration from AppConfig API", e);
         }
     }
 

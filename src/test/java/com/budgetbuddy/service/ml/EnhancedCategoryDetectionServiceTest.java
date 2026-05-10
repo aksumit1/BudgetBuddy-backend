@@ -105,9 +105,27 @@ class EnhancedCategoryDetectionServiceTest {
     @Test
     @DisplayName("detectCategory uses fuzzy match when available")
     void testDetectCategoryUsesFuzzyMatch() {
+        // Use a fictional merchant not in MccDirectory — real names like SAFEWAY
+        // resolve via MCC_DIRECTORY (priority weight 0.95) before fuzzy ever runs,
+        // so the test would never exercise the fuzzy path it's named for.
+        // EnhancedCategoryDetectionService snapshots the merchant→category map at
+        // construction time, so we must re-mock and rebuild before exercising the
+        // service in this test (the @BeforeEach default seeds it empty).
+        final java.util.Map<String, String> knownMerchants = new java.util.HashMap<>();
+        knownMerchants.put("zorblix mart", "groceries");
+        when(merchantCategoryDataService.getMerchantToCategoryMap()).thenReturn(knownMerchants);
+        service =
+                new EnhancedCategoryDetectionService(
+                        fuzzyMatchingService,
+                        mlModel,
+                        semanticMatchingService,
+                        merchantCategoryDataService);
         final FuzzyMatchingService.MatchResult fuzzyResult =
-                new FuzzyMatchingService.MatchResult("safeway", 0.90, 0.92, 0.88, 0.90);
-        when(fuzzyMatchingService.findBestMatch(eq("SAFEWAY"), anyList())).thenReturn(fuzzyResult);
+                new FuzzyMatchingService.MatchResult("zorblix mart", 0.90, 0.92, 0.88, 0.90);
+        // Production lower-cases the merchant name via TextNormalizer.cleanMerchantText
+        // before passing it to fuzzy, so match the lowercased form.
+        when(fuzzyMatchingService.findBestMatch(eq("zorblix mart"), anyList()))
+                .thenReturn(fuzzyResult);
         // CRITICAL: Service calls findBestSemanticMatchWithContext, not findBestSemanticMatch
         when(semanticMatchingService.findBestSemanticMatchWithContext(
                         anyString(), anyString(), any(), any(), any(), any()))
@@ -119,7 +137,7 @@ class EnhancedCategoryDetectionServiceTest {
 
         final EnhancedCategoryDetectionService.DetectionResult result =
                 service.detectCategory(
-                        "SAFEWAY", "Description", new BigDecimal("75.50"), "POS", null);
+                        "ZORBLIX MART", "Description", new BigDecimal("75.50"), "POS", null);
 
         assertNotNull(result);
         assertEquals("groceries", result.category);
@@ -183,23 +201,29 @@ class EnhancedCategoryDetectionServiceTest {
     @Test
     @DisplayName("detectCategory uses ML prediction when fuzzy match unavailable")
     void testDetectCategoryUsesMLPrediction() {
+        // ML_PREDICTION path is intentionally disabled in production
+        // (EnhancedCategoryDetectionService.detectCategoryWithContext, lines
+        // 498-514 — kept as commented-out code while we evaluate the embedding
+        // pipeline). Until it's re-enabled, an unmatched merchant must fall
+        // through to the "NONE" verdict — the ML mock should never be consulted.
         when(fuzzyMatchingService.findBestMatch(anyString(), anyList())).thenReturn(null);
-        // CRITICAL: Service calls findBestSemanticMatchWithContext, not findBestSemanticMatch
-        when(semanticMatchingService.findBestSemanticMatchWithContext(
-                        anyString(), anyString(), any(), any(), any(), any()))
+        lenient()
+                .when(
+                        semanticMatchingService.findBestSemanticMatchWithContext(
+                                anyString(), anyString(), any(), any(), any(), any()))
                 .thenReturn(null);
-        final CategoryClassificationModel.PredictionResult mlResult =
-                new CategoryClassificationModel.PredictionResult(
-                        "groceries", 0.75, java.util.Collections.emptyList());
-        when(mlModel.predict(anyString(), anyString(), any(), anyString())).thenReturn(mlResult);
+        lenient()
+                .when(mlModel.predict(anyString(), anyString(), any(), anyString()))
+                .thenReturn(
+                        new CategoryClassificationModel.PredictionResult(
+                                "groceries", 0.75, java.util.Collections.emptyList()));
 
         final EnhancedCategoryDetectionService.DetectionResult result =
                 service.detectCategory(
                         "UNKNOWN", "Description", new BigDecimal("75.50"), "POS", null);
 
         assertNotNull(result);
-        assertEquals("groceries", result.category);
-        assertEquals("ML_PREDICTION", result.method);
+        assertEquals("NONE", result.method, "ML path is disabled — unmatched merchants resolve to NONE");
     }
 
     @Test

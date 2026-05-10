@@ -1,5 +1,7 @@
 package com.budgetbuddy.repository.dynamodb;
 
+import com.budgetbuddy.exception.AppException;
+import com.budgetbuddy.exception.ErrorCode;
 import com.budgetbuddy.model.dynamodb.DeviceTokenTable;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -135,7 +137,7 @@ public class DeviceTokenRepository {
                     deviceToken.getPlatform());
         } catch (Exception e) {
             LOGGER.error("Failed to save device token: {}", e.getMessage());
-            throw new RuntimeException("Failed to save device token", e);
+            throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to save device token", e);
         }
     }
 

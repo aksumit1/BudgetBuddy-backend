@@ -214,14 +214,15 @@ class PlaidSyncServiceBugFixesTest {
         // The existing account should be in the list returned by findByUserId
         when(accountRepository.findByUserId(testUserId))
                 .thenReturn(Collections.singletonList(existingAccount));
-        doNothing().when(accountRepository).save(any(AccountTable.class));
+        when(accountRepository.saveWithLock(any(AccountTable.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
 
         // When
         plaidSyncService.syncAccounts(testUser, testAccessToken, null);
 
-        // Then - Verify active status is preserved
+        // Then - Verify active status is preserved (saveWithLock = optimistic concurrency).
         final ArgumentCaptor<AccountTable> accountCaptor = ArgumentCaptor.forClass(AccountTable.class);
-        verify(accountRepository).save(accountCaptor.capture());
+        verify(accountRepository).saveWithLock(accountCaptor.capture());
         final AccountTable savedAccount = accountCaptor.getValue();
         assertTrue(savedAccount.getActive(), "Active status should be preserved");
     }

@@ -88,11 +88,14 @@ class CSVImportServiceExtendedFormatsTest {
     @Test
     void testParseCSVICICIDirectDividendTransactions() {
         // Given: ICICI Direct dividend transactions
-        // Note: Value Date column may be empty for dividend transactions
+        // Note: Value Date column may be empty for dividend transactions —
+        // express that as a true empty CSV field (`,,`) rather than `, X`,
+        // otherwise the parser correctly slides "DIVIDEND ..." into the
+        // Value Date column and the Amount column ends up empty.
         final String csvContent =
                 "Trade Date,Value Date,Particulars,Amount\n"
-                        + "15/12/2025, DIVIDEND INFOSYS LTD,1000.00\n"
-                        + "15/12/2025, DIVIDEND TCS LTD,1500.00";
+                        + "15/12/2025,,DIVIDEND INFOSYS LTD,1000.00\n"
+                        + "15/12/2025,,DIVIDEND TCS LTD,1500.00";
         final InputStream inputStream =
                 new ByteArrayInputStream(csvContent.getBytes(StandardCharsets.UTF_8));
 

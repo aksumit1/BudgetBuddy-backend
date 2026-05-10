@@ -1,6 +1,7 @@
 package com.budgetbuddy.service;
 
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.Locale;
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -28,6 +29,11 @@ import org.springframework.stereotype.Component;
 // that can't reasonably be enumerated. Broad catches log + recover (or
 // translate to AppException). Suppress at class level since narrowing
 // here would mean catch (RuntimeException) which PMD flags identically.
+@SuppressFBWarnings(
+        value = "EI_EXPOSE_REP",
+        justification =
+                "JSON DTO / DynamoDB entity getters expose lists by reference; "
+                        + "the design is value-semantic and Jackson creates fresh instances")
 @SuppressWarnings("PMD.AvoidCatchingGenericException")
 @Component
 public class EnhancedPatternMatcher {

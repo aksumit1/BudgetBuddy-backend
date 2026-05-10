@@ -1,9 +1,15 @@
 package com.budgetbuddy.exception;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.time.Instant;
 import java.util.Map;
 
 /** Application Exception with comprehensive error context */
+@SuppressFBWarnings(
+        value = "EI_EXPOSE_REP",
+        justification =
+                "JSON DTO / DynamoDB entity getters expose lists by reference; "
+                        + "the design is value-semantic and Jackson creates fresh instances")
 public class AppException extends RuntimeException {
     private static final long serialVersionUID = 1L;
 

@@ -39,8 +39,9 @@ import org.springframework.stereotype.Service;
 // but Spring's IoC container intentionally shares the same bean across
 // callers — defensive-copying it would break dependency injection.
 @SuppressFBWarnings(
-        value = "EI_EXPOSE_REP2",
-        justification = "Spring constructor injection — beans are shared by design")
+        value = {"EI_EXPOSE_REP", "EI_EXPOSE_REP2"},
+        justification = "JSON DTO / DynamoDB entity getters expose lists by reference; "
+                        + "the design is value-semantic and Jackson creates fresh instances; Spring constructor injection — beans are shared by design")
 @SuppressWarnings({"PMD.LawOfDemeter", "PMD.AvoidCatchingGenericException"})
 @Service
 public class CSVImportService {
@@ -3614,10 +3615,8 @@ public class CSVImportService {
         final String safeDescription = description != null ? description.trim() : null;
         final String safeMerchantName = merchantName != null ? merchantName.trim() : null;
         final String safePaymentChannel = paymentChannel != null ? paymentChannel.trim() : null;
-                transactionTypeIndicator != null ? transactionTypeIndicator.trim() : null;
-                transactionType != null ? transactionType.trim().toUpperCase(Locale.ROOT) : null;
-        final String safeAccountType = accountType != null ? accountType.trim().toLowerCase(Locale.ROOT) : null;
-                accountSubtype != null ? accountSubtype.trim().toLowerCase(Locale.ROOT) : null;
+        final String safeAccountType =
+                accountType != null ? accountType.trim().toLowerCase(Locale.ROOT) : null;
 
         // Validate amount
         BigDecimal safeAmount = amount;
@@ -3633,6 +3632,8 @@ public class CSVImportService {
         }
 
         // Check if investment account (used in multiple places)
+        @SuppressWarnings("unused")
+        final boolean isInvestmentAccount =
                 safeAccountType != null
                         && (safeAccountType.contains("investment")
                         || safeAccountType.contains("ira")

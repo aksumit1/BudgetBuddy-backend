@@ -1,5 +1,7 @@
 package com.budgetbuddy.util;
 
+import com.budgetbuddy.exception.AppException;
+import com.budgetbuddy.exception.ErrorCode;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.time.Duration;
 import java.util.Collections;
@@ -183,7 +185,7 @@ public class DistributedLock {
         } catch (RuntimeException e) {
             throw e;
         } catch (Exception e) {
-            throw new RuntimeException("Error executing locked operation", e);
+            throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR, "Error executing locked operation", e);
         } finally {
             final boolean released = releaseLock(lockKey, lockResult.getLockValue());
             if (!released && redisTemplate != null) {
@@ -206,7 +208,7 @@ public class DistributedLock {
         } catch (RuntimeException e) {
             throw e;
         } catch (Exception e) {
-            throw new RuntimeException("Error executing locked operation", e);
+            throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR, "Error executing locked operation", e);
         } finally {
             releaseLock(lockKey, lockResult.getLockValue());
         }

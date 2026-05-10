@@ -1,6 +1,8 @@
 package com.budgetbuddy.compliance.pcidss;
 
 
+import com.budgetbuddy.exception.AppException;
+import com.budgetbuddy.exception.ErrorCode;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.Locale;
 import com.budgetbuddy.compliance.AuditLogService;
@@ -109,7 +111,7 @@ public class PCIDSSComplianceService {
         } catch (Exception e) {
             LOGGER.error("PCI-DSS VIOLATION: Failed to encrypt PAN: {}", e.getMessage());
             putMetric("PANEncryptionFailure", 1.0, Map.of());
-            throw new RuntimeException("Failed to encrypt PAN", e);
+            throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to encrypt PAN", e);
         }
     }
 

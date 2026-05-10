@@ -226,8 +226,12 @@ class GoalServiceTest {
         // When
         goalService.deleteGoal(testUser, goalId);
 
-        // Then - Goal should be deleted
+        // Then - Goal should be soft-deleted (deletedAt stamped). Hard delete
+        // would race with concurrent budget-to-goal flows that could re-credit
+        // the row; soft delete keeps it visible to those flows so they don't
+        // double-write. See GoalService.deleteGoal javadoc.
         final Optional<GoalTable> deleted = goalRepository.findById(goalId);
-        assertTrue(deleted.isEmpty(), "Goal should be deleted");
+        assertTrue(deleted.isPresent(), "Goal should still be retrievable after soft-delete");
+        assertNotNull(deleted.get().getDeletedAt(), "Goal should be soft-deleted (deletedAt set)");
     }
 }

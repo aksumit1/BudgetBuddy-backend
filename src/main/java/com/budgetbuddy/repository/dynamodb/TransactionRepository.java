@@ -1,6 +1,8 @@
 package com.budgetbuddy.repository.dynamodb;
 
 
+import com.budgetbuddy.exception.AppException;
+import com.budgetbuddy.exception.ErrorCode;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.Locale;
 import com.budgetbuddy.model.dynamodb.TransactionTable;
@@ -1071,7 +1073,7 @@ public class TransactionRepository {
 
                         // Retry if there are unprocessed items
                         if (!resp.unprocessedItems().isEmpty()) {
-                            throw new RuntimeException("Unprocessed items in batch write");
+                            throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR, "Unprocessed items in batch write");
                         }
 
                         return resp;
@@ -1143,7 +1145,7 @@ public class TransactionRepository {
                                     final BatchGetItemResponse resp =
                                             dynamoDbClient.batchGetItem(retryRequest);
                                     if (!resp.unprocessedKeys().isEmpty()) {
-                                        throw new RuntimeException(
+                                        throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR, 
                                                 "Unprocessed keys in batch read");
                                     }
                                     return resp;

@@ -1,6 +1,8 @@
 package com.budgetbuddy.repository.dynamodb;
 
 
+import com.budgetbuddy.exception.AppException;
+import com.budgetbuddy.exception.ErrorCode;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.Locale;
 import com.budgetbuddy.model.dynamodb.AccountTable;
@@ -630,7 +632,7 @@ public class AccountRepository {
 
                         // Retry if there are unprocessed items
                         if (!resp.unprocessedItems().isEmpty()) {
-                            throw new RuntimeException("Unprocessed items in batch write");
+                            throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR, "Unprocessed items in batch write");
                         }
 
                         return resp;

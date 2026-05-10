@@ -1,6 +1,8 @@
 package com.budgetbuddy.service.ml;
 
 
+import com.budgetbuddy.exception.AppException;
+import com.budgetbuddy.exception.ErrorCode;
 import java.util.Locale;
 import com.budgetbuddy.security.FileSecurityValidator;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -98,7 +100,7 @@ public class CategoryClassificationModel {
      */
     private Path getValidatedModelFilePath() {
         if (!modelPersistenceEnabled) {
-            throw new RuntimeException(
+            throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR, 
                     "Model persistence is disabled due to directory access issues");
         }
 
@@ -121,7 +123,7 @@ public class CategoryClassificationModel {
                     && !Files.isWritable(parentDir)) {
                 LOGGER.warn("Model directory exists but is not writable: {}", parentDir);
                 modelPersistenceEnabled = false;
-                throw new RuntimeException("Model directory is not writable");
+                throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR, "Model directory is not writable");
             }
 
             return validatedPath;
@@ -165,7 +167,7 @@ public class CategoryClassificationModel {
                     "Failed to create fallback model directory. Model persistence will be disabled. Error: {}",
                     fallbackException.getMessage());
             modelPersistenceEnabled = false;
-            throw new RuntimeException("Failed to initialize model file path", fallbackException);
+            throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to initialize model file path", fallbackException);
         }
     }
 

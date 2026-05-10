@@ -1,5 +1,6 @@
 package com.budgetbuddy.dto;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import com.budgetbuddy.model.dynamodb.AccountTable;
 import com.budgetbuddy.model.dynamodb.BudgetTable;
 import com.budgetbuddy.model.dynamodb.GoalTable;
@@ -11,6 +12,11 @@ import java.util.List;
  * Response DTO for /api/sync/incremental endpoint Returns only changed items since the specified
  * timestamp Used for periodic sync to minimize data transfer
  */
+@SuppressFBWarnings(
+        value = "EI_EXPOSE_REP",
+        justification =
+                "JSON DTO / DynamoDB entity getters expose lists by reference; "
+                        + "the design is value-semantic and Jackson creates fresh instances")
 public class IncrementalSyncResponse {
     private List<AccountTable> accounts;
     private List<TransactionTable> transactions;

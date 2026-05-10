@@ -142,9 +142,9 @@ public class SubscriptionServicePopularServicesTest {
                 openai.getFrequency(),
                 "OpenAI should be detected as monthly subscription");
         assertEquals(
-                "software",
+                "ai_service",
                 openai.getSubscriptionType(),
-                "OpenAI should be detected as software subscription");
+                "OpenAI should be detected as ai_service subscription");
         assertTrue(
                 openai.getAmount().abs().compareTo(new BigDecimal("22.04")) == 0
                         || openai.getAmount().abs().compareTo(new BigDecimal("22.10")) <= 0,

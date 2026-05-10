@@ -33,10 +33,13 @@ import org.springframework.stereotype.Service;
 // that can't reasonably be enumerated. Broad catches log + recover (or
 // translate to AppException). Suppress at class level since narrowing
 // here would mean catch (RuntimeException) which PMD flags identically.
-@SuppressWarnings("PMD.AvoidCatchingGenericException")
 @SuppressFBWarnings(
-        value = "EI_EXPOSE_REP2",
-        justification = "Spring constructor injection — beans are shared by design")
+        value = {"EI_EXPOSE_REP", "EI_EXPOSE_REP2"},
+        justification =
+                "JSON DTO / DynamoDB entity getters expose lists by reference; "
+                        + "the design is value-semantic and Jackson creates fresh instances. "
+                        + "Spring constructor injection — beans are shared by design.")
+@SuppressWarnings("PMD.AvoidCatchingGenericException")
 @Service
 public class InMemoryMerchantService {
 

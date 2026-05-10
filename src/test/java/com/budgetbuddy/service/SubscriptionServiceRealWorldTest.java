@@ -132,7 +132,7 @@ public class SubscriptionServiceRealWorldTest {
                         .findFirst()
                         .orElse(null);
         assertNotNull(wsj, "WSJ subscription should be detected");
-        assertEquals("membership", wsj.getSubscriptionType());
+        assertEquals("news_media", wsj.getSubscriptionType());
     }
 
     @Test
@@ -192,9 +192,9 @@ public class SubscriptionServiceRealWorldTest {
                 barrons.getFrequency(),
                 "Barrons should be detected as monthly subscription");
         assertEquals(
-                "membership",
+                "news_media",
                 barrons.getSubscriptionType(),
-                "Barrons should be detected as membership type");
+                "Barrons should be detected as news_media type");
         assertTrue(
                 barrons.getAmount().abs().compareTo(new BigDecimal("4.19")) == 0
                         || barrons.getAmount().abs().compareTo(new BigDecimal("4.20")) <= 0,
@@ -376,7 +376,7 @@ public class SubscriptionServiceRealWorldTest {
                         .findFirst()
                         .orElse(null);
         assertNotNull(cursor, "Cursor AI subscription should be detected");
-        assertEquals("software", cursor.getSubscriptionType());
+        assertEquals("ai_service", cursor.getSubscriptionType());
     }
 
     @Test

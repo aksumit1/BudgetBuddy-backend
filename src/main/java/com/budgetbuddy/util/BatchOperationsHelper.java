@@ -1,5 +1,7 @@
 package com.budgetbuddy.util;
 
+import com.budgetbuddy.exception.AppException;
+import com.budgetbuddy.exception.ErrorCode;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -131,7 +133,7 @@ public final class BatchOperationsHelper {
                     Thread.sleep((long) Math.pow(2, retryCount) * 100); // 200ms, 400ms, 800ms, etc.
                 } catch (InterruptedException e) {
                     Thread.currentThread().interrupt();
-                    throw new RuntimeException("Batch write retry interrupted", e);
+                    throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR, "Batch write retry interrupted", e);
                 }
             } else {
                 // All items processed
@@ -144,7 +146,7 @@ public final class BatchOperationsHelper {
                     "Batch write failed to process {} items after {} retries",
                     requestItems.get(tableName).size(),
                     maxRetries);
-            throw new RuntimeException(
+            throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR, 
                     "Batch write failed: "
                             + requestItems.get(tableName).size()
                             + " items unprocessed after "

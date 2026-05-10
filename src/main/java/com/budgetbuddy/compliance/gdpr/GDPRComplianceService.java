@@ -1,5 +1,7 @@
 package com.budgetbuddy.compliance.gdpr;
 
+import com.budgetbuddy.exception.AppException;
+import com.budgetbuddy.exception.ErrorCode;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import com.budgetbuddy.model.dynamodb.UserTable;
 import com.budgetbuddy.repository.dynamodb.AccountRepository;
@@ -30,8 +32,9 @@ import org.springframework.stereotype.Service;
 // but Spring's IoC container intentionally shares the same bean across
 // callers — defensive-copying it would break dependency injection.
 @SuppressFBWarnings(
-        value = "EI_EXPOSE_REP2",
-        justification = "Spring constructor injection — beans are shared by design")
+        value = {"EI_EXPOSE_REP", "EI_EXPOSE_REP2"},
+        justification = "JSON DTO / DynamoDB entity getters expose lists by reference; "
+                        + "the design is value-semantic and Jackson creates fresh instances; Spring constructor injection — beans are shared by design")
 @SuppressWarnings("PMD.AvoidCatchingGenericException")
 @Service
 public class GDPRComplianceService {
@@ -175,7 +178,7 @@ public class GDPRComplianceService {
             return mapper.writerWithDefaultPrettyPrinter().writeValueAsString(export);
         } catch (Exception e) {
             LOGGER.error("Failed to export data as JSON: {}", e.getMessage());
-            throw new RuntimeException("Failed to export data", e);
+            throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to export data", e);
         }
     }
 

@@ -1,5 +1,6 @@
 package com.budgetbuddy.model.dynamodb;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import java.math.BigDecimal;
@@ -15,6 +16,11 @@ import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbSecon
  * DynamoDB table for Accounts CRITICAL: @JsonInclude ensures null fields are included in JSON
  * responses for iOS
  */
+@SuppressFBWarnings(
+        value = "EI_EXPOSE_REP",
+        justification =
+                "JSON DTO / DynamoDB entity getters expose lists by reference; "
+                        + "the design is value-semantic and Jackson creates fresh instances")
 @DynamoDbBean
 @JsonInclude(JsonInclude.Include.ALWAYS)
 public class AccountTable {

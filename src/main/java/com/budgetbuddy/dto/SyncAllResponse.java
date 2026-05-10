@@ -1,5 +1,6 @@
 package com.budgetbuddy.dto;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import com.budgetbuddy.model.dynamodb.AccountTable;
 import com.budgetbuddy.model.dynamodb.BudgetTable;
 import com.budgetbuddy.model.dynamodb.GoalTable;
@@ -11,6 +12,11 @@ import java.util.List;
  * Response DTO for /api/sync/all endpoint Returns all user data in a single response for first sync
  * or force refresh
  */
+@SuppressFBWarnings(
+        value = "EI_EXPOSE_REP",
+        justification =
+                "JSON DTO / DynamoDB entity getters expose lists by reference; "
+                        + "the design is value-semantic and Jackson creates fresh instances")
 public class SyncAllResponse {
     private List<AccountTable> accounts;
     private List<TransactionTable> transactions;
