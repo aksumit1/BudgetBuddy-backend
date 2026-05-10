@@ -100,7 +100,7 @@ public class DistributedLock {
                             .setIfAbsent(
                                     fullLockKey,
                                     lockValue,
-                                    java.time.Duration.ofSeconds(timeout.getSeconds()));
+                                    Duration.ofSeconds(timeout.getSeconds()));
 
             if (Boolean.TRUE.equals(acquired)) {
                 LOGGER.debug("Lock acquired: {} with value: {}", lockKey, lockValue);

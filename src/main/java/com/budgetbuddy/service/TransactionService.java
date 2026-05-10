@@ -1426,8 +1426,8 @@ public class TransactionService {
                 // Generate deterministic UUID from Plaid transaction ID (matches iOS app fallback)
                 // This ensures both app and backend use the same ID when institution/account info
                 // is missing
-                final java.util.UUID namespaceUUID =
-                        java.util.UUID.fromString(
+                final UUID namespaceUUID =
+                        UUID.fromString(
                                 "6ba7b811-9dad-11d1-80b4-00c04fd430c8"); // TRANSACTION_NAMESPACE
                 final String generatedId =
                         com.budgetbuddy.util.IdGenerator.generateDeterministicUUID(
@@ -1470,8 +1470,8 @@ public class TransactionService {
                                 transactionDateStr,
                                 descriptionStr.trim().toLowerCase(Locale.ROOT));
 
-                final java.util.UUID importNamespaceUUID =
-                        java.util.UUID.fromString(
+                final UUID importNamespaceUUID =
+                        UUID.fromString(
                                 "7ba7b811-9dad-11d1-80b4-00c04fd430c8"); // IMPORT_NAMESPACE
                 final String generatedId =
                         com.budgetbuddy.util.IdGenerator.generateDeterministicUUID(
@@ -1968,9 +1968,9 @@ public class TransactionService {
         // Trigger goal progress recalculation if transaction is assigned to a goal
         if (transaction.getGoalId() != null && !transaction.getGoalId().isEmpty()) {
             try {
-                final com.budgetbuddy.service.GoalProgressService goalProgressService =
+                final GoalProgressService goalProgressService =
                         applicationContext.getBean(
-                                com.budgetbuddy.service.GoalProgressService.class);
+                                GoalProgressService.class);
                 if (goalProgressService != null) {
                     goalProgressService.onTransactionGoalAssignmentChanged(
                             user.getUserId(), transaction.getGoalId());
@@ -2438,7 +2438,7 @@ public class TransactionService {
             }
         }
 
-        transaction.setUpdatedAt(java.time.Instant.now());
+        transaction.setUpdatedAt(Instant.now());
 
         // P2: Audit logging for updates
         final StringBuilder changes = new StringBuilder();
@@ -2447,19 +2447,19 @@ public class TransactionService {
                     .append(oldCategoryPrimary)
                     .append("->")
                     .append(transaction.getCategoryPrimary())
-                    .append(";");
+                    .append(';');
         }
         if (amount != null) {
-            changes.append("amount:").append(amount).append(";");
+            changes.append("amount:").append(amount).append(';');
         }
         if (notes != null || clearNotesIfNull) {
             changes.append("notes:updated;");
         }
         if (transactionType != null) {
-            changes.append("type:").append(transactionType).append(";");
+            changes.append("type:").append(transactionType).append(';');
         }
         if (goalId != null) {
-            changes.append("goalId:").append(goalId).append(";");
+            changes.append("goalId:").append(goalId).append(';');
         }
         auditService.logTransactionUpdate(
                 transaction.getTransactionId(),
@@ -2516,9 +2516,9 @@ public class TransactionService {
         if ((oldGoalId == null && newGoalId != null)
                 || (oldGoalId != null && !oldGoalId.equals(newGoalId))) {
             try {
-                final com.budgetbuddy.service.GoalProgressService goalProgressService =
+                final GoalProgressService goalProgressService =
                         applicationContext.getBean(
-                                com.budgetbuddy.service.GoalProgressService.class);
+                                GoalProgressService.class);
                 if (goalProgressService != null) {
                     if (newGoalId != null) {
                         goalProgressService.onTransactionGoalAssignmentChanged(
@@ -2645,7 +2645,7 @@ public class TransactionService {
             return;
         }
 
-        final java.time.Instant now = java.time.Instant.now();
+        final Instant now = Instant.now();
         transaction.setDeletedAt(now);
         transaction.setUpdatedAt(now);
         transactionRepository.save(transaction);
@@ -2679,7 +2679,7 @@ public class TransactionService {
             return transaction;
         }
         transaction.setDeletedAt(null);
-        transaction.setUpdatedAt(java.time.Instant.now());
+        transaction.setUpdatedAt(Instant.now());
         transactionRepository.save(transaction);
         return transaction;
     }

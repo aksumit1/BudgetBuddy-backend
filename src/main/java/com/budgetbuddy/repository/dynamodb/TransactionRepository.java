@@ -154,8 +154,8 @@ public class TransactionRepository {
         // CRITICAL: Deduplicate by both transactionId and plaidTransactionId
         // Use Set to track seen transactionIds and plaidTransactionIds to prevent duplicates
         // CRITICAL FIX: Deduplication must happen BEFORE skip check to ensure all items are tracked
-        final java.util.Set<String> seenTransactionIds = new java.util.HashSet<>();
-        final java.util.Set<String> seenPlaidTransactionIds = new java.util.HashSet<>();
+        final Set<String> seenTransactionIds = new HashSet<>();
+        final Set<String> seenPlaidTransactionIds = new HashSet<>();
         int duplicateCount = 0;
         int uniqueItemCount = 0; // Track unique items (after deduplication) for skip logic
 
@@ -437,7 +437,7 @@ public class TransactionRepository {
                     .warn("UserIdGoalIdIndex GSI not found. Falling back to filtering in memory.");
             return findByUserId(userId, 0, Integer.MAX_VALUE).stream()
                     .filter(tx -> goalId.equals(tx.getGoalId()))
-                    .collect(java.util.stream.Collectors.toList());
+                    .collect(Collectors.toList());
         } catch (Exception e) {
             org.slf4j.LoggerFactory.getLogger(TransactionRepository.class)
                     .error(
@@ -447,7 +447,7 @@ public class TransactionRepository {
             // Fallback to filtering in memory
             return findByUserId(userId, 0, Integer.MAX_VALUE).stream()
                     .filter(tx -> goalId.equals(tx.getGoalId()))
-                    .collect(java.util.stream.Collectors.toList());
+                    .collect(Collectors.toList());
         }
     }
 

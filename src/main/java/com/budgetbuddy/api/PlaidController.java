@@ -347,7 +347,7 @@ public class PlaidController {
                 @ApiResponse(responseCode = "400", description = "Invalid request parameters"),
                 @ApiResponse(responseCode = "500", description = "Internal server error")
             })
-    public ResponseEntity<java.util.List<com.budgetbuddy.model.dynamodb.TransactionTable>>
+    public ResponseEntity<List<com.budgetbuddy.model.dynamodb.TransactionTable>>
             getTransactions(
                     @AuthenticationPrincipal final UserDetails userDetails,
                     @RequestParam(required = false)

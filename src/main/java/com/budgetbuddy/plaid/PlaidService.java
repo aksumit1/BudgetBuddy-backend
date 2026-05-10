@@ -155,8 +155,8 @@ public class PlaidService {
                             environment,
                             plaidBaseUrl);
                 } catch (java.lang.reflect.InvocationTargetException
-                        | java.lang.NoSuchMethodException
-                        | java.lang.IllegalAccessException reflectionException) {
+                        | NoSuchMethodException
+                        | IllegalAccessException reflectionException) {
                     LOGGER.debug(
                             "Reflection method also failed: {}", reflectionException.getMessage());
                 }
@@ -534,7 +534,7 @@ public class PlaidService {
 
             // Handle pagination - Plaid API may return transactions in pages
             // Collect all transactions from all pages
-            final java.util.List<com.plaid.client.model.Transaction> allTransactions =
+            final List<com.plaid.client.model.Transaction> allTransactions =
                     new java.util.ArrayList<>();
             if (response.getTransactions() != null) {
                 allTransactions.addAll(response.getTransactions());

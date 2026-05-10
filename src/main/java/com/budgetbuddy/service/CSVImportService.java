@@ -1210,7 +1210,7 @@ public class CSVImportService {
                                 || "savings".equalsIgnoreCase(accountType)
                                 || "moneyMarket".equalsIgnoreCase(accountType)
                                 || "money_market".equalsIgnoreCase(accountType))) {
-                    final java.math.BigDecimal balance =
+                    final BigDecimal balance =
                             accountDetectionService.extractBalanceFromTransactionValue(
                                     latestDateBalanceValue);
                     if (balance != null) {
@@ -1526,17 +1526,17 @@ public class CSVImportService {
         if ((bom[0] & 0xFF) == 0xFE && (bom[1] & 0xFF) == 0xFF) {
             pb.unread(bom[2]);
             final byte[] rest = readAll(pb);
-            final String decoded = new String(rest, java.nio.charset.StandardCharsets.UTF_16BE);
+            final String decoded = new String(rest, StandardCharsets.UTF_16BE);
             return new java.io.ByteArrayInputStream(
-                    decoded.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+                    decoded.getBytes(StandardCharsets.UTF_8));
         }
         // UTF-16 LE BOM: FF FE
         if ((bom[0] & 0xFF) == 0xFF && (bom[1] & 0xFF) == 0xFE) {
             pb.unread(bom[2]);
             final byte[] rest = readAll(pb);
-            final String decoded = new String(rest, java.nio.charset.StandardCharsets.UTF_16LE);
+            final String decoded = new String(rest, StandardCharsets.UTF_16LE);
             return new java.io.ByteArrayInputStream(
-                    decoded.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+                    decoded.getBytes(StandardCharsets.UTF_8));
         }
         pb.unread(bom, 0, 3);
         return pb;
@@ -3614,12 +3614,9 @@ public class CSVImportService {
         final String safeDescription = description != null ? description.trim() : null;
         final String safeMerchantName = merchantName != null ? merchantName.trim() : null;
         final String safePaymentChannel = paymentChannel != null ? paymentChannel.trim() : null;
-        final String safeTransactionTypeIndicator =
                 transactionTypeIndicator != null ? transactionTypeIndicator.trim() : null;
-        final String safeTransactionType =
                 transactionType != null ? transactionType.trim().toUpperCase(Locale.ROOT) : null;
         final String safeAccountType = accountType != null ? accountType.trim().toLowerCase(Locale.ROOT) : null;
-        final String safeAccountSubtype =
                 accountSubtype != null ? accountSubtype.trim().toLowerCase(Locale.ROOT) : null;
 
         // Validate amount
@@ -3636,7 +3633,6 @@ public class CSVImportService {
         }
 
         // Check if investment account (used in multiple places)
-        final boolean isInvestmentAccount =
                 safeAccountType != null
                         && (safeAccountType.contains("investment")
                         || safeAccountType.contains("ira")

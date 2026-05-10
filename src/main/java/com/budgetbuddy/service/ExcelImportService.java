@@ -130,9 +130,9 @@ public class ExcelImportService {
             LOGGER.info("=== EXCEL FILE METADATA ANALYSIS ===");
 
             // Check workbook properties
-            if (workbook instanceof org.apache.poi.xssf.usermodel.XSSFWorkbook) {
+            if (workbook instanceof XSSFWorkbook) {
                 final org.apache.poi.ooxml.POIXMLProperties props =
-                        ((org.apache.poi.xssf.usermodel.XSSFWorkbook) workbook).getProperties();
+                        ((XSSFWorkbook) workbook).getProperties();
                 if (props != null) {
                     final org.apache.poi.ooxml.POIXMLProperties.CoreProperties coreProps =
                             props.getCoreProperties();

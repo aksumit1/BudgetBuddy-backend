@@ -1974,9 +1974,9 @@ public class AccountDetectionService {
             }
 
             if (inTransactionSection) {
-                transactionSection.append(line).append("\n");
+                transactionSection.append(line).append('\n');
             } else {
-                headerSection.append(line).append("\n");
+                headerSection.append(line).append('\n');
             }
         }
 
@@ -2293,19 +2293,19 @@ public class AccountDetectionService {
 
         if (subtype != null && !subtype.isEmpty()) {
             if (name.length() > 0) {
-                name.append(" ");
+                name.append(' ');
             }
             name.append(subtype);
         } else if (type != null && !type.isEmpty()) {
             if (name.length() > 0) {
-                name.append(" ");
+                name.append(' ');
             }
             name.append(type);
         }
 
         if (accountNumber != null && !accountNumber.isEmpty()) {
             if (name.length() > 0) {
-                name.append(" ");
+                name.append(' ');
             }
             name.append(accountNumber);
         }
@@ -3130,7 +3130,7 @@ public class AccountDetectionService {
         final StringBuilder institutionPattern = new StringBuilder("(?i)(?:");
         for (int i = 0; i < INSTITUTION_KEYWORDS.size(); i++) {
             if (i > 0) {
-                institutionPattern.append("|");
+                institutionPattern.append('|');
             }
             institutionPattern.append(Pattern.quote(INSTITUTION_KEYWORDS.get(i)));
         }
@@ -3174,7 +3174,7 @@ public class AccountDetectionService {
         final StringBuilder result = new StringBuilder();
         for (int i = 0; i < words.length; i++) {
             if (i > 0) {
-                result.append(" ");
+                result.append(' ');
             }
             if (!words[i].isEmpty()) {
                 result.append(Character.toUpperCase(words[i].charAt(0)));
@@ -4306,7 +4306,7 @@ public class AccountDetectionService {
      * @return true if balance was updated, false if not updated (due to date comparison)
      */
     public boolean updateAccountBalanceWithDateComparison(
-            final com.budgetbuddy.model.dynamodb.AccountTable account,
+            final AccountTable account,
             final java.math.BigDecimal newBalance,
             final java.time.LocalDate newBalanceDate) {
         if (account == null || newBalance == null || newBalanceDate == null) {

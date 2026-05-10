@@ -330,8 +330,8 @@ public class PlaidTransactionSyncService {
             try {
                 final java.lang.reflect.Method getDate = plaidTransaction.getClass().getMethod("getDate");
                 final Object date = getDate.invoke(plaidTransaction);
-                if (date != null && date instanceof java.time.LocalDate) {
-                    return ((java.time.LocalDate) date).format(DATE_FORMATTER);
+                if (date != null && date instanceof LocalDate) {
+                    return ((LocalDate) date).format(DATE_FORMATTER);
                 }
             } catch (Exception e) {
                 LOGGER.debug("Could not extract date via reflection: {}", e.getMessage());

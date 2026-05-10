@@ -463,6 +463,7 @@ public final class TableInitializer {
                 LOGGER.info("✅ Table {} already exists", tableName);
                 return;
             } catch (ResourceNotFoundException e) {
+                // intentional: failure here is non-fatal
             }
 
             final CreateTableRequest request =
@@ -602,6 +603,7 @@ public final class TableInitializer {
                 }
                 return;
             } catch (ResourceNotFoundException e) {
+                // intentional: failure here is non-fatal
             }
 
             final CreateTableRequest request =
@@ -741,6 +743,7 @@ public final class TableInitializer {
                 LOGGER.info("✅ Table {} already exists", tableName);
                 return;
             } catch (ResourceNotFoundException e) {
+                // intentional: failure here is non-fatal
             }
 
             final CreateTableRequest request =
@@ -921,6 +924,7 @@ public final class TableInitializer {
                 LOGGER.info("✅ Table {} already exists", tableName);
                 return;
             } catch (ResourceNotFoundException e) {
+                // intentional: failure here is non-fatal
             }
 
             final CreateTableRequest request =
@@ -1029,6 +1033,7 @@ public final class TableInitializer {
                 LOGGER.info("✅ Table {} already exists", tableName);
                 return;
             } catch (ResourceNotFoundException e) {
+                // intentional: failure here is non-fatal
             }
 
             final CreateTableRequest request =
@@ -1086,6 +1091,7 @@ public final class TableInitializer {
                 LOGGER.info("✅ Table {} already exists", tableName);
                 return;
             } catch (ResourceNotFoundException e) {
+                // intentional: failure here is non-fatal
             }
 
             final CreateTableRequest request =
@@ -1161,6 +1167,7 @@ public final class TableInitializer {
                 LOGGER.info("✅ Table {} already exists", tableName);
                 return;
             } catch (ResourceNotFoundException e) {
+                // intentional: failure here is non-fatal
             }
 
             final CreateTableRequest request =
@@ -1222,6 +1229,7 @@ public final class TableInitializer {
                 LOGGER.info("✅ Table {} already exists", tableName);
                 return;
             } catch (ResourceNotFoundException e) {
+                // intentional: failure here is non-fatal
             }
 
             final CreateTableRequest request =
@@ -1290,6 +1298,7 @@ public final class TableInitializer {
                 LOGGER.info("✅ Table {} already exists", tableName);
                 return;
             } catch (ResourceNotFoundException e) {
+                // intentional: failure here is non-fatal
             }
 
             final CreateTableRequest request =
@@ -1375,6 +1384,7 @@ public final class TableInitializer {
                 LOGGER.info("✅ Table {} already exists", tableName);
                 return;
             } catch (ResourceNotFoundException e) {
+                // intentional: failure here is non-fatal
             }
 
             final CreateTableRequest request =

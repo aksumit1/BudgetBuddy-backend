@@ -129,7 +129,7 @@ public class PlaidAccountSyncService {
 
             // OPTIMIZATION: Collect accounts to save and batch them at the end
             // Track which accounts are new (need saveIfNotExists) vs existing (need save)
-            final java.util.List<AccountTable> accountsToSave = new java.util.ArrayList<>();
+            final List<AccountTable> accountsToSave = new java.util.ArrayList<>();
             final java.util.Set<String> newAccountIds = new java.util.HashSet<>();
 
             for (final var plaidAccount : accountsResponse.getAccounts()) {

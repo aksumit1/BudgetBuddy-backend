@@ -281,7 +281,6 @@ public class SyncService {
         try {
             // Get data counts
             final List<AccountTable> accounts = accountRepository.findByUserId(userId);
-            final List<TransactionTable> transactions =
                     transactionRepository.findByUserId(userId, 0, 1); // Just count
             final List<BudgetTable> budgets = budgetRepository.findByUserId(userId);
             final List<GoalTable> goals = goalRepository.findByUserId(userId);

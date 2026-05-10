@@ -222,7 +222,7 @@ public class RequestResponseLoggingFilter extends OncePerRequestFilter {
                         if (key.toLowerCase(Locale.ROOT).contains("password")) {
                             value = "[REDACTED]";
                         }
-                        queryParamsLog.append(key).append("=").append(value).append("; ");
+                        queryParamsLog.append(key).append('=').append(value).append("; ");
                     }
                 }
             }
@@ -249,7 +249,7 @@ public class RequestResponseLoggingFilter extends OncePerRequestFilter {
                                 }
                                 requestParamsLog
                                         .append(paramName)
-                                        .append("=")
+                                        .append('=')
                                         .append(value)
                                         .append("; ");
                             }
@@ -286,7 +286,7 @@ public class RequestResponseLoggingFilter extends OncePerRequestFilter {
                             .append(correlationId)
                             .append("] ")
                             .append(method)
-                            .append(" ")
+                            .append(' ')
                             .append(fullUri);
 
             if (queryParamsLog.length() > 0) {
@@ -419,20 +419,20 @@ public class RequestResponseLoggingFilter extends OncePerRequestFilter {
                 final String bodyStr = new String(bodyBytes, StandardCharsets.UTF_8);
 
                 // Extract filename from Content-Disposition headers
-                final java.util.regex.Pattern filenamePattern =
-                        java.util.regex.Pattern.compile(
+                final Pattern filenamePattern =
+                        Pattern.compile(
                                 "Content-Disposition:.*filename[=:]\\s*[\"']?([^\"'\\r\\n]+)[\"']?",
-                                java.util.regex.Pattern.CASE_INSENSITIVE);
+                                Pattern.CASE_INSENSITIVE);
                 final java.util.regex.Matcher matcher = filenamePattern.matcher(bodyStr);
                 if (matcher.find()) {
                     info.append("filename: ").append(matcher.group(1)).append("; ");
                 }
 
                 // Extract form field names
-                final java.util.regex.Pattern fieldPattern =
-                        java.util.regex.Pattern.compile(
+                final Pattern fieldPattern =
+                        Pattern.compile(
                                 "Content-Disposition:.*name[=:]\\s*[\"']?([^\"'\\r\\n]+)[\"']?",
-                                java.util.regex.Pattern.CASE_INSENSITIVE);
+                                Pattern.CASE_INSENSITIVE);
                 final java.util.regex.Matcher fieldMatcher = fieldPattern.matcher(bodyStr);
                 final java.util.Set<String> fields = new java.util.HashSet<>();
                 while (fieldMatcher.find()) {
@@ -508,20 +508,20 @@ public class RequestResponseLoggingFilter extends OncePerRequestFilter {
 
                 // Extract filename from Content-Disposition headers
                 final StringBuilder metadata = new StringBuilder("[multipart/form-data] ");
-                final java.util.regex.Pattern filenamePattern =
-                        java.util.regex.Pattern.compile(
+                final Pattern filenamePattern =
+                        Pattern.compile(
                                 "Content-Disposition:.*filename[=:]\\s*[\"']?([^\"'\\r\\n]+)[\"']?",
-                                java.util.regex.Pattern.CASE_INSENSITIVE);
+                                Pattern.CASE_INSENSITIVE);
                 final java.util.regex.Matcher matcher = filenamePattern.matcher(bodyStr);
                 if (matcher.find()) {
                     metadata.append("filename: ").append(matcher.group(1)).append("; ");
                 }
 
                 // Extract form field names
-                final java.util.regex.Pattern fieldPattern =
-                        java.util.regex.Pattern.compile(
+                final Pattern fieldPattern =
+                        Pattern.compile(
                                 "Content-Disposition:.*name[=:]\\s*[\"']?([^\"'\\r\\n]+)[\"']?",
-                                java.util.regex.Pattern.CASE_INSENSITIVE);
+                                Pattern.CASE_INSENSITIVE);
                 final java.util.regex.Matcher fieldMatcher = fieldPattern.matcher(bodyStr);
                 final java.util.Set<String> fields = new java.util.HashSet<>();
                 while (fieldMatcher.find()) {

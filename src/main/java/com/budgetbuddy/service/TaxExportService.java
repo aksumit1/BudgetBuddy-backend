@@ -879,29 +879,29 @@ public class TaxExportService {
         final StringBuilder csv = new StringBuilder();
 
         // Header
-        csv.append("Tax Year: ").append(year).append("\n");
+        csv.append("Tax Year: ").append(year).append('\n');
         csv.append("Generated: ").append(LocalDate.now()).append("\n\n");
 
         // Summary section
         csv.append("SUMMARY\n");
         csv.append("Category,Total Amount\n");
         final TaxSummary summary = result.getSummary();
-        csv.append("Salary,").append(summary.getTotalSalary()).append("\n");
-        csv.append("Interest,").append(summary.getTotalInterest()).append("\n");
-        csv.append("Dividends,").append(summary.getTotalDividends()).append("\n");
-        csv.append("RSU,").append(summary.getTotalRSU()).append("\n");
-        csv.append("Charity,").append(summary.getTotalCharity()).append("\n");
-        csv.append("DMV Fees,").append(summary.getTotalDMV()).append("\n");
-        csv.append("CPA Fees,").append(summary.getTotalCPA()).append("\n");
-        csv.append("Tuition,").append(summary.getTotalTuition()).append("\n");
-        csv.append("Property Tax,").append(summary.getTotalPropertyTax()).append("\n");
-        csv.append("State Tax,").append(summary.getTotalStateTax()).append("\n");
-        csv.append("Local Tax,").append(summary.getTotalLocalTax()).append("\n");
-        csv.append("Mortgage Interest,").append(summary.getTotalMortgageInterest()).append("\n");
-        csv.append("Medical,").append(summary.getTotalMedical()).append("\n");
-        csv.append("Capital Gains,").append(summary.getTotalCapitalGains()).append("\n");
-        csv.append("Capital Losses,").append(summary.getTotalCapitalLosses()).append("\n");
-        csv.append("\n");
+        csv.append("Salary,").append(summary.getTotalSalary()).append('\n');
+        csv.append("Interest,").append(summary.getTotalInterest()).append('\n');
+        csv.append("Dividends,").append(summary.getTotalDividends()).append('\n');
+        csv.append("RSU,").append(summary.getTotalRSU()).append('\n');
+        csv.append("Charity,").append(summary.getTotalCharity()).append('\n');
+        csv.append("DMV Fees,").append(summary.getTotalDMV()).append('\n');
+        csv.append("CPA Fees,").append(summary.getTotalCPA()).append('\n');
+        csv.append("Tuition,").append(summary.getTotalTuition()).append('\n');
+        csv.append("Property Tax,").append(summary.getTotalPropertyTax()).append('\n');
+        csv.append("State Tax,").append(summary.getTotalStateTax()).append('\n');
+        csv.append("Local Tax,").append(summary.getTotalLocalTax()).append('\n');
+        csv.append("Mortgage Interest,").append(summary.getTotalMortgageInterest()).append('\n');
+        csv.append("Medical,").append(summary.getTotalMedical()).append('\n');
+        csv.append("Capital Gains,").append(summary.getTotalCapitalGains()).append('\n');
+        csv.append("Capital Losses,").append(summary.getTotalCapitalLosses()).append('\n');
+        csv.append('\n');
 
         // Check if there are any transactions
         final boolean hasTransactions =
@@ -963,22 +963,22 @@ public class TaxExportService {
                                     .replace(",", ";");
 
                     csv.append(category)
-                            .append(",")
+                            .append(',')
                             .append(dateStr)
-                            .append(",")
-                            .append("\"")
+                            .append(',')
+                            .append('"')
                             .append(escapedDescription)
                             .append("\",")
-                            .append("\"")
+                            .append('"')
                             .append(escapedMerchant)
                             .append("\",")
-                            .append("\"")
+                            .append('"')
                             .append(escapedUser)
                             .append("\",")
                             .append(amountStr)
-                            .append(",")
+                            .append(',')
                             .append(taxTag)
-                            .append("\n");
+                            .append('\n');
                 }
             }
         }
@@ -1018,7 +1018,7 @@ public class TaxExportService {
         json.append("    \"totalCapitalLosses\": ")
                 .append(summary.getTotalCapitalLosses())
                 .append(",\n");
-        json.append("    \"yearEndBalance\": ").append(summary.getYearEndBalance()).append("\n");
+        json.append("    \"yearEndBalance\": ").append(summary.getYearEndBalance()).append('\n');
         json.append("  },\n");
         json.append("  \"transactions\": [\n");
 
@@ -1176,32 +1176,32 @@ public class TaxExportService {
         csv.append("Multi-Year Tax Export\n");
         csv.append("Years: ")
                 .append(Arrays.toString(years).replaceAll("[\\[\\] ]", ""))
-                .append("\n");
+                .append('\n');
         csv.append("Generated: ").append(LocalDate.now()).append("\n\n");
 
         // Summary section
         csv.append("SUMMARY (Combined Across All Years)\n");
         csv.append("Category,Total Amount\n");
         final TaxSummary summary = result.getSummary();
-        csv.append("Salary,").append(summary.getTotalSalary()).append("\n");
-        csv.append("Interest,").append(summary.getTotalInterest()).append("\n");
-        csv.append("Dividends,").append(summary.getTotalDividends()).append("\n");
-        csv.append("RSU,").append(summary.getTotalRSU()).append("\n");
-        csv.append("Charity,").append(summary.getTotalCharity()).append("\n");
-        csv.append("DMV Fees,").append(summary.getTotalDMV()).append("\n");
-        csv.append("CPA Fees,").append(summary.getTotalCPA()).append("\n");
-        csv.append("Tuition,").append(summary.getTotalTuition()).append("\n");
-        csv.append("Property Tax,").append(summary.getTotalPropertyTax()).append("\n");
-        csv.append("State Tax,").append(summary.getTotalStateTax()).append("\n");
-        csv.append("Local Tax,").append(summary.getTotalLocalTax()).append("\n");
-        csv.append("Mortgage Interest,").append(summary.getTotalMortgageInterest()).append("\n");
-        csv.append("Medical,").append(summary.getTotalMedical()).append("\n");
-        csv.append("Capital Gains,").append(summary.getTotalCapitalGains()).append("\n");
-        csv.append("Capital Losses,").append(summary.getTotalCapitalLosses()).append("\n");
+        csv.append("Salary,").append(summary.getTotalSalary()).append('\n');
+        csv.append("Interest,").append(summary.getTotalInterest()).append('\n');
+        csv.append("Dividends,").append(summary.getTotalDividends()).append('\n');
+        csv.append("RSU,").append(summary.getTotalRSU()).append('\n');
+        csv.append("Charity,").append(summary.getTotalCharity()).append('\n');
+        csv.append("DMV Fees,").append(summary.getTotalDMV()).append('\n');
+        csv.append("CPA Fees,").append(summary.getTotalCPA()).append('\n');
+        csv.append("Tuition,").append(summary.getTotalTuition()).append('\n');
+        csv.append("Property Tax,").append(summary.getTotalPropertyTax()).append('\n');
+        csv.append("State Tax,").append(summary.getTotalStateTax()).append('\n');
+        csv.append("Local Tax,").append(summary.getTotalLocalTax()).append('\n');
+        csv.append("Mortgage Interest,").append(summary.getTotalMortgageInterest()).append('\n');
+        csv.append("Medical,").append(summary.getTotalMedical()).append('\n');
+        csv.append("Capital Gains,").append(summary.getTotalCapitalGains()).append('\n');
+        csv.append("Capital Losses,").append(summary.getTotalCapitalLosses()).append('\n');
         csv.append("Year-End Balance (Latest Year),")
                 .append(summary.getYearEndBalance())
-                .append("\n");
-        csv.append("\n");
+                .append('\n');
+        csv.append('\n');
 
         // Detailed transactions by category
         csv.append("DETAILED TRANSACTIONS (All Years Combined)\n");
@@ -1245,24 +1245,24 @@ public class TaxExportService {
                                 .replace(",", ";");
 
                 csv.append(category)
-                        .append(",")
+                        .append(',')
                         .append(dateStr)
-                        .append(",")
-                        .append("\"")
+                        .append(',')
+                        .append('"')
                         .append(escapedDescription)
                         .append("\",")
-                        .append("\"")
+                        .append('"')
                         .append(escapedMerchant)
                         .append("\",")
-                        .append("\"")
+                        .append('"')
                         .append(escapedUser)
                         .append("\",")
                         .append(amountStr)
-                        .append(",")
+                        .append(',')
                         .append(taxTag)
-                        .append(",")
+                        .append(',')
                         .append(year)
-                        .append("\n");
+                        .append('\n');
             }
         }
 
@@ -1277,7 +1277,7 @@ public class TaxExportService {
         final StringBuilder csv = new StringBuilder();
 
         csv.append("Schedule A - Itemized Deductions\n");
-        csv.append("Tax Year: ").append(year).append("\n");
+        csv.append("Tax Year: ").append(year).append('\n');
         csv.append("Generated: ").append(LocalDate.now()).append("\n\n");
 
         final TaxSummary summary = result.getSummary();
@@ -1286,21 +1286,21 @@ public class TaxExportService {
         csv.append("Line,Description,Amount\n");
         csv.append("5a,State and local income taxes,")
                 .append(summary.getTotalStateTax())
-                .append("\n");
+                .append('\n');
         csv.append("5b,State and local real estate taxes,")
                 .append(summary.getTotalPropertyTax())
-                .append("\n");
+                .append('\n');
         csv.append("5c,State and local personal property taxes,")
                 .append(summary.getTotalLocalTax())
-                .append("\n");
+                .append('\n');
         csv.append("8a,Home mortgage interest,")
                 .append(summary.getTotalMortgageInterest())
-                .append("\n");
-        csv.append("11,Gifts to charity,").append(summary.getTotalCharity()).append("\n");
-        csv.append("1,Medical and dental expenses,").append(summary.getTotalMedical()).append("\n");
-        csv.append("Other,DMV fees,").append(summary.getTotalDMV()).append("\n");
-        csv.append("Other,CPA fees,").append(summary.getTotalCPA()).append("\n");
-        csv.append("\n");
+                .append('\n');
+        csv.append("11,Gifts to charity,").append(summary.getTotalCharity()).append('\n');
+        csv.append("1,Medical and dental expenses,").append(summary.getTotalMedical()).append('\n');
+        csv.append("Other,DMV fees,").append(summary.getTotalDMV()).append('\n');
+        csv.append("Other,CPA fees,").append(summary.getTotalCPA()).append('\n');
+        csv.append('\n');
 
         // Detailed transactions
         csv.append("DETAILED TRANSACTIONS\n");
@@ -1349,20 +1349,20 @@ public class TaxExportService {
                         userName != null ? userName.replace("\"", "\"\"").replace(",", ";") : "";
 
                 csv.append(lineNumber)
-                        .append(",")
+                        .append(',')
                         .append(dateStr)
-                        .append(",")
-                        .append("\"")
+                        .append(',')
+                        .append('"')
                         .append(escapedDescription)
                         .append("\",")
-                        .append("\"")
+                        .append('"')
                         .append(escapedMerchant)
                         .append("\",")
-                        .append("\"")
+                        .append('"')
                         .append(escapedUser)
                         .append("\",")
                         .append(amountStr)
-                        .append("\n");
+                        .append('\n');
             }
         }
 
@@ -1374,15 +1374,15 @@ public class TaxExportService {
         final StringBuilder csv = new StringBuilder();
 
         csv.append("Schedule B - Interest and Dividends\n");
-        csv.append("Tax Year: ").append(year).append("\n");
+        csv.append("Tax Year: ").append(year).append('\n');
         csv.append("Generated: ").append(LocalDate.now()).append("\n\n");
 
         final TaxSummary summary = result.getSummary();
 
         csv.append("SUMMARY\n");
-        csv.append("Total Interest Income,").append(summary.getTotalInterest()).append("\n");
-        csv.append("Total Dividend Income,").append(summary.getTotalDividends()).append("\n");
-        csv.append("\n");
+        csv.append("Total Interest Income,").append(summary.getTotalInterest()).append('\n');
+        csv.append("Total Dividend Income,").append(summary.getTotalDividends()).append('\n');
+        csv.append('\n');
 
         // Part I: Interest Income
         csv.append("PART I - INTEREST INCOME\n");
@@ -1414,21 +1414,21 @@ public class TaxExportService {
                     userName != null ? userName.replace("\"", "\"\"").replace(",", ";") : "";
 
             csv.append(dateStr)
-                    .append(",")
-                    .append("\"")
+                    .append(',')
+                    .append('"')
                     .append(escapedDescription)
                     .append("\",")
-                    .append("\"")
+                    .append('"')
                     .append(escapedMerchant)
                     .append("\",")
-                    .append("\"")
+                    .append('"')
                     .append(escapedUser)
                     .append("\",")
                     .append(amountStr)
-                    .append("\n");
+                    .append('\n');
         }
 
-        csv.append("\n");
+        csv.append('\n');
 
         // Part II: Dividend Income
         csv.append("PART II - DIVIDEND INCOME\n");
@@ -1460,18 +1460,18 @@ public class TaxExportService {
                     userName != null ? userName.replace("\"", "\"\"").replace(",", ";") : "";
 
             csv.append(dateStr)
-                    .append(",")
-                    .append("\"")
+                    .append(',')
+                    .append('"')
                     .append(escapedDescription)
                     .append("\",")
-                    .append("\"")
+                    .append('"')
                     .append(escapedMerchant)
                     .append("\",")
-                    .append("\"")
+                    .append('"')
                     .append(escapedUser)
                     .append("\",")
                     .append(amountStr)
-                    .append("\n");
+                    .append('\n');
         }
 
         return csv.toString();
@@ -1482,18 +1482,18 @@ public class TaxExportService {
         final StringBuilder csv = new StringBuilder();
 
         csv.append("Schedule D - Capital Gains and Losses\n");
-        csv.append("Tax Year: ").append(year).append("\n");
+        csv.append("Tax Year: ").append(year).append('\n');
         csv.append("Generated: ").append(LocalDate.now()).append("\n\n");
 
         final TaxSummary summary = result.getSummary();
 
         csv.append("SUMMARY\n");
-        csv.append("Total Capital Gains,").append(summary.getTotalCapitalGains()).append("\n");
-        csv.append("Total Capital Losses,").append(summary.getTotalCapitalLosses()).append("\n");
+        csv.append("Total Capital Gains,").append(summary.getTotalCapitalGains()).append('\n');
+        csv.append("Total Capital Losses,").append(summary.getTotalCapitalLosses()).append('\n');
         csv.append("Net Capital Gain/Loss,")
                 .append(summary.getTotalCapitalGains().subtract(summary.getTotalCapitalLosses()))
-                .append("\n");
-        csv.append("\n");
+                .append('\n');
+        csv.append('\n');
 
         // Part I: Short-Term Capital Gains and Losses
         csv.append("PART I - SHORT-TERM CAPITAL GAINS AND LOSSES\n");
@@ -1544,20 +1544,20 @@ public class TaxExportService {
                     userName != null ? userName.replace("\"", "\"\"").replace(",", ";") : "";
 
             csv.append(dateStr)
-                    .append(",")
-                    .append("\"")
+                    .append(',')
+                    .append('"')
                     .append(escapedDescription)
                     .append("\",")
-                    .append("\"")
+                    .append('"')
                     .append(escapedMerchant)
                     .append("\",")
-                    .append("\"")
+                    .append('"')
                     .append(escapedUser)
                     .append("\",")
                     .append(amountStr)
-                    .append(",")
+                    .append(',')
                     .append(type)
-                    .append("\n");
+                    .append('\n');
         }
 
         return csv.toString();

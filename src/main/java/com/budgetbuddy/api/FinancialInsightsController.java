@@ -121,7 +121,7 @@ public class FinancialInsightsController {
             final String userId, final List<TransactionTable> rows) {
         final Map<String, FinancialInsightsPredictionService.PaymentPattern> out = new HashMap<>();
         // Bucket by merchant + amount (to the dollar) to collapse minor variation.
-        final Map<String, java.util.List<TransactionTable>> byKey = new HashMap<>();
+        final Map<String, List<TransactionTable>> byKey = new HashMap<>();
         for (final TransactionTable t : rows) {
             if (t == null || t.getAmount() == null || t.getAmount().signum() >= 0) {
                 continue;
@@ -179,7 +179,7 @@ public class FinancialInsightsController {
      * the detector unaffected. NORMAL clears any prior verdict (rare but useful).
      */
     @PostMapping("/anomalies/{anomalyId}/feedback")
-    public ResponseEntity<java.util.Map<String, Object>> recordAnomalyFeedback(
+    public ResponseEntity<Map<String, Object>> recordAnomalyFeedback(
             @AuthenticationPrincipal final UserDetails userDetails,
             @PathVariable final String anomalyId,
             @RequestBody final AnomalyFeedbackRequest request) {
@@ -201,7 +201,7 @@ public class FinancialInsightsController {
                         com.budgetbuddy.service.AnomalyFeedbackService.Verdict.parse(
                                 request.getVerdict()));
         return ResponseEntity.ok(
-                java.util.Map.of(
+                Map.of(
                         "feedbackId", saved.getFeedbackId(),
                         "fingerprint", saved.getFingerprint(),
                         "verdict", saved.getVerdict()));
@@ -234,9 +234,9 @@ public class FinancialInsightsController {
 
     /** Flow 7 / O12 — update the current user's anomaly sensitivity knob. */
     @PostMapping("/anomalies/sensitivity")
-    public ResponseEntity<java.util.Map<String, String>> setAnomalySensitivity(
+    public ResponseEntity<Map<String, String>> setAnomalySensitivity(
             @AuthenticationPrincipal final UserDetails userDetails,
-            @RequestBody final java.util.Map<String, String> body) {
+            @RequestBody final Map<String, String> body) {
         if (userDetails == null) {
             throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "User not authenticated");
         }
@@ -256,7 +256,7 @@ public class FinancialInsightsController {
         user.setAnomalySensitivity(normalized);
         user.setUpdatedAt(java.time.Instant.now());
         userService.updateUser(user);
-        return ResponseEntity.ok(java.util.Map.of("sensitivity", normalized));
+        return ResponseEntity.ok(Map.of("sensitivity", normalized));
     }
 
     /** Request DTO for the anomaly-feedback endpoint. */
@@ -592,7 +592,7 @@ public class FinancialInsightsController {
         // constructor to populate name + amounts.
         final Map<String, FinancialInsightsPredictionService.GoalData> goals = new HashMap<>();
         try {
-            final java.util.List<com.budgetbuddy.model.dynamodb.GoalTable> rows =
+            final List<com.budgetbuddy.model.dynamodb.GoalTable> rows =
                     goalRepository.findByUserId(user.getUserId());
             for (final var g : rows) {
                 if (g == null || g.getDeletedAt() != null) {

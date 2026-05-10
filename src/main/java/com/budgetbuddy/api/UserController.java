@@ -67,7 +67,7 @@ public class UserController {
                 throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "User not authenticated");
             }
 
-            final com.budgetbuddy.model.dynamodb.UserTable user =
+            final UserTable user =
                     userService
                             .findByEmail(userDetails.getUsername())
                             .orElseThrow(

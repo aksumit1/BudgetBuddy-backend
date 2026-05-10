@@ -2621,8 +2621,8 @@ public class PDFImportService {
         final String trimmed = line.trim();
 
         // Form 1: "Transactions for <Name>" or "For <Name>"
-        java.util.regex.Matcher m =
-                java.util.regex.Pattern.compile(
+        Matcher m =
+                Pattern.compile(
                                 "(?i)^(?:transactions\\s+for|for)\\s+([A-Za-z][A-Za-z'\\-\\. ]{3,80}?)(?:\\s+\\(.*\\))?\\s*$")
                         .matcher(trimmed);
         if (m.find() && isValidNameFormat(m.group(1).trim())) {
@@ -2631,7 +2631,7 @@ public class PDFImportService {
 
         // Form 2: "Cardholder: <Name>" / "Primary Cardholder: <Name>"
         m =
-                java.util.regex.Pattern.compile(
+                Pattern.compile(
                                 "(?i)^(?:primary\\s+)?cardholder\\s*:?\\s+([A-Za-z][A-Za-z'\\-\\. ]{3,80}?)(?:\\s+.*)?$")
                         .matcher(trimmed);
         if (m.find() && isValidNameFormat(m.group(1).trim())) {
@@ -2640,9 +2640,9 @@ public class PDFImportService {
 
         // Form 3: "<NAME> — Card ending 1234" / "<NAME> Card ending in 1234"
         m =
-                java.util.regex.Pattern.compile(
+                Pattern.compile(
                                 "^([A-Z][A-Za-z'\\-\\. ]{3,60}?)\\s*[-–—]?\\s*(?:card\\s+ending(?:\\s+in)?|xxxx|\\*{4,})\\s*\\d{4}\\s*$",
-                                java.util.regex.Pattern.CASE_INSENSITIVE)
+                                Pattern.CASE_INSENSITIVE)
                         .matcher(trimmed);
         if (m.find() && isValidNameFormat(m.group(1).trim())) {
             return m.group(1).trim();
@@ -2741,19 +2741,19 @@ public class PDFImportService {
 
     // Lines that look like "page 3 of 12" — drop them before stitching so
     // continuation detection isn't fooled by page-footer noise.
-    private static final java.util.regex.Pattern PAGE_FOOTER_PATTERN =
-            java.util.regex.Pattern.compile("(?i)\\bpage\\s+\\d+\\s+of\\s+\\d+\\b");
+    private static final Pattern PAGE_FOOTER_PATTERN =
+            Pattern.compile("(?i)\\bpage\\s+\\d+\\s+of\\s+\\d+\\b");
 
     // A line "starts a transaction" if it begins with a date-shaped token.
     // Used to decide when a following line is a continuation vs a new row.
-    private static final java.util.regex.Pattern TXN_START_PATTERN =
-            java.util.regex.Pattern.compile(
+    private static final Pattern TXN_START_PATTERN =
+            Pattern.compile(
                     "^\\s*(?:"
                             + "\\d{1,2}/\\d{1,2}(?:/\\d{2,4})?"
                             + "|\\d{4}-\\d{1,2}-\\d{1,2}"
                             + "|\\d{1,2}[-\\s](?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*[-\\s]\\d{2,4}"
                             + ")",
-                    java.util.regex.Pattern.CASE_INSENSITIVE);
+                    Pattern.CASE_INSENSITIVE);
 
     /**
      * Joins lines that are continuations of a prior transaction. Motivated by Pattern-7 style
@@ -2861,7 +2861,7 @@ public class PDFImportService {
         if (additional == null || additional.isEmpty()) {
             return primary;
         }
-        final java.util.Set<String> seen = new java.util.HashSet<>();
+        final Set<String> seen = new HashSet<>();
         final List<Map<String, String>> merged = new ArrayList<>(primary.size() + additional.size());
         for (final Map<String, String> row : primary) {
             seen.add(dedupeKey(row));
@@ -2939,16 +2939,16 @@ public class PDFImportService {
     // Date tokens recognised:   MM/DD, MM/DD/YY, MM/DD/YYYY, YYYY-MM-DD, DD MMM YYYY
     // Amount tokens recognised: optional sign/currency, digits+commas+decimal,
     //                           trailing CR/DR, and accounting parens "(123.45)"
-    private static final java.util.regex.Pattern LOOSE_DATE_PATTERN =
-            java.util.regex.Pattern.compile(
+    private static final Pattern LOOSE_DATE_PATTERN =
+            Pattern.compile(
                     "(?i)\\b(?:"
                             + "(?:\\d{1,2}/\\d{1,2}(?:/\\d{2,4})?)" // 3/15, 3/15/24, 03/15/2024
                             + "|(?:\\d{4}-\\d{1,2}-\\d{1,2})" // 2024-03-15
                             + "|(?:\\d{1,2}[-\\s](?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*[-\\s]\\d{2,4})" // 15 Mar 2024
                             + ")\\b");
 
-    private static final java.util.regex.Pattern LOOSE_AMOUNT_PATTERN =
-            java.util.regex.Pattern.compile(
+    private static final Pattern LOOSE_AMOUNT_PATTERN =
+            Pattern.compile(
                     "(?:[-+]?[\\$£€₹¥]?\\d{1,3}(?:,\\d{3})*(?:\\.\\d{2})(?:\\s?(?:CR|DR))?)"
                             + "|(?:\\([\\$£€₹¥]?\\d{1,3}(?:,\\d{3})*(?:\\.\\d{2})\\))");
 
@@ -2982,13 +2982,13 @@ public class PDFImportService {
                 continue;
             }
 
-            final java.util.regex.Matcher dateMatcher = LOOSE_DATE_PATTERN.matcher(line);
+            final Matcher dateMatcher = LOOSE_DATE_PATTERN.matcher(line);
             if (!dateMatcher.find()) {
                 continue;
             }
             final String dateToken = dateMatcher.group();
 
-            final java.util.regex.Matcher amountMatcher = LOOSE_AMOUNT_PATTERN.matcher(line);
+            final Matcher amountMatcher = LOOSE_AMOUNT_PATTERN.matcher(line);
             String amountToken = null;
             while (amountMatcher.find()) {
                 // Take the *last* amount on the line — statement layouts put
@@ -4343,7 +4343,7 @@ public class PDFImportService {
                             k < values.size() && (amountColIndex == -1 || k < amountColIndex);
                             k++) {
                         if (desc.length() > 0) {
-                            desc.append(" ");
+                            desc.append(' ');
                         }
                         desc.append(values.get(k));
                     }

@@ -117,7 +117,7 @@ public class TransactionActionService {
                 // CRITICAL: Log if Plaid ID matches but transaction ID doesn't - indicates ID
                 // mismatch
                 // Use case-insensitive comparison
-                if (!com.budgetbuddy.util.IdGenerator.equalsIgnoreCase(
+                if (!IdGenerator.equalsIgnoreCase(
                         foundTransactionId, transactionId)) {
                     LOGGER.warn(
                             "⚠️ ID MISMATCH: Transaction found by Plaid ID {} but transaction IDs don't match. "
@@ -158,7 +158,7 @@ public class TransactionActionService {
 
         // Log if we're using a different transaction ID than requested
         // Use case-insensitive comparison
-        if (!com.budgetbuddy.util.IdGenerator.equalsIgnoreCase(
+        if (!IdGenerator.equalsIgnoreCase(
                 actualTransactionId, transactionId)) {
             LOGGER.info(
                     "Using transaction ID {} (different from requested {}) for action creation. "

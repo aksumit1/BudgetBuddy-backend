@@ -336,7 +336,7 @@ public class AdvancedAccountDetectionService {
             // PII-hygiene: log only the mask, never the raw number.
             LOGGER.info(
                     "Detected account number: {} (confidence: {}, source: {}, method: {})",
-                    com.budgetbuddy.service.PrivacyRedaction.maskAccountNumber(detectedNumber),
+                    PrivacyRedaction.maskAccountNumber(detectedNumber),
                     accountNumber.getConfidence(),
                     accountNumber.getSource(),
                     accountNumber.getMethod());
@@ -985,7 +985,7 @@ public class AdvancedAccountDetectionService {
         }
         if (accountType != null && !accountType.isEmpty()) {
             if (name.length() > 0) {
-                name.append(" ");
+                name.append(' ');
             }
             name.append(accountType);
         }

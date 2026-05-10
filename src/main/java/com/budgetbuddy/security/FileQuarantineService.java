@@ -286,10 +286,10 @@ public class FileQuarantineService {
                                 .toEpochMilli()
                         < cutoffTime) {
                     try {
-                        final java.nio.file.Path filePath =
-                                java.nio.file.Paths.get(record.getQuarantinedPath());
-                        if (java.nio.file.Files.exists(filePath)) {
-                            java.nio.file.Files.delete(filePath);
+                        final Path filePath =
+                                Paths.get(record.getQuarantinedPath());
+                        if (Files.exists(filePath)) {
+                            Files.delete(filePath);
                         }
                         iterator.remove();
                         cleaned++;

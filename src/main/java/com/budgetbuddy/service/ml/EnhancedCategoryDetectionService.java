@@ -239,8 +239,8 @@ public class EnhancedCategoryDetectionService {
 
             // CRITICAL: Validate BigDecimal amount
             if (amount != null
-                    && (amount.compareTo(java.math.BigDecimal.valueOf(1_000_000_000)) > 0
-                            || amount.compareTo(java.math.BigDecimal.valueOf(-1_000_000_000))
+                    && (amount.compareTo(BigDecimal.valueOf(1_000_000_000)) > 0
+                            || amount.compareTo(BigDecimal.valueOf(-1_000_000_000))
                                     < 0)) {
                 LOGGER.warn("Amount out of reasonable range: {}", amount);
                 // Continue processing but use null for amount string
@@ -542,7 +542,7 @@ public class EnhancedCategoryDetectionService {
                 }
 
                 // Amount-based priors (sign of amount indicates expense vs. inflow).
-                if (amount != null && amount.compareTo(java.math.BigDecimal.ZERO) < 0) {
+                if (amount != null && amount.compareTo(BigDecimal.ZERO) < 0) {
                     if ("income".equals(result.category)) {
                         weight *= 0.1;
                         LOGGER.debug(
@@ -552,7 +552,7 @@ public class EnhancedCategoryDetectionService {
                     } else if (!isExpenseCategory(result.category)) {
                         weight *= 0.8;
                     }
-                } else if (amount != null && amount.compareTo(java.math.BigDecimal.ZERO) > 0) {
+                } else if (amount != null && amount.compareTo(BigDecimal.ZERO) > 0) {
                     if ("income".equals(result.category)) {
                         weight *= 1.2;
                     }
@@ -581,7 +581,7 @@ public class EnhancedCategoryDetectionService {
             // CRITICAL FIX: Final validation - if amount is negative and category is "income",
             // reject it
             if (amount != null
-                    && amount.compareTo(java.math.BigDecimal.ZERO) < 0
+                    && amount.compareTo(BigDecimal.ZERO) < 0
                     && "income".equals(bestCategory)) {
                 LOGGER.warn(
                         "Rejecting income category for negative amount transaction: merchant='{}', description='{}', amount={}. Using second best category or 'other'",

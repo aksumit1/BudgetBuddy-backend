@@ -257,7 +257,7 @@ public class GoalRepository {
 
         try {
             dynamoDbClient.updateItem(updateRequest);
-        } catch (software.amazon.awssdk.services.dynamodb.model.ConditionalCheckFailedException e) {
+        } catch (ConditionalCheckFailedException e) {
             throw new IllegalArgumentException("Goal not found: " + goalId);
         }
     }

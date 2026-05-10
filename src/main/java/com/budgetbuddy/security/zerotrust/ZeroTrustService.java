@@ -115,7 +115,7 @@ public class ZeroTrustService {
         final RiskScore riskScore = new RiskScore();
 
         // Factor 1: Device trust
-        final com.budgetbuddy.security.zerotrust.device.DeviceAttestationService.DeviceTrustLevel
+        final DeviceAttestationService.DeviceTrustLevel
                 deviceTrust = deviceAttestationService.getDeviceTrustLevel(deviceId);
         riskScore.addFactor("deviceTrust", deviceTrust.getScore());
 

@@ -86,7 +86,7 @@ public class CategoryClassificationModel {
     // Initialize ObjectMapper if not injected
     private ObjectMapper getObjectMapper() {
         if (objectMapper == null) {
-            objectMapper = new com.fasterxml.jackson.databind.ObjectMapper();
+            objectMapper = new ObjectMapper();
         }
         return objectMapper;
     }

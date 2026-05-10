@@ -521,7 +521,12 @@ public class DuplicateDetectionService {
         if (description == null) {
             return "";
         }
-        return description.toLowerCase(Locale.ROOT).trim();
+        // Collapse internal whitespace runs to single spaces — TransactionService
+        // does the same on the persisted side via removeNamesFromText, so a
+        // re-parsed CSV row ("PUGET SOUND ENER BILLPAY                    PPD ID: …")
+        // would not equal its stored form ("PUGET SOUND ENER BILLPAY PPD ID: …")
+        // without this. Bank statements are full of these padded ACH descriptions.
+        return description.toLowerCase(Locale.ROOT).trim().replaceAll("\\s+", " ");
     }
 
     /** Generates a human-readable match reason */

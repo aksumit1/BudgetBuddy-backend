@@ -164,7 +164,7 @@ public class OCRService {
                     }
 
                     if (pageText != null && !pageText.isBlank()) {
-                        extractedText.append(pageText).append("\n");
+                        extractedText.append(pageText).append('\n');
                         LOGGER.debug(
                                 "Extracted {} characters from page {}",
                                 pageText.length(),

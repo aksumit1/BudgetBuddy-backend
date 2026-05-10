@@ -306,7 +306,7 @@ public class TransactionController {
                         .orElseThrow(
                                 () -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
 
-        final java.util.Map<String, Object> stats =
+        final Map<String, Object> stats =
                 importHistoryService.getImportStatistics(user.getUserId());
 
         final ImportStatisticsResponse response = ImportStatisticsResponse.from(stats);
@@ -340,7 +340,7 @@ public class TransactionController {
     @PostMapping
     public ResponseEntity<TransactionTable> createTransaction(
             @AuthenticationPrincipal final UserDetails userDetails,
-            @org.springframework.web.bind.annotation.RequestHeader(
+            @RequestHeader(
                             value = "Idempotency-Key",
                             required = false) final String idempotencyKey,
             @Valid @RequestBody final CreateTransactionRequest request) {
@@ -508,12 +508,12 @@ public class TransactionController {
 
         if (request.getIfUnmodifiedSince() != null && !request.getIfUnmodifiedSince().isBlank()) {
             try {
-                final java.time.Instant clientKnownUpdatedAt =
-                        java.time.Instant.parse(request.getIfUnmodifiedSince());
-                final java.util.Optional<TransactionTable> existing =
+                final Instant clientKnownUpdatedAt =
+                        Instant.parse(request.getIfUnmodifiedSince());
+                final Optional<TransactionTable> existing =
                         transactionService.findByTransactionIdAndUserId(id, user.getUserId());
                 if (existing.isPresent() && existing.get().getUpdatedAt() != null) {
-                    final java.time.Instant serverUpdatedAt = existing.get().getUpdatedAt();
+                    final Instant serverUpdatedAt = existing.get().getUpdatedAt();
                     // Allow up to 1 second of skew to tolerate round-trip timestamp truncation
                     // (backend stores seconds; client sends seconds; no actual conflict there).
                     if (serverUpdatedAt.isAfter(clientKnownUpdatedAt.plusSeconds(1))) {
@@ -569,7 +569,7 @@ public class TransactionController {
         // just crossed a budget threshold. Non-blocking — failures here never fail
         // the user-visible update.
         try {
-            final java.util.Set<String> touched = new java.util.HashSet<>();
+            final Set<String> touched = new java.util.HashSet<>();
             if (transaction.getCategoryPrimary() != null) {
                 touched.add(transaction.getCategoryPrimary());
             }
@@ -827,7 +827,7 @@ public class TransactionController {
         if (accountIdToUse != null && !accountIdToUse.isBlank()) {
             try {
                 // Validate UUID format to prevent invalid IDs from being sent to iOS
-                java.util.UUID.fromString(accountIdToUse);
+                UUID.fromString(accountIdToUse);
                 response.setCreatedAccountId(accountIdToUse);
                 LOGGER.info(
                         "📤 Including createdAccountId '{}' in batch import response",
@@ -1135,7 +1135,7 @@ public class TransactionController {
                 // decodes it)
                 originalFilename =
                         java.net.URLDecoder.decode(
-                                filename.trim(), java.nio.charset.StandardCharsets.UTF_8);
+                                filename.trim(), StandardCharsets.UTF_8);
                 originalFilename = sanitizeFilename(originalFilename);
                 fromParameter = true;
             } else {
@@ -1390,7 +1390,7 @@ public class TransactionController {
             if (filename != null && !filename.isBlank()) {
                 originalFilename =
                         java.net.URLDecoder.decode(
-                                filename.trim(), java.nio.charset.StandardCharsets.UTF_8);
+                                filename.trim(), StandardCharsets.UTF_8);
                 originalFilename = sanitizeFilename(originalFilename);
                 fromParameter = true;
             } else {
@@ -1585,7 +1585,7 @@ public class TransactionController {
             if (filename != null && !filename.isBlank()) {
                 originalFilename =
                         java.net.URLDecoder.decode(
-                                filename.trim(), java.nio.charset.StandardCharsets.UTF_8);
+                                filename.trim(), StandardCharsets.UTF_8);
                 originalFilename = sanitizeFilename(originalFilename);
             } else {
                 originalFilename = getOriginalFilenameSafely(file);
@@ -2269,7 +2269,7 @@ public class TransactionController {
             if (filename != null && !filename.isBlank()) {
                 originalFilename =
                         java.net.URLDecoder.decode(
-                                filename.trim(), java.nio.charset.StandardCharsets.UTF_8);
+                                filename.trim(), StandardCharsets.UTF_8);
                 originalFilename = sanitizeFilename(originalFilename);
                 fromParameter = true;
             } else {
@@ -2510,7 +2510,7 @@ public class TransactionController {
             if (filename != null && !filename.isBlank()) {
                 originalFilename =
                         java.net.URLDecoder.decode(
-                                filename.trim(), java.nio.charset.StandardCharsets.UTF_8);
+                                filename.trim(), StandardCharsets.UTF_8);
                 originalFilename = sanitizeFilename(originalFilename);
                 fromParameter = true;
             } else {
@@ -2605,7 +2605,7 @@ public class TransactionController {
             if (filename != null && !filename.isBlank()) {
                 originalFilename =
                         java.net.URLDecoder.decode(
-                                filename.trim(), java.nio.charset.StandardCharsets.UTF_8);
+                                filename.trim(), StandardCharsets.UTF_8);
                 originalFilename = sanitizeFilename(originalFilename);
             } else {
                 originalFilename = getOriginalFilenameSafely(file);
@@ -2845,7 +2845,7 @@ public class TransactionController {
             if (filename != null && !filename.isBlank()) {
                 originalFilename =
                         java.net.URLDecoder.decode(
-                                filename.trim(), java.nio.charset.StandardCharsets.UTF_8);
+                                filename.trim(), StandardCharsets.UTF_8);
                 originalFilename = sanitizeFilename(originalFilename);
                 fromParameter = true;
             } else {
@@ -3011,7 +3011,7 @@ public class TransactionController {
                 if (importResult.getInfoMessages() != null
                         && !importResult.getInfoMessages().isEmpty()) {
                     response.setInfoMessages(
-                            new java.util.ArrayList<>(importResult.getInfoMessages()));
+                            new ArrayList<>(importResult.getInfoMessages()));
                 }
                 DetectedAccountInfo accountInfo = null;
                 if (importResult.getDetectedAccount() != null) {
@@ -3179,7 +3179,7 @@ public class TransactionController {
             if (filename != null && !filename.isBlank()) {
                 originalFilename =
                         java.net.URLDecoder.decode(
-                                filename.trim(), java.nio.charset.StandardCharsets.UTF_8);
+                                filename.trim(), StandardCharsets.UTF_8);
                 originalFilename = sanitizeFilename(originalFilename);
                 fromParameter = true;
             } else {
@@ -3394,7 +3394,7 @@ public class TransactionController {
             if (filename != null && !filename.isBlank()) {
                 originalFilename =
                         java.net.URLDecoder.decode(
-                                filename.trim(), java.nio.charset.StandardCharsets.UTF_8);
+                                filename.trim(), StandardCharsets.UTF_8);
                 originalFilename = sanitizeFilename(originalFilename);
             } else {
                 originalFilename = getOriginalFilenameSafely(file);
@@ -3650,7 +3650,7 @@ public class TransactionController {
         final String userId = user.getUserId();
         final long currentTime = System.currentTimeMillis();
         final List<Long> requestTimes =
-                recalculateRateLimitMap.computeIfAbsent(userId, k -> new java.util.ArrayList<>());
+                recalculateRateLimitMap.computeIfAbsent(userId, k -> new ArrayList<>());
 
         // Remove requests older than 1 minute
         requestTimes.removeIf(time -> currentTime - time > 60_000);
@@ -5221,7 +5221,7 @@ public class TransactionController {
                                             detectedAccount.getBalance(),
                                             detectedAccount.getBalanceDate());
                             if (balanceUpdated) {
-                                existing.setUpdatedAt(java.time.Instant.now());
+                                existing.setUpdatedAt(Instant.now());
                                 accountRepository.save(existing);
                                 LOGGER.info(
                                         "✅ Updated existing account balance with date comparison: {} (date: {})",
@@ -5253,7 +5253,7 @@ public class TransactionController {
                                             detectedAccount.getBalance(),
                                             detectedAccount.getBalanceDate());
                             if (balanceUpdated) {
-                                existing.setUpdatedAt(java.time.Instant.now());
+                                existing.setUpdatedAt(Instant.now());
                                 accountRepository.save(existing);
                                 LOGGER.info(
                                         "✅ Updated existing account balance with date comparison: {} (date: {})",
@@ -5407,8 +5407,8 @@ public class TransactionController {
             // minimumPaymentDue, rewardPoints)
             // This ensures metadata is set during account creation, not just during update
             if (importResult != null) {
-                final java.time.LocalDate paymentDueDate = importResult.getPaymentDueDate();
-                final java.math.BigDecimal minimumPaymentDue = importResult.getMinimumPaymentDue();
+                final LocalDate paymentDueDate = importResult.getPaymentDueDate();
+                final BigDecimal minimumPaymentDue = importResult.getMinimumPaymentDue();
                 final Long rewardPoints = importResult.getRewardPoints();
 
                 if (paymentDueDate != null) {
@@ -5573,12 +5573,12 @@ public class TransactionController {
 
         if (typeToUse != null) {
             if (name.length() > 0) {
-                name.append(" ");
+                name.append(' ');
             }
             name.append(typeToUse);
         } else {
             if (name.length() > 0) {
-                name.append(" ");
+                name.append(' ');
             }
             name.append("other");
         }
@@ -5590,13 +5590,13 @@ public class TransactionController {
             final String digitsOnly = accountNum.replaceAll("[^0-9]", "");
             if (digitsOnly.length() >= 4) {
                 if (name.length() > 0) {
-                    name.append(" ");
+                    name.append(' ');
                 }
                 name.append(digitsOnly.substring(digitsOnly.length() - 4));
             } else if (!digitsOnly.isEmpty()) {
                 // If less than 4 digits, use what we have
                 if (name.length() > 0) {
-                    name.append(" ");
+                    name.append(' ');
                 }
                 name.append(digitsOnly);
             }
@@ -5841,7 +5841,7 @@ public class TransactionController {
 
         // Generate upload ID if not provided (first chunk)
         if (uploadId == null || uploadId.isEmpty()) {
-            uploadId = java.util.UUID.randomUUID().toString();
+            uploadId = UUID.randomUUID().toString();
         }
 
         // Filename and content type required for first chunk
@@ -5897,8 +5897,8 @@ public class TransactionController {
                     chunkedUploadService.finalizeUpload(uploadId);
 
             // Create a MultipartFile-like wrapper for the assembled file
-            final org.springframework.web.multipart.MultipartFile file =
-                    new org.springframework.web.multipart.MultipartFile() {
+            final MultipartFile file =
+                    new MultipartFile() {
                         @Override
                         public String getName() {
                             return "file";
@@ -5930,8 +5930,8 @@ public class TransactionController {
                         }
 
                         @Override
-                        public java.io.InputStream getInputStream() throws IOException {
-                            return new java.io.ByteArrayInputStream(assembledFile.getData());
+                        public InputStream getInputStream() throws IOException {
+                            return new ByteArrayInputStream(assembledFile.getData());
                         }
 
                         @Override
@@ -6033,10 +6033,10 @@ public class TransactionController {
             boolean needsUpdate = false;
 
             // Get metadata from import result
-            final java.time.LocalDate newPaymentDueDate = importResult.getPaymentDueDate();
-            final java.math.BigDecimal newMinimumPaymentDue = importResult.getMinimumPaymentDue();
+            final LocalDate newPaymentDueDate = importResult.getPaymentDueDate();
+            final BigDecimal newMinimumPaymentDue = importResult.getMinimumPaymentDue();
             final Long newRewardPoints = importResult.getRewardPoints();
-            java.math.BigDecimal newBalance = null;
+            BigDecimal newBalance = null;
 
             // Get balance from detected account if available
             if (importResult.getDetectedAccount() != null
@@ -6045,7 +6045,7 @@ public class TransactionController {
             }
 
             // CRITICAL: Apply "latest" logic - only update if new payment due date is later
-            final java.time.LocalDate existingPaymentDueDate = account.getPaymentDueDate();
+            final LocalDate existingPaymentDueDate = account.getPaymentDueDate();
 
             if (newPaymentDueDate != null) {
                 if (existingPaymentDueDate == null) {
@@ -6074,7 +6074,7 @@ public class TransactionController {
                         account.setRewardPoints(newRewardPoints);
                     }
                     // Update balance with date comparison (for checking accounts)
-                    java.time.LocalDate newBalanceDate = null;
+                    LocalDate newBalanceDate = null;
                     if (importResult.getDetectedAccount() != null) {
                         newBalanceDate = importResult.getDetectedAccount().getBalanceDate();
                     }
@@ -6105,7 +6105,7 @@ public class TransactionController {
                 } else {
                     // New payment due date is earlier or equal - keep existing metadata
                     // But still check balance update with date comparison
-                    java.time.LocalDate newBalanceDate = null;
+                    LocalDate newBalanceDate = null;
                     if (importResult.getDetectedAccount() != null) {
                         newBalanceDate = importResult.getDetectedAccount().getBalanceDate();
                     }
@@ -6128,7 +6128,7 @@ public class TransactionController {
                 }
             } else {
                 // No payment due date in import - use date comparison for balance update
-                java.time.LocalDate newBalanceDate = null;
+                LocalDate newBalanceDate = null;
                 if (importResult.getDetectedAccount() != null) {
                     newBalanceDate = importResult.getDetectedAccount().getBalanceDate();
                 }
@@ -6155,7 +6155,7 @@ public class TransactionController {
 
             // Update account if changes were made
             if (needsUpdate) {
-                account.setUpdatedAt(java.time.Instant.now());
+                account.setUpdatedAt(Instant.now());
                 LOGGER.info(
                         "💾 [Account Metadata Update] Saving account '{}' to DynamoDB with metadata - paymentDueDate: {}, minimumPaymentDue: {}, rewardPoints: {}, balance: {}",
                         accountId,

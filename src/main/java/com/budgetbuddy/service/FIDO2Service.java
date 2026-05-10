@@ -184,7 +184,7 @@ public class FIDO2Service {
         final String challengeKey =
                 com.budgetbuddy.repository.dynamodb.FIDO2ChallengeRepository.generateChallengeKey(
                         userId, "registration");
-        final java.util.Optional<com.budgetbuddy.model.dynamodb.FIDO2ChallengeTable> challengeOpt =
+        final Optional<com.budgetbuddy.model.dynamodb.FIDO2ChallengeTable> challengeOpt =
                 challengeRepository.findByChallengeKey(challengeKey);
         if (challengeOpt.isEmpty()) {
             throw new AppException(
@@ -296,7 +296,7 @@ public class FIDO2Service {
         }
 
         // Check if user has passkeys
-        final java.util.List<com.budgetbuddy.model.dynamodb.FIDO2CredentialTable> credentials =
+        final List<com.budgetbuddy.model.dynamodb.FIDO2CredentialTable> credentials =
                 credentialRepository.findByUserId(userId);
         if (credentials == null || credentials.isEmpty()) {
             throw new AppException(ErrorCode.INVALID_INPUT, "No passkeys registered for this user");
@@ -357,7 +357,7 @@ public class FIDO2Service {
         final String challengeKey =
                 com.budgetbuddy.repository.dynamodb.FIDO2ChallengeRepository.generateChallengeKey(
                         userId, "authentication");
-        final java.util.Optional<com.budgetbuddy.model.dynamodb.FIDO2ChallengeTable> challengeOpt =
+        final Optional<com.budgetbuddy.model.dynamodb.FIDO2ChallengeTable> challengeOpt =
                 challengeRepository.findByChallengeKey(challengeKey);
         if (challengeOpt.isEmpty()) {
             throw new AppException(
@@ -380,7 +380,7 @@ public class FIDO2Service {
         }
 
         // Check if user has passkeys
-        final java.util.List<com.budgetbuddy.model.dynamodb.FIDO2CredentialTable> credentials =
+        final List<com.budgetbuddy.model.dynamodb.FIDO2CredentialTable> credentials =
                 credentialRepository.findByUserId(userId);
         if (credentials == null || credentials.isEmpty()) {
             throw new AppException(ErrorCode.INVALID_INPUT, "No passkeys registered for this user");
@@ -488,7 +488,7 @@ public class FIDO2Service {
             throw new AppException(ErrorCode.INVALID_INPUT, "User ID is required");
         }
 
-        final java.util.List<com.budgetbuddy.model.dynamodb.FIDO2CredentialTable> credentials =
+        final List<com.budgetbuddy.model.dynamodb.FIDO2CredentialTable> credentials =
                 credentialRepository.findByUserId(userId);
         if (credentials == null || credentials.isEmpty()) {
             return Collections.emptyList();
@@ -519,7 +519,7 @@ public class FIDO2Service {
         }
 
         // Verify credential belongs to user
-        final java.util.List<com.budgetbuddy.model.dynamodb.FIDO2CredentialTable> credentials =
+        final List<com.budgetbuddy.model.dynamodb.FIDO2CredentialTable> credentials =
                 credentialRepository.findByUserId(userId);
         final boolean found =
                 credentials.stream().anyMatch(c -> credentialId.equals(c.getCredentialId()));

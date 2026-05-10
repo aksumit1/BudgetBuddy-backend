@@ -73,7 +73,7 @@ public class GoalService {
             final String goalType,
             final String goalId,
             final BigDecimal currentAmount,
-            final java.util.List<String> accountIds) {
+            final List<String> accountIds) {
         if (user == null || user.getUserId() == null || user.getUserId().isEmpty()) {
             throw new AppException(ErrorCode.INVALID_INPUT, "User is required");
         }
@@ -126,9 +126,9 @@ public class GoalService {
                                 : BigDecimal.ZERO;
 
                 // CRITICAL FIX: Normalize and validate accountIds, then check if they've changed
-                final java.util.List<String> normalizedAccountIds =
+                final List<String> normalizedAccountIds =
                         normalizeAndValidateAccountIds(accountIds, user.getUserId());
-                final java.util.List<String> existingAccountIds =
+                final List<String> existingAccountIds =
                         existing.getAccountIds() != null
                                 ? existing.getAccountIds()
                                 : new java.util.ArrayList<>();
@@ -514,7 +514,7 @@ public class GoalService {
      * recalculates currentAmount from account balances
      */
     public GoalTable associateAccounts(
-            final UserTable user, final String goalId, final java.util.List<String> accountIds) {
+            final UserTable user, final String goalId, final List<String> accountIds) {
         if (user == null || user.getUserId() == null || user.getUserId().isEmpty()) {
             throw new AppException(ErrorCode.INVALID_INPUT, "User is required");
         }
@@ -567,8 +567,8 @@ public class GoalService {
      * @param userId User ID for ownership validation
      * @return Normalized, validated, deduplicated list of account IDs
      */
-    private java.util.List<String> normalizeAndValidateAccountIds(
-            final java.util.List<String> accountIds, final String userId) {
+    private List<String> normalizeAndValidateAccountIds(
+            final List<String> accountIds, final String userId) {
         if (accountIds == null || accountIds.isEmpty()) {
             return new java.util.ArrayList<>();
         }
@@ -576,7 +576,7 @@ public class GoalService {
         final java.util.Set<String> normalizedIds =
                 new java.util
                         .LinkedHashSet<>(); // LinkedHashSet preserves order and removes duplicates
-        final java.util.List<String> invalidIds = new java.util.ArrayList<>();
+        final List<String> invalidIds = new java.util.ArrayList<>();
 
         for (final String accountId : accountIds) {
             if (accountId == null || accountId.isBlank()) {
@@ -630,7 +630,7 @@ public class GoalService {
      * @return true if lists contain the same elements (ignoring order and duplicates)
      */
     private boolean listsEqualIgnoreOrder(
-            final java.util.List<String> list1, final java.util.List<String> list2) {
+            final List<String> list1, final List<String> list2) {
         if (list1 == null && list2 == null) {
             return true;
         }
@@ -710,7 +710,7 @@ public class GoalService {
         //    progress service uses, so it's cheap.
         if (transactionRepository != null) {
             try {
-                final java.util.List<com.budgetbuddy.model.dynamodb.TransactionTable> tagged =
+                final List<com.budgetbuddy.model.dynamodb.TransactionTable> tagged =
                         transactionRepository.findByUserIdAndGoalId(user.getUserId(), goalId);
                 for (final var tx : tagged) {
                     if (tx == null) {
@@ -738,7 +738,7 @@ public class GoalService {
         //    budget (limit, period, rollover, carriedAmount, etc.).
         if (budgetRepository != null) {
             try {
-                final java.util.List<com.budgetbuddy.model.dynamodb.BudgetTable> all =
+                final List<com.budgetbuddy.model.dynamodb.BudgetTable> all =
                         budgetRepository.findByUserId(user.getUserId());
                 int cleared = 0;
                 for (final var b : all) {

@@ -3691,8 +3691,8 @@ public class SemanticMatchingService {
     }
 
     /** Phrases that unambiguously indicate a payment-action verb in the text. */
-    private static final java.util.Set<String> PAYMENT_ACTION_PHRASES =
-            java.util.Set.of(
+    private static final Set<String> PAYMENT_ACTION_PHRASES =
+            Set.of(
                     "auto pay",
                     "autopay",
                     "auto-pay",
@@ -3703,17 +3703,17 @@ public class SemanticMatchingService {
                     "pmt");
 
     /** Account-type keyword sets grouped by the category they resolve to. */
-    private static final java.util.Set<String> INVESTMENT_ACCOUNT_KEYWORDS =
-            java.util.Set.of("investment", "brokerage", "ira", "401k", "cd");
+    private static final Set<String> INVESTMENT_ACCOUNT_KEYWORDS =
+            Set.of("investment", "brokerage", "ira", "401k", "cd");
 
-    private static final java.util.Set<String> LOAN_ACCOUNT_KEYWORDS =
-            java.util.Set.of("loan", "mortgage");
-    private static final java.util.Set<String> CREDIT_ACCOUNT_KEYWORDS =
-            java.util.Set.of("credit", "credit card");
+    private static final Set<String> LOAN_ACCOUNT_KEYWORDS =
+            Set.of("loan", "mortgage");
+    private static final Set<String> CREDIT_ACCOUNT_KEYWORDS =
+            Set.of("credit", "credit card");
 
     /** Merchant archetype keyword groups. */
-    private static final java.util.Set<String> GROCERY_KEYWORDS =
-            java.util.Set.of(
+    private static final Set<String> GROCERY_KEYWORDS =
+            Set.of(
                     "grocery",
                     "supermarket",
                     "food market",
@@ -3722,8 +3722,8 @@ public class SemanticMatchingService {
                     "produce market",
                     "food shopping");
 
-    private static final java.util.Set<String> DINING_KEYWORDS =
-            java.util.Set.of(
+    private static final Set<String> DINING_KEYWORDS =
+            Set.of(
                     "coffee",
                     "cafe",
                     "restaurant",
@@ -3734,8 +3734,8 @@ public class SemanticMatchingService {
                     "take out",
                     "delivery meal",
                     "lunch");
-    private static final java.util.Set<String> TRANSPORT_KEYWORDS =
-            java.util.Set.of(
+    private static final Set<String> TRANSPORT_KEYWORDS =
+            Set.of(
                     "gas station",
                     "fuel",
                     "petrol",
@@ -3747,8 +3747,8 @@ public class SemanticMatchingService {
                     "ride share",
                     "transit",
                     "subway");
-    private static final java.util.Set<String> HEALTH_KEYWORDS =
-            java.util.Set.of(
+    private static final Set<String> HEALTH_KEYWORDS =
+            Set.of(
                     "pharmacy",
                     "drug store",
                     "doctor",
@@ -3757,8 +3757,8 @@ public class SemanticMatchingService {
                     "clinic",
                     "dentist",
                     "urgent care");
-    private static final java.util.Set<String> UTILITIES_KEYWORDS =
-            java.util.Set.of(
+    private static final Set<String> UTILITIES_KEYWORDS =
+            Set.of(
                     "electric bill",
                     "water bill",
                     "gas bill",
@@ -3780,8 +3780,8 @@ public class SemanticMatchingService {
                 || ctx.textLower.startsWith("payment ");
     }
 
-    private static final java.util.List<ContextRule> CONTEXT_RULES =
-            java.util.List.of(
+    private static final List<ContextRule> CONTEXT_RULES =
+            List.of(
                     // --- Account type ----------------------------------------------------
                     new ContextRule(
                             "CONTEXT_INVESTMENT",

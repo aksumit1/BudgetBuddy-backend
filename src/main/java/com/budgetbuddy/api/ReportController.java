@@ -172,9 +172,9 @@ public class ReportController {
             final BigDecimal income,
             final BigDecimal expenses) {
         final StringBuilder sb = new StringBuilder();
-        sb.append("Period,").append(label).append("\n");
-        sb.append("Income,").append(income.setScale(2, RoundingMode.HALF_UP)).append("\n");
-        sb.append("Expenses,").append(expenses.setScale(2, RoundingMode.HALF_UP)).append("\n");
+        sb.append("Period,").append(label).append('\n');
+        sb.append("Income,").append(income.setScale(2, RoundingMode.HALF_UP)).append('\n');
+        sb.append("Expenses,").append(expenses.setScale(2, RoundingMode.HALF_UP)).append('\n');
         sb.append("Net,")
                 .append(income.subtract(expenses).setScale(2, RoundingMode.HALF_UP))
                 .append("\n\n");
@@ -182,24 +182,24 @@ public class ReportController {
         sb.append("Category,Spent\n");
         for (final var e : spendByCat.entrySet()) {
             sb.append(csvField(e.getKey()))
-                    .append(",")
+                    .append(',')
                     .append(e.getValue().setScale(2, RoundingMode.HALF_UP))
-                    .append("\n");
+                    .append('\n');
         }
-        sb.append("\n");
+        sb.append('\n');
 
         sb.append("Budget Category,Limit,Period,Currency\n");
         for (final BudgetTable b : budgets) {
             sb.append(csvField(b.getCategory()))
-                    .append(",")
+                    .append(',')
                     .append(b.getMonthlyLimit() == null ? "0" : b.getMonthlyLimit())
-                    .append(",")
+                    .append(',')
                     .append(b.getPeriod() == null ? "monthly" : b.getPeriod())
-                    .append(",")
+                    .append(',')
                     .append(b.getCurrencyCode() == null ? "USD" : b.getCurrencyCode())
-                    .append("\n");
+                    .append('\n');
         }
-        sb.append("\n");
+        sb.append('\n');
 
         sb.append("Goal,Current,Target,TargetDate,Horizon,Completed\n");
         for (final GoalTable g : goals) {
@@ -207,17 +207,17 @@ public class ReportController {
                 continue;
             }
             sb.append(csvField(g.getName()))
-                    .append(",")
+                    .append(',')
                     .append(g.getCurrentAmount() == null ? "0" : g.getCurrentAmount())
-                    .append(",")
+                    .append(',')
                     .append(g.getTargetAmount() == null ? "0" : g.getTargetAmount())
-                    .append(",")
+                    .append(',')
                     .append(g.getTargetDate() == null ? "" : g.getTargetDate())
-                    .append(",")
+                    .append(',')
                     .append(g.getHorizon() == null ? "" : g.getHorizon())
-                    .append(",")
+                    .append(',')
                     .append(Boolean.TRUE.equals(g.getCompleted()) ? "yes" : "no")
-                    .append("\n");
+                    .append('\n');
         }
 
         final byte[] body = sb.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8);

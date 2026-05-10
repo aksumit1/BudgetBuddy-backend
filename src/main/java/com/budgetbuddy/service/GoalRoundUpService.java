@@ -163,7 +163,6 @@ public class GoalRoundUpService {
     /** Get total round-up contributions for a goal in a time period */
     public BigDecimal getRoundUpTotal(final GoalTable goal, final String userId, final int days) {
         // Get all transactions assigned to goal
-        final List<TransactionTable> goalTransactions =
                 transactionRepository.findByUserIdAndGoalId(userId, goal.getGoalId());
 
         // Calculate total round-ups (simplified - would need to track round-up transactions

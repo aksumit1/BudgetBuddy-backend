@@ -282,19 +282,19 @@ public class RecurringIncomeDetector {
      * OUTFLOW patterns (the negative-amount mirror of {@link #detect}) so we don't hit subscription
      * storage for this lightweight view.
      */
-    public java.util.List<java.util.Map<String, Object>> upcomingBillsNextDays(
+    public List<Map<String, Object>> upcomingBillsNextDays(
             final String userId, final int days) {
         if (userId == null) {
-            return java.util.List.of();
+            return List.of();
         }
         final LocalDate today = LocalDate.now();
         final LocalDate horizon = today.plusDays(days);
         final LocalDate analysisStart = today.minusMonths(6);
-        final java.util.List<TransactionTable> rows =
+        final List<TransactionTable> rows =
                 transactionRepository.findByUserIdAndDateRange(
                         userId, analysisStart.format(DATE), today.format(DATE));
 
-        final java.util.Map<String, java.util.List<TransactionTable>> byKey = new java.util.HashMap<>();
+        final Map<String, List<TransactionTable>> byKey = new HashMap<>();
         for (final TransactionTable t : rows) {
             if (t == null || t.getAmount() == null || t.getAmount().signum() >= 0) {
                 continue;
@@ -313,16 +313,16 @@ public class RecurringIncomeDetector {
                     merchant.trim().toLowerCase(Locale.ROOT)
                             + "|"
                             + t.getAmount().abs().setScale(0, RoundingMode.HALF_UP);
-            byKey.computeIfAbsent(key, k -> new java.util.ArrayList<>()).add(t);
+            byKey.computeIfAbsent(key, k -> new ArrayList<>()).add(t);
         }
 
-        final java.util.List<java.util.Map<String, Object>> out = new java.util.ArrayList<>();
+        final List<Map<String, Object>> out = new ArrayList<>();
         for (final var entry : byKey.entrySet()) {
             final var txs = entry.getValue();
             if (txs.size() < 3) {
                 continue;
             }
-            txs.sort(java.util.Comparator.comparing(TransactionTable::getTransactionDate));
+            txs.sort(Comparator.comparing(TransactionTable::getTransactionDate));
             final double avgGap = averageGap(txs);
             if (avgGap < 25 || avgGap > 35) {
                 continue; // monthly-ish only
@@ -339,7 +339,7 @@ public class RecurringIncomeDetector {
                 next = next.plusDays(cadence);
             }
             while (!next.isAfter(horizon)) {
-                final java.util.Map<String, Object> bill = new java.util.LinkedHashMap<>();
+                final Map<String, Object> bill = new java.util.LinkedHashMap<>();
                 bill.put("merchantName", txs.get(txs.size() - 1).getMerchantName());
                 bill.put(
                         "amount",

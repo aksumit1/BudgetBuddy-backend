@@ -32,12 +32,12 @@ public class PlaidDataExtractor {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(PlaidDataExtractor.class);
     private final AccountRepository accountRepository;
-    private final com.budgetbuddy.service.TransactionTypeCategoryService
+    private final TransactionTypeCategoryService
             transactionTypeCategoryService;
 
     public PlaidDataExtractor(
             final AccountRepository accountRepository,
-            final com.budgetbuddy.service.TransactionTypeCategoryService transactionTypeCategoryService) {
+            final TransactionTypeCategoryService transactionTypeCategoryService) {
         this.accountRepository = accountRepository;
         this.transactionTypeCategoryService = transactionTypeCategoryService;
     }

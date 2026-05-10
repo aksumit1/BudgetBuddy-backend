@@ -414,7 +414,6 @@ public class FinancialInsightsPredictionService {
             }
 
             // Find interest charges for this account
-            final List<TransactionTable> interestCharges =
                     historicalTransactions.stream()
                             .filter(tx -> accountId.equals(tx.getAccountId()))
                             .filter(

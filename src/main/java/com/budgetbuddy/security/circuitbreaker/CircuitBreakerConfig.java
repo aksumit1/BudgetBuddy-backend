@@ -94,7 +94,7 @@ public class CircuitBreakerConfig {
                         event -> {
                             final org.slf4j.Logger logger =
                                     org.slf4j.LoggerFactory.getLogger(CircuitBreakerConfig.class);
-                            final io.github.resilience4j.circuitbreaker.CircuitBreaker.Metrics metrics =
+                            final CircuitBreaker.Metrics metrics =
                                     circuitBreaker.getMetrics();
                             logger.warn(
                                     "🚫 Plaid Circuit Breaker call not permitted - circuit is OPEN. "

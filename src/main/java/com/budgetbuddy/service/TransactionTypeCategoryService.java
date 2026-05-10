@@ -1392,9 +1392,9 @@ public class TransactionTypeCategoryService {
         if (haystack.isBlank()) {
             return false;
         }
-        final java.util.List<String> tokens =
+        final List<String> tokens =
                 AUTHORITATIVE_CORROBORATING_TOKENS.getOrDefault(
-                        authoritativeCategory, java.util.List.of());
+                        authoritativeCategory, List.of());
         for (final String token : tokens) {
             if (haystack.contains(token)) {
                 return true;
@@ -1410,11 +1410,11 @@ public class TransactionTypeCategoryService {
      * reflects a real structural pattern rather than a weak guess. Kept narrow on purpose — any new
      * token here widens the set of rows that suppress merchant-corpus overrides.
      */
-    private static final java.util.Map<String, java.util.List<String>>
+    private static final java.util.Map<String, List<String>>
             AUTHORITATIVE_CORROBORATING_TOKENS =
                     java.util.Map.of(
                             "transfer",
-                                    java.util.List.of(
+                                    List.of(
                                             "transfer",
                                             "xfer",
                                             "ach transfer",
@@ -1423,23 +1423,23 @@ public class TransactionTypeCategoryService {
                                             "internal transfer",
                                             "zelle"),
                             "deposit",
-                                    java.util.List.of(
+                                    List.of(
                                             "deposit",
                                             "ach credit",
                                             "direct deposit",
                                             "mobile deposit",
                                             "check deposit"),
                             "income",
-                                    java.util.List.of(
+                                    List.of(
                                             "payroll",
                                             "salary",
                                             "direct deposit",
                                             "wages",
                                             "commission"),
                             "refund",
-                                    java.util.List.of(
+                                    List.of(
                                             "refund", "reversal", "credit adjustment", "return"),
-                            "interest", java.util.List.of("interest", "apy", "dividend"));
+                            "interest", List.of("interest", "apy", "dividend"));
 
     /**
      * Regex patterns that corroborate an authoritative category when the relevant tokens appear in
@@ -1808,10 +1808,10 @@ public class TransactionTypeCategoryService {
         // P3: Optimize string operations - use StringBuilder
         final StringBuilder combinedBuilder = new StringBuilder();
         if (merchantName != null) {
-            combinedBuilder.append(merchantName).append(" ");
+            combinedBuilder.append(merchantName).append(' ');
         }
         if (description != null) {
-            combinedBuilder.append(description).append(" ");
+            combinedBuilder.append(description).append(' ');
         }
         if (categoryString != null) {
             combinedBuilder.append(categoryString);
