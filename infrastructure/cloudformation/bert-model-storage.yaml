@@ -19,6 +19,13 @@ Conditions:
 Resources:
   # S3 Bucket for BERT model storage
   BertModelBucket:
+    # CKV_AWS_18: BERT model artifacts; access audited via CloudTrail
+    # S3 data events. Skip server-access logging.
+    Metadata:
+      checkov:
+        skip:
+          - id: CKV_AWS_18
+            comment: Audited via CloudTrail S3 data events
     Type: AWS::S3::Bucket
     Properties:
       BucketName: !Sub 'budgetbuddy-bert-models-${Environment}'

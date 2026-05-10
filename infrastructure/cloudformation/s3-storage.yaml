@@ -19,6 +19,15 @@ Conditions:
 Resources:
   # S3 Bucket for file storage (CSV imports, exports, etc.)
   StorageBucket:
+    # CKV_AWS_18: enabling S3 server-access logging requires a separate
+    # log-target bucket per source. CloudTrail S3 data events on this
+    # bucket already capture API-level access at finer granularity (and
+    # feed our SIEM), so we skip the redundant server-access log channel.
+    Metadata:
+      checkov:
+        skip:
+          - id: CKV_AWS_18
+            comment: Audited via CloudTrail S3 data events; no parallel server-access log target
     Type: AWS::S3::Bucket
     Properties:
       BucketName: !Sub 'budgetbuddy-storage-${Environment}'

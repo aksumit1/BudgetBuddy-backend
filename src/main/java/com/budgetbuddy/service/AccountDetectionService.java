@@ -3597,300 +3597,8 @@ public class AccountDetectionService {
 
         collectFromDirectNamePatterns(lines, excludedWords, candidateMap);
 
-        // STEP 2: Collect candidates from contextual patterns (name in previous line before certain
-        // keywords)
-        // Handle empty lines by looking backward for the previous non-empty line
-        for (int i = 1; i < lines.length; i++) {
-            final String currentLine = lines[i].trim();
-            if (currentLine.isEmpty()) {
-                continue; // Skip empty current line
-
-                // Find previous non-empty line
-            }
-            String previousLine = null;
-            for (int j = i - 1; j >= 0; j--) {
-                final String prevCandidate = lines[j].trim();
-                if (!prevCandidate.isEmpty()) {
-                    previousLine = prevCandidate;
-                    break;
-                }
-            }
-
-            if (previousLine == null || previousLine.isEmpty()) {
-                continue;
-            }
-
-            final String currentLineLower = currentLine.toLowerCase(Locale.ROOT);
-
-            // Pattern: Name in previous line, followed by Address
-            // Handle both 2-line (name, address) and 3-line (name, street, city state ZIP) formats
-            boolean isAddressLine = false;
-            boolean isThreeLineAddress = false;
-
-            // Check if current line looks like an address (street address with number, or contains
-            // address keywords)
-            if (currentLineLower.matches(".*\\baddress\\b.*")
-                    || currentLineLower.matches(".*\\bstreet\\b.*")
-                    || currentLineLower.matches(".*\\bcity\\b.*")
-                    || currentLineLower.matches(".*\\bstate\\b.*")
-                    || currentLineLower.matches(".*\\bzip\\b.*")
-                    || currentLineLower.matches(".*\\bpo\\s+box\\b.*")
-                    || currentLineLower.matches(".*\\bp\\.o\\.\\s+box\\b.*")
-                    || currentLineLower.matches(".*\\bapt\\.?\\b.*")
-                    || currentLineLower.matches(".*\\bapartment\\b.*")
-                    || currentLineLower.matches(B_D_5_D_4_B)
-                    || // ZIP code with optional +4
-                    currentLineLower.matches(
-                            "^\\d+\\s+.*")) { // Line starting with number (street address)
-                isAddressLine = true;
-            }
-
-            // Also check if next line (if exists) contains city/state/ZIP pattern
-            // This handles 3-line format: name, street, city state ZIP
-            // Example: "ASHTON BASHTON HASHTON\n73529 NE 43ST ST\nSEATTLE WA 98119-3579"
-            if (i + 1 < lines.length) {
-                final String nextLine = lines[i + 1].trim();
-                final String nextLineLower = nextLine.toLowerCase(Locale.ROOT);
-                if (!nextLine.isEmpty()) {
-                    // Check if next line has ZIP code pattern (confirms it's a 3-line address)
-                    if (nextLineLower.matches(B_D_5_D_4_B)
-                            || // ZIP code with optional +4 (like "98119-3579")
-                            nextLineLower.matches(
-                                    ".*\\b\\d{5}\\s+\\d{4}\\b.*")) { // ZIP+4 separated by space
-                        // (like "98119 3579")
-                        // Current line should be a street address (starting with number or
-                        // containing street keywords)
-                        if (currentLineLower.matches("^\\d+\\s+.*")
-                                || currentLineLower.matches(".*\\bstreet\\b.*")
-                                || currentLineLower.matches(".*\\bavenue\\b.*")
-                                || currentLineLower.matches(".*\\broad\\b.*")) {
-                            isAddressLine = true;
-                            isThreeLineAddress = true; // Mark as 3-line format (higher preference)
-                        }
-                    }
-                }
-            }
-
-            if (isAddressLine) {
-                final String name = extractAndValidateName(previousLine, excludedWords);
-                if (name != null) {
-                    final boolean isAllCaps =
-                            name.equals(name.toUpperCase(Locale.ROOT)) && name.matches(A_Z);
-                    final int priority =
-                            isThreeLineAddress ? 90 : 80; // Higher priority for 3-line address
-                    final String patternType = isThreeLineAddress ? "3_line_address" : "address";
-                    // Normalize name for map key (trim and lowercase for consistent merging)
-                    final String normalizedName = name.trim().toLowerCase(Locale.ROOT);
-                    final NameCandidate existing = candidateMap.get(normalizedName);
-                    if (existing != null) {
-                        existing.merge(
-                                new NameCandidate(name, priority, patternType, isAllCaps, true));
-                        // Merged account holder name candidate
-                    } else {
-                        candidateMap.put(
-                                normalizedName,
-                                new NameCandidate(name, priority, patternType, isAllCaps, true));
-                    }
-                }
-            }
-
-            // Pattern: Name in previous line, followed by "Member since" or "Customer since"
-            if (currentLineLower.matches(".*\\bmember\\s+since\\b.*")
-                    || currentLineLower.matches(".*\\bcustomer\\s+since\\b.*")) {
-                final String name = extractAndValidateName(previousLine, excludedWords);
-                if (name != null) {
-                    final boolean isAllCaps =
-                            name.equals(name.toUpperCase(Locale.ROOT)) && name.matches(A_Z);
-                    // Normalize name for map key (trim and lowercase for consistent merging)
-                    final String normalizedName = name.trim().toLowerCase(Locale.ROOT);
-                    final NameCandidate existing = candidateMap.get(normalizedName);
-                    if (existing != null) {
-                        existing.merge(
-                                new NameCandidate(name, 85, "member_since", isAllCaps, true));
-                        // Merged account holder name candidate
-                    } else {
-                        candidateMap.put(
-                                normalizedName,
-                                new NameCandidate(name, 85, "member_since", isAllCaps, true));
-                    }
-                }
-            }
-
-            // Pattern: Name in previous line, followed by Account number
-            if (currentLineLower.matches(".*\\baccount\\s+(?:number|ending|#|ending\\s+in)\\b.*")
-                    || currentLineLower.matches(".*\\baccount\\s+ending\\b.*")
-                    || currentLineLower.matches(".*\\baccount\\s+\\*{0,4}\\d{4,}.*")
-                    || currentLineLower.matches(".*\\bclosing\\s+date.*\\baccount\\s+ending\\b.*")
-                    || currentLineLower.matches(".*\\bclosing\\s+date.*")) {
-                final String name = extractAndValidateName(previousLine, excludedWords);
-                if (name != null) {
-                    final boolean isAllCaps =
-                            name.equals(name.toUpperCase(Locale.ROOT)) && name.matches(A_Z);
-                    // Normalize name for map key (trim and lowercase for consistent merging)
-                    final String normalizedName = name.trim().toLowerCase(Locale.ROOT);
-                    final NameCandidate existing = candidateMap.get(normalizedName);
-                    if (existing != null) {
-                        existing.merge(
-                                new NameCandidate(name, 75, "account_number", isAllCaps, true));
-                        // Merged account holder name candidate
-                    } else {
-                        candidateMap.put(
-                                normalizedName,
-                                new NameCandidate(name, 75, "account_number", isAllCaps, true));
-                    }
-                }
-            }
-
-            // Pattern: Name followed by Card number or Card ending in
-            if (currentLineLower.matches(".*\\bcard\\s+(?:number|ending|#|ending\\s+in)\\b.*")
-                    || currentLineLower.matches(".*\\bcard\\s+ending\\b.*")
-                    || currentLineLower.matches(".*\\bcard\\s+\\*{0,4}\\d{4,}.*")
-                    || currentLineLower.matches(".*\\b\\d{4}\\s+\\d{4}\\s+\\d{4}\\s+\\d{4}.*")) {
-                final String name = extractAndValidateName(previousLine, excludedWords);
-                if (name != null) {
-                    final boolean isAllCaps =
-                            name.equals(name.toUpperCase(Locale.ROOT)) && name.matches(A_Z);
-                    // Normalize name for map key (trim and lowercase for consistent merging)
-                    final String normalizedName = name.trim().toLowerCase(Locale.ROOT);
-                    final NameCandidate existing = candidateMap.get(normalizedName);
-                    if (existing != null) {
-                        existing.merge(new NameCandidate(name, 75, "card_number", isAllCaps, true));
-                        // Merged account holder name candidate
-                    } else {
-                        candidateMap.put(
-                                normalizedName,
-                                new NameCandidate(name, 75, "card_number", isAllCaps, true));
-                    }
-                }
-            }
-
-            // Pattern: Name on same line followed by Account Number or Account Ending in
-            final Pattern nameBeforeAccountPattern =
-                    Pattern.compile(
-                            "^(.+?)\\s+(?:account\\s+(?:number|ending|#|ending\\s+in)|account\\s+ending|account\\s+\\*{0,4}\\d{4,}|\\d{1,9}\\s*-\\s*\\d{4,6})",
-                            Pattern.CASE_INSENSITIVE);
-            Matcher nameMatcher = nameBeforeAccountPattern.matcher(currentLine);
-            if (nameMatcher.find()) {
-                final String name =
-                        extractAndValidateName(nameMatcher.group(1).trim(), excludedWords);
-                if (name != null) {
-                    final boolean isAllCaps =
-                            name.equals(name.toUpperCase(Locale.ROOT)) && name.matches(A_Z);
-                    // Normalize name for map key (trim and lowercase for consistent merging)
-                    final String normalizedName = name.trim().toLowerCase(Locale.ROOT);
-                    final NameCandidate existing = candidateMap.get(normalizedName);
-                    if (existing != null) {
-                        existing.merge(
-                                new NameCandidate(name, 70, "same_line_account", isAllCaps, false));
-                        // Merged account holder name candidate
-                    } else {
-                        candidateMap.put(
-                                normalizedName,
-                                new NameCandidate(name, 70, "same_line_account", isAllCaps, false));
-                    }
-                }
-            }
-
-            // Pattern: Name on same line followed by Card number or Card ending in
-            final Pattern nameBeforeCardPattern =
-                    Pattern.compile(
-                            "^(.+?)\\s+(?:card\\s+(?:number|ending|#|ending\\s+in)|card\\s+ending|card\\s+\\*{0,4}\\d{4,}|\\d{4}\\s+\\d{4}\\s+\\d{4}\\s+\\d{4})",
-                            Pattern.CASE_INSENSITIVE);
-            nameMatcher = nameBeforeCardPattern.matcher(currentLine);
-            if (nameMatcher.find()) {
-                final String name =
-                        extractAndValidateName(nameMatcher.group(1).trim(), excludedWords);
-                if (name != null) {
-                    final boolean isAllCaps =
-                            name.equals(name.toUpperCase(Locale.ROOT)) && name.matches(A_Z);
-                    // Normalize name for map key (trim and lowercase for consistent merging)
-                    final String normalizedName = name.trim().toLowerCase(Locale.ROOT);
-                    final NameCandidate existing = candidateMap.get(normalizedName);
-                    if (existing != null) {
-                        existing.merge(
-                                new NameCandidate(name, 70, "same_line_card", isAllCaps, false));
-                        // Merged account holder name candidate
-                    } else {
-                        candidateMap.put(
-                                normalizedName,
-                                new NameCandidate(name, 70, "same_line_card", isAllCaps, false));
-                    }
-                }
-            }
-        }
-
-        // STEP 2B: Also collect same-line patterns for all lines (handles single-line cases)
-        for (final String line : lines) {
-            final String trimmed = line.trim();
-            if (trimmed.isEmpty()) {
-                continue;
-            }
-
-            // Pattern: Name on same line followed by Account Number or Account Ending in
-            final Pattern nameBeforeAccountPattern =
-                    Pattern.compile(
-                            "^(.+?)\\s+(?:account\\s+(?:number|ending|#|ending\\s+in)|account\\s+ending|account\\s+\\*{0,4}\\d{4,}|\\d{1,9}\\s*-\\s*\\d{4,6})",
-                            Pattern.CASE_INSENSITIVE);
-            Matcher nameMatcher = nameBeforeAccountPattern.matcher(trimmed);
-            if (nameMatcher.find()) {
-                final String name =
-                        extractAndValidateName(nameMatcher.group(1).trim(), excludedWords);
-                if (name != null) {
-                    final boolean isAllCaps =
-                            name.equals(name.toUpperCase(Locale.ROOT)) && name.matches(A_Z);
-                    // Normalize name for map key (trim and lowercase for consistent merging)
-                    final String normalizedName = name.trim().toLowerCase(Locale.ROOT);
-                    final NameCandidate existing = candidateMap.get(normalizedName);
-                    if (existing != null) {
-                        existing.merge(
-                                new NameCandidate(
-                                        name, 70, "same_line_account_all", isAllCaps, false));
-                        // Merged account holder name candidate
-                    } else {
-                        candidateMap.put(
-                                normalizedName,
-                                new NameCandidate(
-                                        name, 70, "same_line_account_all", isAllCaps, false));
-                    }
-                }
-            }
-
-            // Pattern: Name on same line followed by Card number or Card ending in
-            final Pattern nameBeforeCardPattern =
-                    Pattern.compile(
-                            "^(.+?)\\s+(?:card\\s+(?:number|ending|#|ending\\s+in)|card\\s+ending|card\\s+\\*{0,4}\\d{4,}|\\d{4}\\s+\\d{4}\\s+\\d{4}\\s+\\d{4})",
-                            Pattern.CASE_INSENSITIVE);
-            nameMatcher = nameBeforeCardPattern.matcher(trimmed);
-            if (nameMatcher.find()) {
-                final String name =
-                        extractAndValidateName(nameMatcher.group(1).trim(), excludedWords);
-                if (name != null) {
-                    final boolean isAllCaps =
-                            name.equals(name.toUpperCase(Locale.ROOT)) && name.matches(A_Z);
-                    // Normalize name for map key (trim and lowercase for consistent merging)
-                    final String normalizedName = name.trim().toLowerCase(Locale.ROOT);
-                    final NameCandidate existing = candidateMap.get(normalizedName);
-                    if (existing != null) {
-                        existing.merge(
-                                new NameCandidate(
-                                        name, 70, "same_line_card_all", isAllCaps, false));
-                        LOGGER.debug(
-                                "Merged account holder name candidate (same line card - all lines): {} (frequency: {}, patterns: {})",
-                                name,
-                                existing.frequency,
-                                existing.patternTypes);
-                    } else {
-                        candidateMap.put(
-                                normalizedName,
-                                new NameCandidate(
-                                        name, 70, "same_line_card_all", isAllCaps, false));
-                        LOGGER.debug(
-                                "Collected account holder name candidate (same line card - all lines): {}",
-                                name);
-                    }
-                }
-            }
-        }
+        collectFromContextualLinePatterns(lines, excludedWords, candidateMap);
+        collectFromSameLinePatterns(lines, excludedWords, candidateMap);
 
         final List<NameCandidate> validCandidates = filterNameCandidates(candidateMap);
         if (validCandidates.isEmpty()) {
@@ -4038,6 +3746,174 @@ public class AccountDetectionService {
             existing.merge(fresh);
         } else {
             candidateMap.put(normalizedName, fresh);
+        }
+    }
+
+    /** Single regex shared between STEP 2 and 2B: name token before "Account Number / Ending". */
+    private static final Pattern NAME_BEFORE_ACCOUNT_PATTERN =
+            Pattern.compile(
+                    "^(.+?)\\s+(?:account\\s+(?:number|ending|#|ending\\s+in)|account\\s+ending|account\\s+\\*{0,4}\\d{4,}|\\d{1,9}\\s*-\\s*\\d{4,6})",
+                    Pattern.CASE_INSENSITIVE);
+
+    /** Single regex shared between STEP 2 and 2B: name token before "Card Number / Ending". */
+    private static final Pattern NAME_BEFORE_CARD_PATTERN =
+            Pattern.compile(
+                    "^(.+?)\\s+(?:card\\s+(?:number|ending|#|ending\\s+in)|card\\s+ending|card\\s+\\*{0,4}\\d{4,}|\\d{4}\\s+\\d{4}\\s+\\d{4}\\s+\\d{4})",
+                    Pattern.CASE_INSENSITIVE);
+
+    /**
+     * STEP 2: for each non-empty line, the *previous* non-empty line might be
+     * a name if the current line looks like an address, member-since, account
+     * number, or card number. Also handles same-line "Name ... Account #"
+     * patterns where the name and the marker are on one line.
+     */
+    private void collectFromContextualLinePatterns(
+            final String[] lines,
+            final List<String> excludedWords,
+            final Map<String, NameCandidate> candidateMap) {
+        for (int i = 1; i < lines.length; i++) {
+            final String currentLine = lines[i].trim();
+            if (currentLine.isEmpty()) {
+                continue;
+            }
+            final String previousLine = previousNonEmptyLine(lines, i);
+            if (previousLine == null || previousLine.isEmpty()) {
+                continue;
+            }
+            final String currentLineLower = currentLine.toLowerCase(Locale.ROOT);
+
+            // Address pattern (2-line and 3-line forms)
+            final boolean isThreeLine = isThreeLineAddress(lines, i, currentLineLower);
+            if (isThreeLine || isAddressLine(currentLineLower)) {
+                final String name = extractAndValidateName(previousLine, excludedWords);
+                if (name != null) {
+                    final int priority = isThreeLine ? 90 : 80;
+                    final String patternType = isThreeLine ? "3_line_address" : "address";
+                    addOrMergeCandidate(candidateMap, name, priority, patternType, true);
+                }
+            }
+            // "Member since" / "Customer since"
+            if (currentLineLower.matches(".*\\bmember\\s+since\\b.*")
+                    || currentLineLower.matches(".*\\bcustomer\\s+since\\b.*")) {
+                final String name = extractAndValidateName(previousLine, excludedWords);
+                if (name != null) {
+                    addOrMergeCandidate(candidateMap, name, 85, "member_since", true);
+                }
+            }
+            // Account number markers
+            if (currentLineLower.matches(".*\\baccount\\s+(?:number|ending|#|ending\\s+in)\\b.*")
+                    || currentLineLower.matches(".*\\baccount\\s+ending\\b.*")
+                    || currentLineLower.matches(".*\\baccount\\s+\\*{0,4}\\d{4,}.*")
+                    || currentLineLower.matches(".*\\bclosing\\s+date.*\\baccount\\s+ending\\b.*")
+                    || currentLineLower.matches(".*\\bclosing\\s+date.*")) {
+                final String name = extractAndValidateName(previousLine, excludedWords);
+                if (name != null) {
+                    addOrMergeCandidate(candidateMap, name, 75, "account_number", true);
+                }
+            }
+            // Card number markers
+            if (currentLineLower.matches(".*\\bcard\\s+(?:number|ending|#|ending\\s+in)\\b.*")
+                    || currentLineLower.matches(".*\\bcard\\s+ending\\b.*")
+                    || currentLineLower.matches(".*\\bcard\\s+\\*{0,4}\\d{4,}.*")
+                    || currentLineLower.matches(".*\\b\\d{4}\\s+\\d{4}\\s+\\d{4}\\s+\\d{4}.*")) {
+                final String name = extractAndValidateName(previousLine, excludedWords);
+                if (name != null) {
+                    addOrMergeCandidate(candidateMap, name, 75, "card_number", true);
+                }
+            }
+            // Same-line patterns also tried here (in addition to STEP 2B which sweeps all lines)
+            tryNameBeforeMarker(currentLine, excludedWords, NAME_BEFORE_ACCOUNT_PATTERN,
+                    "same_line_account", candidateMap);
+            tryNameBeforeMarker(currentLine, excludedWords, NAME_BEFORE_CARD_PATTERN,
+                    "same_line_card", candidateMap);
+        }
+    }
+
+    /**
+     * STEP 2B: same-line "Name ... Account Number" / "Name ... Card Number" sweep
+     * across every line. Catches single-line statement headers that STEP 2's
+     * previous-line walk doesn't cover.
+     */
+    private void collectFromSameLinePatterns(
+            final String[] lines,
+            final List<String> excludedWords,
+            final Map<String, NameCandidate> candidateMap) {
+        for (final String line : lines) {
+            final String trimmed = line.trim();
+            if (trimmed.isEmpty()) {
+                continue;
+            }
+            tryNameBeforeMarker(trimmed, excludedWords, NAME_BEFORE_ACCOUNT_PATTERN,
+                    "same_line_account_all", candidateMap);
+            tryNameBeforeMarker(trimmed, excludedWords, NAME_BEFORE_CARD_PATTERN,
+                    "same_line_card_all", candidateMap);
+        }
+    }
+
+    private String previousNonEmptyLine(final String[] lines, final int currentIndex) {
+        for (int j = currentIndex - 1; j >= 0; j--) {
+            final String prev = lines[j].trim();
+            if (!prev.isEmpty()) {
+                return prev;
+            }
+        }
+        return null;
+    }
+
+    /** True if the line shows the hallmarks of a street address (ZIP, "PO Box", leading number, …). */
+    private boolean isAddressLine(final String currentLineLower) {
+        return currentLineLower.matches(".*\\baddress\\b.*")
+                || currentLineLower.matches(".*\\bstreet\\b.*")
+                || currentLineLower.matches(".*\\bcity\\b.*")
+                || currentLineLower.matches(".*\\bstate\\b.*")
+                || currentLineLower.matches(".*\\bzip\\b.*")
+                || currentLineLower.matches(".*\\bpo\\s+box\\b.*")
+                || currentLineLower.matches(".*\\bp\\.o\\.\\s+box\\b.*")
+                || currentLineLower.matches(".*\\bapt\\.?\\b.*")
+                || currentLineLower.matches(".*\\bapartment\\b.*")
+                || currentLineLower.matches(B_D_5_D_4_B)
+                || currentLineLower.matches("^\\d+\\s+.*");
+    }
+
+    /**
+     * Three-line address form (name / street / city-state-ZIP). Returns true
+     * when the next line has a ZIP and the current line looks like a street.
+     */
+    private boolean isThreeLineAddress(
+            final String[] lines, final int currentIndex, final String currentLineLower) {
+        if (currentIndex + 1 >= lines.length) {
+            return false;
+        }
+        final String nextLine = lines[currentIndex + 1].trim();
+        if (nextLine.isEmpty()) {
+            return false;
+        }
+        final String nextLineLower = nextLine.toLowerCase(Locale.ROOT);
+        final boolean nextHasZip =
+                nextLineLower.matches(B_D_5_D_4_B)
+                        || nextLineLower.matches(".*\\b\\d{5}\\s+\\d{4}\\b.*");
+        if (!nextHasZip) {
+            return false;
+        }
+        return currentLineLower.matches("^\\d+\\s+.*")
+                || currentLineLower.matches(".*\\bstreet\\b.*")
+                || currentLineLower.matches(".*\\bavenue\\b.*")
+                || currentLineLower.matches(".*\\broad\\b.*");
+    }
+
+    private void tryNameBeforeMarker(
+            final String line,
+            final List<String> excludedWords,
+            final Pattern pattern,
+            final String patternType,
+            final Map<String, NameCandidate> candidateMap) {
+        final Matcher m = pattern.matcher(line);
+        if (!m.find()) {
+            return;
+        }
+        final String name = extractAndValidateName(m.group(1).trim(), excludedWords);
+        if (name != null) {
+            addOrMergeCandidate(candidateMap, name, 70, patternType, false);
         }
     }
 

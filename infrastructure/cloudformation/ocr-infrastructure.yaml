@@ -67,6 +67,13 @@ Resources:
 
   # S3 Bucket for OCR assets (language data files, etc.)
   OCRAssetsBucket:
+    # CKV_AWS_18: OCR language-data artifacts; access audited via CloudTrail
+    # S3 data events. Skip server-access logging.
+    Metadata:
+      checkov:
+        skip:
+          - id: CKV_AWS_18
+            comment: Audited via CloudTrail S3 data events
     Type: AWS::S3::Bucket
     Properties:
       BucketName: !Sub 'budgetbuddy-ocr-assets-${Environment}-${AWS::AccountId}'

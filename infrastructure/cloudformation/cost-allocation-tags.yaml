@@ -24,6 +24,19 @@ Resources:
           Value: CloudFormation
 
   CostAllocationTagsFunction:
+    # CKV_AWS_115/116/117: CloudFormation custom-resource Lambda — invoked
+    # once during stack lifecycle to activate cost-allocation tags. No user
+    # traffic, no persistent state, no async retries. Concurrency caps,
+    # DLQ, and private VPC apply to sustained workloads, not lifecycle hooks.
+    Metadata:
+      checkov:
+        skip:
+          - id: CKV_AWS_115
+            comment: CFN custom-resource Lambda; no concurrent-request profile
+          - id: CKV_AWS_116
+            comment: Synchronous CFN custom resource; DLQ unreachable
+          - id: CKV_AWS_117
+            comment: AWS API client; private VPC adds NAT/Endpoint cost without security gain
     Type: AWS::Lambda::Function
     Properties:
       FunctionName: !Sub '${AWS::StackName}-cost-allocation-tags'

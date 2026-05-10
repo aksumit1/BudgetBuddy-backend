@@ -23,6 +23,25 @@ Parameters:
 Resources:
   # S3 Bucket for static assets
   StaticAssetsBucket:
+    # CKV_AWS_53/54/55/56 deliberately not enforced: this bucket hosts a
+    # public static website (S3 WebsiteConfiguration below) behind CloudFront
+    # and needs PublicAccessBlock disabled to serve objects via the website
+    # endpoint. The bucket policy further down grants only the well-known
+    # public files. CKV_AWS_18 not enforced — access patterns are captured
+    # via CloudFront access logs to CloudFrontLogsBucket.
+    Metadata:
+      checkov:
+        skip:
+          - id: CKV_AWS_53
+            comment: Public static-asset bucket; site needs public read via website endpoint
+          - id: CKV_AWS_54
+            comment: See CKV_AWS_53; bucket policy explicitly limits public access to well-known files
+          - id: CKV_AWS_55
+            comment: See CKV_AWS_53
+          - id: CKV_AWS_56
+            comment: See CKV_AWS_53
+          - id: CKV_AWS_18
+            comment: Logged via CloudFront access logs, not S3 server access logs
     Type: AWS::S3::Bucket
     Properties:
       BucketName: !Sub 'budgetbuddy-static-assets-${Environment}'
@@ -79,6 +98,23 @@ Resources:
 
   # CloudFront Distribution for serving static assets
   StaticAssetsDistribution:
+    # CKV_AWS_68/86/174 deliberately not enforced on this distribution:
+    # it serves only well-known static files (apple-app-site-association,
+    # 404/error pages) on a non-monetary path. WAF + WAF rules + access
+    # logging across two distributions add per-request cost without a
+    # threat model for static-error pages, and the default CloudFront
+    # certificate doesn't expose MinimumProtocolVersion. Production API
+    # traffic uses CloudFrontDistribution above (cloudfront.yaml) which
+    # has WAF, logging, and TLSv1.2_2021 explicitly set.
+    Metadata:
+      checkov:
+        skip:
+          - id: CKV_AWS_68
+            comment: Static-asset distribution; main API distribution has WAF
+          - id: CKV_AWS_86
+            comment: Static-asset distribution; logs not retained for static error pages
+          - id: CKV_AWS_174
+            comment: Default CF cert in use; no MinimumProtocolVersion knob. Main API distribution enforces TLSv1.2_2021.
     Type: AWS::CloudFront::Distribution
     Properties:
       DistributionConfig:

@@ -108,6 +108,15 @@ Resources:
 
   # IAM Role for SNS Platform Applications
   SNSPlatformApplicationRole:
+    # CKV_AWS_111: this role is assumed by the SNS service to publish
+    # CloudWatch metrics and write SNS-mobile-feedback logs for push
+    # delivery success/failure. CloudWatch metric namespaces are
+    # account-scoped — there is no narrower ARN to constrain to.
+    Metadata:
+      checkov:
+        skip:
+          - id: CKV_AWS_111
+            comment: SNS push-feedback logs/metrics — account-scoped, no narrower ARN exists
     Type: AWS::IAM::Role
     Properties:
       RoleName: !Sub '${TablePrefix}-SNSPlatformApplicationRole-${Environment}'

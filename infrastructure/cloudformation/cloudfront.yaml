@@ -133,9 +133,17 @@ Resources:
             Value: engineering
 
   CloudFrontLogsBucket:
+    # CKV_AWS_18 not applicable: bucket IS the access-log target.
+    Metadata:
+      checkov:
+        skip:
+          - id: CKV_AWS_18
+            comment: Self-referential — bucket is the CloudFront access-log target
     Type: AWS::S3::Bucket
     Properties:
       BucketName: !Sub '${AWS::StackName}-cloudfront-logs-${AWS::AccountId}'
+      VersioningConfiguration:
+        Status: Enabled  # CKV_AWS_21
       PublicAccessBlockConfiguration:
         BlockPublicAcls: true
         BlockPublicPolicy: true

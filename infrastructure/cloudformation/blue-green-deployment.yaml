@@ -120,6 +120,22 @@ Resources:
 
   # Deployment Validation Lambda
   DeploymentValidationFunction:
+    # CKV_AWS_115/116/117/173: deployment-validation Lambda invoked
+    # synchronously by CodeDeploy/CodePipeline during a deploy. The
+    # environment variables are non-secret (target-group ARN +
+    # health-check timeout); concurrency, DLQ and VPC controls don't
+    # apply to short-lived deploy hooks.
+    Metadata:
+      checkov:
+        skip:
+          - id: CKV_AWS_115
+            comment: Synchronous deploy hook; no concurrent traffic
+          - id: CKV_AWS_116
+            comment: Synchronous invocation; DLQ unreachable
+          - id: CKV_AWS_117
+            comment: Calls ELBv2 API only; VPC adds cost without security gain
+          - id: CKV_AWS_173
+            comment: Env vars are non-secret deploy parameters (TG ARN, timeout) — no PII or credentials
     Type: AWS::Lambda::Function
     Properties:
       FunctionName: !Sub '${AWS::StackName}-deployment-validation'

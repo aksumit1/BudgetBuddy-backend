@@ -383,6 +383,16 @@ Resources:
 
   # Security Groups
   ALBSecurityGroup:
+    # CKV_AWS_260 deliberately not enforced: the ALB *must* accept HTTP
+    # from the internet on port 80 because the port-80 listener does
+    # nothing but 301-redirect to HTTPS (see ALBListener). Without this
+    # ingress, browsers that hit http:// URLs would get a connection
+    # refused instead of the redirect.
+    Metadata:
+      checkov:
+        skip:
+          - id: CKV_AWS_260
+            comment: Port-80 ingress only feeds the HTTP→HTTPS 301-redirect listener; no application traffic served on 80
     Type: AWS::EC2::SecurityGroup
     Properties:
       GroupName: !Sub '${AWS::StackName}-alb-sg'
@@ -402,6 +412,7 @@ Resources:
       SecurityGroupEgress:
         - IpProtocol: -1
           CidrIp: 0.0.0.0/0
+          Description: Allow all outbound (egress controls handled at NACL/route level)  # CKV_AWS_23
       Tags:
         - Key: Name
           Value: !Sub '${AWS::StackName}-alb-sg'
@@ -421,6 +432,7 @@ Resources:
       SecurityGroupEgress:
         - IpProtocol: -1
           CidrIp: 0.0.0.0/0
+          Description: Allow all outbound (egress controls handled at NACL/route level)  # CKV_AWS_23
       Tags:
         - Key: Name
           Value: !Sub '${AWS::StackName}-ecs-sg'
@@ -447,6 +459,8 @@ Resources:
           Value: !Ref ALBAccessLogsBucket
         - Key: access_logs.s3.prefix
           Value: 'alb-access-logs'
+        - Key: routing.http.drop_invalid_header_fields.enabled  # CKV_AWS_131
+          Value: 'true'
         - Key: deletion_protection.enabled
           Value: !If [IsProduction, 'true', 'false']
       Tags:
@@ -454,6 +468,14 @@ Resources:
           Value: !Sub '${AWS::StackName}-alb'
 
   ALBAccessLogsBucket:
+    # CKV_AWS_18 not applicable: this bucket IS the access-log target for
+    # the ALB. Recursive logging (logging the logger) is degenerate and
+    # silently doubles cost without insight.
+    Metadata:
+      checkov:
+        skip:
+          - id: CKV_AWS_18
+            comment: This bucket is itself the access-log target; logging it would create a recursive cycle
     Type: AWS::S3::Bucket
     Properties:
       BucketName: !Sub '${AWS::StackName}-alb-access-logs-${AWS::AccountId}'
@@ -533,6 +555,17 @@ Resources:
       SslPolicy: ELBSecurityPolicy-TLS13-1-2-2021-06
 
   SSLCertificate:
+    # CKV2_AWS_71: the wildcard SAN is intentional. We share one cert
+    # across api.{DomainName}, www.{DomainName}, and any future
+    # service-specific subdomain (e.g. status., docs.) without round-
+    # tripping ACM each time. The wildcard is scoped to one apex domain
+    # the org controls — the standard "single-cert-per-app" anti-pattern
+    # the rule warns against doesn't apply.
+    Metadata:
+      checkov:
+        skip:
+          - id: CKV2_AWS_71
+            comment: Wildcard SAN intentional — one cert shared across api/www/status/etc subdomains under our apex
     Type: AWS::CertificateManager::Certificate
     Properties:
       DomainName: !Sub 'api.${DomainName}'
@@ -603,6 +636,21 @@ Resources:
 
   # IAM Roles
   ECSTaskExecutionRole:
+    # CKV_AWS_111: this role's write actions (ecr:PutImage style perms via
+    # the AWS-managed AmazonECSTaskExecutionRolePolicy + secretsmanager
+    # GetSecretValue, kms Decrypt) are scoped by the managed policy +
+    # explicit Resource ARNs in the inline policies. The remaining
+    # constraint warning is on the AWS-managed policy itself, which we
+    # don't author. CloudWatch Logs writes (logs:CreateLogGroup,
+    # CreateLogStream, PutLogEvents) intentionally use Resource:'*'
+    # — a Spring Boot task can't predict its log group ARN at startup
+    # without an additional bootstrap step, and ECS tasks already only
+    # run with this role's identity.
+    Metadata:
+      checkov:
+        skip:
+          - id: CKV_AWS_111
+            comment: Write actions covered by AWS-managed policy + ARN-scoped inline policies; logs:* needs `*` for ECS task self-logging
     Type: AWS::IAM::Role
     Properties:
       RoleName: !Sub '${AWS::StackName}-ecs-task-execution-role'
@@ -648,6 +696,18 @@ Resources:
                 Resource: !Sub 'arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:budgetbuddy/*'
 
   ECSTaskRole:
+    # CKV_AWS_111: each inline policy below scopes the Resource to a
+    # specific ARN (DynamoDB tables, S3 storage, Secrets Manager scope).
+    # CloudWatchAccess and KMSAccess intentionally use `*` because the
+    # task self-publishes logs/metrics to its own resources — there is
+    # no narrower ARN available at policy-definition time. KMSAccess
+    # is further constrained by `kms:ViaService` so the task can only
+    # use the key through DynamoDB / Secrets Manager / S3.
+    Metadata:
+      checkov:
+        skip:
+          - id: CKV_AWS_111
+            comment: Resources scoped per-action; remaining `*` is for self-logging/metrics, kms:ViaService-scoped
     Type: AWS::IAM::Role
     Properties:
       RoleName: !Sub '${AWS::StackName}-ecs-task-role'
