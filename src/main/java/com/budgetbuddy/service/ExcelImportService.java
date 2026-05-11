@@ -131,50 +131,50 @@ public class ExcelImportService {
      * @param userId The user ID (used for account matching)
      * @param password Optional password for password-protected files
      */
+    /**
+     * Log the workbook's core properties (title/subject/creator) and a one-line summary of every
+     * sheet. Diagnostic-only — used to investigate import failures from real-world Excel exports
+     * where the metadata sometimes carries the bank name or account hint.
+     */
+    private static void logExcelMetadataAndSheets(final Workbook workbook) {
+        LOGGER.info("=== EXCEL FILE METADATA ANALYSIS ===");
+        if (workbook instanceof XSSFWorkbook) {
+            final org.apache.poi.ooxml.POIXMLProperties props =
+                    ((XSSFWorkbook) workbook).getProperties();
+            if (props != null) {
+                final org.apache.poi.ooxml.POIXMLProperties.CoreProperties coreProps =
+                        props.getCoreProperties();
+                if (coreProps != null) {
+                    logIfNotBlank("Excel file title: '{}'", coreProps.getTitle());
+                    logIfNotBlank("Excel file subject: '{}'", coreProps.getSubject());
+                    logIfNotBlank("Excel file creator: '{}'", coreProps.getCreator());
+                }
+            }
+        }
+        final int sheetCount = workbook.getNumberOfSheets();
+        LOGGER.info("Excel file has {} sheet(s)", sheetCount);
+        for (int i = 0; i < sheetCount; i++) {
+            final Sheet sheet = workbook.getSheetAt(i);
+            LOGGER.info(
+                    "Sheet {}: '{}' ({} rows)",
+                    i + 1,
+                    sheet.getSheetName(),
+                    sheet.getPhysicalNumberOfRows());
+        }
+    }
+
+    private static void logIfNotBlank(final String format, final String value) {
+        if (value != null && !value.isBlank()) {
+            LOGGER.info(format, value);
+        }
+    }
+
     public ImportResult parseExcel(
             final InputStream inputStream, String filename, final String userId, String password) {
         final ImportResult result = new ImportResult();
 
         try (Workbook workbook = createWorkbook(inputStream)) {
-            // Check file metadata and sheet names for account information
-            LOGGER.info("=== EXCEL FILE METADATA ANALYSIS ===");
-
-            // Check workbook properties
-            if (workbook instanceof XSSFWorkbook) {
-                final org.apache.poi.ooxml.POIXMLProperties props =
-                        ((XSSFWorkbook) workbook).getProperties();
-                if (props != null) {
-                    final org.apache.poi.ooxml.POIXMLProperties.CoreProperties coreProps =
-                            props.getCoreProperties();
-                    if (coreProps != null) {
-                        final String title = coreProps.getTitle();
-                        final String subject = coreProps.getSubject();
-                        final String creator = coreProps.getCreator();
-                        if (title != null && !title.isBlank()) {
-                            LOGGER.info("Excel file title: '{}'", title);
-                        }
-                        if (subject != null && !subject.isBlank()) {
-                            LOGGER.info("Excel file subject: '{}'", subject);
-                        }
-                        if (creator != null && !creator.isBlank()) {
-                            LOGGER.info("Excel file creator: '{}'", creator);
-                        }
-                    }
-                }
-            }
-
-            // Check all sheet names
-            final int sheetCount = workbook.getNumberOfSheets();
-            LOGGER.info("Excel file has {} sheet(s)", sheetCount);
-            for (int i = 0; i < sheetCount; i++) {
-                final Sheet sheet = workbook.getSheetAt(i);
-                final String sheetName = sheet.getSheetName();
-                LOGGER.info(
-                        "Sheet {}: '{}' ({} rows)",
-                        i + 1,
-                        sheetName,
-                        sheet.getPhysicalNumberOfRows());
-            }
+            logExcelMetadataAndSheets(workbook);
 
             // Get first sheet (most common case)
             final Sheet sheet = workbook.getSheetAt(0);
