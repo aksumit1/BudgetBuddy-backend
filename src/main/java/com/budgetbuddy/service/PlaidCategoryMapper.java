@@ -227,8 +227,8 @@ public class PlaidCategoryMapper {
      * @param plaidCategoryDetailed Plaid's detailed category (e.g., "RESTAURANTS")
      * @param merchantName Merchant name for additional context
      * @param description Transaction description for additional context
-     * @param paymentChannel Payment channel (e.g., ACH, "online", "in_store") - optional, used
-     *     for ACH credit detection
+     * @param paymentChannel Payment channel (e.g., ACH, "online", "in_store") - optional, used for
+     *     ACH credit detection
      * @param amount Transaction amount - optional, used for ACH credit detection (positive =
      *     credit)
      * @return CategoryMapping with primary, detailed, and override flag
@@ -357,8 +357,7 @@ public class PlaidCategoryMapper {
         final boolean isACHDebitPattern =
                 combinedTextLower.contains("ach electronic debit")
                         || combinedTextLower.contains("ach debit")
-                        || (combinedTextLower.contains(ACH)
-                                && combinedTextLower.contains("debit"));
+                        || (combinedTextLower.contains(ACH) && combinedTextLower.contains("debit"));
 
         // ACH credit by channel: paymentChannel is ACH AND not an ACH debit pattern
         // CRITICAL: For channel-based detection without explicit credit/debit keywords in
@@ -1013,8 +1012,7 @@ public class PlaidCategoryMapper {
                 || combinedText.contains("property income")
                 || combinedText.contains("rent payment received")
                 || (combinedText.contains("rent")
-                        && (combinedText.contains("received")
-                                || combinedText.contains(INCOME)))) {
+                        && (combinedText.contains("received") || combinedText.contains(INCOME)))) {
             return RENTINCOME;
         }
 

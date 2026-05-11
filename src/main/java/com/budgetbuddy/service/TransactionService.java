@@ -47,7 +47,8 @@ public class TransactionService {
     private static final String UNKNOWN = "unknown";
     private static final String PAYMENT = "PAYMENT";
     private static final String TRANSACTION_ID_IS_REQUIRED = "Transaction ID is required";
-    private static final String TRANSACTION_DOES_NOT_BELONG_TO_USER = "Transaction does not belong to user";
+    private static final String TRANSACTION_DOES_NOT_BELONG_TO_USER =
+            "Transaction does not belong to user";
     private static final String TRANSACTION_NOT_FOUND = "Transaction not found";
     private static final String USER_IS_REQUIRED = "User is required";
     private static final String PAYMENT_2 = "payment";
@@ -266,8 +267,8 @@ public class TransactionService {
                                 // Payment category transactions
                                 final boolean isPaymentCategory =
                                         PAYMENT_2.equalsIgnoreCase(t.getCategoryPrimary())
-                                                || PAYMENT_2
-                                                        .equalsIgnoreCase(t.getCategoryDetailed());
+                                                || PAYMENT_2.equalsIgnoreCase(
+                                                        t.getCategoryDetailed());
                                 return isPositiveAmount || isPaymentCategory;
                             })
                     .collect(Collectors.toList());
@@ -1480,8 +1481,7 @@ public class TransactionService {
             final boolean isPaymentCategory =
                     PAYMENT_2.equalsIgnoreCase(candidate.getCategoryPrimary())
                             || PAYMENT_2.equalsIgnoreCase(candidate.getCategoryDetailed());
-            final boolean isPaymentType =
-                    PAYMENT.equalsIgnoreCase(candidate.getTransactionType());
+            final boolean isPaymentType = PAYMENT.equalsIgnoreCase(candidate.getTransactionType());
             if (!isPaymentCategory && !isPaymentType) {
                 continue;
             }

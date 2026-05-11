@@ -90,15 +90,23 @@ public class TransactionController {
     private static final String NULL = "null";
     private static final String OTHER = "other";
     private static final String CSV = ".csv";
-    private static final String ACCOUNT_DETECTION_FROM_FILENAME_WILL_BE_LIMITED_FRONTEND_SHOULD_PRESERVE_ORIGINAL_FILENAME_FOR_BETTER_ACCOUNT_DETECTION = "Account detection from filename will be limited. Frontend should preserve original filename for better account detection.";
-    private static final String AMOUNT_MUST_BE_BETWEEN_999_999_999_99_AND_999_999_999_99 = "Amount must be between -999,999,999.99 and 999,999,999.99";
+    private static final String
+            ACCOUNT_DETECTION_FROM_FILENAME_WILL_BE_LIMITED_FRONTEND_SHOULD_PRESERVE_ORIGINAL_FILENAME_FOR_BETTER_ACCOUNT_DETECTION =
+                    "Account detection from filename will be limited. Frontend should preserve original filename for better account detection.";
+    private static final String AMOUNT_MUST_BE_BETWEEN_999_999_999_99_AND_999_999_999_99 =
+            "Amount must be between -999,999,999.99 and 999,999,999.99";
     private static final String PAGE_NUMBER_MUST_BE_0 = "Page number must be >= 0";
     private static final String TRANSACTION_ID_IS_REQUIRED = "Transaction ID is required";
     private static final String USER_NOT_AUTHENTICATED = "User not authenticated";
     private static final String USER_NOT_FOUND = "User not found";
-    private static final String U26A0_UFE0F_WARNING_FILENAME_IS_A_UUID_ORIGINAL_FILENAME_WAS_NOT_PRESERVED_BY_FRONTEND = "\u26a0\ufe0f WARNING: Filename is a UUID \'{}\' - Original filename was not preserved by frontend. ";
-    private static final String U274C_BOTH_FILENAME_PARAMETER_AND_MULTIPARTFILE_GETORIGINALFILENAME_RETURNED_NULL_EMPTY_USING_DEFAULT = "\u274c Both filename parameter and MultipartFile.getOriginalFilename() returned null/empty, using default: \'{}\'";
-    private static final String N_0_9A_F_8_0_9A_F_4_0_9A_F_4_0_9A_F_4_0_9A_F_12_CSV_XLSX_XLS_PDF = "^[0-9A-F]{8}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{12}\\.(csv|xlsx|xls|pdf)$";
+    private static final String
+            U26A0_UFE0F_WARNING_FILENAME_IS_A_UUID_ORIGINAL_FILENAME_WAS_NOT_PRESERVED_BY_FRONTEND =
+                    "\u26a0\ufe0f WARNING: Filename is a UUID \'{}\' - Original filename was not preserved by frontend. ";
+    private static final String
+            U274C_BOTH_FILENAME_PARAMETER_AND_MULTIPARTFILE_GETORIGINALFILENAME_RETURNED_NULL_EMPTY_USING_DEFAULT =
+                    "\u274c Both filename parameter and MultipartFile.getOriginalFilename() returned null/empty, using default: \'{}\'";
+    private static final String N_0_9A_F_8_0_9A_F_4_0_9A_F_4_0_9A_F_4_0_9A_F_12_CSV_XLSX_XLS_PDF =
+            "^[0-9A-F]{8}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{12}\\.(csv|xlsx|xls|pdf)$";
     private static final String DESCRIPTION = "description";
     private static final String MERCHANTNAME = "merchantName";
     private static final String PAYMENTCHANNEL = "paymentChannel";

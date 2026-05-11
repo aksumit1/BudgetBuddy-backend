@@ -40,7 +40,14 @@ import org.springframework.stereotype.Service;
 @SuppressFBWarnings(
         value = "EI_EXPOSE_REP2",
         justification = "Spring constructor injection — beans are shared by design")
-@SuppressWarnings({"PMD.AvoidCatchingGenericException", "PMD.OnlyOneReturn"})
+// PMD.UnusedFormalParameter: the determineTypePriority* helper family takes a consistent 8-param
+// signature so the orchestrator can chain them uniformly. Each helper uses only the subset of
+// inputs it needs.
+@SuppressWarnings({
+    "PMD.AvoidCatchingGenericException",
+    "PMD.OnlyOneReturn",
+    "PMD.UnusedFormalParameter"
+})
 @Service
 public class TransactionTypeCategoryService {
 
@@ -77,15 +84,7 @@ public class TransactionTypeCategoryService {
 
     private static final List<String> INCOME_CATEGORIES =
             List.of(
-                    SALARY,
-                    DEPOSIT,
-                    DIVIDEND,
-                    INTEREST,
-                    CREDIT,
-                    INCOME,
-                    "stipend",
-                    "rent",
-                    "tips",
+                    SALARY, DEPOSIT, DIVIDEND, INTEREST, CREDIT, INCOME, "stipend", "rent", "tips",
                     OTHER);
     private static final List<String> PAYMENT_CATEGORIES = List.of(PAYMENT);
     private static final List<String> INVESTMENT_CATEGORIES = List.of(INVESTMENT, TRANSFER);
@@ -503,8 +502,7 @@ public class TransactionTypeCategoryService {
                                         || OTHER.equals(categoryLower);
 
                         final boolean isPaymentKeyword = isPaymentReceived(descLower);
-                        final boolean isPaymentCategory =
-                                PAYMENT.equalsIgnoreCase(categoryPrimary);
+                        final boolean isPaymentCategory = PAYMENT.equalsIgnoreCase(categoryPrimary);
 
                         if (isPaymentKeyword || isPaymentCategory) {
                             if (LOGGER.isDebugEnabled()) {
@@ -518,8 +516,7 @@ public class TransactionTypeCategoryService {
                                         isPaymentKeyword,
                                         isPaymentCategory);
                             }
-                            return new TypeResult(
-                                    TransactionType.PAYMENT, CATEGORY_OVERRIDE, 0.95);
+                            return new TypeResult(TransactionType.PAYMENT, CATEGORY_OVERRIDE, 0.95);
                         }
 
                         if (isExpenseCategory) {
@@ -532,8 +529,7 @@ public class TransactionTypeCategoryService {
                                         categoryPrimary,
                                         account.getAccountName());
                             }
-                            return new TypeResult(
-                                    TransactionType.EXPENSE, CATEGORY_OVERRIDE, 0.95);
+                            return new TypeResult(TransactionType.EXPENSE, CATEGORY_OVERRIDE, 0.95);
                         }
 
                         if (LOGGER.isDebugEnabled()) {
@@ -1801,9 +1797,18 @@ public class TransactionTypeCategoryService {
 
         // Credit card payment keywords
         final String[] creditCardKeywords = {
-            CREDIT_CARD, CREDITCARD, "cc payment", "card payment",
-            "visa payment", "mastercard payment", "amex payment", "american express",
-            "discover payment", "chase payment", "capital one", "citi payment"
+            CREDIT_CARD,
+            CREDITCARD,
+            "cc payment",
+            "card payment",
+            "visa payment",
+            "mastercard payment",
+            "amex payment",
+            "american express",
+            "discover payment",
+            "chase payment",
+            "capital one",
+            "citi payment"
         };
         for (final String keyword : creditCardKeywords) {
             if (textLower.contains(keyword)) {
@@ -2178,8 +2183,7 @@ public class TransactionTypeCategoryService {
                     && amount != null
                     && amount.compareTo(BigDecimal.ZERO) > 0
                     && TRANSFER.equals(primaryLower)) {
-                return new CategoryResult(
-                        DEPOSIT, DEPOSIT, TYPE_ALIGN, result.getConfidence());
+                return new CategoryResult(DEPOSIT, DEPOSIT, TYPE_ALIGN, result.getConfidence());
             }
             if (!isIncomeCategory(primaryLower, detailedLower)) {
                 final String inferred = inferIncomeCategory(description, primaryLower);
@@ -2190,8 +2194,7 @@ public class TransactionTypeCategoryService {
 
         if (transactionTypeHint == TransactionType.PAYMENT) {
             if (!isPaymentCategory(primaryLower, detailedLower)) {
-                return new CategoryResult(
-                        PAYMENT, PAYMENT, TYPE_ALIGN, result.getConfidence());
+                return new CategoryResult(PAYMENT, PAYMENT, TYPE_ALIGN, result.getConfidence());
             }
             return result;
         }

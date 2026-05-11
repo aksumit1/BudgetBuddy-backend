@@ -42,7 +42,17 @@ import org.springframework.stereotype.Service;
         justification =
                 "JSON DTO / DynamoDB entity getters expose lists by reference; "
                         + "the design is value-semantic and Jackson creates fresh instances; Spring constructor injection — beans are shared by design")
-@SuppressWarnings({"PMD.LawOfDemeter", "PMD.AvoidCatchingGenericException", "PMD.OnlyOneReturn"})
+// PMD.UnusedFormalParameter: the detectCategoryStep* and parseCatLegacyStep* helper families
+// take consistent (descLower, normalizedDesc, description, merchantName, amount) /
+// (safeCategoryString, safeDescription, ...) signatures so the orchestrator can call them
+// uniformly. Each helper uses only the subset of inputs it cares about — the unused params are
+// a deliberate trade for orchestrator simplicity, not a bug.
+@SuppressWarnings({
+    "PMD.LawOfDemeter",
+    "PMD.AvoidCatchingGenericException",
+    "PMD.OnlyOneReturn",
+    "PMD.UnusedFormalParameter"
+})
 @Service
 public class CSVImportService {
 
@@ -5586,8 +5596,7 @@ public class CSVImportService {
                 || combinedText.contains("property income")
                 || combinedText.contains("rent payment received")
                 || (combinedText.contains(RENT)
-                        && (combinedText.contains("received")
-                                || combinedText.contains(INCOME)))) {
+                        && (combinedText.contains("received") || combinedText.contains(INCOME)))) {
             return "rentIncome";
         }
 
@@ -5629,9 +5638,16 @@ public class CSVImportService {
 
         // Check description for ACH indicators
         final String[] achKeywords = {
-            ACH, "automated clearing house", "direct deposit", "directdeposit",
-            "dd deposit", "electronic deposit", "e deposit", "wire transfer",
-            "bank transfer", ONLINE_TRANSFER
+            ACH,
+            "automated clearing house",
+            "direct deposit",
+            "directdeposit",
+            "dd deposit",
+            "electronic deposit",
+            "e deposit",
+            "wire transfer",
+            "bank transfer",
+            ONLINE_TRANSFER
         };
 
         for (final String keyword : achKeywords) {
@@ -5788,8 +5804,8 @@ public class CSVImportService {
     }
 
     /**
-     * Detects if a transaction is a cash withdrawal Cash withdrawals should be categorized as
-     * CASH, type EXPENSE Examples: "ATM WITHDRAWAL", "CASH WITHDRAWAL", "ATM DEBIT", etc.
+     * Detects if a transaction is a cash withdrawal Cash withdrawals should be categorized as CASH,
+     * type EXPENSE Examples: "ATM WITHDRAWAL", "CASH WITHDRAWAL", "ATM DEBIT", etc.
      *
      * @param description Transaction description
      * @param merchantName Merchant name
@@ -5900,8 +5916,7 @@ public class CSVImportService {
 
     /**
      * CRITICAL FIX: Detects if a transaction is a check payment Check payments should be
-     * categorized as PAYMENT, not transportation (e.g., "CHECK 176" was matching gas station
-     * "76")
+     * categorized as PAYMENT, not transportation (e.g., "CHECK 176" was matching gas station "76")
      *
      * @param description Transaction description
      * @param merchantName Merchant name
@@ -5992,8 +6007,8 @@ public class CSVImportService {
 
     /**
      * Detects if a transaction is a utility bill payment (direct payment to utility company)
-     * Utility bill payments should be categorized as UTILITIES, not PAYMENT Examples: "PUGET
-     * SOUND ENER BILLPAY", "CITY OF BELLEVUE UTILITY", etc.
+     * Utility bill payments should be categorized as UTILITIES, not PAYMENT Examples: "PUGET SOUND
+     * ENER BILLPAY", "CITY OF BELLEVUE UTILITY", etc.
      *
      * @param description Transaction description
      * @param merchantName Merchant name
@@ -6019,8 +6034,7 @@ public class CSVImportService {
         // transportation, not utilities
         // "SEATTLEAP CART/CHAIR" (Seattle Airport cart) should not match "Seattle Public Utilities"
         final String combined = (merchantLower + " " + descLower).trim();
-        if (combined.contains(AIRPORT)
-                && (combined.contains(CART) || combined.contains(CHAIR))) {
+        if (combined.contains(AIRPORT) && (combined.contains(CART) || combined.contains(CHAIR))) {
             LOGGER.debug("isUtilityBillPayment: Rejecting airport cart/chair → not a utility");
             return false;
         }
@@ -6156,9 +6170,7 @@ public class CSVImportService {
             "water utility"
         };
 
-        final String[] paymentKeywords = {
-            BILLPAY, BILL_PAY, PAYMENT, AUTOPAY, AUTO_PAY, PPD_ID
-        };
+        final String[] paymentKeywords = {BILLPAY, BILL_PAY, PAYMENT, AUTOPAY, AUTO_PAY, PPD_ID};
 
         for (final String utilityKeyword : utilityKeywords) {
             if (descLower.contains(utilityKeyword) || merchantLower.contains(utilityKeyword)) {
@@ -6737,8 +6749,8 @@ public class CSVImportService {
 
     /**
      * Detects if a transaction is an account transfer (between accounts, not an expense) Account
-     * transfers should be categorized as TRANSFER, not OTHER or PAYMENT Examples: "Online
-     * Transfer to CHK", "ACCT_XFER", "Transfer to Savings", etc.
+     * transfers should be categorized as TRANSFER, not OTHER or PAYMENT Examples: "Online Transfer
+     * to CHK", "ACCT_XFER", "Transfer to Savings", etc.
      *
      * @param description Transaction description
      * @param merchantName Merchant name

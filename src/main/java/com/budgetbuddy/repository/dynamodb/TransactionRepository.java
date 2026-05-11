@@ -64,7 +64,8 @@ public class TransactionRepository {
 
     private static final String TRANSACTIONS = "transactions";
     private static final String TRANSACTIONID = "transactionId";
-    private static final String ERROR_IN_FALLBACK_QUERY_FOR_USERID = "Error in fallback query for userId {}: {}";
+    private static final String ERROR_IN_FALLBACK_QUERY_FOR_USERID =
+            "Error in fallback query for userId {}: {}";
     private static final String TRANSACTION_CANNOT_BE_NULL = "Transaction cannot be null";
     private static final String INDEX_NOT_FOUND = "index not found";
     private static final String RESOURCE_NOT_FOUND = "resource not found";

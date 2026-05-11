@@ -67,7 +67,8 @@ public class SubscriptionController {
 
     private static final String SUBSCRIPTION = "subscription";
     private static final String INTERNAL_SERVER_ERROR = "Internal server error";
-    private static final String UNAUTHORIZED_USER_NOT_AUTHENTICATED = "Unauthorized - user not authenticated";
+    private static final String UNAUTHORIZED_USER_NOT_AUTHENTICATED =
+            "Unauthorized - user not authenticated";
 
     private static final Logger LOGGER = LoggerFactory.getLogger(SubscriptionController.class);
 

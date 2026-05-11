@@ -70,7 +70,8 @@ public class PDFImportService {
     private static final String B = "\\b";
     private static final String R_N = "\\r?\\n";
     private static final String S = "\\s+";
-    private static final String S_D_1_2_D_1_2_D_2_4_S = "^\\s*\\d{1,2}[/-]\\d{1,2}(?:[/-]\\d{2,4})?\\s+";
+    private static final String S_D_1_2_D_1_2_D_2_4_S =
+            "^\\s*\\d{1,2}[/-]\\d{1,2}(?:[/-]\\d{2,4})?\\s+";
     private static final String INFERREDYEAR = "_inferredYear";
     private static final String ACCOUNT_ENDING = "account ending";
     private static final String ACCOUNT_SUMMARY = "account summary";
@@ -2537,8 +2538,7 @@ public class PDFImportService {
             // isValidNameFormat AND is backed by a real contextual anchor (address
             // line + ZIP within the next 2 lines). That combination makes false-
             // matching a merchant name extremely unlikely.
-            final boolean allCaps =
-                    line.equals(line.toUpperCase(Locale.ROOT)) && line.matches(A_Z);
+            final boolean allCaps = line.equals(line.toUpperCase(Locale.ROOT)) && line.matches(A_Z);
             final boolean titleCase = !allCaps && looksLikeTitleCaseName(line);
             if ((allCaps || titleCase) && isValidNameFormat(line)) {
                 // Check following lines (up to 2 lines ahead) for contextual patterns
@@ -2702,8 +2702,7 @@ public class PDFImportService {
         // mixed-case set is intentionally not retained.
         final List<String> allCapsCandidates = new ArrayList<>();
         for (final String candidate : validCandidates) {
-            if (candidate.equals(candidate.toUpperCase(Locale.ROOT))
-                    && candidate.matches(A_Z)) {
+            if (candidate.equals(candidate.toUpperCase(Locale.ROOT)) && candidate.matches(A_Z)) {
                 allCapsCandidates.add(candidate);
             }
         }
@@ -3260,13 +3259,7 @@ public class PDFImportService {
                             findField(row, AMOUNT, "transaction amount", DEBIT, CREDIT);
                     final String description =
                             findField(
-                                    row,
-                                    DESCRIPTION,
-                                    DETAILS,
-                                    MEMO,
-                                    PAYEE,
-                                    TRANSACTION,
-                                    MERCHANT);
+                                    row, DESCRIPTION, DETAILS, MEMO, PAYEE, TRANSACTION, MERCHANT);
 
                     // CRITICAL: All three fields (date, description, amount) must be present and
                     // valid
@@ -3363,9 +3356,9 @@ public class PDFImportService {
      * Disposition filter for the fallback-parsing path of extractTransactionsFallback. Overlaps
      * with {@link #isInformationalLineToSkip} but is intentionally separate — this version
      * additionally filters statement-period / account-number / total / balance lines (which the
-     * smart-column path doesn't), uses CLOSING_DATE/STATEMENT_DATE length cutoffs, and keeps
-     * the phone-number filters slightly looser to catch the additional patterns we've seen in
-     * fallback parsing. Returns true when the line should be skipped.
+     * smart-column path doesn't), uses CLOSING_DATE/STATEMENT_DATE length cutoffs, and keeps the
+     * phone-number filters slightly looser to catch the additional patterns we've seen in fallback
+     * parsing. Returns true when the line should be skipped.
      */
     @SuppressWarnings("PMD.CyclomaticComplexity")
     private boolean isFallbackInformationalLine(final String line, final String lineLower) {
@@ -4311,15 +4304,8 @@ public class PDFImportService {
             // CRITICAL: Validate required fields (date, description, amount) are present)
             // For tests that check missing columns, return row even if some fields are missing
             final String dateStr =
-                    findField(
-                            row,
-                            DATE,
-                            TRANSACTION_DATE,
-                            POSTING_DATE,
-                            POSTED_DATE,
-                            POST_DATE);
-            final String amountStr =
-                    findField(row, AMOUNT, "transaction amount", DEBIT, CREDIT);
+                    findField(row, DATE, TRANSACTION_DATE, POSTING_DATE, POSTED_DATE, POST_DATE);
+            final String amountStr = findField(row, AMOUNT, "transaction amount", DEBIT, CREDIT);
             final String description =
                     findField(row, DESCRIPTION, DETAILS, MEMO, PAYEE, TRANSACTION, MERCHANT);
 
@@ -5659,8 +5645,7 @@ public class PDFImportService {
         transaction.setDate(date);
 
         // Parse amount - reuse CSVImportService logic
-        final String amountString =
-                findField(row, AMOUNT, "transaction amount", DEBIT, CREDIT);
+        final String amountString = findField(row, AMOUNT, "transaction amount", DEBIT, CREDIT);
 
         if (amountString == null || amountString.isEmpty()) {
             // parseTransaction: Amount string is null or empty

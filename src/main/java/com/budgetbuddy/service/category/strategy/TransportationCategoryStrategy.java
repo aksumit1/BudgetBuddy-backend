@@ -6,7 +6,7 @@ import org.springframework.stereotype.Component;
 /** Strategy for detecting transportation category */
 // PMD's OnlyOneReturn fights guard-clause idiom — the codebase intentionally
 // uses early returns for clarity (validation guards, fail-fast patterns).
-@SuppressWarnings("PMD.OnlyOneReturn")
+@SuppressWarnings({"PMD.OnlyOneReturn", "PMD.UnusedFormalParameter"})
 @Component
 public class TransportationCategoryStrategy extends BaseCategoryStrategy {
 
