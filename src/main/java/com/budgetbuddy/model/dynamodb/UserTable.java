@@ -1,5 +1,6 @@
 package com.budgetbuddy.model.dynamodb;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.time.Instant;
 import java.util.Set;
@@ -71,20 +72,27 @@ public class UserTable {
         this.email = email;
     }
 
+    // Defence-in-depth: never let Jackson serialize the password hash or salt into a response
+    // body, even if a controller accidentally returns the UserTable entity directly. DynamoDB
+    // still persists the value via @DynamoDbAttribute — @JsonIgnore only affects the JSON path.
+    @JsonIgnore
     @DynamoDbAttribute("passwordHash")
     public String getPasswordHash() {
         return passwordHash;
     }
 
+    @JsonIgnore
     public void setPasswordHash(final String passwordHash) {
         this.passwordHash = passwordHash;
     }
 
+    @JsonIgnore
     @DynamoDbAttribute("serverSalt")
     public String getServerSalt() {
         return serverSalt;
     }
 
+    @JsonIgnore
     public void setServerSalt(final String serverSalt) {
         this.serverSalt = serverSalt;
     }

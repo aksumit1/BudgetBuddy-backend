@@ -14,7 +14,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -29,7 +28,6 @@ import org.springframework.web.bind.annotation.RestController;
 @SuppressWarnings("PMD.DataClass")
 @RestController
 @RequestMapping("/api/device/attestation")
-@CrossOrigin(origins = "*", maxAge = 3600)
 public class DeviceAttestationController {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(DeviceAttestationController.class);

@@ -150,7 +150,9 @@ public class GoalProgressService {
 
         progress = progress.add(transactionContributions);
 
-        // 2. Linked-account balances (if any)
+        // 2. Linked-account balances (if any). Soft-deleted accounts must NOT contribute —
+        // their balance lingers in DynamoDB but represents data the user has marked for
+        // removal; including it inflates the goal progress UI with phantom funding.
         BigDecimal accountContribution = BigDecimal.ZERO;
         if (goal.getAccountIds() != null && !goal.getAccountIds().isEmpty()) {
             final List<AccountTable> accounts =
@@ -158,6 +160,7 @@ public class GoalProgressService {
                             .map(accountId -> accountRepository.findById(accountId))
                             .filter(java.util.Optional::isPresent)
                             .map(java.util.Optional::get)
+                            .filter(acc -> acc.getDeletedAt() == null)
                             .collect(Collectors.toList());
             accountContribution =
                     accounts.stream()
