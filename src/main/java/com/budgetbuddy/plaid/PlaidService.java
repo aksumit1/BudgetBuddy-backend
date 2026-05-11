@@ -20,6 +20,8 @@ import com.plaid.client.model.Products;
 import com.plaid.client.model.TransactionsGetRequest;
 import com.plaid.client.model.TransactionsGetRequestOptions;
 import com.plaid.client.model.TransactionsGetResponse;
+import com.plaid.client.model.WebhookVerificationKeyGetRequest;
+import com.plaid.client.model.WebhookVerificationKeyGetResponse;
 import com.plaid.client.request.PlaidApi;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
@@ -909,6 +911,42 @@ public class PlaidService {
             LOGGER.error("Plaid: Failed to remove item: {}", e.getMessage(), e);
             throw new AppException(
                     ErrorCode.PLAID_CONNECTION_FAILED, "Failed to remove item", null, null, e);
+        }
+    }
+
+    /**
+     * Fetch the public JWK Plaid uses to sign a given webhook. The {@code keyId} is the {@code kid}
+     * claim from the {@code Plaid-Verification} JWT header. Per Plaid's docs the key is rotated
+     * occasionally; callers are responsible for caching with a sensible TTL.
+     */
+    @CircuitBreaker(name = PLAID)
+    @Retry(name = PLAID)
+    public WebhookVerificationKeyGetResponse webhookVerificationKeyGet(final String keyId) {
+        if (keyId == null || keyId.isEmpty()) {
+            throw new AppException(ErrorCode.INVALID_INPUT, "keyId cannot be null or empty");
+        }
+        try {
+            final WebhookVerificationKeyGetRequest request =
+                    new WebhookVerificationKeyGetRequest().keyId(keyId);
+            final WebhookVerificationKeyGetResponse response =
+                    plaidApi.webhookVerificationKeyGet(request).execute().body();
+            if (response == null || response.getKey() == null) {
+                throw new AppException(
+                        ErrorCode.PLAID_CONNECTION_FAILED,
+                        "Failed to fetch webhook verification key");
+            }
+            return response;
+        } catch (AppException e) {
+            throw e;
+        } catch (Exception e) {
+            LOGGER.error(
+                    "Plaid: webhook key fetch failed for kid={}: {}", keyId, e.getMessage(), e);
+            throw new AppException(
+                    ErrorCode.PLAID_CONNECTION_FAILED,
+                    "Failed to fetch webhook verification key",
+                    null,
+                    null,
+                    e);
         }
     }
 

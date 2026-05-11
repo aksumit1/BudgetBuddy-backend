@@ -202,12 +202,18 @@ public class TransactionSyncController {
                         .orElseThrow(
                                 () -> new AppException(ErrorCode.USER_NOT_FOUND, USER_NOT_FOUND_1));
 
-        // In production, store sync status in database
-        // For now, return a placeholder response
-        return ResponseEntity.ok(
-                Map.of(
-                        "status", "completed",
-                        "lastSync", java.time.Instant.now().toString(),
-                        "userId", user.getUserId()));
+        // Per-sync status isn't persisted yet (no sync_status table). Rather than fabricate
+        // `status: "completed"` and `lastSync: now()` — which clients can poll-loop on, never
+        // observe a failure, and advance past broken state — return an explicit "unknown"
+        // until a real status store lands. Plaid's per-account `lastSyncedAt` is the closest
+        // truthful proxy; expose it where available.
+        final java.util.HashMap<String, Object> body = new java.util.HashMap<>();
+        body.put("status", "unknown");
+        body.put("userId", user.getUserId());
+        body.put("lastSync", null);
+        body.put(
+                "note",
+                "sync status is not persisted; rely on /api/accounts last-synced-at per account");
+        return ResponseEntity.ok(body);
     }
 }

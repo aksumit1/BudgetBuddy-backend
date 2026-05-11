@@ -182,10 +182,11 @@ class TransactionSyncControllerTest {
         // When
         final ResponseEntity<Map<String, Object>> response = controller.getSyncStatus(userDetails);
 
-        // Then
+        // Then — sync status is not persisted, endpoint returns "unknown" rather than the
+        // previous hardcoded "completed" lie. See TransactionSyncController.getSyncStatus.
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertNotNull(response.getBody());
-        assertEquals("completed", response.getBody().get("status"));
+        assertEquals("unknown", response.getBody().get("status"));
         assertEquals(USER_123, response.getBody().get("userId"));
     }
 

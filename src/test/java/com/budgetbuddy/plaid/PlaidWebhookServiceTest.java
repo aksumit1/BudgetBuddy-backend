@@ -1,7 +1,6 @@
 package com.budgetbuddy.plaid;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -10,17 +9,14 @@ import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.anyString;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
-import com.budgetbuddy.aws.secrets.SecretsManagerService;
 import com.budgetbuddy.model.dynamodb.AccountTable;
 import com.budgetbuddy.model.dynamodb.TransactionTable;
 import com.budgetbuddy.model.dynamodb.UserTable;
@@ -28,19 +24,13 @@ import com.budgetbuddy.notification.NotificationService;
 import com.budgetbuddy.repository.dynamodb.AccountRepository;
 import com.budgetbuddy.repository.dynamodb.TransactionRepository;
 import com.budgetbuddy.repository.dynamodb.UserRepository;
-import com.fasterxml.jackson.databind.JsonMappingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.Base64;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import javax.crypto.Mac;
-import javax.crypto.spec.SecretKeySpec;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -82,12 +72,9 @@ class PlaidWebhookServiceTest {
 
     @Mock private NotificationService notificationService;
 
-    @Mock private SecretsManagerService secretsManagerService;
-
-    @Mock private ObjectMapper objectMapper;
+    @Mock private PlaidWebhookVerifier webhookVerifier;
 
     private PlaidWebhookService service;
-    private String webhookSecret = "test-webhook-secret";
 
     private ListAppender<ILoggingEvent> logAppender;
     private Logger logger;
@@ -100,13 +87,7 @@ class PlaidWebhookServiceTest {
                         accountRepository,
                         transactionRepository,
                         notificationService,
-                        secretsManagerService,
-                        objectMapper);
-
-        // Use lenient stubbing to avoid unnecessary stubbing errors
-        lenient()
-                .when(secretsManagerService.getSecret("plaid/webhook_secret", ""))
-                .thenReturn(webhookSecret);
+                        webhookVerifier);
 
         // Set up log appender to capture log events for verification
         logger = (Logger) LoggerFactory.getLogger(PlaidWebhookService.class);
@@ -116,76 +97,25 @@ class PlaidWebhookServiceTest {
     }
 
     @Test
-    void testVerifyWebhookSignatureWithValidSignatureReturnsTrue() throws Exception {
+    void testVerifyWebhookSignatureDelegatesToVerifierTrue() {
         // Given
-        final Map<String, Object> payload = new HashMap<>();
-        payload.put(WEBHOOK_CODE, "INITIAL_UPDATE");
-        payload.put(ITEM_ID, ITEM_123);
-
-        final String payloadJson = "{\"webhook_code\":\"INITIAL_UPDATE\",\"item_id\":\"item-123\"}";
-        when(objectMapper.writeValueAsString(payload)).thenReturn(payloadJson);
-
-        // Calculate expected signature
-        final Mac mac = Mac.getInstance("HmacSHA256");
-        final SecretKeySpec secretKeySpec =
-                new SecretKeySpec(webhookSecret.getBytes(StandardCharsets.UTF_8), "HmacSHA256");
-        mac.init(secretKeySpec);
-        final byte[] signatureBytes = mac.doFinal(payloadJson.getBytes(StandardCharsets.UTF_8));
-        final String expectedSignature = Base64.getEncoder().encodeToString(signatureBytes);
+        when(webhookVerifier.verify("{}", "header.value.sig")).thenReturn(true);
 
         // When
-        final boolean isValid = service.verifyWebhookSignature(payload, expectedSignature);
+        final boolean isValid = service.verifyWebhookSignature("{}", "header.value.sig");
 
         // Then
         assertTrue(isValid);
+        verify(webhookVerifier).verify("{}", "header.value.sig");
     }
 
     @Test
-    void testVerifyWebhookSignatureWithInvalidSignatureReturnsFalse() throws Exception {
+    void testVerifyWebhookSignatureDelegatesToVerifierFalse() {
         // Given
-        final Map<String, Object> payload = new HashMap<>();
-        payload.put(WEBHOOK_CODE, "INITIAL_UPDATE");
-
-        final String payloadJson = "{\"webhook_code\":\"INITIAL_UPDATE\"}";
-        when(objectMapper.writeValueAsString(payload)).thenReturn(payloadJson);
+        when(webhookVerifier.verify(anyString(), anyString())).thenReturn(false);
 
         // When
-        final boolean isValid = service.verifyWebhookSignature(payload, "invalid-signature");
-
-        // Then
-        assertFalse(isValid);
-    }
-
-    @Test
-    void testVerifyWebhookSignatureWithNullHeaderReturnsFalse() {
-        // When
-        final boolean isValid = service.verifyWebhookSignature(new HashMap<>(), null);
-
-        // Then
-        assertFalse(isValid);
-    }
-
-    @Test
-    void testVerifyWebhookSignatureWithEmptyHeaderReturnsFalse() {
-        // When
-        final boolean isValid = service.verifyWebhookSignature(new HashMap<>(), "");
-
-        // Then
-        assertFalse(isValid);
-    }
-
-    @Test
-    void testVerifyWebhookSignatureWithMissingSecretReturnsFalse() throws Exception {
-        // Given
-        // Override the lenient stubbing from setUp - use lenient here too to avoid conflicts
-        lenient().when(secretsManagerService.getSecret("plaid/webhook_secret", "")).thenReturn("");
-
-        final Map<String, Object> payload = new HashMap<>();
-        final String payloadJson = "{}";
-        when(objectMapper.writeValueAsString(payload)).thenReturn(payloadJson);
-
-        // When
-        final boolean isValid = service.verifyWebhookSignature(payload, "signature");
+        final boolean isValid = service.verifyWebhookSignature("{}", "invalid");
 
         // Then
         assertFalse(isValid);
@@ -631,67 +561,6 @@ class PlaidWebhookServiceTest {
     }
 
     @Test
-    void testVerifyWebhookSignatureWithSignatureLengthMismatchReturnsFalse() throws Exception {
-        // Given
-        final Map<String, Object> payload = new HashMap<>();
-        payload.put(WEBHOOK_CODE, "INITIAL_UPDATE");
-
-        final String payloadJson = "{\"webhook_code\":\"INITIAL_UPDATE\"}";
-        when(objectMapper.writeValueAsString(payload)).thenReturn(payloadJson);
-
-        // When - Signature with different length
-        final boolean isValid = service.verifyWebhookSignature(payload, "short");
-
-        // Then
-        assertFalse(isValid);
-    }
-
-    @Test
-    void testVerifyWebhookSignatureWithJsonProcessingExceptionReturnsFalse() throws Exception {
-        // Given
-        final Map<String, Object> payload = new HashMap<>();
-        // Use JsonMappingException which is a concrete subclass of JsonProcessingException
-        // Use the non-deprecated constructor that takes a message and a cause
-        when(objectMapper.writeValueAsString(payload))
-                .thenThrow(new JsonMappingException(null, "Error"));
-
-        // When
-        final boolean isValid = service.verifyWebhookSignature(payload, "signature");
-
-        // Then
-        assertFalse(isValid);
-
-        // Verify logging behavior - should log WARN for handled failures (returns false gracefully)
-        final List<ILoggingEvent> logEvents = logAppender.list;
-        final long warnLogs =
-                logEvents.stream()
-                        .filter(
-                                event ->
-                                        event.getLevel() == Level.WARN
-                                                && event.getMessage()
-                                                        .contains(
-                                                                "Error verifying webhook signature"))
-                        .count();
-
-        assertEquals(
-                1,
-                warnLogs,
-                "Should log WARN when webhook signature verification fails (handled gracefully)");
-
-        // Verify WARN log contains expected message
-        final boolean foundWarnLog =
-                logEvents.stream()
-                        .anyMatch(
-                                event ->
-                                        event.getLevel() == Level.WARN
-                                                && event.getMessage()
-                                                        .contains(
-                                                                "Error verifying webhook signature")
-                                                && event.getMessage().contains("Error"));
-        assertTrue(foundWarnLog, "Should log WARN with exception message");
-    }
-
-    @Test
     void testHandleItemErrorWithNotificationFailureHandlesGracefully() {
         // Given
         final Map<String, Object> payload = new HashMap<>();
@@ -861,44 +730,6 @@ class PlaidWebhookServiceTest {
                 () -> {
                     service.handleTransactionWebhook(payload);
                 });
-    }
-
-    @Test
-    void testVerifyWebhookSignatureWithInvalidKeyExceptionReturnsFalse() throws Exception {
-        // Given
-        final Map<String, Object> payload = new HashMap<>();
-        payload.put(WEBHOOK_CODE, "INITIAL_UPDATE");
-
-        final String payloadJson = "{\"webhook_code\":\"INITIAL_UPDATE\"}";
-        when(objectMapper.writeValueAsString(payload)).thenReturn(payloadJson);
-
-        // Mock secretsManagerService to return invalid key
-        lenient()
-                .when(secretsManagerService.getSecret("plaid/webhook_secret", ""))
-                .thenReturn("\u0000\u0000\u0000"); // Invalid key bytes
-
-        // When
-        final boolean isValid = service.verifyWebhookSignature(payload, "signature");
-
-        // Then
-        assertFalse(isValid);
-    }
-
-    @Test
-    void testVerifyWebhookSignatureWithNoSuchAlgorithmExceptionReturnsFalse() throws Exception {
-        // Given - This is hard to test directly, but we can test the error path
-        final Map<String, Object> payload = new HashMap<>();
-        final String payloadJson = "{\"webhook_code\":\"INITIAL_UPDATE\"}";
-        when(objectMapper.writeValueAsString(payload)).thenReturn(payloadJson);
-        lenient()
-                .when(secretsManagerService.getSecret("plaid/webhook_secret", ""))
-                .thenReturn("test-secret");
-
-        // When - The algorithm should be available, but we test the path exists
-        final boolean isValid = service.verifyWebhookSignature(payload, "invalid-signature");
-
-        // Then
-        assertFalse(isValid);
     }
 
     @Test

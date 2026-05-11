@@ -1,24 +1,16 @@
 package com.budgetbuddy.plaid;
 
-import com.budgetbuddy.aws.secrets.SecretsManagerService;
 import com.budgetbuddy.model.dynamodb.AccountTable;
 import com.budgetbuddy.model.dynamodb.UserTable;
 import com.budgetbuddy.notification.NotificationService;
 import com.budgetbuddy.repository.dynamodb.AccountRepository;
 import com.budgetbuddy.repository.dynamodb.TransactionRepository;
 import com.budgetbuddy.repository.dynamodb.UserRepository;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import java.nio.charset.StandardCharsets;
-import java.security.InvalidKeyException;
-import java.security.NoSuchAlgorithmException;
-import java.util.Base64;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import javax.crypto.Mac;
-import javax.crypto.spec.SecretKeySpec;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -48,91 +40,34 @@ public class PlaidWebhookService {
     private static final String WEBHOOK_CODE = "webhook_code";
 
     private static final Logger LOGGER = LoggerFactory.getLogger(PlaidWebhookService.class);
-    private static final String HMAC_SHA256_ALGORITHM = "HmacSHA256";
-    private static final String WEBHOOK_SECRET_KEY = "plaid/webhook_secret";
 
     private final UserRepository userRepository;
     private final AccountRepository accountRepository;
     private final TransactionRepository transactionRepository;
     private final NotificationService notificationService;
-    private final SecretsManagerService secretsManagerService;
-    private final ObjectMapper objectMapper;
+    private final PlaidWebhookVerifier webhookVerifier;
 
     public PlaidWebhookService(
             final UserRepository userRepository,
             final AccountRepository accountRepository,
             final TransactionRepository transactionRepository,
             final NotificationService notificationService,
-            final SecretsManagerService secretsManagerService,
-            final ObjectMapper objectMapper) {
+            final PlaidWebhookVerifier webhookVerifier) {
         this.userRepository = userRepository;
         this.accountRepository = accountRepository;
         this.transactionRepository = transactionRepository;
         this.notificationService = notificationService;
-        this.secretsManagerService = secretsManagerService;
-        this.objectMapper = objectMapper;
+        this.webhookVerifier = webhookVerifier;
     }
 
     /**
-     * Verify webhook signature using HMAC SHA256 Implements Plaid's webhook verification as per:
-     * https://plaid.com/docs/api/webhooks/#webhook-verification
+     * Verify a Plaid webhook by JWT-signing the {@code Plaid-Verification} header against the raw
+     * request body. Delegates to {@link PlaidWebhookVerifier}, which fetches and caches the EC
+     * public key from Plaid's {@code /webhook_verification_key/get} endpoint and validates the
+     * payload's {@code request_body_sha256} and {@code iat} claims.
      */
-    public boolean verifyWebhookSignature(
-            final Map<String, Object> payload, final String verificationHeader) {
-        if (verificationHeader == null || verificationHeader.isEmpty()) {
-            LOGGER.warn("Webhook verification header is missing");
-            return false;
-        }
-
-        try {
-            // Get webhook secret from AWS Secrets Manager
-            // getSecret requires secretName and defaultValue
-            final String webhookSecret = secretsManagerService.getSecret(WEBHOOK_SECRET_KEY, "");
-            if (webhookSecret == null || webhookSecret.isEmpty()) {
-                LOGGER.error("Plaid webhook secret not found in Secrets Manager");
-                return false;
-            }
-
-            // Convert payload to JSON string (canonical form)
-            final String payloadJson = objectMapper.writeValueAsString(payload);
-
-            // Calculate HMAC SHA256 signature
-            final Mac mac = Mac.getInstance(HMAC_SHA256_ALGORITHM);
-            final SecretKeySpec secretKeySpec =
-                    new SecretKeySpec(
-                            webhookSecret.getBytes(StandardCharsets.UTF_8), HMAC_SHA256_ALGORITHM);
-            mac.init(secretKeySpec);
-            final byte[] signatureBytes = mac.doFinal(payloadJson.getBytes(StandardCharsets.UTF_8));
-            final String calculatedSignature = Base64.getEncoder().encodeToString(signatureBytes);
-
-            // Compare with provided signature (constant-time comparison to prevent timing attacks)
-            if (calculatedSignature.length() != verificationHeader.length()) {
-                LOGGER.warn("Webhook signature length mismatch");
-                return false;
-            }
-
-            int result = 0;
-            for (int i = 0; i < calculatedSignature.length(); i++) {
-                result |= calculatedSignature.charAt(i) ^ verificationHeader.charAt(i);
-            }
-
-            final boolean isValid = result == 0;
-            if (!isValid) {
-                LOGGER.warn("Webhook signature verification failed");
-            }
-            return isValid;
-        } catch (NoSuchAlgorithmException e) {
-            LOGGER.error("HMAC SHA256 algorithm not available", e);
-            return false;
-        } catch (InvalidKeyException e) {
-            LOGGER.error("Invalid webhook secret key", e);
-            return false;
-        } catch (Exception e) {
-            // Log at WARN level - this is a handled failure (returns false gracefully)
-            // ERROR would be more appropriate for unhandled errors that cause service failure
-            LOGGER.warn("Error verifying webhook signature: {}", e.getMessage(), e);
-            return false;
-        }
+    public boolean verifyWebhookSignature(final String rawBody, final String verificationHeader) {
+        return webhookVerifier.verify(rawBody, verificationHeader);
     }
 
     /** Handle TRANSACTIONS webhook Processes transaction updates from Plaid */

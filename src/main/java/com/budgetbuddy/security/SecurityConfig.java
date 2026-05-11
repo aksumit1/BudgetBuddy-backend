@@ -190,20 +190,29 @@ public class SecurityConfig {
             configuration.setAllowedOrigins(origins);
             LOGGER.info("CORS configured with specific origins: {}", origins);
         } else if (isProduction) {
-            // Production: require explicit origins
+            // Production: require explicit origins. Fail closed.
             LOGGER.warn(
                     "Production environment detected but CORS origins not configured. Defaulting to empty list.");
             configuration.setAllowedOrigins(List.of());
         } else {
-            // Development/Staging: allow all origins (localhost, IP addresses, etc.)
-            // This enables connections from:
-            // - localhost (http://localhost:8080, http://127.0.0.1:8080)
-            // - IP addresses (http://192.168.1.100:8080, http://192.168.4.46:8080)
-            // - Any other origin for local development
+            // Dev/staging fallback: when no explicit list is configured, restrict to local
+            // loopback patterns only. Pairing `*` with allowCredentials=true (as the previous
+            // version did) is a documented browser security violation and lets any remote
+            // origin attach a victim's cookies — even a misconfigured prod profile would have
+            // inherited that. Keep the dev convenience by enumerating loopback hosts.
             configuration.setAllowedOriginPatterns(
-                    List.of("*")); // Use patterns to allow credentials with wildcard
+                    Arrays.asList(
+                            "http://localhost:*",
+                            "https://localhost:*",
+                            "http://127.0.0.1:*",
+                            "https://127.0.0.1:*",
+                            "http://[::1]:*",
+                            "https://[::1]:*",
+                            "http://192.168.*:*",
+                            "http://10.*:*"));
             LOGGER.info(
-                    "CORS configured to allow all origins (non-production environment) - supports localhost and IP addresses");
+                    "CORS configured for non-production: loopback + RFC1918 only. "
+                            + "Set app.cors.allowed-origins to override.");
         }
 
         configuration.setAllowedMethods(

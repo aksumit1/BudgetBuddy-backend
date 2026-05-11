@@ -77,13 +77,11 @@ public class IdentityVerificationService {
                                 return roles.contains("ADMIN");
                             }
 
-                            // Action-based permissions
-                            if ("DELETE".equals(action) && resource.contains("/api/transactions")) {
-                                // Only allow delete for own transactions
-                                return true; // Additional check needed in controller
-                            }
-
-                            // Default: allow for authenticated users
+                            // Per-resource ownership (e.g. "only delete your own transactions")
+                            // is enforced at the controller layer where the entity is loaded and
+                            // its userId compared to the principal's. This method's contract is
+                            // role-level coarse authorization, so a DELETE here is treated like
+                            // any other authenticated action — no special-case `return true`.
                             return roles.contains("USER");
                         })
                 .orElse(false);

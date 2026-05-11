@@ -125,7 +125,9 @@ public class RequestResponseLoggingFilter extends OncePerRequestFilter {
                 // This is critical - we must log every request
                 logRequest(wrappedRequest, correlationId);
             } catch (Exception e) {
-                // Log error but don't fail the request
+                // Log error but don't fail the request. The LOGGER call above already includes the
+                // exception (last arg) so the stack trace is captured through the configured
+                // appender — never use printStackTrace which bypasses the logging pipeline.
                 LOGGER.error(
                         "❌ Error logging request [{}] {} {}: {}",
                         correlationId,
@@ -133,7 +135,6 @@ public class RequestResponseLoggingFilter extends OncePerRequestFilter {
                         uri,
                         e.getMessage(),
                         e);
-                e.printStackTrace(); // Print stack trace to help debug
                 // Still try to log basic info - this ensures we ALWAYS log something
                 try {
                     final String queryString = request.getQueryString();
@@ -159,7 +160,6 @@ public class RequestResponseLoggingFilter extends OncePerRequestFilter {
                             correlationId,
                             e2.getMessage(),
                             e2);
-                    e2.printStackTrace();
                 }
             }
 

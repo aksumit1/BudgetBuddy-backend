@@ -93,7 +93,7 @@ public class PlaidAccountSyncService {
 
             final var accountsResponse = plaidService.getAccounts(accessToken);
 
-            if (accountsResponse.getAccounts() == null) {  // Plaid SDK returns @NonNull
+            if (accountsResponse.getAccounts() == null) { // Plaid SDK returns @NonNull
                 LOGGER.warn("No accounts returned from Plaid for user: {}", user.getUserId());
                 return;
             }

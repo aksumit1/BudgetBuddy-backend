@@ -4,6 +4,8 @@ import com.budgetbuddy.compliance.AuditLogService;
 import com.budgetbuddy.exception.AppException;
 import com.budgetbuddy.exception.ErrorCode;
 import com.budgetbuddy.plaid.PlaidWebhookService;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import java.util.Map;
@@ -39,13 +41,19 @@ public class PlaidWebhookController {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(PlaidWebhookController.class);
 
+    private static final TypeReference<Map<String, Object>> PAYLOAD_TYPE = new TypeReference<>() {};
+
     private final PlaidWebhookService webhookService;
     private final AuditLogService auditLogService;
+    private final ObjectMapper objectMapper;
 
     public PlaidWebhookController(
-            final PlaidWebhookService webhookService, final AuditLogService auditLogService) {
+            final PlaidWebhookService webhookService,
+            final AuditLogService auditLogService,
+            final ObjectMapper objectMapper) {
         this.webhookService = webhookService;
         this.auditLogService = auditLogService;
+        this.objectMapper = objectMapper;
     }
 
     /**
@@ -61,17 +69,30 @@ public class PlaidWebhookController {
             description =
                     "Receives and processes webhook events from Plaid including transaction updates, item status changes, and authentication events")
     public ResponseEntity<Map<String, String>> handleWebhook(
-            @RequestBody final Map<String, Object> payload,
+            @RequestBody final String rawBody,
             @RequestHeader(value = "Plaid-Verification", required = false)
                     final String verificationHeader) {
 
-        if (payload == null || payload.isEmpty()) {
+        if (rawBody == null || rawBody.isBlank()) {
             LOGGER.warn("Received empty webhook payload");
             return ResponseEntity.badRequest()
                     .body(Map.of(STATUS, "error", "message", "Empty payload"));
         }
 
+        // Verify signature on the raw bytes BEFORE parsing — JSON re-serialization
+        // would change the byte sequence the JWT signed.
+        if (!webhookService.verifyWebhookSignature(rawBody, verificationHeader)) {
+            LOGGER.warn("Plaid webhook signature verification failed");
+            throw new AppException(ErrorCode.PLAID_WEBHOOK_ERROR, "Invalid webhook signature");
+        }
+
         try {
+            final Map<String, Object> payload = objectMapper.readValue(rawBody, PAYLOAD_TYPE);
+            if (payload == null || payload.isEmpty()) {
+                return ResponseEntity.badRequest()
+                        .body(Map.of(STATUS, "error", "message", "Empty payload"));
+            }
+
             final String webhookType = extractString(payload, "webhook_type");
             final String webhookCode = extractString(payload, "webhook_code");
             final String itemId = extractString(payload, "item_id");
@@ -80,12 +101,6 @@ public class PlaidWebhookController {
                 LOGGER.warn("Webhook type is missing");
                 return ResponseEntity.badRequest()
                         .body(Map.of(STATUS, "error", "message", "Missing webhook_type"));
-            }
-
-            // Verify webhook signature (in production, verify against Plaid's public key)
-            if (!webhookService.verifyWebhookSignature(payload, verificationHeader)) {
-                LOGGER.warn("Plaid webhook signature verification failed");
-                throw new AppException(ErrorCode.PLAID_WEBHOOK_ERROR, "Invalid webhook signature");
             }
 
             LOGGER.info(
