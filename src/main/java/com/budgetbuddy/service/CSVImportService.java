@@ -3318,6 +3318,53 @@ public class CSVImportService {
      * Detect currency from amount string or header Supports: USD ($), INR (₹, Rs, Rs.), EUR (€),
      * GBP (£), CAD (C$), AUD (A$), etc.
      */
+    /**
+     * Symbol-or-code → currency code lookup for the easy cases. Each pair is "any match in
+     * amount/upper → return code". For ambiguous ¥ (CNY vs JPY) and the header-only fallback, use
+     * the dedicated helpers below.
+     */
+    private static final List<CurrencySymbolRule> CURRENCY_SYMBOL_RULES =
+            List.of(
+                    new CurrencySymbolRule("INR", "₹", "RS", "INR"),
+                    new CurrencySymbolRule("USD", "$", "USD"),
+                    new CurrencySymbolRule("EUR", "€", "EUR"),
+                    new CurrencySymbolRule("GBP", "£", "GBP"),
+                    new CurrencySymbolRule("CAD", "C$", "CAD"),
+                    new CurrencySymbolRule("AUD", "A$", "AUD"),
+                    // ¥ (CNY vs JPY) handled separately by resolveYenCurrency
+                    new CurrencySymbolRule("CHF", "Fr", "CHF"),
+                    new CurrencySymbolRule("SEK", "kr", "SEK"),
+                    new CurrencySymbolRule("NOK", "kr", "NOK"),
+                    new CurrencySymbolRule("DKK", "kr", "DKK"),
+                    new CurrencySymbolRule("PLN", "zł", "PLN"),
+                    new CurrencySymbolRule("SGD", "S$", "SGD"),
+                    new CurrencySymbolRule("HKD", "HK$", "HKD"),
+                    new CurrencySymbolRule("KRW", "₩", "KRW"),
+                    new CurrencySymbolRule("THB", "฿", "THB"),
+                    new CurrencySymbolRule("IDR", "Rp", "IDR"),
+                    new CurrencySymbolRule("VND", "₫", "VND"),
+                    new CurrencySymbolRule("MYR", "RM", "MYR"),
+                    new CurrencySymbolRule("PHP", "₱", "PHP"),
+                    new CurrencySymbolRule("BRL", "R$", "BRL"),
+                    new CurrencySymbolRule("MXN", "Mex$", "MXN"),
+                    new CurrencySymbolRule("ZAR", "R", "ZAR"),
+                    new CurrencySymbolRule("AUD", "A$", "AUD"),
+                    new CurrencySymbolRule("NZD", "NZ$", "NZD"));
+
+    /** Header-only fallback for when no symbol or code appeared in the amount string. */
+    private static final List<CurrencySymbolRule> CURRENCY_HEADER_RULES =
+            List.of(
+                    new CurrencySymbolRule("INR", null, "INR", "RUPEES", "RS"),
+                    new CurrencySymbolRule("USD", null, "USD", "DOLLARS"),
+                    new CurrencySymbolRule("EUR", null, "EUR", "EUROS"),
+                    new CurrencySymbolRule("GBP", null, "GBP", "POUNDS"),
+                    new CurrencySymbolRule("CHF", null, "CHF", "FRANCS"),
+                    new CurrencySymbolRule("JPY", null, "JPY", "YEN"),
+                    new CurrencySymbolRule("CNY", null, "CNY", "YUAN"));
+
+    /** Carrier: a currency code + optional symbol + 1+ upper-case codes/aliases to look for. */
+    private record CurrencySymbolRule(String code, String symbol, String upper1, String... rest) {}
+
     private String detectCurrency(
             String amountString, final String headerLine, final String filename) {
         if (amountString == null) {
@@ -3327,161 +3374,130 @@ public class CSVImportService {
         final String headerUpper = headerLine != null ? headerLine.toUpperCase(Locale.ROOT) : "";
         final String filenameUpper = filename != null ? filename.toUpperCase(Locale.ROOT) : "";
 
-        // Check for currency symbols in amount string
-        if (amountString.contains("₹") || upper.contains("RS") || upper.contains("INR")) {
-            return "INR";
+        final String yen = resolveYenCurrency(amountString, upper, headerUpper, filenameUpper);
+        if (yen != null) {
+            return yen;
         }
-        if (amountString.contains("$") || upper.contains("USD")) {
-            return "USD";
+        final String bySymbol = matchByAmountSymbolOrCode(amountString, upper);
+        if (bySymbol != null) {
+            return bySymbol;
         }
-        if (amountString.contains("€") || upper.contains("EUR")) {
-            return "EUR";
+        final String byHeader = matchByHeader(headerUpper);
+        if (byHeader != null) {
+            return byHeader;
         }
-        if (amountString.contains("£") || upper.contains("GBP")) {
-            return "GBP";
-        }
-        if (upper.contains("CAD") || amountString.contains("C$")) {
-            return "CAD";
-        }
-        if (upper.contains("AUD") || amountString.contains("A$")) {
-            return "AUD";
-        }
-        // For ¥ symbol, use context-based detection (filename, headers, bank names)
-        // Check for Chinese context first (CNY), then Japanese (JPY)
-        if (amountString.contains("¥")
-                || upper.contains("CNY")
-                || upper.contains("JPY")
-                || upper.contains("YUAN")
-                || upper.contains("YEN")) {
-            // Check for Chinese context (CNY) - check filename first, then headers, then amount
-            if (upper.contains("CNY")
-                    || upper.contains("YUAN")
-                    || headerUpper.contains("CNY")
-                    || headerUpper.contains("YUAN")
-                    || headerUpper.contains("CHINA")
-                    || headerUpper.contains("CHINESE")
-                    || headerUpper.contains("CITIC")
-                    || headerUpper.contains("ICBC")
-                    || headerUpper.contains("CCB")
-                    || headerUpper.contains("BOC")
-                    || headerUpper.contains("ABC")
-                    || headerUpper.contains("UNIONPAY")
-                    || headerUpper.contains("交易")
-                    || headerUpper.contains("金额")
-                    || filenameUpper.contains("CITIC")
-                    || filenameUpper.contains("CHINA")
-                    || filenameUpper.contains("CHINESE")
-                    || filenameUpper.contains("UNIONPAY")
-                    || filenameUpper.contains("CNY")
-                    || filenameUpper.contains("YUAN")) {
-                return "CNY";
-            }
-            // Check for Japanese context (JPY) - check filename first, then headers, then amount
-            if (upper.contains("JPY")
-                    || upper.contains("YEN")
-                    || headerUpper.contains("JPY")
-                    || headerUpper.contains("YEN")
-                    || headerUpper.contains("JAPAN")
-                    || headerUpper.contains("JAPANESE")
-                    || headerUpper.contains("MUFG")
-                    || headerUpper.contains("MIZUHO")
-                    || headerUpper.contains("SMBC")
-                    || headerUpper.contains("JCB")
-                    || headerUpper.contains("取引")
-                    || headerUpper.contains("金額")
-                    || filenameUpper.contains("JAPAN")
-                    || filenameUpper.contains("JAPANESE")
-                    || filenameUpper.contains("MUFG")
-                    || filenameUpper.contains("JCB")
-                    || filenameUpper.contains("JPY")
-                    || filenameUpper.contains("YEN")) {
-                return "JPY";
-            }
-            // Default to JPY if no context (¥ is more commonly used for JPY)
-            return "JPY";
-        }
-        if (upper.contains("CHF") || amountString.contains("Fr")) {
-            return "CHF"; // Swiss Franc
-        }
-        if (upper.contains("SEK") || amountString.contains("kr")) {
-            return "SEK"; // Swedish Krona
-        }
-        if (upper.contains("NOK") || amountString.contains("kr")) {
-            return "NOK"; // Norwegian Krone
-        }
-        if (upper.contains("DKK") || amountString.contains("kr")) {
-            return "DKK"; // Danish Krone
-        }
-        if (upper.contains("PLN") || amountString.contains("zł")) {
-            return "PLN"; // Polish Zloty
-        }
-        if (upper.contains("SGD") || amountString.contains("S$")) {
-            return "SGD"; // Singapore Dollar
-        }
-        if (upper.contains("HKD") || amountString.contains("HK$")) {
-            return "HKD"; // Hong Kong Dollar
-        }
-        if (upper.contains("KRW") || amountString.contains("₩")) {
-            return "KRW"; // South Korean Won
-        }
-        if (upper.contains("THB") || amountString.contains("฿")) {
-            return "THB"; // Thai Baht
-        }
-        if (upper.contains("IDR") || amountString.contains("Rp")) {
-            return "IDR"; // Indonesian Rupiah
-        }
-        if (upper.contains("VND") || amountString.contains("₫")) {
-            return "VND"; // Vietnamese Dong
-        }
-        if (upper.contains("MYR") || amountString.contains("RM")) {
-            return "MYR"; // Malaysian Ringgit
-        }
-        if (upper.contains("PHP") || amountString.contains("₱")) {
-            return "PHP"; // Philippine Peso
-        }
-        if (upper.contains("BRL") || amountString.contains("R$")) {
-            return "BRL"; // Brazilian Real
-        }
-        if (upper.contains("MXN") || amountString.contains("Mex$")) {
-            return "MXN"; // Mexican Peso
-        }
-        if (upper.contains("ZAR") || amountString.contains("R")) {
-            return "ZAR"; // South African Rand
-        }
-        if (upper.contains("AUD") || amountString.contains("A$")) {
-            return "AUD"; // Australian Dollar
-        }
-        if (upper.contains("NZD") || amountString.contains("NZ$")) {
-            return "NZD"; // New Zealand Dollar
-        }
+        return "USD";
+    }
 
-        // Check header for currency indicators
-        if (headerUpper.contains("INR")
-                || headerUpper.contains("RUPEES")
-                || headerUpper.contains("RS")) {
-            return "INR";
+    /**
+     * Walk CURRENCY_SYMBOL_RULES in order — return the first rule whose symbol appears in the
+     * amount string OR whose code (USD / EUR / ...) appears in the upper-cased amount.
+     */
+    private static String matchByAmountSymbolOrCode(final String amountString, final String upper) {
+        for (final CurrencySymbolRule rule : CURRENCY_SYMBOL_RULES) {
+            if (rule.symbol() != null && amountString.contains(rule.symbol())) {
+                return rule.code();
+            }
+            if (upper.contains(rule.upper1())) {
+                return rule.code();
+            }
+            for (final String alt : rule.rest()) {
+                if (alt != null && upper.contains(alt)) {
+                    return rule.code();
+                }
+            }
         }
-        if (headerUpper.contains("USD") || headerUpper.contains("DOLLARS")) {
-            return "USD";
+        return null;
+    }
+
+    /** Header-only fallback: walk CURRENCY_HEADER_RULES and return the first matching code. */
+    private static String matchByHeader(final String headerUpper) {
+        for (final CurrencySymbolRule rule : CURRENCY_HEADER_RULES) {
+            if (headerUpper.contains(rule.upper1())) {
+                return rule.code();
+            }
+            for (final String alt : rule.rest()) {
+                if (alt != null && headerUpper.contains(alt)) {
+                    return rule.code();
+                }
+            }
         }
-        if (headerUpper.contains("EUR") || headerUpper.contains("EUROS")) {
-            return "EUR";
+        return null;
+    }
+
+    /**
+     * ¥ is ambiguous between Chinese yuan and Japanese yen. Disambiguate via filename / header
+     * context (bank names, country names, CJK characters). Returns CNY, JPY, or null if there's no
+     * ¥/CNY/JPY/YEN/YUAN signal at all.
+     */
+    private static String resolveYenCurrency(
+            final String amountString,
+            final String upper,
+            final String headerUpper,
+            final String filenameUpper) {
+        final boolean hasYenSignal =
+                amountString.contains("¥")
+                        || upper.contains("CNY")
+                        || upper.contains("JPY")
+                        || upper.contains("YUAN")
+                        || upper.contains("YEN");
+        if (!hasYenSignal) {
+            return null;
         }
-        if (headerUpper.contains("GBP") || headerUpper.contains("POUNDS")) {
-            return "GBP";
-        }
-        if (headerUpper.contains("CHF") || headerUpper.contains("FRANCS")) {
-            return "CHF";
-        }
-        if (headerUpper.contains("JPY") || headerUpper.contains("YEN")) {
-            return "JPY";
-        }
-        if (headerUpper.contains("CNY") || headerUpper.contains("YUAN")) {
+        if (matchesChineseContext(upper, headerUpper, filenameUpper)) {
             return "CNY";
         }
+        if (matchesJapaneseContext(upper, headerUpper, filenameUpper)) {
+            return "JPY";
+        }
+        // Default to JPY — ¥ is more commonly used for yen.
+        return "JPY";
+    }
 
-        // Default to USD if no currency detected
-        return "USD";
+    private static boolean matchesChineseContext(
+            final String upper, final String headerUpper, final String filenameUpper) {
+        return upper.contains("CNY")
+                || upper.contains("YUAN")
+                || headerUpper.contains("CNY")
+                || headerUpper.contains("YUAN")
+                || headerUpper.contains("CHINA")
+                || headerUpper.contains("CHINESE")
+                || headerUpper.contains("CITIC")
+                || headerUpper.contains("ICBC")
+                || headerUpper.contains("CCB")
+                || headerUpper.contains("BOC")
+                || headerUpper.contains("ABC")
+                || headerUpper.contains("UNIONPAY")
+                || headerUpper.contains("交易")
+                || headerUpper.contains("金额")
+                || filenameUpper.contains("CITIC")
+                || filenameUpper.contains("CHINA")
+                || filenameUpper.contains("CHINESE")
+                || filenameUpper.contains("UNIONPAY")
+                || filenameUpper.contains("CNY")
+                || filenameUpper.contains("YUAN");
+    }
+
+    private static boolean matchesJapaneseContext(
+            final String upper, final String headerUpper, final String filenameUpper) {
+        return upper.contains("JPY")
+                || upper.contains("YEN")
+                || headerUpper.contains("JPY")
+                || headerUpper.contains("YEN")
+                || headerUpper.contains("JAPAN")
+                || headerUpper.contains("JAPANESE")
+                || headerUpper.contains("MUFG")
+                || headerUpper.contains("MIZUHO")
+                || headerUpper.contains("SMBC")
+                || headerUpper.contains("JCB")
+                || headerUpper.contains("取引")
+                || headerUpper.contains("金額")
+                || filenameUpper.contains("JAPAN")
+                || filenameUpper.contains("JAPANESE")
+                || filenameUpper.contains("MUFG")
+                || filenameUpper.contains("JCB")
+                || filenameUpper.contains("JPY")
+                || filenameUpper.contains("YEN");
     }
 
     /**
