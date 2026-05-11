@@ -42,7 +42,14 @@ import org.springframework.stereotype.Service;
         justification =
                 "literal LF in CSV / wire format (not platform newline); "
                         + "Spring constructor injection — beans are shared by design")
-@SuppressWarnings({"PMD.AvoidCatchingGenericException", "PMD.OnlyOneReturn"})
+// PMD.ConsecutiveLiteralAppends fires on multi-line StringBuilder chains where adjacent rows
+// each call sb.append(...). Same intent and bytecode as a single chained call but more readable.
+@SuppressWarnings({
+    "PMD.AvoidCatchingGenericException",
+    "PMD.OnlyOneReturn",
+    "PMD.ConsecutiveLiteralAppends",
+    "PMD.ConsecutiveAppendsShouldReuse"
+})
 @Service
 public class DMAComplianceService {
 

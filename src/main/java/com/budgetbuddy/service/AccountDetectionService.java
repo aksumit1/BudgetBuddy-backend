@@ -39,7 +39,8 @@ import org.springframework.stereotype.Service;
     "PMD.LawOfDemeter",
     "PMD.AvoidCatchingGenericException",
     "PMD.DataClass",
-    "PMD.OnlyOneReturn"
+    "PMD.OnlyOneReturn",
+    "PMD.ConsecutiveAppendsShouldReuse"
 })
 @Service
 public class AccountDetectionService {

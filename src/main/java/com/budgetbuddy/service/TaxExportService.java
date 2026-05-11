@@ -34,11 +34,18 @@ import org.springframework.stereotype.Service;
         justification =
                 "JSON DTO / DynamoDB entity getters expose lists by reference; "
                         + "the design is value-semantic and Jackson creates fresh instances; Spring constructor injection — beans are shared by design")
+// PMD.ConsecutiveLiteralAppends fires on multi-line StringBuilder chains where each row
+// builds one CSV line via `sb.append(LABEL).append(value).append('\n')`. Adjacent statements
+// in the same chain are flagged even though they're separate logical rows. Merging them into
+// one giant chained call hurts readability without changing bytecode (StringBuilder is the
+// same object either way). Suppress at the class level.
 @SuppressWarnings({
     "PMD.LawOfDemeter",
     "PMD.AvoidCatchingGenericException",
     "PMD.DataClass",
-    "PMD.OnlyOneReturn"
+    "PMD.OnlyOneReturn",
+    "PMD.ConsecutiveLiteralAppends",
+    "PMD.ConsecutiveAppendsShouldReuse"
 })
 @Service
 public class TaxExportService {

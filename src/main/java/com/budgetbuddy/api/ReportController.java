@@ -51,7 +51,14 @@ import org.springframework.web.bind.annotation.RestController;
 @SuppressFBWarnings(
         value = "EI_EXPOSE_REP2",
         justification = "Spring constructor injection — beans are shared by design")
-@SuppressWarnings({"PMD.LawOfDemeter", "PMD.OnlyOneReturn"})
+// PMD.ConsecutiveLiteralAppends fires on multi-line StringBuilder chains where adjacent rows
+// each call sb.append(...). Same bytecode as one chained call but more readable as-is.
+@SuppressWarnings({
+    "PMD.LawOfDemeter",
+    "PMD.OnlyOneReturn",
+    "PMD.ConsecutiveLiteralAppends",
+    "PMD.ConsecutiveAppendsShouldReuse"
+})
 @RestController
 @RequestMapping("/api/reports")
 public class ReportController {

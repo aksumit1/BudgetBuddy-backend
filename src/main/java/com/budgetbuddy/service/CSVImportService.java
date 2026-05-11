@@ -51,7 +51,9 @@ import org.springframework.stereotype.Service;
     "PMD.LawOfDemeter",
     "PMD.AvoidCatchingGenericException",
     "PMD.OnlyOneReturn",
-    "PMD.UnusedFormalParameter"
+    "PMD.UnusedFormalParameter",
+    "PMD.ConsecutiveLiteralAppends",
+    "PMD.ConsecutiveAppendsShouldReuse"
 })
 @Service
 public class CSVImportService {
