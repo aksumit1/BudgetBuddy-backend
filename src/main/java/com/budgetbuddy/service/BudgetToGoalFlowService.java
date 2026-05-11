@@ -122,9 +122,10 @@ public class BudgetToGoalFlowService {
                     || budget.getCategory().equals(t.getCategoryDetailed()))) {
                 continue;
             }
-            // Cross-currency transactions must not influence a budget priced in a different
-            // currency — otherwise goal credit gets computed from mixed-currency under-spend.
-            if (!BudgetRolloverService.matchesBudgetCurrency(budget, t)) {
+            // Cross-currency / pending transactions must not influence the under-spend math —
+            // a canceled pending auth would over-credit the goal that gets reversed when the
+            // pending row vanishes. See BudgetRolloverService.countsTowardBudget.
+            if (!BudgetRolloverService.countsTowardBudget(budget, t)) {
                 continue;
             }
             if (t.getAmount().signum() < 0) {

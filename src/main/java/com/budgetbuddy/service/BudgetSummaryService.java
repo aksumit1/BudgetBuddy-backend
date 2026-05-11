@@ -124,9 +124,9 @@ public class BudgetSummaryService {
             if (!categoryMatch) {
                 continue;
             }
-            // Cross-currency transactions must not inflate this budget's spent/goal totals —
-            // a 100 EUR purchase otherwise gets summed dollar-for-dollar into a USD budget.
-            if (!BudgetRolloverService.matchesBudgetCurrency(b, t)) {
+            // Cross-currency or pending transactions must not inflate this budget's spent/goal
+            // totals. See BudgetRolloverService.countsTowardBudget for the rule.
+            if (!BudgetRolloverService.countsTowardBudget(b, t)) {
                 continue;
             }
 

@@ -156,6 +156,12 @@ public class SecurityConfig {
                                         .requestMatchers("/api/system/**")
                                         .hasRole(
                                                 "ADMIN") // System management endpoints - admin only
+                                        .requestMatchers("/api/admin/**")
+                                        .hasRole(
+                                                "ADMIN") // Admin endpoints (PDF parse health,
+                                        // ops dashboards) — any non-admin auth user
+                                        // previously inherited .authenticated() and got
+                                        // bank-level telemetry by accident.
                                         // BREAKING CHANGE: PIN endpoints removed - PIN is now
                                         // local-only
                                         // .requestMatchers("/api/pin/**").permitAll() // REMOVED -

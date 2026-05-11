@@ -2258,8 +2258,9 @@ public class AccountDetectionService {
         if (keyword.split("\\s+").length >= 2 || keyword.length() > 10) {
             return 2;
         }
-        // Partial names (medium length 5-10 chars) = 1
-        if (keyword.length() >= 5 && keyword.length() <= 10) {
+        // Partial names (medium length 5-10 chars) = 1. The `<= 10` upper bound is implicit:
+        // longer keywords have already returned 2 above.
+        if (keyword.length() >= 5) {
             return 1;
         }
         // Abbreviations (short < 5 chars) = 0

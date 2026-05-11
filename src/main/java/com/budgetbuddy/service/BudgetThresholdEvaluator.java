@@ -122,11 +122,11 @@ public class BudgetThresholdEvaluator {
                     || budget.getCategory().equals(t.getCategoryDetailed()))) {
                 continue;
             }
-            // Skip cross-currency transactions — a 100 EUR purchase must not move a
-            // 100 USD budget by the same notional amount.
-            // BudgetRolloverService.matchesBudgetCurrency
-            // owns the comparison rule so all budget aggregators stay in lockstep.
-            if (!BudgetRolloverService.matchesBudgetCurrency(budget, t)) {
+            // Skip cross-currency and pending transactions — see
+            // BudgetRolloverService.countsTowardBudget for the canonical rule. Pending
+            // matters most here: an alert at 50% based on a pending amount that later
+            // posts at a different value would reverse-then-re-fire to the user.
+            if (!BudgetRolloverService.countsTowardBudget(budget, t)) {
                 continue;
             }
             if (t.getAmount().signum() < 0) {

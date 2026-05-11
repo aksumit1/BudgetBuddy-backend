@@ -158,9 +158,8 @@ public class BudgetRolloverService {
                     || budget.getCategory().equals(t.getCategoryDetailed()))) {
                 continue;
             }
-            if (!matchesBudgetCurrency(budget, t)) {
-                // Skip cross-currency transactions — a EUR Groceries purchase would
-                // otherwise be summed dollar-for-dollar into a USD Groceries budget.
+            if (!countsTowardBudget(budget, t)) {
+                // Skip cross-currency or pending transactions — see countsTowardBudget.
                 continue;
             }
             if (t.getAmount().signum() < 0) {
@@ -185,6 +184,34 @@ public class BudgetRolloverService {
             return true;
         }
         return bc.equalsIgnoreCase(tc);
+    }
+
+    /**
+     * Plaid (and most CSV imports) mark a transaction {@code pending=true} until it posts.
+     * Pending transactions can have their amount adjusted (restaurant tip, fuel pump final),
+     * or be reversed entirely if the merchant cancels the auth. Counting them toward budget
+     * threshold alerts causes two bugs:
+     *
+     * <ol>
+     *   <li>An alert fires at 50% based on the pending amount, then the post comes in at a
+     *       different number and the user sees the alert reverse and re-fire.
+     *   <li>A canceled pending auth permanently inflates carry-forward at month-end.
+     * </ol>
+     *
+     * <p>So every budget aggregator filters {@code pending == true} out — posted-only is the
+     * source of truth for budget arithmetic. Returns true when the transaction is posted or
+     * its pending flag is unset (null = pre-Plaid era data, assume posted).
+     */
+    static boolean isPosted(final TransactionTable t) {
+        return !Boolean.TRUE.equals(t.getPending());
+    }
+
+    /**
+     * Convenience predicate combining currency match and posted-only. Use this at call sites in
+     * preference to inlining both checks; keeps the rule single-source-of-truth.
+     */
+    static boolean countsTowardBudget(final BudgetTable budget, final TransactionTable t) {
+        return matchesBudgetCurrency(budget, t) && isPosted(t);
     }
 
     private boolean isIncomeOrSavingsCategory(final String category) {

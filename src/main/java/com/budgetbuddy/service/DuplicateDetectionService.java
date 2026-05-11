@@ -317,8 +317,9 @@ public class DuplicateDetectionService {
             // The key insight: if description and amount match exactly but dates differ by >7 days,
             // it's almost certainly recurring, not a duplicate
             if (daysDiff > 0) {
-                // Check if the date difference matches a recurring pattern
-                final boolean isDaily = daysDiff >= 1 && daysDiff <= 5;
+                // Check if the date difference matches a recurring pattern.
+                // daysDiff >= 1 is implicit (daysDiff > 0 just above).
+                final boolean isDaily = daysDiff <= 5;
                 final boolean isWeekly = daysDiff >= 6 && daysDiff <= 8;
                 final boolean isBiWeekly = daysDiff >= 13 && daysDiff <= 15;
                 final boolean isMonthly = daysDiff >= 25 && daysDiff <= 31;

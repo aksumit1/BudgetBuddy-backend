@@ -236,7 +236,8 @@ public final class TextNormalizer {
         if (t.endsWith("er") && t.length() > 4) {
             return t.substring(0, t.length() - 2);
         }
-        if (t.endsWith("s") && !t.endsWith("ss") && t.length() > 3) {
+        // t.length() > 3 is implicit (guarded at method entry).
+        if (t.endsWith("s") && !t.endsWith("ss")) {
             return t.substring(0, t.length() - 1);
         }
         return t;

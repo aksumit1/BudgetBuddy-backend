@@ -139,14 +139,9 @@ public class EmailNotificationService {
             LOGGER.info("Email sent - MessageId: {}, To: {}", response.messageId(), toEmail);
             return true;
         } catch (Exception e) {
+            // isTestEnvironment is necessarily false at this point — the test-mode branch above
+            // returns before this try block runs, so a second check here was dead code.
             LOGGER.error("Failed to send email to: {}. Error: {}", toEmail, e.getMessage(), e);
-            // In test environments, return true even on error to allow tests to proceed
-            if (isTestEnvironment) {
-                LOGGER.warn(
-                        "TEST MODE: Email sending failed but returning true to allow test to proceed. Error: {}",
-                        e.getMessage());
-                return true;
-            }
             return false;
         }
     }
@@ -184,19 +179,14 @@ public class EmailNotificationService {
                     toEmail);
             return true;
         } catch (Exception e) {
+            // isTestEnvironment is necessarily false here — the test-mode branch above returns
+            // before this catch can run.
             LOGGER.error(
                     "Failed to send templated email to: {}, Template: {}. Error: {}",
                     toEmail,
                     templateId,
                     e.getMessage(),
                     e);
-            // In test environments, return true even on error to allow tests to proceed
-            if (isTestEnvironment) {
-                LOGGER.warn(
-                        "TEST MODE: Templated email sending failed but returning true to allow test to proceed. Error: {}",
-                        e.getMessage());
-                return true;
-            }
             return false;
         }
     }
