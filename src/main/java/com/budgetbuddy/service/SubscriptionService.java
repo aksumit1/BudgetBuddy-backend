@@ -717,6 +717,24 @@ public class SubscriptionService {
     /** Saves or updates subscriptions for a user */
     public void saveSubscriptions(final String userId, final List<Subscription> subscriptions) {
         for (final Subscription subscription : subscriptions) {
+            // Detection re-runs (manual rescans, hourly sync) hand us a fresh Subscription model
+            // whose createdAt is null even when an existing row already lives in DynamoDB. If we
+            // let toSubscriptionTable fall through to its `Instant.now()` branch the original
+            // creation timestamp gets clobbered on every re-detection — audit trails break and
+            // "discovered N days ago" UI lies. Reload the existing row first and graft its
+            // createdAt onto the incoming model.
+            if (subscription.getCreatedAt() == null && subscription.getSubscriptionId() != null) {
+                subscriptionRepository
+                        .findById(subscription.getSubscriptionId())
+                        .map(SubscriptionTable::getCreatedAt)
+                        .filter(java.util.Objects::nonNull)
+                        .ifPresent(
+                                existing ->
+                                        subscription.setCreatedAt(
+                                                java.time.LocalDateTime.ofInstant(
+                                                        existing,
+                                                        java.time.ZoneId.systemDefault())));
+            }
             final SubscriptionTable table = toSubscriptionTable(subscription);
             subscriptionRepository.save(table);
         }
