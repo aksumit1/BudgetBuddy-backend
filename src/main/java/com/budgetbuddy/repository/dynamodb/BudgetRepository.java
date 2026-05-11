@@ -25,6 +25,7 @@ import software.amazon.awssdk.services.dynamodb.model.ResourceNotFoundException;
 @SuppressWarnings({"PMD.AvoidCatchingGenericException", "PMD.OnlyOneReturn"})
 @Repository
 public class BudgetRepository {
+    private static final String BUDGETS = "budgets";
 
     private static final org.slf4j.Logger LOGGER =
             org.slf4j.LoggerFactory.getLogger(BudgetRepository.class);
@@ -46,7 +47,7 @@ public class BudgetRepository {
         this.userIdUpdatedAtIndex = budgetTable.index("UserIdUpdatedAtIndex");
     }
 
-    @CacheEvict(value = "budgets", key = "#budget.userId")
+    @CacheEvict(value = BUDGETS, key = "#budget.userId")
     public void save(final BudgetTable budget) {
         // CRITICAL FIX: Add retry logic for DynamoDB throttling and transient errors
         com.budgetbuddy.util.RetryHelper.executeDynamoDbWithRetry(
@@ -62,7 +63,7 @@ public class BudgetRepository {
      * OptimisticLockHelper.OptimisticLockException} if another writer beat us; caller should
      * re-read and retry.
      */
-    @CacheEvict(value = "budgets", key = "#budget.userId")
+    @CacheEvict(value = BUDGETS, key = "#budget.userId")
     public BudgetTable saveWithLock(final BudgetTable budget) {
         return OptimisticLockHelper.saveWithLock(
                 budgetTable,
@@ -83,7 +84,7 @@ public class BudgetRepository {
         return Optional.ofNullable(budget);
     }
 
-    @Cacheable(value = "budgets", key = "#userId", unless = "#result == null || #result.isEmpty()")
+    @Cacheable(value = BUDGETS, key = "#userId", unless = "#result == null || #result.isEmpty()")
     public List<BudgetTable> findByUserId(final String userId) {
         final List<BudgetTable> results = new ArrayList<>();
         final SdkIterable<software.amazon.awssdk.enhanced.dynamodb.model.Page<BudgetTable>> pages =
@@ -177,7 +178,7 @@ public class BudgetRepository {
         return results;
     }
 
-    @CacheEvict(value = "budgets", allEntries = true)
+    @CacheEvict(value = BUDGETS, allEntries = true)
     public void delete(final String budgetId) {
         budgetTable.deleteItem(Key.builder().partitionValue(budgetId).build());
     }

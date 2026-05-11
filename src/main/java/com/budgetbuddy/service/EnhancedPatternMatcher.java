@@ -142,7 +142,8 @@ public class EnhancedPatternMatcher {
 
     // Transaction pattern components
     private static final String DATE_COMPONENT = "(\\d{1,2}[/-]\\d{1,2}(?:[/-]\\d{2,4})?)";
-    private static final String DESCRIPTION_COMPONENT = "(.+?)"; // Non-greedy match
+    private static final String DESCRIPTION_COMPONENT = "(.+?)";
+    private static final String DATE = "date"; // Non-greedy match
     // AMOUNT_COMPONENT wraps AMOUNT_PATTERN in a capturing group for extraction
     // Use word boundaries to prevent matching fragments from phone numbers or account numbers
     // Note: Used in structured patterns (with ^ and $ anchors), but word boundaries add extra
@@ -425,7 +426,7 @@ public class EnhancedPatternMatcher {
             // LOGGER.info("MATCHING PATTERN 1: SUM AMEX: DATE = {}, AMOUNT = {}, DESCRIPTION = {}",
             // date, amount, description);
             if (date != null && amount != null && isValidDescription(description)) {
-                fields.put("date", dateStr);
+                fields.put(DATE, dateStr);
                 fields.put(DESCRIPTION, description.trim());
                 fields.put(AMOUNT, trimmedAmount);
                 final double confidence = calculateConfidence(date, amount, description);
@@ -471,7 +472,7 @@ public class EnhancedPatternMatcher {
             // LOGGER.info("MATCHING PATTERN 2: SUM AMEX: DATE = {}, AMOUNT = {}, DESCRIPTION = {}",
             // date, amount, description);
             if (date != null && amount != null && isValidDescription(description)) {
-                fields.put("date", dateStr);
+                fields.put(DATE, dateStr);
                 fields.put(DESCRIPTION, description.trim());
                 fields.put(AMOUNT, amountStr.trim());
                 final double confidence =
@@ -514,7 +515,7 @@ public class EnhancedPatternMatcher {
             // LOGGER.info("MATCHING PATTERN 3: SUM AMEX: DATE = {}, AMOUNT = {}, DESCRIPTION = {}",
             // date, amount, description);
             if (date != null && amount != null && isValidDescription(description)) {
-                fields.put("date", date2Str);
+                fields.put(DATE, date2Str);
                 fields.put(DESCRIPTION, description.trim());
                 fields.put(AMOUNT, amountStr.trim());
                 final double confidence = calculateConfidence(date, amount, description) * 0.95;
@@ -565,7 +566,7 @@ public class EnhancedPatternMatcher {
             // date, amount, description);
             if (date != null && amount != null && isValidDescription(description)) {
                 final String fullDescription = (description + " " + location).trim();
-                fields.put("date", dateStr);
+                fields.put(DATE, dateStr);
                 fields.put(DESCRIPTION, fullDescription);
                 fields.put(AMOUNT, amountStr.trim());
                 final double confidence = calculateConfidence(date, amount, fullDescription) * 0.9;
@@ -613,7 +614,7 @@ public class EnhancedPatternMatcher {
             // LOCATION = {}", date, amount, merchant, location);
             if (date != null && amount != null && isValidDescription(merchant)) {
                 final String fullDescription = (merchant + " " + location).trim();
-                fields.put("date", dateStr);
+                fields.put(DATE, dateStr);
                 fields.put(DESCRIPTION, fullDescription);
                 fields.put(AMOUNT, amountStr.trim());
                 final double confidence = calculateConfidence(date, amount, fullDescription) * 0.9;
@@ -706,7 +707,7 @@ public class EnhancedPatternMatcher {
                 && amount != null
                 && amountStr != null
                 && isValidDescription(description)) {
-            fields.put("date", dateStr);
+            fields.put(DATE, dateStr);
             fields.put(DESCRIPTION, description.trim());
             fields.put(AMOUNT, amountStr.trim());
 

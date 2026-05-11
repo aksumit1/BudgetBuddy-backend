@@ -43,6 +43,7 @@ public class EnhancedGlobalExceptionHandler {
     private static final String CORRELATION_ID = "correlationId";
 
     private static final String UNKNOWN = "unknown";
+    private static final String URI = "uri=";
 
     private static final Logger LOGGER =
             LoggerFactory.getLogger(EnhancedGlobalExceptionHandler.class);
@@ -87,7 +88,7 @@ public class EnhancedGlobalExceptionHandler {
                         .technicalDetails(sanitizedTechnicalDetails)
                         .correlationId(correlationId)
                         .timestamp(Instant.now())
-                        .path(request.getDescription(false).replace("uri=", ""))
+                        .path(request.getDescription(false).replace(URI, ""))
                         .build();
 
         final HttpStatus status = mapErrorCodeToHttpStatus(ex.getErrorCode());
@@ -140,7 +141,7 @@ public class EnhancedGlobalExceptionHandler {
                                         + supportedList)
                         .correlationId(correlationId)
                         .timestamp(Instant.now())
-                        .path(request.getDescription(false).replace("uri=", ""))
+                        .path(request.getDescription(false).replace(URI, ""))
                         .build();
 
         if (LOGGER.isWarnEnabled()) {
@@ -196,7 +197,7 @@ public class EnhancedGlobalExceptionHandler {
                         .validationErrors(validationErrors)
                         .correlationId(correlationId)
                         .timestamp(Instant.now())
-                        .path(request.getDescription(false).replace("uri=", ""))
+                        .path(request.getDescription(false).replace(URI, ""))
                         .build();
 
         LOGGER.warn("Validation error: {}", validationErrors);
@@ -225,7 +226,7 @@ public class EnhancedGlobalExceptionHandler {
                                                 + "' is missing"))
                         .correlationId(correlationId)
                         .timestamp(Instant.now())
-                        .path(request.getDescription(false).replace("uri=", ""))
+                        .path(request.getDescription(false).replace(URI, ""))
                         .build();
 
         if (LOGGER.isWarnEnabled()) {
@@ -250,7 +251,7 @@ public class EnhancedGlobalExceptionHandler {
                         .message("Invalid request body format. Please check your JSON syntax.")
                         .correlationId(correlationId)
                         .timestamp(Instant.now())
-                        .path(request.getDescription(false).replace("uri=", ""))
+                        .path(request.getDescription(false).replace(URI, ""))
                         .build();
 
         LOGGER.warn("Invalid request body format | CorrelationId: {}", correlationId);
@@ -286,7 +287,7 @@ public class EnhancedGlobalExceptionHandler {
                                         + supportedTypes)
                         .correlationId(correlationId)
                         .timestamp(Instant.now())
-                        .path(request.getDescription(false).replace("uri=", ""))
+                        .path(request.getDescription(false).replace(URI, ""))
                         .build();
 
         LOGGER.warn(
@@ -310,7 +311,7 @@ public class EnhancedGlobalExceptionHandler {
                         .message("Invalid JSON format. Please check your request body.")
                         .correlationId(correlationId)
                         .timestamp(Instant.now())
-                        .path(request.getDescription(false).replace("uri=", ""))
+                        .path(request.getDescription(false).replace(URI, ""))
                         .build();
 
         LOGGER.warn("JSON parse error | CorrelationId: {}", correlationId);
@@ -350,7 +351,7 @@ public class EnhancedGlobalExceptionHandler {
                         .message(message)
                         .correlationId(correlationId)
                         .timestamp(Instant.now())
-                        .path(request.getDescription(false).replace("uri=", ""))
+                        .path(request.getDescription(false).replace(URI, ""))
                         .build();
 
         // Log at WARN level since this is typically a client-side issue, not a server error
@@ -390,7 +391,7 @@ public class EnhancedGlobalExceptionHandler {
                                 "Request was cancelled or connection was closed before completion. This may be due to network issues.")
                         .correlationId(correlationId)
                         .timestamp(Instant.now())
-                        .path(request.getDescription(false).replace("uri=", ""))
+                        .path(request.getDescription(false).replace(URI, ""))
                         .build();
 
         // Log at WARN level since this is a client-side issue, not a server error
@@ -461,7 +462,7 @@ public class EnhancedGlobalExceptionHandler {
                         .message(sanitizedMessage)
                         .correlationId(correlationId)
                         .timestamp(Instant.now())
-                        .path(request.getDescription(false).replace("uri=", ""))
+                        .path(request.getDescription(false).replace(URI, ""))
                         .build();
 
         // Log full details internally, but never expose to client

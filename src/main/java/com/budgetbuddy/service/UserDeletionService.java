@@ -17,6 +17,7 @@ import com.budgetbuddy.repository.dynamodb.DeviceTokenRepository;
 import com.budgetbuddy.repository.dynamodb.FIDO2CredentialRepository;
 import com.budgetbuddy.repository.dynamodb.GoalRepository;
 import com.budgetbuddy.repository.dynamodb.NetWorthSnapshotRepository;
+import com.budgetbuddy.repository.dynamodb.PlaidAccessTokenRepository;
 import com.budgetbuddy.repository.dynamodb.SubscriptionRepository;
 import com.budgetbuddy.repository.dynamodb.TransactionActionRepository;
 import com.budgetbuddy.repository.dynamodb.TransactionRepository;
@@ -78,6 +79,7 @@ public class UserDeletionService {
     private final UserPreferencesRepository userPreferencesRepository;
     private final UserCorrectionRepository userCorrectionRepository;
     private final CustomMerchantMappingRepository customMerchantMappingRepository;
+    private final PlaidAccessTokenRepository plaidAccessTokenRepository;
 
     // GDPR coverage status. Tables swept by deleteAllUserData below:
     //   accounts, transactions, transaction-actions, budgets, goals, subscriptions,
@@ -105,7 +107,8 @@ public class UserDeletionService {
             final NetWorthSnapshotRepository netWorthSnapshotRepository,
             final UserPreferencesRepository userPreferencesRepository,
             final UserCorrectionRepository userCorrectionRepository,
-            final CustomMerchantMappingRepository customMerchantMappingRepository) {
+            final CustomMerchantMappingRepository customMerchantMappingRepository,
+            final PlaidAccessTokenRepository plaidAccessTokenRepository) {
         this.userRepository = userRepository;
         this.accountRepository = accountRepository;
         this.transactionRepository = transactionRepository;
@@ -125,6 +128,7 @@ public class UserDeletionService {
         this.userPreferencesRepository = userPreferencesRepository;
         this.userCorrectionRepository = userCorrectionRepository;
         this.customMerchantMappingRepository = customMerchantMappingRepository;
+        this.plaidAccessTokenRepository = plaidAccessTokenRepository;
     }
 
     /**
@@ -188,10 +192,13 @@ public class UserDeletionService {
             // 14. Delete per-user ML training rows (corrections + custom-merchant mappings)
             deleteCategoryLearningForUser(userId);
 
-            // 15. Anonymize audit logs (keep for compliance, but remove PII)
+            // 15. Delete Plaid access tokens (backend-side store used by scheduled sync)
+            deletePlaidAccessTokensForUser(userId);
+
+            // 16. Anonymize audit logs (keep for compliance, but remove PII)
             anonymizeAuditLogsForUser(userId);
 
-            // 16. Evict all caches for this user
+            // 17. Evict all caches for this user
             evictUserCaches(userId);
 
             // Log deletion action
@@ -710,6 +717,28 @@ public class UserDeletionService {
             if (LOGGER.isWarnEnabled()) {
                 LOGGER.warn(
                         "Failed to delete custom-merchant-mappings for user {}: {}",
+                        userId,
+                        e.getMessage());
+            }
+        }
+    }
+
+    /**
+     * Delete the backend-side Plaid access-token store for this user. Sister of
+     * removePlaidItemsForUser (which clears Plaid IDs from the accounts table) — together they
+     * close out Plaid: the linked-account metadata is unlinked, and the long-lived access
+     * tokens that would otherwise let the scheduled sync keep pulling for this user are gone.
+     */
+    private void deletePlaidAccessTokensForUser(final String userId) {
+        try {
+            final int removed = plaidAccessTokenRepository.deleteByUserId(userId);
+            if (LOGGER.isInfoEnabled()) {
+                LOGGER.info("Deleted {} Plaid access-token rows for user: {}", removed, userId);
+            }
+        } catch (Exception e) {
+            if (LOGGER.isWarnEnabled()) {
+                LOGGER.warn(
+                        "Failed to delete Plaid access-tokens for user {}: {}",
                         userId,
                         e.getMessage());
             }

@@ -50,6 +50,9 @@ public class SubscriptionService {
     private static final String INSURANCE = "insurance";
     private static final String STREAMING = "streaming";
     private static final String SOFTWARE = "software";
+    private static final String MORTGAGE = "mortgage";
+    private static final String OTHER = "other";
+    private static final String TRANSFER = "transfer";
 
     private static final Logger LOGGER = LoggerFactory.getLogger(SubscriptionService.class);
     private static final DateTimeFormatter DATE_FORMATTER =
@@ -83,7 +86,7 @@ public class SubscriptionService {
                     "loan_payments",
                     "transfer_in",
                     "transfer_out",
-                    "transfer",
+                    TRANSFER,
                     "bank_fees",
                     "investment", // CD deposits, brokerage contributions etc. are
                     "investments", // recurring but not subscriptions
@@ -94,11 +97,11 @@ public class SubscriptionService {
             Set.of(
                     "credit_card_payment",
                     "loan_payment",
-                    "mortgage",
+                    MORTGAGE,
                     "student_loan",
                     "auto_payment",
                     "personal_loan",
-                    "transfer",
+                    TRANSFER,
                     "withdrawal",
                     "deposit",
                     "investment",
@@ -117,8 +120,8 @@ public class SubscriptionService {
                     "autopay",
                     "ach payment",
                     "loan payment",
-                    "mortgage",
-                    "transfer",
+                    MORTGAGE,
+                    TRANSFER,
                     "online payment",
                     "bill payment",
                     "cd deposit",
@@ -145,7 +148,7 @@ public class SubscriptionService {
                 return true;
             }
             // Catch variants like "TRANSFER OUT" or "Loan Payments"
-            if (primaryLower.contains("transfer") || primaryLower.contains("loan_payment")) {
+            if (primaryLower.contains(TRANSFER) || primaryLower.contains("loan_payment")) {
                 return true;
             }
         }
@@ -1159,7 +1162,7 @@ public class SubscriptionService {
         type = detectRideshareMembership(combined);
         if (type != null) return type;
 
-        return "other";
+        return OTHER;
     }
 
     private String detectStreaming(
@@ -1209,8 +1212,8 @@ public class SubscriptionService {
                         || (categoryPrimary != null
                                 && categoryPrimary.toLowerCase(Locale.ROOT).contains(INSURANCE));
         // Insurance is its own subscriptionCategory, not a "type"; explicitly
-        // return "other" so downstream code routes it correctly.
-        return mentions ? "other" : null;
+        // return OTHER so downstream code routes it correctly.
+        return mentions ? OTHER : null;
     }
 
     private String detectParking(final String combined) {
@@ -1284,13 +1287,13 @@ public class SubscriptionService {
             // But exclude insurance and loans
             if (!INSURANCE.equalsIgnoreCase(categoryPrimary)
                     && !"loans".equalsIgnoreCase(categoryPrimary)
-                    && !"mortgage".equalsIgnoreCase(categoryPrimary)) {
+                    && !MORTGAGE.equalsIgnoreCase(categoryPrimary)) {
                 return SUBSCRIPTION;
             }
         }
 
-        // 3. Subscription type indicates subscription (not "other" for unknown)
-        if (subscriptionType != null && !"other".equalsIgnoreCase(subscriptionType)) {
+        // 3. Subscription type indicates subscription (not OTHER for unknown)
+        if (subscriptionType != null && !OTHER.equalsIgnoreCase(subscriptionType)) {
             // If we identified it as streaming, software, membership, cloud_storage, it's a
             // subscription
             return SUBSCRIPTION;
@@ -1299,7 +1302,7 @@ public class SubscriptionService {
         // 4. Large recurring payments (likely mortgage, loans) = RECURRING
         if (amount != null && amount.abs().compareTo(new BigDecimal("500")) > 0) {
             // Check if it's from a bank/financial institution (likely loan/mortgage)
-            if (combined.contains("mortgage")
+            if (combined.contains(MORTGAGE)
                     || combined.contains("loan")
                     || combined.contains("auto finance")
                     || combined.contains("car payment")
@@ -1307,7 +1310,7 @@ public class SubscriptionService {
                     || combined.contains("credit card")
                     || categoryPrimary != null
                             && ("loans".equalsIgnoreCase(categoryPrimary)
-                                    || "mortgage".equalsIgnoreCase(categoryPrimary)
+                                    || MORTGAGE.equalsIgnoreCase(categoryPrimary)
                                     || "payment".equalsIgnoreCase(categoryPrimary))) {
                 return RECURRING;
             }
@@ -1334,9 +1337,9 @@ public class SubscriptionService {
             return RECURRING;
         }
 
-        // 6. Default: If subscriptionType was identified (not "other"), it's likely a subscription
+        // 6. Default: If subscriptionType was identified (not OTHER), it's likely a subscription
         // Otherwise, treat as recurring (safer default)
-        if (subscriptionType != null && !"other".equalsIgnoreCase(subscriptionType)) {
+        if (subscriptionType != null && !OTHER.equalsIgnoreCase(subscriptionType)) {
             return SUBSCRIPTION;
         }
 

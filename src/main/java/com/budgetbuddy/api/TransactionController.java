@@ -89,6 +89,19 @@ public class TransactionController {
     private static final String AMOUNT = "amount";
     private static final String NULL = "null";
     private static final String OTHER = "other";
+    private static final String CSV = ".csv";
+    private static final String ACCOUNT_DETECTION_FROM_FILENAME_WILL_BE_LIMITED_FRONTEND_SHOULD_PRESERVE_ORIGINAL_FILENAME_FOR_BETTER_ACCOUNT_DETECTION = "Account detection from filename will be limited. Frontend should preserve original filename for better account detection.";
+    private static final String AMOUNT_MUST_BE_BETWEEN_999_999_999_99_AND_999_999_999_99 = "Amount must be between -999,999,999.99 and 999,999,999.99";
+    private static final String PAGE_NUMBER_MUST_BE_0 = "Page number must be >= 0";
+    private static final String TRANSACTION_ID_IS_REQUIRED = "Transaction ID is required";
+    private static final String USER_NOT_AUTHENTICATED = "User not authenticated";
+    private static final String USER_NOT_FOUND = "User not found";
+    private static final String U26A0_UFE0F_WARNING_FILENAME_IS_A_UUID_ORIGINAL_FILENAME_WAS_NOT_PRESERVED_BY_FRONTEND = "\u26a0\ufe0f WARNING: Filename is a UUID \'{}\' - Original filename was not preserved by frontend. ";
+    private static final String U274C_BOTH_FILENAME_PARAMETER_AND_MULTIPARTFILE_GETORIGINALFILENAME_RETURNED_NULL_EMPTY_USING_DEFAULT = "\u274c Both filename parameter and MultipartFile.getOriginalFilename() returned null/empty, using default: \'{}\'";
+    private static final String N_0_9A_F_8_0_9A_F_4_0_9A_F_4_0_9A_F_4_0_9A_F_12_CSV_XLSX_XLS_PDF = "^[0-9A-F]{8}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{12}\\.(csv|xlsx|xls|pdf)$";
+    private static final String DESCRIPTION = "description";
+    private static final String MERCHANTNAME = "merchantName";
+    private static final String PAYMENTCHANNEL = "paymentChannel";
 
     private static final Logger LOGGER = LoggerFactory.getLogger(TransactionController.class);
 
@@ -192,14 +205,14 @@ public class TransactionController {
             @RequestParam(defaultValue = "0") final int page,
             @RequestParam(defaultValue = "20") final int size) {
         if (userDetails == null || userDetails.getUsername() == null) {
-            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "User not authenticated");
+            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, USER_NOT_AUTHENTICATED);
         }
 
         final UserTable user =
                 userService
                         .findByEmail(userDetails.getUsername())
                         .orElseThrow(
-                                () -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
+                                () -> new AppException(ErrorCode.USER_NOT_FOUND, USER_NOT_FOUND));
 
         // Validate pagination parameters
         if (page < 0) {
@@ -221,14 +234,14 @@ public class TransactionController {
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) final LocalDate startDate,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) final LocalDate endDate) {
         if (userDetails == null || userDetails.getUsername() == null) {
-            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "User not authenticated");
+            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, USER_NOT_AUTHENTICATED);
         }
 
         final UserTable user =
                 userService
                         .findByEmail(userDetails.getUsername())
                         .orElseThrow(
-                                () -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
+                                () -> new AppException(ErrorCode.USER_NOT_FOUND, USER_NOT_FOUND));
 
         if (startDate == null || endDate == null) {
             throw new AppException(ErrorCode.INVALID_INPUT, "Start date and end date are required");
@@ -249,14 +262,14 @@ public class TransactionController {
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) final LocalDate startDate,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) final LocalDate endDate) {
         if (userDetails == null || userDetails.getUsername() == null) {
-            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "User not authenticated");
+            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, USER_NOT_AUTHENTICATED);
         }
 
         final UserTable user =
                 userService
                         .findByEmail(userDetails.getUsername())
                         .orElseThrow(
-                                () -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
+                                () -> new AppException(ErrorCode.USER_NOT_FOUND, USER_NOT_FOUND));
 
         if (startDate == null || endDate == null) {
             throw new AppException(ErrorCode.INVALID_INPUT, "Start date and end date are required");
@@ -278,14 +291,14 @@ public class TransactionController {
     public ResponseEntity<List<ImportHistoryResponse>> getImportHistory(
             @AuthenticationPrincipal final UserDetails userDetails) {
         if (userDetails == null || userDetails.getUsername() == null) {
-            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "User not authenticated");
+            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, USER_NOT_AUTHENTICATED);
         }
 
         final UserTable user =
                 userService
                         .findByEmail(userDetails.getUsername())
                         .orElseThrow(
-                                () -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
+                                () -> new AppException(ErrorCode.USER_NOT_FOUND, USER_NOT_FOUND));
 
         final List<com.budgetbuddy.model.ImportHistory> historyList =
                 importHistoryService.getUserImportHistory(user.getUserId());
@@ -306,14 +319,14 @@ public class TransactionController {
     public ResponseEntity<ImportStatisticsResponse> getImportStatistics(
             @AuthenticationPrincipal final UserDetails userDetails) {
         if (userDetails == null || userDetails.getUsername() == null) {
-            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "User not authenticated");
+            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, USER_NOT_AUTHENTICATED);
         }
 
         final UserTable user =
                 userService
                         .findByEmail(userDetails.getUsername())
                         .orElseThrow(
-                                () -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
+                                () -> new AppException(ErrorCode.USER_NOT_FOUND, USER_NOT_FOUND));
 
         final Map<String, Object> stats =
                 importHistoryService.getImportStatistics(user.getUserId());
@@ -328,17 +341,17 @@ public class TransactionController {
             @PathVariable final String id,
             @RequestParam(required = false) final String plaidTransactionId) {
         if (userDetails == null || userDetails.getUsername() == null) {
-            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "User not authenticated");
+            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, USER_NOT_AUTHENTICATED);
         }
         if (id == null || id.isEmpty()) {
-            throw new AppException(ErrorCode.INVALID_INPUT, "Transaction ID is required");
+            throw new AppException(ErrorCode.INVALID_INPUT, TRANSACTION_ID_IS_REQUIRED);
         }
 
         final UserTable user =
                 userService
                         .findByEmail(userDetails.getUsername())
                         .orElseThrow(
-                                () -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
+                                () -> new AppException(ErrorCode.USER_NOT_FOUND, USER_NOT_FOUND));
 
         // Pass plaidTransactionId for fallback lookup if UUID doesn't match
         final TransactionTable transaction =
@@ -352,14 +365,14 @@ public class TransactionController {
             @RequestHeader(value = "Idempotency-Key", required = false) final String idempotencyKey,
             @Valid @RequestBody final CreateTransactionRequest request) {
         if (userDetails == null || userDetails.getUsername() == null) {
-            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "User not authenticated");
+            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, USER_NOT_AUTHENTICATED);
         }
 
         final UserTable user =
                 userService
                         .findByEmail(userDetails.getUsername())
                         .orElseThrow(
-                                () -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
+                                () -> new AppException(ErrorCode.USER_NOT_FOUND, USER_NOT_FOUND));
 
         // Note: Bean Validation handles validation in integration tests/real requests
         // For unit tests, add defensive null check (Bean Validation doesn't execute in unit tests)
@@ -481,10 +494,10 @@ public class TransactionController {
             @PathVariable final String id,
             @Valid @RequestBody final UpdateTransactionRequest request) {
         if (userDetails == null || userDetails.getUsername() == null) {
-            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "User not authenticated");
+            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, USER_NOT_AUTHENTICATED);
         }
         if (id == null || id.isEmpty()) {
-            throw new AppException(ErrorCode.INVALID_INPUT, "Transaction ID is required");
+            throw new AppException(ErrorCode.INVALID_INPUT, TRANSACTION_ID_IS_REQUIRED);
         }
         // Validation is handled by Bean Validation annotations on UpdateTransactionRequest
 
@@ -492,7 +505,7 @@ public class TransactionController {
                 userService
                         .findByEmail(userDetails.getUsername())
                         .orElseThrow(
-                                () -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
+                                () -> new AppException(ErrorCode.USER_NOT_FOUND, USER_NOT_FOUND));
 
         // Flow 4 / O2 optimistic lock. If the client passed `ifUnmodifiedSince`, compare it
         // against the stored row's `updatedAt`. A mismatch means another device (or the
@@ -688,14 +701,14 @@ public class TransactionController {
             @AuthenticationPrincipal final UserDetails userDetails,
             @Valid @RequestBody final BatchImportRequest request) {
         if (userDetails == null || userDetails.getUsername() == null) {
-            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "User not authenticated");
+            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, USER_NOT_AUTHENTICATED);
         }
         // Validation is handled by Bean Validation annotations on BatchImportRequest
         final UserTable user =
                 userService
                         .findByEmail(userDetails.getUsername())
                         .orElseThrow(
-                                () -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
+                                () -> new AppException(ErrorCode.USER_NOT_FOUND, USER_NOT_FOUND));
 
         // CRITICAL: If createDetectedAccount is true and detectedAccount is provided, create the
         // account first
@@ -900,7 +913,7 @@ public class TransactionController {
             @AuthenticationPrincipal final UserDetails userDetails,
             @Valid @RequestBody final VerifyTransactionRequest request) {
         if (userDetails == null || userDetails.getUsername() == null) {
-            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "User not authenticated");
+            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, USER_NOT_AUTHENTICATED);
         }
         // Validation is handled by Bean Validation annotations on VerifyTransactionRequest
 
@@ -908,7 +921,7 @@ public class TransactionController {
                 userService
                         .findByEmail(userDetails.getUsername())
                         .orElseThrow(
-                                () -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
+                                () -> new AppException(ErrorCode.USER_NOT_FOUND, USER_NOT_FOUND));
 
         // Use plaidTransactionId from request body for fallback lookup if UUID doesn't match
         final TransactionTable transaction =
@@ -921,18 +934,18 @@ public class TransactionController {
     public ResponseEntity<Void> deleteTransaction(
             @AuthenticationPrincipal final UserDetails userDetails, @PathVariable final String id) {
         if (userDetails == null || userDetails.getUsername() == null) {
-            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "User not authenticated");
+            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, USER_NOT_AUTHENTICATED);
         }
 
         if (id == null || id.isEmpty()) {
-            throw new AppException(ErrorCode.INVALID_INPUT, "Transaction ID is required");
+            throw new AppException(ErrorCode.INVALID_INPUT, TRANSACTION_ID_IS_REQUIRED);
         }
 
         final UserTable user =
                 userService
                         .findByEmail(userDetails.getUsername())
                         .orElseThrow(
-                                () -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
+                                () -> new AppException(ErrorCode.USER_NOT_FOUND, USER_NOT_FOUND));
 
         transactionService.deleteTransaction(user, id);
 
@@ -986,16 +999,16 @@ public class TransactionController {
     public ResponseEntity<TransactionTable> restoreTransaction(
             @AuthenticationPrincipal final UserDetails userDetails, @PathVariable final String id) {
         if (userDetails == null || userDetails.getUsername() == null) {
-            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "User not authenticated");
+            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, USER_NOT_AUTHENTICATED);
         }
         if (id == null || id.isEmpty()) {
-            throw new AppException(ErrorCode.INVALID_INPUT, "Transaction ID is required");
+            throw new AppException(ErrorCode.INVALID_INPUT, TRANSACTION_ID_IS_REQUIRED);
         }
         final UserTable user =
                 userService
                         .findByEmail(userDetails.getUsername())
                         .orElseThrow(
-                                () -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
+                                () -> new AppException(ErrorCode.USER_NOT_FOUND, USER_NOT_FOUND));
         final TransactionTable restored = transactionService.restoreTransaction(user, id);
         if (auditInterceptor != null) {
             auditInterceptor.transactionChanged(
@@ -1155,7 +1168,7 @@ public class TransactionController {
 
         // Ensure non-empty after sanitization
         if (sanitized.isEmpty()) {
-            sanitized = IMPORT + System.currentTimeMillis() + ".csv";
+            sanitized = IMPORT + System.currentTimeMillis() + CSV;
             LOGGER.warn(
                     "⚠️ Filename became empty after sanitization, using default: '{}'", sanitized);
         }
@@ -1175,14 +1188,14 @@ public class TransactionController {
             @RequestParam(defaultValue = "0") final int page,
             @RequestParam(defaultValue = "100") final int size) {
         if (userDetails == null || userDetails.getUsername() == null) {
-            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "User not authenticated");
+            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, USER_NOT_AUTHENTICATED);
         }
 
         final UserTable user =
                 userService
                         .findByEmail(userDetails.getUsername())
                         .orElseThrow(
-                                () -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
+                                () -> new AppException(ErrorCode.USER_NOT_FOUND, USER_NOT_FOUND));
 
         try {
             // CRITICAL: Capture original filename - prefer explicit filename parameter,
@@ -1204,7 +1217,7 @@ public class TransactionController {
 
             // If still null/empty, use a default (but log as error condition)
             if (originalFilename == null || originalFilename.isBlank()) {
-                originalFilename = IMPORT + System.currentTimeMillis() + ".csv";
+                originalFilename = IMPORT + System.currentTimeMillis() + CSV;
                 LOGGER.error(
                         "❌ Both filename parameter and MultipartFile.getOriginalFilename() returned null/empty, using default: '{}'",
                         originalFilename);
@@ -1217,7 +1230,7 @@ public class TransactionController {
             if (isUUIDFilename) {
                 LOGGER.warn(
                         "⚠️ WARNING: Filename is a UUID '{}' - Original filename was not preserved by frontend. "
-                                + "Account detection from filename will be limited. Frontend should preserve original filename for better account detection.",
+                                + ACCOUNT_DETECTION_FROM_FILENAME_WILL_BE_LIMITED_FRONTEND_SHOULD_PRESERVE_ORIGINAL_FILENAME_FOR_BETTER_ACCOUNT_DETECTION,
                         originalFilename);
             }
 
@@ -1281,7 +1294,7 @@ public class TransactionController {
 
                 // Validate pagination parameters
                 if (page < 0) {
-                    throw new AppException(ErrorCode.INVALID_INPUT, "Page number must be >= 0");
+                    throw new AppException(ErrorCode.INVALID_INPUT, PAGE_NUMBER_MUST_BE_0);
                 }
                 if (size < 1 || size > 1000) {
                     throw new AppException(
@@ -1450,14 +1463,14 @@ public class TransactionController {
             @RequestParam(required = false) final String password,
             @RequestParam(required = false) final String filename) {
         if (userDetails == null || userDetails.getUsername() == null) {
-            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "User not authenticated");
+            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, USER_NOT_AUTHENTICATED);
         }
 
         final UserTable user =
                 userService
                         .findByEmail(userDetails.getUsername())
                         .orElseThrow(
-                                () -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
+                                () -> new AppException(ErrorCode.USER_NOT_FOUND, USER_NOT_FOUND));
 
         try {
             // CRITICAL: Capture original filename - prefer explicit filename parameter
@@ -1474,7 +1487,7 @@ public class TransactionController {
             }
 
             if (originalFilename == null || originalFilename.isBlank()) {
-                originalFilename = IMPORT + System.currentTimeMillis() + ".csv";
+                originalFilename = IMPORT + System.currentTimeMillis() + CSV;
                 LOGGER.error(
                         "❌ Both filename parameter and MultipartFile.getOriginalFilename() returned null/empty, using default: '{}'",
                         originalFilename);
@@ -1487,7 +1500,7 @@ public class TransactionController {
             if (isUUIDFilename) {
                 LOGGER.warn(
                         "⚠️ WARNING: Filename is a UUID '{}' - Original filename was not preserved by frontend. "
-                                + "Account detection from filename will be limited. Frontend should preserve original filename for better account detection.",
+                                + ACCOUNT_DETECTION_FROM_FILENAME_WILL_BE_LIMITED_FRONTEND_SHOULD_PRESERVE_ORIGINAL_FILENAME_FOR_BETTER_ACCOUNT_DETECTION,
                         originalFilename);
             }
 
@@ -1655,14 +1668,14 @@ public class TransactionController {
             @RequestParam(required = false) final String filename,
             @RequestParam(required = false) final String previewCategoriesJson) {
         if (userDetails == null || userDetails.getUsername() == null) {
-            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "User not authenticated");
+            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, USER_NOT_AUTHENTICATED);
         }
 
         final UserTable user =
                 userService
                         .findByEmail(userDetails.getUsername())
                         .orElseThrow(
-                                () -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
+                                () -> new AppException(ErrorCode.USER_NOT_FOUND, USER_NOT_FOUND));
 
         // Validate pagination parameters
         if (page < 0) {
@@ -1684,7 +1697,7 @@ public class TransactionController {
             }
 
             if (originalFilename == null || originalFilename.isBlank()) {
-                originalFilename = IMPORT + System.currentTimeMillis() + ".csv";
+                originalFilename = IMPORT + System.currentTimeMillis() + CSV;
             }
 
             // Apply security processing
@@ -2402,14 +2415,14 @@ public class TransactionController {
             @RequestParam(defaultValue = "0") final int page,
             @RequestParam(defaultValue = "100") final int size) {
         if (userDetails == null || userDetails.getUsername() == null) {
-            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "User not authenticated");
+            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, USER_NOT_AUTHENTICATED);
         }
 
         final UserTable user =
                 userService
                         .findByEmail(userDetails.getUsername())
                         .orElseThrow(
-                                () -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
+                                () -> new AppException(ErrorCode.USER_NOT_FOUND, USER_NOT_FOUND));
 
         try {
             // CRITICAL: Capture original filename - prefer explicit filename parameter
@@ -2439,7 +2452,7 @@ public class TransactionController {
             if (isUUIDFilename) {
                 LOGGER.warn(
                         "⚠️ WARNING: Filename is a UUID '{}' - Original filename was not preserved by frontend. "
-                                + "Account detection from filename will be limited. Frontend should preserve original filename for better account detection.",
+                                + ACCOUNT_DETECTION_FROM_FILENAME_WILL_BE_LIMITED_FRONTEND_SHOULD_PRESERVE_ORIGINAL_FILENAME_FOR_BETTER_ACCOUNT_DETECTION,
                         originalFilename);
             }
 
@@ -2500,7 +2513,7 @@ public class TransactionController {
 
                 // Validate pagination parameters
                 if (page < 0) {
-                    throw new AppException(ErrorCode.INVALID_INPUT, "Page number must be >= 0");
+                    throw new AppException(ErrorCode.INVALID_INPUT, PAGE_NUMBER_MUST_BE_0);
                 }
                 if (size < 1 || size > 1000) {
                     throw new AppException(
@@ -2657,14 +2670,14 @@ public class TransactionController {
             @RequestParam(required = false) final String accountId,
             @RequestParam(required = false) final String filename) {
         if (userDetails == null || userDetails.getUsername() == null) {
-            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "User not authenticated");
+            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, USER_NOT_AUTHENTICATED);
         }
 
         final UserTable user =
                 userService
                         .findByEmail(userDetails.getUsername())
                         .orElseThrow(
-                                () -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
+                                () -> new AppException(ErrorCode.USER_NOT_FOUND, USER_NOT_FOUND));
 
         try {
             // CRITICAL: Capture original filename - prefer explicit filename parameter
@@ -2694,7 +2707,7 @@ public class TransactionController {
             if (isUUIDFilename) {
                 LOGGER.warn(
                         "⚠️ WARNING: Filename is a UUID '{}' - Original filename was not preserved by frontend. "
-                                + "Account detection from filename will be limited. Frontend should preserve original filename for better account detection.",
+                                + ACCOUNT_DETECTION_FROM_FILENAME_WILL_BE_LIMITED_FRONTEND_SHOULD_PRESERVE_ORIGINAL_FILENAME_FOR_BETTER_ACCOUNT_DETECTION,
                         originalFilename);
             }
 
@@ -2752,18 +2765,18 @@ public class TransactionController {
             @RequestParam(required = false) String password,
             @RequestParam(required = false) final String filename) {
         if (userDetails == null || userDetails.getUsername() == null) {
-            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "User not authenticated");
+            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, USER_NOT_AUTHENTICATED);
         }
 
         final UserTable user =
                 userService
                         .findByEmail(userDetails.getUsername())
                         .orElseThrow(
-                                () -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
+                                () -> new AppException(ErrorCode.USER_NOT_FOUND, USER_NOT_FOUND));
 
         // Validate pagination parameters
         if (page < 0) {
-            throw new AppException(ErrorCode.INVALID_INPUT, "Page number must be >= 0");
+            throw new AppException(ErrorCode.INVALID_INPUT, PAGE_NUMBER_MUST_BE_0);
         }
         if (size < 1 || size > 500) {
             throw new AppException(ErrorCode.INVALID_INPUT, "Page size must be between 1 and 500");
@@ -3006,14 +3019,14 @@ public class TransactionController {
             @RequestParam(defaultValue = "0") final int page,
             @RequestParam(defaultValue = "100") final int size) {
         if (userDetails == null || userDetails.getUsername() == null) {
-            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "User not authenticated");
+            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, USER_NOT_AUTHENTICATED);
         }
 
         final UserTable user =
                 userService
                         .findByEmail(userDetails.getUsername())
                         .orElseThrow(
-                                () -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
+                                () -> new AppException(ErrorCode.USER_NOT_FOUND, USER_NOT_FOUND));
 
         try {
             // CRITICAL: Capture original filename - prefer explicit filename parameter
@@ -3043,7 +3056,7 @@ public class TransactionController {
             if (isUUIDFilename) {
                 LOGGER.warn(
                         "⚠️ WARNING: Filename is a UUID '{}' - Original filename was not preserved by frontend. "
-                                + "Account detection from filename will be limited. Frontend should preserve original filename for better account detection.",
+                                + ACCOUNT_DETECTION_FROM_FILENAME_WILL_BE_LIMITED_FRONTEND_SHOULD_PRESERVE_ORIGINAL_FILENAME_FOR_BETTER_ACCOUNT_DETECTION,
                         originalFilename);
             }
 
@@ -3135,7 +3148,7 @@ public class TransactionController {
 
                 // Validate pagination parameters
                 if (page < 0) {
-                    throw new AppException(ErrorCode.INVALID_INPUT, "Page number must be >= 0");
+                    throw new AppException(ErrorCode.INVALID_INPUT, PAGE_NUMBER_MUST_BE_0);
                 }
                 if (size < 1 || size > 1000) {
                     throw new AppException(
@@ -3360,14 +3373,14 @@ public class TransactionController {
             @RequestParam(required = false) final String accountId,
             @RequestParam(required = false) final String filename) {
         if (userDetails == null || userDetails.getUsername() == null) {
-            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "User not authenticated");
+            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, USER_NOT_AUTHENTICATED);
         }
 
         final UserTable user =
                 userService
                         .findByEmail(userDetails.getUsername())
                         .orElseThrow(
-                                () -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
+                                () -> new AppException(ErrorCode.USER_NOT_FOUND, USER_NOT_FOUND));
 
         try {
             // CRITICAL: Capture original filename - prefer explicit filename parameter
@@ -3397,7 +3410,7 @@ public class TransactionController {
             if (isUUIDFilename) {
                 LOGGER.warn(
                         "⚠️ WARNING: Filename is a UUID '{}' - Original filename was not preserved by frontend. "
-                                + "Account detection from filename will be limited. Frontend should preserve original filename for better account detection.",
+                                + ACCOUNT_DETECTION_FROM_FILENAME_WILL_BE_LIMITED_FRONTEND_SHOULD_PRESERVE_ORIGINAL_FILENAME_FOR_BETTER_ACCOUNT_DETECTION,
                         originalFilename);
             }
 
@@ -3585,18 +3598,18 @@ public class TransactionController {
             @RequestParam(required = false) String password,
             @RequestParam(required = false) final String filename) {
         if (userDetails == null || userDetails.getUsername() == null) {
-            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "User not authenticated");
+            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, USER_NOT_AUTHENTICATED);
         }
 
         final UserTable user =
                 userService
                         .findByEmail(userDetails.getUsername())
                         .orElseThrow(
-                                () -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
+                                () -> new AppException(ErrorCode.USER_NOT_FOUND, USER_NOT_FOUND));
 
         // Validate pagination parameters
         if (page < 0) {
-            throw new AppException(ErrorCode.INVALID_INPUT, "Page number must be >= 0");
+            throw new AppException(ErrorCode.INVALID_INPUT, PAGE_NUMBER_MUST_BE_0);
         }
         if (size < 1 || size > 500) {
             throw new AppException(ErrorCode.INVALID_INPUT, "Page size must be between 1 and 500");
@@ -3857,7 +3870,7 @@ public class TransactionController {
             @AuthenticationPrincipal final UserDetails userDetails,
             @RequestBody final RecalculatePreviewRequest request) {
         if (userDetails == null || userDetails.getUsername() == null) {
-            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "User not authenticated");
+            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, USER_NOT_AUTHENTICATED);
         }
 
         // Verify user exists (authorization check)
@@ -3865,7 +3878,7 @@ public class TransactionController {
                 userService
                         .findByEmail(userDetails.getUsername())
                         .orElseThrow(
-                                () -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
+                                () -> new AppException(ErrorCode.USER_NOT_FOUND, USER_NOT_FOUND));
         if (LOGGER.isDebugEnabled()) {
             LOGGER.debug("Recalculating preview for user: {}", user.getUserId());
         }
@@ -3938,12 +3951,12 @@ public class TransactionController {
                 try {
                     // Extract and validate transaction data
                     String description =
-                            txMap.get("description") != null
-                                    ? txMap.get("description").toString()
+                            txMap.get(DESCRIPTION) != null
+                                    ? txMap.get(DESCRIPTION).toString()
                                     : null;
                     String merchantName =
-                            txMap.get("merchantName") != null
-                                    ? txMap.get("merchantName").toString()
+                            txMap.get(MERCHANTNAME) != null
+                                    ? txMap.get(MERCHANTNAME).toString()
                                     : null;
 
                     // BOUNDARY CHECK: Validate string lengths
@@ -3996,8 +4009,8 @@ public class TransactionController {
                     }
 
                     final String paymentChannel =
-                            txMap.get("paymentChannel") != null
-                                    ? txMap.get("paymentChannel").toString()
+                            txMap.get(PAYMENTCHANNEL) != null
+                                    ? txMap.get(PAYMENTCHANNEL).toString()
                                     : null;
 
                     if (amount == null) {
@@ -4010,13 +4023,13 @@ public class TransactionController {
                     // Determination now happens during transaction creation only; keep preview data
                     final Map<String, Object> updatedTx = new HashMap<>(txMap);
                     if (description != null) {
-                        updatedTx.put("description", description);
+                        updatedTx.put(DESCRIPTION, description);
                     }
                     if (merchantName != null) {
-                        updatedTx.put("merchantName", merchantName);
+                        updatedTx.put(MERCHANTNAME, merchantName);
                     }
                     if (paymentChannel != null) {
-                        updatedTx.put("paymentChannel", paymentChannel);
+                        updatedTx.put(PAYMENTCHANNEL, paymentChannel);
                     }
                     recalculatedTransactions.add(updatedTx);
                 } catch (Exception e) {
@@ -4154,12 +4167,12 @@ public class TransactionController {
 
         // Description: Normalize empty strings to null for consistency
         txMap.put(
-                "description",
+                DESCRIPTION,
                 description != null && !description.isBlank() ? description.trim() : null);
 
         // Merchant name: Normalize empty strings to null
         txMap.put(
-                "merchantName",
+                MERCHANTNAME,
                 merchantName != null && !merchantName.isBlank() ? merchantName.trim() : null);
 
         // Location: Normalize empty strings to null
@@ -4188,7 +4201,7 @@ public class TransactionController {
 
         // Payment channel: Normalize empty strings to null
         txMap.put(
-                "paymentChannel",
+                PAYMENTCHANNEL,
                 paymentChannel != null && !paymentChannel.isBlank() ? paymentChannel.trim() : null);
 
         // Transaction type: Ensure we always have a valid type (never null)
@@ -4450,10 +4463,10 @@ public class TransactionController {
         @jakarta.validation.constraints.NotNull(message = "Amount is required")
         @jakarta.validation.constraints.DecimalMin(
                 value = "-999999999.99",
-                message = "Amount must be between -999,999,999.99 and 999,999,999.99")
+                message = AMOUNT_MUST_BE_BETWEEN_999_999_999_99_AND_999_999_999_99)
         @jakarta.validation.constraints.DecimalMax(
                 value = "999999999.99",
-                message = "Amount must be between -999,999,999.99 and 999,999,999.99")
+                message = AMOUNT_MUST_BE_BETWEEN_999_999_999_99_AND_999_999_999_99)
         private BigDecimal amount;
 
         @jakarta.validation.constraints.NotNull(message = "Transaction date is required")
@@ -4768,10 +4781,10 @@ public class TransactionController {
     public static class UpdateTransactionRequest {
         @jakarta.validation.constraints.DecimalMin(
                 value = "-999999999.99",
-                message = "Amount must be between -999,999,999.99 and 999,999,999.99")
+                message = AMOUNT_MUST_BE_BETWEEN_999_999_999_99_AND_999_999_999_99)
         @jakarta.validation.constraints.DecimalMax(
                 value = "999999999.99",
-                message = "Amount must be between -999,999,999.99 and 999,999,999.99")
+                message = AMOUNT_MUST_BE_BETWEEN_999_999_999_99_AND_999_999_999_99)
         private BigDecimal amount; // Optional: transaction amount (for type changes)
 
         @jakarta.validation.constraints.Size(
@@ -4921,7 +4934,7 @@ public class TransactionController {
     }
 
     public static class VerifyTransactionRequest {
-        @jakarta.validation.constraints.NotBlank(message = "Transaction ID is required")
+        @jakarta.validation.constraints.NotBlank(message = TRANSACTION_ID_IS_REQUIRED)
         @jakarta.validation.constraints.Size(
                 max = 100,
                 message = "Transaction ID cannot exceed 100 characters")
@@ -6096,13 +6109,13 @@ public class TransactionController {
             @RequestHeader(value = "X-Filename", required = false) final String filename,
             @RequestHeader(value = "X-Content-Type", required = false) String contentType) {
         if (userDetails == null || userDetails.getUsername() == null) {
-            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "User not authenticated");
+            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, USER_NOT_AUTHENTICATED);
         }
 
         // Validate user authentication
         userService
                 .findByEmail(userDetails.getUsername())
-                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND, USER_NOT_FOUND));
 
         // Validate required headers
         if (chunkIndex == null || totalChunks == null) {
@@ -6152,13 +6165,13 @@ public class TransactionController {
             @RequestParam(required = false) final String accountId,
             @RequestParam(required = false) final String password) {
         if (userDetails == null || userDetails.getUsername() == null) {
-            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "User not authenticated");
+            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, USER_NOT_AUTHENTICATED);
         }
 
         // Validate user authentication
         userService
                 .findByEmail(userDetails.getUsername())
-                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND, USER_NOT_FOUND));
 
         final String uploadId = request.get("uploadId");
         if (uploadId == null || uploadId.isEmpty()) {

@@ -23,6 +23,7 @@ public class UtilitiesCategoryStrategy extends BaseCategoryStrategy {
     private static final String UTILITIES = "utilities";
 
     private static final String UTILITY = "utility";
+    private static final String TRANSPORTATION = "transportation";
 
     @Override
     public String detectCategory(
@@ -83,7 +84,7 @@ public class UtilitiesCategoryStrategy extends BaseCategoryStrategy {
                         || descriptionLower.contains(UTILITIES))) {
             LOGGER.debug(
                     "🏷️ detectCategoryFromMerchantName: Detected municipal utility (city of ... utility) → 'utilities'");
-            return "utilities";
+            return UTILITIES;
         }
         return null;
     }
@@ -138,7 +139,7 @@ public class UtilitiesCategoryStrategy extends BaseCategoryStrategy {
                 LOGGER.debug(
                         "🏷️ detectCategoryFromMerchantName: Detected utility company '{}' → 'utilities'",
                         company);
-                return "utilities";
+                return UTILITIES;
             }
         }
         return null;
@@ -175,7 +176,7 @@ public class UtilitiesCategoryStrategy extends BaseCategoryStrategy {
                 || descriptionLower.contains("power company")) {
             LOGGER.debug(
                     "🏷️ detectCategoryFromMerchantName: Detected utility pattern → 'utilities'");
-            return "utilities";
+            return UTILITIES;
         }
         return null;
     }
@@ -203,7 +204,7 @@ public class UtilitiesCategoryStrategy extends BaseCategoryStrategy {
                         || descriptionLower.contains(UTILITY))) {
             LOGGER.debug(
                     "🏷️ detectCategoryFromMerchantName: Detected utility bill payment → 'utilities'");
-            return "utilities";
+            return UTILITIES;
         }
         return null;
     }
@@ -247,7 +248,7 @@ public class UtilitiesCategoryStrategy extends BaseCategoryStrategy {
                 LOGGER.debug(
                         "🏷️ detectCategoryFromMerchantName: Detected cable/internet provider '{}' → 'utilities'",
                         provider);
-                return "utilities";
+                return UTILITIES;
             }
         }
         return null;
@@ -296,7 +297,7 @@ public class UtilitiesCategoryStrategy extends BaseCategoryStrategy {
                 LOGGER.debug(
                         "🏷️ detectCategoryFromMerchantName: Detected phone/mobile provider '{}' → 'utilities'",
                         provider);
-                return "utilities";
+                return UTILITIES;
             }
         }
         return null;
@@ -319,7 +320,7 @@ public class UtilitiesCategoryStrategy extends BaseCategoryStrategy {
                         && merchantName.toUpperCase(Locale.ROOT).contains("PAYBYPHONE"))) {
             LOGGER.debug(
                     "🏷️ detectCategoryFromMerchantName: Detected Pay by Phone (parking) → 'transportation'");
-            return "transportation";
+            return TRANSPORTATION;
         }
 
         // SDOT (Seattle Department of Transportation) - parking/toll services
@@ -331,7 +332,7 @@ public class UtilitiesCategoryStrategy extends BaseCategoryStrategy {
                         && merchantName.toUpperCase(Locale.ROOT).contains("SDOT"))) {
             LOGGER.debug(
                     "🏷️ detectCategoryFromMerchantName: Detected SDOT (parking/toll) → 'transportation'");
-            return "transportation";
+            return TRANSPORTATION;
         }
 
         // IMPARK - parking service
@@ -341,7 +342,7 @@ public class UtilitiesCategoryStrategy extends BaseCategoryStrategy {
                         && merchantName.toUpperCase(Locale.ROOT).contains("IMPARK"))) {
             LOGGER.debug(
                     "🏷️ detectCategoryFromMerchantName: Detected Impark parking → 'transportation'");
-            return "transportation";
+            return TRANSPORTATION;
         }
 
         // UW pay by phone is parking, not utilities
@@ -352,7 +353,7 @@ public class UtilitiesCategoryStrategy extends BaseCategoryStrategy {
                         || descriptionLower.contains(PAYBYPHONE))) {
             LOGGER.debug(
                     "🏷️ detectCategoryFromMerchantName: Detected UW pay by phone (parking) → 'transportation'");
-            return "transportation";
+            return TRANSPORTATION;
         }
 
         // Metropolis parking
@@ -361,7 +362,7 @@ public class UtilitiesCategoryStrategy extends BaseCategoryStrategy {
                         || descriptionLower.contains(PARKING))) {
             LOGGER.debug(
                     "🏷️ detectCategoryFromMerchantName: Detected Metropolis parking → 'transportation'");
-            return "transportation";
+            return TRANSPORTATION;
         }
 
         final String[] transportationServices = {
@@ -408,7 +409,7 @@ public class UtilitiesCategoryStrategy extends BaseCategoryStrategy {
                 LOGGER.debug(
                         "detectCategoryFromMerchantName: Detected transportation service '{}' → 'transportation'",
                         service);
-                return "transportation";
+                return TRANSPORTATION;
             }
         }
 
@@ -537,7 +538,7 @@ public class UtilitiesCategoryStrategy extends BaseCategoryStrategy {
                 LOGGER.debug(
                         "🏷️ detectCategoryFromMerchantName: Detected state DOT/toll '{}' → 'transportation'",
                         dot);
-                return "transportation";
+                return TRANSPORTATION;
             }
         }
 
@@ -552,7 +553,7 @@ public class UtilitiesCategoryStrategy extends BaseCategoryStrategy {
                                 || normalizedMerchantName.contains("reimbursement")))) {
             LOGGER.debug(
                     "🏷️ detectCategoryFromMerchantName: Detected Amex Airlines Fee Reimbursement → 'transportation'");
-            return "transportation";
+            return TRANSPORTATION;
         }
 
         // Car Service (Hona CTR, etc.)
@@ -568,7 +569,7 @@ public class UtilitiesCategoryStrategy extends BaseCategoryStrategy {
                         || descriptionLower.contains("car service"))) {
             LOGGER.debug(
                     "🏷️ detectCategoryFromMerchantName: Detected car service → 'transportation'");
-            return "transportation";
+            return TRANSPORTATION;
         }
 
         return null;

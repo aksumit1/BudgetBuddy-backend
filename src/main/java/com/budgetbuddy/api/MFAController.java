@@ -54,6 +54,7 @@ public class MFAController {
     private static final String MESSAGE = "message";
 
     private static final String SUCCESS = "success";
+    private static final String INVALID_TOTP_CODE = "Invalid TOTP code";
 
     private static final Logger LOGGER = LoggerFactory.getLogger(MFAController.class);
 
@@ -82,7 +83,7 @@ public class MFAController {
             summary = "Setup TOTP",
             description = "Generates TOTP secret and QR code URL for setup")
     @ApiResponse(responseCode = "200", description = "TOTP setup successful")
-    @ApiResponse(responseCode = "401", description = "User not authenticated")
+    @ApiResponse(responseCode = "401", description = USER_NOT_AUTHENTICATED)
     public ResponseEntity<Map<String, Object>> setupTOTP(
             @AuthenticationPrincipal final UserDetails userDetails) {
         if (userDetails == null || userDetails.getUsername() == null) {
@@ -116,8 +117,8 @@ public class MFAController {
             summary = "Verify TOTP Code",
             description = "Verifies TOTP code and enables MFA if valid")
     @ApiResponse(responseCode = "200", description = "TOTP verified successfully")
-    @ApiResponse(responseCode = "401", description = "User not authenticated")
-    @ApiResponse(responseCode = "400", description = "Invalid TOTP code")
+    @ApiResponse(responseCode = "401", description = USER_NOT_AUTHENTICATED)
+    @ApiResponse(responseCode = "400", description = INVALID_TOTP_CODE)
     public ResponseEntity<Map<String, Object>> verifyTOTP(
             @AuthenticationPrincipal final UserDetails userDetails,
             @RequestBody final VerifyTOTPRequest request) {
@@ -137,7 +138,7 @@ public class MFAController {
         final boolean isValid = mfaService.verifyTOTP(user.getUserId(), request.getCode());
 
         if (!isValid) {
-            throw new AppException(ErrorCode.INVALID_CREDENTIALS, "Invalid TOTP code");
+            throw new AppException(ErrorCode.INVALID_CREDENTIALS, INVALID_TOTP_CODE);
         }
 
         // Enable MFA for user
@@ -166,7 +167,7 @@ public class MFAController {
             summary = "Authenticate with TOTP",
             description = "Verifies TOTP code during authentication")
     @ApiResponse(responseCode = "200", description = "TOTP verified successfully")
-    @ApiResponse(responseCode = "400", description = "Invalid TOTP code")
+    @ApiResponse(responseCode = "400", description = INVALID_TOTP_CODE)
     public ResponseEntity<Map<String, Object>> authenticateTOTP(
             @RequestBody final AuthenticateTOTPRequest request) {
         if (request == null || request.getUserId() == null || request.getCode() == null) {
@@ -176,7 +177,7 @@ public class MFAController {
         final boolean isValid = mfaService.verifyTOTP(request.getUserId(), request.getCode());
 
         if (!isValid) {
-            throw new AppException(ErrorCode.INVALID_CREDENTIALS, "Invalid TOTP code");
+            throw new AppException(ErrorCode.INVALID_CREDENTIALS, INVALID_TOTP_CODE);
         }
 
         final Map<String, Object> response = new HashMap<>();
@@ -193,7 +194,7 @@ public class MFAController {
     @DeleteMapping("/totp")
     @Operation(summary = "Remove TOTP", description = "Removes TOTP configuration for a user")
     @ApiResponse(responseCode = "204", description = "TOTP removed successfully")
-    @ApiResponse(responseCode = "401", description = "User not authenticated")
+    @ApiResponse(responseCode = "401", description = USER_NOT_AUTHENTICATED)
     public ResponseEntity<Void> removeTOTP(@AuthenticationPrincipal final UserDetails userDetails) {
         if (userDetails == null || userDetails.getUsername() == null) {
             throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, USER_NOT_AUTHENTICATED);
@@ -219,7 +220,7 @@ public class MFAController {
             summary = "Generate Backup Codes",
             description = "Generates new backup codes for account recovery")
     @ApiResponse(responseCode = "200", description = "Backup codes generated successfully")
-    @ApiResponse(responseCode = "401", description = "User not authenticated")
+    @ApiResponse(responseCode = "401", description = USER_NOT_AUTHENTICATED)
     public ResponseEntity<Map<String, Object>> generateBackupCodes(
             @AuthenticationPrincipal final UserDetails userDetails) {
         if (userDetails == null || userDetails.getUsername() == null) {
@@ -279,7 +280,7 @@ public class MFAController {
     @PostMapping("/sms/request")
     @Operation(summary = "Request SMS OTP", description = "Generates and sends SMS OTP code")
     @ApiResponse(responseCode = "200", description = "SMS OTP sent successfully")
-    @ApiResponse(responseCode = "401", description = "User not authenticated")
+    @ApiResponse(responseCode = "401", description = USER_NOT_AUTHENTICATED)
     public ResponseEntity<Map<String, Object>> requestSMSOTP(
             @AuthenticationPrincipal final UserDetails userDetails) {
         if (userDetails == null || userDetails.getUsername() == null) {
@@ -361,7 +362,7 @@ public class MFAController {
     @PostMapping("/email/request")
     @Operation(summary = "Request Email OTP", description = "Generates and sends Email OTP code")
     @ApiResponse(responseCode = "200", description = "Email OTP sent successfully")
-    @ApiResponse(responseCode = "401", description = "User not authenticated")
+    @ApiResponse(responseCode = "401", description = USER_NOT_AUTHENTICATED)
     public ResponseEntity<Map<String, Object>> requestEmailOTP(
             @AuthenticationPrincipal final UserDetails userDetails) {
         if (userDetails == null || userDetails.getUsername() == null) {
@@ -507,7 +508,7 @@ public class MFAController {
             summary = "Get MFA Status",
             description = "Returns MFA configuration status for the authenticated user")
     @ApiResponse(responseCode = "200", description = "MFA status retrieved successfully")
-    @ApiResponse(responseCode = "401", description = "User not authenticated")
+    @ApiResponse(responseCode = "401", description = USER_NOT_AUTHENTICATED)
     public ResponseEntity<Map<String, Object>> getMFAStatus(
             @AuthenticationPrincipal final UserDetails userDetails) {
         if (userDetails == null || userDetails.getUsername() == null) {
@@ -535,7 +536,7 @@ public class MFAController {
     @DeleteMapping
     @Operation(summary = "Disable MFA", description = "Disables MFA for the authenticated user")
     @ApiResponse(responseCode = "204", description = "MFA disabled successfully")
-    @ApiResponse(responseCode = "401", description = "User not authenticated")
+    @ApiResponse(responseCode = "401", description = USER_NOT_AUTHENTICATED)
     public ResponseEntity<Void> disableMFA(@AuthenticationPrincipal final UserDetails userDetails) {
         if (userDetails == null || userDetails.getUsername() == null) {
             throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, USER_NOT_AUTHENTICATED);

@@ -36,6 +36,7 @@ public class PlaidDataExtractor {
     private static final String OTHER = "other";
 
     private static final String PAYMENT = "payment";
+    private static final String USD = "USD";
 
     private static final Logger LOGGER = LoggerFactory.getLogger(PlaidDataExtractor.class);
     private final AccountRepository accountRepository;
@@ -296,11 +297,11 @@ public class PlaidDataExtractor {
                     } else if (balances.getUnofficialCurrencyCode() != null) {
                         account.setCurrencyCode(balances.getUnofficialCurrencyCode());
                     } else {
-                        account.setCurrencyCode("USD");
+                        account.setCurrencyCode(USD);
                     }
                 } else {
                     account.setBalance(java.math.BigDecimal.ZERO);
-                    account.setCurrencyCode("USD");
+                    account.setCurrencyCode(USD);
                 }
 
                 if (account.getActive() == null) {
@@ -333,7 +334,7 @@ public class PlaidDataExtractor {
                     account.setBalance(java.math.BigDecimal.ZERO);
                 }
                 if (account.getCurrencyCode() == null) {
-                    account.setCurrencyCode("USD");
+                    account.setCurrencyCode(USD);
                 }
             }
         } catch (Exception e) {
@@ -351,7 +352,7 @@ public class PlaidDataExtractor {
                 account.setBalance(java.math.BigDecimal.ZERO);
             }
             if (account.getCurrencyCode() == null) {
-                account.setCurrencyCode("USD");
+                account.setCurrencyCode(USD);
             }
         }
     }
@@ -703,7 +704,7 @@ public class PlaidDataExtractor {
                 } else if (plaidTx.getUnofficialCurrencyCode() != null) {
                     transaction.setCurrencyCode(plaidTx.getUnofficialCurrencyCode());
                 } else {
-                    transaction.setCurrencyCode("USD");
+                    transaction.setCurrencyCode(USD);
                 }
 
                 // Extract pending status
@@ -816,7 +817,7 @@ public class PlaidDataExtractor {
                 }
                 if (transaction.getCurrencyCode() == null
                         || transaction.getCurrencyCode().isEmpty()) {
-                    transaction.setCurrencyCode("USD");
+                    transaction.setCurrencyCode(USD);
                 }
             }
         } catch (Exception e) {
@@ -836,7 +837,7 @@ public class PlaidDataExtractor {
                 transaction.setAmount(java.math.BigDecimal.ZERO);
             }
             if (transaction.getCurrencyCode() == null || transaction.getCurrencyCode().isEmpty()) {
-                transaction.setCurrencyCode("USD");
+                transaction.setCurrencyCode(USD);
             }
         }
 

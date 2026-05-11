@@ -33,6 +33,7 @@ import java.util.regex.Pattern;
 // uses early returns for clarity (validation guards, fail-fast patterns).
 @SuppressWarnings("PMD.OnlyOneReturn")
 public final class MerchantLocationSplitter {
+    private static final String S = "\\s+";
 
     /** Canonical US state + territory abbreviations. Uppercased set. */
     private static final Set<String> US_STATES =

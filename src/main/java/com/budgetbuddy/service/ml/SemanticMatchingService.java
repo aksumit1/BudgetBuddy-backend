@@ -122,6 +122,7 @@ public class SemanticMatchingService {
     private static final String UTILITIES = "utilities";
 
     private static final String WATER_BILL = "water bill";
+    private static final String S = "\\s+";
 
     private static final Logger LOGGER = LoggerFactory.getLogger(SemanticMatchingService.class);
 

@@ -67,7 +67,7 @@ public class FIDO2Controller {
     @ApiResponse(
             responseCode = "200",
             description = "Registration challenge generated successfully")
-    @ApiResponse(responseCode = "401", description = "User not authenticated")
+    @ApiResponse(responseCode = "401", description = USER_NOT_AUTHENTICATED)
     public ResponseEntity<Map<String, Object>> generateRegistrationChallenge(
             @AuthenticationPrincipal final UserDetails userDetails) {
         if (userDetails == null || userDetails.getUsername() == null) {
@@ -100,7 +100,7 @@ public class FIDO2Controller {
             summary = "Verify Registration",
             description = "Verifies passkey registration and stores credential")
     @ApiResponse(responseCode = "200", description = "Passkey registered successfully")
-    @ApiResponse(responseCode = "401", description = "User not authenticated")
+    @ApiResponse(responseCode = "401", description = USER_NOT_AUTHENTICATED)
     @ApiResponse(responseCode = "400", description = "Invalid registration data")
     public ResponseEntity<Map<String, Object>> verifyRegistration(
             @AuthenticationPrincipal final UserDetails userDetails,
@@ -205,7 +205,7 @@ public class FIDO2Controller {
             summary = "List Passkeys",
             description = "Returns list of passkeys for the authenticated user")
     @ApiResponse(responseCode = "200", description = "Passkeys retrieved successfully")
-    @ApiResponse(responseCode = "401", description = "User not authenticated")
+    @ApiResponse(responseCode = "401", description = USER_NOT_AUTHENTICATED)
     public ResponseEntity<Map<String, Object>> listPasskeys(
             @AuthenticationPrincipal final UserDetails userDetails) {
         if (userDetails == null || userDetails.getUsername() == null) {
@@ -233,7 +233,7 @@ public class FIDO2Controller {
             summary = "Delete Passkey",
             description = "Deletes a passkey for the authenticated user")
     @ApiResponse(responseCode = "204", description = "Passkey deleted successfully")
-    @ApiResponse(responseCode = "401", description = "User not authenticated")
+    @ApiResponse(responseCode = "401", description = USER_NOT_AUTHENTICATED)
     @ApiResponse(responseCode = "404", description = "Passkey not found")
     public ResponseEntity<Void> deletePasskey(
             @AuthenticationPrincipal final UserDetails userDetails,

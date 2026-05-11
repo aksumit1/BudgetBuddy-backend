@@ -36,6 +36,7 @@ public class BalanceExtractor {
     private static final String SALDO = "saldo";
 
     private static final String SALDO_FINAL = "saldo final";
+    private static final String I = "(?i)";
 
     private static final Logger LOGGER = LoggerFactory.getLogger(BalanceExtractor.class);
 
@@ -459,7 +460,7 @@ public class BalanceExtractor {
         for (final String creditIndicator : CREDIT_INDICATORS) {
             if (upperCleaned.contains(creditIndicator.toUpperCase(Locale.ROOT))) {
                 isCredit = true;
-                cleaned = cleaned.replaceAll("(?i)" + Pattern.quote(creditIndicator), "").trim();
+                cleaned = cleaned.replaceAll(I + Pattern.quote(creditIndicator), "").trim();
                 break;
             }
         }
@@ -467,7 +468,7 @@ public class BalanceExtractor {
         for (final String debitIndicator : DEBIT_INDICATORS) {
             if (upperCleaned.contains(debitIndicator.toUpperCase(Locale.ROOT))) {
                 isDebit = true;
-                cleaned = cleaned.replaceAll("(?i)" + Pattern.quote(debitIndicator), "").trim();
+                cleaned = cleaned.replaceAll(I + Pattern.quote(debitIndicator), "").trim();
                 break;
             }
         }
@@ -528,10 +529,10 @@ public class BalanceExtractor {
         final List<String> patternsToTry =
                 Arrays.asList(
                         // Pattern 1: With common currency symbols before amount (optional)
-                        "(?i)" + labelPattern + "[:：\\s]+[\\$€£¥₹]?\\s*" + simpleAmountPattern,
+                        I + labelPattern + "[:：\\s]+[\\$€£¥₹]?\\s*" + simpleAmountPattern,
                         // Pattern 2: Amount may contain currency symbols anywhere (removed during
                         // parsing)
-                        "(?i)" + labelPattern + "[:：\\s]+" + simpleAmountPattern);
+                        I + labelPattern + "[:：\\s]+" + simpleAmountPattern);
 
         for (final String patternStr : patternsToTry) {
             try {

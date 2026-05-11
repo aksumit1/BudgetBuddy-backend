@@ -128,6 +128,85 @@ public class CSVImportService {
     private static final String HEALTHCARE = "healthcare";
     private static final String SYMBOL = "symbol";
     private static final String LOAN = "loan";
+    private static final String N_2F = "%.2f";
+    private static final String N_401K = "401k";
+    private static final String AUD = "AUD";
+    private static final String CHF = "CHF";
+    private static final String CNY = "CNY";
+    private static final String EUR = "EUR";
+    private static final String GBP = "GBP";
+    private static final String INR = "INR";
+    private static final String INVESTMENT = "INVESTMENT";
+    private static final String JPY = "JPY";
+    private static final String N_A = "N/A";
+    private static final String USD = "USD";
+    private static final String YEN = "YEN";
+    private static final String YUAN = "YUAN";
+    private static final String ACH = "ach";
+    private static final String ACH_CREDIT = "ach credit";
+    private static final String AIRPORT = "airport";
+    private static final String AMAZON = "amazon";
+    private static final String AMZ = "amz";
+    private static final String ATM = "atm";
+    private static final String AUTO_PAY = "auto pay";
+    private static final String AUTOPAY = "autopay";
+    private static final String BALANCE_TRANSFER = "balance transfer";
+    private static final String BILL_PAY = "bill pay";
+    private static final String BILLPAY = "billpay";
+    private static final String BOOK_STORE = "book store";
+    private static final String BOOKSTORE = "bookstore";
+    private static final String CAPITAL_ONE = "capital one";
+    private static final String CART = "cart";
+    private static final String CASH = "cash";
+    private static final String CASH_WITHDRAWAL = "cash withdrawal";
+    private static final String CATEGORY = "category";
+    private static final String CHAIR = "chair";
+    private static final String CHASE = "chase";
+    private static final String CHECK = "check";
+    private static final String CHK = "chk";
+    private static final String CITI = "citi";
+    private static final String CREDIT = "credit";
+    private static final String CREDIT_CARD = "credit card";
+    private static final String DEBIT = "debit";
+    private static final String DISCOVER = "discover";
+    private static final String ENTERTAINMENT = "entertainment";
+    private static final String ERA_TOLL = "era toll";
+    private static final String FAST_FOOD = "fast food";
+    private static final String HSA = "hsa";
+    private static final String INCOME = "income";
+    private static final String INVESTMENT_2 = "investment";
+    private static final String LOAN_PAYMENT = "loan payment";
+    private static final String MERCHANT_NAME = "merchant name";
+    private static final String NET_AMOUNT = "net amount";
+    private static final String NOTE = "note";
+    private static final String ONLINE_TRANSFER = "online transfer";
+    private static final String PAY_BY_PHONE = "pay by phone";
+    private static final String PAYEE = "payee";
+    private static final String PAYMENT = "payment";
+    private static final String PAYMENT_TYPE = "payment type";
+    private static final String PAYMENT_TYPE_2 = "payment_type";
+    private static final String PET = "pet";
+    private static final String POSTED_DATE = "posted date";
+    private static final String POSTING_DATE = "posting date";
+    private static final String PPD_ID = "ppd id";
+    private static final String PROPERTY_TAX = "property tax";
+    private static final String SEATTLE_AP = "seattle ap";
+    private static final String SEATTLEAP = "seattleap";
+    private static final String SETTLEMENT_DATE = "settlement date";
+    private static final String STORE_CARD = "store card";
+    private static final String STORECRD = "storecrd";
+    private static final String SYNCHRONY = "synchrony";
+    private static final String TRADE_DATE = "trade date";
+    private static final String TRANSACTION_AMOUNT = "transaction amount";
+    private static final String TRANSACTION_CATEGORY = "transaction category";
+    private static final String TRANSACTION_DATE = "transaction date";
+    private static final String TRANSACTION_DESCRIPTION = "transaction description";
+    private static final String TRANSACTION_TYPE = "transaction type";
+    private static final String TRANSACTION_TYPE_2 = "transaction_type";
+    private static final String UTILITY = "utility";
+    private static final String VALUE_DATE = "value date";
+    private static final String WELLS_FARGO = "wells fargo";
+    private static final String WITHDRAWAL = "withdrawal";
 
     private static final Logger LOGGER = LoggerFactory.getLogger(CSVImportService.class);
 
@@ -479,12 +558,12 @@ public class CSVImportService {
         map.put(DINING, DINING);
         map.put("restaurant", DINING);
         map.put("food & dining", DINING);
-        map.put("fast food", DINING);
+        map.put(FAST_FOOD, DINING);
         map.put(RENT, RENT);
         map.put("housing", RENT);
         map.put("mortgage", RENT);
         map.put(UTILITIES, UTILITIES);
-        map.put("utility", UTILITIES);
+        map.put(UTILITY, UTILITIES);
         map.put("electric", UTILITIES);
         map.put("gas", UTILITIES);
         map.put("water", UTILITIES);
@@ -496,7 +575,7 @@ public class CSVImportService {
         map.put("auto", TRANSPORTATION);
         map.put("car", TRANSPORTATION);
         map.put("parking", TRANSPORTATION);
-        map.put("entertainment", "entertainment");
+        map.put(ENTERTAINMENT, ENTERTAINMENT);
         map.put(SHOPPING, SHOPPING);
         map.put("retail", SHOPPING);
         map.put(TRAVEL, TRAVEL);
@@ -508,85 +587,85 @@ public class CSVImportService {
         map.put(HEALTHCARE, HEALTHCARE);
         map.put("medical", HEALTHCARE);
         map.put("pharmacy", HEALTHCARE);
-        map.put("payment", "payment");
+        map.put(PAYMENT, PAYMENT);
         map.put(TRANSFER, TRANSFER); // CRITICAL: Account transfers are separate from payments
-        map.put("payment/transfer", "payment"); // Combined payment/transfer stays as payment
-        map.put("cash", "cash"); // Cash withdrawals
-        map.put("atm", "cash"); // ATM withdrawals
-        map.put("withdrawal", "cash"); // Cash withdrawals
-        map.put("cash withdrawal", "cash"); // Cash withdrawals
+        map.put("payment/transfer", PAYMENT); // Combined payment/transfer stays as payment
+        map.put(CASH, CASH); // Cash withdrawals
+        map.put(ATM, CASH); // ATM withdrawals
+        map.put(WITHDRAWAL, CASH); // Cash withdrawals
+        map.put(CASH_WITHDRAWAL, CASH); // Cash withdrawals
         // Investment categories
-        map.put("investment", "investment");
-        map.put("buy", "investment");
-        map.put("sell", "investment");
-        map.put("purchase", "investment");
-        map.put("sale", "investment");
+        map.put(INVESTMENT_2, INVESTMENT_2);
+        map.put("buy", INVESTMENT_2);
+        map.put("sell", INVESTMENT_2);
+        map.put("purchase", INVESTMENT_2);
+        map.put("sale", INVESTMENT_2);
         map.put(DIVIDEND, DIVIDEND);
         map.put(INTEREST, INTEREST);
-        map.put("capital gains", "investment");
-        map.put("contribution", "investment");
-        map.put("withdrawal", "investment");
-        map.put("distribution", "investment");
-        map.put("rollover", "investment");
-        map.put("transfer in", "investment");
-        map.put("transfer out", "investment");
-        map.put("stocks", "investment");
-        map.put("equity", "investment");
-        map.put("mutual fund", "investment");
-        map.put("mf", "investment");
-        map.put("bonds", "investment");
-        map.put("etf", "investment");
-        map.put("cd", "investment");
-        map.put("certificate of deposit", "investment");
-        map.put("buy order", "investment");
-        map.put("sell order", "investment");
-        map.put("ipo", "investment");
-        map.put("sip", "investment");
-        map.put("systematic investment plan", "investment");
-        map.put("401k contribution", "investment");
-        map.put("employer contribution", "investment");
-        map.put("employer match", "investment");
+        map.put("capital gains", INVESTMENT_2);
+        map.put("contribution", INVESTMENT_2);
+        map.put(WITHDRAWAL, INVESTMENT_2);
+        map.put("distribution", INVESTMENT_2);
+        map.put("rollover", INVESTMENT_2);
+        map.put("transfer in", INVESTMENT_2);
+        map.put("transfer out", INVESTMENT_2);
+        map.put("stocks", INVESTMENT_2);
+        map.put("equity", INVESTMENT_2);
+        map.put("mutual fund", INVESTMENT_2);
+        map.put("mf", INVESTMENT_2);
+        map.put("bonds", INVESTMENT_2);
+        map.put("etf", INVESTMENT_2);
+        map.put("cd", INVESTMENT_2);
+        map.put("certificate of deposit", INVESTMENT_2);
+        map.put("buy order", INVESTMENT_2);
+        map.put("sell order", INVESTMENT_2);
+        map.put("ipo", INVESTMENT_2);
+        map.put("sip", INVESTMENT_2);
+        map.put("systematic investment plan", INVESTMENT_2);
+        map.put("401k contribution", INVESTMENT_2);
+        map.put("employer contribution", INVESTMENT_2);
+        map.put("employer match", INVESTMENT_2);
         // Income
         map.put(SALARY, SALARY);
-        map.put("income", "income");
+        map.put(INCOME, INCOME);
         map.put("payroll", SALARY);
         map.put("wages", SALARY);
         map.put("dividends", DIVIDEND);
-        map.put("capital gain", "investment");
-        map.put("reinvestment", "investment");
-        map.put("principal", "payment");
+        map.put("capital gain", INVESTMENT_2);
+        map.put("reinvestment", INVESTMENT_2);
+        map.put("principal", PAYMENT);
         map.put("escrow", UTILITIES);
-        map.put("loan payment", "payment");
-        map.put("mortgage payment", "payment");
-        map.put("auto loan", "payment");
-        map.put("student loan", "payment");
+        map.put(LOAN_PAYMENT, PAYMENT);
+        map.put("mortgage payment", PAYMENT);
+        map.put("auto loan", PAYMENT);
+        map.put("student loan", PAYMENT);
         map.put("cash advance", OTHER);
-        map.put("balance transfer", "payment");
+        map.put(BALANCE_TRANSFER, PAYMENT);
         map.put("annual fee", OTHER);
         map.put("late fee", OTHER);
         map.put("overlimit fee", OTHER);
         map.put("returned payment fee", OTHER);
         map.put("hsa contribution", OTHER);
         map.put("hsa distribution", HEALTHCARE);
-        map.put("refund", "payment");
+        map.put("refund", PAYMENT);
         map.put(DEPOSIT, DEPOSIT);
         map.put(FEE, FEE);
         map.put("fee_transaction", FEE);
         map.put("fee transaction", FEE);
         map.put("charge", OTHER);
         map.put("request", OTHER);
-        map.put("cash back", "income");
-        map.put("cashback", "income");
-        map.put("receive", "income");
-        map.put("send", "payment");
-        map.put("upi", "payment");
-        map.put("neft", "payment");
-        map.put("rtgs", "payment");
-        map.put("imps", "payment");
+        map.put("cash back", INCOME);
+        map.put("cashback", INCOME);
+        map.put("receive", INCOME);
+        map.put("send", PAYMENT);
+        map.put("upi", PAYMENT);
+        map.put("neft", PAYMENT);
+        map.put("rtgs", PAYMENT);
+        map.put("imps", PAYMENT);
         map.put("purchase", OTHER);
-        map.put("captured", "payment");
-        map.put("debit", OTHER);
-        map.put("credit", "income");
+        map.put("captured", PAYMENT);
+        map.put(DEBIT, OTHER);
+        map.put(CREDIT, INCOME);
         map.put(CHARITY, CHARITY);
         map.put("charitable", CHARITY);
         map.put("donation", CHARITY);
@@ -604,7 +683,7 @@ public class CSVImportService {
         map.put("vehicle registration", OTHER);
         map.put("license renewal", OTHER);
         map.put("driver license", OTHER);
-        map.put("property tax", OTHER);
+        map.put(PROPERTY_TAX, OTHER);
         map.put("real estate tax", OTHER);
         map.put("state tax", OTHER);
         map.put("local tax", OTHER);
@@ -773,7 +852,7 @@ public class CSVImportService {
                                             matchedAccountId,
                                             detectedAccount.getAccountNumber() != null
                                                     ? detectedAccount.getAccountNumber()
-                                                    : "N/A");
+                                                    : N_A);
                                 }
                             } else {
                                 // Enhanced logging with account number and other details
@@ -784,11 +863,11 @@ public class CSVImportService {
                                 final String accountNumber =
                                         fromHeaders.getAccountNumber() != null
                                                 ? fromHeaders.getAccountNumber()
-                                                : "N/A";
+                                                : N_A;
                                 final String institution =
                                         fromHeaders.getInstitutionName() != null
                                                 ? fromHeaders.getInstitutionName()
-                                                : "N/A";
+                                                : N_A;
                                 if (LOGGER.isInfoEnabled()) {
                                     LOGGER.info(
                                             "Detected account from CSV but no match found - Name: {}, AccountNumber: {}, Institution: {}, Type: {}",
@@ -797,7 +876,7 @@ public class CSVImportService {
                                             institution,
                                             fromHeaders.getAccountType() != null
                                                     ? fromHeaders.getAccountType()
-                                                    : "N/A");
+                                                    : N_A);
                                 }
                                 detectedAccount = fromHeaders;
                             }
@@ -1053,9 +1132,9 @@ public class CSVImportService {
                                     headerLower.contains(DESCRIPTION)
                                             || headerLower.contains(DETAILS)
                                             || headerLower.contains(MEMO)
-                                            || headerLower.contains("transaction type")
+                                            || headerLower.contains(TRANSACTION_TYPE)
                                             || headerLower.contains(TYPE)
-                                            || headerLower.contains("category");
+                                            || headerLower.contains(CATEGORY);
 
                             if (isTransactionDetailsColumn) {
                                 // Analyze transaction details for account type clues
@@ -1432,18 +1511,18 @@ public class CSVImportService {
         // Check if value contains known institution keywords
         for (final String institution :
                 Arrays.asList(
-                        "citi",
+                        CITI,
                         AMEX,
                         "american express",
-                        "chase",
+                        CHASE,
                         "bofa",
                         "bank of america",
-                        "wells fargo",
-                        "capital one",
-                        "discover",
+                        WELLS_FARGO,
+                        CAPITAL_ONE,
+                        DISCOVER,
                         "visa",
                         "mastercard",
-                        "synchrony")) {
+                        SYNCHRONY)) {
             if (valueLower.contains(institution) && value.length() > institution.length() + 5) {
                 // Likely a product name - use the full value as institution name
                 return value.trim();
@@ -1462,21 +1541,21 @@ public class CSVImportService {
         final String valueLower = value.toLowerCase(Locale.ROOT);
 
         // Map common account type values to our account types
-        if (valueLower.contains(CHECKING) || valueLower.contains("check")) {
+        if (valueLower.contains(CHECKING) || valueLower.contains(CHECK)) {
             return DEPOSITORY;
         } else if (valueLower.contains(SAVINGS) || valueLower.contains("saving")) {
             return DEPOSITORY;
-        } else if (valueLower.contains("credit card")
+        } else if (valueLower.contains(CREDIT_CARD)
                 || valueLower.contains(CREDITCARD)
                 || valueLower.contains(CARD)) {
-            return "credit";
+            return CREDIT;
         } else if (valueLower.contains(LOAN) || valueLower.contains("mortgage")) {
             return LOAN;
-        } else if (valueLower.contains("investment")
+        } else if (valueLower.contains(INVESTMENT_2)
                 || valueLower.contains("brokerage")
                 || valueLower.contains(IRA)
-                || valueLower.contains("401k")) {
-            return "investment";
+                || valueLower.contains(N_401K)) {
+            return INVESTMENT_2;
         }
 
         return null;
@@ -1484,13 +1563,13 @@ public class CSVImportService {
 
     // Debit/Credit column-name hints, in priority order.
     // Kept small and conservative to avoid false matches — e.g. we don't
-    // include bare "payment" because that's too ambiguous (could be a
+    // include bare PAYMENT because that's too ambiguous (could be a
     // separate "Payment Amount" column that isn't a money-in marker).
     private static final String[] DEBIT_HEADER_KEYS = {
-        "debit",
+        DEBIT,
         "debit amount",
         "debit_amount",
-        "withdrawal",
+        WITHDRAWAL,
         "withdrawals",
         "money out",
         "money_out",
@@ -1502,7 +1581,7 @@ public class CSVImportService {
         "addebito"
     };
     private static final String[] CREDIT_HEADER_KEYS = {
-        "credit",
+        CREDIT,
         "credit amount",
         "credit_amount",
         DEPOSIT,
@@ -1761,18 +1840,18 @@ public class CSVImportService {
         final String dateString =
                 row.findField(
                         // Common formats (checking/savings/money market)
-                        // Note: "trade date" is prioritized for investment accounts (checked later
+                        // Note: TRADE_DATE is prioritized for investment accounts (checked later
                         // in investment-specific lists)
                         // CRITICAL: DETAILS is added for test compatibility - some banks use
                         // DETAILS column for dates
                         // It's checked early so date values are matched before description matching
                         DATE,
-                        "transaction date",
-                        "posting date",
-                        "posted date",
+                        TRANSACTION_DATE,
+                        POSTING_DATE,
+                        POSTED_DATE,
                         "post date",
-                        "trade date",
-                        "settlement date",
+                        TRADE_DATE,
+                        SETTLEMENT_DATE,
                         DETAILS,
                         "transaction_date",
                         "posting_date",
@@ -1780,375 +1859,375 @@ public class CSVImportService {
                         "post_date",
                         "settlement_date",
                         // Major Banks - Checking/Savings
-                        "transaction date",
+                        TRANSACTION_DATE,
                         "transactiondate",
-                        "posting date", // Chase
+                        POSTING_DATE, // Chase
                         "date posted",
                         "dateposted",
-                        "transaction date", // Bank of America
-                        "transaction date",
+                        TRANSACTION_DATE, // Bank of America
+                        TRANSACTION_DATE,
                         DATE,
-                        "posting date", // Wells Fargo
+                        POSTING_DATE, // Wells Fargo
                         DATE,
-                        "transaction date",
-                        "posting date", // Citi (Citibank)
-                        "transaction date",
+                        TRANSACTION_DATE,
+                        POSTING_DATE, // Citi (Citibank)
+                        TRANSACTION_DATE,
                         "date posted",
                         "post date", // Capital One
-                        "transaction date",
+                        TRANSACTION_DATE,
                         DATE,
-                        "posting date", // US Bank
+                        POSTING_DATE, // US Bank
                         DATE,
-                        "transaction date", // TD Bank
-                        "transaction date",
+                        TRANSACTION_DATE, // TD Bank
+                        TRANSACTION_DATE,
                         DATE, // Chime
                         DATE,
-                        "transaction date",
-                        "posting date", // SoFi
+                        TRANSACTION_DATE,
+                        POSTING_DATE, // SoFi
                         DATE,
-                        "transaction date", // Citizens Bank
-                        "transaction date",
+                        TRANSACTION_DATE, // Citizens Bank
+                        TRANSACTION_DATE,
                         DATE, // Regions Bank
                         DATE,
-                        "transaction date", // KeyBank
+                        TRANSACTION_DATE, // KeyBank
                         DATE,
-                        "transaction date", // Navy Federal Credit Union
-                        "transaction date",
+                        TRANSACTION_DATE, // Navy Federal Credit Union
+                        TRANSACTION_DATE,
                         DATE, // First Tech Federal
                         DATE,
-                        "transaction date", // Synchrony Bank
+                        TRANSACTION_DATE, // Synchrony Bank
                         // US Credit Unions
                         DATE,
-                        "transaction date",
-                        "posting date", // State Employees Credit Union
+                        TRANSACTION_DATE,
+                        POSTING_DATE, // State Employees Credit Union
                         DATE,
-                        "transaction date", // School First Federal Credit Union
+                        TRANSACTION_DATE, // School First Federal Credit Union
                         DATE,
-                        "transaction date",
-                        "posting date", // PenFed Credit Union
+                        TRANSACTION_DATE,
+                        POSTING_DATE, // PenFed Credit Union
                         DATE,
-                        "transaction date", // Boeing Employees Credit Union
+                        TRANSACTION_DATE, // Boeing Employees Credit Union
                         DATE,
-                        "transaction date", // Alliant Credit Union
+                        TRANSACTION_DATE, // Alliant Credit Union
                         DATE,
-                        "transaction date", // America First Credit Union
+                        TRANSACTION_DATE, // America First Credit Union
                         DATE,
-                        "transaction date", // Golden 1 Credit Union
+                        TRANSACTION_DATE, // Golden 1 Credit Union
                         DATE,
-                        "transaction date", // Mountain America Credit Union
+                        TRANSACTION_DATE, // Mountain America Credit Union
                         DATE,
-                        "transaction date", // Suncoast Credit Union
+                        TRANSACTION_DATE, // Suncoast Credit Union
                         DATE,
-                        "transaction date", // Randolph-Brooks Federal Credit Union
+                        TRANSACTION_DATE, // Randolph-Brooks Federal Credit Union
                         DATE,
-                        "transaction date", // Lake Michigan Credit Union
+                        TRANSACTION_DATE, // Lake Michigan Credit Union
                         DATE,
-                        "transaction date", // Security Service Federal Credit Union
+                        TRANSACTION_DATE, // Security Service Federal Credit Union
                         DATE,
-                        "transaction date", // FourLeaf Federal Credit Union
+                        TRANSACTION_DATE, // FourLeaf Federal Credit Union
                         DATE,
-                        "transaction date", // Idaho Central Credit Union
+                        TRANSACTION_DATE, // Idaho Central Credit Union
                         DATE,
-                        "transaction date", // Global Credit Union
+                        TRANSACTION_DATE, // Global Credit Union
                         DATE,
-                        "transaction date", // Digital Federal Credit Union
+                        TRANSACTION_DATE, // Digital Federal Credit Union
                         DATE,
-                        "transaction date", // GreenState Credit Union
+                        TRANSACTION_DATE, // GreenState Credit Union
                         // Credit Card formats (all major issuers - Global)
                         // US Credit Cards
                         "trans. date",
                         "trans date",
                         "trans_date",
-                        "transaction date", // Discover, Amex
+                        TRANSACTION_DATE, // Discover, Amex
                         "post date",
                         "postdate",
-                        "posted date",
-                        "transaction date", // Most credit cards
+                        POSTED_DATE,
+                        TRANSACTION_DATE, // Most credit cards
                         "purchase date",
                         "purchase_date",
-                        "transaction date", // Credit card purchases
-                        "transaction date",
+                        TRANSACTION_DATE, // Credit card purchases
+                        TRANSACTION_DATE,
                         DATE, // Chase, Citi, Capital One credit cards
                         DATE,
-                        "transaction date", // Amex, Discover, US Bank credit cards
+                        TRANSACTION_DATE, // Amex, Discover, US Bank credit cards
                         DATE,
-                        "transaction date", // Synchrony Bank credit cards
+                        TRANSACTION_DATE, // Synchrony Bank credit cards
                         // European Credit Cards
                         DATUM,
                         DATE,
-                        "transaction date",
+                        TRANSACTION_DATE,
                         "buchungsdatum",
                         "wertstellung", // Deutsche Bank, Commerzbank credit cards - prioritize
                         // DATUM over "wertstellung"
                         DATE,
-                        "transaction date",
+                        TRANSACTION_DATE,
                         DATUM,
                         "valutadatum", // ING, Rabobank credit cards
                         DATE,
-                        "transaction date",
+                        TRANSACTION_DATE,
                         "date de transaction",
                         "date de valeur", // BNP Paribas, Crédit Agricole credit cards
                         DATE,
-                        "transaction date",
+                        TRANSACTION_DATE,
                         "fecha",
                         "fecha de valor", // BBVA, Santander credit cards
                         DATE,
-                        "transaction date",
+                        TRANSACTION_DATE,
                         "data",
                         "data di valuta", // UniCredit, Intesa Sanpaolo credit cards
                         // Asian Credit Cards
                         DATE,
-                        "transaction date",
+                        TRANSACTION_DATE,
                         "取引日",
                         "決済日", // Japanese credit cards (JCB, MUFG Card)
                         DATE,
-                        "transaction date",
+                        TRANSACTION_DATE,
                         "交易日期",
                         "结算日期", // Chinese credit cards (UnionPay)
                         DATE,
-                        "transaction date",
+                        TRANSACTION_DATE,
                         "거래일자",
                         "결제일자", // Korean credit cards (KB Card, Shinhan Card)
                         DATE,
-                        "transaction date",
+                        TRANSACTION_DATE,
                         "วันที่ทำรายการ",
                         "วันที่ชำระ", // Thai credit cards
                         // Indian Credit Cards
                         DATE,
-                        "transaction date",
-                        "value date",
-                        "posting date", // HDFC, ICICI, Axis credit cards
+                        TRANSACTION_DATE,
+                        VALUE_DATE,
+                        POSTING_DATE, // HDFC, ICICI, Axis credit cards
                         // Global Payment Networks
-                        "transaction date",
+                        TRANSACTION_DATE,
                         DATE,
-                        "posting date", // Mastercard, Visa (global)
-                        "transaction date",
+                        POSTING_DATE, // Mastercard, Visa (global)
+                        TRANSACTION_DATE,
                         DATE, // American Express (global)
-                        "transaction date",
+                        TRANSACTION_DATE,
                         DATE, // Discover (global)
-                        "transaction date",
+                        TRANSACTION_DATE,
                         DATE, // JCB (Japan/Asia)
-                        "transaction date",
+                        TRANSACTION_DATE,
                         DATE, // UnionPay (China/Asia)
                         // PayPal formats
                         DATE,
                         TIME,
                         DATETIME,
-                        "transaction date", // PayPal
+                        TRANSACTION_DATE, // PayPal
                         // Venmo formats
                         DATE,
-                        "transaction date",
+                        TRANSACTION_DATE,
                         DATETIME,
                         TIME, // Venmo
                         // Zelle formats
                         DATE,
-                        "transaction date",
-                        "posted date",
-                        "posting date", // Zelle (via banks)
+                        TRANSACTION_DATE,
+                        POSTED_DATE,
+                        POSTING_DATE, // Zelle (via banks)
                         // Apple Pay / Apple Card formats
                         DATE,
-                        "transaction date",
-                        "posted date",
+                        TRANSACTION_DATE,
+                        POSTED_DATE,
                         "purchase date", // Apple Pay, Apple Card
                         // Google Pay formats
                         DATE,
-                        "transaction date",
+                        TRANSACTION_DATE,
                         DATETIME,
                         TIME, // Google Pay
                         // PhonePe / UPI formats (India)
                         DATE,
-                        "transaction date",
+                        TRANSACTION_DATE,
                         DATETIME,
                         TIME, // PhonePe, UPI transactions
                         // Paytm formats (India - wallet/payment service)
                         DATE,
-                        "transaction date",
+                        TRANSACTION_DATE,
                         "transaction date & time",
                         DATETIME,
                         TIME, // Paytm
                         // Amazon Pay formats
                         DATE,
-                        "transaction date",
+                        TRANSACTION_DATE,
                         "order date", // Amazon Pay
                         // Razor Pay formats (India)
                         DATE,
-                        "transaction date",
+                        TRANSACTION_DATE,
                         "created at",
                         "created_at", // Razor Pay
                         // Indian Banks formats (DD/MM/YYYY date format)
                         DATE,
-                        "transaction date",
-                        "value date",
-                        "posting date", // State Bank of India, ICICI, HDFC, etc.
-                        "trade date",
+                        TRANSACTION_DATE,
+                        VALUE_DATE,
+                        POSTING_DATE, // State Bank of India, ICICI, HDFC, etc.
+                        TRADE_DATE,
                         DATE,
-                        "transaction date",
-                        "value date",
-                        "settlement date", // ICICI Direct (brokerage) - prioritize "trade date"
-                        // over "settlement date"
+                        TRANSACTION_DATE,
+                        VALUE_DATE,
+                        SETTLEMENT_DATE, // ICICI Direct (brokerage) - prioritize TRADE_DATE
+                        // over SETTLEMENT_DATE
                         // European Banks formats (DD/MM/YYYY or DD.MM.YYYY date format)
                         DATE,
-                        "transaction date",
-                        "value date",
-                        "posting date", // HSBC, Barclays, Lloyds (UK)
+                        TRANSACTION_DATE,
+                        VALUE_DATE,
+                        POSTING_DATE, // HSBC, Barclays, Lloyds (UK)
                         DATUM,
                         DATE,
-                        "transaction date",
+                        TRANSACTION_DATE,
                         "buchungsdatum",
                         "wertstellung", // Deutsche Bank, Commerzbank (Germany) - prioritize DATUM
                         // over "wertstellung"
                         DATE,
-                        "transaction date",
+                        TRANSACTION_DATE,
                         DATUM,
                         "valutadatum", // ING, Rabobank (Netherlands)
                         DATE,
-                        "transaction date",
+                        TRANSACTION_DATE,
                         "date de transaction",
                         "date de valeur", // BNP Paribas, Crédit Agricole (France)
                         DATE,
-                        "transaction date",
+                        TRANSACTION_DATE,
                         "fecha",
                         "fecha de valor", // BBVA, Santander (Spain)
                         DATE,
-                        "transaction date",
+                        TRANSACTION_DATE,
                         "data",
                         "data di valuta", // UniCredit, Intesa Sanpaolo (Italy)
                         // Asian Banks formats
                         DATE,
-                        "transaction date",
+                        TRANSACTION_DATE,
                         "取引日",
                         "決済日", // Japanese banks (MUFG, SMBC, Mizuho)
                         DATE,
-                        "transaction date",
+                        TRANSACTION_DATE,
                         "交易日期",
                         "结算日期", // Chinese banks (ICBC, CCB, BOC)
                         DATE,
-                        "transaction date",
+                        TRANSACTION_DATE,
                         "거래일자",
                         "결제일자", // Korean banks (KB, Shinhan, Hana)
                         DATE,
-                        "transaction date",
+                        TRANSACTION_DATE,
                         "วันที่ทำรายการ",
                         "วันที่ชำระ", // Thai banks (Bangkok Bank, Kasikorn)
                         DATE,
-                        "transaction date",
+                        TRANSACTION_DATE,
                         "tanggal transaksi",
                         "tanggal penyelesaian", // Indonesian banks (BCA, Mandiri)
                         DATE,
-                        "transaction date",
+                        TRANSACTION_DATE,
                         "ngày giao dịch",
                         "ngày thanh toán", // Vietnamese banks (Vietcombank, BIDV)
                         // Payment network formats (Mastercard, Visa)
-                        "transaction date",
+                        TRANSACTION_DATE,
                         DATE,
-                        "posting date", // Mastercard, Visa (via issuing banks)
+                        POSTING_DATE, // Mastercard, Visa (via issuing banks)
                         // Plaid (financial data aggregation - uses bank formats)
                         DATE,
-                        "transaction date",
+                        TRANSACTION_DATE,
                         "authorized date",
-                        "posted date", // Plaid
+                        POSTED_DATE, // Plaid
                         // Investment account formats (all major brokerages - Global)
                         // US Investment Platforms
                         "run date",
                         "rundate",
                         "run_date",
-                        "transaction date", // Fidelity
-                        "transaction date",
-                        "trade date",
-                        "settlement date",
+                        TRANSACTION_DATE, // Fidelity
+                        TRANSACTION_DATE,
+                        TRADE_DATE,
+                        SETTLEMENT_DATE,
                         "settlement_date", // Fidelity NetBenefits - prioritize transaction date
                         // over settlement
-                        "transaction date",
-                        "trade date",
-                        "settlement date",
+                        TRANSACTION_DATE,
+                        TRADE_DATE,
+                        SETTLEMENT_DATE,
                         "settlement_date", // Vanguard, Schwab - prioritize transaction/trade date
                         // over settlement
-                        "trade date",
+                        TRADE_DATE,
                         "tradedate",
                         "trade_date",
-                        "transaction date",
-                        "settlement date", // TD Ameritrade, E*TRADE - prioritize trade date
+                        TRANSACTION_DATE,
+                        SETTLEMENT_DATE, // TD Ameritrade, E*TRADE - prioritize trade date
                         DATE,
-                        "transaction date",
-                        "trade date",
-                        "settlement date", // Robinhood - prioritize transaction/trade date
-                        "transaction date",
-                        "trade date",
-                        "settlement date", // Morgan Stanley - prioritize transaction/trade date
+                        TRANSACTION_DATE,
+                        TRADE_DATE,
+                        SETTLEMENT_DATE, // Robinhood - prioritize transaction/trade date
+                        TRANSACTION_DATE,
+                        TRADE_DATE,
+                        SETTLEMENT_DATE, // Morgan Stanley - prioritize transaction/trade date
                         DATE,
-                        "transaction date",
-                        "trade date",
-                        "settlement date", // Goldman Sachs - prioritize transaction/trade date
-                        "transaction date",
-                        "trade date",
+                        TRANSACTION_DATE,
+                        TRADE_DATE,
+                        SETTLEMENT_DATE, // Goldman Sachs - prioritize transaction/trade date
+                        TRANSACTION_DATE,
+                        TRADE_DATE,
                         DATE,
-                        "settlement date", // Generic US investment accounts - prioritize
+                        SETTLEMENT_DATE, // Generic US investment accounts - prioritize
                         // transaction/trade date
                         // European Investment Platforms
                         DATE,
-                        "transaction date",
-                        "trade date",
-                        "settlement date", // Interactive Brokers (Europe)
+                        TRANSACTION_DATE,
+                        TRADE_DATE,
+                        SETTLEMENT_DATE, // Interactive Brokers (Europe)
                         DATE,
-                        "transaction date",
-                        "trade date",
-                        "value date", // Degiro, eToro (Europe)
+                        TRANSACTION_DATE,
+                        TRADE_DATE,
+                        VALUE_DATE, // Degiro, eToro (Europe)
                         DATUM,
                         DATE,
-                        "transaction date",
+                        TRANSACTION_DATE,
                         "buchungsdatum",
                         "wertstellung", // German brokerages (Comdirect, Consorsbank) - prioritize
                         // DATUM over "wertstellung"
                         DATE,
-                        "transaction date",
+                        TRANSACTION_DATE,
                         DATUM,
                         "valutadatum", // Dutch brokerages (BinckBank, Lynx)
                         DATE,
-                        "transaction date",
+                        TRANSACTION_DATE,
                         "date de transaction",
                         "date de valeur", // French brokerages (Boursorama, Binck)
                         DATE,
-                        "transaction date",
+                        TRANSACTION_DATE,
                         "fecha",
                         "fecha de valor", // Spanish brokerages (SelfBank, Renta 4)
                         DATE,
-                        "transaction date",
+                        TRANSACTION_DATE,
                         "data",
                         "data di valuta", // Italian brokerages (FinecoBank, Directa)
                         // Asian Investment Platforms
-                        "trade date",
+                        TRADE_DATE,
                         DATE,
-                        "transaction date",
-                        "settlement date", // ICICI Direct, HDFC Securities (India) - prioritize
-                        // "trade date" over "settlement date"
+                        TRANSACTION_DATE,
+                        SETTLEMENT_DATE, // ICICI Direct, HDFC Securities (India) - prioritize
+                        // TRADE_DATE over SETTLEMENT_DATE
                         DATE,
-                        "transaction date",
+                        TRANSACTION_DATE,
                         "取引日",
                         "決済日", // Japanese brokerages (MUFG Securities, Nomura)
                         DATE,
-                        "transaction date",
+                        TRANSACTION_DATE,
                         "交易日期",
                         "结算日期", // Chinese brokerages (CITIC Securities, Huatai Securities)
                         DATE,
-                        "transaction date",
+                        TRANSACTION_DATE,
                         "거래일자",
                         "결제일자", // Korean brokerages (Samsung Securities, Mirae Asset)
                         DATE,
-                        "transaction date",
+                        TRANSACTION_DATE,
                         "วันที่ทำรายการ",
                         "วันที่ชำระ", // Thai brokerages
                         // Global Investment Platforms
-                        "trade date",
-                        "transaction date",
-                        "value date",
-                        "settlement date", // ICICI Direct (brokerage - India)
-                        "transaction date",
-                        "trade date",
-                        "settlement date", // Interactive Brokers (global)
+                        TRADE_DATE,
+                        TRANSACTION_DATE,
+                        VALUE_DATE,
+                        SETTLEMENT_DATE, // ICICI Direct (brokerage - India)
+                        TRANSACTION_DATE,
+                        TRADE_DATE,
+                        SETTLEMENT_DATE, // Interactive Brokers (global)
                         DATE,
-                        "transaction date",
-                        "trade date", // eToro (global)
-                        "transaction date",
+                        TRANSACTION_DATE,
+                        TRADE_DATE, // eToro (global)
+                        TRANSACTION_DATE,
                         DATE, // Generic investment accounts (global)
                         // Loan account formats (all loan types)
                         "payment date",
@@ -2158,13 +2237,13 @@ public class CSVImportService {
                         "duedate",
                         "due_date",
                         "payment date", // Loan payments
-                        "transaction date",
+                        TRANSACTION_DATE,
                         DATE, // Loan transactions
                         // HSA (Health Savings Account) formats
-                        "transaction date",
+                        TRANSACTION_DATE,
                         DATE,
-                        "posting date", // HSA accounts
-                        "transaction date" // Generic fallback
+                        POSTING_DATE, // HSA accounts
+                        TRANSACTION_DATE // Generic fallback
                         );
         if (dateString == null || dateString.isEmpty()) {
             LOGGER.debug("parseTransaction Row {}: Date string is null or empty", rowNumber);
@@ -2183,9 +2262,9 @@ public class CSVImportService {
                 row.findField(
                         // Common formats (checking/savings/money market)
                         AMOUNT,
-                        "transaction amount",
-                        "debit",
-                        "credit",
+                        TRANSACTION_AMOUNT,
+                        DEBIT,
+                        CREDIT,
                         "transaction_amount",
                         "amount (usd)",
                         "amount(usd)",
@@ -2197,47 +2276,47 @@ public class CSVImportService {
                         AMOUNT, // Chase
                         AMOUNT,
                         "debit/credit",
-                        "debit",
-                        "credit", // Bank of America
+                        DEBIT,
+                        CREDIT, // Bank of America
                         AMOUNT,
-                        "debit",
-                        "credit",
-                        "transaction amount", // Wells Fargo
+                        DEBIT,
+                        CREDIT,
+                        TRANSACTION_AMOUNT, // Wells Fargo
                         AMOUNT,
                         "debit amount",
                         "credit amount",
-                        "transaction amount", // Citi
+                        TRANSACTION_AMOUNT, // Citi
                         AMOUNT,
-                        "transaction amount",
-                        "debit",
-                        "credit", // Capital One
+                        TRANSACTION_AMOUNT,
+                        DEBIT,
+                        CREDIT, // Capital One
                         AMOUNT,
-                        "debit",
-                        "credit", // US Bank
+                        DEBIT,
+                        CREDIT, // US Bank
                         AMOUNT,
-                        "debit",
-                        "credit", // TD Bank
+                        DEBIT,
+                        CREDIT, // TD Bank
                         AMOUNT,
-                        "transaction amount", // Chime
+                        TRANSACTION_AMOUNT, // Chime
                         AMOUNT,
-                        "debit",
-                        "credit", // SoFi
+                        DEBIT,
+                        CREDIT, // SoFi
                         AMOUNT,
-                        "debit",
-                        "credit", // Citizens Bank
+                        DEBIT,
+                        CREDIT, // Citizens Bank
                         AMOUNT,
-                        "transaction amount", // Regions Bank
+                        TRANSACTION_AMOUNT, // Regions Bank
                         AMOUNT,
-                        "debit",
-                        "credit", // KeyBank
+                        DEBIT,
+                        CREDIT, // KeyBank
                         AMOUNT,
-                        "transaction amount", // Navy Federal Credit Union
+                        TRANSACTION_AMOUNT, // Navy Federal Credit Union
                         AMOUNT,
-                        "debit",
-                        "credit", // First Tech Federal
+                        DEBIT,
+                        CREDIT, // First Tech Federal
                         AMOUNT,
-                        "debit",
-                        "credit", // Synchrony Bank
+                        DEBIT,
+                        CREDIT, // Synchrony Bank
                         // Credit Card formats (all major issuers - Global)
                         // US Credit Cards
                         AMOUNT,
@@ -2249,59 +2328,59 @@ public class CSVImportService {
                         "payment amount",
                         "payment_amount",
                         AMOUNT, // Credit card payments
-                        "credit",
-                        "debit",
+                        CREDIT,
+                        DEBIT,
                         AMOUNT, // Credit card transactions
                         AMOUNT,
-                        "transaction amount", // Generic credit cards
+                        TRANSACTION_AMOUNT, // Generic credit cards
                         // European Credit Cards
                         AMOUNT,
-                        "transaction amount",
+                        TRANSACTION_AMOUNT,
                         "betrag",
                         "soll",
                         "haben", // German credit cards
                         AMOUNT,
-                        "transaction amount",
+                        TRANSACTION_AMOUNT,
                         "bedrag",
                         "debet",
-                        "credit", // Dutch credit cards
+                        CREDIT, // Dutch credit cards
                         AMOUNT,
-                        "transaction amount",
+                        TRANSACTION_AMOUNT,
                         "montant",
                         "débit",
                         "crédit", // French credit cards
                         AMOUNT,
-                        "transaction amount",
+                        TRANSACTION_AMOUNT,
                         "importe",
                         "débito",
                         "crédito", // Spanish credit cards
                         AMOUNT,
-                        "transaction amount",
+                        TRANSACTION_AMOUNT,
                         "importo",
                         "addebito",
                         "accredito", // Italian credit cards
                         // Asian Credit Cards
                         AMOUNT,
-                        "transaction amount",
+                        TRANSACTION_AMOUNT,
                         "金額",
                         "取引金額", // Japanese credit cards
                         AMOUNT,
-                        "transaction amount",
+                        TRANSACTION_AMOUNT,
                         "金额",
                         "交易金额", // Chinese credit cards
                         AMOUNT,
-                        "transaction amount",
+                        TRANSACTION_AMOUNT,
                         "금액",
                         "거래금액", // Korean credit cards
                         AMOUNT,
-                        "transaction amount",
+                        TRANSACTION_AMOUNT,
                         "จำนวนเงิน",
                         "ยอดเงิน", // Thai credit cards
                         // Indian Credit Cards
                         AMOUNT,
-                        "transaction amount",
-                        "debit",
-                        "credit", // HDFC, ICICI, Axis credit cards
+                        TRANSACTION_AMOUNT,
+                        DEBIT,
+                        CREDIT, // HDFC, ICICI, Axis credit cards
                         "amount (inr)",
                         "amount(inr)",
                         "amount inr", // Indian credit cards with INR
@@ -2311,82 +2390,82 @@ public class CSVImportService {
                         "gross",
                         FEE,
                         AMOUNT,
-                        "transaction amount", // PayPal (Net = actual amount, Gross = before fees)
+                        TRANSACTION_AMOUNT, // PayPal (Net = actual amount, Gross = before fees)
                         // Venmo formats
                         AMOUNT,
-                        "transaction amount",
-                        "net amount",
+                        TRANSACTION_AMOUNT,
+                        NET_AMOUNT,
                         TOTAL, // Venmo
                         // Zelle formats
                         AMOUNT,
-                        "transaction amount",
-                        "debit",
-                        "credit", // Zelle (via banks)
+                        TRANSACTION_AMOUNT,
+                        DEBIT,
+                        CREDIT, // Zelle (via banks)
                         // Apple Pay / Apple Card formats
                         AMOUNT,
-                        "transaction amount",
+                        TRANSACTION_AMOUNT,
                         "purchase amount", // Apple Pay, Apple Card
                         // Google Pay formats
                         AMOUNT,
-                        "transaction amount",
-                        "net amount", // Google Pay
+                        TRANSACTION_AMOUNT,
+                        NET_AMOUNT, // Google Pay
                         // PhonePe / UPI formats (India)
                         AMOUNT,
-                        "transaction amount",
+                        TRANSACTION_AMOUNT,
                         "debit amount",
                         "credit amount", // PhonePe, UPI (may use INR)
                         // Paytm formats (India - wallet/payment service)
                         AMOUNT,
-                        "transaction amount",
+                        TRANSACTION_AMOUNT,
                         "transaction value",
-                        "credit",
-                        "debit", // Paytm (may use INR)
+                        CREDIT,
+                        DEBIT, // Paytm (may use INR)
                         // Amazon Pay formats
                         AMOUNT,
-                        "transaction amount",
+                        TRANSACTION_AMOUNT,
                         "order amount", // Amazon Pay
                         // Razor Pay formats (India)
                         AMOUNT,
-                        "transaction amount",
+                        TRANSACTION_AMOUNT,
                         "amount paid",
                         "amount_paid", // Razor Pay
                         // Indian Banks formats (may use INR currency)
                         AMOUNT,
-                        "transaction amount",
-                        "debit",
-                        "credit", // State Bank of India, ICICI, HDFC, etc.
+                        TRANSACTION_AMOUNT,
+                        DEBIT,
+                        CREDIT, // State Bank of India, ICICI, HDFC, etc.
                         "amount (inr)",
                         "amount(inr)",
                         "amount inr", // Indian banks with INR
-                        "net amount",
+                        NET_AMOUNT,
                         "gross amount",
                         AMOUNT,
-                        "transaction amount",
-                        "credit",
-                        "debit", // ICICI Direct (brokerage)
+                        TRANSACTION_AMOUNT,
+                        CREDIT,
+                        DEBIT, // ICICI Direct (brokerage)
                         // European Banks formats (may use EUR, GBP, CHF, etc.)
                         AMOUNT,
-                        "transaction amount",
+                        TRANSACTION_AMOUNT,
                         "betrag",
                         "soll",
                         "haben", // German banks (Deutsche Bank, Commerzbank)
                         AMOUNT,
-                        "transaction amount",
+                        TRANSACTION_AMOUNT,
                         "bedrag",
                         "debet",
-                        "credit", // Dutch banks (ING, Rabobank)
+                        CREDIT, // Dutch banks (ING, Rabobank)
                         AMOUNT,
-                        "transaction amount",
+                        TRANSACTION_AMOUNT,
                         "montant",
                         "débit",
                         "crédit", // French banks (BNP Paribas, Crédit Agricole)
                         AMOUNT,
-                        "transaction amount",
+                        TRANSACTION_AMOUNT,
                         "importe",
                         "débito",
                         "crédito", // Spanish banks (BBVA, Santander)
                         AMOUNT,
-                        "transaction amount",
+                        TRANSACTION_AMOUNT,
                         "importo",
                         "addebito",
                         "accredito", // Italian banks (UniCredit, Intesa)
@@ -2398,46 +2477,46 @@ public class CSVImportService {
                         "amount gbp", // European banks
                         // Asian Banks formats
                         AMOUNT,
-                        "transaction amount",
+                        TRANSACTION_AMOUNT,
                         "金額",
                         "取引金額", // Japanese banks
                         AMOUNT,
-                        "transaction amount",
+                        TRANSACTION_AMOUNT,
                         "金额",
                         "交易金额", // Chinese banks
                         AMOUNT,
-                        "transaction amount",
+                        TRANSACTION_AMOUNT,
                         "금액",
                         "거래금액", // Korean banks
                         AMOUNT,
-                        "transaction amount",
+                        TRANSACTION_AMOUNT,
                         "จำนวนเงิน",
                         "ยอดเงิน", // Thai banks
                         AMOUNT,
-                        "transaction amount",
+                        TRANSACTION_AMOUNT,
                         "jumlah",
                         "nominal", // Indonesian banks
                         AMOUNT,
-                        "transaction amount",
+                        TRANSACTION_AMOUNT,
                         "số tiền",
                         "giá trị", // Vietnamese banks
                         // Payment network formats (Mastercard, Visa)
                         AMOUNT,
-                        "transaction amount",
-                        "debit",
-                        "credit", // Mastercard, Visa (via issuing banks)
+                        TRANSACTION_AMOUNT,
+                        DEBIT,
+                        CREDIT, // Mastercard, Visa (via issuing banks)
                         // Plaid formats
                         AMOUNT,
-                        "transaction amount",
+                        TRANSACTION_AMOUNT,
                         "authorized amount", // Plaid
                         // Investment account formats (all major brokerages - Global)
                         // US Investment Platforms
                         "amount ($)",
                         "amount($)",
                         AMOUNT,
-                        "net amount", // Fidelity, Vanguard
+                        NET_AMOUNT, // Fidelity, Vanguard
                         AMOUNT,
-                        "net amount",
+                        NET_AMOUNT,
                         "net_amount",
                         TOTAL, // Schwab, TD Ameritrade
                         TOTAL,
@@ -2449,36 +2528,36 @@ public class CSVImportService {
                         "cost_basis",
                         AMOUNT, // Investment sales
                         AMOUNT,
-                        "net amount", // Robinhood
+                        NET_AMOUNT, // Robinhood
                         AMOUNT,
-                        "net amount",
+                        NET_AMOUNT,
                         TOTAL, // Morgan Stanley, Goldman Sachs
                         AMOUNT,
-                        "net amount",
-                        "transaction amount",
+                        NET_AMOUNT,
+                        TRANSACTION_AMOUNT,
                         "contribution",
-                        "withdrawal", // Fidelity NetBenefits
+                        WITHDRAWAL, // Fidelity NetBenefits
                         AMOUNT,
-                        "transaction amount", // E*TRADE, generic US investments
+                        TRANSACTION_AMOUNT, // E*TRADE, generic US investments
                         // European Investment Platforms
                         AMOUNT,
-                        "net amount",
+                        NET_AMOUNT,
                         "betrag",
                         "nettobetrag", // German brokerages
                         AMOUNT,
-                        "net amount",
+                        NET_AMOUNT,
                         "bedrag",
                         "netto bedrag", // Dutch brokerages
                         AMOUNT,
-                        "net amount",
+                        NET_AMOUNT,
                         "montant",
                         "montant net", // French brokerages
                         AMOUNT,
-                        "net amount",
+                        NET_AMOUNT,
                         "importe",
                         "importe neto", // Spanish brokerages
                         AMOUNT,
-                        "net amount",
+                        NET_AMOUNT,
                         "importo",
                         "importo netto", // Italian brokerages
                         "amount (eur)",
@@ -2492,61 +2571,61 @@ public class CSVImportService {
                         "amount chf", // Swiss brokerages with CHF
                         // Asian Investment Platforms
                         AMOUNT,
-                        "net amount",
-                        "transaction amount",
-                        "credit",
-                        "debit", // ICICI Direct, HDFC Securities (India)
+                        NET_AMOUNT,
+                        TRANSACTION_AMOUNT,
+                        CREDIT,
+                        DEBIT, // ICICI Direct, HDFC Securities (India)
                         "amount (inr)",
                         "amount(inr)",
                         "amount inr", // Indian brokerages with INR
                         AMOUNT,
-                        "net amount",
+                        NET_AMOUNT,
                         "金額",
                         "取引金額", // Japanese brokerages
                         AMOUNT,
-                        "net amount",
+                        NET_AMOUNT,
                         "金额",
                         "交易金额", // Chinese brokerages
                         AMOUNT,
-                        "net amount",
+                        NET_AMOUNT,
                         "금액",
                         "거래금액", // Korean brokerages
                         AMOUNT,
-                        "net amount",
+                        NET_AMOUNT,
                         "จำนวนเงิน",
                         "ยอดเงิน", // Thai brokerages
                         // Global Investment Platforms
-                        "net amount",
+                        NET_AMOUNT,
                         "gross amount",
                         AMOUNT,
-                        "transaction amount", // ICICI Direct (brokerage - India)
+                        TRANSACTION_AMOUNT, // ICICI Direct (brokerage - India)
                         AMOUNT,
-                        "net amount",
+                        NET_AMOUNT,
                         TOTAL, // Interactive Brokers (global)
                         AMOUNT,
-                        "transaction amount", // eToro (global)
+                        TRANSACTION_AMOUNT, // eToro (global)
                         AMOUNT,
-                        "transaction amount", // Generic investment accounts (global)
+                        TRANSACTION_AMOUNT, // Generic investment accounts (global)
                         // Loan account formats (all loan types)
                         "payment amount",
                         "payment_amount",
-                        "payment", // Loan payments
+                        PAYMENT, // Loan payments
                         "principal",
                         INTEREST,
                         AMOUNT, // Loan components
                         "total payment",
                         "total_payment",
-                        "payment", // Total loan payment
+                        PAYMENT, // Total loan payment
                         "escrow",
                         "escrow payment",
                         "escrow_payment", // Mortgage escrow
-                        "payment",
+                        PAYMENT,
                         AMOUNT, // Generic loan payments
                         // HSA (Health Savings Account) formats
                         AMOUNT,
-                        "transaction amount",
-                        "debit",
-                        "credit", // HSA accounts
+                        TRANSACTION_AMOUNT,
+                        DEBIT,
+                        CREDIT, // HSA accounts
                         AMOUNT // Generic fallback
                         );
         if (amountString == null || amountString.isEmpty()) {
@@ -2592,7 +2671,7 @@ public class CSVImportService {
         // For credit card accounts: reverse the sign to match backend convention
         if (detectedAccount != null && detectedAccount.getAccountType() != null) {
             final String accountType = detectedAccount.getAccountType().toLowerCase(Locale.ROOT);
-            if (accountType.contains("credit")
+            if (accountType.contains(CREDIT)
                     || CREDITCARD.equals(accountType)
                     || "credit_card".equals(accountType)) {
                 amount = amount.negate();
@@ -2616,10 +2695,10 @@ public class CSVImportService {
                         MEMO,
                         DETAILS,
                         MERCHANT,
-                        "payee",
+                        PAYEE,
                         NAME,
                         "payee name",
-                        "transaction description",
+                        TRANSACTION_DESCRIPTION,
                         "transaction_description",
                         "transaction details",
                         // Major Banks - Checking/Savings/Money Market
@@ -2627,20 +2706,20 @@ public class CSVImportService {
                         DETAILS,
                         MEMO, // Chase
                         DESCRIPTION,
-                        "payee",
+                        PAYEE,
                         MEMO, // Bank of America
                         DESCRIPTION,
                         MEMO,
                         DETAILS, // Wells Fargo
                         DESCRIPTION,
-                        "transaction description",
+                        TRANSACTION_DESCRIPTION,
                         MEMO, // Citi
                         DESCRIPTION,
                         MERCHANT,
                         MEMO, // Capital One
                         DESCRIPTION,
                         MEMO,
-                        "transaction description", // US Bank
+                        TRANSACTION_DESCRIPTION, // US Bank
                         DESCRIPTION,
                         MEMO, // TD Bank
                         DESCRIPTION,
@@ -2648,7 +2727,7 @@ public class CSVImportService {
                         MEMO, // Chime
                         DESCRIPTION,
                         MEMO,
-                        "transaction description", // SoFi
+                        TRANSACTION_DESCRIPTION, // SoFi
                         DESCRIPTION,
                         MEMO, // Citizens Bank
                         DESCRIPTION,
@@ -2698,16 +2777,16 @@ public class CSVImportService {
                         MEMO, // GreenState Credit Union
                         // Credit Card formats (all major issuers)
                         DESCRIPTION,
-                        "merchant name",
+                        MERCHANT_NAME,
                         "merchant_name", // Credit cards
                         MERCHANT,
                         "vendor",
                         STORE,
                         DESCRIPTION, // Credit card merchants
-                        "transaction description",
+                        TRANSACTION_DESCRIPTION,
                         "purchase description", // Credit card purchases
-                        "category",
-                        "transaction category",
+                        CATEGORY,
+                        TRANSACTION_CATEGORY,
                         DESCRIPTION, // Some credit cards put description in category
                         DESCRIPTION,
                         MERCHANT, // Generic credit cards
@@ -2718,12 +2797,12 @@ public class CSVImportService {
                         "from email address",
                         "to email address",
                         "item title", // PayPal
-                        "note",
+                        NOTE,
                         MEMO,
                         DESCRIPTION, // PayPal notes
                         // Venmo formats
                         DESCRIPTION,
-                        "note",
+                        NOTE,
                         MEMO,
                         "what for",
                         "note to self", // Venmo
@@ -2733,42 +2812,42 @@ public class CSVImportService {
                         // Zelle formats
                         DESCRIPTION,
                         MEMO,
-                        "note",
-                        "transaction description", // Zelle (via banks)
+                        NOTE,
+                        TRANSACTION_DESCRIPTION, // Zelle (via banks)
                         RECIPIENT,
                         SENDER,
                         NAME, // Zelle recipient/sender
                         // Apple Pay / Apple Card formats
                         DESCRIPTION,
                         MERCHANT,
-                        "merchant name",
-                        "transaction description", // Apple Pay, Apple Card
+                        MERCHANT_NAME,
+                        TRANSACTION_DESCRIPTION, // Apple Pay, Apple Card
                         "location",
                         STORE, // Apple Pay location/store
                         // Google Pay formats
                         DESCRIPTION,
                         MERCHANT,
-                        "merchant name",
-                        "note", // Google Pay
+                        MERCHANT_NAME,
+                        NOTE, // Google Pay
                         RECIPIENT,
                         SENDER,
                         NAME, // Google Pay P2P
                         // PhonePe / UPI formats (India)
                         DESCRIPTION,
                         "remarks",
-                        "note",
-                        "transaction description", // PhonePe, UPI
+                        NOTE,
+                        TRANSACTION_DESCRIPTION, // PhonePe, UPI
                         "beneficiary name",
                         "payer name",
                         "upi id", // UPI transaction details
                         // Paytm formats (India - wallet/payment service)
                         DESCRIPTION,
-                        "transaction description",
-                        "merchant name",
+                        TRANSACTION_DESCRIPTION,
+                        MERCHANT_NAME,
                         MERCHANT, // Paytm
-                        "note",
+                        NOTE,
                         "remarks",
-                        "transaction type",
+                        TRANSACTION_TYPE,
                         "payment method", // Paytm transaction details
                         // Amazon Pay formats
                         DESCRIPTION,
@@ -2782,7 +2861,7 @@ public class CSVImportService {
                         DESCRIPTION,
                         "narration",
                         "particulars",
-                        "transaction description", // State Bank of India, ICICI, HDFC, etc.
+                        TRANSACTION_DESCRIPTION, // State Bank of India, ICICI, HDFC, etc.
                         "beneficiary",
                         "payer",
                         "remarks", // Indian bank transaction details
@@ -2845,40 +2924,40 @@ public class CSVImportService {
                         "ghi chú", // Vietnamese banks
                         // Payment network formats (Mastercard, Visa)
                         DESCRIPTION,
-                        "merchant name",
+                        MERCHANT_NAME,
                         MERCHANT, // Mastercard, Visa (via issuing banks)
                         // Plaid formats
                         DESCRIPTION,
-                        "merchant name",
+                        MERCHANT_NAME,
                         NAME,
                         "original description", // Plaid
                         // Investment account formats (all major brokerages)
-                        "transaction description",
+                        TRANSACTION_DESCRIPTION,
                         "transaction_description", // Fidelity, Vanguard
                         ACTION,
-                        "transaction type",
-                        "transaction_type", // Investment actions
+                        TRANSACTION_TYPE,
+                        TRANSACTION_TYPE_2, // Investment actions
                         "security description",
                         "security_description",
                         SYMBOL, // Investment securities
                         DESCRIPTION,
                         MEMO,
-                        "transaction description", // Generic investment description
+                        TRANSACTION_DESCRIPTION, // Generic investment description
                         DESCRIPTION,
                         MEMO, // Robinhood, Morgan Stanley, Goldman Sachs
                         DESCRIPTION,
-                        "transaction description", // E*TRADE, Schwab, TD Ameritrade
-                        "transaction description",
+                        TRANSACTION_DESCRIPTION, // E*TRADE, Schwab, TD Ameritrade
+                        TRANSACTION_DESCRIPTION,
                         DESCRIPTION,
                         "action description", // Fidelity NetBenefits
                         "security name",
                         "security",
                         SYMBOL,
                         "company name",
-                        "transaction description", // Fidelity NetBenefits - prioritize "security
+                        TRANSACTION_DESCRIPTION, // Fidelity NetBenefits - prioritize "security
                         // name"
                         "particulars",
-                        "transaction description",
+                        TRANSACTION_DESCRIPTION,
                         DESCRIPTION,
                         "narration", // ICICI Direct (brokerage) - prioritize "particulars"
                         "particulars",
@@ -2888,10 +2967,10 @@ public class CSVImportService {
                         "company name", // ICICI Direct (brokerage) - prioritize "particulars"
                         // Loan account formats (all loan types)
                         DESCRIPTION,
-                        "transaction description",
+                        TRANSACTION_DESCRIPTION,
                         MEMO, // Loan transactions
-                        "payment type",
-                        "payment_type",
+                        PAYMENT_TYPE,
+                        PAYMENT_TYPE_2,
                         DESCRIPTION, // Loan payment types
                         MEMO,
                         "notes",
@@ -2899,7 +2978,7 @@ public class CSVImportService {
                         // HSA (Health Savings Account) formats
                         DESCRIPTION,
                         MEMO,
-                        "transaction description", // HSA accounts
+                        TRANSACTION_DESCRIPTION, // HSA accounts
                         DESCRIPTION // Generic fallback
                         );
         transaction.setDescription(
@@ -2917,20 +2996,20 @@ public class CSVImportService {
                 row.findField(
                         // Common formats (checking/savings/money market)
                         MERCHANT,
-                        "merchant name",
+                        MERCHANT_NAME,
                         "merchant_name",
-                        "payee",
+                        PAYEE,
                         NAME,
                         "payee_name",
                         // Credit card specific (all issuers)
                         MERCHANT,
                         "vendor",
                         STORE,
-                        "merchant name",
+                        MERCHANT_NAME,
                         "merchant_name",
                         // Synchrony Bank
                         MERCHANT,
-                        "merchant name",
+                        MERCHANT_NAME,
                         DESCRIPTION,
                         // PayPal formats
                         NAME,
@@ -2950,12 +3029,12 @@ public class CSVImportService {
                         MERCHANT, // Zelle
                         // Apple Pay / Apple Card formats
                         MERCHANT,
-                        "merchant name",
+                        MERCHANT_NAME,
                         STORE,
                         "location", // Apple Pay, Apple Card
                         // Google Pay formats
                         MERCHANT,
-                        "merchant name",
+                        MERCHANT_NAME,
                         RECIPIENT,
                         SENDER, // Google Pay
                         // PhonePe / UPI formats (India)
@@ -2963,7 +3042,7 @@ public class CSVImportService {
                         "payer name",
                         MERCHANT, // PhonePe, UPI
                         // Paytm formats (India - wallet/payment service)
-                        "merchant name",
+                        MERCHANT_NAME,
                         MERCHANT,
                         "shop name",
                         "store name", // Paytm
@@ -2986,11 +3065,11 @@ public class CSVImportService {
                         "payer name",
                         "counter party", // ICICI Direct (brokerage)
                         // Payment network formats (Mastercard, Visa)
-                        "merchant name",
+                        MERCHANT_NAME,
                         MERCHANT,
                         "vendor", // Mastercard, Visa (via issuing banks)
                         // Plaid formats
-                        "merchant name",
+                        MERCHANT_NAME,
                         MERCHANT,
                         NAME, // Plaid
                         // Investment specific (all brokerages)
@@ -3004,7 +3083,7 @@ public class CSVImportService {
                         "security_name", // Fidelity NetBenefits - prioritize security name for
                         // merchant
                         // Generic
-                        "payee",
+                        PAYEE,
                         NAME,
                         MERCHANT);
         // Normalize merchant name (lenient normalization for better matching)
@@ -3018,70 +3097,70 @@ public class CSVImportService {
         final String categoryString =
                 row.findField(
                         // Common formats (checking/savings/money market)
-                        "category",
-                        "transaction category",
+                        CATEGORY,
+                        TRANSACTION_CATEGORY,
                         TYPE,
-                        "transaction_type",
+                        TRANSACTION_TYPE_2,
                         // Credit card specific (all issuers)
-                        "category",
+                        CATEGORY,
                         "merchant category",
                         "merchant_category",
                         "mcc",
                         "mcc code",
-                        "transaction category", // Chase, Amex, Discover, etc.
+                        TRANSACTION_CATEGORY, // Chase, Amex, Discover, etc.
                         // PayPal specific
                         TYPE,
-                        "category",
-                        "transaction type", // PayPal transaction types
+                        CATEGORY,
+                        TRANSACTION_TYPE, // PayPal transaction types
                         // Synchrony Bank specific
-                        "category",
+                        CATEGORY,
                         TYPE,
-                        "transaction category", // Synchrony Bank
+                        TRANSACTION_CATEGORY, // Synchrony Bank
                         // Venmo specific
                         TYPE,
-                        "category",
-                        "transaction type", // Venmo transaction types
+                        CATEGORY,
+                        TRANSACTION_TYPE, // Venmo transaction types
                         // Zelle specific
-                        "category",
+                        CATEGORY,
                         TYPE,
-                        "transaction type", // Zelle (via banks)
+                        TRANSACTION_TYPE, // Zelle (via banks)
                         // Apple Pay / Apple Card specific
-                        "category",
+                        CATEGORY,
                         "merchant category",
-                        "transaction category", // Apple Pay, Apple Card
+                        TRANSACTION_CATEGORY, // Apple Pay, Apple Card
                         // Investment specific (all brokerages)
-                        "transaction type",
-                        "transaction_type",
+                        TRANSACTION_TYPE,
+                        TRANSACTION_TYPE_2,
                         ACTION,
                         "security type",
                         "security_type",
                         TYPE,
                         ACTION, // Fidelity, Vanguard, Schwab, Robinhood, etc.
-                        "transaction type",
+                        TRANSACTION_TYPE,
                         TYPE,
                         ACTION,
                         "contribution type",
                         "withdrawal type", // Fidelity NetBenefits
-                        "transaction type",
+                        TRANSACTION_TYPE,
                         TYPE,
                         ACTION,
                         "buy/sell",
                         "transaction code", // ICICI Direct (brokerage)
                         // Loan specific (all loan types)
-                        "payment type",
-                        "payment_type",
-                        "transaction type",
+                        PAYMENT_TYPE,
+                        PAYMENT_TYPE_2,
+                        TRANSACTION_TYPE,
                         // HSA specific
-                        "category",
+                        CATEGORY,
                         TYPE,
-                        "transaction type",
+                        TRANSACTION_TYPE,
                         // Generic
                         TYPE,
-                        "category",
-                        "transaction category");
+                        CATEGORY,
+                        TRANSACTION_CATEGORY);
         // Parse payment channel first (needed for enhanced category detection)
         final String paymentChannel =
-                row.findField("payment channel", "payment type", "payment_channel", "payment_type");
+                row.findField("payment channel", PAYMENT_TYPE, "payment_channel", PAYMENT_TYPE_2);
         transaction.setPaymentChannel(paymentChannel);
 
         // CRITICAL: Parse debit/credit indicator from Details or Type column
@@ -3090,14 +3169,14 @@ public class CSVImportService {
                 row.findField(
                         DETAILS,
                         TYPE,
-                        "transaction type",
-                        "transaction_type",
+                        TRANSACTION_TYPE,
+                        TRANSACTION_TYPE_2,
                         "debit/credit",
                         "debit credit",
                         "dr/cr",
                         "dr cr",
-                        "debit",
-                        "credit",
+                        DEBIT,
+                        CREDIT,
                         "dr",
                         "cr",
                         // Account-specific indicators
@@ -3110,8 +3189,8 @@ public class CSVImportService {
                         "transaction action",
                         "buy/sell",
                         // Loan account indicators
-                        "payment type",
-                        "payment_type");
+                        PAYMENT_TYPE,
+                        PAYMENT_TYPE_2);
 
         // Capture account type context for parsing only (type/category determination happens on
         // creation)
@@ -3370,14 +3449,14 @@ public class CSVImportService {
      */
     private static final List<CurrencySymbolRule> CURRENCY_SYMBOL_RULES =
             List.of(
-                    new CurrencySymbolRule("INR", "₹", "RS", "INR"),
-                    new CurrencySymbolRule("USD", "$", "USD"),
-                    new CurrencySymbolRule("EUR", "€", "EUR"),
-                    new CurrencySymbolRule("GBP", "£", "GBP"),
+                    new CurrencySymbolRule(INR, "₹", "RS", INR),
+                    new CurrencySymbolRule(USD, "$", USD),
+                    new CurrencySymbolRule(EUR, "€", EUR),
+                    new CurrencySymbolRule(GBP, "£", GBP),
                     new CurrencySymbolRule("CAD", "C$", "CAD"),
-                    new CurrencySymbolRule("AUD", "A$", "AUD"),
+                    new CurrencySymbolRule(AUD, "A$", AUD),
                     // ¥ (CNY vs JPY) handled separately by resolveYenCurrency
-                    new CurrencySymbolRule("CHF", "Fr", "CHF"),
+                    new CurrencySymbolRule(CHF, "Fr", CHF),
                     new CurrencySymbolRule("SEK", "kr", "SEK"),
                     new CurrencySymbolRule("NOK", "kr", "NOK"),
                     new CurrencySymbolRule("DKK", "kr", "DKK"),
@@ -3393,19 +3472,19 @@ public class CSVImportService {
                     new CurrencySymbolRule("BRL", "R$", "BRL"),
                     new CurrencySymbolRule("MXN", "Mex$", "MXN"),
                     new CurrencySymbolRule("ZAR", "R", "ZAR"),
-                    new CurrencySymbolRule("AUD", "A$", "AUD"),
+                    new CurrencySymbolRule(AUD, "A$", AUD),
                     new CurrencySymbolRule("NZD", "NZ$", "NZD"));
 
     /** Header-only fallback for when no symbol or code appeared in the amount string. */
     private static final List<CurrencySymbolRule> CURRENCY_HEADER_RULES =
             List.of(
-                    new CurrencySymbolRule("INR", null, "INR", "RUPEES", "RS"),
-                    new CurrencySymbolRule("USD", null, "USD", "DOLLARS"),
-                    new CurrencySymbolRule("EUR", null, "EUR", "EUROS"),
-                    new CurrencySymbolRule("GBP", null, "GBP", "POUNDS"),
-                    new CurrencySymbolRule("CHF", null, "CHF", "FRANCS"),
-                    new CurrencySymbolRule("JPY", null, "JPY", "YEN"),
-                    new CurrencySymbolRule("CNY", null, "CNY", "YUAN"));
+                    new CurrencySymbolRule(INR, null, INR, "RUPEES", "RS"),
+                    new CurrencySymbolRule(USD, null, USD, "DOLLARS"),
+                    new CurrencySymbolRule(EUR, null, EUR, "EUROS"),
+                    new CurrencySymbolRule(GBP, null, GBP, "POUNDS"),
+                    new CurrencySymbolRule(CHF, null, CHF, "FRANCS"),
+                    new CurrencySymbolRule(JPY, null, JPY, YEN),
+                    new CurrencySymbolRule(CNY, null, CNY, YUAN));
 
     /** Carrier: a currency code + optional symbol + 1+ upper-case codes/aliases to look for. */
     private record CurrencySymbolRule(String code, String symbol, String upper1, String... rest) {}
@@ -3431,7 +3510,7 @@ public class CSVImportService {
         if (byHeader != null) {
             return byHeader;
         }
-        return "USD";
+        return USD;
     }
 
     /**
@@ -3482,29 +3561,29 @@ public class CSVImportService {
             final String filenameUpper) {
         final boolean hasYenSignal =
                 amountString.contains("¥")
-                        || upper.contains("CNY")
-                        || upper.contains("JPY")
-                        || upper.contains("YUAN")
-                        || upper.contains("YEN");
+                        || upper.contains(CNY)
+                        || upper.contains(JPY)
+                        || upper.contains(YUAN)
+                        || upper.contains(YEN);
         if (!hasYenSignal) {
             return null;
         }
         if (matchesChineseContext(upper, headerUpper, filenameUpper)) {
-            return "CNY";
+            return CNY;
         }
         if (matchesJapaneseContext(upper, headerUpper, filenameUpper)) {
-            return "JPY";
+            return JPY;
         }
         // Default to JPY — ¥ is more commonly used for yen.
-        return "JPY";
+        return JPY;
     }
 
     private static boolean matchesChineseContext(
             final String upper, final String headerUpper, final String filenameUpper) {
-        return upper.contains("CNY")
-                || upper.contains("YUAN")
-                || headerUpper.contains("CNY")
-                || headerUpper.contains("YUAN")
+        return upper.contains(CNY)
+                || upper.contains(YUAN)
+                || headerUpper.contains(CNY)
+                || headerUpper.contains(YUAN)
                 || headerUpper.contains("CHINA")
                 || headerUpper.contains("CHINESE")
                 || headerUpper.contains("CITIC")
@@ -3519,16 +3598,16 @@ public class CSVImportService {
                 || filenameUpper.contains("CHINA")
                 || filenameUpper.contains("CHINESE")
                 || filenameUpper.contains("UNIONPAY")
-                || filenameUpper.contains("CNY")
-                || filenameUpper.contains("YUAN");
+                || filenameUpper.contains(CNY)
+                || filenameUpper.contains(YUAN);
     }
 
     private static boolean matchesJapaneseContext(
             final String upper, final String headerUpper, final String filenameUpper) {
-        return upper.contains("JPY")
-                || upper.contains("YEN")
-                || headerUpper.contains("JPY")
-                || headerUpper.contains("YEN")
+        return upper.contains(JPY)
+                || upper.contains(YEN)
+                || headerUpper.contains(JPY)
+                || headerUpper.contains(YEN)
                 || headerUpper.contains("JAPAN")
                 || headerUpper.contains("JAPANESE")
                 || headerUpper.contains("MUFG")
@@ -3541,8 +3620,8 @@ public class CSVImportService {
                 || filenameUpper.contains("JAPANESE")
                 || filenameUpper.contains("MUFG")
                 || filenameUpper.contains("JCB")
-                || filenameUpper.contains("JPY")
-                || filenameUpper.contains("YEN");
+                || filenameUpper.contains(JPY)
+                || filenameUpper.contains(YEN);
     }
 
     /**
@@ -3552,7 +3631,7 @@ public class CSVImportService {
     private AmountParseResult parseAmountWithCurrency(
             final String amountString, final String headerLine, final String filename) {
         if (amountString == null || amountString.isBlank()) {
-            return new AmountParseResult(null, "USD");
+            return new AmountParseResult(null, USD);
         }
 
         // Detect currency before cleaning (with filename context)
@@ -3565,25 +3644,25 @@ public class CSVImportService {
                         .replace("₹", "") // Indian Rupee symbol
                         .replace("Rs", "")
                         .replace("Rs.", "")
-                        .replace("INR", "")
+                        .replace(INR, "")
                         .replace("inr", "")
-                        .replace("USD", "")
+                        .replace(USD, "")
                         .replace("usd", "")
-                        .replace("EUR", "")
+                        .replace(EUR, "")
                         .replace("eur", "")
                         .replace("€", "")
-                        .replace("GBP", "")
+                        .replace(GBP, "")
                         .replace("gbp", "")
                         .replace("£", "")
                         .replace("CAD", "")
                         .replace("cad", "")
                         .replace("C$", "")
-                        .replace("AUD", "")
+                        .replace(AUD, "")
                         .replace("aud", "")
                         .replace("A$", "")
-                        .replace("JPY", "")
+                        .replace(JPY, "")
                         .replace("jpy", "")
-                        .replace("CNY", "")
+                        .replace(CNY, "")
                         .replace("cny", "")
                         .replace("¥", "")
                         .replace("Fr", "") // Swiss Franc
@@ -3675,7 +3754,7 @@ public class CSVImportService {
      * @param description Transaction description
      * @param merchantName Merchant name
      * @param amount Transaction amount
-     * @param paymentChannel Payment channel (e.g., "ach")
+     * @param paymentChannel Payment channel (e.g., ACH)
      * @return Category name
      */
     /**
@@ -3690,7 +3769,7 @@ public class CSVImportService {
      * @param description Transaction description
      * @param merchantName Merchant name (normalized)
      * @param amount Transaction amount
-     * @param paymentChannel Payment channel (e.g., "ach", "pos", "online")
+     * @param paymentChannel Payment channel (e.g., ACH, "pos", "online")
      * @param transactionTypeIndicator Debit/credit indicator from CSV (e.g., "DEBIT", "CREDIT",
      *     "DR", "CR")
      * @return Detected category name
@@ -3797,10 +3876,10 @@ public class CSVImportService {
         @SuppressWarnings("unused")
         final boolean isInvestmentAccount =
                 safeAccountType != null
-                        && (safeAccountType.contains("investment")
+                        && (safeAccountType.contains(INVESTMENT_2)
                                 || safeAccountType.contains(IRA)
-                                || safeAccountType.contains("401k")
-                                || safeAccountType.contains("hsa")
+                                || safeAccountType.contains(N_401K)
+                                || safeAccountType.contains(HSA)
                                 || safeAccountType.contains("529"));
 
         // ========== STEP 1: Early Unambiguous Checks (Transaction-Type Independent) ==========
@@ -4302,7 +4381,7 @@ public class CSVImportService {
         // payment
         if (safeCategoryString != null && safeAmount != null) {
             final String categoryLower = safeCategoryString.toLowerCase(Locale.ROOT);
-            if ((categoryLower.contains("ach_credit") || categoryLower.contains("ach credit"))
+            if ((categoryLower.contains("ach_credit") || categoryLower.contains(ACH_CREDIT))
                     && safeAmount.compareTo(BigDecimal.ZERO) > 0) {
                 if (isSalaryTransaction(safeDescription, safeAmount, safePaymentChannel)) {
                     LOGGER.debug("🏷️ parseCategory: ACH_CREDIT salary → 'salary'");
@@ -4358,23 +4437,23 @@ public class CSVImportService {
                             .toLowerCase(Locale.ROOT)
                             .trim();
             // Airport cart/chair rentals
-            if ((combined.contains("seattleap")
-                            || combined.contains("seattle ap")
+            if ((combined.contains(SEATTLEAP)
+                            || combined.contains(SEATTLE_AP)
                             || combined.contains("seattle airport"))
-                    && (combined.contains("cart") || combined.contains("chair"))) {
+                    && (combined.contains(CART) || combined.contains(CHAIR))) {
                 LOGGER.debug("🏷️ parseCategory: Detected airport cart/chair → 'transportation'");
                 return TRANSPORTATION;
             }
             // General airport cart/chair patterns
-            if (combined.contains("airport")
-                    && (combined.contains("cart") || combined.contains("chair"))) {
+            if (combined.contains(AIRPORT)
+                    && (combined.contains(CART) || combined.contains(CHAIR))) {
                 LOGGER.debug("🏷️ parseCategory: Detected airport cart/chair → 'transportation'");
                 return TRANSPORTATION;
             }
         }
 
-        // Cash withdrawals should be type EXPENSE, category "cash"
-        // CRITICAL: Also check for "withdrawal" keyword (standalone)
+        // Cash withdrawals should be type EXPENSE, category CASH
+        // CRITICAL: Also check for WITHDRAWAL keyword (standalone)
         if (isCashWithdrawal(
                 safeDescription,
                 safeMerchantName,
@@ -4382,21 +4461,21 @@ public class CSVImportService {
                 safeTransactionTypeIndicator,
                 safePaymentChannel)) {
             LOGGER.debug("🏷️ parseCategory: Detected cash withdrawal → 'cash'");
-            return "cash";
+            return CASH;
         }
 
-        // CRITICAL FIX: Check for standalone "withdrawal" keyword (not just "cash withdrawal")
+        // CRITICAL FIX: Check for standalone WITHDRAWAL keyword (not just CASH_WITHDRAWAL)
         if (safeDescription != null
                 && safeAmount != null
                 && safeAmount.compareTo(BigDecimal.ZERO) < 0) {
             final String descLower = safeDescription.toLowerCase(Locale.ROOT);
-            if (descLower.contains("withdrawal")
-                    && !descLower.contains("investment")
+            if (descLower.contains(WITHDRAWAL)
+                    && !descLower.contains(INVESTMENT_2)
                     && !descLower.contains(TRANSFER)
-                    && !descLower.contains("payment")) {
+                    && !descLower.contains(PAYMENT)) {
                 LOGGER.debug(
                         "🏷️ parseCategory: Detected withdrawal (negative safeAmount) → 'cash'");
-                return "cash";
+                return CASH;
             }
         }
         return null;
@@ -4413,7 +4492,7 @@ public class CSVImportService {
             final String safeAccountType,
             final String safeAccountSubtype) {
         // STEP 1b: Check for Check Payment - CRITICAL FIX: Must come before merchant name detection
-        // Check payments should be "payment", not transportation (e.g., "CHECK 176" was matching
+        // Check payments should be PAYMENT, not transportation (e.g., "CHECK 176" was matching
         // gas station "76")
         if (isCheckPayment(
                 safeDescription,
@@ -4421,7 +4500,7 @@ public class CSVImportService {
                 safeCategoryString,
                 safeTransactionTypeIndicator)) {
             LOGGER.debug("🏷️ parseCategory: Detected check payment → 'payment'");
-            return "payment";
+            return PAYMENT;
         }
         return null;
     }
@@ -4439,7 +4518,7 @@ public class CSVImportService {
         // STEP 1a: Check for Cable/Internet/Phone Providers - CRITICAL: Must come BEFORE credit
         // card payment
         // Cable/internet/phone bills (e.g., "Comcast Payment", "Xfinity Mobile Payment") should be
-        // UTILITIES, not "payment"
+        // UTILITIES, not PAYMENT
         // This must come before credit card payment to prevent "e payment" in "Mobile Payment" from
         // matching
         if (safeDescription != null || safeMerchantName != null) {
@@ -4542,7 +4621,7 @@ public class CSVImportService {
         // STEP 1b: Check for Utility Bill Payment - CRITICAL FIX: Must come BEFORE credit card
         // payment
         // Direct payments to utility companies (e.g., "PUGET SOUND ENER BILLPAY") should be
-        // UTILITIES, not "payment"
+        // UTILITIES, not PAYMENT
         // This is different from credit card payments - utility bills are actual expenses, not
         // payments for expenses already counted
         if (isUtilityBillPayment(safeDescription, safeMerchantName, safeCategoryString)) {
@@ -4565,17 +4644,17 @@ public class CSVImportService {
         // STEP 1c: Check for Interest Income - CRITICAL: Must come BEFORE credit card payment to
         // avoid false matches
         // Interest payments should be INTEREST (income) or "investmentInterest" (investment), not
-        // "payment" (expense)
+        // PAYMENT (expense)
         if (isInterestTransaction(
                 safeCategoryString, safeDescription, safeMerchantName, safeAmount)) {
             // Context-aware: If transaction type is INVESTMENT or account is investment, use
             // investmentInterest
-            if ("INVESTMENT".equals(safeTransactionType)
+            if (INVESTMENT.equals(safeTransactionType)
                     || (safeAccountType != null
-                            && (safeAccountType.contains("investment")
+                            && (safeAccountType.contains(INVESTMENT_2)
                                     || safeAccountType.contains(IRA)
-                                    || safeAccountType.contains("401k")
-                                    || safeAccountType.contains("hsa")
+                                    || safeAccountType.contains(N_401K)
+                                    || safeAccountType.contains(HSA)
                                     || safeAccountType.contains("529")))) {
                 LOGGER.debug(
                         "parseCategory: Detected interest transaction (investment account) → 'investmentInterest'");
@@ -4600,17 +4679,17 @@ public class CSVImportService {
         // STEP 1c: Check for Dividend Income - CRITICAL: Must come BEFORE credit card payment to
         // avoid false matches
         // Dividend payments should be DIVIDEND (income) or "investmentDividend" (investment), not
-        // "payment" (expense) or generic "investment"
+        // PAYMENT (expense) or generic INVESTMENT_2
         if (isDividendTransaction(
                 safeCategoryString, safeDescription, safeMerchantName, safeAmount)) {
             // Context-aware: If transaction type is INVESTMENT or account is investment, use
             // investmentDividend
-            if ("INVESTMENT".equals(safeTransactionType)
+            if (INVESTMENT.equals(safeTransactionType)
                     || (safeAccountType != null
-                            && (safeAccountType.contains("investment")
+                            && (safeAccountType.contains(INVESTMENT_2)
                                     || safeAccountType.contains(IRA)
-                                    || safeAccountType.contains("401k")
-                                    || safeAccountType.contains("hsa")
+                                    || safeAccountType.contains(N_401K)
+                                    || safeAccountType.contains(HSA)
                                     || safeAccountType.contains("529")))) {
                 LOGGER.debug(
                         "parseCategory: Detected dividend transaction (investment account) → 'investmentDividend'");
@@ -4633,7 +4712,7 @@ public class CSVImportService {
             final String safeAccountType,
             final String safeAccountSubtype) {
         // STEP 1d: Check for Credit Card Payment - CRITICAL FIX: Must come early, not just for ACH
-        // Credit card payments should be "payment" (expense), not OTHER or DEPOSIT (income)
+        // Credit card payments should be PAYMENT (expense), not OTHER or DEPOSIT (income)
         // This includes ACH autopay, online payments, etc.
         // CRITICAL: Check this BEFORE merchant name detection to avoid false matches (e.g., "CHASE
         // CREDIT CRD" matching transportation)
@@ -4641,7 +4720,7 @@ public class CSVImportService {
         // payment" matching credit card)
         if (isCreditCardPayment(safeDescription, safeMerchantName, safeCategoryString)) {
             LOGGER.debug("🏷️ parseCategory: Detected credit card payment → 'payment'");
-            return "payment";
+            return PAYMENT;
         } else {
             // Log why it wasn't detected for debugging
             LOGGER.debug(
@@ -4664,7 +4743,7 @@ public class CSVImportService {
             final String safeAccountType,
             final String safeAccountSubtype) {
         // STEP 1e: Check for Loan Payment/Escrow/Bills - CRITICAL FIX: Must come early
-        // Loan payments (mortgage, auto loan, student loan) should be "payment", "loanEscrow", or
+        // Loan payments (mortgage, auto loan, student loan) should be PAYMENT, "loanEscrow", or
         // "loanBills"
         if (isLoanPayment(safeDescription, safeMerchantName, safeCategoryString)) {
             // Context-aware: Check if it's escrow or bills
@@ -4678,7 +4757,7 @@ public class CSVImportService {
             if (combinedText.contains("escrow")
                     || combinedText.contains("tax escrow")
                     || combinedText.contains("insurance escrow")
-                    || combinedText.contains("property tax")
+                    || combinedText.contains(PROPERTY_TAX)
                     || combinedText.contains("homeowners insurance")
                     || combinedText.contains("hazard insurance")) {
                 LOGGER.debug("🏷️ parseCategory: Detected loan escrow → 'loanEscrow'");
@@ -4697,7 +4776,7 @@ public class CSVImportService {
             }
 
             LOGGER.debug("🏷️ parseCategory: Detected loan payment → 'payment'");
-            return "payment";
+            return PAYMENT;
         }
         return null;
     }
@@ -4742,12 +4821,12 @@ public class CSVImportService {
         // Investment fees (negative amounts on investment accounts) should be "investmentFees"
         if (safeAmount != null
                 && safeAmount.compareTo(BigDecimal.ZERO) < 0
-                && ("INVESTMENT".equals(safeTransactionType)
+                && (INVESTMENT.equals(safeTransactionType)
                         || (safeAccountType != null
-                                && (safeAccountType.contains("investment")
+                                && (safeAccountType.contains(INVESTMENT_2)
                                         || safeAccountType.contains(IRA)
-                                        || safeAccountType.contains("401k")
-                                        || safeAccountType.contains("hsa")
+                                        || safeAccountType.contains(N_401K)
+                                        || safeAccountType.contains(HSA)
                                         || safeAccountType.contains("529"))))) {
             final String descLower =
                     safeDescription != null ? safeDescription.toLowerCase(Locale.ROOT) : "";
@@ -4788,12 +4867,12 @@ public class CSVImportService {
         // "investmentPurchase"
         if (safeAmount != null
                 && safeAmount.compareTo(BigDecimal.ZERO) < 0
-                && ("INVESTMENT".equals(safeTransactionType)
+                && (INVESTMENT.equals(safeTransactionType)
                         || (safeAccountType != null
-                                && (safeAccountType.contains("investment")
+                                && (safeAccountType.contains(INVESTMENT_2)
                                         || safeAccountType.contains(IRA)
-                                        || safeAccountType.contains("401k")
-                                        || safeAccountType.contains("hsa")
+                                        || safeAccountType.contains(N_401K)
+                                        || safeAccountType.contains(HSA)
                                         || safeAccountType.contains("529"))))) {
             final String descLower =
                     safeDescription != null ? safeDescription.toLowerCase(Locale.ROOT) : "";
@@ -4830,12 +4909,12 @@ public class CSVImportService {
         // Investment sales (positive amounts on investment accounts) should be "investmentSold"
         if (safeAmount != null
                 && safeAmount.compareTo(BigDecimal.ZERO) > 0
-                && ("INVESTMENT".equals(safeTransactionType)
+                && (INVESTMENT.equals(safeTransactionType)
                         || (safeAccountType != null
-                                && (safeAccountType.contains("investment")
+                                && (safeAccountType.contains(INVESTMENT_2)
                                         || safeAccountType.contains(IRA)
-                                        || safeAccountType.contains("401k")
-                                        || safeAccountType.contains("hsa")
+                                        || safeAccountType.contains(N_401K)
+                                        || safeAccountType.contains(HSA)
                                         || safeAccountType.contains("529"))))) {
             final String descLower =
                     safeDescription != null ? safeDescription.toLowerCase(Locale.ROOT) : "";
@@ -4847,7 +4926,7 @@ public class CSVImportService {
             if (combinedText.contains("sale")
                     || combinedText.contains("sell")
                     || combinedText.contains("redemption")
-                    || combinedText.contains("withdrawal")
+                    || combinedText.contains(WITHDRAWAL)
                     || combinedText.contains("distribution")
                     || combinedText.contains("proceeds")) {
                 LOGGER.debug("🏷️ parseCategory: Detected investment sale → 'investmentSold'");
@@ -4926,7 +5005,7 @@ public class CSVImportService {
         if (safeDescription != null) {
             final String descLower = safeDescription.toLowerCase(Locale.ROOT);
             if ((descLower.contains("wire") || descLower.contains("international wire"))
-                    && (descLower.contains("debit") || descLower.contains(TRANSFER))) {
+                    && (descLower.contains(DEBIT) || descLower.contains(TRANSFER))) {
                 LOGGER.debug("🏷️ parseCategory: Detected wire transfer → 'transfer'");
                 return TRANSFER;
             }
@@ -5063,9 +5142,9 @@ public class CSVImportService {
                     safeDescription != null ? safeDescription.toLowerCase(Locale.ROOT) : "";
             final String merchantLower =
                     safeMerchantName != null ? safeMerchantName.toLowerCase(Locale.ROOT) : "";
-            if (descLower.contains("property tax")
+            if (descLower.contains(PROPERTY_TAX)
                     || descLower.contains("santa clara dtac")
-                    || merchantLower.contains("property tax")
+                    || merchantLower.contains(PROPERTY_TAX)
                     || merchantLower.contains("santa clara dtac")
                     || descLower.contains("dtac")
                     || merchantLower.contains("dtac")) {
@@ -5189,16 +5268,16 @@ public class CSVImportService {
                         LOGGER.debug(
                                 "🏷️ parseCategory: Enhanced detection returned null category (method: {}, confidence: {})",
                                 enhancedResult.method,
-                                String.format("%.2f", enhancedResult.confidence));
+                                String.format(N_2F, enhancedResult.confidence));
                     }
                 } else {
                     if (LOGGER.isDebugEnabled()) {
                         LOGGER.debug(
                                 "🏷️ parseCategory: Enhanced detection result - category='{}', confidence={}, method='{}', reason='{}'",
                                 enhancedResult.category,
-                                String.format("%.2f", enhancedResult.confidence),
+                                String.format(N_2F, enhancedResult.confidence),
                                 enhancedResult.method,
-                                enhancedResult.reason != null ? enhancedResult.reason : "N/A");
+                                enhancedResult.reason != null ? enhancedResult.reason : N_A);
                     }
                 }
 
@@ -5215,9 +5294,9 @@ public class CSVImportService {
                             LOGGER.debug(
                                     "🏷️ parseCategory: ✅ Enhanced detection (ML/Fuzzy) found: '{}' (confidence: {}, method: {}, threshold: {}) - RETURNING THIS CATEGORY",
                                     enhancedResult.category,
-                                    String.format("%.2f", enhancedResult.confidence),
+                                    String.format(N_2F, enhancedResult.confidence),
                                     enhancedResult.method,
-                                    String.format("%.2f", confidenceThreshold));
+                                    String.format(N_2F, confidenceThreshold));
                         }
                         // NOTE: Do NOT train model during preview - only during actual import
                         // Training happens in TransactionService when transaction is successfully
@@ -5228,8 +5307,8 @@ public class CSVImportService {
                             LOGGER.debug(
                                     "🏷️ parseCategory: Enhanced detection found '{}' but confidence too low ({} < {}), continuing to fallback methods",
                                     enhancedResult.category,
-                                    String.format("%.2f", enhancedResult.confidence),
-                                    String.format("%.2f", confidenceThreshold));
+                                    String.format(N_2F, enhancedResult.confidence),
+                                    String.format(N_2F, confidenceThreshold));
                         }
                     }
                 } else if (enhancedResult == null) {
@@ -5295,7 +5374,7 @@ public class CSVImportService {
                 if (descLower.contains(TRANSFER)) {
                     LOGGER.debug(
                             "parseCategory: Zero safeAmount with transfer safeDescription → 'payment'");
-                    return "payment";
+                    return PAYMENT;
                 }
             }
             // Default for zero amounts
@@ -5345,12 +5424,12 @@ public class CSVImportService {
             final String safeAccountType,
             final String safeAccountSubtype) {
         // STEP 9: Check for ACH_CREDIT specifically (before category map lookup)
-        // CRITICAL: ACH_CREDIT with positive safeAmount should be DEPOSIT, not "income" (unless
+        // CRITICAL: ACH_CREDIT with positive safeAmount should be DEPOSIT, not INCOME (unless
         // specifically identified as salary, interest, etc.)
-        // This prevents "ACH_CREDIT" from matching "credit" → "income" in the category map
+        // This prevents "ACH_CREDIT" from matching CREDIT → INCOME in the category map
         if (safeCategoryString != null && safeAmount != null) {
             final String categoryLower = safeCategoryString.toLowerCase(Locale.ROOT);
-            if ((categoryLower.contains("ach_credit") || categoryLower.contains("ach credit"))
+            if ((categoryLower.contains("ach_credit") || categoryLower.contains(ACH_CREDIT))
                     && safeAmount.compareTo(BigDecimal.ZERO) > 0) {
                 // Already checked for salary in STEP 8, so this is a generic deposit
                 LOGGER.debug(
@@ -5388,7 +5467,7 @@ public class CSVImportService {
             // Then try substring match (less reliable but handles variations)
             // CRITICAL: Use longest match first to avoid partial matches (e.g., "gas" matching "gas
             // station" before "gas station")
-            // CRITICAL: Exclude "credit" from matching "ACH_CREDIT" to prevent false "income"
+            // CRITICAL: Exclude CREDIT from matching "ACH_CREDIT" to prevent false INCOME
             // categorization
             final List<Map.Entry<String, String>> sortedEntries =
                     new ArrayList<>(CATEGORY_MAP.entrySet());
@@ -5400,11 +5479,11 @@ public class CSVImportService {
 
             for (final Map.Entry<String, String> entry : sortedEntries) {
                 final String key = entry.getKey();
-                // CRITICAL: Skip "credit" keyword if safeCategoryString contains "ACH_CREDIT" to
-                // prevent false "income" match
-                if (lower.contains("ach_credit") || lower.contains("ach credit")) {
-                    if ("credit".equals(key)) {
-                        continue; // Skip "credit" → "income" mapping for ACH_CREDIT
+                // CRITICAL: Skip CREDIT keyword if safeCategoryString contains "ACH_CREDIT" to
+                // prevent false INCOME match
+                if (lower.contains("ach_credit") || lower.contains(ACH_CREDIT)) {
+                    if (CREDIT.equals(key)) {
+                        continue; // Skip CREDIT → INCOME mapping for ACH_CREDIT
                     }
                 }
                 if (lower.contains(key)) {
@@ -5476,10 +5555,10 @@ public class CSVImportService {
         // Interest (but not from investment accounts - those are handled separately)
         final boolean isInvestmentAccount =
                 accountType != null
-                        && (accountType.contains("investment")
+                        && (accountType.contains(INVESTMENT_2)
                                 || accountType.contains(IRA)
-                                || accountType.contains("401k")
-                                || accountType.contains("hsa")
+                                || accountType.contains(N_401K)
+                                || accountType.contains(HSA)
                                 || accountType.contains("529"));
         if (!isInvestmentAccount
                 && isInterestTransaction(null, description, merchantName, amount)) {
@@ -5508,7 +5587,7 @@ public class CSVImportService {
                 || combinedText.contains("rent payment received")
                 || (combinedText.contains(RENT)
                         && (combinedText.contains("received")
-                                || combinedText.contains("income")))) {
+                                || combinedText.contains(INCOME)))) {
             return "rentIncome";
         }
 
@@ -5518,10 +5597,10 @@ public class CSVImportService {
         }
 
         // Default: deposit for ACH credits or generic deposits
-        if ("ach".equalsIgnoreCase(paymentChannel)
+        if (ACH.equalsIgnoreCase(paymentChannel)
                 || combinedText.contains(DEPOSIT)
                 || combinedText.contains("transfer from")
-                || combinedText.contains("online transfer")) {
+                || combinedText.contains(ONLINE_TRANSFER)) {
             return DEPOSIT;
         }
 
@@ -5544,15 +5623,15 @@ public class CSVImportService {
         final String descLower = description.toLowerCase(Locale.ROOT);
 
         // Check payment channel first
-        if (paymentChannel != null && "ach".equalsIgnoreCase(paymentChannel.trim())) {
+        if (paymentChannel != null && ACH.equalsIgnoreCase(paymentChannel.trim())) {
             return true;
         }
 
         // Check description for ACH indicators
         final String[] achKeywords = {
-            "ach", "automated clearing house", "direct deposit", "directdeposit",
+            ACH, "automated clearing house", "direct deposit", "directdeposit",
             "dd deposit", "electronic deposit", "e deposit", "wire transfer",
-            "bank transfer", "online transfer"
+            "bank transfer", ONLINE_TRANSFER
         };
 
         for (final String keyword : achKeywords) {
@@ -5710,13 +5789,13 @@ public class CSVImportService {
 
     /**
      * Detects if a transaction is a cash withdrawal Cash withdrawals should be categorized as
-     * "cash", type EXPENSE Examples: "ATM WITHDRAWAL", "CASH WITHDRAWAL", "ATM DEBIT", etc.
+     * CASH, type EXPENSE Examples: "ATM WITHDRAWAL", "CASH WITHDRAWAL", "ATM DEBIT", etc.
      *
      * @param description Transaction description
      * @param merchantName Merchant name
      * @param categoryString Category string from CSV
      * @param transactionTypeIndicator Transaction type indicator
-     * @param paymentChannel Payment channel (e.g., "atm")
+     * @param paymentChannel Payment channel (e.g., ATM)
      * @return true if this is a cash withdrawal
      */
     private boolean isCashWithdrawal(
@@ -5749,10 +5828,10 @@ public class CSVImportService {
                 paymentChannel);
 
         // Check category string first (most reliable)
-        if (categoryLower.contains("cash")
-                || categoryLower.contains("atm")
-                || categoryLower.contains("withdrawal")
-                || categoryLower.contains("cash withdrawal")) {
+        if (categoryLower.contains(CASH)
+                || categoryLower.contains(ATM)
+                || categoryLower.contains(WITHDRAWAL)
+                || categoryLower.contains(CASH_WITHDRAWAL)) {
             LOGGER.info(
                     "isCashWithdrawal: ✅ Detected cash withdrawal from categoryString '{}'",
                     categoryString);
@@ -5760,7 +5839,7 @@ public class CSVImportService {
         }
 
         // Check payment channel (ATM is a strong indicator)
-        if (paymentChannelLower.contains("atm") || paymentChannelLower.contains("cash")) {
+        if (paymentChannelLower.contains(ATM) || paymentChannelLower.contains(CASH)) {
             LOGGER.info(
                     "isCashWithdrawal: ✅ Detected cash withdrawal from paymentChannel '{}'",
                     paymentChannel);
@@ -5768,9 +5847,9 @@ public class CSVImportService {
         }
 
         // Check transaction type indicator
-        if (typeIndicatorLower.contains("atm")
-                || typeIndicatorLower.contains("cash")
-                || typeIndicatorLower.contains("withdrawal")) {
+        if (typeIndicatorLower.contains(ATM)
+                || typeIndicatorLower.contains(CASH)
+                || typeIndicatorLower.contains(WITHDRAWAL)) {
             LOGGER.info(
                     "isCashWithdrawal: ✅ Detected cash withdrawal from transactionTypeIndicator '{}'",
                     transactionTypeIndicator);
@@ -5778,17 +5857,17 @@ public class CSVImportService {
         }
 
         // Check for cash withdrawal patterns in description/merchant name
-        // CRITICAL FIX: Include standalone "withdrawal" keyword
+        // CRITICAL FIX: Include standalone WITHDRAWAL keyword
         final String[] cashKeywords = {
             "atm withdrawal",
             "atm withdraw",
-            "cash withdrawal",
+            CASH_WITHDRAWAL,
             "cash withdraw",
             "atm debit",
             "atm transaction",
             "atm cash",
             "cash advance",
-            "withdrawal",
+            WITHDRAWAL,
             "withdraw cash",
             "cash out",
             "cashout",
@@ -5798,9 +5877,9 @@ public class CSVImportService {
         for (final String keyword : cashKeywords) {
             if (descLower.contains(keyword) || merchantLower.contains(keyword)) {
                 // Exclude credit card cash advances (those are different)
-                if (!descLower.contains("credit card")
+                if (!descLower.contains(CREDIT_CARD)
                         && !descLower.contains(CREDITCARD)
-                        && !merchantLower.contains("credit card")
+                        && !merchantLower.contains(CREDIT_CARD)
                         && !merchantLower.contains(CREDITCARD)) {
                     LOGGER.info(
                             "isCashWithdrawal: ✅ Detected cash withdrawal keyword '{}' in description='{}' or merchant='{}'",
@@ -5821,7 +5900,7 @@ public class CSVImportService {
 
     /**
      * CRITICAL FIX: Detects if a transaction is a check payment Check payments should be
-     * categorized as "payment", not transportation (e.g., "CHECK 176" was matching gas station
+     * categorized as PAYMENT, not transportation (e.g., "CHECK 176" was matching gas station
      * "76")
      *
      * @param description Transaction description
@@ -5849,8 +5928,8 @@ public class CSVImportService {
                         : "";
 
         // Check transaction type indicator first (most reliable)
-        if (typeIndicatorLower.contains("check")
-                || typeIndicatorLower.contains("chk")
+        if (typeIndicatorLower.contains(CHECK)
+                || typeIndicatorLower.contains(CHK)
                 || typeIndicatorLower.contains("cheque")) {
             LOGGER.debug(
                     "isCheckPayment: Detected check payment from transactionTypeIndicator '{}'",
@@ -5859,8 +5938,8 @@ public class CSVImportService {
         }
 
         // Check category string
-        if (categoryLower.contains("check")
-                || categoryLower.contains("chk")
+        if (categoryLower.contains(CHECK)
+                || categoryLower.contains(CHK)
                 || categoryLower.contains("cheque")
                 || categoryLower.contains("check_paid")
                 || categoryLower.contains("check_payment")) {
@@ -5871,7 +5950,7 @@ public class CSVImportService {
         }
 
         // Check description/merchant name for check payment patterns
-        // CRITICAL: Must match "CHECK" as a word, not just "check" as substring (to avoid false
+        // CRITICAL: Must match "CHECK" as a word, not just CHECK as substring (to avoid false
         // positives)
         // Patterns: "CHECK #123", "CHECK 123", "CHECK NUMBER", "CHECK PAYMENT", etc.
         final String[] checkPatterns = {
@@ -5913,7 +5992,7 @@ public class CSVImportService {
 
     /**
      * Detects if a transaction is a utility bill payment (direct payment to utility company)
-     * Utility bill payments should be categorized as UTILITIES, not "payment" Examples: "PUGET
+     * Utility bill payments should be categorized as UTILITIES, not PAYMENT Examples: "PUGET
      * SOUND ENER BILLPAY", "CITY OF BELLEVUE UTILITY", etc.
      *
      * @param description Transaction description
@@ -5940,21 +6019,21 @@ public class CSVImportService {
         // transportation, not utilities
         // "SEATTLEAP CART/CHAIR" (Seattle Airport cart) should not match "Seattle Public Utilities"
         final String combined = (merchantLower + " " + descLower).trim();
-        if (combined.contains("airport")
-                && (combined.contains("cart") || combined.contains("chair"))) {
+        if (combined.contains(AIRPORT)
+                && (combined.contains(CART) || combined.contains(CHAIR))) {
             LOGGER.debug("isUtilityBillPayment: Rejecting airport cart/chair → not a utility");
             return false;
         }
-        if ((combined.contains("seattleap")
-                        || combined.contains("seattle ap")
+        if ((combined.contains(SEATTLEAP)
+                        || combined.contains(SEATTLE_AP)
                         || combined.contains("seattle airport"))
-                && (combined.contains("cart") || combined.contains("chair"))) {
+                && (combined.contains(CART) || combined.contains(CHAIR))) {
             LOGGER.debug("isUtilityBillPayment: Rejecting SEATTLEAP cart/chair → not a utility");
             return false;
         }
         // Also reject if it's just "SEATTLEAP" without clear utility indicators
-        if ((combined.contains("seattleap") || combined.contains("seattle ap"))
-                && !combined.contains("utility")
+        if ((combined.contains(SEATTLEAP) || combined.contains(SEATTLE_AP))
+                && !combined.contains(UTILITY)
                 && !combined.contains(UTILITIES)
                 && !combined.contains("public utilities")) {
             LOGGER.debug(
@@ -6009,16 +6088,16 @@ public class CSVImportService {
         // CRITICAL: Reject if it contains "city of" but also contains airport terms
         // "SEATTLEAP" should not match "city of seattle" if it's an airport expense
         if ((descLower.contains("city of") || merchantLower.contains("city of"))
-                && ((descLower.contains("seattleap")
-                                || merchantLower.contains("seattleap")
-                                || descLower.contains("seattle ap")
-                                || merchantLower.contains("seattle ap")
-                                || descLower.contains("airport")
-                                || merchantLower.contains("airport"))
-                        && (descLower.contains("cart")
-                                || merchantLower.contains("cart")
-                                || descLower.contains("chair")
-                                || merchantLower.contains("chair")))) {
+                && ((descLower.contains(SEATTLEAP)
+                                || merchantLower.contains(SEATTLEAP)
+                                || descLower.contains(SEATTLE_AP)
+                                || merchantLower.contains(SEATTLE_AP)
+                                || descLower.contains(AIRPORT)
+                                || merchantLower.contains(AIRPORT))
+                        && (descLower.contains(CART)
+                                || merchantLower.contains(CART)
+                                || descLower.contains(CHAIR)
+                                || merchantLower.contains(CHAIR)))) {
             LOGGER.debug(
                     "isUtilityBillPayment: Rejecting 'city of seattle' match for airport cart/chair");
             return false;
@@ -6029,30 +6108,30 @@ public class CSVImportService {
             if (descLower.contains(company) || merchantLower.contains(company)) {
                 // Additional check: must be a payment (billpay, payment, autopay, etc.)
                 // But NOT a credit card payment (exclude credit card company names)
-                if ((descLower.contains("billpay")
-                                || descLower.contains("bill pay")
-                                || descLower.contains("payment")
-                                || descLower.contains("autopay")
-                                || descLower.contains("auto pay")
-                                || descLower.contains("ppd id")
-                                || merchantLower.contains("billpay")
-                                || merchantLower.contains("bill pay")
-                                || merchantLower.contains("payment")
-                                || merchantLower.contains("autopay")
-                                || merchantLower.contains("auto pay")
-                                || merchantLower.contains("ppd id"))
-                        && !descLower.contains("credit card")
+                if ((descLower.contains(BILLPAY)
+                                || descLower.contains(BILL_PAY)
+                                || descLower.contains(PAYMENT)
+                                || descLower.contains(AUTOPAY)
+                                || descLower.contains(AUTO_PAY)
+                                || descLower.contains(PPD_ID)
+                                || merchantLower.contains(BILLPAY)
+                                || merchantLower.contains(BILL_PAY)
+                                || merchantLower.contains(PAYMENT)
+                                || merchantLower.contains(AUTOPAY)
+                                || merchantLower.contains(AUTO_PAY)
+                                || merchantLower.contains(PPD_ID))
+                        && !descLower.contains(CREDIT_CARD)
                         && !descLower.contains(CREDITCARD)
-                        && !merchantLower.contains("credit card")
+                        && !merchantLower.contains(CREDIT_CARD)
                         && !merchantLower.contains(CREDITCARD)
-                        && !descLower.contains("chase")
-                        && !descLower.contains("citi")
+                        && !descLower.contains(CHASE)
+                        && !descLower.contains(CITI)
                         && !descLower.contains(AMEX)
-                        && !descLower.contains("discover")
-                        && !merchantLower.contains("chase")
-                        && !merchantLower.contains("citi")
+                        && !descLower.contains(DISCOVER)
+                        && !merchantLower.contains(CHASE)
+                        && !merchantLower.contains(CITI)
                         && !merchantLower.contains(AMEX)
-                        && !merchantLower.contains("discover")) {
+                        && !merchantLower.contains(DISCOVER)) {
                     LOGGER.info(
                             "isUtilityBillPayment: ✅ Detected utility bill payment for company '{}' in description='{}' or merchant='{}'",
                             company,
@@ -6065,7 +6144,7 @@ public class CSVImportService {
 
         // Check for utility patterns combined with payment indicators
         final String[] utilityKeywords = {
-            "utility",
+            UTILITY,
             UTILITIES,
             "energy",
             "ener ",
@@ -6078,7 +6157,7 @@ public class CSVImportService {
         };
 
         final String[] paymentKeywords = {
-            "billpay", "bill pay", "payment", "autopay", "auto pay", "ppd id"
+            BILLPAY, BILL_PAY, PAYMENT, AUTOPAY, AUTO_PAY, PPD_ID
         };
 
         for (final String utilityKeyword : utilityKeywords) {
@@ -6087,18 +6166,18 @@ public class CSVImportService {
                     if (descLower.contains(paymentKeyword)
                             || merchantLower.contains(paymentKeyword)) {
                         // Exclude credit card payments
-                        if (!descLower.contains("credit card")
+                        if (!descLower.contains(CREDIT_CARD)
                                 && !descLower.contains(CREDITCARD)
-                                && !merchantLower.contains("credit card")
+                                && !merchantLower.contains(CREDIT_CARD)
                                 && !merchantLower.contains(CREDITCARD)
-                                && !descLower.contains("chase")
-                                && !descLower.contains("citi")
+                                && !descLower.contains(CHASE)
+                                && !descLower.contains(CITI)
                                 && !descLower.contains(AMEX)
-                                && !descLower.contains("discover")
-                                && !merchantLower.contains("chase")
-                                && !merchantLower.contains("citi")
+                                && !descLower.contains(DISCOVER)
+                                && !merchantLower.contains(CHASE)
+                                && !merchantLower.contains(CITI)
                                 && !merchantLower.contains(AMEX)
-                                && !merchantLower.contains("discover")) {
+                                && !merchantLower.contains(DISCOVER)) {
                             LOGGER.info(
                                     "isUtilityBillPayment: ✅ Detected utility bill payment with keywords '{}' + '{}' in description='{}' or merchant='{}'",
                                     utilityKeyword,
@@ -6121,7 +6200,7 @@ public class CSVImportService {
 
     /**
      * CRITICAL FIX: Detects if an ACH transaction is a credit card payment ACH credit card payments
-     * should be categorized as "payment" (expense), not DEPOSIT (income)
+     * should be categorized as PAYMENT (expense), not DEPOSIT (income)
      *
      * @param description Transaction description
      * @param merchantName Merchant name
@@ -6153,12 +6232,12 @@ public class CSVImportService {
                         || merchantLower.contains(E_PAYMENT)
                         || descLower.contains(EPAYMENT)
                         || merchantLower.contains(EPAYMENT))
-                && (descLower.contains("discover")
-                        || merchantLower.contains("discover")
-                        || descLower.contains("chase")
-                        || merchantLower.contains("chase")
-                        || descLower.contains("citi")
-                        || merchantLower.contains("citi")
+                && (descLower.contains(DISCOVER)
+                        || merchantLower.contains(DISCOVER)
+                        || descLower.contains(CHASE)
+                        || merchantLower.contains(CHASE)
+                        || descLower.contains(CITI)
+                        || merchantLower.contains(CITI)
                         || descLower.contains(AMEX)
                         || merchantLower.contains(AMEX))) {
             LOGGER.info(
@@ -6172,52 +6251,52 @@ public class CSVImportService {
         // This catches "CHASE CREDIT CRD AUTOPAY", "CITI AUTOPAY", "WF Credit Card AUTO PAY", etc.
         // and prevents false matches
         // Must check this FIRST to catch autopay patterns before they get misclassified
-        // Note: "AUTO PAY" (with space) should match "autopay" or "auto pay" since we're using
+        // Note: "AUTO PAY" (with space) should match AUTOPAY or AUTO_PAY since we're using
         // contains()
         final boolean hasAutopay =
-                descLower.contains("autopay")
-                        || merchantLower.contains("autopay")
-                        || descLower.contains("auto pay")
-                        || merchantLower.contains("auto pay");
+                descLower.contains(AUTOPAY)
+                        || merchantLower.contains(AUTOPAY)
+                        || descLower.contains(AUTO_PAY)
+                        || merchantLower.contains(AUTO_PAY);
         final boolean hasCreditCardCompany =
-                descLower.contains("chase")
-                        || descLower.contains("citi")
+                descLower.contains(CHASE)
+                        || descLower.contains(CITI)
                         || descLower.contains(AMEX)
-                        || descLower.contains("discover")
-                        || descLower.contains("capital one")
-                        || descLower.contains("wells fargo")
+                        || descLower.contains(DISCOVER)
+                        || descLower.contains(CAPITAL_ONE)
+                        || descLower.contains(WELLS_FARGO)
                         || descLower.contains("wf")
                         || // CRITICAL: "WF" is Wells Fargo abbreviation (must be standalone word to
                         // avoid false positives)
                         descLower.contains("bofa")
                         || descLower.contains("bank of america")
-                        || descLower.contains("synchrony")
+                        || descLower.contains(SYNCHRONY)
                         || descLower.contains("us bank")
                         || descLower.contains("barclays")
-                        || descLower.contains("amazon")
-                        || descLower.contains("amz")
+                        || descLower.contains(AMAZON)
+                        || descLower.contains(AMZ)
                         || // CRITICAL: Amazon Store Card
-                        descLower.contains("store card")
-                        || descLower.contains("storecrd")
+                        descLower.contains(STORE_CARD)
+                        || descLower.contains(STORECRD)
                         || // Store card payments
-                        merchantLower.contains("chase")
-                        || merchantLower.contains("citi")
+                        merchantLower.contains(CHASE)
+                        || merchantLower.contains(CITI)
                         || merchantLower.contains(AMEX)
-                        || merchantLower.contains("discover")
-                        || merchantLower.contains("capital one")
-                        || merchantLower.contains("wells fargo")
+                        || merchantLower.contains(DISCOVER)
+                        || merchantLower.contains(CAPITAL_ONE)
+                        || merchantLower.contains(WELLS_FARGO)
                         || merchantLower.contains("wf")
                         || // CRITICAL: "WF" is Wells Fargo abbreviation
                         merchantLower.contains("bofa")
                         || merchantLower.contains("bank of america")
-                        || merchantLower.contains("synchrony")
+                        || merchantLower.contains(SYNCHRONY)
                         || merchantLower.contains("us bank")
                         || merchantLower.contains("barclays")
-                        || merchantLower.contains("amazon")
-                        || merchantLower.contains("amz")
+                        || merchantLower.contains(AMAZON)
+                        || merchantLower.contains(AMZ)
                         || // CRITICAL: Amazon Store Card
-                        merchantLower.contains("store card")
-                        || merchantLower.contains("storecrd"); // Store card payments
+                        merchantLower.contains(STORE_CARD)
+                        || merchantLower.contains(STORECRD); // Store card payments
 
         if (hasAutopay && hasCreditCardCompany) {
             LOGGER.info(
@@ -6228,12 +6307,12 @@ public class CSVImportService {
         }
 
         // Check category string (most reliable)
-        if (categoryLower.contains("credit card")
+        if (categoryLower.contains(CREDIT_CARD)
                 || categoryLower.contains(CREDITCARD)
                 || categoryLower.contains("card payment")
                 || categoryLower.contains("card autopay")
-                || categoryLower.contains("autopay")
-                || categoryLower.contains("auto pay")) {
+                || categoryLower.contains(AUTOPAY)
+                || categoryLower.contains(AUTO_PAY)) {
             LOGGER.info(
                     "isCreditCardPayment: ✅ Detected credit card payment from categoryString '{}'",
                     categoryString);
@@ -6244,13 +6323,13 @@ public class CSVImportService {
         // CRITICAL: Expanded list to catch more patterns including "CITI AUTOPAY", "CHASE AUTOPAY",
         // "AMZ_STORECRD_PMT", "DISCOVER E-PAYMENT", etc.
         final String[] creditCardKeywords = {
-            "credit card",
+            CREDIT_CARD,
             CREDITCARD,
             "credit crd",
             "card autopay",
             "card payment",
-            "autopay",
-            "auto pay",
+            AUTOPAY,
+            AUTO_PAY,
             "automatic payment",
             "card autopay",
             E_PAYMENT,
@@ -6283,7 +6362,7 @@ public class CSVImportService {
             "capital one credit",
             "capitalone",
             "capital one autopay",
-            "synchrony",
+            SYNCHRONY,
             "synchrony bank",
             "synchrony autopay",
             "us bank credit",
@@ -6319,10 +6398,10 @@ public class CSVImportService {
             }
         }
 
-        // CRITICAL FIX: Also check for "discover" + E_PAYMENT separately (handles extra spaces
+        // CRITICAL FIX: Also check for DISCOVER + E_PAYMENT separately (handles extra spaces
         // like "DISCOVER         E-PAYMENT")
         // This is a fallback in case the combined keyword doesn't match due to spacing
-        if ((descLower.contains("discover") || merchantLower.contains("discover"))
+        if ((descLower.contains(DISCOVER) || merchantLower.contains(DISCOVER))
                 && (descLower.contains(E_PAYMENT)
                         || descLower.contains(EPAYMENT)
                         || merchantLower.contains(E_PAYMENT)
@@ -6340,62 +6419,62 @@ public class CSVImportService {
         // Also check for "AUTO PAY" (with space) or "AUTOPAY" patterns
         // CRITICAL: Added E_PAYMENT and EPAYMENT to catch Discover E-PAYMENT patterns
         final boolean hasPaymentKeyword =
-                descLower.contains("payment")
+                descLower.contains(PAYMENT)
                         || descLower.contains(E_PAYMENT)
                         || descLower.contains(EPAYMENT)
-                        || merchantLower.contains("payment")
+                        || merchantLower.contains(PAYMENT)
                         || merchantLower.contains(E_PAYMENT)
                         || merchantLower.contains(EPAYMENT);
         final boolean hasPaymentIndicator =
                 (descLower.matches(".*\\d{10,}.*")
                                 || descLower.contains("web id")
-                                || descLower.contains("ppd id")
-                                || descLower.contains("auto pay")
-                                || descLower.contains("autopay")
+                                || descLower.contains(PPD_ID)
+                                || descLower.contains(AUTO_PAY)
+                                || descLower.contains(AUTOPAY)
                                 || descLower.contains(E_PAYMENT)
                                 || descLower.contains(EPAYMENT))
                         || (merchantLower.matches(".*\\d{10,}.*")
                                 || merchantLower.contains("web id")
-                                || merchantLower.contains("ppd id")
-                                || merchantLower.contains("auto pay")
-                                || merchantLower.contains("autopay")
+                                || merchantLower.contains(PPD_ID)
+                                || merchantLower.contains(AUTO_PAY)
+                                || merchantLower.contains(AUTOPAY)
                                 || merchantLower.contains(E_PAYMENT)
                                 || merchantLower.contains(EPAYMENT));
 
         if (hasPaymentKeyword && hasPaymentIndicator) {
-            // Additional check: must have credit card company name, "autopay", "credit", CARD,
-            // "store card", or "amazon"
-            // CRITICAL: Added "wf" for Wells Fargo abbreviation, "auto pay" for "AUTO PAY" pattern,
+            // Additional check: must have credit card company name, AUTOPAY, CREDIT, CARD,
+            // STORE_CARD, or AMAZON
+            // CRITICAL: Added "wf" for Wells Fargo abbreviation, AUTO_PAY for "AUTO PAY" pattern,
             // and Amazon Store Card patterns
-            if (descLower.contains("citi")
-                    || descLower.contains("chase")
+            if (descLower.contains(CITI)
+                    || descLower.contains(CHASE)
                     || descLower.contains(AMEX)
-                    || descLower.contains("discover")
-                    || descLower.contains("capital one")
-                    || descLower.contains("autopay")
-                    || descLower.contains("auto pay")
-                    || descLower.contains("wells fargo")
+                    || descLower.contains(DISCOVER)
+                    || descLower.contains(CAPITAL_ONE)
+                    || descLower.contains(AUTOPAY)
+                    || descLower.contains(AUTO_PAY)
+                    || descLower.contains(WELLS_FARGO)
                     || descLower.contains("wf")
-                    || descLower.contains("amazon")
-                    || descLower.contains("amz")
-                    || descLower.contains("store card")
-                    || descLower.contains("storecrd")
-                    || descLower.contains("credit")
+                    || descLower.contains(AMAZON)
+                    || descLower.contains(AMZ)
+                    || descLower.contains(STORE_CARD)
+                    || descLower.contains(STORECRD)
+                    || descLower.contains(CREDIT)
                     || descLower.contains(CARD)
-                    || merchantLower.contains("citi")
-                    || merchantLower.contains("chase")
+                    || merchantLower.contains(CITI)
+                    || merchantLower.contains(CHASE)
                     || merchantLower.contains(AMEX)
-                    || merchantLower.contains("discover")
-                    || merchantLower.contains("capital one")
-                    || merchantLower.contains("autopay")
-                    || merchantLower.contains("auto pay")
-                    || merchantLower.contains("wells fargo")
+                    || merchantLower.contains(DISCOVER)
+                    || merchantLower.contains(CAPITAL_ONE)
+                    || merchantLower.contains(AUTOPAY)
+                    || merchantLower.contains(AUTO_PAY)
+                    || merchantLower.contains(WELLS_FARGO)
                     || merchantLower.contains("wf")
-                    || merchantLower.contains("amazon")
-                    || merchantLower.contains("amz")
-                    || merchantLower.contains("store card")
-                    || merchantLower.contains("storecrd")
-                    || merchantLower.contains("credit")
+                    || merchantLower.contains(AMAZON)
+                    || merchantLower.contains(AMZ)
+                    || merchantLower.contains(STORE_CARD)
+                    || merchantLower.contains(STORECRD)
+                    || merchantLower.contains(CREDIT)
                     || merchantLower.contains(CARD)) {
                 LOGGER.info(
                         "isCreditCardPayment: ✅ Detected credit card/store card payment pattern with card number/web id/ppd id/auto pay");
@@ -6412,7 +6491,7 @@ public class CSVImportService {
 
     /**
      * Detects if a transaction is a loan payment (mortgage, auto loan, student loan, etc.) Loan
-     * payments should be categorized as "payment", not OTHER
+     * payments should be categorized as PAYMENT, not OTHER
      *
      * @param description Transaction description
      * @param merchantName Merchant name
@@ -6431,7 +6510,7 @@ public class CSVImportService {
                 categoryString != null ? categoryString.toLowerCase(Locale.ROOT) : "";
 
         // Check category string first (most reliable)
-        if (categoryLower.contains("loan payment")
+        if (categoryLower.contains(LOAN_PAYMENT)
                 || categoryLower.contains("mortgage payment")
                 || categoryLower.contains("auto loan")
                 || categoryLower.contains("student loan")
@@ -6456,7 +6535,7 @@ public class CSVImportService {
             "personal loan",
             "home loan",
             "home equity",
-            "loan payment",
+            LOAN_PAYMENT,
             "loan pay",
             "loan autopay",
             "principal payment",
@@ -6475,7 +6554,7 @@ public class CSVImportService {
 
     /**
      * Detects if a transaction is an investment transfer (from/to investment firms) Investment
-     * transfers should be categorized as "investment", not TRANSFER or DEPOSIT Examples: "Online
+     * transfers should be categorized as INVESTMENT_2, not TRANSFER or DEPOSIT Examples: "Online
      * Transfer from Morgan Stanley", "Transfer from Fidelity", etc.
      *
      * @param description Transaction description
@@ -6568,15 +6647,15 @@ public class CSVImportService {
                 // - Negative amount (debit) = investment transfer (money going out)
                 // - Positive amount (credit) = deposit (money coming in, not investment expense)
                 // This fixes: "Online transfer from Morgan Stanley" (credit) should be DEPOSIT,
-                // not "investment"
+                // not INVESTMENT_2
                 boolean isCredit = false;
                 // Note: amount is not available in this method, so we check description for credit
                 // indicators
-                if (descLower.contains("credit")
+                if (descLower.contains(CREDIT)
                         || descLower.contains(DEPOSIT)
                         || descLower.contains(FROM)
                         || merchantLower.contains(FROM)) {
-                    // If it says FROM or "credit" or DEPOSIT, it's likely a credit (deposit)
+                    // If it says FROM or CREDIT or DEPOSIT, it's likely a credit (deposit)
                     // Investment transfers are typically debits (money going out)
                     isCredit = true;
                 }
@@ -6613,12 +6692,12 @@ public class CSVImportService {
             "investment account",
             "investmentaccount",
             IRA,
-            "401k",
+            N_401K,
             "401(k)",
             "403b",
             "403(b)",
             "529",
-            "hsa",
+            HSA,
             "retirement account",
             "retirementaccount",
             "pension",
@@ -6658,7 +6737,7 @@ public class CSVImportService {
 
     /**
      * Detects if a transaction is an account transfer (between accounts, not an expense) Account
-     * transfers should be categorized as TRANSFER, not OTHER or "payment" Examples: "Online
+     * transfers should be categorized as TRANSFER, not OTHER or PAYMENT Examples: "Online
      * Transfer to CHK", "ACCT_XFER", "Transfer to Savings", etc.
      *
      * @param description Transaction description
@@ -6690,7 +6769,7 @@ public class CSVImportService {
                 || categoryLower.contains(TRANSFER)
                 || categoryLower.contains("xfer")) {
             // But exclude credit card balance transfers and loan payments
-            if (!categoryLower.contains("balance transfer") && !categoryLower.contains(LOAN)) {
+            if (!categoryLower.contains(BALANCE_TRANSFER) && !categoryLower.contains(LOAN)) {
                 LOGGER.info(
                         "isAccountTransfer: ✅ Detected account transfer from categoryString '{}'",
                         categoryString);
@@ -6702,7 +6781,7 @@ public class CSVImportService {
         // Patterns: "Online Transfer to CHK", "Transfer to Savings", "Transfer from Checking", etc.
         // CRITICAL: Include money transfer services like Remitly
         final String[] transferKeywords = {
-            "online transfer",
+            ONLINE_TRANSFER,
             "transfer to",
             "transfer from",
             "account transfer",
@@ -6789,10 +6868,10 @@ public class CSVImportService {
         for (final String keyword : transferKeywords) {
             if (descLower.contains(keyword) || merchantLower.contains(keyword)) {
                 // Additional check: must NOT be a credit card balance transfer or loan payment
-                if (!descLower.contains("balance transfer")
-                        && !descLower.contains("loan payment")
-                        && !merchantLower.contains("balance transfer")
-                        && !merchantLower.contains("loan payment")) {
+                if (!descLower.contains(BALANCE_TRANSFER)
+                        && !descLower.contains(LOAN_PAYMENT)
+                        && !merchantLower.contains(BALANCE_TRANSFER)
+                        && !merchantLower.contains(LOAN_PAYMENT)) {
                     LOGGER.info(
                             "isAccountTransfer: ✅ Detected account transfer keyword '{}' in description='{}' or merchant='{}'",
                             keyword,
@@ -6806,19 +6885,19 @@ public class CSVImportService {
         // Check for "CHK" (checking account) in transfer context
         // Pattern: "Transfer to CHK" or "Transfer from CHK"
         if ((descLower.contains(TRANSFER) || merchantLower.contains(TRANSFER))
-                && (descLower.contains("chk")
+                && (descLower.contains(CHK)
                         || descLower.contains(CHECKING)
                         || descLower.contains(SAVINGS)
                         || descLower.contains("account")
-                        || merchantLower.contains("chk")
+                        || merchantLower.contains(CHK)
                         || merchantLower.contains(CHECKING)
                         || merchantLower.contains(SAVINGS)
                         || merchantLower.contains("account"))) {
             // Additional check: must NOT be a credit card or loan payment
-            if (!descLower.contains("credit")
+            if (!descLower.contains(CREDIT)
                     && !descLower.contains(CARD)
                     && !descLower.contains(LOAN)
-                    && !merchantLower.contains("credit")
+                    && !merchantLower.contains(CREDIT)
                     && !merchantLower.contains(CARD)
                     && !merchantLower.contains(LOAN)) {
                 LOGGER.info(
@@ -6835,8 +6914,8 @@ public class CSVImportService {
     }
 
     /**
-     * Analyze transaction details/type for account type inference Looks for keywords like "debit",
-     * "credit", "check", "ACH", "ATM", TRANSFER Uses arrays to allow modification of counts
+     * Analyze transaction details/type for account type inference Looks for keywords like DEBIT,
+     * CREDIT, CHECK, "ACH", "ATM", TRANSFER Uses arrays to allow modification of counts
      */
     private void analyzeTransactionForAccountType(
             final String transactionText,
@@ -6853,7 +6932,7 @@ public class CSVImportService {
         final String textLower = transactionText.toLowerCase(Locale.ROOT);
 
         // Count transaction type indicators
-        if (textLower.contains("debit")
+        if (textLower.contains(DEBIT)
                 || textLower.contains(" db ")
                 || textLower.contains(" dr ")
                 || textLower.startsWith("db ")
@@ -6863,19 +6942,19 @@ public class CSVImportService {
             debitCount[0]++;
             LOGGER.debug("Found debit indicator in transaction: {}", transactionText);
         }
-        if (textLower.contains("credit")
+        if (textLower.contains(CREDIT)
                 || textLower.contains(" cr ")
                 || textLower.startsWith("cr ")
                 || textLower.contains("credit memo")
                 || textLower.contains("credit adjustment")) {
-            // Exclude "credit card" from credit count (that's a different thing)
-            if (!textLower.contains("credit card") && !textLower.contains(CREDITCARD)) {
+            // Exclude CREDIT_CARD from credit count (that's a different thing)
+            if (!textLower.contains(CREDIT_CARD) && !textLower.contains(CREDITCARD)) {
                 creditCount[0]++;
                 LOGGER.debug("Found credit indicator in transaction: {}", transactionText);
             }
         }
-        if (textLower.contains("check")
-                || textLower.contains("chk")
+        if (textLower.contains(CHECK)
+                || textLower.contains(CHK)
                 || textLower.contains("cheque")
                 || textLower.contains("check #")
                 || textLower.contains("check number")
@@ -6884,20 +6963,20 @@ public class CSVImportService {
             checkCount[0]++;
             LOGGER.debug("Found check indicator in transaction: {}", transactionText);
         }
-        if (textLower.contains("ach")
+        if (textLower.contains(ACH)
                 || textLower.contains("automated clearing")
                 || textLower.contains("direct deposit")
                 || textLower.contains("directdeposit")
-                || textLower.contains("ach credit")
+                || textLower.contains(ACH_CREDIT)
                 || textLower.contains("ach debit")
                 || textLower.contains("ach transfer")) {
             achCount[0]++;
             LOGGER.debug("Found ACH indicator in transaction: {}", transactionText);
         }
-        if (textLower.contains("atm")
+        if (textLower.contains(ATM)
                 || textLower.contains("at m")
-                || textLower.contains("cash withdrawal")
-                || textLower.contains("cash withdrawal")
+                || textLower.contains(CASH_WITHDRAWAL)
+                || textLower.contains(CASH_WITHDRAWAL)
                 || textLower.contains("atm withdrawal")
                 || textLower.contains("atm deposit")
                 || textLower.contains("atm fee")) {
@@ -6907,7 +6986,7 @@ public class CSVImportService {
         if (textLower.contains(TRANSFER)
                 || textLower.contains("xfer")
                 || textLower.contains("wire transfer")
-                || textLower.contains("online transfer")
+                || textLower.contains(ONLINE_TRANSFER)
                 || textLower.contains("bank transfer")
                 || textLower.contains("account transfer")
                 || textLower.contains("internal transfer")) {
@@ -7064,7 +7143,7 @@ public class CSVImportService {
         if (isCreditCardPayment(description, merchantName, null)) {
             LOGGER.info(
                     "detectCategoryFromMerchantName: Detected credit card payment (safety check) → 'payment'");
-            return "payment";
+            return PAYMENT;
         }
 
         // Normalize merchant name for matching
@@ -7108,11 +7187,11 @@ public class CSVImportService {
         // CRITICAL: Toll patterns (Eractoll, etc.) - transportation
         // Must come BEFORE education checks to prevent ERACTOLL from being caught by education
         if (merchantLower.contains(ERACTOLL)
-                || merchantLower.contains("era toll")
+                || merchantLower.contains(ERA_TOLL)
                 || normalized.contains(ERACTOLL)
                 || normalized.contains("eratoll")
                 || descLower.contains(ERACTOLL)
-                || descLower.contains("era toll")
+                || descLower.contains(ERA_TOLL)
                 || descLower.contains("toll payment")
                 || descLower.contains("toll charge")
                 || descLower.contains("toll fee")
@@ -7640,14 +7719,14 @@ public class CSVImportService {
         // CRITICAL FIX: Parking payment services (PAY BY PHONE, ParkMobile, etc.) - transportation,
         // NOT utilities
         // These must be detected BEFORE utilities because "phone" keyword might match utilities
-        if (descLower.contains("pay by phone")
+        if (descLower.contains(PAY_BY_PHONE)
                 || descLower.contains("paybyphone")
                 || descLower.contains("uw pay by phone")
                 || descLower.contains("uwpay by phone")
                 || descLower.contains("uw paybyphone")
                 || descLower.contains("uwpaybyphone")
-                || (descLower.contains("uw") && descLower.contains("pay by phone"))
-                || normalizedDesc.contains("pay by phone")
+                || (descLower.contains("uw") && descLower.contains(PAY_BY_PHONE))
+                || normalizedDesc.contains(PAY_BY_PHONE)
                 || normalizedDesc.contains("paybyphone")) {
             LOGGER.debug(
                     "🏷️ detectCategoryFromDescription: Detected parking payment service → 'transportation'");
@@ -7740,10 +7819,10 @@ public class CSVImportService {
         }
 
         // Other book stores (bookstore, book store) - education
-        if ((descLower.contains("bookstore")
-                        || descLower.contains("book store")
-                        || normalizedDesc.contains("bookstore")
-                        || normalizedDesc.contains("book store"))
+        if ((descLower.contains(BOOKSTORE)
+                        || descLower.contains(BOOK_STORE)
+                        || normalizedDesc.contains(BOOKSTORE)
+                        || normalizedDesc.contains(BOOK_STORE))
                 && !descLower.contains("costco")
                 && !descLower.contains("walmart")
                 && !descLower.contains("target")
@@ -7800,13 +7879,13 @@ public class CSVImportService {
                 || descLower.contains("energy")
                 || descLower.contains("electric")
                 || descLower.contains("electricity")
-                || descLower.contains("utility")
+                || descLower.contains(UTILITY)
                 || descLower.contains(UTILITIES)
                 || descLower.contains("gas company")
                 || descLower.contains("water company")
                 || descLower.contains("power company")) {
             // If it's a bill payment with energy/utility keywords, it's utilities
-            if (descLower.contains("billpay") || descLower.contains("bill pay")) {
+            if (descLower.contains(BILLPAY) || descLower.contains(BILL_PAY)) {
                 LOGGER.debug(
                         "🏷️ detectCategoryFromDescription: Detected utility bill payment → 'utilities'");
                 return UTILITIES;
@@ -7864,7 +7943,7 @@ public class CSVImportService {
         if (normalizedDesc.contains("amc") || descLower.contains("amc")) {
             LOGGER.debug(
                     "🏷️ detectCategoryFromDescription: Detected AMC in description → 'entertainment'");
-            return "entertainment";
+            return ENTERTAINMENT;
         }
 
         // Grocery keywords in description
@@ -7937,7 +8016,7 @@ public class CSVImportService {
                 || descLower.contains("dumpling")
                 || descLower.contains("burger")
                 || descLower.contains("burgers")
-                || descLower.contains("fast food")
+                || descLower.contains(FAST_FOOD)
                 || descLower.contains("fastfood")
                 || descLower.contains("grill")
                 || descLower.contains("grilled")
@@ -7951,7 +8030,7 @@ public class CSVImportService {
                 || normalizedDesc.contains("dumpling")
                 || normalizedDesc.contains("burger")
                 || normalizedDesc.contains("burgers")
-                || normalizedDesc.contains("fast food")
+                || normalizedDesc.contains(FAST_FOOD)
                 || normalizedDesc.contains("fastfood")
                 || normalizedDesc.contains("grill")
                 || normalizedDesc.contains("grilled")
@@ -7974,7 +8053,7 @@ public class CSVImportService {
                 || descLower.contains("restaur")
                 || descLower.contains("restaur ")
                 || descLower.contains(DINING)
-                || descLower.contains("fast food")
+                || descLower.contains(FAST_FOOD)
                 || descLower.contains("fastfood")
                 || descLower.contains("cafe")
                 || descLower.contains("café")
@@ -8014,7 +8093,7 @@ public class CSVImportService {
             final String merchantName,
             final BigDecimal amount) {
         // Pet keywords (including SP Farmers Fetch Bones)
-        if (descLower.contains("pet")
+        if (descLower.contains(PET)
                 || descLower.contains("veterinary")
                 || descLower.contains("vet ")
                 || descLower.contains("animal")
@@ -8025,7 +8104,7 @@ public class CSVImportService {
                 LOGGER.debug(
                         "🏷️ detectCategoryFromDescription: Detected SP Farmers Fetch Bones → 'pet'");
             }
-            return "pet";
+            return PET;
         }
 
         // CRITICAL FIX: Check for Cursor AI and other tech companies in description
@@ -8249,7 +8328,7 @@ public class CSVImportService {
                 || descLower.contains("parkingmeter")
                 || descLower.contains("garage")) {
             // Skip if already handled above (pay by phone, parkmobile, etc.)
-            if (!descLower.contains("pay by phone")
+            if (!descLower.contains(PAY_BY_PHONE)
                     && !descLower.contains("paybyphone")
                     && !descLower.contains("parkmobile")
                     && !descLower.contains("park mobile")) {
@@ -8346,8 +8425,8 @@ public class CSVImportService {
             "newspaper",
             "magazine",
             "books",
-            "bookstore",
-            "book store",
+            BOOKSTORE,
+            BOOK_STORE,
             "textbook",
             "text book",
             "library",
@@ -8430,7 +8509,7 @@ public class CSVImportService {
                 || descLower.contains("veterinary clinic")) {
             LOGGER.debug(
                     "🏷️ detectCategoryFromDescription: Detected pet care clinic/service → 'pet'");
-            return "pet";
+            return PET;
         }
 
         // Pet-related services (petsmart, petco, chewy, etc.)
@@ -8452,7 +8531,7 @@ public class CSVImportService {
                 LOGGER.debug(
                         "🏷️ detectCategoryFromDescription: Detected pet service '{}' → 'pet'",
                         service);
-                return "pet";
+                return PET;
             }
         }
 
@@ -8550,12 +8629,12 @@ public class CSVImportService {
         // Toll patterns (Eractoll, etc.) - transportation
         // Must come BEFORE education check to prevent ERACTOLL from being caught by education
         if (descLower.contains(ERACTOLL)
-                || descLower.contains("era toll")
+                || descLower.contains(ERA_TOLL)
                 || normalizedDesc.contains(ERACTOLL)
                 || normalizedDesc.contains("eratoll")
                 || (merchantName != null
                         && (merchantName.toLowerCase(Locale.ROOT).contains(ERACTOLL)
-                                || merchantName.toLowerCase(Locale.ROOT).contains("era toll")))
+                                || merchantName.toLowerCase(Locale.ROOT).contains(ERA_TOLL)))
                 || descLower.contains("toll payment")
                 || descLower.contains("toll charge")
                 || descLower.contains("toll fee")
@@ -8617,7 +8696,7 @@ public class CSVImportService {
         // CRITICAL FIX: Check for exam/testing keywords FIRST (AAMC, SAT, TOEFL, GRE, GMAT, LSAT,
         // MCAT, etc.)
         // These should be categorized as EDUCATION even if they're sometimes miscategorized as
-        // "entertainment"
+        // ENTERTAINMENT
         // VUE (Pearson VUE) - testing center for professional exams
         // CRITICAL: Don't check for "act" here - it matches ERACTOLL. ACT is handled separately
         // below.
@@ -8639,12 +8718,12 @@ public class CSVImportService {
         // CRITICAL: Toll patterns (Eractoll, etc.) - transportation
         // Must come BEFORE education/ACT check to prevent ERACTOLL from being caught by education
         if (descLower.contains(ERACTOLL)
-                || descLower.contains("era toll")
+                || descLower.contains(ERA_TOLL)
                 || normalizedDesc.contains(ERACTOLL)
                 || normalizedDesc.contains("eratoll")
                 || (merchantName != null
                         && (merchantName.toLowerCase(Locale.ROOT).contains(ERACTOLL)
-                                || merchantName.toLowerCase(Locale.ROOT).contains("era toll")))
+                                || merchantName.toLowerCase(Locale.ROOT).contains(ERA_TOLL)))
                 || descLower.contains("toll payment")
                 || descLower.contains("toll charge")
                 || descLower.contains("toll fee")
@@ -8694,7 +8773,7 @@ public class CSVImportService {
         // ERACTOLL
         // Check for "act exam", "act test", or "act" at word boundaries, but exclude ERACTOLL
         if (!descLower.contains(ERACTOLL)
-                && !descLower.contains("era toll")
+                && !descLower.contains(ERA_TOLL)
                 && (descLower.contains("act exam")
                         || descLower.contains("act test")
                         || descLower.matches(".*\\bact\\b.*"))) {
@@ -8758,8 +8837,8 @@ public class CSVImportService {
                 || descLower.contains("college")
                 || descLower.contains("tuition")
                 || descLower.contains("books")
-                || descLower.contains("bookstore")
-                || descLower.contains("book store")
+                || descLower.contains(BOOKSTORE)
+                || descLower.contains(BOOK_STORE)
                 || descLower.contains("reading")
                 || descLower.contains("textbook")
                 || descLower.contains("text book")
@@ -8830,7 +8909,7 @@ public class CSVImportService {
                 || descLower.contains("recreation.gov")) {
             LOGGER.debug(
                     "🏷️ detectCategoryFromDescription: Detected entertainment venue → 'entertainment'");
-            return "entertainment";
+            return ENTERTAINMENT;
         }
 
         return null;

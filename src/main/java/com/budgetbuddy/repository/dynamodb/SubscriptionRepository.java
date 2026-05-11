@@ -21,6 +21,7 @@ import software.amazon.awssdk.enhanced.dynamodb.model.QueryConditional;
 @SuppressWarnings("PMD.OnlyOneReturn")
 @Repository
 public class SubscriptionRepository {
+    private static final String SUBSCRIPTIONS = "subscriptions";
 
     private static final org.slf4j.Logger LOGGER =
             org.slf4j.LoggerFactory.getLogger(SubscriptionRepository.class);
@@ -40,7 +41,7 @@ public class SubscriptionRepository {
         this.userIdIndex = subscriptionTable.index("UserIdIndex");
     }
 
-    @CacheEvict(value = "subscriptions", key = "#subscription.userId")
+    @CacheEvict(value = SUBSCRIPTIONS, key = "#subscription.userId")
     public void save(final SubscriptionTable subscription) {
         if (subscription == null) {
             throw new IllegalArgumentException("Subscription cannot be null");
@@ -60,7 +61,7 @@ public class SubscriptionRepository {
     }
 
     @Cacheable(
-            value = "subscriptions",
+            value = SUBSCRIPTIONS,
             key = "'user:' + #userId",
             unless = "#result == null || #result.isEmpty()")
     public List<SubscriptionTable> findByUserId(final String userId) {
@@ -86,7 +87,7 @@ public class SubscriptionRepository {
     }
 
     @Cacheable(
-            value = "subscriptions",
+            value = SUBSCRIPTIONS,
             key = "'user:' + #userId + ':active'",
             unless = "#result == null || #result.isEmpty()")
     public List<SubscriptionTable> findActiveByUserId(final String userId) {
@@ -99,7 +100,7 @@ public class SubscriptionRepository {
                 .collect(Collectors.toList());
     }
 
-    @CacheEvict(value = "subscriptions", allEntries = true)
+    @CacheEvict(value = SUBSCRIPTIONS, allEntries = true)
     public void delete(final String subscriptionId) {
         if (subscriptionId == null || subscriptionId.isEmpty()) {
             throw new IllegalArgumentException("Subscription ID cannot be null or empty");

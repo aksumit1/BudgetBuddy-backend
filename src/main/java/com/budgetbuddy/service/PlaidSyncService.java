@@ -2,8 +2,15 @@ package com.budgetbuddy.service;
 
 import com.budgetbuddy.exception.AppException;
 import com.budgetbuddy.exception.ErrorCode;
+import com.budgetbuddy.model.dynamodb.PlaidAccessTokenTable;
 import com.budgetbuddy.model.dynamodb.UserTable;
+import com.budgetbuddy.observability.ScanRateLimiter;
+import com.budgetbuddy.repository.dynamodb.PlaidAccessTokenRepository;
+import com.budgetbuddy.repository.dynamodb.UserRepository;
 import com.budgetbuddy.service.plaid.PlaidSyncOrchestrator;
+import java.time.LocalDate;
+import java.time.ZoneOffset;
+import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;

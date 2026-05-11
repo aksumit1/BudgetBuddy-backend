@@ -36,6 +36,8 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping({"/api/auth", "/auth"})
 public class AuthController {
+    private static final String EMAIL_IS_REQUIRED = "Email is required";
+    private static final String EMAIL_SHOULD_BE_VALID = "Email should be valid";
 
     private static final Logger LOGGER = LoggerFactory.getLogger(AuthController.class);
 
@@ -324,8 +326,8 @@ public class AuthController {
 
     // Inner class for challenge request
     public static class ChallengeRequest {
-        @NotBlank(message = "Email is required")
-        @Email(message = "Email should be valid")
+        @NotBlank(message = EMAIL_IS_REQUIRED)
+        @Email(message = EMAIL_SHOULD_BE_VALID)
         private String email;
 
         public String getEmail() {
@@ -352,8 +354,8 @@ public class AuthController {
 
     // Inner class for forgot password request
     public static class ForgotPasswordRequest {
-        @NotBlank(message = "Email is required")
-        @Email(message = "Email should be valid")
+        @NotBlank(message = EMAIL_IS_REQUIRED)
+        @Email(message = EMAIL_SHOULD_BE_VALID)
         private String email;
 
         public String getEmail() {
@@ -367,8 +369,8 @@ public class AuthController {
 
     // Inner class for verify code request
     public static class VerifyCodeRequest {
-        @NotBlank(message = "Email is required")
-        @Email(message = "Email should be valid")
+        @NotBlank(message = EMAIL_IS_REQUIRED)
+        @Email(message = EMAIL_SHOULD_BE_VALID)
         private String email;
 
         @NotBlank(message = "Verification code is required")
@@ -393,8 +395,8 @@ public class AuthController {
 
     // Inner class for password reset request
     public static class PasswordResetRequest {
-        @NotBlank(message = "Email is required")
-        @Email(message = "Email should be valid")
+        @NotBlank(message = EMAIL_IS_REQUIRED)
+        @Email(message = EMAIL_SHOULD_BE_VALID)
         private String email;
 
         @NotBlank(message = "Verification code is required")

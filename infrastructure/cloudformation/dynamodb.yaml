@@ -1041,6 +1041,52 @@ Resources:
         - Key: ManagedBy
           Value: CloudFormation
 
+  # Plaid Access Tokens — backend-side store so the scheduled sync path can iterate
+  # every user's Plaid items without a live client request to fetch the keychain
+  # token. Encrypted at rest via the same customer-managed CMK as the other
+  # sensitive tables; PITR enabled because access-token loss locks every user out
+  # of incremental Plaid sync until they re-link.
+  PlaidAccessTokensTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub '${TablePrefix}-PlaidAccessTokens'
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: userId
+          AttributeType: S
+        - AttributeName: plaidItemId
+          AttributeType: S
+      KeySchema:
+        - AttributeName: userId
+          KeyType: HASH
+        - AttributeName: plaidItemId
+          KeyType: RANGE
+      GlobalSecondaryIndexes:
+        - IndexName: PlaidItemIdIndex
+          KeySchema:
+            - AttributeName: plaidItemId
+              KeyType: HASH
+          Projection:
+            ProjectionType: ALL
+      SSESpecification:
+        SSEEnabled: true
+        SSEType: KMS
+        KMSMasterKeyId: !If
+          - HasKMSKey
+          - !Ref KMSKeyId
+          - !Ref AWS::NoValue
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+      Tags:
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Application
+          Value: BudgetBuddy
+        - Key: ManagedBy
+          Value: CloudFormation
+        - Key: Sensitive
+          Value: 'true'
+
 Outputs:
   UsersTableName:
     Description: Name of the Users table
@@ -1149,3 +1195,9 @@ Outputs:
     Value: !Ref UserPreferencesTable
     Export:
       Name: !Sub '${AWS::StackName}-UserPreferencesTable'
+
+  PlaidAccessTokensTableName:
+    Description: Name of the Plaid Access Tokens table (backend-side token store)
+    Value: !Ref PlaidAccessTokensTable
+    Export:
+      Name: !Sub '${AWS::StackName}-PlaidAccessTokensTable'

@@ -16,6 +16,8 @@ public class TechCategoryStrategy extends BaseCategoryStrategy {
     private static final String CURSOR_AI = "cursor ai";
 
     private static final String SOFTWARE = "software";
+    private static final String DINING = "dining";
+    private static final String HOME_IMPROVEMENT = "home improvement";
 
     @Override
     public String detectCategory(
@@ -120,7 +122,7 @@ public class TechCategoryStrategy extends BaseCategoryStrategy {
         if (normalizedMerchantName.contains("home depot")
                 || normalizedMerchantName.contains("homedepot")
                 || descriptionLower.contains("home depot")) {
-            return "home improvement";
+            return HOME_IMPROVEMENT;
         }
         final String[] homeImprovementStores = {
             "lowes",
@@ -138,18 +140,18 @@ public class TechCategoryStrategy extends BaseCategoryStrategy {
         };
         for (final String store : homeImprovementStores) {
             if (normalizedMerchantName.contains(store) || descriptionLower.contains(store)) {
-                return "home improvement";
+                return HOME_IMPROVEMENT;
             }
         }
 
         // Hardware/Home Improvement Patterns
         if (normalizedMerchantName.contains("hardware")
-                || normalizedMerchantName.contains("home improvement")
+                || normalizedMerchantName.contains(HOME_IMPROVEMENT)
                 || normalizedMerchantName.contains("homeimprovement")
                 || normalizedMerchantName.contains("lumber")
                 || normalizedMerchantName.contains("building supply")
                 || descriptionLower.contains("hardware")) {
-            return "home improvement";
+            return HOME_IMPROVEMENT;
         }
 
         // ========== DINING ==========
@@ -159,7 +161,7 @@ public class TechCategoryStrategy extends BaseCategoryStrategy {
                 || descriptionLower.contains("hoffman")
                 || descriptionLower.contains("hoffman's")) {
             LOGGER.debug("🏷️ detectCategoryFromMerchantName: Detected Hoffmans bakery → 'dining'");
-            return "dining"; // Bakeries are dining
+            return DINING; // Bakeries are dining
         }
         if (normalizedMerchantName.contains("le panier")
                 || normalizedMerchantName.contains("lepanier")
@@ -167,13 +169,13 @@ public class TechCategoryStrategy extends BaseCategoryStrategy {
                 || descriptionLower.contains("lepanier")) {
             LOGGER.debug(
                     "🏷️ detectCategoryFromMerchantName: Detected Le Panier bakery → 'dining'");
-            return "dining";
+            return DINING;
         }
         if (normalizedMerchantName.contains("bakery")
                 || normalizedMerchantName.contains("baker")
                 || descriptionLower.contains("bakery")
                 || descriptionLower.contains("baker")) {
-            return "dining";
+            return DINING;
         }
         // Tea Lab, Chai, Boba, Mochinut
         if (normalizedMerchantName.contains("tea lab")
@@ -185,7 +187,7 @@ public class TechCategoryStrategy extends BaseCategoryStrategy {
                 || normalizedMerchantName.contains("mochinut")
                 || descriptionLower.contains("mochinut")) {
             LOGGER.debug("🏷️ detectCategoryFromMerchantName: Detected tea/chai/boba → 'dining'");
-            return "dining";
+            return DINING;
         }
         // Ezell's Famous Chicken
         if (normalizedMerchantName.contains("ezell")
@@ -194,7 +196,7 @@ public class TechCategoryStrategy extends BaseCategoryStrategy {
                 || descriptionLower.contains("ezells")) {
             LOGGER.debug(
                     "🏷️ detectCategoryFromMerchantName: Detected Ezell's Famous Chicken → 'dining'");
-            return "dining";
+            return DINING;
         }
         // honest.bellevue.com
         if (normalizedMerchantName.contains("honest.bellevue")
@@ -203,7 +205,7 @@ public class TechCategoryStrategy extends BaseCategoryStrategy {
                 || descriptionLower.contains("honest")) {
             LOGGER.debug(
                     "🏷️ detectCategoryFromMerchantName: Detected honest.bellevue.com → 'dining'");
-            return "dining";
+            return DINING;
         }
 
         return null; // No match found

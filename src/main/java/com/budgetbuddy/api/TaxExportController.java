@@ -62,7 +62,7 @@ public class TaxExportController {
      */
     @GetMapping(
             value = "/export/csv",
-            produces = {MediaType.TEXT_PLAIN_VALUE, "text/csv", MediaType.APPLICATION_JSON_VALUE})
+            produces = {MediaType.TEXT_PLAIN_VALUE, TEXT_CSV, MediaType.APPLICATION_JSON_VALUE})
     public ResponseEntity<String> exportTaxDataCSV(
             @RequestParam(required = false, defaultValue = "0") final int year,
             @RequestParam(required = false) final String categories,
@@ -154,7 +154,7 @@ public class TaxExportController {
      */
     @GetMapping(
             value = "/export/csv/multi-year",
-            produces = {MediaType.TEXT_PLAIN_VALUE, "text/csv", MediaType.APPLICATION_JSON_VALUE})
+            produces = {MediaType.TEXT_PLAIN_VALUE, TEXT_CSV, MediaType.APPLICATION_JSON_VALUE})
     public ResponseEntity<String> exportMultiYearTaxDataCSV(
             @RequestParam final String years,
             @RequestParam(required = false) final String categories,
@@ -223,7 +223,7 @@ public class TaxExportController {
      */
     @GetMapping(
             value = "/export/schedule-a",
-            produces = {MediaType.TEXT_PLAIN_VALUE, "text/csv", MediaType.APPLICATION_JSON_VALUE})
+            produces = {MediaType.TEXT_PLAIN_VALUE, TEXT_CSV, MediaType.APPLICATION_JSON_VALUE})
     public ResponseEntity<String> exportScheduleA(
             @RequestParam(required = false, defaultValue = "0") final int year,
             @AuthenticationPrincipal final UserDetails userDetails) {
@@ -277,7 +277,7 @@ public class TaxExportController {
      */
     @GetMapping(
             value = "/export/schedule-b",
-            produces = {MediaType.TEXT_PLAIN_VALUE, "text/csv", MediaType.APPLICATION_JSON_VALUE})
+            produces = {MediaType.TEXT_PLAIN_VALUE, TEXT_CSV, MediaType.APPLICATION_JSON_VALUE})
     public ResponseEntity<String> exportScheduleB(
             @RequestParam(required = false, defaultValue = "0") final int year,
             @AuthenticationPrincipal final UserDetails userDetails) {
@@ -322,7 +322,7 @@ public class TaxExportController {
      */
     @GetMapping(
             value = "/export/schedule-d",
-            produces = {MediaType.TEXT_PLAIN_VALUE, "text/csv", MediaType.APPLICATION_JSON_VALUE})
+            produces = {MediaType.TEXT_PLAIN_VALUE, TEXT_CSV, MediaType.APPLICATION_JSON_VALUE})
     public ResponseEntity<String> exportScheduleD(
             @RequestParam(required = false, defaultValue = "0") final int year,
             @AuthenticationPrincipal final UserDetails userDetails) {

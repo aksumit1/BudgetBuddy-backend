@@ -29,6 +29,21 @@ public class PlaidCategoryMapper {
     private static final String TICKET = "ticket";
     private static final String AIRLINE = "airline";
     private static final String CARRIER = "carrier";
+    private static final String GROCERIES = "GROCERIES";
+    private static final String ACH = "ach";
+    private static final String AIRLINES = "airlines";
+    private static final String ENTERTAINMENT = "entertainment";
+    private static final String GROCERIES_2 = "groceries";
+    private static final String INCOME = "income";
+    private static final String INVESTMENT = "investment";
+    private static final String PAYMENT = "payment";
+    private static final String RENTINCOME = "rentIncome";
+    private static final String SALARY = "salary";
+    private static final String STIPEND = "stipend";
+    private static final String SUBSCRIPTIONS = "subscriptions";
+    private static final String TRANSPORTATION = "transportation";
+    private static final String TRAVEL = "travel";
+    private static final String UTILITIES = "utilities";
 
     private static final Logger LOGGER = LoggerFactory.getLogger(PlaidCategoryMapper.class);
 
@@ -73,22 +88,22 @@ public class PlaidCategoryMapper {
         PRIMARY_CATEGORY_MAP.put("HOME_IMPROVEMENT", OTHER);
         PRIMARY_CATEGORY_MAP.put("MEDICAL", HEALTHCARE);
         PRIMARY_CATEGORY_MAP.put("PERSONAL_CARE", OTHER);
-        PRIMARY_CATEGORY_MAP.put("TRANSPORTATION", "transportation");
-        PRIMARY_CATEGORY_MAP.put("TRAVEL", "travel");
+        PRIMARY_CATEGORY_MAP.put("TRANSPORTATION", TRANSPORTATION);
+        PRIMARY_CATEGORY_MAP.put("TRAVEL", TRAVEL);
         PRIMARY_CATEGORY_MAP.put("RENT_AND_UTILITIES", "rent");
-        PRIMARY_CATEGORY_MAP.put("ENTERTAINMENT", "entertainment");
-        PRIMARY_CATEGORY_MAP.put("GENERAL_SERVICES", "utilities");
-        PRIMARY_CATEGORY_MAP.put("INCOME", "income");
-        PRIMARY_CATEGORY_MAP.put("TRANSFER_IN", "income");
+        PRIMARY_CATEGORY_MAP.put("ENTERTAINMENT", ENTERTAINMENT);
+        PRIMARY_CATEGORY_MAP.put("GENERAL_SERVICES", UTILITIES);
+        PRIMARY_CATEGORY_MAP.put("INCOME", INCOME);
+        PRIMARY_CATEGORY_MAP.put("TRANSFER_IN", INCOME);
         PRIMARY_CATEGORY_MAP.put("TRANSFER_OUT", OTHER);
         PRIMARY_CATEGORY_MAP.put("LOAN_PAYMENTS", OTHER);
         PRIMARY_CATEGORY_MAP.put("BANK_FEES", OTHER);
-        PRIMARY_CATEGORY_MAP.put("GAS_STATIONS", "transportation");
-        PRIMARY_CATEGORY_MAP.put("GROCERIES", "groceries");
-        PRIMARY_CATEGORY_MAP.put("SUBSCRIPTIONS", "subscriptions");
-        PRIMARY_CATEGORY_MAP.put("INVESTMENT", "investment");
+        PRIMARY_CATEGORY_MAP.put("GAS_STATIONS", TRANSPORTATION);
+        PRIMARY_CATEGORY_MAP.put(GROCERIES, GROCERIES_2);
+        PRIMARY_CATEGORY_MAP.put("SUBSCRIPTIONS", SUBSCRIPTIONS);
+        PRIMARY_CATEGORY_MAP.put("INVESTMENT", INVESTMENT);
         PRIMARY_CATEGORY_MAP.put(
-                "PAYMENT", "payment"); // Credit card payments and recurring ACH payments
+                "PAYMENT", PAYMENT); // Credit card payments and recurring ACH payments
 
         // Initialize detailed category mappings (more specific)
         // Food and Drink
@@ -96,17 +111,17 @@ public class PlaidCategoryMapper {
         DETAILED_CATEGORY_MAP.put("FAST_FOOD", DINING);
         DETAILED_CATEGORY_MAP.put("COFFEE_SHOPS", DINING);
         DETAILED_CATEGORY_MAP.put("FOOD_DELIVERY", DINING);
-        DETAILED_CATEGORY_MAP.put("GROCERIES", "groceries");
-        DETAILED_CATEGORY_MAP.put("SUPERMARKETS", "groceries");
+        DETAILED_CATEGORY_MAP.put(GROCERIES, GROCERIES_2);
+        DETAILED_CATEGORY_MAP.put("SUPERMARKETS", GROCERIES_2);
         DETAILED_CATEGORY_MAP.put("ALCOHOL_AND_BARS", DINING);
 
         // Transportation
-        DETAILED_CATEGORY_MAP.put("GAS_STATIONS", "transportation");
-        DETAILED_CATEGORY_MAP.put("PUBLIC_TRANSPORTATION", "transportation");
-        DETAILED_CATEGORY_MAP.put("TAXI", "transportation");
-        DETAILED_CATEGORY_MAP.put("RIDE_SHARE", "transportation");
-        DETAILED_CATEGORY_MAP.put("PARKING", "transportation");
-        DETAILED_CATEGORY_MAP.put("TOLLS", "transportation");
+        DETAILED_CATEGORY_MAP.put("GAS_STATIONS", TRANSPORTATION);
+        DETAILED_CATEGORY_MAP.put("PUBLIC_TRANSPORTATION", TRANSPORTATION);
+        DETAILED_CATEGORY_MAP.put("TAXI", TRANSPORTATION);
+        DETAILED_CATEGORY_MAP.put("RIDE_SHARE", TRANSPORTATION);
+        DETAILED_CATEGORY_MAP.put("PARKING", TRANSPORTATION);
+        DETAILED_CATEGORY_MAP.put("TOLLS", TRANSPORTATION);
 
         // Shopping
         DETAILED_CATEGORY_MAP.put("GENERAL_MERCHANDISE", SHOPPING);
@@ -116,44 +131,44 @@ public class PlaidCategoryMapper {
         DETAILED_CATEGORY_MAP.put("ELECTRONICS", SHOPPING);
 
         // Entertainment
-        DETAILED_CATEGORY_MAP.put("ENTERTAINMENT", "entertainment");
-        DETAILED_CATEGORY_MAP.put("MOVIES_AND_DVDS", "entertainment");
-        DETAILED_CATEGORY_MAP.put("MUSIC_AND_AUDIO", "subscriptions");
-        DETAILED_CATEGORY_MAP.put("GAMES_AND_GAMING", "entertainment");
-        DETAILED_CATEGORY_MAP.put("SPORTS_AND_RECREATION", "entertainment");
+        DETAILED_CATEGORY_MAP.put("ENTERTAINMENT", ENTERTAINMENT);
+        DETAILED_CATEGORY_MAP.put("MOVIES_AND_DVDS", ENTERTAINMENT);
+        DETAILED_CATEGORY_MAP.put("MUSIC_AND_AUDIO", SUBSCRIPTIONS);
+        DETAILED_CATEGORY_MAP.put("GAMES_AND_GAMING", ENTERTAINMENT);
+        DETAILED_CATEGORY_MAP.put("SPORTS_AND_RECREATION", ENTERTAINMENT);
 
         // Subscriptions
-        DETAILED_CATEGORY_MAP.put("SOFTWARE_SUBSCRIPTIONS", "subscriptions");
-        DETAILED_CATEGORY_MAP.put("STREAMING_SERVICES", "subscriptions");
-        DETAILED_CATEGORY_MAP.put("MUSIC_STREAMING", "subscriptions");
-        DETAILED_CATEGORY_MAP.put("NEWS_SUBSCRIPTIONS", "subscriptions");
-        DETAILED_CATEGORY_MAP.put("GAMING_SUBSCRIPTIONS", "subscriptions");
+        DETAILED_CATEGORY_MAP.put("SOFTWARE_SUBSCRIPTIONS", SUBSCRIPTIONS);
+        DETAILED_CATEGORY_MAP.put("STREAMING_SERVICES", SUBSCRIPTIONS);
+        DETAILED_CATEGORY_MAP.put("MUSIC_STREAMING", SUBSCRIPTIONS);
+        DETAILED_CATEGORY_MAP.put("NEWS_SUBSCRIPTIONS", SUBSCRIPTIONS);
+        DETAILED_CATEGORY_MAP.put("GAMING_SUBSCRIPTIONS", SUBSCRIPTIONS);
 
         // Travel
-        DETAILED_CATEGORY_MAP.put("HOTELS_AND_ACCOMMODATIONS", "travel");
-        DETAILED_CATEGORY_MAP.put("AIR_TRAVEL", "travel");
-        DETAILED_CATEGORY_MAP.put("RENTAL_CARS", "travel");
-        DETAILED_CATEGORY_MAP.put("TRAVEL_AGENCIES", "travel");
+        DETAILED_CATEGORY_MAP.put("HOTELS_AND_ACCOMMODATIONS", TRAVEL);
+        DETAILED_CATEGORY_MAP.put("AIR_TRAVEL", TRAVEL);
+        DETAILED_CATEGORY_MAP.put("RENTAL_CARS", TRAVEL);
+        DETAILED_CATEGORY_MAP.put("TRAVEL_AGENCIES", TRAVEL);
 
         // Rent and Utilities
         DETAILED_CATEGORY_MAP.put("RENT", "rent");
-        DETAILED_CATEGORY_MAP.put("UTILITIES", "utilities");
-        DETAILED_CATEGORY_MAP.put("ELECTRICITY", "utilities");
-        DETAILED_CATEGORY_MAP.put("WATER", "utilities");
-        DETAILED_CATEGORY_MAP.put("GAS_AND_HEATING", "utilities");
-        DETAILED_CATEGORY_MAP.put("INTERNET_AND_PHONE", "utilities");
-        DETAILED_CATEGORY_MAP.put("CABLE", "utilities");
+        DETAILED_CATEGORY_MAP.put("UTILITIES", UTILITIES);
+        DETAILED_CATEGORY_MAP.put("ELECTRICITY", UTILITIES);
+        DETAILED_CATEGORY_MAP.put("WATER", UTILITIES);
+        DETAILED_CATEGORY_MAP.put("GAS_AND_HEATING", UTILITIES);
+        DETAILED_CATEGORY_MAP.put("INTERNET_AND_PHONE", UTILITIES);
+        DETAILED_CATEGORY_MAP.put("CABLE", UTILITIES);
 
-        // Income - CRITICAL: "income" is ONLY a primary category type, NOT a detailed category
+        // Income - CRITICAL: INCOME is ONLY a primary category type, NOT a detailed category
         // Use specific income types (salary, interest, dividend, etc.) as detailed categories
-        DETAILED_CATEGORY_MAP.put("SALARY", "salary");
-        DETAILED_CATEGORY_MAP.put("PAYROLL", "salary");
+        DETAILED_CATEGORY_MAP.put("SALARY", SALARY);
+        DETAILED_CATEGORY_MAP.put("PAYROLL", SALARY);
         DETAILED_CATEGORY_MAP.put("DIVIDENDS", DIVIDEND);
         DETAILED_CATEGORY_MAP.put(
                 "INTEREST_EARNED",
                 INTEREST); // Note: CD interest will be overridden to investment by enhanced logic
         DETAILED_CATEGORY_MAP.put("GIG_ECONOMY", "otherIncome");
-        DETAILED_CATEGORY_MAP.put("RENTAL_INCOME", "rentIncome");
+        DETAILED_CATEGORY_MAP.put("RENTAL_INCOME", RENTINCOME);
         DETAILED_CATEGORY_MAP.put(
                 "INVESTMENT_INCOME",
                 DIVIDEND); // Note: Investment income from CD deposits will be overridden to
@@ -176,11 +191,11 @@ public class PlaidCategoryMapper {
         DETAILED_CATEGORY_MAP.put("BROKERAGE", "otherInvestment");
         DETAILED_CATEGORY_MAP.put("RETIREMENT", "otherInvestment");
         // Legacy investment mapping (fallback)
-        DETAILED_CATEGORY_MAP.put("INVESTMENT", "investment");
+        DETAILED_CATEGORY_MAP.put("INVESTMENT", INVESTMENT);
 
         // Payment
-        DETAILED_CATEGORY_MAP.put("CREDIT_CARD_PAYMENT", "payment");
-        DETAILED_CATEGORY_MAP.put("LOAN_PAYMENT", "payment");
+        DETAILED_CATEGORY_MAP.put("CREDIT_CARD_PAYMENT", PAYMENT);
+        DETAILED_CATEGORY_MAP.put("LOAN_PAYMENT", PAYMENT);
     }
 
     /**
@@ -212,7 +227,7 @@ public class PlaidCategoryMapper {
      * @param plaidCategoryDetailed Plaid's detailed category (e.g., "RESTAURANTS")
      * @param merchantName Merchant name for additional context
      * @param description Transaction description for additional context
-     * @param paymentChannel Payment channel (e.g., "ach", "online", "in_store") - optional, used
+     * @param paymentChannel Payment channel (e.g., ACH, "online", "in_store") - optional, used
      *     for ACH credit detection
      * @param amount Transaction amount - optional, used for ACH credit detection (positive =
      *     credit)
@@ -241,25 +256,25 @@ public class PlaidCategoryMapper {
                 // specific mapping)
                 // This ensures consistency (e.g., GROCERIES -> groceries for both primary and
                 // detailed)
-                // CRITICAL: For income categories, primary should always be "income", not the
+                // CRITICAL: For income categories, primary should always be INCOME, not the
                 // detailed category
                 // Income detailed categories (salary, interest, dividend, etc.) should have primary
-                // = "income"
+                // = INCOME
                 if (mappedPrimary == null) {
                     // Check if this is an income-related detailed category
                     final boolean isIncomeDetailed =
-                            "salary".equals(mappedDetailed)
+                            SALARY.equals(mappedDetailed)
                                     || INTEREST.equals(mappedDetailed)
                                     || DIVIDEND.equals(mappedDetailed)
-                                    || "stipend".equals(mappedDetailed)
-                                    || "rentIncome".equals(mappedDetailed)
+                                    || STIPEND.equals(mappedDetailed)
+                                    || RENTINCOME.equals(mappedDetailed)
                                     || "tips".equals(mappedDetailed)
                                     || "otherIncome".equals(mappedDetailed);
                     if (isIncomeDetailed) {
-                        // For income detailed categories, primary should be "income", not the
+                        // For income detailed categories, primary should be INCOME, not the
                         // detailed category
                         mappedPrimary =
-                                null; // Will be set to "income" by primary category mapping below
+                                null; // Will be set to INCOME by primary category mapping below
                     } else {
                         mappedPrimary = mappedDetailed;
                     }
@@ -311,10 +326,10 @@ public class PlaidCategoryMapper {
                 determineInvestmentType(combinedTextLower, description, merchantName);
         if (detectedInvestmentType != null) {
             mappedDetailed = detectedInvestmentType;
-            // ALWAYS override primary to "investment" when investment type is detected
+            // ALWAYS override primary to INVESTMENT when investment type is detected
             // This ensures CD deposits, stocks, etc. are not categorized as income, salary,
             // entertainment, etc.
-            mappedPrimary = "investment";
+            mappedPrimary = INVESTMENT;
             LOGGER.debug(
                     "Enhanced mapping: detected investment type '{}' from merchant/description, overriding primary to 'investment'",
                     detectedInvestmentType);
@@ -323,7 +338,7 @@ public class PlaidCategoryMapper {
         // CRITICAL: ACH credits should be income, not rent/expense
         // This MUST happen BEFORE payment detection to ensure ACH credits are income, not payments
         // This overrides any category that might have been incorrectly assigned (e.g., "rent" or
-        // "utilities" from Plaid)
+        // UTILITIES from Plaid)
         // Check for "ACH Electronic Credit" in description/merchant name (case-insensitive)
         // This handles cases like "ACH Electronic CreditGUSTO PAY 123456" where paymentChannel
         // might not be set correctly
@@ -333,7 +348,7 @@ public class PlaidCategoryMapper {
         final boolean isACHCreditByDescription =
                 combinedTextLower.contains("ach electronic credit")
                         || combinedTextLower.contains("ach credit")
-                        || (combinedTextLower.contains("ach")
+                        || (combinedTextLower.contains(ACH)
                                 && combinedTextLower.contains("credit"));
 
         // Also check by paymentChannel, but only if it's NOT an ACH debit
@@ -342,17 +357,17 @@ public class PlaidCategoryMapper {
         final boolean isACHDebitPattern =
                 combinedTextLower.contains("ach electronic debit")
                         || combinedTextLower.contains("ach debit")
-                        || (combinedTextLower.contains("ach")
+                        || (combinedTextLower.contains(ACH)
                                 && combinedTextLower.contains("debit"));
 
-        // ACH credit by channel: paymentChannel is "ach" AND not an ACH debit pattern
+        // ACH credit by channel: paymentChannel is ACH AND not an ACH debit pattern
         // CRITICAL: For channel-based detection without explicit credit/debit keywords in
         // description,
         // we need to check amount sign to distinguish credits from debits
         // After normalization: positive = income (credit), negative = expense (debit)
         // This is safe because normalization already handles Plaid's sign reversal
         final boolean isACHCreditByChannel =
-                "ach".equalsIgnoreCase(paymentChannel)
+                ACH.equalsIgnoreCase(paymentChannel)
                         && !isACHDebitPattern
                         && amount != null
                         && amount.compareTo(java.math.BigDecimal.ZERO) > 0;
@@ -365,19 +380,19 @@ public class PlaidCategoryMapper {
             // Only use specific income categories if we can clearly identify them (e.g., interest,
             // dividend)
             // For generic ACH credits without clear indicators, use "deposit" instead of defaulting
-            // to "salary"
+            // to SALARY
             final String incomeCategory = determineIncomeCategory(description, merchantName);
 
-            // If determineIncomeCategory returns "salary", check if there are explicit salary
+            // If determineIncomeCategory returns SALARY, check if there are explicit salary
             // indicators
-            // Only use "salary" if there are explicit keywords or payroll service names
+            // Only use SALARY if there are explicit keywords or payroll service names
             // Generic ACH credits without indicators should default to "deposit"
-            if ("salary".equals(incomeCategory)) {
+            if (SALARY.equals(incomeCategory)) {
                 // Check if description/merchant contains explicit salary keywords or payroll
                 // service names
                 // Use combinedTextLower which is already defined and lowercase
                 final boolean hasSalaryIndicators =
-                        combinedTextLower.contains("salary")
+                        combinedTextLower.contains(SALARY)
                                 || combinedTextLower.contains("payroll")
                                 || combinedTextLower.contains("paycheck")
                                 || combinedTextLower.contains("direct deposit")
@@ -393,16 +408,16 @@ public class PlaidCategoryMapper {
                                 || combinedTextLower.contains("bamboohr");
 
                 if (hasSalaryIndicators) {
-                    // Has explicit salary indicators - use "salary"
-                    mappedDetailed = "salary";
+                    // Has explicit salary indicators - use SALARY
+                    mappedDetailed = SALARY;
                 } else {
                     // No explicit salary indicators - use "deposit" instead
                     mappedDetailed = "deposit";
                 }
             } else if (INTEREST.equals(incomeCategory)
                     || DIVIDEND.equals(incomeCategory)
-                    || "stipend".equals(incomeCategory)
-                    || "rentIncome".equals(incomeCategory)
+                    || STIPEND.equals(incomeCategory)
+                    || RENTINCOME.equals(incomeCategory)
                     || "tips".equals(incomeCategory)
                     || "otherIncome".equals(incomeCategory)) {
                 // Use the specific income category that was detected
@@ -412,7 +427,7 @@ public class PlaidCategoryMapper {
                 mappedDetailed = "deposit";
             }
 
-            mappedPrimary = "income";
+            mappedPrimary = INCOME;
             LOGGER.debug(
                     "Enhanced mapping: ACH credit detected (description={}, paymentChannel={}, amount={}) - categorized as income/{}",
                     description,
@@ -430,7 +445,7 @@ public class PlaidCategoryMapper {
                                 || descriptionLower.contains("creditcard")
                                 || descriptionLower.contains("cc payment")
                                 || descriptionLower.contains("card payment"))
-                        && (descriptionLower.contains("payment")
+                        && (descriptionLower.contains(PAYMENT)
                                 || descriptionLower.contains("pay")
                                 || descriptionLower.contains("transfer"));
 
@@ -443,7 +458,7 @@ public class PlaidCategoryMapper {
                         || combinedTextLower.contains("auto-pay")
                         || combinedTextLower.contains("autopayment")
                         || (combinedTextLower.contains("automatic")
-                                && combinedTextLower.contains("payment"));
+                                && combinedTextLower.contains(PAYMENT));
 
         // Direct payments: Check for "directpay", "direct pay", "direct payment", "directpayment",
         // "automatyment"
@@ -466,7 +481,7 @@ public class PlaidCategoryMapper {
                         && // Don't treat ACH credits as debits
                         (combinedTextLower.contains("ach electronic debit")
                                 || combinedTextLower.contains("ach debit")
-                                || (combinedTextLower.contains("ach")
+                                || (combinedTextLower.contains(ACH)
                                         && combinedTextLower.contains("debit")
                                         && amount != null
                                         && amount.compareTo(java.math.BigDecimal.ZERO) < 0));
@@ -477,7 +492,7 @@ public class PlaidCategoryMapper {
                 !isACHCredit
                         && // Don't treat ACH credits as payments
                         paymentChannel != null
-                        && "ach".equalsIgnoreCase(paymentChannel)
+                        && ACH.equalsIgnoreCase(paymentChannel)
                         && amount != null
                         && amount.compareTo(java.math.BigDecimal.ZERO) < 0
                         && (combinedTextLower.contains("recurring")
@@ -495,7 +510,7 @@ public class PlaidCategoryMapper {
                 !isACHCredit
                         && // Don't treat ACH credits as debits
                         paymentChannel != null
-                        && "ach".equalsIgnoreCase(paymentChannel)
+                        && ACH.equalsIgnoreCase(paymentChannel)
                         && amount != null
                         && amount.compareTo(java.math.BigDecimal.ZERO) < 0;
 
@@ -506,8 +521,8 @@ public class PlaidCategoryMapper {
                 || isACHDebit
                 || isAutomaticPayment
                 || isDirectPayment) {
-            mappedDetailed = "payment";
-            mappedPrimary = "payment";
+            mappedDetailed = PAYMENT;
+            mappedPrimary = PAYMENT;
             final String paymentType =
                     isCreditCardPayment
                             ? "Credit card payment"
@@ -532,8 +547,8 @@ public class PlaidCategoryMapper {
         final boolean isAirlineTransaction =
                 detectAirlineTransaction(combinedTextLower, merchantLower, descriptionLower);
         if (isAirlineTransaction) {
-            mappedDetailed = "travel";
-            mappedPrimary = "travel";
+            mappedDetailed = TRAVEL;
+            mappedPrimary = TRAVEL;
             LOGGER.debug(
                     "Enhanced mapping: airline transaction detected (merchant={}, description={}) - overriding category to travel",
                     merchantName,
@@ -547,8 +562,8 @@ public class PlaidCategoryMapper {
         final boolean isAirportLounge =
                 detectAirportLounge(combinedTextLower, merchantLower, descriptionLower);
         if (isAirportLounge) {
-            mappedDetailed = "travel";
-            mappedPrimary = "travel";
+            mappedDetailed = TRAVEL;
+            mappedPrimary = TRAVEL;
             LOGGER.debug(
                     "Enhanced mapping: airport lounge transaction detected (merchant={}, description={}) - overriding category to travel",
                     merchantName,
@@ -564,8 +579,8 @@ public class PlaidCategoryMapper {
         // BUT: Don't override if Plaid already categorized as GROCERIES (e.g., Walmart with
         // GROCERIES category)
         final boolean isPlaidGroceries =
-                ("GROCERIES".equalsIgnoreCase(plaidCategoryDetailed))
-                        || ("GROCERIES".equalsIgnoreCase(plaidCategoryPrimary));
+                (GROCERIES.equalsIgnoreCase(plaidCategoryDetailed))
+                        || (GROCERIES.equalsIgnoreCase(plaidCategoryPrimary));
         final boolean isShoppingTransaction =
                 !isPlaidGroceries
                         && detectShoppingTransaction(
@@ -587,8 +602,8 @@ public class PlaidCategoryMapper {
         final boolean isEntertainmentTransaction =
                 detectEntertainmentTransaction(combinedTextLower, merchantLower, descriptionLower);
         if (isEntertainmentTransaction) {
-            mappedDetailed = "entertainment";
-            mappedPrimary = "entertainment";
+            mappedDetailed = ENTERTAINMENT;
+            mappedPrimary = ENTERTAINMENT;
             LOGGER.debug(
                     "Enhanced mapping: entertainment transaction detected (merchant={}, description={}) - overriding category to entertainment",
                     merchantName,
@@ -629,21 +644,21 @@ public class PlaidCategoryMapper {
                     || combinedText.contains("kroger")
                     || combinedText.contains("supermarket")
                     || combinedText.contains("grocer")) {
-                mappedDetailed = "groceries";
+                mappedDetailed = GROCERIES_2;
                 LOGGER.debug("Enhanced mapping: detected groceries from merchant/description");
             } else if (combinedText.contains("uber")
                     || combinedText.contains("lyft")
                     || combinedText.contains("taxi")
                     || combinedText.contains("gas")
                     || combinedText.contains("fuel")) {
-                mappedDetailed = "transportation";
+                mappedDetailed = TRANSPORTATION;
                 LOGGER.debug("Enhanced mapping: detected transportation from merchant/description");
             } else if (combinedText.contains("netflix")
                     || combinedText.contains("spotify")
                     || combinedText.contains("subscription")
                     || combinedText.contains("monthly")
                     || combinedText.contains("annual")) {
-                mappedDetailed = "subscriptions";
+                mappedDetailed = SUBSCRIPTIONS;
                 LOGGER.debug("Enhanced mapping: detected subscription from merchant/description");
             }
         }
@@ -666,22 +681,22 @@ public class PlaidCategoryMapper {
             mappedDetailed = mappedPrimary;
         }
 
-        // CRITICAL: If mappedDetailed is "income", determine specific income category from
+        // CRITICAL: If mappedDetailed is INCOME, determine specific income category from
         // description
         // This ensures income transactions use specific categories (salary, interest, dividend,
-        // etc.) instead of generic "income"
+        // etc.) instead of generic INCOME
         // BUT: Only do this if we haven't already detected an investment type (prevents CD deposits
         // from being categorized as salary/interest)
         // AND: Only do this if it's NOT an ACH credit (ACH credits already have specific income
         // category determined above)
         // NOTE: For interest payments, we want Income/Interest, not Income/Income
-        if (("income".equals(mappedDetailed) || "income".equals(mappedPrimary))
+        if ((INCOME.equals(mappedDetailed) || INCOME.equals(mappedPrimary))
                 && detectedInvestmentType == null
                 && !isACHCredit) {
             // Determine specific income category from description
             final String specificIncomeCategory =
                     determineIncomeCategory(description, merchantName);
-            if (!"income".equals(specificIncomeCategory)) {
+            if (!INCOME.equals(specificIncomeCategory)) {
                 mappedDetailed = specificIncomeCategory;
                 LOGGER.debug(
                         "Enhanced mapping: determined specific income category '{}' from description/merchant",
@@ -702,7 +717,7 @@ public class PlaidCategoryMapper {
                     determineInterestFromDescription(description, merchantName);
             if (interestCategory != null) {
                 mappedDetailed = interestCategory;
-                mappedPrimary = "income";
+                mappedPrimary = INCOME;
                 LOGGER.debug(
                         "Enhanced mapping: overrode category to Income/Interest for transaction with description: {}",
                         description);
@@ -719,7 +734,7 @@ public class PlaidCategoryMapper {
      *
      * @param description Transaction description
      * @param merchantName Merchant name
-     * @return Specific income category string, or "income" if no specific match found
+     * @return Specific income category string, or INCOME if no specific match found
      */
     /**
      * Determines specific investment type from description and merchant name Scans for keywords
@@ -814,7 +829,7 @@ public class PlaidCategoryMapper {
                 || combinedTextLower.contains("mutualfund")
                 || (combinedTextLower.contains("fund ")
                         && !combinedTextLower.contains("etf")
-                        && (combinedTextLower.contains("investment")
+                        && (combinedTextLower.contains(INVESTMENT)
                                 || combinedTextLower.contains("portfolio")))) {
             return "mutualFunds";
         }
@@ -850,7 +865,7 @@ public class PlaidCategoryMapper {
         }
 
         // Generic investment keywords (fallback to generic investment category)
-        if (combinedTextLower.contains("investment")
+        if (combinedTextLower.contains(INVESTMENT)
                 || combinedTextLower.contains("brokerage")
                 || combinedTextLower.contains("retirement")
                 || combinedTextLower.contains("portfolio")
@@ -915,7 +930,7 @@ public class PlaidCategoryMapper {
 
     private String determineIncomeCategory(final String description, final String merchantName) {
         if (description == null && merchantName == null) {
-            return "salary"; // Default to salary (most common income type) - "income" is ONLY a
+            return SALARY; // Default to salary (most common income type) - INCOME is ONLY a
             // primary category, not detailed
         }
 
@@ -928,7 +943,7 @@ public class PlaidCategoryMapper {
         // Salary/Payroll - check for salary, payroll, paycheck, direct deposit, wages
         // CRITICAL: Include payroll services like Gusto, ADP, Paychex, etc.
         // CRITICAL: Exclude CD deposits (handled as investment)
-        if ((combinedText.contains("salary")
+        if ((combinedText.contains(SALARY)
                         || combinedText.contains("payroll")
                         || combinedText.contains("paycheck")
                         || combinedText.contains("direct deposit")
@@ -947,7 +962,7 @@ public class PlaidCategoryMapper {
                 !combinedText.contains("certificate of deposit")
                 && // Exclude certificate of deposit
                 !combinedText.contains(" cd ")) { // Exclude any CD-related deposits
-            return "salary";
+            return SALARY;
         }
 
         // Interest - check for interest, interest payment, interest earned, savings interest
@@ -984,12 +999,12 @@ public class PlaidCategoryMapper {
         }
 
         // Stipend - check for stipend, scholarship, grant, fellowship
-        if (combinedText.contains("stipend")
+        if (combinedText.contains(STIPEND)
                 || combinedText.contains("scholarship")
                 || combinedText.contains("grant")
                 || combinedText.contains("fellowship")
                 || combinedText.contains("bursary")) {
-            return "stipend";
+            return STIPEND;
         }
 
         // Rental Income - check for rent received, rental income, property income
@@ -999,8 +1014,8 @@ public class PlaidCategoryMapper {
                 || combinedText.contains("rent payment received")
                 || (combinedText.contains("rent")
                         && (combinedText.contains("received")
-                                || combinedText.contains("income")))) {
-            return "rentIncome";
+                                || combinedText.contains(INCOME)))) {
+            return RENTINCOME;
         }
 
         // Tips - check for tips, gratuity, tip income
@@ -1012,8 +1027,8 @@ public class PlaidCategoryMapper {
         }
 
         // Default to salary (most common income type) if no specific match
-        // CRITICAL: "income" is ONLY a primary category type, NOT a detailed category
-        return "salary";
+        // CRITICAL: INCOME is ONLY a primary category type, NOT a detailed category
+        return SALARY;
     }
 
     /**
@@ -1048,7 +1063,7 @@ public class PlaidCategoryMapper {
                         || combinedTextLower.contains("delta air")
                         || (combinedTextLower.contains("delta")
                                 && (combinedTextLower.contains(AIRLINE)
-                                        || combinedTextLower.contains("airlines")
+                                        || combinedTextLower.contains(AIRLINES)
                                         || combinedTextLower.contains(FLIGHT)
                                         || combinedTextLower.contains(TICKET)
                                         || combinedTextLower.contains(PASSENGER)
@@ -1062,7 +1077,7 @@ public class PlaidCategoryMapper {
                         || combinedTextLower.contains("alaska air")
                         || (combinedTextLower.contains("alaska")
                                 && (combinedTextLower.contains(AIRLINE)
-                                        || combinedTextLower.contains("airlines")
+                                        || combinedTextLower.contains(AIRLINES)
                                         || combinedTextLower.contains(FLIGHT)
                                         || combinedTextLower.contains(TICKET)
                                         || combinedTextLower.contains(PASSENGER)
@@ -1076,7 +1091,7 @@ public class PlaidCategoryMapper {
                         || combinedTextLower.contains("united air")
                         || (combinedTextLower.contains("united")
                                 && (combinedTextLower.contains(AIRLINE)
-                                        || combinedTextLower.contains("airlines")
+                                        || combinedTextLower.contains(AIRLINES)
                                         || combinedTextLower.contains(FLIGHT)
                                         || combinedTextLower.contains(TICKET)
                                         || combinedTextLower.contains(PASSENGER)
@@ -1089,7 +1104,7 @@ public class PlaidCategoryMapper {
                         || combinedTextLower.contains("american air")
                         || (combinedTextLower.contains("american")
                                 && (combinedTextLower.contains(AIRLINE)
-                                        || combinedTextLower.contains("airlines")
+                                        || combinedTextLower.contains(AIRLINES)
                                         || combinedTextLower.contains(FLIGHT)
                                         || combinedTextLower.contains(TICKET)
                                         || combinedTextLower.contains(PASSENGER)
@@ -1115,7 +1130,7 @@ public class PlaidCategoryMapper {
         // Check for generic airline keywords (flight, ticket, passenger, carrier, departure, etc.)
         // Only match if combined with airline context to avoid false positives
         final boolean hasAirlineKeywords =
-                (combinedTextLower.contains(AIRLINE) || combinedTextLower.contains("airlines"))
+                (combinedTextLower.contains(AIRLINE) || combinedTextLower.contains(AIRLINES))
                         && (combinedTextLower.contains(FLIGHT)
                                 || combinedTextLower.contains(TICKET)
                                 || combinedTextLower.contains(PASSENGER)

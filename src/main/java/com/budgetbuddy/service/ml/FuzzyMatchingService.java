@@ -28,6 +28,7 @@ import org.springframework.stereotype.Service;
 @SuppressWarnings({"PMD.AvoidCatchingGenericException", "PMD.OnlyOneReturn"})
 @Service("mlFuzzyMatchingService")
 public class FuzzyMatchingService {
+    private static final String S = "\\s+";
 
     private static final Logger LOGGER = LoggerFactory.getLogger(FuzzyMatchingService.class);
 

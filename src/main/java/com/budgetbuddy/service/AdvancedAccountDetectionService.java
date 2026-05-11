@@ -54,6 +54,7 @@ public class AdvancedAccountDetectionService {
     private static final String METADATA = "metadata";
 
     private static final String PATTERN = "pattern";
+    private static final String B = "\\b";
 
     private static final Logger LOGGER =
             LoggerFactory.getLogger(AdvancedAccountDetectionService.class);

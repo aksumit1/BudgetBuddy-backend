@@ -9,6 +9,7 @@ import org.springframework.stereotype.Component;
 @SuppressWarnings("PMD.OnlyOneReturn")
 @Component
 public class TravelCategoryStrategy extends BaseCategoryStrategy {
+    private static final String TRAVEL = "travel";
 
     @Override
     public String detectCategory(
@@ -53,7 +54,7 @@ public class TravelCategoryStrategy extends BaseCategoryStrategy {
                 LOGGER.debug(
                         "🏷️ detectCategoryFromMerchantName: Detected airport lounge '{}' → 'travel'",
                         lounge);
-                return "travel";
+                return TRAVEL;
             }
         }
 
@@ -69,7 +70,7 @@ public class TravelCategoryStrategy extends BaseCategoryStrategy {
                 || (merchantName != null
                         && merchantName.toUpperCase(Locale.ROOT).contains("WI-FI ONBOARD"))) {
             LOGGER.debug("🏷️ detectCategoryFromMerchantName: Detected airline WiFi → 'travel'");
-            return "travel";
+            return TRAVEL;
         }
 
         // VIASAT - satellite internet for travel/aircraft
@@ -78,7 +79,7 @@ public class TravelCategoryStrategy extends BaseCategoryStrategy {
                 || (merchantName != null
                         && merchantName.toUpperCase(Locale.ROOT).contains("VIASAT"))) {
             LOGGER.debug("🏷️ detectCategoryFromMerchantName: Detected VIASAT → 'travel'");
-            return "travel";
+            return TRAVEL;
         }
 
         final String[] travelServices = {
@@ -89,7 +90,7 @@ public class TravelCategoryStrategy extends BaseCategoryStrategy {
         };
         for (final String service : travelServices) {
             if (normalizedMerchantName.contains(service) || descriptionLower.contains(service)) {
-                return "travel";
+                return TRAVEL;
             }
         }
 

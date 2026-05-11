@@ -63,8 +63,8 @@ public class SyncController {
                     "Returns all user data (accounts, transactions, budgets, goals, actions) for first sync or force refresh")
     @ApiResponses({
         @ApiResponse(responseCode = "200", description = "Data retrieved successfully"),
-        @ApiResponse(responseCode = "401", description = "User not authenticated"),
-        @ApiResponse(responseCode = "404", description = "User not found")
+        @ApiResponse(responseCode = "401", description = USER_NOT_AUTHENTICATED),
+        @ApiResponse(responseCode = "404", description = USER_NOT_FOUND_1)
     })
     public ResponseEntity<SyncAllResponse> getAllData(
             @AuthenticationPrincipal final UserDetails userDetails) {
@@ -109,8 +109,8 @@ public class SyncController {
                     "Returns only changed items since the specified timestamp for efficient periodic sync")
     @ApiResponses({
         @ApiResponse(responseCode = "200", description = "Changes retrieved successfully"),
-        @ApiResponse(responseCode = "401", description = "User not authenticated"),
-        @ApiResponse(responseCode = "404", description = "User not found")
+        @ApiResponse(responseCode = "401", description = USER_NOT_AUTHENTICATED),
+        @ApiResponse(responseCode = "404", description = USER_NOT_FOUND_1)
     })
     public ResponseEntity<IncrementalSyncResponse> getIncrementalChanges(
             @AuthenticationPrincipal final UserDetails userDetails,
@@ -161,8 +161,8 @@ public class SyncController {
                     "Returns current sync status, last sync time, and data counts for offline mode support")
     @ApiResponses({
         @ApiResponse(responseCode = "200", description = "Status retrieved successfully"),
-        @ApiResponse(responseCode = "401", description = "User not authenticated"),
-        @ApiResponse(responseCode = "404", description = "User not found")
+        @ApiResponse(responseCode = "401", description = USER_NOT_AUTHENTICATED),
+        @ApiResponse(responseCode = "404", description = USER_NOT_FOUND_1)
     })
     public ResponseEntity<com.budgetbuddy.dto.SyncStatusResponse> getSyncStatus(
             @AuthenticationPrincipal final UserDetails userDetails) {

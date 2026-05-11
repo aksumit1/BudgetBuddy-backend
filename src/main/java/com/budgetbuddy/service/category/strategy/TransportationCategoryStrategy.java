@@ -29,6 +29,9 @@ public class TransportationCategoryStrategy extends BaseCategoryStrategy {
     private static final String SCHOOLDISTRICT = "schooldistrict";
 
     private static final String TOEFL = "toefl";
+    private static final String CART = "cart";
+    private static final String EDUCATION = "education";
+    private static final String ENTERTAINMENT = "entertainment";
 
     @Override
     public String detectCategory(
@@ -85,9 +88,9 @@ public class TransportationCategoryStrategy extends BaseCategoryStrategy {
                 || descriptionLower.contains("seattle ap")
                 || descriptionLower.contains("seattle airport")) {
             // Airport cart/chair rentals
-            if (normalizedMerchantName.contains("cart")
+            if (normalizedMerchantName.contains(CART)
                     || normalizedMerchantName.contains(CHAIR)
-                    || descriptionLower.contains("cart")
+                    || descriptionLower.contains(CART)
                     || descriptionLower.contains(CHAIR)) {
                 LOGGER.debug(
                         "🏷️ detectCategoryFromMerchantName: Detected airport cart/chair → 'transportation'");
@@ -96,9 +99,9 @@ public class TransportationCategoryStrategy extends BaseCategoryStrategy {
         }
         // General airport cart/chair patterns
         if ((normalizedMerchantName.contains("airport") || descriptionLower.contains("airport"))
-                && (normalizedMerchantName.contains("cart")
+                && (normalizedMerchantName.contains(CART)
                         || normalizedMerchantName.contains(CHAIR)
-                        || descriptionLower.contains("cart")
+                        || descriptionLower.contains(CART)
                         || descriptionLower.contains(CHAIR))) {
             LOGGER.debug(
                     "🏷️ detectCategoryFromMerchantName: Detected airport cart/chair → 'transportation'");
@@ -185,7 +188,7 @@ public class TransportationCategoryStrategy extends BaseCategoryStrategy {
             final String merchantName) {
         // ========== ENTERTAINMENT ==========
         if (normalizedMerchantName.contains("amc") || descriptionLower.contains("amc")) {
-            return "entertainment";
+            return ENTERTAINMENT;
         }
         // State Fair, Disney, Universal Studio, Sea World
         if (normalizedMerchantName.contains("state fair")
@@ -202,7 +205,7 @@ public class TransportationCategoryStrategy extends BaseCategoryStrategy {
                 || descriptionLower.contains("seaworld")) {
             LOGGER.debug(
                     "🏷️ detectCategoryFromMerchantName: Detected theme park/fair → 'entertainment'");
-            return "entertainment";
+            return ENTERTAINMENT;
         }
         // Camping (Cape Disappointment, recreation.gov)
         if (normalizedMerchantName.contains("camping")
@@ -212,7 +215,7 @@ public class TransportationCategoryStrategy extends BaseCategoryStrategy {
                 || normalizedMerchantName.contains("recreation.gov")
                 || descriptionLower.contains("recreation.gov")) {
             LOGGER.debug("🏷️ detectCategoryFromMerchantName: Detected camping → 'entertainment'");
-            return "entertainment";
+            return ENTERTAINMENT;
         }
         final String[] entertainmentVenues = {
             "cinemark",
@@ -237,7 +240,7 @@ public class TransportationCategoryStrategy extends BaseCategoryStrategy {
         };
         for (final String venue : entertainmentVenues) {
             if (normalizedMerchantName.contains(venue) || descriptionLower.contains(venue)) {
-                return "entertainment";
+                return ENTERTAINMENT;
             }
         }
 
@@ -279,18 +282,18 @@ public class TransportationCategoryStrategy extends BaseCategoryStrategy {
                 LOGGER.debug(
                         "🏷️ detectCategoryFromMerchantName: Detected streaming service '{}' → 'entertainment'",
                         service);
-                return "entertainment";
+                return ENTERTAINMENT;
             }
         }
 
         // Entertainment Patterns
-        if (normalizedMerchantName.contains("entertainment")
+        if (normalizedMerchantName.contains(ENTERTAINMENT)
                 || normalizedMerchantName.contains("arcade")
                 || normalizedMerchantName.contains("bowling")
                 || normalizedMerchantName.contains("mini golf")
                 || normalizedMerchantName.contains("laser tag")
-                || descriptionLower.contains("entertainment")) {
-            return "entertainment";
+                || descriptionLower.contains(ENTERTAINMENT)) {
+            return ENTERTAINMENT;
         }
 
         // Top Golf and similar entertainment venues
@@ -299,7 +302,7 @@ public class TransportationCategoryStrategy extends BaseCategoryStrategy {
                 || descriptionLower.contains("top golf")
                 || descriptionLower.contains("topgolf")) {
             LOGGER.debug("🏷️ detectCategoryFromMerchantName: Detected Top Golf → 'entertainment'");
-            return "entertainment";
+            return ENTERTAINMENT;
         }
 
         // Escape rooms (entertainment)
@@ -311,7 +314,7 @@ public class TransportationCategoryStrategy extends BaseCategoryStrategy {
                 || descriptionLower.contains("conundroom")) {
             LOGGER.debug(
                     "🏷️ detectCategoryFromMerchantName: Detected escape room → 'entertainment'");
-            return "entertainment";
+            return ENTERTAINMENT;
         }
         return null;
     }
@@ -331,7 +334,7 @@ public class TransportationCategoryStrategy extends BaseCategoryStrategy {
             return "dining";
         }
 
-        // School District payments - should be categorized as "education"
+        // School District payments - should be categorized as EDUCATION
         // Check for any school district (not just Bellevue)
         if ((normalizedMerchantName.contains(SCHOOL_DISTRICT)
                         || normalizedMerchantName.contains(SCHOOLDISTRICT)
@@ -341,7 +344,7 @@ public class TransportationCategoryStrategy extends BaseCategoryStrategy {
                         || descriptionLower.contains("school distri"))) {
             LOGGER.debug(
                     "🏷️ detectCategoryFromMerchantName: Detected School District → 'education'");
-            return "education";
+            return EDUCATION;
         }
 
         // Bellevue School District - school district payment (education, not charity)
@@ -353,7 +356,7 @@ public class TransportationCategoryStrategy extends BaseCategoryStrategy {
                 || descriptionLower.contains("bellevue school distri")) {
             LOGGER.debug(
                     "🏷️ detectCategoryFromMerchantName: Detected Bellevue School District → 'education'");
-            return "education";
+            return EDUCATION;
         }
 
         // WA Vehicle Licensing - Department of Licensing (transportation)
@@ -386,7 +389,7 @@ public class TransportationCategoryStrategy extends BaseCategoryStrategy {
         }
 
         // Education-related items (school, books, reading, tuition, etc.) - categorized as
-        // "education"
+        // EDUCATION
         // CRITICAL: Check for bookstores first (University Book Store, etc.)
         if (normalizedMerchantName.contains("university book store")
                 || normalizedMerchantName.contains("universitybookstore")
@@ -398,13 +401,13 @@ public class TransportationCategoryStrategy extends BaseCategoryStrategy {
                                 .contains("UNIVERSITY BOOK STORE"))) {
             LOGGER.debug(
                     "🏷️ detectCategoryFromMerchantName: Detected University Book Store → 'education'");
-            return "education";
+            return EDUCATION;
         }
 
         // CRITICAL FIX: Check for exam/testing keywords FIRST (AAMC, SAT, TOEFL, GRE, GMAT, LSAT,
         // MCAT, etc.)
-        // These should be categorized as "education" even if they're sometimes miscategorized as
-        // "entertainment"
+        // These should be categorized as EDUCATION even if they're sometimes miscategorized as
+        // ENTERTAINMENT
         // VUE (Pearson VUE) - testing center for professional exams
         if ((normalizedMerchantName.contains("vue") || descriptionLower.contains("vue"))
                 && (normalizedMerchantName.contains("exam")
@@ -429,7 +432,7 @@ public class TransportationCategoryStrategy extends BaseCategoryStrategy {
                         || descriptionLower.contains("act"))) {
             LOGGER.debug(
                     "🏷️ detectCategoryFromMerchantName: Detected VUE exam/testing → 'education'");
-            return "education";
+            return EDUCATION;
         }
 
         // Exam/testing keywords (AAMC, SAT, TOEFL, GRE, GMAT, LSAT, MCAT, ACT, AP, IB, etc.)
@@ -467,7 +470,7 @@ public class TransportationCategoryStrategy extends BaseCategoryStrategy {
                 LOGGER.debug(
                         "🏷️ detectCategoryFromMerchantName: Detected exam/testing keyword '{}' → 'education'",
                         exam);
-                return "education";
+                return EDUCATION;
             }
         }
 
@@ -481,7 +484,7 @@ public class TransportationCategoryStrategy extends BaseCategoryStrategy {
                         && merchantName.toUpperCase(Locale.ROOT).contains("SP ANKI REMOTE"))) {
             LOGGER.debug(
                     "🏷️ detectCategoryFromMerchantName: Detected SP ANKI REMOTE → 'education'");
-            return "education";
+            return EDUCATION;
         }
 
         // Regional school/college names - Education
@@ -519,7 +522,7 @@ public class TransportationCategoryStrategy extends BaseCategoryStrategy {
                 LOGGER.debug(
                         "🏷️ detectCategoryFromMerchantName: Detected regional school term '{}' → 'education'",
                         term);
-                return "education";
+                return EDUCATION;
             }
         }
 
@@ -557,7 +560,7 @@ public class TransportationCategoryStrategy extends BaseCategoryStrategy {
                 LOGGER.debug(
                         "🏷️ detectCategoryFromMerchantName: Detected school type '{}' → 'education'",
                         school);
-                return "education";
+                return EDUCATION;
             }
         }
 
@@ -586,7 +589,7 @@ public class TransportationCategoryStrategy extends BaseCategoryStrategy {
                 LOGGER.debug(
                         "🏷️ detectCategoryFromMerchantName: Detected educational media '{}' → 'education'",
                         media);
-                return "education";
+                return EDUCATION;
             }
         }
 
@@ -602,7 +605,7 @@ public class TransportationCategoryStrategy extends BaseCategoryStrategy {
             "reading",
             "textbook",
             "text book",
-            "education",
+            EDUCATION,
             "educational",
             "course",
             "class",
@@ -620,7 +623,7 @@ public class TransportationCategoryStrategy extends BaseCategoryStrategy {
                     LOGGER.debug(
                             "🏷️ detectCategoryFromMerchantName: Detected education item '{}' → 'education'",
                             edu);
-                    return "education";
+                    return EDUCATION;
                 }
             }
         }

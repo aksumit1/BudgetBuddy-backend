@@ -24,6 +24,8 @@ import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbSecon
 @DynamoDbBean
 @JsonInclude(JsonInclude.Include.ALWAYS)
 public class AccountTable {
+    private static final String UTC = "UTC";
+    private static final String YYYY_MM_DD_T_HH_MM_SS_SSS_Z = "yyyy-MM-dd\'T\'HH:mm:ss.SSS\'Z\'";
 
     private String accountId; // Partition key
     private String userId; // GSI partition key
@@ -210,7 +212,7 @@ public class AccountTable {
     @JsonFormat(
             shape = JsonFormat.Shape.STRING,
             pattern = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'",
-            timezone = "UTC")
+            timezone = UTC)
     public Instant getLastSyncedAt() {
         return lastSyncedAt;
     }
@@ -223,7 +225,7 @@ public class AccountTable {
     @JsonFormat(
             shape = JsonFormat.Shape.STRING,
             pattern = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'",
-            timezone = "UTC")
+            timezone = UTC)
     public Instant getCreatedAt() {
         return createdAt;
     }
@@ -236,7 +238,7 @@ public class AccountTable {
     @JsonFormat(
             shape = JsonFormat.Shape.STRING,
             pattern = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'",
-            timezone = "UTC")
+            timezone = UTC)
     public Instant getUpdatedAt() {
         return updatedAt;
     }
@@ -390,7 +392,7 @@ public class AccountTable {
     @JsonFormat(
             shape = JsonFormat.Shape.STRING,
             pattern = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'",
-            timezone = "UTC")
+            timezone = UTC)
     @JsonInclude(JsonInclude.Include.ALWAYS)
     public Instant getDeletedAt() {
         return deletedAt;

@@ -95,6 +95,52 @@ public class PlaidAccessTokenRepository {
         }
     }
 
+    /**
+     * Iterate every access-token row in the table — used by the daily scheduled sync. Uses a
+     * lazy {@link Iterable} so callers can stream without loading every row into a single list
+     * (~bounded but still cheaper if there are many users). Guarded at the call site by
+     * {@code ScanRateLimiter} so this rare-but-table-scan operation can't blow the DDB bill.
+     */
+    public Iterable<PlaidAccessTokenTable> findAll() {
+        try {
+            return () -> {
+                final java.util.Iterator<PlaidAccessTokenTable> empty =
+                        java.util.Collections.emptyIterator();
+                try {
+                    final var pages = table.scan();
+                    final java.util.Iterator<
+                                    software.amazon.awssdk.enhanced.dynamodb.model.Page<
+                                            PlaidAccessTokenTable>>
+                            pageIt = pages.iterator();
+                    return new java.util.Iterator<>() {
+                        private java.util.Iterator<PlaidAccessTokenTable> current =
+                                java.util.Collections.emptyIterator();
+
+                        @Override
+                        public boolean hasNext() {
+                            while (!current.hasNext() && pageIt.hasNext()) {
+                                current = pageIt.next().items().iterator();
+                            }
+                            return current.hasNext();
+                        }
+
+                        @Override
+                        public PlaidAccessTokenTable next() {
+                            if (!hasNext()) {
+                                throw new java.util.NoSuchElementException();
+                            }
+                            return current.next();
+                        }
+                    };
+                } catch (ResourceNotFoundException notProvisioned) {
+                    return empty;
+                }
+            };
+        } catch (Exception e) {
+            return List.of();
+        }
+    }
+
     /** Find every access-token row for a user — used by the scheduled sync path. */
     public List<PlaidAccessTokenTable> findByUserId(final String userId) {
         if (userId == null || userId.isEmpty()) {

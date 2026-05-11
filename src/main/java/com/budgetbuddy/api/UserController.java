@@ -30,6 +30,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/api/users")
 public class UserController {
+    private static final String USER_NOT_AUTHENTICATED = "User not authenticated";
 
     private static final Logger LOGGER = LoggerFactory.getLogger(UserController.class);
 
@@ -53,7 +54,7 @@ public class UserController {
             summary = "Get current user",
             description = "Returns current authenticated user information")
     @ApiResponse(responseCode = "200", description = "User information retrieved successfully")
-    @ApiResponse(responseCode = "401", description = "User not authenticated")
+    @ApiResponse(responseCode = "401", description = USER_NOT_AUTHENTICATED)
     @ApiResponse(responseCode = "500", description = "Internal server error")
     public ResponseEntity<Map<String, Object>> getCurrentUser(
             @AuthenticationPrincipal final UserDetails userDetails) {
@@ -62,7 +63,7 @@ public class UserController {
                     || userDetails.getUsername() == null
                     || userDetails.getUsername().isEmpty()) {
                 LOGGER.warn("getCurrentUser called without authentication");
-                throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "User not authenticated");
+                throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, USER_NOT_AUTHENTICATED);
             }
 
             final UserTable user =
@@ -120,7 +121,7 @@ public class UserController {
             summary = "Register device token",
             description = "Registers device token for push notifications")
     @ApiResponse(responseCode = "200", description = "Device token registered successfully")
-    @ApiResponse(responseCode = "401", description = "User not authenticated")
+    @ApiResponse(responseCode = "401", description = USER_NOT_AUTHENTICATED)
     @ApiResponse(responseCode = "500", description = "Internal server error")
     public ResponseEntity<Map<String, Object>> registerDeviceToken(
             @AuthenticationPrincipal final UserDetails userDetails,
@@ -130,7 +131,7 @@ public class UserController {
                     || userDetails.getUsername() == null
                     || userDetails.getUsername().isEmpty()) {
                 LOGGER.warn("registerDeviceToken called without authentication");
-                throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "User not authenticated");
+                throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, USER_NOT_AUTHENTICATED);
             }
 
             if (request == null

@@ -94,6 +94,7 @@ public class FinancialInsightsController {
     private static final String SEVERITY = "severity";
 
     private static final String TITLE = "title";
+    private static final String TYPE = "type";
 
     private final TransactionAnomalyService anomalyService;
     private final ExpenseReductionService expenseReductionService;
@@ -1025,7 +1026,7 @@ public class FinancialInsightsController {
         map.put("merchantName", anomaly.getMerchantName());
         map.put("transactionDate", anomaly.getTransactionDate());
         map.put(CATEGORY, anomaly.getCategory());
-        map.put("type", anomaly.getType().name());
+        map.put(TYPE, anomaly.getType().name());
         map.put(SEVERITY, anomaly.getSeverity().name());
         map.put(REASON, anomaly.getReason());
         // Flow 7 / O2: the CTA the iOS card should render. Deep link format is
@@ -1040,7 +1041,7 @@ public class FinancialInsightsController {
 
     private Map<String, Object> toExpenseRecommendationMap(final ExpenseRecommendation rec) {
         final Map<String, Object> map = new HashMap<>();
-        map.put("type", rec.getType().name());
+        map.put(TYPE, rec.getType().name());
         map.put(TITLE, rec.getTitle());
         map.put(MONTHLY_SAVINGS, rec.getMonthlySavings());
         map.put("annualSavings", rec.getAnnualSavings());
@@ -1094,7 +1095,7 @@ public class FinancialInsightsController {
 
     private Map<String, Object> toGoalRecommendationMap(final FinancialGoalRecommendation rec) {
         final Map<String, Object> map = new HashMap<>();
-        map.put("type", rec.getType().name());
+        map.put(TYPE, rec.getType().name());
         map.put(TITLE, rec.getTitle());
         map.put(DESCRIPTION, rec.getDescription());
         map.put("currentAmount", rec.getCurrentAmount());
@@ -1113,7 +1114,7 @@ public class FinancialInsightsController {
         map.put(DESCRIPTION, alert.getDescription());
         map.put("dueDate", alert.getDueDate().toString());
         map.put("daysOverdue", alert.getDaysOverdue());
-        map.put("type", alert.getType().name());
+        map.put(TYPE, alert.getType().name());
         map.put(SEVERITY, alert.getSeverity().name());
         map.put("message", alert.getMessage());
         map.put(AMOUNT, alert.getAmount());

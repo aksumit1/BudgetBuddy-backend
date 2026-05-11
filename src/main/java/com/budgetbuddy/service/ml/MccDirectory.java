@@ -62,6 +62,7 @@ public final class MccDirectory {
     private static final String TRAVEL = "travel";
 
     private static final String UTILITIES = "utilities";
+    private static final String TECH = "tech";
 
     private MccDirectory() {
         /* utility class */
@@ -120,9 +121,9 @@ public final class MccDirectory {
         m.put("5661", SHOPPING); // Shoe stores
         m.put("5691", SHOPPING); // Men's + women's clothing
         m.put("5712", SHOPPING); // Furniture / home furnishings
-        m.put("5732", "tech"); // Electronics stores
-        m.put("5734", "tech"); // Computer software stores
-        m.put("5818", "tech"); // Digital goods
+        m.put("5732", TECH); // Electronics stores
+        m.put("5734", TECH); // Computer software stores
+        m.put("5818", TECH); // Digital goods
         m.put("5942", SHOPPING); // Book stores
         m.put("5945", SHOPPING); // Hobby / toy / game
         m.put("5999", SHOPPING); // Misc retail
@@ -169,7 +170,7 @@ public final class MccDirectory {
         // Digital + tech
         m.put("5815", ENTERTAINMENT); // Digital goods — media
         m.put("5816", ENTERTAINMENT); // Digital goods — games
-        m.put("5817", "tech"); // Digital goods — applications
+        m.put("5817", TECH); // Digital goods — applications
         // Services (professional + personal)
         m.put("7230", SERVICE); // Beauty / barber
         m.put("7297", SERVICE); // Massage parlours

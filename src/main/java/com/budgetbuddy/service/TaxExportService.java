@@ -52,6 +52,15 @@ public class TaxExportService {
     private static final String TAX_YEAR = "Tax Year: ";
 
     private static final String INTEREST = "interest";
+    private static final String N = ",\n";
+    private static final String CHARITY = "CHARITY";
+    private static final String LOCAL_TAX = "LOCAL_TAX";
+    private static final String MEDICAL = "MEDICAL";
+    private static final String MORTGAGE_INTEREST = "MORTGAGE_INTEREST";
+    private static final String PROPERTY_TAX = "PROPERTY_TAX";
+    private static final String STATE_TAX = "STATE_TAX";
+    private static final String N_2 = "\",\n";
+    private static final String N_N = "\n\n";
 
     private static final Logger LOGGER = LoggerFactory.getLogger(TaxExportService.class);
 
@@ -676,7 +685,7 @@ public class TaxExportService {
     private static String classifyAsInterestOrDividend(final TaxContext ctx) {
         // Mortgage interest is checked first so it isn't shadowed by the general INTEREST rule.
         if (ctx.description().contains("mortgage") && ctx.description().contains(INTEREST)) {
-            return "MORTGAGE_INTEREST";
+            return MORTGAGE_INTEREST;
         }
         if (INTEREST.equals(ctx.category()) || ctx.description().contains(INTEREST)) {
             return "INTEREST";
@@ -689,7 +698,7 @@ public class TaxExportService {
 
     private String classifyAsItemizedDeduction(final TaxContext ctx) {
         if (isCharityTransaction(ctx.description(), ctx.category())) {
-            return "CHARITY";
+            return CHARITY;
         }
         if (isDMVFeeTransaction(ctx.description(), ctx.merchantName())) {
             return "DMV";
@@ -705,20 +714,20 @@ public class TaxExportService {
 
     private String classifyAsTaxPayment(final TaxContext ctx) {
         if (isPropertyTaxTransaction(ctx.description(), ctx.merchantName())) {
-            return "PROPERTY_TAX";
+            return PROPERTY_TAX;
         }
         if (isStateTaxTransaction(ctx.description(), ctx.merchantName())) {
-            return "STATE_TAX";
+            return STATE_TAX;
         }
         if (isLocalTaxTransaction(ctx.description(), ctx.merchantName())) {
-            return "LOCAL_TAX";
+            return LOCAL_TAX;
         }
         return null;
     }
 
     private static String classifyAsMedicalOrInvestment(final TaxContext ctx) {
         if ("healthcare".equals(ctx.category()) || ctx.description().contains("medical")) {
-            return "MEDICAL";
+            return MEDICAL;
         }
         if ("investment".equals(ctx.category())
                 || ctx.description().contains("stock sale")
@@ -765,7 +774,7 @@ public class TaxExportService {
             case "RSU":
                 summary.setTotalRSU(summary.getTotalRSU().add(amount));
                 break;
-            case "CHARITY":
+            case CHARITY:
                 // For tax reporting, expenses should be reported as positive dollar amounts
                 summary.setTotalCharity(
                         summary.getTotalCharity()
@@ -798,7 +807,7 @@ public class TaxExportService {
                                                 ? amount.negate()
                                                 : amount));
                 break;
-            case "PROPERTY_TAX":
+            case PROPERTY_TAX:
                 summary.setTotalPropertyTax(
                         summary.getTotalPropertyTax()
                                 .add(
@@ -806,7 +815,7 @@ public class TaxExportService {
                                                 ? amount.negate()
                                                 : amount));
                 break;
-            case "STATE_TAX":
+            case STATE_TAX:
                 summary.setTotalStateTax(
                         summary.getTotalStateTax()
                                 .add(
@@ -814,7 +823,7 @@ public class TaxExportService {
                                                 ? amount.negate()
                                                 : amount));
                 break;
-            case "LOCAL_TAX":
+            case LOCAL_TAX:
                 summary.setTotalLocalTax(
                         summary.getTotalLocalTax()
                                 .add(
@@ -822,7 +831,7 @@ public class TaxExportService {
                                                 ? amount.negate()
                                                 : amount));
                 break;
-            case "MORTGAGE_INTEREST":
+            case MORTGAGE_INTEREST:
                 summary.setTotalMortgageInterest(
                         summary.getTotalMortgageInterest()
                                 .add(
@@ -830,7 +839,7 @@ public class TaxExportService {
                                                 ? amount.negate()
                                                 : amount));
                 break;
-            case "MEDICAL":
+            case MEDICAL:
                 summary.setTotalMedical(
                         summary.getTotalMedical()
                                 .add(
@@ -1403,12 +1412,12 @@ public class TaxExportService {
 
         final List<String> scheduleACategories =
                 Arrays.asList(
-                        "CHARITY",
-                        "MEDICAL",
-                        "PROPERTY_TAX",
-                        "STATE_TAX",
-                        "LOCAL_TAX",
-                        "MORTGAGE_INTEREST",
+                        CHARITY,
+                        MEDICAL,
+                        PROPERTY_TAX,
+                        STATE_TAX,
+                        LOCAL_TAX,
+                        MORTGAGE_INTEREST,
                         "DMV",
                         "CPA");
 
@@ -1663,17 +1672,17 @@ public class TaxExportService {
     /** Get Schedule A line number for a tax category */
     private String getScheduleALineNumber(final String category) {
         switch (category) {
-            case "STATE_TAX":
+            case STATE_TAX:
                 return "5a";
-            case "PROPERTY_TAX":
+            case PROPERTY_TAX:
                 return "5b";
-            case "LOCAL_TAX":
+            case LOCAL_TAX:
                 return "5c";
-            case "MORTGAGE_INTEREST":
+            case MORTGAGE_INTEREST:
                 return "8a";
-            case "CHARITY":
+            case CHARITY:
                 return "11";
-            case "MEDICAL":
+            case MEDICAL:
                 return "1";
             default:
                 return "Other";

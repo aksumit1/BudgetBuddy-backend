@@ -81,6 +81,8 @@ public class PlaidController {
     private final com.budgetbuddy.repository.dynamodb.AccountRepository accountRepository;
     private final com.budgetbuddy.service.TransactionService transactionService;
     private final Executor taskExecutor;
+    private final com.budgetbuddy.repository.dynamodb.PlaidAccessTokenRepository
+            plaidAccessTokenRepository;
 
     public PlaidController(
             final PlaidService plaidService,
@@ -88,13 +90,16 @@ public class PlaidController {
             final UserService userService,
             final com.budgetbuddy.repository.dynamodb.AccountRepository accountRepository,
             final com.budgetbuddy.service.TransactionService transactionService,
-            @Qualifier("taskExecutor") final Executor taskExecutor) {
+            @Qualifier("taskExecutor") final Executor taskExecutor,
+            final com.budgetbuddy.repository.dynamodb.PlaidAccessTokenRepository
+                            plaidAccessTokenRepository) {
         this.plaidService = plaidService;
         this.plaidSyncService = plaidSyncService;
         this.userService = userService;
         this.accountRepository = accountRepository;
         this.transactionService = transactionService;
         this.taskExecutor = taskExecutor;
+        this.plaidAccessTokenRepository = plaidAccessTokenRepository;
     }
 
     /** Create Link Token Generates a link token for Plaid Link initialization */
@@ -209,6 +214,30 @@ public class PlaidController {
                         "Token exchanged successfully for user: {} (itemId: {}). Starting async sync...",
                         user.getUserId(),
                         itemId);
+            }
+
+            // Persist the access token in the backend-side store so the @Scheduled sync path
+            // (PlaidSyncService.scheduledSync) can refresh this user's data without the iOS
+            // client being awake. Previously tokens lived only in the iOS keychain, which is
+            // why the scheduled job was a documented no-op.
+            try {
+                final com.budgetbuddy.model.dynamodb.PlaidAccessTokenTable row =
+                        new com.budgetbuddy.model.dynamodb.PlaidAccessTokenTable();
+                row.setUserId(user.getUserId());
+                row.setPlaidItemId(itemId);
+                row.setAccessToken(accessToken);
+                plaidAccessTokenRepository.save(row);
+            } catch (Exception persistFailure) {
+                // Persistence failure shouldn't block the user-visible link flow — they'll
+                // still have their account connected via the iOS keychain copy; only the
+                // backend's scheduled sync loses the ability to refresh this item.
+                if (LOGGER.isWarnEnabled()) {
+                    LOGGER.warn(
+                            "Failed to persist Plaid access token for user {} item {}: {}",
+                            user.getUserId(),
+                            itemId,
+                            persistFailure.getMessage());
+                }
             }
 
             // Trigger async sync (fire and forget) - don't block the response

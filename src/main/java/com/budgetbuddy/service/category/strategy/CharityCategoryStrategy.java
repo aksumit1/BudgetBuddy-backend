@@ -8,6 +8,7 @@ import org.springframework.stereotype.Component;
 @SuppressWarnings("PMD.OnlyOneReturn")
 @Component
 public class CharityCategoryStrategy extends BaseCategoryStrategy {
+    private static final String CHARITY = "charity";
 
     @Override
     public String detectCategory(
@@ -52,19 +53,19 @@ public class CharityCategoryStrategy extends BaseCategoryStrategy {
             }
             if (!isSchool) {
                 LOGGER.debug("🏷️ detectCategoryFromMerchantName: Detected Go Fund Me → 'charity'");
-                return "charity";
+                return CHARITY;
             }
         }
         // Charity/donation patterns
-        if (normalizedMerchantName.contains("charity")
+        if (normalizedMerchantName.contains(CHARITY)
                 || normalizedMerchantName.contains("donation")
                 || normalizedMerchantName.contains("non-profit")
                 || normalizedMerchantName.contains("nonprofit")
-                || descriptionLower.contains("charity")
+                || descriptionLower.contains(CHARITY)
                 || descriptionLower.contains("donation")) {
             LOGGER.debug(
                     "🏷️ detectCategoryFromMerchantName: Detected charity/donation → 'charity'");
-            return "charity";
+            return CHARITY;
         }
 
         return null; // No match found

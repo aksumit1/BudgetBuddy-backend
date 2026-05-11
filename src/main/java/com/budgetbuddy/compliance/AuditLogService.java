@@ -50,6 +50,7 @@ public class AuditLogService {
     private static final String DETAILS = "details";
 
     private static final String STATUS = "status";
+    private static final String DATA = "DATA";
 
     private static final Logger LOGGER = LoggerFactory.getLogger(AuditLogService.class);
 
@@ -593,7 +594,7 @@ public class AuditLogService {
         logAction(
                 SYSTEM,
                 "DATA_RETENTION",
-                "DATA",
+                DATA,
                 dataType != null ? dataType : UNKNOWN,
                 Map.of("retentionUntil", retentionUntil != null ? retentionUntil.toString() : ""),
                 null,
@@ -605,7 +606,7 @@ public class AuditLogService {
         logAction(
                 userId,
                 "DATA_EXPORT",
-                "DATA",
+                DATA,
                 exportId != null ? exportId : UNKNOWN,
                 Map.of("exportId", exportId != null ? exportId : ""),
                 null,
@@ -613,11 +614,11 @@ public class AuditLogService {
     }
 
     public void logDataDeletion(final String userId) {
-        logAction(userId, "DATA_DELETION", "DATA", userId, Collections.emptyMap(), null, null);
+        logAction(userId, "DATA_DELETION", DATA, userId, Collections.emptyMap(), null, null);
     }
 
     public void logDataUpdate(final String userId) {
-        logAction(userId, "DATA_UPDATE", "DATA", userId, Collections.emptyMap(), null, null);
+        logAction(userId, "DATA_UPDATE", DATA, userId, Collections.emptyMap(), null, null);
     }
 
     // FINRA Compliance Methods

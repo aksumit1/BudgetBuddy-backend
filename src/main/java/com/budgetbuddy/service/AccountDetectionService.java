@@ -218,6 +218,10 @@ public class AccountDetectionService {
     private static final String VISA_SIGNATURE = "visa signature";
 
     private static final String WORLD = "world";
+    private static final String B = "\\b";
+    private static final String S = "\\s+";
+    private static final String DATE = "date";
+    private static final String VISA = "visa";
 
     private static final Logger LOGGER = LoggerFactory.getLogger(AccountDetectionService.class);
 
@@ -245,7 +249,7 @@ public class AccountDetectionService {
                     AMERICAN_EXPRESS,
                     DISCOVER,
                     "synchrony",
-                    "visa",
+                    VISA,
                     MASTERCARD,
                     AMEX,
                     "jpmorgan",
@@ -624,7 +628,7 @@ public class AccountDetectionService {
                     "diamond trust",
                     // Global Credit Card Networks
                     MASTERCARD,
-                    "visa",
+                    VISA,
                     AMERICAN_EXPRESS,
                     AMEX,
                     DISCOVER,
@@ -712,7 +716,7 @@ public class AccountDetectionService {
         ACCOUNT_TYPE_PATTERNS.put(CREDIT_CARD, CREDIT);
         ACCOUNT_TYPE_PATTERNS.put("citi cash card", CREDIT); // Cash card is a type of credit card
         ACCOUNT_TYPE_PATTERNS.put("Citi cashcard", CREDIT);
-        ACCOUNT_TYPE_PATTERNS.put("visa", CREDIT);
+        ACCOUNT_TYPE_PATTERNS.put(VISA, CREDIT);
         ACCOUNT_TYPE_PATTERNS.put(MASTERCARD, CREDIT);
         ACCOUNT_TYPE_PATTERNS.put(AMEX, CREDIT);
         ACCOUNT_TYPE_PATTERNS.put(AMERICAN_EXPRESS, CREDIT);
@@ -2162,7 +2166,7 @@ public class AccountDetectionService {
         // Look for transaction table indicators
         final List<String> transactionKeywords =
                 Arrays.asList(
-                        "date",
+                        DATE,
                         "posting date",
                         "transaction date",
                         "value date",
@@ -2381,7 +2385,7 @@ public class AccountDetectionService {
         // Common transaction table column names
         final List<String> transactionKeywords =
                 Arrays.asList(
-                        "date",
+                        DATE,
                         "posting date",
                         "transaction date",
                         "value date",
@@ -3477,7 +3481,7 @@ public class AccountDetectionService {
         final List<String> cardKeywords =
                 Arrays.asList(
                         "prime",
-                        "visa",
+                        VISA,
                         MASTERCARD,
                         AMEX,
                         AMERICAN_EXPRESS,
@@ -3699,7 +3703,7 @@ public class AccountDetectionService {
                 Arrays.asList(
                         "sale",
                         "post",
-                        "date",
+                        DATE,
                         DESCRIPTION,
                         AMOUNT,
                         "payments",
@@ -3827,7 +3831,7 @@ public class AccountDetectionService {
         }
         return lowerLine.matches(".*\\bdate\\s+description\\s+amount.*")
                 || lowerLine.matches(".*\\btransaction\\s+date.*")
-                || (lowerLine.contains("date") && lowerLine.contains(AMOUNT));
+                || (lowerLine.contains(DATE) && lowerLine.contains(AMOUNT));
     }
 
     /**

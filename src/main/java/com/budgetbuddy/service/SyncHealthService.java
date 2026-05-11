@@ -19,6 +19,8 @@ import org.springframework.stereotype.Service;
 @SuppressWarnings({"PMD.DataClass", "PMD.OnlyOneReturn"})
 @Service
 public class SyncHealthService {
+    private static final String STALE = "stale";
+    private static final String UNKNOWN = "unknown";
 
     private static final Logger LOGGER = LoggerFactory.getLogger(SyncHealthService.class);
 
@@ -36,7 +38,7 @@ public class SyncHealthService {
         }
 
         if (status == null) {
-            status = new SyncHealthController.SyncStatus("idle", null, 0, "unknown", null);
+            status = new SyncHealthController.SyncStatus("idle", null, 0, UNKNOWN, null);
         }
 
         // Calculate health metrics
@@ -69,17 +71,17 @@ public class SyncHealthService {
     /** Calculate overall health status based on sync status */
     private String calculateHealthStatus(final SyncHealthController.SyncStatus status) {
         if (status == null) {
-            return "unknown";
+            return UNKNOWN;
         }
 
-        // If connectionHealth is explicitly set to "unknown", return it
-        if ("unknown".equalsIgnoreCase(status.getConnectionHealth())) {
-            return "unknown";
+        // If connectionHealth is explicitly set to UNKNOWN, return it
+        if (UNKNOWN.equalsIgnoreCase(status.getConnectionHealth())) {
+            return UNKNOWN;
         }
 
         // Check for stale connection
         if (isConnectionStale(status)) {
-            return "stale";
+            return STALE;
         }
 
         // Check consecutive failures
@@ -109,12 +111,12 @@ public class SyncHealthService {
         }
 
         // Check status
-        if ("stale".equalsIgnoreCase(status.getStatus())) {
+        if (STALE.equalsIgnoreCase(status.getStatus())) {
             return true;
         }
 
         // Check connection health
-        if ("stale".equalsIgnoreCase(status.getConnectionHealth())) {
+        if (STALE.equalsIgnoreCase(status.getConnectionHealth())) {
             return true;
         }
 
@@ -174,7 +176,7 @@ public class SyncHealthService {
                     return getUserFriendlyErrorMessage(status.getLastError());
                 }
                 return "Sync failed";
-            case "stale":
+            case STALE:
                 return "Connection needs refresh";
             default:
                 return "Unknown status";

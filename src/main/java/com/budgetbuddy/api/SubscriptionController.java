@@ -66,6 +66,8 @@ public class SubscriptionController {
     private static final String REASON = "reason";
 
     private static final String SUBSCRIPTION = "subscription";
+    private static final String INTERNAL_SERVER_ERROR = "Internal server error";
+    private static final String UNAUTHORIZED_USER_NOT_AUTHENTICATED = "Unauthorized - user not authenticated";
 
     private static final Logger LOGGER = LoggerFactory.getLogger(SubscriptionController.class);
 
@@ -101,9 +103,9 @@ public class SubscriptionController {
                     "Analyzes user's transactions to detect recurring subscriptions. Thread-safe operation.")
     @ApiResponses({
         @ApiResponse(responseCode = "200", description = "Subscriptions detected successfully"),
-        @ApiResponse(responseCode = "401", description = "Unauthorized - user not authenticated"),
-        @ApiResponse(responseCode = "404", description = "User not found"),
-        @ApiResponse(responseCode = "500", description = "Internal server error")
+        @ApiResponse(responseCode = "401", description = UNAUTHORIZED_USER_NOT_AUTHENTICATED),
+        @ApiResponse(responseCode = "404", description = USER_NOT_FOUND_1),
+        @ApiResponse(responseCode = "500", description = INTERNAL_SERVER_ERROR)
     })
     public ResponseEntity<List<Subscription>> detectSubscriptions(
             @AuthenticationPrincipal final UserDetails userDetails) {
@@ -177,9 +179,9 @@ public class SubscriptionController {
                     "Retrieves all subscriptions (active and inactive) for the authenticated user")
     @ApiResponses({
         @ApiResponse(responseCode = "200", description = "Subscriptions retrieved successfully"),
-        @ApiResponse(responseCode = "401", description = "Unauthorized - user not authenticated"),
-        @ApiResponse(responseCode = "404", description = "User not found"),
-        @ApiResponse(responseCode = "500", description = "Internal server error")
+        @ApiResponse(responseCode = "401", description = UNAUTHORIZED_USER_NOT_AUTHENTICATED),
+        @ApiResponse(responseCode = "404", description = USER_NOT_FOUND_1),
+        @ApiResponse(responseCode = "500", description = INTERNAL_SERVER_ERROR)
     })
     public ResponseEntity<List<Subscription>> getSubscriptions(
             @AuthenticationPrincipal final UserDetails userDetails) {
@@ -223,9 +225,9 @@ public class SubscriptionController {
         @ApiResponse(
                 responseCode = "200",
                 description = "Active subscriptions retrieved successfully"),
-        @ApiResponse(responseCode = "401", description = "Unauthorized - user not authenticated"),
-        @ApiResponse(responseCode = "404", description = "User not found"),
-        @ApiResponse(responseCode = "500", description = "Internal server error")
+        @ApiResponse(responseCode = "401", description = UNAUTHORIZED_USER_NOT_AUTHENTICATED),
+        @ApiResponse(responseCode = "404", description = USER_NOT_FOUND_1),
+        @ApiResponse(responseCode = "500", description = INTERNAL_SERVER_ERROR)
     })
     public ResponseEntity<List<Subscription>> getActiveSubscriptions(
             @AuthenticationPrincipal final UserDetails userDetails) {
@@ -275,7 +277,7 @@ public class SubscriptionController {
                 responseCode = "401",
                 description = "Unauthorized - user not authenticated or subscription not owned"),
         @ApiResponse(responseCode = "404", description = "Subscription not found"),
-        @ApiResponse(responseCode = "500", description = "Internal server error")
+        @ApiResponse(responseCode = "500", description = INTERNAL_SERVER_ERROR)
     })
     public ResponseEntity<Void> deleteSubscription(
             @AuthenticationPrincipal final UserDetails userDetails,
@@ -356,8 +358,8 @@ public class SubscriptionController {
                     "Identifies subscriptions that appear to be unused based on transaction patterns")
     @ApiResponses({
         @ApiResponse(responseCode = "200", description = "Insights retrieved successfully"),
-        @ApiResponse(responseCode = "401", description = "Unauthorized - user not authenticated"),
-        @ApiResponse(responseCode = "500", description = "Internal server error")
+        @ApiResponse(responseCode = "401", description = UNAUTHORIZED_USER_NOT_AUTHENTICATED),
+        @ApiResponse(responseCode = "500", description = INTERNAL_SERVER_ERROR)
     })
     public ResponseEntity<List<Map<String, Object>>> getUnusedSubscriptions(
             @AuthenticationPrincipal final UserDetails userDetails) {
@@ -405,8 +407,8 @@ public class SubscriptionController {
         @ApiResponse(
                 responseCode = "200",
                 description = "Price change alerts retrieved successfully"),
-        @ApiResponse(responseCode = "401", description = "Unauthorized - user not authenticated"),
-        @ApiResponse(responseCode = "500", description = "Internal server error")
+        @ApiResponse(responseCode = "401", description = UNAUTHORIZED_USER_NOT_AUTHENTICATED),
+        @ApiResponse(responseCode = "500", description = INTERNAL_SERVER_ERROR)
     })
     public ResponseEntity<List<Map<String, Object>>> getPriceChanges(
             @AuthenticationPrincipal final UserDetails userDetails) {
@@ -504,8 +506,8 @@ public class SubscriptionController {
                     "Provides recommendations for subscriptions that could be cancelled to save money")
     @ApiResponses({
         @ApiResponse(responseCode = "200", description = "Recommendations retrieved successfully"),
-        @ApiResponse(responseCode = "401", description = "Unauthorized - user not authenticated"),
-        @ApiResponse(responseCode = "500", description = "Internal server error")
+        @ApiResponse(responseCode = "401", description = UNAUTHORIZED_USER_NOT_AUTHENTICATED),
+        @ApiResponse(responseCode = "500", description = INTERNAL_SERVER_ERROR)
     })
     public ResponseEntity<List<Map<String, Object>>> getCancellationRecommendations(
             @AuthenticationPrincipal final UserDetails userDetails) {
@@ -558,7 +560,7 @@ public class SubscriptionController {
                 responseCode = "401",
                 description = "Unauthorized - user not authenticated or subscription not owned"),
         @ApiResponse(responseCode = "404", description = "Subscription not found"),
-        @ApiResponse(responseCode = "500", description = "Internal server error")
+        @ApiResponse(responseCode = "500", description = INTERNAL_SERVER_ERROR)
     })
     public ResponseEntity<Map<String, Object>> getSubscriptionHealth(
             @AuthenticationPrincipal final UserDetails userDetails,
@@ -631,8 +633,8 @@ public class SubscriptionController {
         @ApiResponse(
                 responseCode = "200",
                 description = "Trial expiration alerts retrieved successfully"),
-        @ApiResponse(responseCode = "401", description = "Unauthorized - user not authenticated"),
-        @ApiResponse(responseCode = "500", description = "Internal server error")
+        @ApiResponse(responseCode = "401", description = UNAUTHORIZED_USER_NOT_AUTHENTICATED),
+        @ApiResponse(responseCode = "500", description = INTERNAL_SERVER_ERROR)
     })
     public ResponseEntity<List<Map<String, Object>>> getTrialExpirations(
             @AuthenticationPrincipal final UserDetails userDetails) {
@@ -692,8 +694,8 @@ public class SubscriptionController {
         @ApiResponse(
                 responseCode = "200",
                 description = "Bundling recommendations retrieved successfully"),
-        @ApiResponse(responseCode = "401", description = "Unauthorized - user not authenticated"),
-        @ApiResponse(responseCode = "500", description = "Internal server error")
+        @ApiResponse(responseCode = "401", description = UNAUTHORIZED_USER_NOT_AUTHENTICATED),
+        @ApiResponse(responseCode = "500", description = INTERNAL_SERVER_ERROR)
     })
     public ResponseEntity<List<Map<String, Object>>> getBundlingRecommendations(
             @AuthenticationPrincipal final UserDetails userDetails) {
@@ -757,8 +759,8 @@ public class SubscriptionController {
         @ApiResponse(
                 responseCode = "200",
                 description = "Alternative recommendations retrieved successfully"),
-        @ApiResponse(responseCode = "401", description = "Unauthorized - user not authenticated"),
-        @ApiResponse(responseCode = "500", description = "Internal server error")
+        @ApiResponse(responseCode = "401", description = UNAUTHORIZED_USER_NOT_AUTHENTICATED),
+        @ApiResponse(responseCode = "500", description = INTERNAL_SERVER_ERROR)
     })
     public ResponseEntity<List<Map<String, Object>>> getAlternativeRecommendations(
             @AuthenticationPrincipal final UserDetails userDetails) {
@@ -821,8 +823,8 @@ public class SubscriptionController {
         @ApiResponse(
                 responseCode = "200",
                 description = "Predictive cancellations retrieved successfully"),
-        @ApiResponse(responseCode = "401", description = "Unauthorized - user not authenticated"),
-        @ApiResponse(responseCode = "500", description = "Internal server error")
+        @ApiResponse(responseCode = "401", description = UNAUTHORIZED_USER_NOT_AUTHENTICATED),
+        @ApiResponse(responseCode = "500", description = INTERNAL_SERVER_ERROR)
     })
     public ResponseEntity<List<Map<String, Object>>> getPredictiveCancellations(
             @AuthenticationPrincipal final UserDetails userDetails) {
@@ -883,8 +885,8 @@ public class SubscriptionController {
         @ApiResponse(
                 responseCode = "200",
                 description = "Optimization recommendations retrieved successfully"),
-        @ApiResponse(responseCode = "401", description = "Unauthorized - user not authenticated"),
-        @ApiResponse(responseCode = "500", description = "Internal server error")
+        @ApiResponse(responseCode = "401", description = UNAUTHORIZED_USER_NOT_AUTHENTICATED),
+        @ApiResponse(responseCode = "500", description = INTERNAL_SERVER_ERROR)
     })
     public ResponseEntity<Map<String, Object>> getOptimization(
             @AuthenticationPrincipal final UserDetails userDetails) {

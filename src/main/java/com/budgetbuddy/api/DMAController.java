@@ -70,7 +70,7 @@ public class DMAController {
             summary = "Export Data (DMA)",
             description = "Exports user data in standardized format (JSON, CSV, or XML)")
     @ApiResponse(responseCode = "200", description = "Data exported successfully")
-    @ApiResponse(responseCode = "401", description = "User not authenticated")
+    @ApiResponse(responseCode = "401", description = USER_NOT_AUTHENTICATED)
     public ResponseEntity<String> exportData(
             @AuthenticationPrincipal final UserDetails userDetails,
             @RequestParam(defaultValue = "JSON") final String format) {
@@ -111,7 +111,7 @@ public class DMAController {
             summary = "Get Interoperability Endpoint",
             description = "Returns API endpoint for third-party data interoperability")
     @ApiResponse(responseCode = "200", description = "Endpoint retrieved successfully")
-    @ApiResponse(responseCode = "401", description = "User not authenticated")
+    @ApiResponse(responseCode = "401", description = USER_NOT_AUTHENTICATED)
     public ResponseEntity<Map<String, Object>> getInteroperabilityEndpoint(
             @AuthenticationPrincipal final UserDetails userDetails) {
         if (userDetails == null || userDetails.getUsername() == null) {
@@ -142,7 +142,7 @@ public class DMAController {
             summary = "Authorize Third-Party Access",
             description = "Authorizes third-party access to user data")
     @ApiResponse(responseCode = "200", description = "Authorization granted successfully")
-    @ApiResponse(responseCode = "401", description = "User not authenticated")
+    @ApiResponse(responseCode = "401", description = USER_NOT_AUTHENTICATED)
     public ResponseEntity<Map<String, Object>> authorizeThirdPartyAccess(
             @AuthenticationPrincipal final UserDetails userDetails,
             @RequestBody final AuthorizeThirdPartyRequest request) {
@@ -191,7 +191,7 @@ public class DMAController {
             summary = "Share Data with Third Party",
             description = "Shares user data with authorized third party")
     @ApiResponse(responseCode = "200", description = "Data shared successfully")
-    @ApiResponse(responseCode = "401", description = "User not authenticated")
+    @ApiResponse(responseCode = "401", description = USER_NOT_AUTHENTICATED)
     @ApiResponse(responseCode = "403", description = "Third-party access not authorized")
     public ResponseEntity<Map<String, Object>> shareDataWithThirdParty(
             @AuthenticationPrincipal final UserDetails userDetails,

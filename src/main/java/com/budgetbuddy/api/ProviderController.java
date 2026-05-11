@@ -76,7 +76,7 @@ public class ProviderController {
                     "Returns list of all configured financial data providers with their health status")
     @ApiResponses({
         @ApiResponse(responseCode = "200", description = "Providers retrieved successfully"),
-        @ApiResponse(responseCode = "401", description = "User not authenticated")
+        @ApiResponse(responseCode = "401", description = USER_NOT_AUTHENTICATED)
     })
     public ResponseEntity<List<ProviderHealthResponse>> getAllProviders(
             @AuthenticationPrincipal final UserDetails userDetails) {
@@ -120,7 +120,7 @@ public class ProviderController {
             description = "Returns health status for a specific financial data provider")
     @ApiResponses({
         @ApiResponse(responseCode = "200", description = "Provider health retrieved successfully"),
-        @ApiResponse(responseCode = "401", description = "User not authenticated"),
+        @ApiResponse(responseCode = "401", description = USER_NOT_AUTHENTICATED),
         @ApiResponse(responseCode = "404", description = "Provider not found")
     })
     public ResponseEntity<ProviderHealthResponse> getProviderHealth(
@@ -180,7 +180,7 @@ public class ProviderController {
                     "Updates health status for a provider. Thread-safe to prevent race conditions.")
     @ApiResponses({
         @ApiResponse(responseCode = "200", description = "Provider health updated successfully"),
-        @ApiResponse(responseCode = "401", description = "User not authenticated"),
+        @ApiResponse(responseCode = "401", description = USER_NOT_AUTHENTICATED),
         @ApiResponse(responseCode = "400", description = "Invalid request")
     })
     public ResponseEntity<ProviderHealthResponse> updateProviderHealth(

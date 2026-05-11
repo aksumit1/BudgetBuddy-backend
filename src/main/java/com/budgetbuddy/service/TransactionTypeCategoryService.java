@@ -51,6 +51,26 @@ public class TransactionTypeCategoryService {
     private static final String MORTGAGE = "mortgage";
     private static final String LOAN = "loan";
     private static final String SALARY = "salary";
+    private static final String N_401K = "401k";
+    private static final String ACCOUNT_TYPE = "ACCOUNT_TYPE";
+    private static final String CATEGORY = "CATEGORY";
+    private static final String CATEGORY_OVERRIDE = "CATEGORY_OVERRIDE";
+    private static final String HYBRID = "HYBRID";
+    private static final String TYPE_ALIGN = "TYPE_ALIGN";
+    private static final String CHECKING = "checking";
+    private static final String CREDIT = "credit";
+    private static final String CREDIT_CARD = "credit card";
+    private static final String CREDITCARD = "creditcard";
+    private static final String DEPOSIT = "deposit";
+    private static final String DEPOSITORY = "depository";
+    private static final String DIVIDEND = "dividend";
+    private static final String INCOME = "income";
+    private static final String INVESTMENT = "investment";
+    private static final String IRA = "ira";
+    private static final String PAYMENT = "payment";
+    private static final String SAVINGS = "savings";
+    private static final String TAX = "tax";
+    private static final String TRANSFER = "transfer";
 
     private static final Logger LOGGER =
             LoggerFactory.getLogger(TransactionTypeCategoryService.class);
@@ -58,17 +78,17 @@ public class TransactionTypeCategoryService {
     private static final List<String> INCOME_CATEGORIES =
             List.of(
                     SALARY,
-                    "deposit",
-                    "dividend",
+                    DEPOSIT,
+                    DIVIDEND,
                     INTEREST,
-                    "credit",
-                    "income",
+                    CREDIT,
+                    INCOME,
                     "stipend",
                     "rent",
                     "tips",
                     OTHER);
-    private static final List<String> PAYMENT_CATEGORIES = List.of("payment");
-    private static final List<String> INVESTMENT_CATEGORIES = List.of("investment", "transfer");
+    private static final List<String> PAYMENT_CATEGORIES = List.of(PAYMENT);
+    private static final List<String> INVESTMENT_CATEGORIES = List.of(INVESTMENT, TRANSFER);
     private static final List<String> EXPENSE_CATEGORIES =
             List.of(
                     "dining",
@@ -78,10 +98,10 @@ public class TransactionTypeCategoryService {
                     "education",
                     "entertainment",
                     "shopping",
-                    "transfer",
-                    "payment",
+                    TRANSFER,
+                    PAYMENT,
                     "fees",
-                    "tax",
+                    TAX,
                     "tech",
                     "insurance",
                     "pet",
@@ -129,7 +149,7 @@ public class TransactionTypeCategoryService {
     public static class CategoryResult {
         private final String categoryPrimary;
         private final String categoryDetailed;
-        private final String source; // "PLAID", "IMPORT", "HYBRID", "ML", "RULE"
+        private final String source; // "PLAID", "IMPORT", HYBRID, "ML", "RULE"
         private final double confidence; // 0.0 to 1.0
 
         public CategoryResult(
@@ -163,7 +183,7 @@ public class TransactionTypeCategoryService {
     /** Result of transaction type determination */
     public static class TypeResult {
         private final TransactionType transactionType;
-        private final String source; // "ACCOUNT", "CATEGORY", "AMOUNT", "HYBRID"
+        private final String source; // "ACCOUNT", CATEGORY, "AMOUNT", HYBRID
         private final double confidence; // 0.0 to 1.0
 
         public TypeResult(
@@ -192,8 +212,8 @@ public class TransactionTypeCategoryService {
      * Determines transaction type from account type string (for PDF/CSV imports) Used when account
      * is not yet available but account type is known
      *
-     * @param accountType Account type string (e.g., "credit", "depository", LOAN, "investment")
-     * @param accountSubtype Account subtype string (e.g., "checking", "credit card")
+     * @param accountType Account type string (e.g., CREDIT, DEPOSITORY, LOAN, INVESTMENT)
+     * @param accountSubtype Account subtype string (e.g., CHECKING, CREDIT_CARD)
      * @param amount Transaction amount
      * @param description Transaction description (optional, for logging)
      * @param paymentChannel Payment channel (optional, for logging)
@@ -235,16 +255,16 @@ public class TransactionTypeCategoryService {
                 if (isPaymentReceived(descLower)) {
                     LOGGER.debug(
                             "Transaction type determined from account type string: Loan account payment → PAYMENT");
-                    return new TypeResult(TransactionType.PAYMENT, "ACCOUNT_TYPE", 0.95);
+                    return new TypeResult(TransactionType.PAYMENT, ACCOUNT_TYPE, 0.95);
                 } else {
                     LOGGER.debug(
                             "Transaction type determined from account type string: Credit card charge → EXPENSE");
-                    return new TypeResult(TransactionType.EXPENSE, "ACCOUNT_TYPE", 0.95);
+                    return new TypeResult(TransactionType.EXPENSE, ACCOUNT_TYPE, 0.95);
                 }
             } else if (amount.compareTo(BigDecimal.ZERO) < 0) {
                 LOGGER.debug(
                         "Transaction type determined from account type string: Credit card payment (negative) → PAYMENT");
-                return new TypeResult(TransactionType.PAYMENT, "ACCOUNT_TYPE", 0.95);
+                return new TypeResult(TransactionType.PAYMENT, ACCOUNT_TYPE, 0.95);
             }
         }
 
@@ -256,7 +276,7 @@ public class TransactionTypeCategoryService {
             if (amount.compareTo(BigDecimal.ZERO) > 0) {
                 LOGGER.debug(
                         "Transaction type determined from account type string: Investment account positive amount → INCOME");
-                return new TypeResult(TransactionType.INCOME, "ACCOUNT_TYPE", 0.95);
+                return new TypeResult(TransactionType.INCOME, ACCOUNT_TYPE, 0.95);
             } else if (amount.compareTo(BigDecimal.ZERO) < 0) {
                 // Check if it's a fee or purchase (simplified - full logic in
                 // determineTransactionType)
@@ -265,7 +285,7 @@ public class TransactionTypeCategoryService {
                         descLower.contains("fee")
                                 || descLower.contains("charge")
                                 || descLower.contains("commission")
-                                || descLower.contains("tax")
+                                || descLower.contains(TAX)
                                 || descLower.contains("expense")
                                 || descLower.contains("custodial")
                                 || descLower.contains("maintenance")
@@ -277,12 +297,12 @@ public class TransactionTypeCategoryService {
                 if (isFee) {
                     LOGGER.debug(
                             "Transaction type determined from account type string: Investment account fee → EXPENSE");
-                    return new TypeResult(TransactionType.EXPENSE, "ACCOUNT_TYPE", 0.95);
+                    return new TypeResult(TransactionType.EXPENSE, ACCOUNT_TYPE, 0.95);
                 } else {
                     // Default to INVESTMENT for negative amounts (likely a purchase)
                     LOGGER.debug(
                             "Transaction type determined from account type string: Investment account purchase → INVESTMENT");
-                    return new TypeResult(TransactionType.INVESTMENT, "ACCOUNT_TYPE", 0.95);
+                    return new TypeResult(TransactionType.INVESTMENT, ACCOUNT_TYPE, 0.95);
                 }
             }
         }
@@ -302,18 +322,18 @@ public class TransactionTypeCategoryService {
                 if (isPaymentReceived(descLower) || isLoanPayment(descLower, tempAccount)) {
                     LOGGER.debug(
                             "Transaction type determined from account type string: Loan account payment → PAYMENT");
-                    return new TypeResult(TransactionType.PAYMENT, "ACCOUNT_TYPE", 0.95);
+                    return new TypeResult(TransactionType.PAYMENT, ACCOUNT_TYPE, 0.95);
                 } else {
                     // Positive without payment keywords = CREDIT (disbursement)
                     // Note: We use PAYMENT type but category will distinguish
                     LOGGER.debug(
                             "Transaction type determined from account type string: Loan account credit/disbursement → PAYMENT");
-                    return new TypeResult(TransactionType.PAYMENT, "ACCOUNT_TYPE", 0.90);
+                    return new TypeResult(TransactionType.PAYMENT, ACCOUNT_TYPE, 0.90);
                 }
             } else if (amount.compareTo(BigDecimal.ZERO) < 0) {
                 LOGGER.debug(
                         "Transaction type determined from account type string: Loan account fee/charge → EXPENSE");
-                return new TypeResult(TransactionType.EXPENSE, "ACCOUNT_TYPE", 0.95);
+                return new TypeResult(TransactionType.EXPENSE, ACCOUNT_TYPE, 0.95);
             }
         }
 
@@ -326,18 +346,18 @@ public class TransactionTypeCategoryService {
             if (amount.compareTo(BigDecimal.ZERO) > 0) {
                 LOGGER.debug(
                         "Transaction type determined from account type string: Credit on checking/savings account → INCOME");
-                return new TypeResult(TransactionType.INCOME, "ACCOUNT_TYPE", 0.95);
+                return new TypeResult(TransactionType.INCOME, ACCOUNT_TYPE, 0.95);
             }
             // Negative amount (debit) on checking/savings = EXPENSE
             if (amount.compareTo(BigDecimal.ZERO) < 0) {
                 if (isCreditCardPayment(description, null, null, null)) {
                     LOGGER.debug(
                             "Transaction type determined from account type: Credit card payment on checking account → PAYMENT");
-                    return new TypeResult(TransactionType.PAYMENT, "ACCOUNT_TYPE", 0.95);
+                    return new TypeResult(TransactionType.PAYMENT, ACCOUNT_TYPE, 0.95);
                 }
                 LOGGER.debug(
                         "Transaction type determined from account type string: Debit on checking/savings account → EXPENSE");
-                return new TypeResult(TransactionType.EXPENSE, "ACCOUNT_TYPE", 0.95);
+                return new TypeResult(TransactionType.EXPENSE, ACCOUNT_TYPE, 0.95);
             }
         }
 
@@ -443,7 +463,7 @@ public class TransactionTypeCategoryService {
                                 categoryPrimary != null ? categoryPrimary : NULL,
                                 account.getAccountName());
                     }
-                    return new TypeResult(TransactionType.EXPENSE, "ACCOUNT_TYPE", 0.95);
+                    return new TypeResult(TransactionType.EXPENSE, ACCOUNT_TYPE, 0.95);
                 } else if (amount != null && amount.compareTo(BigDecimal.ZERO) < 0) {
                     // CRITICAL FIX: Check if category is an expense category (dining, shopping,
                     // groceries, etc.)
@@ -477,14 +497,14 @@ public class TransactionTypeCategoryService {
                                         || "rent".equals(categoryLower)
                                         || "charity".equals(categoryLower)
                                         || "fees".equals(categoryLower)
-                                        || "tax".equals(categoryLower)
+                                        || TAX.equals(categoryLower)
                                         || "insurance".equals(categoryLower)
                                         || "cash".equals(categoryLower)
                                         || OTHER.equals(categoryLower);
 
                         final boolean isPaymentKeyword = isPaymentReceived(descLower);
                         final boolean isPaymentCategory =
-                                "payment".equalsIgnoreCase(categoryPrimary);
+                                PAYMENT.equalsIgnoreCase(categoryPrimary);
 
                         if (isPaymentKeyword || isPaymentCategory) {
                             if (LOGGER.isDebugEnabled()) {
@@ -499,7 +519,7 @@ public class TransactionTypeCategoryService {
                                         isPaymentCategory);
                             }
                             return new TypeResult(
-                                    TransactionType.PAYMENT, "CATEGORY_OVERRIDE", 0.95);
+                                    TransactionType.PAYMENT, CATEGORY_OVERRIDE, 0.95);
                         }
 
                         if (isExpenseCategory) {
@@ -513,7 +533,7 @@ public class TransactionTypeCategoryService {
                                         account.getAccountName());
                             }
                             return new TypeResult(
-                                    TransactionType.EXPENSE, "CATEGORY_OVERRIDE", 0.95);
+                                    TransactionType.EXPENSE, CATEGORY_OVERRIDE, 0.95);
                         }
 
                         if (LOGGER.isDebugEnabled()) {
@@ -525,7 +545,7 @@ public class TransactionTypeCategoryService {
                                     categoryPrimary,
                                     account.getAccountName());
                         }
-                        return new TypeResult(TransactionType.PAYMENT, "CATEGORY_OVERRIDE", 0.95);
+                        return new TypeResult(TransactionType.PAYMENT, CATEGORY_OVERRIDE, 0.95);
                     }
 
                     final boolean isPaymentKeyword = isPaymentReceived(descLower);
@@ -539,7 +559,7 @@ public class TransactionTypeCategoryService {
                                     categoryPrimary != null ? categoryPrimary : NULL,
                                     account.getAccountName());
                         }
-                        return new TypeResult(TransactionType.PAYMENT, "CATEGORY_OVERRIDE", 0.95);
+                        return new TypeResult(TransactionType.PAYMENT, CATEGORY_OVERRIDE, 0.95);
                     }
 
                     // Default: negative amount on credit card without payment keywords = EXPENSE
@@ -553,7 +573,7 @@ public class TransactionTypeCategoryService {
                                 categoryPrimary != null ? categoryPrimary : NULL,
                                 account.getAccountName());
                     }
-                    return new TypeResult(TransactionType.EXPENSE, "ACCOUNT_TYPE", 0.90);
+                    return new TypeResult(TransactionType.EXPENSE, ACCOUNT_TYPE, 0.90);
                 }
             }
 
@@ -571,24 +591,24 @@ public class TransactionTypeCategoryService {
 
                     // Transfers, deposits, and investment-related transactions should be INVESTMENT
                     final boolean isTransfer =
-                            descLower.contains("transfer")
-                                    || descLower.contains("deposit")
+                            descLower.contains(TRANSFER)
+                                    || descLower.contains(DEPOSIT)
                                     || descLower.contains("contribution")
                                     || descLower.contains("from")
-                                    || categoryLower.contains("investment")
-                                    || categoryLower.contains("transfer");
+                                    || categoryLower.contains(INVESTMENT)
+                                    || categoryLower.contains(TRANSFER);
 
                     if (isTransfer) {
                         LOGGER.debug(
                                 "Transaction type determined from account type: Investment account transfer/deposit → INVESTMENT");
-                        return new TypeResult(TransactionType.INVESTMENT, "ACCOUNT_TYPE", 0.95);
+                        return new TypeResult(TransactionType.INVESTMENT, ACCOUNT_TYPE, 0.95);
                     }
 
                     // Positive amounts on investment accounts = INCOME (dividends, interest,
                     // distributions)
                     LOGGER.debug(
                             "Transaction type determined from account type: Investment account positive amount → INCOME");
-                    return new TypeResult(TransactionType.INCOME, "ACCOUNT_TYPE", 0.95);
+                    return new TypeResult(TransactionType.INCOME, ACCOUNT_TYPE, 0.95);
                 } else if (amount != null && amount.compareTo(BigDecimal.ZERO) < 0) {
                     // Negative amounts: Check if it's a fee or a purchase
 
@@ -597,7 +617,7 @@ public class TransactionTypeCategoryService {
                             descLower.contains("fee")
                                     || descLower.contains("charge")
                                     || descLower.contains("commission")
-                                    || descLower.contains("tax")
+                                    || descLower.contains(TAX)
                                     || descLower.contains("expense")
                                     || descLower.contains("custodial")
                                     || descLower.contains("maintenance")
@@ -609,12 +629,12 @@ public class TransactionTypeCategoryService {
                     if (isFee) {
                         LOGGER.debug(
                                 "Transaction type determined from account type: Investment account fee (negative) → EXPENSE");
-                        return new TypeResult(TransactionType.EXPENSE, "ACCOUNT_TYPE", 0.95);
+                        return new TypeResult(TransactionType.EXPENSE, ACCOUNT_TYPE, 0.95);
                     } else {
                         // Default to INVESTMENT for negative amounts (likely a purchase)
                         LOGGER.debug(
                                 "Transaction type determined from account type: Investment account negative amount → INVESTMENT (default)");
-                        return new TypeResult(TransactionType.INVESTMENT, "ACCOUNT_TYPE", 0.90);
+                        return new TypeResult(TransactionType.INVESTMENT, ACCOUNT_TYPE, 0.90);
                     }
                 }
             }
@@ -632,7 +652,7 @@ public class TransactionTypeCategoryService {
                     if (isPaymentReceived(descLower) || isLoanPayment(combinedText, account)) {
                         LOGGER.info(
                                 "Transaction type determined from account type: Loan account payment (positive) → PAYMENT");
-                        return new TypeResult(TransactionType.PAYMENT, "ACCOUNT_TYPE", 0.95);
+                        return new TypeResult(TransactionType.PAYMENT, ACCOUNT_TYPE, 0.95);
                     } else {
                         // Positive amount without payment keywords = CREDIT (loan
                         // disbursement/increase)
@@ -641,15 +661,15 @@ public class TransactionTypeCategoryService {
                         // For now, treat as PAYMENT but category will distinguish
                         LOGGER.info(
                                 "Transaction type determined from account type: Loan account credit/disbursement (positive) → PAYMENT (category will distinguish)");
-                        return new TypeResult(TransactionType.EXPENSE, "ACCOUNT_TYPE", 0.85);
+                        return new TypeResult(TransactionType.EXPENSE, ACCOUNT_TYPE, 0.85);
                     }
                 } else if (amount != null && amount.compareTo(BigDecimal.ZERO) < 0) {
                     // Negative amounts on loan accounts = EXPENSE (fees, charges)
                     LOGGER.info(
                             "Transaction type determined from account type: Loan account fee/charge (negative) → EXPENSE");
-                    return new TypeResult(TransactionType.EXPENSE, "ACCOUNT_TYPE", 0.95);
+                    return new TypeResult(TransactionType.EXPENSE, ACCOUNT_TYPE, 0.95);
                 }
-                return new TypeResult(TransactionType.PAYMENT, "ACCOUNT_TYPE", 0.95);
+                return new TypeResult(TransactionType.PAYMENT, ACCOUNT_TYPE, 0.95);
             }
 
             // Checking/Savings/Money Market accounts:
@@ -667,7 +687,7 @@ public class TransactionTypeCategoryService {
                 if (amount != null && amount.compareTo(BigDecimal.ZERO) > 0) {
                     LOGGER.debug(
                             "Transaction type determined from account type: Credit on checking/savings account → INCOME");
-                    return new TypeResult(TransactionType.INCOME, "ACCOUNT_TYPE", 0.95);
+                    return new TypeResult(TransactionType.INCOME, ACCOUNT_TYPE, 0.95);
                 }
                 if (amount != null && amount.compareTo(BigDecimal.ZERO) < 0) {
                     // CRITICAL: Check for transfer category/keywords BEFORE credit card payment
@@ -677,21 +697,21 @@ public class TransactionTypeCategoryService {
                     if (isCreditCardPayment(description, null, categoryPrimary, account)) {
                         LOGGER.info(
                                 "Transaction type determined from account type: Credit card payment on checking account → PAYMENT");
-                        return new TypeResult(TransactionType.PAYMENT, "ACCOUNT_TYPE", 0.95);
-                    } else if ("transfer".equalsIgnoreCase(categoryPrimary)
-                            || descLower.contains("transfer")
+                        return new TypeResult(TransactionType.PAYMENT, ACCOUNT_TYPE, 0.95);
+                    } else if (TRANSFER.equalsIgnoreCase(categoryPrimary)
+                            || descLower.contains(TRANSFER)
                             || descLower.contains("paypal")
                             || descLower.contains("inst xfer")
                             || descLower.contains("xfer")
                             || descLower.contains("online transfer")) {
                         LOGGER.info(
                                 "Transaction type determined from account type: Transfer on checking account → EXPENSE");
-                        return new TypeResult(TransactionType.EXPENSE, "ACCOUNT_TYPE", 0.95);
+                        return new TypeResult(TransactionType.EXPENSE, ACCOUNT_TYPE, 0.95);
                     }
 
                     LOGGER.info(
                             "Transaction type determined from account type: Debit on checking/savings account → EXPENSE");
-                    return new TypeResult(TransactionType.EXPENSE, "ACCOUNT_TYPE", 0.95);
+                    return new TypeResult(TransactionType.EXPENSE, ACCOUNT_TYPE, 0.95);
                 }
             }
         }
@@ -720,14 +740,14 @@ public class TransactionTypeCategoryService {
             if ("dining".equals(categoryLower)) {
                 LOGGER.debug(
                         "Transaction type determined: dining category → EXPENSE (overriding account-based logic)");
-                return new TypeResult(TransactionType.EXPENSE, "CATEGORY_OVERRIDE", 0.95);
+                return new TypeResult(TransactionType.EXPENSE, CATEGORY_OVERRIDE, 0.95);
             }
 
             // CRITICAL FIX: Payment category should only be PAYMENT if it's actually a payment
-            // On checking accounts, "payment" with positive amount (credit) should be INCOME
-            // "payment" with UTILITIES detailed category should be EXPENSE
-            // "transfer" category = EXPENSE (money out) or INCOME (money in based on amount)
-            if ("transfer".equals(categoryLower)) {
+            // On checking accounts, PAYMENT with positive amount (credit) should be INCOME
+            // PAYMENT with UTILITIES detailed category should be EXPENSE
+            // TRANSFER category = EXPENSE (money out) or INCOME (money in based on amount)
+            if (TRANSFER.equals(categoryLower)) {
                 if (amount != null && amount.compareTo(BigDecimal.ZERO) > 0) {
                     LOGGER.debug(
                             "Transaction type determined: transfer category with positive amount → INCOME");
@@ -739,9 +759,9 @@ public class TransactionTypeCategoryService {
                 }
             }
 
-            // "payment" for checks/transfers should be EXPENSE
+            // PAYMENT for checks/transfers should be EXPENSE
             // Only actual payments (credit card, mortgage, student loan, etc.) should be PAYMENT
-            if ("payment".equals(categoryLower)) {
+            if (PAYMENT.equals(categoryLower)) {
                 final String combinedText =
                         descLower; // merchantName not available in determineTransactionType
 
@@ -750,14 +770,14 @@ public class TransactionTypeCategoryService {
                 if (descLower != null
                         && (descLower.contains("check")
                                 || descLower.contains("wire")
-                                || descLower.contains("transfer")
+                                || descLower.contains(TRANSFER)
                                 || descLower.contains("ach transfer")
                                 || descLower.contains("paypal")
                                 || descLower.contains("inst xfer")
                                 || descLower.contains("xfer"))) {
                     LOGGER.debug(
                             "Transaction type determined: payment/transfer → EXPENSE (overriding account type)");
-                    return new TypeResult(TransactionType.EXPENSE, "CATEGORY_OVERRIDE", 0.95);
+                    return new TypeResult(TransactionType.EXPENSE, CATEGORY_OVERRIDE, 0.95);
                 }
 
                 // Check if it's a checking/depository account with positive amount (credit)
@@ -766,32 +786,32 @@ public class TransactionTypeCategoryService {
                                 && account.getAccountType() != null
                                 && (account.getAccountType()
                                                 .toLowerCase(Locale.ROOT)
-                                                .contains("checking")
+                                                .contains(CHECKING)
                                         || account.getAccountType()
                                                 .toLowerCase(Locale.ROOT)
-                                                .contains("depository")
+                                                .contains(DEPOSITORY)
                                         || account.getAccountType()
                                                 .toLowerCase(Locale.ROOT)
-                                                .contains("savings"));
+                                                .contains(SAVINGS));
 
                 final boolean isCreditCardAccount =
                         account != null
                                 && account.getAccountType() != null
                                 && (account.getAccountType()
                                                 .toLowerCase(Locale.ROOT)
-                                                .contains("credit card")
+                                                .contains(CREDIT_CARD)
                                         || account.getAccountType()
                                                 .toLowerCase(Locale.ROOT)
-                                                .contains("creditcard")
+                                                .contains(CREDITCARD)
                                         || account.getAccountType()
                                                 .toLowerCase(Locale.ROOT)
-                                                .contains("credit"));
+                                                .contains(CREDIT));
 
                 // Positive amount on checking account = credit = INCOME
                 if (isCheckingAccount && amount != null && amount.compareTo(BigDecimal.ZERO) > 0) {
                     LOGGER.debug(
                             "Transaction type determined: payment category on checking account with positive amount → INCOME");
-                    return new TypeResult(TransactionType.INCOME, "CATEGORY_OVERRIDE", 0.95);
+                    return new TypeResult(TransactionType.INCOME, CATEGORY_OVERRIDE, 0.95);
                 }
 
                 if (isCreditCardAccount
@@ -799,13 +819,13 @@ public class TransactionTypeCategoryService {
                         && amount.compareTo(BigDecimal.ZERO) > 0) {
                     LOGGER.debug(
                             "Transaction type determined: payment category on credit card account with positive amount → EXPENSE");
-                    return new TypeResult(TransactionType.EXPENSE, "CATEGORY_OVERRIDE", 0.95);
+                    return new TypeResult(TransactionType.EXPENSE, CATEGORY_OVERRIDE, 0.95);
                 }
 
                 // Utilities detailed category = EXPENSE
                 if (UTILITIES.equals(categoryDetailedLower)) {
                     LOGGER.debug("Transaction type determined: payment/utilities → EXPENSE");
-                    return new TypeResult(TransactionType.EXPENSE, "CATEGORY_OVERRIDE", 0.95);
+                    return new TypeResult(TransactionType.EXPENSE, CATEGORY_OVERRIDE, 0.95);
                 }
 
                 // CRITICAL: Only map to PAYMENT if it's actually a payment
@@ -814,11 +834,11 @@ public class TransactionTypeCategoryService {
                 if (isLoanPayment(combinedText, account)) {
                     LOGGER.debug(
                             "Transaction type determined: payment category is actual payment → PAYMENT");
-                    return new TypeResult(TransactionType.PAYMENT, "CATEGORY", 0.95);
+                    return new TypeResult(TransactionType.PAYMENT, CATEGORY, 0.95);
                 }
 
                 // If it's not a payment and not on a loan account, default to EXPENSE
-                // This handles generic "payment" categories that aren't payment-related
+                // This handles generic PAYMENT categories that aren't payment-related
                 final boolean isLoanAccount =
                         account != null
                                 && account.getAccountType() != null
@@ -827,54 +847,54 @@ public class TransactionTypeCategoryService {
                 if (!isLoanAccount) {
                     LOGGER.debug(
                             "Transaction type determined: payment category is not a payment → EXPENSE");
-                    return new TypeResult(TransactionType.EXPENSE, "CATEGORY_OVERRIDE", 0.95);
+                    return new TypeResult(TransactionType.EXPENSE, CATEGORY_OVERRIDE, 0.95);
                 }
 
                 // If it's on a loan account, it's likely a payment
                 LOGGER.debug("Transaction type: payment category on loan account → PAYMENT");
-                return new TypeResult(TransactionType.PAYMENT, "CATEGORY", 0.95);
+                return new TypeResult(TransactionType.PAYMENT, CATEGORY, 0.95);
             }
 
             if (isIncomeCategory(categoryLower, categoryDetailedLower)) {
                 LOGGER.debug("Transaction type determined: income category → INCOME");
-                return new TypeResult(TransactionType.INCOME, "CATEGORY", 0.95);
+                return new TypeResult(TransactionType.INCOME, CATEGORY, 0.95);
             }
 
             if (isInvestmentCategory(categoryLower, categoryDetailedLower)) {
                 LOGGER.debug("Transaction type determined: investment category → INVESTMENT");
-                return new TypeResult(TransactionType.INVESTMENT, "CATEGORY", 0.95);
+                return new TypeResult(TransactionType.INVESTMENT, CATEGORY, 0.95);
             }
 
             if (isExpenseCategory(categoryLower, categoryDetailedLower)) {
                 LOGGER.debug("Transaction type determined: expense category → EXPENSE");
-                return new TypeResult(TransactionType.EXPENSE, "CATEGORY", 0.90);
+                return new TypeResult(TransactionType.EXPENSE, CATEGORY, 0.90);
             }
 
             // Deposit category with positive amount → INCOME type
-            if ("deposit".equals(categoryLower)
+            if (DEPOSIT.equals(categoryLower)
                     && amount != null
                     && amount.compareTo(BigDecimal.ZERO) > 0) {
                 LOGGER.debug("Transaction type determined from category: deposit → INCOME");
-                return new TypeResult(TransactionType.INCOME, "CATEGORY", 0.95);
+                return new TypeResult(TransactionType.INCOME, CATEGORY, 0.95);
             }
 
             // Investment category → INVESTMENT type
-            if ("investment".equals(categoryLower)) {
+            if (INVESTMENT.equals(categoryLower)) {
                 LOGGER.info("Transaction type determined from category: investment → INVESTMENT");
-                return new TypeResult(TransactionType.INVESTMENT, "CATEGORY", 0.95);
+                return new TypeResult(TransactionType.INVESTMENT, CATEGORY, 0.95);
             }
 
             // Income category → INCOME type
-            if ("income".equals(categoryLower) || SALARY.equals(categoryLower)) {
+            if (INCOME.equals(categoryLower) || SALARY.equals(categoryLower)) {
                 LOGGER.info(
                         "Transaction type determined from category: {} → INCOME", categoryLower);
-                return new TypeResult(TransactionType.INCOME, "CATEGORY", 0.95);
+                return new TypeResult(TransactionType.INCOME, CATEGORY, 0.95);
             }
 
-            // Utilities category → EXPENSE type (even if primary is "payment")
+            // Utilities category → EXPENSE type (even if primary is PAYMENT)
             if (UTILITIES.equals(categoryLower) || UTILITIES.equals(categoryDetailedLower)) {
                 LOGGER.info("Transaction type determined from category: utilities → EXPENSE");
-                return new TypeResult(TransactionType.EXPENSE, "CATEGORY", 0.95);
+                return new TypeResult(TransactionType.EXPENSE, CATEGORY, 0.95);
             }
         }
         return null;
@@ -903,7 +923,7 @@ public class TransactionTypeCategoryService {
         if (isPaymentReceived(descLower)) {
             LOGGER.debug(
                     "Transaction type determined: Payment pattern detected (AUTOPAY/PAYMENT RECEIVED) → PAYMENT");
-            return new TypeResult(TransactionType.PAYMENT, "HYBRID", 0.95);
+            return new TypeResult(TransactionType.PAYMENT, HYBRID, 0.95);
         }
 
         // For loan accounts, check if it's a loan payment (but not credit card accounts)
@@ -914,7 +934,7 @@ public class TransactionTypeCategoryService {
                     && !accountInfo.isCreditCard
                     && isLoanPayment(combinedText, account)) {
                 LOGGER.debug("Transaction type determined: Loan payment detected → PAYMENT");
-                return new TypeResult(TransactionType.PAYMENT, "HYBRID", 0.95);
+                return new TypeResult(TransactionType.PAYMENT, HYBRID, 0.95);
             }
         }
 
@@ -932,9 +952,9 @@ public class TransactionTypeCategoryService {
                 && account.getAccountType() != null) {
             final String accountTypeLower = account.getAccountType().toLowerCase(Locale.ROOT);
             final boolean isCheckingAccount =
-                    accountTypeLower.contains("checking")
-                            || accountTypeLower.contains("depository")
-                            || accountTypeLower.contains("savings");
+                    accountTypeLower.contains(CHECKING)
+                            || accountTypeLower.contains(DEPOSITORY)
+                            || accountTypeLower.contains(SAVINGS);
 
             if (isCheckingAccount && amount != null && amount.compareTo(BigDecimal.ZERO) > 0) {
                 // Positive amount (credit) on checking account should always be INCOME, not PAYMENT
@@ -985,18 +1005,18 @@ public class TransactionTypeCategoryService {
                     && baseType != TransactionType.INVESTMENT) {
                 LOGGER.debug(
                         "Transaction type enhanced: Debit indicator → EXPENSE (was: {})", baseType);
-                return new TypeResult(TransactionType.EXPENSE, "HYBRID", 0.95);
+                return new TypeResult(TransactionType.EXPENSE, HYBRID, 0.95);
             }
 
             // Credit indicator → INCOME (unless already determined as investment)
-            if ((indicator.contains("credit")
+            if ((indicator.contains(CREDIT)
                             || indicator.contains("cr")
                             || indicator.startsWith("cr ")
                             || "cr".equals(indicator))
                     && baseType != TransactionType.INVESTMENT) {
                 LOGGER.debug(
                         "Transaction type enhanced: Credit indicator → INCOME (was: {})", baseType);
-                return new TypeResult(TransactionType.INCOME, "HYBRID", 0.95);
+                return new TypeResult(TransactionType.INCOME, HYBRID, 0.95);
             }
         }
 
@@ -1005,7 +1025,7 @@ public class TransactionTypeCategoryService {
                 account != null
                         ? "ACCOUNT"
                         : (categoryPrimary != null
-                                ? "CATEGORY"
+                                ? CATEGORY
                                 : (amount != null && amount.compareTo(BigDecimal.ZERO) > 0
                                         ? "AMOUNT"
                                         : "DEFAULT"));
@@ -1105,7 +1125,7 @@ public class TransactionTypeCategoryService {
         // "DIRECT DEPOSIT", etc.). That combination means a parser recognised
         // an ACH / wire / statement pattern the merchant corpus can't see —
         // "ONLINE TRANSFER FROM MORGANSTANLEY" → deposit must not be
-        // rewritten to "investment" just because the corpus has a
+        // rewritten to INVESTMENT just because the corpus has a
         // "morgan stanley" row.
         //
         // When the importer category is authoritative but the description
@@ -1117,9 +1137,9 @@ public class TransactionTypeCategoryService {
                 isAuthoritativeImporterCategory(importerCategoryPrimary)
                         || isAuthoritativeImporterCategory(importerCategoryDetailed);
         // Check corroboration against BOTH primary and detailed (when both are
-        // authoritative) — e.g. importer="income"/INTEREST + description="Interest
+        // authoritative) — e.g. importer=INCOME/INTEREST + description="Interest
         // payment" must corroborate via the INTEREST token, not silently fall
-        // through because "income"'s tokens (payroll/salary/etc.) didn't match.
+        // through because INCOME's tokens (payroll/salary/etc.) didn't match.
         final boolean importerCorroborated =
                 importerIsAuthoritative
                         && (descriptionCorroboratesAuthoritativeCategory(
@@ -1155,7 +1175,7 @@ public class TransactionTypeCategoryService {
         // pull the category off of a correctly-structured row. Without
         // this, "Online Transfer FROM Morganstanley" (importer = deposit,
         // corroborated by "transfer … from") would be rewritten to
-        // "investment" by an ML match on "Morganstanley".
+        // INVESTMENT by an ML match on "Morganstanley".
         if (importerCorroborated) {
             final String primary =
                     pickAuthoritativeCategory(importerCategoryPrimary, importerCategoryDetailed);
@@ -1324,19 +1344,19 @@ public class TransactionTypeCategoryService {
 
         // Payment-category guard. Both the merchant rule-based detector and
         // the ML knownMerchants map contain short entries like "amex",
-        // "chase", "boa" that fire "payment" on any description containing
+        // "chase", "boa" that fire PAYMENT on any description containing
         // the word. For a charge AT ESTEE LAUDER on an Amex card that's
         // wrong — it's a shopping charge, not a payment to Amex. Only keep
-        // the "payment" verdict when the description actually looks like a
-        // payment (contains "payment", "autopay", "pmt", etc.).
-        if ("payment".equalsIgnoreCase(resolved.getCategoryPrimary())
+        // the PAYMENT verdict when the description actually looks like a
+        // payment (contains PAYMENT, "autopay", "pmt", etc.).
+        if (PAYMENT.equalsIgnoreCase(resolved.getCategoryPrimary())
                 && !looksLikePayment(merchantName, description)) {
             LOGGER.info(
                     "Demoting spurious 'payment' classification for merchant='{}' (no payment-action phrase)",
                     merchantName);
             // If the importer gave us a specific (non-other) category, prefer it over a blank
             // OTHER — otherwise downstream ML noise erases what the parser already knew
-            // (e.g. an investment/CD row demoted to OTHER because "Bank" matched "payment").
+            // (e.g. an investment/CD row demoted to OTHER because "Bank" matched PAYMENT).
             final String fallbackPrimary =
                     hasSpecificCategory(mappedImporterPrimary)
                             ? mappedImporterPrimary
@@ -1363,7 +1383,7 @@ public class TransactionTypeCategoryService {
     }
 
     /**
-     * Treat a transaction as a "payment" only when the merchant or description contains an explicit
+     * Treat a transaction as a PAYMENT only when the merchant or description contains an explicit
      * payment-action phrase. Prevents "amex"/"chase"/"boa" in a purchase description from being
      * mistaken for a payment to those issuers. Single source of truth for the phrase list is {@link
      * com.budgetbuddy.service.category.PaymentPhrases#PAYMENT_ACTION}.
@@ -1468,11 +1488,11 @@ public class TransactionTypeCategoryService {
      * Importer categories that came from an ACH/wire/statement pattern match and should NOT be
      * overridden by merchant-keyword detection — provided the description also contains a
      * corroborating pattern ({@link #descriptionCorroboratesAuthoritativeCategory}). Without that
-     * second check the mere label "transfer" (which a parser can emit from a weak "CHECK #…" hint)
+     * second check the mere label TRANSFER (which a parser can emit from a weak "CHECK #…" hint)
      * would block all downstream merchant detection.
      */
     private static final java.util.Set<String> AUTHORITATIVE_IMPORTER_CATEGORIES =
-            java.util.Set.of("deposit", "transfer", "income", "refund", INTEREST);
+            java.util.Set.of(DEPOSIT, TRANSFER, INCOME, "refund", INTEREST);
 
     private static boolean isAuthoritativeImporterCategory(final String category) {
         if (category == null) {
@@ -1498,7 +1518,7 @@ public class TransactionTypeCategoryService {
     /**
      * A category/description pair is corroborated when the description itself contains an explicit
      * token that matches the category. This prevents an incorrect authoritative-category label
-     * (e.g. importer said "transfer" after seeing only "CHECK #") from suppressing the
+     * (e.g. importer said TRANSFER after seeing only "CHECK #") from suppressing the
      * merchant-corpus lookup that would classify the row correctly.
      */
     private static boolean descriptionCorroboratesAuthoritativeCategory(
@@ -1535,28 +1555,28 @@ public class TransactionTypeCategoryService {
      */
     private static final java.util.Map<String, List<String>> AUTHORITATIVE_CORROBORATING_TOKENS =
             java.util.Map.of(
-                    "transfer",
+                    TRANSFER,
                     List.of(
-                            "transfer",
+                            TRANSFER,
                             "xfer",
                             "ach transfer",
                             "wire transfer",
                             "online transfer",
                             "internal transfer",
                             "zelle"),
-                    "deposit",
+                    DEPOSIT,
                     List.of(
-                            "deposit",
+                            DEPOSIT,
                             "ach credit",
                             "direct deposit",
                             "mobile deposit",
                             "check deposit"),
-                    "income",
+                    INCOME,
                     List.of("payroll", SALARY, "direct deposit", "wages", "commission"),
                     "refund",
                     List.of("refund", "reversal", "credit adjustment", "return"),
                     INTEREST,
-                    List.of(INTEREST, "apy", "dividend"));
+                    List.of(INTEREST, "apy", DIVIDEND));
 
     /**
      * Regex patterns that corroborate an authoritative category when the relevant tokens appear in
@@ -1567,11 +1587,11 @@ public class TransactionTypeCategoryService {
     private static final java.util.Map<String, java.util.regex.Pattern>
             AUTHORITATIVE_CORROBORATING_PATTERNS =
                     java.util.Map.of(
-                            "deposit",
+                            DEPOSIT,
                                     java.util.regex.Pattern.compile(
                                             "\\btransfer\\b.{0,60}\\bfrom\\b",
                                             java.util.regex.Pattern.CASE_INSENSITIVE),
-                            "transfer",
+                            TRANSFER,
                                     java.util.regex.Pattern.compile(
                                             "\\btransfer\\b.{0,60}\\bto\\b",
                                             java.util.regex.Pattern.CASE_INSENSITIVE));
@@ -1588,7 +1608,7 @@ public class TransactionTypeCategoryService {
      * Derive a category strictly from the account type — only for accounts whose type is
      * effectively the category (loan payments → payment, investment accounts → investment). Credit
      * cards return null: a credit-card charge can be groceries, dining, travel, anything —
-     * defaulting to "payment" mis-categorises every such transaction.
+     * defaulting to PAYMENT mis-categorises every such transaction.
      */
     private static String deriveCategoryFromAccountType(final AccountTable account) {
         if (account == null) {
@@ -1602,13 +1622,13 @@ public class TransactionTypeCategoryService {
         if (typeLower.contains(LOAN)
                 || subtypeLower.contains(LOAN)
                 || subtypeLower.contains(MORTGAGE)) {
-            return "payment";
+            return PAYMENT;
         }
-        if (typeLower.contains("investment")
+        if (typeLower.contains(INVESTMENT)
                 || typeLower.contains("brokerage")
-                || subtypeLower.contains("ira")
-                || subtypeLower.contains("401k")) {
-            return "investment";
+                || subtypeLower.contains(IRA)
+                || subtypeLower.contains(N_401K)) {
+            return INVESTMENT;
         }
         // Intentionally no credit → payment rule — see javadoc.
         return null;
@@ -1650,7 +1670,7 @@ public class TransactionTypeCategoryService {
      * @return Fallback category if detected, null otherwise
      */
 
-    /* Checks if the category is a specific income category (not generic "income") */
+    /* Checks if the category is a specific income category (not generic INCOME) */
 
     /*
      * Determines income category from description and merchant name. ✅ COMPLETED: Logic
@@ -1677,16 +1697,16 @@ public class TransactionTypeCategoryService {
 
             // Checking/Savings accounts
             this.isCheckingOrSavings =
-                    typeLower.contains("checking")
-                            || typeLower.contains("savings")
-                            || typeLower.contains("depository")
+                    typeLower.contains(CHECKING)
+                            || typeLower.contains(SAVINGS)
+                            || typeLower.contains(DEPOSITORY)
                             || typeLower.contains("money market")
                             || typeLower.contains("moneymarket");
 
             // Credit card accounts
-            // CRITICAL: Check for "credit card" and "creditcard" BEFORE "credit" to avoid matching
+            // CRITICAL: Check for CREDIT_CARD and CREDITCARD BEFORE CREDIT to avoid matching
             // credit lines
-            // Only match "credit" if it's NOT part of "credit line" or "line of credit"
+            // Only match CREDIT if it's NOT part of "credit line" or "line of credit"
             final boolean isCreditLine =
                     typeLower.contains("credit line")
                             || typeLower.contains("creditline")
@@ -1696,16 +1716,16 @@ public class TransactionTypeCategoryService {
                             || subtypeLower.contains("creditline");
 
             this.isCreditCard =
-                    (typeLower.contains("credit card")
-                                    || typeLower.contains("creditcard")
+                    (typeLower.contains(CREDIT_CARD)
+                                    || typeLower.contains(CREDITCARD)
                                     || typeLower.contains("charge card"))
-                            || (!isCreditLine && typeLower.contains("credit"));
+                            || (!isCreditLine && typeLower.contains(CREDIT));
 
             // Investment accounts (401k, IRA, HSA, 529, brokerage, CD, stocks, bonds, etc.)
             this.isInvestment =
-                    typeLower.contains("investment")
-                            || typeLower.contains("401k")
-                            || typeLower.contains("ira")
+                    typeLower.contains(INVESTMENT)
+                            || typeLower.contains(N_401K)
+                            || typeLower.contains(IRA)
                             || typeLower.contains("hsa")
                             || typeLower.contains("529")
                             || typeLower.contains("brokerage")
@@ -1717,8 +1737,8 @@ public class TransactionTypeCategoryService {
                             || typeLower.contains("retirement")
                             || typeLower.contains("certificate")
                             || typeLower.contains("cd")
-                            || subtypeLower.contains("401k")
-                            || subtypeLower.contains("ira")
+                            || subtypeLower.contains(N_401K)
+                            || subtypeLower.contains(IRA)
                             || subtypeLower.contains("hsa")
                             || subtypeLower.contains("529")
                             || subtypeLower.contains("brokerage")
@@ -1762,7 +1782,7 @@ public class TransactionTypeCategoryService {
 
     /**
      * Checks if a payment is actually a payment (credit card, mortgage, student loan, car loan,
-     * personal loan, home loan, etc.) This is used to determine if "payment" category should map to
+     * personal loan, home loan, etc.) This is used to determine if PAYMENT category should map to
      * PAYMENT type
      *
      * @param combinedText Combined merchant name and description text (lowercase)
@@ -1781,7 +1801,7 @@ public class TransactionTypeCategoryService {
 
         // Credit card payment keywords
         final String[] creditCardKeywords = {
-            "credit card", "creditcard", "cc payment", "card payment",
+            CREDIT_CARD, CREDITCARD, "cc payment", "card payment",
             "visa payment", "mastercard payment", "amex payment", "american express",
             "discover payment", "chase payment", "capital one", "citi payment"
         };
@@ -1903,8 +1923,8 @@ public class TransactionTypeCategoryService {
         // Check for loan account types
         return accountTypeLower.contains(LOAN)
                 || accountTypeLower.contains(MORTGAGE)
-                || accountTypeLower.contains("credit card")
-                || accountTypeLower.contains("creditcard")
+                || accountTypeLower.contains(CREDIT_CARD)
+                || accountTypeLower.contains(CREDITCARD)
                 || accountTypeLower.contains("student loan")
                 || accountTypeLower.contains("studentloan")
                 || accountTypeLower.contains("home loan")
@@ -2098,9 +2118,9 @@ public class TransactionTypeCategoryService {
         final String accountType = account.getAccountType();
         if (accountType != null) {
             final String accountTypeLower = accountType.toLowerCase(Locale.ROOT);
-            if (accountTypeLower.contains("401k")
+            if (accountTypeLower.contains(N_401K)
                     || accountTypeLower.contains("403b")
-                    || accountTypeLower.contains("ira")
+                    || accountTypeLower.contains(IRA)
                     || accountTypeLower.contains("hsa")
                     || accountTypeLower.contains("529")) {
                 return "US";
@@ -2157,13 +2177,13 @@ public class TransactionTypeCategoryService {
             if (isCheckingOrSavingsAccount(account)
                     && amount != null
                     && amount.compareTo(BigDecimal.ZERO) > 0
-                    && "transfer".equals(primaryLower)) {
+                    && TRANSFER.equals(primaryLower)) {
                 return new CategoryResult(
-                        "deposit", "deposit", "TYPE_ALIGN", result.getConfidence());
+                        DEPOSIT, DEPOSIT, TYPE_ALIGN, result.getConfidence());
             }
             if (!isIncomeCategory(primaryLower, detailedLower)) {
                 final String inferred = inferIncomeCategory(description, primaryLower);
-                return new CategoryResult(inferred, inferred, "TYPE_ALIGN", result.getConfidence());
+                return new CategoryResult(inferred, inferred, TYPE_ALIGN, result.getConfidence());
             }
             return result;
         }
@@ -2171,7 +2191,7 @@ public class TransactionTypeCategoryService {
         if (transactionTypeHint == TransactionType.PAYMENT) {
             if (!isPaymentCategory(primaryLower, detailedLower)) {
                 return new CategoryResult(
-                        "payment", "payment", "TYPE_ALIGN", result.getConfidence());
+                        PAYMENT, PAYMENT, TYPE_ALIGN, result.getConfidence());
             }
             return result;
         }
@@ -2179,7 +2199,7 @@ public class TransactionTypeCategoryService {
         if (transactionTypeHint == TransactionType.INVESTMENT) {
             if (!isInvestmentCategory(primaryLower, detailedLower)) {
                 return new CategoryResult(
-                        "investment", "investment", "TYPE_ALIGN", result.getConfidence());
+                        INVESTMENT, INVESTMENT, TYPE_ALIGN, result.getConfidence());
             }
             return result;
         }
@@ -2219,9 +2239,9 @@ public class TransactionTypeCategoryService {
             return false;
         }
         final String accountTypeLower = account.getAccountType().toLowerCase(Locale.ROOT);
-        return accountTypeLower.contains("checking")
-                || accountTypeLower.contains("depository")
-                || accountTypeLower.contains("savings");
+        return accountTypeLower.contains(CHECKING)
+                || accountTypeLower.contains(DEPOSITORY)
+                || accountTypeLower.contains(SAVINGS);
     }
 
     private String inferIncomeCategory(
@@ -2233,21 +2253,21 @@ public class TransactionTypeCategoryService {
                 || descLower.contains("wage")) {
             return SALARY;
         }
-        if (descLower.contains("dividend")) {
-            return "dividend";
+        if (descLower.contains(DIVIDEND)) {
+            return DIVIDEND;
         }
         if (descLower.contains(INTEREST)) {
             return INTEREST;
         }
-        if (descLower.contains("deposit")) {
-            return "deposit";
+        if (descLower.contains(DEPOSIT)) {
+            return DEPOSIT;
         }
-        if (descLower.contains("credit")) {
-            return "credit";
+        if (descLower.contains(CREDIT)) {
+            return CREDIT;
         }
         if (categoryPrimaryLower != null && !categoryPrimaryLower.isEmpty()) {
             return categoryPrimaryLower;
         }
-        return "income";
+        return INCOME;
     }
 }

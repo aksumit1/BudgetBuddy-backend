@@ -52,6 +52,7 @@ public class ExcelImportService {
 
     private static final String DEPOSITORY = "depository";
     private static final String CHECKING = "checking";
+    private static final String N_A = "N/A";
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ExcelImportService.class);
 
@@ -256,13 +257,13 @@ public class ExcelImportService {
                                     sheetName,
                                     fromSheetName.getInstitutionName() != null
                                             ? fromSheetName.getInstitutionName()
-                                            : "N/A",
+                                            : N_A,
                                     fromSheetName.getAccountType() != null
                                             ? fromSheetName.getAccountType()
-                                            : "N/A",
+                                            : N_A,
                                     fromSheetName.getAccountNumber() != null
                                             ? fromSheetName.getAccountNumber()
-                                            : "N/A");
+                                            : N_A);
                         }
                     }
                 }
@@ -285,7 +286,7 @@ public class ExcelImportService {
                                         matchedAccountId,
                                         detectedAccount.getAccountNumber() != null
                                                 ? detectedAccount.getAccountNumber()
-                                                : "N/A");
+                                                : N_A);
                             }
                         } else {
                             // Enhanced logging with account number and other details
@@ -296,11 +297,11 @@ public class ExcelImportService {
                             final String accountNumber =
                                     fromHeaders.getAccountNumber() != null
                                             ? fromHeaders.getAccountNumber()
-                                            : "N/A";
+                                            : N_A;
                             final String institution =
                                     fromHeaders.getInstitutionName() != null
                                             ? fromHeaders.getInstitutionName()
-                                            : "N/A";
+                                            : N_A;
                             if (LOGGER.isInfoEnabled()) {
                                 LOGGER.info(
                                         "Detected account from Excel but no match found - Name: {}, AccountNumber: {}, Institution: {}, Type: {}",
@@ -309,7 +310,7 @@ public class ExcelImportService {
                                         institution,
                                         fromHeaders.getAccountType() != null
                                                 ? fromHeaders.getAccountType()
-                                                : "N/A");
+                                                : N_A);
                             }
                             detectedAccount = fromHeaders;
                         }

@@ -60,6 +60,7 @@ public class RateLimitService {
     private static final String LAST_REFILL = "lastRefill";
 
     private static final String TOKENS = "tokens";
+    private static final String KEY = "key";
 
     private static final Logger LOGGER = LoggerFactory.getLogger(RateLimitService.class);
 
@@ -250,7 +251,7 @@ public class RateLimitService {
                     dynamoDbClient.getItem(
                             GetItemRequest.builder()
                                     .tableName(tableName)
-                                    .key(Map.of("key", AttributeValue.builder().s(key).build()))
+                                    .key(Map.of(KEY, AttributeValue.builder().s(key).build()))
                                     .build());
 
             if (response.item() != null
@@ -292,7 +293,7 @@ public class RateLimitService {
                             .tableName(tableName)
                             .item(
                                     Map.of(
-                                            "key",
+                                            KEY,
                                             AttributeValue.builder().s(key).build(),
                                             TOKENS,
                                             AttributeValue.builder()
@@ -367,12 +368,12 @@ public class RateLimitService {
                             .billingMode(BillingMode.PAY_PER_REQUEST)
                             .attributeDefinitions(
                                     AttributeDefinition.builder()
-                                            .attributeName("key")
+                                            .attributeName(KEY)
                                             .attributeType(ScalarAttributeType.S)
                                             .build())
                             .keySchema(
                                     KeySchemaElement.builder()
-                                            .attributeName("key")
+                                            .attributeName(KEY)
                                             .keyType(KeyType.HASH)
                                             .build())
                             .build());

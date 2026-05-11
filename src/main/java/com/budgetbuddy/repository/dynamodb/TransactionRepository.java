@@ -64,6 +64,10 @@ public class TransactionRepository {
 
     private static final String TRANSACTIONS = "transactions";
     private static final String TRANSACTIONID = "transactionId";
+    private static final String ERROR_IN_FALLBACK_QUERY_FOR_USERID = "Error in fallback query for userId {}: {}";
+    private static final String TRANSACTION_CANNOT_BE_NULL = "Transaction cannot be null";
+    private static final String INDEX_NOT_FOUND = "index not found";
+    private static final String RESOURCE_NOT_FOUND = "resource not found";
 
     /**
      * Upper bound for GSI-fallback paths that previously asked for {@link Integer#MAX_VALUE}
@@ -100,7 +104,7 @@ public class TransactionRepository {
     @CacheEvict(value = TRANSACTIONS, allEntries = true)
     public void save(final TransactionTable transaction) {
         if (transaction == null) {
-            throw new IllegalArgumentException("Transaction cannot be null");
+            throw new IllegalArgumentException(TRANSACTION_CANNOT_BE_NULL);
         }
         // CRITICAL FIX: Add retry logic for DynamoDB throttling and transient errors
         // This improves data durability during transient failures
@@ -121,7 +125,7 @@ public class TransactionRepository {
     @CacheEvict(value = TRANSACTIONS, allEntries = true)
     public TransactionTable saveWithLock(final TransactionTable transaction) {
         if (transaction == null) {
-            throw new IllegalArgumentException("Transaction cannot be null");
+            throw new IllegalArgumentException(TRANSACTION_CANNOT_BE_NULL);
         }
         return OptimisticLockHelper.saveWithLock(
                 transactionTable,
@@ -184,8 +188,8 @@ public class TransactionRepository {
             final String msg =
                     e.getMessage() != null ? e.getMessage().toLowerCase(Locale.ROOT) : "";
             if (cause instanceof ResourceNotFoundException
-                    || msg.contains("index not found")
-                    || msg.contains("resource not found")) {
+                    || msg.contains(INDEX_NOT_FOUND)
+                    || msg.contains(RESOURCE_NOT_FOUND)) {
                 return fallbackScanForUserCapped(userId);
             }
             if (LOGGER.isWarnEnabled()) {
@@ -422,8 +426,8 @@ public class TransactionRepository {
             final String errorMessage =
                     e.getMessage() != null ? e.getMessage().toLowerCase(Locale.ROOT) : "";
             if (cause instanceof ResourceNotFoundException
-                    || errorMessage.contains("index not found")
-                    || errorMessage.contains("resource not found")) {
+                    || errorMessage.contains(INDEX_NOT_FOUND)
+                    || errorMessage.contains(RESOURCE_NOT_FOUND)) {
                 // GSI not available - fallback to scan and filter in memory
                 LOGGER.warn(
                         "UserIdDateIndex GSI not found for userId {} (wrapped exception). Falling back to scan and filtering in memory.",
@@ -669,7 +673,7 @@ public class TransactionRepository {
         } catch (Exception fallbackException) {
             if (LOG.isErrorEnabled()) {
                 LOG.error(
-                        "Error in fallback query for userId {}: {}",
+                        ERROR_IN_FALLBACK_QUERY_FOR_USERID,
                         userId,
                         fallbackException.getMessage(),
                         fallbackException);
@@ -687,7 +691,7 @@ public class TransactionRepository {
             return false;
         }
         final String lower = msg.toLowerCase(Locale.ROOT);
-        return lower.contains("index not found") || lower.contains("resource not found");
+        return lower.contains(INDEX_NOT_FOUND) || lower.contains(RESOURCE_NOT_FOUND);
     }
 
     /**
@@ -809,7 +813,7 @@ public class TransactionRepository {
             } catch (Exception fallbackException) {
                 if (LOGGER.isErrorEnabled()) {
                     LOGGER.error(
-                            "Error in fallback query for userId {}: {}",
+                            ERROR_IN_FALLBACK_QUERY_FOR_USERID,
                             userId,
                             fallbackException.getMessage(),
                             fallbackException);
@@ -822,8 +826,8 @@ public class TransactionRepository {
             final String errorMessage =
                     e.getMessage() != null ? e.getMessage().toLowerCase(Locale.ROOT) : "";
             if (cause instanceof ResourceNotFoundException
-                    || errorMessage.contains("index not found")
-                    || errorMessage.contains("resource not found")) {
+                    || errorMessage.contains(INDEX_NOT_FOUND)
+                    || errorMessage.contains(RESOURCE_NOT_FOUND)) {
                 // GSI not available - fallback to findByUserId and filter in memory
                 LOGGER.warn(
                         "UserIdUpdatedAtIndex GSI not found for userId {} (wrapped exception). Falling back to findByUserId and filtering in memory.",
@@ -844,7 +848,7 @@ public class TransactionRepository {
                 } catch (Exception fallbackException) {
                     if (LOGGER.isErrorEnabled()) {
                         LOGGER.error(
-                                "Error in fallback query for userId {}: {}",
+                                ERROR_IN_FALLBACK_QUERY_FOR_USERID,
                                 userId,
                                 fallbackException.getMessage(),
                                 fallbackException);
@@ -866,8 +870,8 @@ public class TransactionRepository {
             // Check if the exception message indicates missing index
             final String errorMessage =
                     e.getMessage() != null ? e.getMessage().toLowerCase(Locale.ROOT) : "";
-            if (errorMessage.contains("index not found")
-                    || errorMessage.contains("resource not found")) {
+            if (errorMessage.contains(INDEX_NOT_FOUND)
+                    || errorMessage.contains(RESOURCE_NOT_FOUND)) {
                 // GSI not available - fallback to findByUserId and filter in memory
                 LOGGER.warn(
                         "UserIdUpdatedAtIndex GSI not found for userId {} (detected from error message). Falling back to findByUserId and filtering in memory.",
@@ -888,7 +892,7 @@ public class TransactionRepository {
                 } catch (Exception fallbackException) {
                     if (LOGGER.isErrorEnabled()) {
                         LOGGER.error(
-                                "Error in fallback query for userId {}: {}",
+                                ERROR_IN_FALLBACK_QUERY_FOR_USERID,
                                 userId,
                                 fallbackException.getMessage(),
                                 fallbackException);
@@ -942,7 +946,7 @@ public class TransactionRepository {
      */
     public boolean saveIfNotExists(final TransactionTable transaction) {
         if (transaction == null) {
-            throw new IllegalArgumentException("Transaction cannot be null");
+            throw new IllegalArgumentException(TRANSACTION_CANNOT_BE_NULL);
         }
         if (transaction.getTransactionId() == null || transaction.getTransactionId().isEmpty()) {
             throw new IllegalArgumentException("Transaction ID is required");
@@ -1083,7 +1087,7 @@ public class TransactionRepository {
      */
     public boolean saveIfPlaidTransactionNotExists(final TransactionTable transaction) {
         if (transaction == null) {
-            throw new IllegalArgumentException("Transaction cannot be null");
+            throw new IllegalArgumentException(TRANSACTION_CANNOT_BE_NULL);
         }
 
         // Ensure transactionId is set (required for primary key)

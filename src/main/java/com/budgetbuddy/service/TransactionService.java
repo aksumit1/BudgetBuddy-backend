@@ -45,6 +45,14 @@ public class TransactionService {
 
     private static final String NULL = "null";
     private static final String UNKNOWN = "unknown";
+    private static final String PAYMENT = "PAYMENT";
+    private static final String TRANSACTION_ID_IS_REQUIRED = "Transaction ID is required";
+    private static final String TRANSACTION_DOES_NOT_BELONG_TO_USER = "Transaction does not belong to user";
+    private static final String TRANSACTION_NOT_FOUND = "Transaction not found";
+    private static final String USER_IS_REQUIRED = "User is required";
+    private static final String PAYMENT_2 = "payment";
+    private static final String WELLS_FARGO = "wells fargo";
+    private static final String WELLSFARGO = "wellsfargo";
 
     private static final Logger LOGGER = LoggerFactory.getLogger(TransactionService.class);
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ISO_LOCAL_DATE;
@@ -78,7 +86,7 @@ public class TransactionService {
      */
     public List<TransactionTable> getTransactions(final UserTable user, int skip, int limit) {
         if (user == null || user.getUserId() == null || user.getUserId().isEmpty()) {
-            throw new AppException(ErrorCode.INVALID_INPUT, "User is required");
+            throw new AppException(ErrorCode.INVALID_INPUT, USER_IS_REQUIRED);
         }
         if (skip < 0) {
             skip = 0;
@@ -93,7 +101,7 @@ public class TransactionService {
     public List<TransactionTable> getTransactionsInRange(
             final UserTable user, final LocalDate startDate, final LocalDate endDate) {
         if (user == null || user.getUserId() == null || user.getUserId().isEmpty()) {
-            throw new AppException(ErrorCode.INVALID_INPUT, "User is required");
+            throw new AppException(ErrorCode.INVALID_INPUT, USER_IS_REQUIRED);
         }
         if (startDate == null || endDate == null) {
             throw new AppException(ErrorCode.INVALID_INPUT, "Start date and end date are required");
@@ -116,7 +124,7 @@ public class TransactionService {
     public List<TransactionTable> getTransactionsByCategory(
             final UserTable user, final String category, final LocalDate since) {
         if (user == null || user.getUserId() == null || user.getUserId().isEmpty()) {
-            throw new AppException(ErrorCode.INVALID_INPUT, "User is required");
+            throw new AppException(ErrorCode.INVALID_INPUT, USER_IS_REQUIRED);
         }
         if (category == null || category.isEmpty()) {
             throw new AppException(ErrorCode.INVALID_INPUT, "Category is required");
@@ -146,7 +154,7 @@ public class TransactionService {
     public BigDecimal getTotalSpending(
             final UserTable user, final LocalDate startDate, final LocalDate endDate) {
         if (user == null || user.getUserId() == null || user.getUserId().isEmpty()) {
-            throw new AppException(ErrorCode.INVALID_INPUT, "User is required");
+            throw new AppException(ErrorCode.INVALID_INPUT, USER_IS_REQUIRED);
         }
         if (startDate == null || endDate == null) {
             throw new AppException(ErrorCode.INVALID_INPUT, "Start date and end date are required");
@@ -178,7 +186,7 @@ public class TransactionService {
             final LocalDate startDate,
             final LocalDate endDate) {
         if (user == null || user.getUserId() == null || user.getUserId().isEmpty()) {
-            throw new AppException(ErrorCode.INVALID_INPUT, "User is required");
+            throw new AppException(ErrorCode.INVALID_INPUT, USER_IS_REQUIRED);
         }
         if (accountId == null || accountId.isEmpty()) {
             throw new AppException(ErrorCode.INVALID_INPUT, "Account ID is required");
@@ -257,8 +265,8 @@ public class TransactionService {
                                         t.getAmount().compareTo(BigDecimal.ZERO) > 0;
                                 // Payment category transactions
                                 final boolean isPaymentCategory =
-                                        "payment".equalsIgnoreCase(t.getCategoryPrimary())
-                                                || "payment"
+                                        PAYMENT_2.equalsIgnoreCase(t.getCategoryPrimary())
+                                                || PAYMENT_2
                                                         .equalsIgnoreCase(t.getCategoryDetailed());
                                 return isPositiveAmount || isPaymentCategory;
                             })
@@ -306,9 +314,9 @@ public class TransactionService {
         // This applies as a special case after sign reversal, type and category assignments
         if (transaction.getAccountId() != null
                 && transaction.getTransactionType() != null
-                && "PAYMENT".equalsIgnoreCase(transaction.getTransactionType())
+                && PAYMENT.equalsIgnoreCase(transaction.getTransactionType())
                 && transaction.getCategoryPrimary() != null
-                && "payment".equalsIgnoreCase(transaction.getCategoryPrimary())
+                && PAYMENT_2.equalsIgnoreCase(transaction.getCategoryPrimary())
                 && transaction.getAmount() != null
                 && transaction.getAmount().compareTo(BigDecimal.ZERO) < 0) {
 
@@ -332,10 +340,10 @@ public class TransactionService {
                             (institutionName != null
                                             && (institutionName
                                                             .toLowerCase(Locale.ROOT)
-                                                            .contains("wells fargo")
+                                                            .contains(WELLS_FARGO)
                                                     || institutionName
                                                             .toLowerCase(Locale.ROOT)
-                                                            .contains("wellsfargo")
+                                                            .contains(WELLSFARGO)
                                                     || "wf"
                                                             .equalsIgnoreCase(
                                                                     institutionName.toLowerCase(
@@ -343,10 +351,10 @@ public class TransactionService {
                                     || (accountName != null
                                             && (accountName
                                                             .toLowerCase(Locale.ROOT)
-                                                            .contains("wells fargo")
+                                                            .contains(WELLS_FARGO)
                                                     || accountName
                                                             .toLowerCase(Locale.ROOT)
-                                                            .contains("wellsfargo")
+                                                            .contains(WELLSFARGO)
                                                     || accountName
                                                             .toLowerCase(Locale.ROOT)
                                                             .contains("wf credit")));
@@ -442,7 +450,7 @@ public class TransactionService {
             final List<com.budgetbuddy.api.TransactionController.CreateTransactionRequest>
                     requests) {
         if (user == null || user.getUserId() == null || user.getUserId().isEmpty()) {
-            throw new AppException(ErrorCode.INVALID_INPUT, "User is required");
+            throw new AppException(ErrorCode.INVALID_INPUT, USER_IS_REQUIRED);
         }
         if (requests == null || requests.isEmpty()) {
             throw new AppException(ErrorCode.INVALID_INPUT, "Transactions list is required");
@@ -1057,7 +1065,7 @@ public class TransactionService {
             final String goalId,
             final String linkedTransactionId) {
         if (user == null || user.getUserId() == null || user.getUserId().isEmpty()) {
-            throw new AppException(ErrorCode.INVALID_INPUT, "User is required");
+            throw new AppException(ErrorCode.INVALID_INPUT, USER_IS_REQUIRED);
         }
         if (amount == null) {
             throw new AppException(ErrorCode.INVALID_INPUT, "Amount is required");
@@ -1284,10 +1292,10 @@ public class TransactionService {
                         (institutionName != null
                                         && (institutionName
                                                         .toLowerCase(Locale.ROOT)
-                                                        .contains("wells fargo")
+                                                        .contains(WELLS_FARGO)
                                                 || institutionName
                                                         .toLowerCase(Locale.ROOT)
-                                                        .contains("wellsfargo")
+                                                        .contains(WELLSFARGO)
                                                 || "wf"
                                                         .equalsIgnoreCase(
                                                                 institutionName.toLowerCase(
@@ -1295,18 +1303,18 @@ public class TransactionService {
                                 || (accountName != null
                                         && (accountName
                                                         .toLowerCase(Locale.ROOT)
-                                                        .contains("wells fargo")
+                                                        .contains(WELLS_FARGO)
                                                 || accountName
                                                         .toLowerCase(Locale.ROOT)
-                                                        .contains("wellsfargo")
+                                                        .contains(WELLSFARGO)
                                                 || accountName
                                                         .toLowerCase(Locale.ROOT)
                                                         .contains("wf credit")));
                 if (isWellsFargo
                         && transaction.getTransactionType() != null
-                        && "PAYMENT".equalsIgnoreCase(transaction.getTransactionType())
+                        && PAYMENT.equalsIgnoreCase(transaction.getTransactionType())
                         && transaction.getCategoryPrimary() != null
-                        && "payment".equalsIgnoreCase(transaction.getCategoryPrimary())
+                        && PAYMENT_2.equalsIgnoreCase(transaction.getCategoryPrimary())
                         && amount != null
                         && amount.compareTo(BigDecimal.ZERO) < 0) {
                     final BigDecimal positiveAmount = amount.negate();
@@ -1417,7 +1425,7 @@ public class TransactionService {
             return;
         }
         if (transaction.getTransactionType() == null
-                || !"PAYMENT".equalsIgnoreCase(transaction.getTransactionType())) {
+                || !PAYMENT.equalsIgnoreCase(transaction.getTransactionType())) {
             return;
         }
         if (!isCheckingOrSavingsAccount(account)) {
@@ -1470,10 +1478,10 @@ public class TransactionService {
                 continue;
             }
             final boolean isPaymentCategory =
-                    "payment".equalsIgnoreCase(candidate.getCategoryPrimary())
-                            || "payment".equalsIgnoreCase(candidate.getCategoryDetailed());
+                    PAYMENT_2.equalsIgnoreCase(candidate.getCategoryPrimary())
+                            || PAYMENT_2.equalsIgnoreCase(candidate.getCategoryDetailed());
             final boolean isPaymentType =
-                    "PAYMENT".equalsIgnoreCase(candidate.getTransactionType());
+                    PAYMENT.equalsIgnoreCase(candidate.getTransactionType());
             if (!isPaymentCategory && !isPaymentType) {
                 continue;
             }
@@ -1589,10 +1597,10 @@ public class TransactionService {
             final String goalId,
             final String linkedTransactionId) {
         if (user == null || user.getUserId() == null || user.getUserId().isEmpty()) {
-            throw new AppException(ErrorCode.INVALID_INPUT, "User is required");
+            throw new AppException(ErrorCode.INVALID_INPUT, USER_IS_REQUIRED);
         }
         if (transactionId == null || transactionId.isEmpty()) {
-            throw new AppException(ErrorCode.INVALID_INPUT, "Transaction ID is required");
+            throw new AppException(ErrorCode.INVALID_INPUT, TRANSACTION_ID_IS_REQUIRED);
         }
 
         // Try to find by transactionId first
@@ -1616,11 +1624,11 @@ public class TransactionService {
                 transactionOpt.orElseThrow(
                         () ->
                                 new AppException(
-                                        ErrorCode.TRANSACTION_NOT_FOUND, "Transaction not found"));
+                                        ErrorCode.TRANSACTION_NOT_FOUND, TRANSACTION_NOT_FOUND));
 
         if (transaction.getUserId() == null || !transaction.getUserId().equals(user.getUserId())) {
             throw new AppException(
-                    ErrorCode.UNAUTHORIZED_ACCESS, "Transaction does not belong to user");
+                    ErrorCode.UNAUTHORIZED_ACCESS, TRANSACTION_DOES_NOT_BELONG_TO_USER);
         }
 
         // Update amount if provided (for type changes)
@@ -1978,10 +1986,10 @@ public class TransactionService {
     public TransactionTable getTransaction(
             final UserTable user, final String transactionId, final String plaidTransactionId) {
         if (user == null || user.getUserId() == null || user.getUserId().isEmpty()) {
-            throw new AppException(ErrorCode.INVALID_INPUT, "User is required");
+            throw new AppException(ErrorCode.INVALID_INPUT, USER_IS_REQUIRED);
         }
         if (transactionId == null || transactionId.isEmpty()) {
-            throw new AppException(ErrorCode.INVALID_INPUT, "Transaction ID is required");
+            throw new AppException(ErrorCode.INVALID_INPUT, TRANSACTION_ID_IS_REQUIRED);
         }
 
         // Try to find by transactionId first
@@ -2005,11 +2013,11 @@ public class TransactionService {
                 transactionOpt.orElseThrow(
                         () ->
                                 new AppException(
-                                        ErrorCode.TRANSACTION_NOT_FOUND, "Transaction not found"));
+                                        ErrorCode.TRANSACTION_NOT_FOUND, TRANSACTION_NOT_FOUND));
 
         if (transaction.getUserId() == null || !transaction.getUserId().equals(user.getUserId())) {
             throw new AppException(
-                    ErrorCode.UNAUTHORIZED_ACCESS, "Transaction does not belong to user");
+                    ErrorCode.UNAUTHORIZED_ACCESS, TRANSACTION_DOES_NOT_BELONG_TO_USER);
         }
 
         return transaction;
@@ -2037,10 +2045,10 @@ public class TransactionService {
 
     public void deleteTransaction(final UserTable user, final String transactionId) {
         if (user == null || user.getUserId() == null || user.getUserId().isEmpty()) {
-            throw new AppException(ErrorCode.INVALID_INPUT, "User is required");
+            throw new AppException(ErrorCode.INVALID_INPUT, USER_IS_REQUIRED);
         }
         if (transactionId == null || transactionId.isEmpty()) {
-            throw new AppException(ErrorCode.INVALID_INPUT, "Transaction ID is required");
+            throw new AppException(ErrorCode.INVALID_INPUT, TRANSACTION_ID_IS_REQUIRED);
         }
 
         final TransactionTable transaction =
@@ -2050,11 +2058,11 @@ public class TransactionService {
                                 () ->
                                         new AppException(
                                                 ErrorCode.TRANSACTION_NOT_FOUND,
-                                                "Transaction not found"));
+                                                TRANSACTION_NOT_FOUND));
 
         if (transaction.getUserId() == null || !transaction.getUserId().equals(user.getUserId())) {
             throw new AppException(
-                    ErrorCode.UNAUTHORIZED_ACCESS, "Transaction does not belong to user");
+                    ErrorCode.UNAUTHORIZED_ACCESS, TRANSACTION_DOES_NOT_BELONG_TO_USER);
         }
 
         if (transaction.getDeletedAt() != null) {
@@ -2080,10 +2088,10 @@ public class TransactionService {
      */
     public TransactionTable restoreTransaction(final UserTable user, final String transactionId) {
         if (user == null || user.getUserId() == null || user.getUserId().isEmpty()) {
-            throw new AppException(ErrorCode.INVALID_INPUT, "User is required");
+            throw new AppException(ErrorCode.INVALID_INPUT, USER_IS_REQUIRED);
         }
         if (transactionId == null || transactionId.isEmpty()) {
-            throw new AppException(ErrorCode.INVALID_INPUT, "Transaction ID is required");
+            throw new AppException(ErrorCode.INVALID_INPUT, TRANSACTION_ID_IS_REQUIRED);
         }
         final TransactionTable transaction =
                 transactionRepository
@@ -2092,10 +2100,10 @@ public class TransactionService {
                                 () ->
                                         new AppException(
                                                 ErrorCode.TRANSACTION_NOT_FOUND,
-                                                "Transaction not found"));
+                                                TRANSACTION_NOT_FOUND));
         if (transaction.getUserId() == null || !transaction.getUserId().equals(user.getUserId())) {
             throw new AppException(
-                    ErrorCode.UNAUTHORIZED_ACCESS, "Transaction does not belong to user");
+                    ErrorCode.UNAUTHORIZED_ACCESS, TRANSACTION_DOES_NOT_BELONG_TO_USER);
         }
         if (transaction.getDeletedAt() == null) {
             return transaction;

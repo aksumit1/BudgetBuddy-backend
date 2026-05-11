@@ -35,6 +35,7 @@ import com.budgetbuddy.repository.dynamodb.DeviceTokenRepository;
 import com.budgetbuddy.repository.dynamodb.FIDO2CredentialRepository;
 import com.budgetbuddy.repository.dynamodb.GoalRepository;
 import com.budgetbuddy.repository.dynamodb.NetWorthSnapshotRepository;
+import com.budgetbuddy.repository.dynamodb.PlaidAccessTokenRepository;
 import com.budgetbuddy.repository.dynamodb.SubscriptionRepository;
 import com.budgetbuddy.repository.dynamodb.TransactionActionRepository;
 import com.budgetbuddy.repository.dynamodb.TransactionRepository;
@@ -94,6 +95,8 @@ class UserDeletionServiceTest {
     @Mock private UserCorrectionRepository userCorrectionRepository;
 
     @Mock private CustomMerchantMappingRepository customMerchantMappingRepository;
+
+    @Mock private PlaidAccessTokenRepository plaidAccessTokenRepository;
 
     @InjectMocks private UserDeletionService userDeletionService;
 

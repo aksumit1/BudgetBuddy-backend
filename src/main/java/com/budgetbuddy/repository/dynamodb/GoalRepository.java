@@ -41,6 +41,7 @@ import software.amazon.awssdk.services.dynamodb.model.UpdateItemRequest;
 @SuppressWarnings({"PMD.AvoidCatchingGenericException", "PMD.OnlyOneReturn"})
 @Repository
 public class GoalRepository {
+    private static final String GOALS = "goals";
 
     private static final org.slf4j.Logger LOGGER =
             org.slf4j.LoggerFactory.getLogger(GoalRepository.class);
@@ -65,7 +66,7 @@ public class GoalRepository {
         this.dynamoDbClient = dynamoDbClient;
     }
 
-    @CacheEvict(value = "goals", key = "#goal.userId")
+    @CacheEvict(value = GOALS, key = "#goal.userId")
     public void save(final GoalTable goal) {
         // CRITICAL FIX: Add retry logic for DynamoDB throttling and transient errors
         com.budgetbuddy.util.RetryHelper.executeDynamoDbWithRetry(
@@ -80,7 +81,7 @@ public class GoalRepository {
      * contributions can race with budget→goal auto-flow or partner writes. Throws {@link
      * OptimisticLockHelper.OptimisticLockException} on conflict; caller should re-read and retry.
      */
-    @CacheEvict(value = "goals", key = "#goal.userId")
+    @CacheEvict(value = GOALS, key = "#goal.userId")
     public GoalTable saveWithLock(final GoalTable goal) {
         return OptimisticLockHelper.saveWithLock(
                 goalTable,
@@ -105,7 +106,7 @@ public class GoalRepository {
         return Optional.ofNullable(goal);
     }
 
-    @Cacheable(value = "goals", key = "#userId", unless = "#result == null || #result.isEmpty()")
+    @Cacheable(value = GOALS, key = "#userId", unless = "#result == null || #result.isEmpty()")
     public List<GoalTable> findByUserId(final String userId) {
         final List<GoalTable> results = new ArrayList<>();
         final SdkIterable<software.amazon.awssdk.enhanced.dynamodb.model.Page<GoalTable>> pages =
@@ -207,7 +208,7 @@ public class GoalRepository {
         return results;
     }
 
-    @CacheEvict(value = "goals", allEntries = true)
+    @CacheEvict(value = GOALS, allEntries = true)
     public void delete(final String goalId) {
         goalTable.deleteItem(Key.builder().partitionValue(goalId).build());
     }

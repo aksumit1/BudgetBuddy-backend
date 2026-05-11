@@ -76,6 +76,7 @@ public class DynamoDBTableManager {
     private static final String UPDATED_AT_TIMESTAMP = "updatedAtTimestamp";
 
     private static final String USER_ID = "userId";
+    private static final String TTL = "ttl";
 
     private static final Logger LOGGER = LoggerFactory.getLogger(DynamoDBTableManager.class);
 
@@ -814,7 +815,7 @@ public class DynamoDBTableManager {
                                 .timeToLiveSpecification(
                                         TimeToLiveSpecification.builder()
                                                 .enabled(true)
-                                                .attributeName("ttl")
+                                                .attributeName(TTL)
                                                 .build())
                                 .build());
             } catch (Exception e) {
@@ -862,7 +863,7 @@ public class DynamoDBTableManager {
                                 .timeToLiveSpecification(
                                         TimeToLiveSpecification.builder()
                                                 .enabled(true)
-                                                .attributeName("ttl")
+                                                .attributeName(TTL)
                                                 .build())
                                 .build());
             } catch (Exception e) {
@@ -910,7 +911,7 @@ public class DynamoDBTableManager {
                                 .timeToLiveSpecification(
                                         TimeToLiveSpecification.builder()
                                                 .enabled(true)
-                                                .attributeName("ttl")
+                                                .attributeName(TTL)
                                                 .build())
                                 .build());
             } catch (Exception e) {
@@ -967,7 +968,7 @@ public class DynamoDBTableManager {
                                 .timeToLiveSpecification(
                                         TimeToLiveSpecification.builder()
                                                 .enabled(true)
-                                                .attributeName("ttl")
+                                                .attributeName(TTL)
                                                 .build())
                                 .build());
             } catch (Exception e) {
@@ -1069,7 +1070,7 @@ public class DynamoDBTableManager {
                                 .timeToLiveSpecification(
                                         TimeToLiveSpecification.builder()
                                                 .enabled(true)
-                                                .attributeName("ttl")
+                                                .attributeName(TTL)
                                                 .build())
                                 .build());
             } catch (Exception e) {
@@ -1205,7 +1206,7 @@ public class DynamoDBTableManager {
                                 .timeToLiveSpecification(
                                         TimeToLiveSpecification.builder()
                                                 .enabled(true)
-                                                .attributeName("ttl")
+                                                .attributeName(TTL)
                                                 .build())
                                 .build());
             } catch (Exception e) {
