@@ -714,9 +714,9 @@ public class CategoryClassificationModel {
         public long totalTrainingSamples;
 
         // Default constructor for Jackson
-        ModelData() {}
+        /* default */ ModelData() {}
 
-        ModelData(
+        /* default */ ModelData(
                 final Map<String, Map<String, Integer>> merchantCategoryCounts,
                 final Map<String, Map<String, Integer>> keywordCategoryCounts,
                 final Map<String, Map<String, Integer>> amountRangeCategoryCounts,

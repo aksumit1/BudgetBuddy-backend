@@ -766,11 +766,11 @@ public class BalanceExtractor {
 
     /** Internal class to represent a balance match */
     private static class BalanceMatch {
-        final BigDecimal balance;
-        final String label;
-        final int position;
+        /* default */ final BigDecimal balance;
+        /* default */ final String label;
+        /* default */ final int position;
 
-        BalanceMatch(final BigDecimal balance, final String label, final int position) {
+        /* default */ BalanceMatch(final BigDecimal balance, final String label, final int position) {
             this.balance = balance;
             this.label = label;
             this.position = position;

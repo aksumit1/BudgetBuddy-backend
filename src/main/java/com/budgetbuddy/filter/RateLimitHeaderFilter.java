@@ -190,7 +190,7 @@ public class RateLimitHeaderFilter extends OncePerRequestFilter {
         private final int remaining;
         private final long reset;
 
-        RateLimitInfo(final int limit, final int remaining, final long reset) {
+        /* default */ RateLimitInfo(final int limit, final int remaining, final long reset) {
             this.limit = limit;
             this.remaining = remaining;
             this.reset = reset;

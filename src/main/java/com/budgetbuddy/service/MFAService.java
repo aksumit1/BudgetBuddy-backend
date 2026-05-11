@@ -394,7 +394,7 @@ public class MFAService {
         private final String code;
         private final Instant expiresAt;
 
-        OTPInfo(final String code, final Instant expiresAt) {
+        /* default */ OTPInfo(final String code, final Instant expiresAt) {
             this.code = code;
             this.expiresAt = expiresAt;
         }

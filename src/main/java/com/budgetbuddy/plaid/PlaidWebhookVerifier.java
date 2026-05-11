@@ -45,10 +45,10 @@ public class PlaidWebhookVerifier {
     private static final Logger LOGGER = LoggerFactory.getLogger(PlaidWebhookVerifier.class);
 
     /** How long a fetched JWK stays cached. Plaid rotates infrequently; 24h is generous. */
-    static final Duration KEY_CACHE_TTL = Duration.ofHours(24);
+    /* default */ static final Duration KEY_CACHE_TTL = Duration.ofHours(24);
 
     /** Allowed clock skew between Plaid's {@code iat} and server time. Matches Plaid's docs. */
-    static final Duration IAT_TOLERANCE = Duration.ofMinutes(5);
+    /* default */ static final Duration IAT_TOLERANCE = Duration.ofMinutes(5);
 
     private final PlaidService plaidService;
     private final ConcurrentHashMap<String, CachedKey> keyCache = new ConcurrentHashMap<>();
@@ -205,7 +205,7 @@ public class PlaidWebhookVerifier {
 
     private record CachedKey(ECPublicKey key, Instant expiresAt) {
         // jjwt's KeyLocator expects a Key; ECPublicKey extends Key so this is compatible.
-        Key asKey() {
+        /* default */ Key asKey() {
             return key;
         }
     }

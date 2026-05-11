@@ -87,13 +87,13 @@ public class TransactionAnomalyService {
         LOOSE(1.5), // higher thresholds → fewer anomalies
         NORMAL(1.0),
         STRICT(0.7); // lower thresholds → more anomalies
-        final double multiplier;
+        /* default */ final double multiplier;
 
         Sensitivity(final double m) {
             this.multiplier = m;
         }
 
-        static Sensitivity parse(final String raw) {
+        /* default */ static Sensitivity parse(final String raw) {
             if (raw == null) {
                 return NORMAL;
             }

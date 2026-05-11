@@ -186,7 +186,7 @@ public class BudgetRolloverService {
      * case-insensitive because some import paths normalize to uppercase ("USD") while others
      * preserve client-supplied casing.
      */
-    static boolean matchesBudgetCurrency(final BudgetTable budget, final TransactionTable t) {
+    /* default */ static boolean matchesBudgetCurrency(final BudgetTable budget, final TransactionTable t) {
         final String bc = budget.getCurrencyCode();
         final String tc = t.getCurrencyCode();
         if (bc == null || bc.isBlank() || tc == null || tc.isBlank()) {
@@ -211,7 +211,7 @@ public class BudgetRolloverService {
      * of truth for budget arithmetic. Returns true when the transaction is posted or its pending
      * flag is unset (null = pre-Plaid era data, assume posted).
      */
-    static boolean isPosted(final TransactionTable t) {
+    /* default */ static boolean isPosted(final TransactionTable t) {
         return !Boolean.TRUE.equals(t.getPending());
     }
 
@@ -219,7 +219,7 @@ public class BudgetRolloverService {
      * Convenience predicate combining currency match and posted-only. Use this at call sites in
      * preference to inlining both checks; keeps the rule single-source-of-truth.
      */
-    static boolean countsTowardBudget(final BudgetTable budget, final TransactionTable t) {
+    /* default */ static boolean countsTowardBudget(final BudgetTable budget, final TransactionTable t) {
         return matchesBudgetCurrency(budget, t) && isPosted(t);
     }
 

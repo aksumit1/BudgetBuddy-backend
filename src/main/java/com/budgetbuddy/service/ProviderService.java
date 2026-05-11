@@ -227,7 +227,7 @@ public class ProviderService {
         private final boolean isStale;
         private final String lastError;
 
-        ProviderHealth(
+        /* default */ ProviderHealth(
                 final String providerId,
                 final boolean isHealthy,
                 final Instant lastSuccess,

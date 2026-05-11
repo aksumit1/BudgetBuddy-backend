@@ -794,11 +794,11 @@ public class SubscriptionAdvancedService {
     }
 
     private static class AlternativeInfo {
-        final String name;
-        final BigDecimal price;
-        final String reason;
+        /* default */ final String name;
+        /* default */ final BigDecimal price;
+        /* default */ final String reason;
 
-        AlternativeInfo(final String name, final BigDecimal price, final String reason) {
+        /* default */ AlternativeInfo(final String name, final BigDecimal price, final String reason) {
             this.name = name;
             this.price = price;
             this.reason = reason;

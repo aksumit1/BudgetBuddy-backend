@@ -133,10 +133,10 @@ public class PdfTemplateMissTracker {
     // ---- internals ----
 
     private static final class BucketKey {
-        final String institution;
-        final String accountType;
+        /* default */ final String institution;
+        /* default */ final String accountType;
 
-        BucketKey(final String institution, final String accountType) {
+        /* default */ BucketKey(final String institution, final String accountType) {
             this.institution = institution;
             this.accountType = accountType;
         }
@@ -159,7 +159,7 @@ public class PdfTemplateMissTracker {
     private final class Bucket {
         private final ConcurrentLinkedDeque<MissEvent> events = new ConcurrentLinkedDeque<>();
 
-        void record(final MissEvent event) {
+        /* default */ void record(final MissEvent event) {
             events.addLast(event);
             // Prune old + over-cap in one pass. Cheap because deque is a linked list.
             final Instant retentionCutoff = Instant.now().minus(MAX_RETENTION);
@@ -170,11 +170,11 @@ public class PdfTemplateMissTracker {
             }
         }
 
-        long countSince(final Instant cutoff) {
+        /* default */ long countSince(final Instant cutoff) {
             return events.stream().filter(e -> !e.at.isBefore(cutoff)).count();
         }
 
-        double averageFallbackRowsSince(final Instant cutoff) {
+        /* default */ double averageFallbackRowsSince(final Instant cutoff) {
             return events.stream()
                     .filter(e -> !e.at.isBefore(cutoff))
                     .mapToInt(e -> e.fallbackRows)
@@ -182,7 +182,7 @@ public class PdfTemplateMissTracker {
                     .orElse(0.0);
         }
 
-        Instant latest() {
+        /* default */ Instant latest() {
             final MissEvent last = events.peekLast();
             return last != null ? last.at : Instant.EPOCH;
         }
@@ -192,12 +192,12 @@ public class PdfTemplateMissTracker {
             value = {"URF_UNREAD_FIELD"},
             justification = "Telemetry DTO — fields read for serialization/logging")
     private static final class MissEvent {
-        final Instant at;
-        final int pageCount;
-        final int textLength;
-        final int fallbackRows;
+        /* default */ final Instant at;
+        /* default */ final int pageCount;
+        /* default */ final int textLength;
+        /* default */ final int fallbackRows;
 
-        MissEvent(
+        /* default */ MissEvent(
                 final Instant at,
                 final int pageCount,
                 final int textLength,

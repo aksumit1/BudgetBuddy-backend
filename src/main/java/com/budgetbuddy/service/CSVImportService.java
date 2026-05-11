@@ -1806,7 +1806,7 @@ public class CSVImportService {
      * @param rowNumber The row number (for error reporting)
      * @param headerLine The CSV header line (for currency detection)
      */
-    ParsedTransaction parseTransaction(
+    /* default */ ParsedTransaction parseTransaction(
             final ParsedRow row,
             final int rowNumber,
             final String headerLine,
@@ -1835,7 +1835,7 @@ public class CSVImportService {
      * @param detectedAccount Detected account information (for transaction type determination)
      * @return ParsedTransaction object
      */
-    ParsedTransaction parseTransaction(
+    /* default */ ParsedTransaction parseTransaction(
             final ParsedRow row,
             final int rowNumber,
             final String headerLine,
@@ -3441,10 +3441,10 @@ public class CSVImportService {
      * currencyCode]
      */
     private static class AmountParseResult {
-        BigDecimal amount;
-        String currencyCode;
+        /* default */ BigDecimal amount;
+        /* default */ String currencyCode;
 
-        AmountParseResult(final BigDecimal amount, final String currencyCode) {
+        /* default */ AmountParseResult(final BigDecimal amount, final String currencyCode) {
             this.amount = amount;
             this.currencyCode = currencyCode;
         }

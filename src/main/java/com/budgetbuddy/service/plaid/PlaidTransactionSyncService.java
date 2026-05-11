@@ -732,11 +732,11 @@ public class PlaidTransactionSyncService {
 
     /** Result of sync operation */
     private static class SyncResult {
-        final int syncedCount;
-        final int errorCount;
-        final int duplicateCount;
+        /* default */ final int syncedCount;
+        /* default */ final int errorCount;
+        /* default */ final int duplicateCount;
 
-        SyncResult(final int syncedCount, final int errorCount, final int duplicateCount) {
+        /* default */ SyncResult(final int syncedCount, final int errorCount, final int duplicateCount) {
             this.syncedCount = syncedCount;
             this.errorCount = errorCount;
             this.duplicateCount = duplicateCount;

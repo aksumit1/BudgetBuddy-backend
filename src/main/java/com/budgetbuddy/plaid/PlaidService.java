@@ -1132,9 +1132,9 @@ public class PlaidService {
 
     /** Plaid error response structure */
     private static final class PlaidErrorResponse {
-        String errorCode;
-        String errorMessage;
-        String errorType;
-        String requestId;
+        /* default */ String errorCode;
+        /* default */ String errorMessage;
+        /* default */ String errorType;
+        /* default */ String requestId;
     }
 }

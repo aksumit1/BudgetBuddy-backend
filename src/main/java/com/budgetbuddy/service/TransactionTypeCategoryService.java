@@ -1680,12 +1680,12 @@ public class TransactionTypeCategoryService {
      * determination
      */
     private static class AccountTypeInfo {
-        boolean isCheckingOrSavings;
-        boolean isCreditCard;
-        boolean isInvestment;
-        boolean isLoan;
+        /* default */ boolean isCheckingOrSavings;
+        /* default */ boolean isCreditCard;
+        /* default */ boolean isInvestment;
+        /* default */ boolean isLoan;
 
-        AccountTypeInfo(final String accountType, final String accountSubtype) {
+        /* default */ AccountTypeInfo(final String accountType, final String accountSubtype) {
             final String typeLower =
                     accountType != null ? accountType.toLowerCase(Locale.ROOT) : "";
             final String subtypeLower =

@@ -870,10 +870,10 @@ public class FinancialInsightsPredictionService {
     // MARK: - Model Classes
 
     public static class TrendAnalysis {
-        final double slope; // Positive = increasing, Negative = decreasing
-        final double confidence; // 0.0 to 1.0
+        /* default */ final double slope; // Positive = increasing, Negative = decreasing
+        /* default */ final double confidence; // 0.0 to 1.0
 
-        TrendAnalysis(final double slope, final double confidence) {
+        /* default */ TrendAnalysis(final double slope, final double confidence) {
             this.slope = slope;
             this.confidence = confidence;
         }
@@ -1170,9 +1170,9 @@ public class FinancialInsightsPredictionService {
 
     // Data transfer objects for predictions
     public static class GoalData {
-        final String name;
-        final BigDecimal currentAmount;
-        final BigDecimal targetAmount;
+        /* default */ final String name;
+        /* default */ final BigDecimal currentAmount;
+        /* default */ final BigDecimal targetAmount;
 
         public GoalData(
                 final String name, final BigDecimal currentAmount, final BigDecimal targetAmount) {
@@ -1183,8 +1183,8 @@ public class FinancialInsightsPredictionService {
     }
 
     public static class PaymentPattern {
-        final BigDecimal amount;
-        final int expectedIntervalDays; // e.g., 30 for monthly
+        /* default */ final BigDecimal amount;
+        /* default */ final int expectedIntervalDays; // e.g., 30 for monthly
 
         public PaymentPattern(final BigDecimal amount, final int expectedIntervalDays) {
             this.amount = amount;
@@ -1193,9 +1193,9 @@ public class FinancialInsightsPredictionService {
     }
 
     public static class AccountData {
-        final String accountName;
-        final BigDecimal balance;
-        final double interestRate;
+        /* default */ final String accountName;
+        /* default */ final BigDecimal balance;
+        /* default */ final double interestRate;
 
         public AccountData(
                 final String accountName, final BigDecimal balance, final double interestRate) {

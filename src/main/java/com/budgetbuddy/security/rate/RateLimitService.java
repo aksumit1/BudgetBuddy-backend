@@ -452,7 +452,7 @@ public class RateLimitService {
         private final AtomicInteger tokens;
         private final AtomicLong lastRefill;
 
-        TokenBucket(final RateLimitConfig config) {
+        /* default */ TokenBucket(final RateLimitConfig config) {
             if (config == null) {
                 throw new IllegalArgumentException("RateLimitConfig cannot be null");
             }
@@ -461,7 +461,7 @@ public class RateLimitService {
             this.lastRefill = new AtomicLong(System.currentTimeMillis());
         }
 
-        TokenBucket(final RateLimitConfig config, final int tokens, final long lastRefill) {
+        /* default */ TokenBucket(final RateLimitConfig config, final int tokens, final long lastRefill) {
             if (config == null) {
                 throw new IllegalArgumentException("RateLimitConfig cannot be null");
             }
@@ -512,10 +512,10 @@ public class RateLimitService {
     }
 
     private static class RateLimitConfig {
-        final int maxRequests;
-        final int windowSeconds;
+        /* default */ final int maxRequests;
+        /* default */ final int windowSeconds;
 
-        RateLimitConfig(final int maxRequests, final int windowSeconds) {
+        /* default */ RateLimitConfig(final int maxRequests, final int windowSeconds) {
             if (maxRequests <= 0) {
                 throw new IllegalArgumentException("maxRequests must be positive");
             }

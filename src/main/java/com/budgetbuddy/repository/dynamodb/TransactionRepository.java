@@ -700,13 +700,13 @@ public class TransactionRepository {
      * surfaced twice (GSI projection lag, double-write races) is only emitted once per query. Kept
      * package-private for unit testing.
      */
-    static final class TransactionDeduper {
+    /* default */ static final class TransactionDeduper {
         private final Set<String> seenTxIds = new HashSet<>();
         private final Set<String> seenPlaidIds = new HashSet<>();
         private int duplicates;
 
         /** Returns {@code true} if the transaction is new, {@code false} if already seen. */
-        boolean admit(final TransactionTable t) {
+        /* default */ boolean admit(final TransactionTable t) {
             final String txId = t.getTransactionId();
             final String plaidId = t.getPlaidTransactionId();
             if (txId != null && !seenTxIds.add(txId)) {
@@ -734,7 +734,7 @@ public class TransactionRepository {
             return true;
         }
 
-        int duplicateCount() {
+        /* default */ int duplicateCount() {
             return duplicates;
         }
     }

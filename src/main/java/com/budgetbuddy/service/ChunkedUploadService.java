@@ -51,24 +51,24 @@ public class ChunkedUploadService {
             },
             justification = "DTO — fields are read/written by Jackson via reflection")
     private static class UploadSession {
-        final String uploadId;
-        final int totalChunks;
-        final Map<Integer, byte[]> chunks = new ConcurrentHashMap<>();
-        final long createdAt;
-        String filename;
-        String contentType;
+        /* default */ final String uploadId;
+        /* default */ final int totalChunks;
+        /* default */ final Map<Integer, byte[]> chunks = new ConcurrentHashMap<>();
+        /* default */ final long createdAt;
+        /* default */ String filename;
+        /* default */ String contentType;
 
-        UploadSession(final String uploadId, final int totalChunks) {
+        /* default */ UploadSession(final String uploadId, final int totalChunks) {
             this.uploadId = uploadId;
             this.totalChunks = totalChunks;
             this.createdAt = System.currentTimeMillis();
         }
 
-        boolean isComplete() {
+        /* default */ boolean isComplete() {
             return chunks.size() == totalChunks;
         }
 
-        byte[] assemble() throws IOException {
+        /* default */ byte[] assemble() throws IOException {
             final ByteArrayOutputStream output = new ByteArrayOutputStream();
             for (int i = 0; i < totalChunks; i++) {
                 final byte[] chunk = chunks.get(i);

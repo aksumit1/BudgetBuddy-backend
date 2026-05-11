@@ -1397,10 +1397,10 @@ public class AccountDetectionService {
      * column-detect helpers don't take five parameters.
      */
     private static final class HeaderIndex {
-        final Map<String, String> headerMap;
-        final Map<String, Integer> headerIndexMap;
+        /* default */ final Map<String, String> headerMap;
+        /* default */ final Map<String, Integer> headerIndexMap;
 
-        HeaderIndex(
+        /* default */ HeaderIndex(
                 final Map<String, String> headerMap, final Map<String, Integer> headerIndexMap) {
             this.headerMap = headerMap;
             this.headerIndexMap = headerIndexMap;
@@ -2110,12 +2110,12 @@ public class AccountDetectionService {
 
     /** Match structure to track all match information for scoring */
     private static final class InstitutionMatch {
-        String normalizedName;
-        double totalScore = 0.0;
-        int headerFrequency = 0;
-        int transactionFrequency = 0;
-        boolean hasWebsiteMatch = false;
-        int keywordSpecificity = 0; // 0=abbreviation, 1=partial, 2=full name
+        /* default */ String normalizedName;
+        /* default */ double totalScore = 0.0;
+        /* default */ int headerFrequency = 0;
+        /* default */ int transactionFrequency = 0;
+        /* default */ boolean hasWebsiteMatch = false;
+        /* default */ int keywordSpecificity = 0; // 0=abbreviation, 1=partial, 2=full name
     }
 
     /**
@@ -4452,15 +4452,15 @@ public class AccountDetectionService {
      * cyclomatic complexity manageable.
      */
     private static final class NameCandidate {
-        final String name;
-        int priority; // higher = better
-        String patternType; // for logging; updated when a higher-priority hit lands
-        boolean isAllCaps;
-        boolean isContextual;
-        int frequency = 1;
-        final Set<String> patternTypes = new HashSet<>();
+        /* default */ final String name;
+        /* default */ int priority; // higher = better
+        /* default */ String patternType; // for logging; updated when a higher-priority hit lands
+        /* default */ boolean isAllCaps;
+        /* default */ boolean isContextual;
+        /* default */ int frequency = 1;
+        /* default */ final Set<String> patternTypes = new HashSet<>();
 
-        NameCandidate(
+        /* default */ NameCandidate(
                 final String name,
                 final int priority,
                 final String patternType,
@@ -4475,7 +4475,7 @@ public class AccountDetectionService {
         }
 
         /** Merge another candidate with the same (normalized) name into this one. */
-        void merge(final NameCandidate other) {
+        /* default */ void merge(final NameCandidate other) {
             this.frequency++;
             this.patternTypes.addAll(other.patternTypes);
             if (other.priority > this.priority) {
@@ -4495,7 +4495,7 @@ public class AccountDetectionService {
          * single-word and all-lowercase penalties are large enough to dominate ties — proper names
          * should not be one lowercase token.
          */
-        double calculateCompositeScore() {
+        /* default */ double calculateCompositeScore() {
             final double priorityScore = priority * 90.0;
             final double frequencyScore = Math.log1p(frequency) * 50.0;
             final double patternTypesScore = patternTypes.size() * 20.0;

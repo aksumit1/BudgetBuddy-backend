@@ -1281,13 +1281,13 @@ public class SemanticMatchingService {
 
     /** Bag of context fields a rule may inspect. */
     private static final class CategorizationContext {
-        final String textLower;
-        final String accountTypeLower;
-        final String accountSubtypeLower;
-        final String channelLower;
-        final java.math.BigDecimal amount;
+        /* default */ final String textLower;
+        /* default */ final String accountTypeLower;
+        /* default */ final String accountSubtypeLower;
+        /* default */ final String channelLower;
+        /* default */ final java.math.BigDecimal amount;
 
-        CategorizationContext(
+        /* default */ CategorizationContext(
                 final String text,
                 final String type,
                 final String sub,
@@ -1300,7 +1300,7 @@ public class SemanticMatchingService {
             this.amount = amount;
         }
 
-        boolean textContainsAny(final java.util.Collection<String> phrases) {
+        /* default */ boolean textContainsAny(final java.util.Collection<String> phrases) {
             for (final String p : phrases) {
                 if (textLower.contains(p)) {
                     return true;
@@ -1309,7 +1309,7 @@ public class SemanticMatchingService {
             return false;
         }
 
-        boolean accountMatchesAny(final java.util.Collection<String> keywords) {
+        /* default */ boolean accountMatchesAny(final java.util.Collection<String> keywords) {
             for (final String k : keywords) {
                 if (accountTypeLower.contains(k) || accountSubtypeLower.contains(k)) {
                     return true;
@@ -1321,12 +1321,12 @@ public class SemanticMatchingService {
 
     /** A single context-categorisation rule. Data, not code. */
     private static final class ContextRule {
-        final String source;
-        final String category;
-        final double confidence;
-        final java.util.function.Predicate<CategorizationContext> predicate;
+        /* default */ final String source;
+        /* default */ final String category;
+        /* default */ final double confidence;
+        /* default */ final java.util.function.Predicate<CategorizationContext> predicate;
 
-        ContextRule(
+        /* default */ ContextRule(
                 final String source,
                 final String category,
                 final double confidence,
@@ -1337,7 +1337,7 @@ public class SemanticMatchingService {
             this.predicate = predicate;
         }
 
-        boolean matches(final CategorizationContext ctx) {
+        /* default */ boolean matches(final CategorizationContext ctx) {
             return predicate.test(ctx);
         }
     }

@@ -1165,7 +1165,7 @@ public class PDFImportService {
      * <p>Matches are tried in the same priority order as the year-extraction method. Returns null
      * when no recognised "period: X - Y" phrase fires.
      */
-    StatementPeriod extractStatementPeriodBounds(final String text) {
+    /* default */ StatementPeriod extractStatementPeriodBounds(final String text) {
         if (text == null || text.isEmpty()) {
             return null;
         }
@@ -2791,7 +2791,7 @@ public class PDFImportService {
      *
      * <p>Drops page footers entirely so they don't break the chain.
      */
-    String stitchContinuationLines(final String text) {
+    /* default */ String stitchContinuationLines(final String text) {
         if (text == null || text.isEmpty()) {
             return text;
         }

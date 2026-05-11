@@ -29,7 +29,7 @@ public class RequestBodySizeLimitFilter extends OncePerRequestFilter {
     private static final Logger LOGGER = LoggerFactory.getLogger(RequestBodySizeLimitFilter.class);
 
     /** Cap for JSON/text request bodies — matches the existing 10MB multipart cap. */
-    static final long MAX_JSON_BODY_BYTES = 10L * 1024 * 1024;
+    /* default */ static final long MAX_JSON_BODY_BYTES = 10L * 1024 * 1024;
 
     @Override
     protected void doFilterInternal(

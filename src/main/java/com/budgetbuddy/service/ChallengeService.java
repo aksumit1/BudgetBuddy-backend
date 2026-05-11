@@ -128,7 +128,7 @@ public class ChallengeService {
         private final String email;
         private final Instant expiresAt;
 
-        ChallengeInfo(final String email, final Instant expiresAt) {
+        /* default */ ChallengeInfo(final String email, final Instant expiresAt) {
             this.email = email;
             this.expiresAt = expiresAt;
         }

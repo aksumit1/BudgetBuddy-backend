@@ -80,7 +80,7 @@ public class StartupReadinessProbe {
     }
 
     @EventListener(ApplicationReadyEvent.class)
-    void probeAtStartup() {
+    /* default */ void probeAtStartup() {
         LOGGER.info(
                 "Startup readiness probe beginning. Tables under check: {} (prefix='{}')",
                 CRITICAL_TABLES,

@@ -223,7 +223,7 @@ public class PasswordResetService {
         private int attempts;
         private boolean verified;
 
-        ResetCodeInfo(final String code, final Instant expiresAt, final int attempts) {
+        /* default */ ResetCodeInfo(final String code, final Instant expiresAt, final int attempts) {
             this.code = code;
             this.expiresAt = expiresAt;
             this.attempts = attempts;

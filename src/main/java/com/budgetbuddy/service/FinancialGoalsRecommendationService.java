@@ -432,18 +432,18 @@ public class FinancialGoalsRecommendationService {
     // Model classes
 
     private static class FinancialAnalysis {
-        final BigDecimal monthlyIncome;
-        final BigDecimal monthlyExpenses;
-        final BigDecimal monthlySavings;
-        final double savingsRate;
-        final BigDecimal liquidAssets;
-        final BigDecimal totalDebt;
-        final double debtToIncome;
-        final BigDecimal emergencyFundTarget;
-        final BigDecimal emergencyFundGap;
-        final double emergencyFundProgress;
+        /* default */ final BigDecimal monthlyIncome;
+        /* default */ final BigDecimal monthlyExpenses;
+        /* default */ final BigDecimal monthlySavings;
+        /* default */ final double savingsRate;
+        /* default */ final BigDecimal liquidAssets;
+        /* default */ final BigDecimal totalDebt;
+        /* default */ final double debtToIncome;
+        /* default */ final BigDecimal emergencyFundTarget;
+        /* default */ final BigDecimal emergencyFundGap;
+        /* default */ final double emergencyFundProgress;
 
-        FinancialAnalysis(
+        /* default */ FinancialAnalysis(
                 final BigDecimal monthlyIncome,
                 final BigDecimal monthlyExpenses,
                 final BigDecimal monthlySavings,
