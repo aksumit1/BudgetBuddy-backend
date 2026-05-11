@@ -74,14 +74,46 @@ public class HealthCheckConfig {
         };
     }
 
+    /**
+     * Readiness indicator backed by {@link StartupReadinessProbe}. Returns DOWN with the probe's
+     * last failure reason until every critical DynamoDB table has been confirmed reachable; UP once
+     * the probe succeeds. Wire the ALB / k8s readiness probe at {@code /actuator/health/readiness}
+     * — the existing path is gated by this bean's state.
+     */
     @Bean
-    public HealthIndicator readinessHealthIndicator() {
-        return new HealthIndicator() {
-            @Override
-            public Health health() {
-                // Check if application is ready to serve traffic
-                // Add checks for critical dependencies
+    public HealthIndicator readinessHealthIndicator(final StartupReadinessProbe probe) {
+        return () -> {
+            if (probe.isReady()) {
                 return Health.up().withDetail(STATUS, "ready").build();
+            }
+            final String reason = probe.lastFailure();
+            return Health.down()
+                    .withDetail(STATUS, "not-ready")
+                    .withDetail("reason", reason == null ? "probe in progress" : reason)
+                    .build();
+        };
+    }
+
+    /**
+     * SecretsManager health probe. The JWT signing key is fetched from Secrets Manager; if Secrets
+     * Manager is unreachable after a key rotation, JWT verification falls over for every request.
+     * Probing it here lets the orchestrator drop the task before customer impact.
+     */
+    @Bean
+    public HealthIndicator secretsManagerHealthIndicator(
+            final com.budgetbuddy.aws.secrets.SecretsManagerService secretsManagerService) {
+        return () -> {
+            try {
+                // Probe the SDK roundtrip. The default "" lets the call return cleanly even
+                // when the sentinel name doesn't exist — we're testing reachability, not
+                // value retrieval.
+                secretsManagerService.getSecret("budgetbuddy/healthcheck", "");
+                return Health.up().withDetail(SERVICE, "SecretsManager").build();
+            } catch (Exception e) {
+                return Health.down()
+                        .withDetail(SERVICE, "SecretsManager")
+                        .withDetail("error", e.getClass().getSimpleName())
+                        .build();
             }
         };
     }

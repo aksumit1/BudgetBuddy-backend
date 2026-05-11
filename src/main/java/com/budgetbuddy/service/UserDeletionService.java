@@ -12,6 +12,7 @@ import com.budgetbuddy.repository.dynamodb.AccountRepository;
 import com.budgetbuddy.repository.dynamodb.AnomalyFeedbackRepository;
 import com.budgetbuddy.repository.dynamodb.AuditLogRepository;
 import com.budgetbuddy.repository.dynamodb.BudgetRepository;
+import com.budgetbuddy.repository.dynamodb.CustomMerchantMappingRepository;
 import com.budgetbuddy.repository.dynamodb.DeviceTokenRepository;
 import com.budgetbuddy.repository.dynamodb.FIDO2CredentialRepository;
 import com.budgetbuddy.repository.dynamodb.GoalRepository;
@@ -19,6 +20,7 @@ import com.budgetbuddy.repository.dynamodb.NetWorthSnapshotRepository;
 import com.budgetbuddy.repository.dynamodb.SubscriptionRepository;
 import com.budgetbuddy.repository.dynamodb.TransactionActionRepository;
 import com.budgetbuddy.repository.dynamodb.TransactionRepository;
+import com.budgetbuddy.repository.dynamodb.UserCorrectionRepository;
 import com.budgetbuddy.repository.dynamodb.UserPreferencesRepository;
 import com.budgetbuddy.repository.dynamodb.UserRepository;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -74,15 +76,15 @@ public class UserDeletionService {
     private final AnomalyFeedbackRepository anomalyFeedbackRepository;
     private final NetWorthSnapshotRepository netWorthSnapshotRepository;
     private final UserPreferencesRepository userPreferencesRepository;
+    private final UserCorrectionRepository userCorrectionRepository;
+    private final CustomMerchantMappingRepository customMerchantMappingRepository;
 
     // GDPR coverage status. Tables swept by deleteAllUserData below:
     //   accounts, transactions, transaction-actions, budgets, goals, subscriptions,
     //   import-history, S3 objects, device-tokens, anomaly-feedback, net-worth-snapshots,
-    //   user-preferences. Audit logs are anonymized (not deleted) by design for compliance.
+    //   user-preferences, user-corrections, custom-merchant-mappings.
+    // Audit logs are anonymized (not deleted) by design for compliance.
     // FIDO2 credentials are deleted only by deleteAccountCompletely (not just data wipe).
-    // Tables NOT yet swept because no repository exists in the codebase:
-    //   custom-merchant-mapping, user-corrections (per-user ML training rows).
-    // These need their repository class created before they can be wired here.
 
     public UserDeletionService(
             final UserRepository userRepository,
@@ -101,7 +103,9 @@ public class UserDeletionService {
             final DeviceTokenRepository deviceTokenRepository,
             final AnomalyFeedbackRepository anomalyFeedbackRepository,
             final NetWorthSnapshotRepository netWorthSnapshotRepository,
-            final UserPreferencesRepository userPreferencesRepository) {
+            final UserPreferencesRepository userPreferencesRepository,
+            final UserCorrectionRepository userCorrectionRepository,
+            final CustomMerchantMappingRepository customMerchantMappingRepository) {
         this.userRepository = userRepository;
         this.accountRepository = accountRepository;
         this.transactionRepository = transactionRepository;
@@ -119,6 +123,8 @@ public class UserDeletionService {
         this.anomalyFeedbackRepository = anomalyFeedbackRepository;
         this.netWorthSnapshotRepository = netWorthSnapshotRepository;
         this.userPreferencesRepository = userPreferencesRepository;
+        this.userCorrectionRepository = userCorrectionRepository;
+        this.customMerchantMappingRepository = customMerchantMappingRepository;
     }
 
     /**
@@ -179,18 +185,25 @@ public class UserDeletionService {
             // 13. Delete per-user preferences (opt-ins, notification settings)
             deleteUserPreferencesForUser(userId);
 
-            // 14. Anonymize audit logs (keep for compliance, but remove PII)
+            // 14. Delete per-user ML training rows (corrections + custom-merchant mappings)
+            deleteCategoryLearningForUser(userId);
+
+            // 15. Anonymize audit logs (keep for compliance, but remove PII)
             anonymizeAuditLogsForUser(userId);
 
-            // 15. Evict all caches for this user
+            // 16. Evict all caches for this user
             evictUserCaches(userId);
 
             // Log deletion action
             auditLogService.logDataDeletion(userId);
 
-            LOGGER.info("Successfully deleted all data for user: {}", userId);
+            if (LOGGER.isInfoEnabled()) {
+                LOGGER.info("Successfully deleted all data for user: {}", userId);
+            }
         } catch (Exception e) {
-            LOGGER.error("Error deleting user data for user {}: {}", userId, e.getMessage(), e);
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error("Error deleting user data for user {}: {}", userId, e.getMessage(), e);
+            }
             throw new AppException(
                     ErrorCode.INTERNAL_SERVER_ERROR, "Failed to delete user data", null, null, e);
         }
@@ -230,10 +243,17 @@ public class UserDeletionService {
                     null,
                     null);
 
-            LOGGER.info("Successfully deleted Plaid integration for user: {}", userId);
+            if (LOGGER.isInfoEnabled()) {
+                LOGGER.info("Successfully deleted Plaid integration for user: {}", userId);
+            }
         } catch (Exception e) {
-            LOGGER.error(
-                    "Error deleting Plaid integration for user {}: {}", userId, e.getMessage(), e);
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error(
+                        "Error deleting Plaid integration for user {}: {}",
+                        userId,
+                        e.getMessage(),
+                        e);
+            }
             throw new AppException(
                     ErrorCode.INTERNAL_SERVER_ERROR,
                     "Failed to delete Plaid integration",
@@ -271,10 +291,17 @@ public class UserDeletionService {
                     null,
                     null);
 
-            LOGGER.info("Successfully deleted account completely for user: {}", userId);
+            if (LOGGER.isInfoEnabled()) {
+                LOGGER.info("Successfully deleted account completely for user: {}", userId);
+            }
         } catch (Exception e) {
-            LOGGER.error(
-                    "Error deleting account completely for user {}: {}", userId, e.getMessage(), e);
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error(
+                        "Error deleting account completely for user {}: {}",
+                        userId,
+                        e.getMessage(),
+                        e);
+            }
             throw new AppException(
                     ErrorCode.INTERNAL_SERVER_ERROR, "Failed to delete account", null, null, e);
         }
@@ -310,9 +337,14 @@ public class UserDeletionService {
                         accountRepository.save(account);
                     }
                 }
-                LOGGER.info("Cleared Plaid IDs for item: {} (user: {})", itemId, userId);
+                if (LOGGER.isInfoEnabled()) {
+                    LOGGER.info("Cleared Plaid IDs for item: {} (user: {})", itemId, userId);
+                }
             } catch (Exception e) {
-                LOGGER.warn("Failed to clear Plaid IDs for item {}: {}", itemId, e.getMessage());
+                if (LOGGER.isWarnEnabled()) {
+                    LOGGER.warn(
+                            "Failed to clear Plaid IDs for item {}: {}", itemId, e.getMessage());
+                }
                 // Continue with other items
             }
         }
@@ -332,11 +364,17 @@ public class UserDeletionService {
                 try {
                     actionRepository.delete(action.getActionId());
                 } catch (Exception e) {
-                    LOGGER.warn(
-                            "Failed to delete action {}: {}", action.getActionId(), e.getMessage());
+                    if (LOGGER.isWarnEnabled()) {
+                        LOGGER.warn(
+                                "Failed to delete action {}: {}",
+                                action.getActionId(),
+                                e.getMessage());
+                    }
                 }
             }
-            LOGGER.info("Deleted {} transaction actions for user: {}", actions.size(), userId);
+            if (LOGGER.isInfoEnabled()) {
+                LOGGER.info("Deleted {} transaction actions for user: {}", actions.size(), userId);
+            }
         } else {
             LOGGER.debug("No transaction actions found for user: {}", userId);
         }
@@ -388,25 +426,31 @@ public class UserDeletionService {
                 try {
                     transactionRepository.batchDelete(transactionIds);
                     totalDeleted += transactionIds.size();
-                    LOGGER.debug(
-                            "Deleted {} transactions (batch {}, total deleted: {})",
-                            transactionIds.size(),
-                            iterationCount,
-                            totalDeleted);
+                    if (LOGGER.isDebugEnabled()) {
+                        LOGGER.debug(
+                                "Deleted {} transactions (batch {}, total deleted: {})",
+                                transactionIds.size(),
+                                iterationCount,
+                                totalDeleted);
+                    }
                 } catch (Exception e) {
                     // Fallback to individual deletion
-                    LOGGER.warn(
-                            "Batch delete failed, falling back to individual deletion: {}",
-                            e.getMessage());
+                    if (LOGGER.isWarnEnabled()) {
+                        LOGGER.warn(
+                                "Batch delete failed, falling back to individual deletion: {}",
+                                e.getMessage());
+                    }
                     for (final String transactionId : transactionIds) {
                         try {
                             transactionRepository.delete(transactionId);
                             totalDeleted++;
                         } catch (Exception ex) {
-                            LOGGER.warn(
-                                    "Failed to delete transaction {}: {}",
-                                    transactionId,
-                                    ex.getMessage());
+                            if (LOGGER.isWarnEnabled()) {
+                                LOGGER.warn(
+                                        "Failed to delete transaction {}: {}",
+                                        transactionId,
+                                        ex.getMessage());
+                            }
                         }
                     }
                 }
@@ -440,17 +484,24 @@ public class UserDeletionService {
 
             try {
                 accountRepository.batchDelete(accountIds);
-                LOGGER.info("Deleted {} accounts for user: {}", accountIds.size(), userId);
+                if (LOGGER.isInfoEnabled()) {
+                    LOGGER.info("Deleted {} accounts for user: {}", accountIds.size(), userId);
+                }
             } catch (Exception e) {
                 // Fallback to individual deletion
-                LOGGER.warn(
-                        "Batch delete failed, falling back to individual deletion: {}",
-                        e.getMessage());
+                if (LOGGER.isWarnEnabled()) {
+                    LOGGER.warn(
+                            "Batch delete failed, falling back to individual deletion: {}",
+                            e.getMessage());
+                }
                 for (final String accountId : accountIds) {
                     try {
                         accountRepository.delete(accountId);
                     } catch (Exception ex) {
-                        LOGGER.warn("Failed to delete account {}: {}", accountId, ex.getMessage());
+                        if (LOGGER.isWarnEnabled()) {
+                            LOGGER.warn(
+                                    "Failed to delete account {}: {}", accountId, ex.getMessage());
+                        }
                     }
                 }
             }
@@ -466,11 +517,16 @@ public class UserDeletionService {
             try {
                 budgetRepository.delete(budget.getBudgetId());
             } catch (Exception e) {
-                LOGGER.warn("Failed to delete budget {}: {}", budget.getBudgetId(), e.getMessage());
+                if (LOGGER.isWarnEnabled()) {
+                    LOGGER.warn(
+                            "Failed to delete budget {}: {}", budget.getBudgetId(), e.getMessage());
+                }
             }
         }
 
-        LOGGER.info("Deleted {} budgets for user: {}", budgets.size(), userId);
+        if (LOGGER.isInfoEnabled()) {
+            LOGGER.info("Deleted {} budgets for user: {}", budgets.size(), userId);
+        }
     }
 
     /** Delete all goals for a user */
@@ -482,11 +538,15 @@ public class UserDeletionService {
             try {
                 goalRepository.delete(goal.getGoalId());
             } catch (Exception e) {
-                LOGGER.warn("Failed to delete goal {}: {}", goal.getGoalId(), e.getMessage());
+                if (LOGGER.isWarnEnabled()) {
+                    LOGGER.warn("Failed to delete goal {}: {}", goal.getGoalId(), e.getMessage());
+                }
             }
         }
 
-        LOGGER.info("Deleted {} goals for user: {}", goals.size(), userId);
+        if (LOGGER.isInfoEnabled()) {
+            LOGGER.info("Deleted {} goals for user: {}", goals.size(), userId);
+        }
     }
 
     /** Anonymize audit logs for a user Keeps logs for compliance but removes PII */
@@ -505,14 +565,18 @@ public class UserDeletionService {
                 log.setUserAgent("REDACTED");
                 auditLogRepository.save(log);
             } catch (Exception e) {
-                LOGGER.warn(
-                        "Failed to anonymize audit log {}: {}",
-                        log.getAuditLogId(),
-                        e.getMessage());
+                if (LOGGER.isWarnEnabled()) {
+                    LOGGER.warn(
+                            "Failed to anonymize audit log {}: {}",
+                            log.getAuditLogId(),
+                            e.getMessage());
+                }
             }
         }
 
-        LOGGER.info("Anonymized {} audit logs for user: {}", auditLogs.size(), userId);
+        if (LOGGER.isInfoEnabled()) {
+            LOGGER.info("Anonymized {} audit logs for user: {}", auditLogs.size(), userId);
+        }
     }
 
     /** Delete all subscriptions for a user */
@@ -523,14 +587,18 @@ public class UserDeletionService {
             try {
                 subscriptionRepository.delete(subscription.getSubscriptionId());
             } catch (Exception e) {
-                LOGGER.warn(
-                        "Failed to delete subscription {}: {}",
-                        subscription.getSubscriptionId(),
-                        e.getMessage());
+                if (LOGGER.isWarnEnabled()) {
+                    LOGGER.warn(
+                            "Failed to delete subscription {}: {}",
+                            subscription.getSubscriptionId(),
+                            e.getMessage());
+                }
             }
         }
 
-        LOGGER.info("Deleted {} subscriptions for user: {}", subscriptions.size(), userId);
+        if (LOGGER.isInfoEnabled()) {
+            LOGGER.info("Deleted {} subscriptions for user: {}", subscriptions.size(), userId);
+        }
     }
 
     /**
@@ -545,14 +613,18 @@ public class UserDeletionService {
             try {
                 fido2CredentialRepository.delete(credential.getCredentialId());
             } catch (Exception e) {
-                LOGGER.warn(
-                        "Failed to delete FIDO2 credential {}: {}",
-                        credential.getCredentialId(),
-                        e.getMessage());
+                if (LOGGER.isWarnEnabled()) {
+                    LOGGER.warn(
+                            "Failed to delete FIDO2 credential {}: {}",
+                            credential.getCredentialId(),
+                            e.getMessage());
+                }
             }
         }
 
-        LOGGER.info("Deleted {} FIDO2 credentials for user: {}", credentials.size(), userId);
+        if (LOGGER.isInfoEnabled()) {
+            LOGGER.info("Deleted {} FIDO2 credentials for user: {}", credentials.size(), userId);
+        }
     }
 
     /** Delete push-notification device-token rows registered to this user. */
@@ -564,8 +636,12 @@ public class UserDeletionService {
                 deviceTokenRepository.delete(token.getUserId(), token.getDeviceToken());
                 deleted++;
             } catch (Exception e) {
-                LOGGER.warn(
-                        "Failed to delete device-token for user {}: {}", userId, e.getMessage());
+                if (LOGGER.isWarnEnabled()) {
+                    LOGGER.warn(
+                            "Failed to delete device-token for user {}: {}",
+                            userId,
+                            e.getMessage());
+                }
             }
         }
         LOGGER.info("Deleted {} device-tokens for user: {}", deleted, userId);
@@ -575,10 +651,16 @@ public class UserDeletionService {
     private void deleteAnomalyFeedbackForUser(final String userId) {
         try {
             final int deleted = anomalyFeedbackRepository.deleteByUserId(userId);
-            LOGGER.info("Deleted {} anomaly-feedback rows for user: {}", deleted, userId);
+            if (LOGGER.isInfoEnabled()) {
+                LOGGER.info("Deleted {} anomaly-feedback rows for user: {}", deleted, userId);
+            }
         } catch (Exception e) {
-            LOGGER.warn(
-                    "Failed to delete anomaly-feedback for user {}: {}", userId, e.getMessage());
+            if (LOGGER.isWarnEnabled()) {
+                LOGGER.warn(
+                        "Failed to delete anomaly-feedback for user {}: {}",
+                        userId,
+                        e.getMessage());
+            }
         }
     }
 
@@ -586,10 +668,51 @@ public class UserDeletionService {
     private void deleteNetWorthSnapshotsForUser(final String userId) {
         try {
             final int deleted = netWorthSnapshotRepository.deleteByUserId(userId);
-            LOGGER.info("Deleted {} net-worth snapshots for user: {}", deleted, userId);
+            if (LOGGER.isInfoEnabled()) {
+                LOGGER.info("Deleted {} net-worth snapshots for user: {}", deleted, userId);
+            }
         } catch (Exception e) {
-            LOGGER.warn(
-                    "Failed to delete net-worth snapshots for user {}: {}", userId, e.getMessage());
+            if (LOGGER.isWarnEnabled()) {
+                LOGGER.warn(
+                        "Failed to delete net-worth snapshots for user {}: {}",
+                        userId,
+                        e.getMessage());
+            }
+        }
+    }
+
+    /**
+     * Delete this user's category-learning footprint — per-user UserCorrection rows (records of "I
+     * edited this categorization") and CustomMerchantMapping rows (the user's pinned
+     * merchant→category overrides). Both contribute to the per-user ML personalization layer and
+     * must be wiped on GDPR data deletion.
+     */
+    private void deleteCategoryLearningForUser(final String userId) {
+        try {
+            final int corrections = userCorrectionRepository.deleteByUserId(userId);
+            if (LOGGER.isInfoEnabled()) {
+                LOGGER.info("Deleted {} user-corrections for user: {}", corrections, userId);
+            }
+        } catch (Exception e) {
+            if (LOGGER.isWarnEnabled()) {
+                LOGGER.warn(
+                        "Failed to delete user-corrections for user {}: {}",
+                        userId,
+                        e.getMessage());
+            }
+        }
+        try {
+            final int mappings = customMerchantMappingRepository.deleteByUserId(userId);
+            if (LOGGER.isInfoEnabled()) {
+                LOGGER.info("Deleted {} custom-merchant-mappings for user: {}", mappings, userId);
+            }
+        } catch (Exception e) {
+            if (LOGGER.isWarnEnabled()) {
+                LOGGER.warn(
+                        "Failed to delete custom-merchant-mappings for user {}: {}",
+                        userId,
+                        e.getMessage());
+            }
         }
     }
 
@@ -597,10 +720,16 @@ public class UserDeletionService {
     private void deleteUserPreferencesForUser(final String userId) {
         try {
             userPreferencesRepository.deleteByUserId(userId);
-            LOGGER.info("Deleted user-preferences row for user: {}", userId);
+            if (LOGGER.isInfoEnabled()) {
+                LOGGER.info("Deleted user-preferences row for user: {}", userId);
+            }
         } catch (Exception e) {
-            LOGGER.warn(
-                    "Failed to delete user-preferences for user {}: {}", userId, e.getMessage());
+            if (LOGGER.isWarnEnabled()) {
+                LOGGER.warn(
+                        "Failed to delete user-preferences for user {}: {}",
+                        userId,
+                        e.getMessage());
+            }
         }
     }
 
@@ -622,28 +751,37 @@ public class UserDeletionService {
                     successfulDeletions++;
                 } catch (Exception e) {
                     failedDeletions++;
-                    LOGGER.warn(
-                            "Failed to delete import history {}: {}",
-                            importHistory.getImportId(),
-                            e.getMessage());
+                    if (LOGGER.isWarnEnabled()) {
+                        LOGGER.warn(
+                                "Failed to delete import history {}: {}",
+                                importHistory.getImportId(),
+                                e.getMessage());
+                    }
                 }
             }
 
             if (failedDeletions == 0) {
-                LOGGER.info(
-                        "Deleted {} import history records for user: {}",
-                        successfulDeletions,
-                        userId);
+                if (LOGGER.isInfoEnabled()) {
+                    LOGGER.info(
+                            "Deleted {} import history records for user: {}",
+                            successfulDeletions,
+                            userId);
+                }
             } else {
-                LOGGER.warn(
-                        "Deleted {} of {} import history records for user: {} ({} failed)",
-                        successfulDeletions,
-                        imports.size(),
-                        userId,
-                        failedDeletions);
+                if (LOGGER.isWarnEnabled()) {
+                    LOGGER.warn(
+                            "Deleted {} of {} import history records for user: {} ({} failed)",
+                            successfulDeletions,
+                            imports.size(),
+                            userId,
+                            failedDeletions);
+                }
             }
         } catch (Exception e) {
-            LOGGER.warn("Failed to delete import history for user {}: {}", userId, e.getMessage());
+            if (LOGGER.isWarnEnabled()) {
+                LOGGER.warn(
+                        "Failed to delete import history for user {}: {}", userId, e.getMessage());
+            }
             // Don't fail deletion if import history deletion fails
         }
     }
@@ -668,11 +806,18 @@ public class UserDeletionService {
                 final int deletedCount = s3Service.deleteFilesByPrefix(exportPrefix);
                 totalDeleted += deletedCount;
                 if (deletedCount > 0) {
-                    LOGGER.info("Deleted {} S3 export files for user: {}", deletedCount, userId);
+                    if (LOGGER.isInfoEnabled()) {
+                        LOGGER.info(
+                                "Deleted {} S3 export files for user: {}", deletedCount, userId);
+                    }
                 }
             } catch (Exception e) {
-                LOGGER.warn(
-                        "Failed to delete S3 export files for user {}: {}", userId, e.getMessage());
+                if (LOGGER.isWarnEnabled()) {
+                    LOGGER.warn(
+                            "Failed to delete S3 export files for user {}: {}",
+                            userId,
+                            e.getMessage());
+                }
             }
 
             // Delete account-specific files (e.g., "accounts/{userId}/{accountId}/...")
@@ -685,17 +830,21 @@ public class UserDeletionService {
                     final int deletedCount = s3Service.deleteFilesByPrefix(accountPrefix);
                     totalDeleted += deletedCount;
                     if (deletedCount > 0) {
-                        LOGGER.debug(
-                                "Deleted {} S3 files for account {} (user: {})",
-                                deletedCount,
-                                accountId,
-                                userId);
+                        if (LOGGER.isDebugEnabled()) {
+                            LOGGER.debug(
+                                    "Deleted {} S3 files for account {} (user: {})",
+                                    deletedCount,
+                                    accountId,
+                                    userId);
+                        }
                     }
                 } catch (Exception e) {
-                    LOGGER.warn(
-                            "Failed to delete S3 files for account {}: {}",
-                            accountId,
-                            e.getMessage());
+                    if (LOGGER.isWarnEnabled()) {
+                        LOGGER.warn(
+                                "Failed to delete S3 files for account {}: {}",
+                                accountId,
+                                e.getMessage());
+                    }
                 }
             }
 
@@ -705,11 +854,18 @@ public class UserDeletionService {
                 final int deletedCount = s3Service.deleteFilesByPrefix(importPrefix);
                 totalDeleted += deletedCount;
                 if (deletedCount > 0) {
-                    LOGGER.info("Deleted {} S3 import files for user: {}", deletedCount, userId);
+                    if (LOGGER.isInfoEnabled()) {
+                        LOGGER.info(
+                                "Deleted {} S3 import files for user: {}", deletedCount, userId);
+                    }
                 }
             } catch (Exception e) {
-                LOGGER.warn(
-                        "Failed to delete S3 import files for user {}: {}", userId, e.getMessage());
+                if (LOGGER.isWarnEnabled()) {
+                    LOGGER.warn(
+                            "Failed to delete S3 import files for user {}: {}",
+                            userId,
+                            e.getMessage());
+                }
             }
 
             // Delete any other user-specific files (e.g., "users/{userId}/...")
@@ -718,19 +874,29 @@ public class UserDeletionService {
                 final int deletedCount = s3Service.deleteFilesByPrefix(userPrefix);
                 totalDeleted += deletedCount;
                 if (deletedCount > 0) {
-                    LOGGER.info("Deleted {} S3 user files for user: {}", deletedCount, userId);
+                    if (LOGGER.isInfoEnabled()) {
+                        LOGGER.info("Deleted {} S3 user files for user: {}", deletedCount, userId);
+                    }
                 }
             } catch (Exception e) {
-                LOGGER.warn(
-                        "Failed to delete S3 user files for user {}: {}", userId, e.getMessage());
+                if (LOGGER.isWarnEnabled()) {
+                    LOGGER.warn(
+                            "Failed to delete S3 user files for user {}: {}",
+                            userId,
+                            e.getMessage());
+                }
             }
 
-            LOGGER.info(
-                    "Completed S3 file deletion for user: {} (total files deleted: {})",
-                    userId,
-                    totalDeleted);
+            if (LOGGER.isInfoEnabled()) {
+                LOGGER.info(
+                        "Completed S3 file deletion for user: {} (total files deleted: {})",
+                        userId,
+                        totalDeleted);
+            }
         } catch (Exception e) {
-            LOGGER.warn("Failed to delete S3 files for user {}: {}", userId, e.getMessage());
+            if (LOGGER.isWarnEnabled()) {
+                LOGGER.warn("Failed to delete S3 files for user {}: {}", userId, e.getMessage());
+            }
             // Don't fail deletion if S3 deletion fails
         }
     }
@@ -772,9 +938,13 @@ public class UserDeletionService {
                 }
             }
 
-            LOGGER.info("Evicted all caches for user: {}", userId);
+            if (LOGGER.isInfoEnabled()) {
+                LOGGER.info("Evicted all caches for user: {}", userId);
+            }
         } catch (Exception e) {
-            LOGGER.warn("Failed to evict caches for user {}: {}", userId, e.getMessage());
+            if (LOGGER.isWarnEnabled()) {
+                LOGGER.warn("Failed to evict caches for user {}: {}", userId, e.getMessage());
+            }
             // Don't fail deletion if cache eviction fails
         }
     }

@@ -49,10 +49,24 @@ public class JwtTokenProvider {
     @Value("${app.jwt.refresh-expiration}")
     private long refreshExpiration;
 
-    // Cache the JWT secret to ensure consistency between token generation and validation
-    // This prevents issues where the secret might change between calls
-    private volatile String cachedJwtSecret = null;
-    private volatile SecretKey cachedSigningKey = null;
+    // TTL-bounded cache of the JWT signing secret. Without a TTL, rotating the secret in
+    // AWS Secrets Manager required a redeploy of the service before new tokens were honoured;
+    // any cached worker would have continued to sign with the old material indefinitely.
+    // We refresh on demand: every {@link #SECRET_REFRESH_TTL_MS} ms a getSigningKey() call
+    // re-reads Secrets Manager; if the fetched value differs from the cached one, the
+    // SecretKey is rebuilt atomically. Tokens issued under the previous key will fail
+    // verification after rotation — the trade-off for not running a multi-key keyring; that
+    // matches the existing fallback behaviour where a redeploy would have invalidated them
+    // anyway. Configurable via {@code app.jwt.secret-refresh-ttl-ms} (default 5 min).
+    @Value("${app.jwt.secret-refresh-ttl-ms:300000}")
+    private long secretRefreshTtlMs;
+
+    /** Default 5 min — bounds rotation lag while keeping Secrets Manager call volume tiny. */
+    private static final long SECRET_REFRESH_TTL_MS = 300_000L;
+
+    private volatile String cachedJwtSecret;
+    private volatile SecretKey cachedSigningKey;
+    private volatile long lastSecretFetchMillis;
     private final Object secretLock = new Object();
 
     public JwtTokenProvider(final SecretsManagerService secretsManagerService) {
@@ -60,80 +74,82 @@ public class JwtTokenProvider {
     }
 
     private SecretKey getSigningKey() {
-        // Use cached secret if available to ensure consistency
+        // Refresh the raw secret first (TTL-bounded); rebuild SecretKey iff the secret changed
+        // (or has never been built yet for the current cached value).
+        final String secret = getJwtSecret();
         if (cachedSigningKey != null) {
             return cachedSigningKey;
         }
-
         synchronized (secretLock) {
-            // Double-check after acquiring lock
             if (cachedSigningKey != null) {
                 return cachedSigningKey;
             }
-
-            final String secret = getJwtSecret();
-            final SecretKey signingKey =
-                    Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
-
-            // Cache both secret and signing key
-            cachedJwtSecret = secret;
-            cachedSigningKey = signingKey;
-
-            LOGGER.debug(
-                    "JWT signing key initialized and cached | Secret source: {}",
-                    cachedJwtSecret.equals(jwtSecretFallback) ? "fallback" : "Secrets Manager");
-
-            return signingKey;
+            cachedSigningKey = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
+            if (LOGGER.isInfoEnabled()) {
+                LOGGER.info(
+                        "JWT signing key (re)built (source: {})",
+                        secret.equals(jwtSecretFallback) ? "fallback" : "Secrets Manager");
+            }
+            return cachedSigningKey;
         }
     }
 
     private String getJwtSecret() {
-        // Return cached secret if available
-        if (cachedJwtSecret != null) {
+        // Honour the same TTL as the SecretKey cache so callers that ask for the raw secret
+        // (legacy paths, tests that ReflectionTestUtils.invokeMethod into this) see the same
+        // rotation behaviour as JWT issuance/verification — without re-deriving the SecretKey
+        // here, which would fail for shorter (test-fixture) secrets that aren't HS512-grade.
+        final long now = System.currentTimeMillis();
+        final long ttl = secretRefreshTtlMs > 0 ? secretRefreshTtlMs : SECRET_REFRESH_TTL_MS;
+        if (cachedJwtSecret != null && now - lastSecretFetchMillis < ttl) {
             return cachedJwtSecret;
         }
-
         synchronized (secretLock) {
-            // Double-check after acquiring lock
-            if (cachedJwtSecret != null) {
+            final long nowInside = System.currentTimeMillis();
+            if (cachedJwtSecret != null && nowInside - lastSecretFetchMillis < ttl) {
                 return cachedJwtSecret;
             }
+            final String fresh = fetchJwtSecret();
+            if (!fresh.equals(cachedJwtSecret)) {
+                cachedJwtSecret = fresh;
+                // SecretKey is invalidated on swap — getSigningKey will rebuild lazily.
+                cachedSigningKey = null;
+            }
+            lastSecretFetchMillis = nowInside;
+            return cachedJwtSecret;
+        }
+    }
 
-            String secret = null;
-            try {
-                // Try to get from Secrets Manager first
-                secret = secretsManagerService.getSecret(jwtSecretName, "JWT_SECRET");
-                if (secret != null && !secret.isEmpty()) {
-                    LOGGER.info("JWT secret loaded from Secrets Manager: {}", jwtSecretName);
-                    cachedJwtSecret = secret;
-                    return secret;
-                }
-            } catch (Exception e) {
+    private String fetchJwtSecret() {
+        try {
+            String secret = secretsManagerService.getSecret(jwtSecretName, "JWT_SECRET");
+            if (secret != null && !secret.isEmpty()) {
+                return secret;
+            }
+        } catch (Exception e) {
+            if (LOGGER.isWarnEnabled()) {
                 LOGGER.warn(
                         "Failed to fetch JWT secret from Secrets Manager, using fallback: {}",
                         e.getMessage());
             }
-
-            // Fallback to environment variable or configuration
-            if (jwtSecretFallback != null && !jwtSecretFallback.isEmpty()) {
-                // Validate that it's not a placeholder
-                if ("your-256-bit-secret-key-change-in-production".equals(jwtSecretFallback)) {
-                    LOGGER.error(
-                            "JWT secret is using placeholder value. Please set JWT_SECRET environment variable or app.jwt.secret property. "
-                                    + "JWT tokens will not be secure with the default placeholder!");
-                    throw new IllegalStateException(
-                            "JWT secret is not configured. Please set JWT_SECRET environment variable or app.jwt.secret property. "
-                                    + "The default placeholder value is not secure and must be changed in production.");
-                }
-                LOGGER.info(
-                        "JWT secret loaded from fallback (environment variable or configuration)");
-                cachedJwtSecret = jwtSecretFallback;
-                return jwtSecretFallback;
-            }
-
-            throw new IllegalStateException(
-                    "JWT secret not configured. Set app.jwt.secret or configure AWS Secrets Manager.");
         }
+
+        // Fallback to environment variable or configuration
+        if (jwtSecretFallback != null && !jwtSecretFallback.isEmpty()) {
+            if ("your-256-bit-secret-key-change-in-production".equals(jwtSecretFallback)) {
+                LOGGER.error(
+                        "JWT secret is using placeholder value. Please set JWT_SECRET environment"
+                                + " variable or app.jwt.secret property.");
+                throw new IllegalStateException(
+                        "JWT secret is not configured. Please set JWT_SECRET environment variable"
+                                + " or app.jwt.secret property. The default placeholder value is"
+                                + " not secure and must be changed in production.");
+            }
+            return jwtSecretFallback;
+        }
+
+        throw new IllegalStateException(
+                "JWT secret not configured. Set app.jwt.secret or configure AWS Secrets Manager.");
     }
 
     /** Generate JWT token for user */
@@ -201,7 +217,9 @@ public class JwtTokenProvider {
             final String username = getUsernameFromToken(token);
             return username.equals(userDetails.getUsername()) && !isTokenExpired(token);
         } catch (JwtException | IllegalArgumentException e) {
-            LOGGER.error("Invalid JWT token: {}", e.getMessage());
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error("Invalid JWT token: {}", e.getMessage());
+            }
             return false;
         }
     }
@@ -223,40 +241,50 @@ public class JwtTokenProvider {
             Jwts.parser().verifyWith(getSigningKey()).build().parseSignedClaims(cleanedToken);
             return true;
         } catch (ExpiredJwtException e) {
-            LOGGER.warn(
-                    "JWT token is expired: {} | Token preview: {}",
-                    e.getMessage(),
-                    cleanedToken.length() > 20
-                            ? cleanedToken.substring(0, 20) + "..."
-                            : cleanedToken);
+            if (LOGGER.isWarnEnabled()) {
+                LOGGER.warn(
+                        "JWT token is expired: {} | Token preview: {}",
+                        e.getMessage(),
+                        cleanedToken.length() > 20
+                                ? cleanedToken.substring(0, 20) + "..."
+                                : cleanedToken);
+            }
         } catch (UnsupportedJwtException e) {
-            LOGGER.warn(
-                    "JWT token is unsupported: {} | Token preview: {}",
-                    e.getMessage(),
-                    cleanedToken.length() > 20
-                            ? cleanedToken.substring(0, 20) + "..."
-                            : cleanedToken);
+            if (LOGGER.isWarnEnabled()) {
+                LOGGER.warn(
+                        "JWT token is unsupported: {} | Token preview: {}",
+                        e.getMessage(),
+                        cleanedToken.length() > 20
+                                ? cleanedToken.substring(0, 20) + "..."
+                                : cleanedToken);
+            }
         } catch (MalformedJwtException e) {
-            LOGGER.warn(
-                    "Invalid JWT token: {} | Token preview: {}",
-                    e.getMessage(),
-                    cleanedToken.length() > 20
-                            ? cleanedToken.substring(0, 20) + "..."
-                            : cleanedToken);
+            if (LOGGER.isWarnEnabled()) {
+                LOGGER.warn(
+                        "Invalid JWT token: {} | Token preview: {}",
+                        e.getMessage(),
+                        cleanedToken.length() > 20
+                                ? cleanedToken.substring(0, 20) + "..."
+                                : cleanedToken);
+            }
         } catch (IllegalArgumentException e) {
-            LOGGER.warn(
-                    "JWT claims string is empty: {} | Token preview: {}",
-                    e.getMessage(),
-                    cleanedToken.length() > 20
-                            ? cleanedToken.substring(0, 20) + "..."
-                            : cleanedToken);
+            if (LOGGER.isWarnEnabled()) {
+                LOGGER.warn(
+                        "JWT claims string is empty: {} | Token preview: {}",
+                        e.getMessage(),
+                        cleanedToken.length() > 20
+                                ? cleanedToken.substring(0, 20) + "..."
+                                : cleanedToken);
+            }
         } catch (io.jsonwebtoken.security.SignatureException e) {
-            LOGGER.warn(
-                    "JWT signature verification failed: {} | This may indicate a secret mismatch | Token preview: {}",
-                    e.getMessage(),
-                    cleanedToken.length() > 20
-                            ? cleanedToken.substring(0, 20) + "..."
-                            : cleanedToken);
+            if (LOGGER.isWarnEnabled()) {
+                LOGGER.warn(
+                        "JWT signature verification failed: {} | This may indicate a secret mismatch | Token preview: {}",
+                        e.getMessage(),
+                        cleanedToken.length() > 20
+                                ? cleanedToken.substring(0, 20) + "..."
+                                : cleanedToken);
+            }
         }
         return false;
     }

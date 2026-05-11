@@ -48,6 +48,7 @@ public class WeeklyDigestService {
     private final GoalRepository goalRepository;
     private final DataChangeNotificationService notificationService;
     private final DistributedLockService distributedLock;
+    private final com.budgetbuddy.observability.ScanRateLimiter scanRateLimiter;
 
     public WeeklyDigestService(
             final DynamoDbEnhancedClient enhancedClient,
@@ -58,7 +59,8 @@ public class WeeklyDigestService {
             final BudgetRepository budgetRepository,
             final GoalRepository goalRepository,
             final DataChangeNotificationService notificationService,
-            final DistributedLockService distributedLock) {
+            final DistributedLockService distributedLock,
+            final com.budgetbuddy.observability.ScanRateLimiter scanRateLimiter) {
         this.userTable =
                 enhancedClient.table(tablePrefix + "-Users", TableSchema.fromBean(UserTable.class));
         this.transactionRepository = transactionRepository;
@@ -66,6 +68,7 @@ public class WeeklyDigestService {
         this.goalRepository = goalRepository;
         this.notificationService = notificationService;
         this.distributedLock = distributedLock;
+        this.scanRateLimiter = scanRateLimiter;
     }
 
     /**
@@ -80,6 +83,10 @@ public class WeeklyDigestService {
     }
 
     private void weeklyDigestInner() {
+        if (!scanRateLimiter.acquire()) {
+            LOGGER.warn("Weekly digest skipped — DynamoDB scan rate limiter rejected the permit");
+            return;
+        }
         try {
             int count = 0;
             final var pages = userTable.scan();
@@ -89,16 +96,24 @@ public class WeeklyDigestService {
                         pushFor(user);
                         count++;
                     } catch (Exception e) {
-                        LOGGER.warn(
-                                "Weekly digest failed for {}: {}",
-                                user.getUserId(),
-                                e.getMessage());
+                        if (LOGGER.isWarnEnabled()) {
+                            LOGGER.warn(
+                                    "Weekly digest failed for {}: {}",
+                                    user.getUserId(),
+                                    e.getMessage());
+                        }
                     }
                 }
             }
-            LOGGER.info("Weekly digest sent to {} users", count);
+            if (LOGGER.isInfoEnabled()) {
+                LOGGER.info("Weekly digest sent to {} users", count);
+            }
         } catch (Exception e) {
-            LOGGER.error("Weekly digest pass failed: {}", e.getMessage(), e);
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error("Weekly digest pass failed: {}", e.getMessage(), e);
+            }
+        } finally {
+            scanRateLimiter.release();
         }
     }
 
@@ -185,13 +200,15 @@ public class WeeklyDigestService {
         // digest but the current DataChangeNotificationService only exposes a
         // milestone API that takes a label. A purpose-built digest payload is a
         // future step (Flow 7 / O14 follow-up); for now we ship the label only.
-        LOGGER.debug(
-                "Weekly digest summary for {}: spent={} income={} overBudget={} goalsOnTrack={}",
-                user.getUserId(),
-                spent,
-                income,
-                overBudget,
-                goalsOnTrack);
+        if (LOGGER.isDebugEnabled()) {
+            LOGGER.debug(
+                    "Weekly digest summary for {}: spent={} income={} overBudget={} goalsOnTrack={}",
+                    user.getUserId(),
+                    spent,
+                    income,
+                    overBudget,
+                    goalsOnTrack);
+        }
         notificationService.notifyGoalMilestoneReached(
                 user.getUserId(),
                 "weekly-digest-" + LocalDate.now(),

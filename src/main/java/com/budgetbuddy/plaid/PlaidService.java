@@ -45,7 +45,8 @@ import org.springframework.stereotype.Service;
 // callers — defensive-copying it would break dependency injection.
 @SuppressFBWarnings(
         value = {"EI_EXPOSE_REP2", "CT_CONSTRUCTOR_THROW"},
-        justification = "Spring constructor injection — beans are shared by design; CT_CONSTRUCTOR_THROW: Java 25 deprecates Object.finalize() for removal, so the finalizer-attack vector this rule guards against is not exploitable")
+        justification =
+                "Spring constructor injection — beans are shared by design; CT_CONSTRUCTOR_THROW: Java 25 deprecates Object.finalize() for removal, so the finalizer-attack vector this rule guards against is not exploitable")
 // Plaid SDK calls + reflection bootstrap — broad catches translate any
 // runtime/SDK exception into AppException; narrowing is impractical here.
 @SuppressWarnings({"PMD.AvoidCatchingGenericException", "PMD.OnlyOneReturn"})
@@ -136,6 +137,41 @@ public class PlaidService {
         apiKeys.put("secret", secret);
 
         final ApiClient apiClient = new ApiClient(apiKeys);
+        // Stamp every outbound Plaid request with the inbound correlation ID so a single
+        // customer trace can be followed from the access log → Plaid request log →
+        // back to a specific Plaid request_id. Without this, Plaid's request_ids are
+        // floating identifiers that ops can't tie to a customer ticket.
+        try {
+            final okhttp3.OkHttpClient.Builder httpBuilder =
+                    apiClient
+                            .getOkBuilder()
+                            .addInterceptor(
+                                    chain -> {
+                                        final String correlationId =
+                                                org.slf4j.MDC.get("correlationId");
+                                        if (correlationId == null || correlationId.isEmpty()) {
+                                            return chain.proceed(chain.request());
+                                        }
+                                        return chain.proceed(
+                                                chain.request()
+                                                        .newBuilder()
+                                                        .header("X-Correlation-Id", correlationId)
+                                                        .build());
+                                    });
+            if (LOGGER.isDebugEnabled()) {
+                LOGGER.debug(
+                        "Plaid OkHttp interceptor for correlation-ID propagation attached: {}",
+                        httpBuilder);
+            }
+        } catch (Exception e) {
+            // Plaid SDK without getOkBuilder() — log and continue. Outbound Plaid calls
+            // simply won't carry the header; everything else still works.
+            if (LOGGER.isWarnEnabled()) {
+                LOGGER.warn(
+                        "Could not attach Plaid correlation-ID interceptor (SDK API mismatch): {}",
+                        e.getMessage());
+            }
+        }
         // Set Plaid environment - Plaid SDK uses base URL
         // Map string environment to Plaid base URL
         final String plaidBaseUrl;
@@ -155,15 +191,19 @@ public class PlaidService {
                 // Try the standard method
                 apiClient.setPlaidAdapter(plaidBaseUrl);
                 adapterSet = true;
-                LOGGER.debug(
-                        "Plaid adapter configured using setPlaidAdapter for environment: {} (base URL: {})",
-                        environment,
-                        plaidBaseUrl);
+                if (LOGGER.isDebugEnabled()) {
+                    LOGGER.debug(
+                            "Plaid adapter configured using setPlaidAdapter for environment: {} (base URL: {})",
+                            environment,
+                            plaidBaseUrl);
+                }
             } catch (NoSuchMethodError e) {
                 // Method doesn't exist at runtime - try reflection
-                LOGGER.debug(
-                        "setPlaidAdapter method not found at runtime, trying reflection: {}",
-                        e.getMessage());
+                if (LOGGER.isDebugEnabled()) {
+                    LOGGER.debug(
+                            "setPlaidAdapter method not found at runtime, trying reflection: {}",
+                            e.getMessage());
+                }
                 try {
                     final java.lang.reflect.Method setPlaidAdapterMethod =
                             apiClient.getClass().getMethod("setPlaidAdapter", String.class);
@@ -176,13 +216,19 @@ public class PlaidService {
                 } catch (java.lang.reflect.InvocationTargetException
                         | NoSuchMethodException
                         | IllegalAccessException reflectionException) {
-                    LOGGER.debug(
-                            "Reflection method also failed: {}", reflectionException.getMessage());
+                    if (LOGGER.isDebugEnabled()) {
+                        LOGGER.debug(
+                                "Reflection method also failed: {}",
+                                reflectionException.getMessage());
+                    }
                 }
             } catch (Exception adapterException) {
                 // Other exception - log but continue to try alternatives
-                LOGGER.debug(
-                        "setPlaidAdapter failed with exception: {}", adapterException.getMessage());
+                if (LOGGER.isDebugEnabled()) {
+                    LOGGER.debug(
+                            "setPlaidAdapter failed with exception: {}",
+                            adapterException.getMessage());
+                }
             }
 
             // If setPlaidAdapter didn't work, try setting base URL via Retrofit builder
@@ -199,17 +245,22 @@ public class PlaidService {
                             "Could not set Plaid adapter explicitly - API client may use default configuration. "
                                     + "This may work if Plaid SDK handles environment automatically.");
                 } catch (Exception e) {
-                    LOGGER.warn("Alternative Plaid configuration also failed: {}", e.getMessage());
+                    if (LOGGER.isWarnEnabled()) {
+                        LOGGER.warn(
+                                "Alternative Plaid configuration also failed: {}", e.getMessage());
+                    }
                     // Don't throw - let it proceed and fail on actual API calls if needed
                 }
             }
         } catch (Exception e) {
-            LOGGER.error(
-                    "Failed to set Plaid adapter for environment '{}' with base URL '{}': {}",
-                    environment,
-                    plaidBaseUrl,
-                    e.getMessage(),
-                    e);
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error(
+                        "Failed to set Plaid adapter for environment '{}' with base URL '{}': {}",
+                        environment,
+                        plaidBaseUrl,
+                        e.getMessage(),
+                        e);
+            }
             // Don't throw immediately - the API client might still work with default configuration
             // We'll let it fail on actual API calls if the configuration is truly broken
             LOGGER.warn(
@@ -331,9 +382,13 @@ public class PlaidService {
                         errorBody = errorBodyResponse.string();
                     }
                 } catch (Exception e) {
-                    LOGGER.debug("Failed to read error body: {}", e.getMessage());
+                    if (LOGGER.isDebugEnabled()) {
+                        LOGGER.debug("Failed to read error body: {}", e.getMessage());
+                    }
                 }
-                LOGGER.error("Plaid API error: HTTP {} - {}", callResponse.code(), errorBody);
+                if (LOGGER.isErrorEnabled()) {
+                    LOGGER.error("Plaid API error: HTTP {} - {}", callResponse.code(), errorBody);
+                }
                 throw new AppException(
                         ErrorCode.PLAID_CONNECTION_FAILED,
                         "Plaid API returned error: " + callResponse.code() + " - " + errorBody);
@@ -348,15 +403,19 @@ public class PlaidService {
                         "Failed to create link token: null response");
             }
 
-            LOGGER.info(
-                    "Plaid: Link token created for user: {}, expires: {}",
-                    userId,
-                    response.getExpiration());
+            if (LOGGER.isInfoEnabled()) {
+                LOGGER.info(
+                        "Plaid: Link token created for user: {}, expires: {}",
+                        userId,
+                        response.getExpiration());
+            }
             return response;
         } catch (AppException e) {
             throw e;
         } catch (Exception e) {
-            LOGGER.error("Plaid: Failed to create link token: {}", e.getMessage(), e);
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error("Plaid: Failed to create link token: {}", e.getMessage(), e);
+            }
             throw new AppException(
                     ErrorCode.PLAID_CONNECTION_FAILED,
                     "Failed to create Plaid link token: " + e.getMessage(),
@@ -386,12 +445,16 @@ public class PlaidService {
                         ErrorCode.PLAID_CONNECTION_FAILED, "Failed to exchange public token");
             }
 
-            LOGGER.info("Plaid: Public token exchanged successfully");
+            if (LOGGER.isInfoEnabled()) {
+                LOGGER.info("Plaid: Public token exchanged successfully");
+            }
             return response;
         } catch (AppException e) {
             throw e;
         } catch (Exception e) {
-            LOGGER.error("Plaid: Failed to exchange public token: {}", e.getMessage(), e);
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error("Plaid: Failed to exchange public token: {}", e.getMessage(), e);
+            }
             throw new AppException(
                     ErrorCode.PLAID_CONNECTION_FAILED,
                     "Failed to exchange public token",
@@ -418,14 +481,18 @@ public class PlaidService {
                 throw new AppException(ErrorCode.PLAID_CONNECTION_FAILED, "Failed to get accounts");
             }
 
-            LOGGER.debug(
-                    "Plaid: Retrieved {} accounts",
-                    response.getAccounts() != null ? response.getAccounts().size() : 0);
+            if (LOGGER.isDebugEnabled()) {
+                LOGGER.debug(
+                        "Plaid: Retrieved {} accounts",
+                        response.getAccounts() != null ? response.getAccounts().size() : 0);
+            }
             return response;
         } catch (AppException e) {
             throw e;
         } catch (Exception e) {
-            LOGGER.error("Plaid: Failed to get accounts: {}", e.getMessage(), e);
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error("Plaid: Failed to get accounts: {}", e.getMessage(), e);
+            }
             throw new AppException(
                     ErrorCode.PLAID_CONNECTION_FAILED, "Failed to get accounts", null, null, e);
         }
@@ -498,10 +565,14 @@ public class PlaidService {
                         errorBody = errorBodyStream.string();
                     }
                 } catch (Exception e) {
-                    LOGGER.warn("Could not read error body: {}", e.getMessage());
+                    if (LOGGER.isWarnEnabled()) {
+                        LOGGER.warn("Could not read error body: {}", e.getMessage());
+                    }
                     errorBody = "Could not read error body: " + e.getMessage();
                 }
-                LOGGER.error("Plaid API error: HTTP {} - {}", httpResponse.code(), errorBody);
+                if (LOGGER.isErrorEnabled()) {
+                    LOGGER.error("Plaid API error: HTTP {} - {}", httpResponse.code(), errorBody);
+                }
 
                 // Check for rate limit errors (HTTP 429)
                 if (httpResponse.code() == 429) {
@@ -583,19 +654,25 @@ public class PlaidService {
                         nextCursor = cursorObj.toString();
                     }
                 } catch (Exception e2) {
-                    LOGGER.debug(
-                            "Plaid API response does not have pagination cursor - assuming single page");
+                    if (LOGGER.isDebugEnabled()) {
+                        LOGGER.debug(
+                                "Plaid API response does not have pagination cursor - assuming single page");
+                    }
                 }
             } catch (Exception e) {
-                LOGGER.debug("Could not check for pagination cursor: {}", e.getMessage());
+                if (LOGGER.isDebugEnabled()) {
+                    LOGGER.debug("Could not check for pagination cursor: {}", e.getMessage());
+                }
             }
 
             // Fetch additional pages if cursor exists
             while (nextCursor != null && !nextCursor.isEmpty() && pageCount < maxPages) {
-                LOGGER.info(
-                        "Plaid: Fetching page {} of transactions (cursor: {})",
-                        pageCount + 1,
-                        nextCursor);
+                if (LOGGER.isInfoEnabled()) {
+                    LOGGER.info(
+                            "Plaid: Fetching page {} of transactions (cursor: {})",
+                            pageCount + 1,
+                            nextCursor);
+                }
 
                 try {
                     // Create request with cursor for next page
@@ -633,7 +710,9 @@ public class PlaidService {
                                 errorBody = errorBodyStream.string();
                             }
                         } catch (Exception e) {
-                            LOGGER.warn("Could not read error body: {}", e.getMessage());
+                            if (LOGGER.isWarnEnabled()) {
+                                LOGGER.warn("Could not read error body: {}", e.getMessage());
+                            }
                         }
 
                         // Check for rate limit errors (HTTP 429) during pagination
@@ -647,12 +726,14 @@ public class PlaidService {
                                                             plaidError.errorCode)
                                                     || (RATE_LIMIT_EXCEEDED.equals(
                                                             plaidError.errorType))))) {
-                                LOGGER.warn(
-                                        "Plaid rate limit exceeded during pagination (page {}): {} - {}. Request ID: {}",
-                                        pageCount + 1,
-                                        plaidError.errorCode,
-                                        plaidError.errorMessage,
-                                        plaidError.requestId);
+                                if (LOGGER.isWarnEnabled()) {
+                                    LOGGER.warn(
+                                            "Plaid rate limit exceeded during pagination (page {}): {} - {}. Request ID: {}",
+                                            pageCount + 1,
+                                            plaidError.errorCode,
+                                            plaidError.errorMessage,
+                                            plaidError.requestId);
+                                }
                                 throw new AppException(
                                         ErrorCode.PLAID_RATE_LIMIT_EXCEEDED,
                                         String.format(
@@ -666,10 +747,12 @@ public class PlaidService {
                             }
                         }
 
-                        LOGGER.warn(
-                                "Plaid pagination request failed: HTTP {} - {}. Stopping pagination.",
-                                nextHttpResponse.code(),
-                                errorBody);
+                        if (LOGGER.isWarnEnabled()) {
+                            LOGGER.warn(
+                                    "Plaid pagination request failed: HTTP {} - {}. Stopping pagination.",
+                                    nextHttpResponse.code(),
+                                    errorBody);
+                        }
                         break; // Stop pagination on error
                     }
 
@@ -678,7 +761,9 @@ public class PlaidService {
                     if (nextResponse == null
                             || nextResponse.getTransactions() == null
                             || nextResponse.getTransactions().isEmpty()) {
-                        LOGGER.debug("Plaid: No more transactions in page {}", pageCount + 1);
+                        if (LOGGER.isDebugEnabled()) {
+                            LOGGER.debug("Plaid: No more transactions in page {}", pageCount + 1);
+                        }
                         break;
                     }
 
@@ -706,25 +791,34 @@ public class PlaidService {
                             break;
                         }
                     } catch (Exception e) {
-                        LOGGER.debug("Could not get next cursor: {}", e.getMessage());
+                        if (LOGGER.isDebugEnabled()) {
+                            LOGGER.debug("Could not get next cursor: {}", e.getMessage());
+                        }
                         break;
                     }
 
                     pageCount++;
                 } catch (Exception e) {
-                    LOGGER.warn("Error fetching paginated transactions: {}", e.getMessage());
+                    if (LOGGER.isWarnEnabled()) {
+                        LOGGER.warn("Error fetching paginated transactions: {}", e.getMessage());
+                    }
                     break;
                 }
             }
 
             if (pageCount > 1) {
-                LOGGER.info(
-                        "Plaid: Retrieved {} transactions across {} pages",
-                        allTransactions.size(),
-                        pageCount);
+                if (LOGGER.isInfoEnabled()) {
+                    LOGGER.info(
+                            "Plaid: Retrieved {} transactions across {} pages",
+                            allTransactions.size(),
+                            pageCount);
+                }
             } else {
-                LOGGER.info(
-                        "Plaid: Retrieved {} transactions (single page)", allTransactions.size());
+                if (LOGGER.isInfoEnabled()) {
+                    LOGGER.info(
+                            "Plaid: Retrieved {} transactions (single page)",
+                            allTransactions.size());
+                }
             }
 
             // Update response with all collected transactions
@@ -737,11 +831,13 @@ public class PlaidService {
         } catch (AppException e) {
             throw e;
         } catch (java.time.format.DateTimeParseException e) {
-            LOGGER.error(
-                    "Plaid: Invalid date format - startDate: {}, endDate: {}, error: {}",
-                    startDate,
-                    endDate,
-                    e.getMessage());
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error(
+                        "Plaid: Invalid date format - startDate: {}, endDate: {}, error: {}",
+                        startDate,
+                        endDate,
+                        e.getMessage());
+            }
             throw new AppException(
                     ErrorCode.INVALID_INPUT,
                     String.format("Invalid date format: %s", e.getMessage()),
@@ -795,7 +891,9 @@ public class PlaidService {
                 }
             }
 
-            LOGGER.error("Plaid HTTP error: {} - {}", e.code(), errorMessage, e);
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error("Plaid HTTP error: {} - {}", e.code(), errorMessage, e);
+            }
             throw new AppException(
                     ErrorCode.PLAID_CONNECTION_FAILED,
                     String.format("Plaid API HTTP error %d: %s", e.code(), errorMessage),
@@ -803,7 +901,9 @@ public class PlaidService {
                     null,
                     e);
         } catch (java.io.IOException e) {
-            LOGGER.error("Plaid: Network/IO error getting transactions: {}", e.getMessage(), e);
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error("Plaid: Network/IO error getting transactions: {}", e.getMessage(), e);
+            }
             throw new AppException(
                     ErrorCode.PLAID_CONNECTION_FAILED,
                     String.format("Network error connecting to Plaid: %s", e.getMessage()),
@@ -811,13 +911,15 @@ public class PlaidService {
                     null,
                     e);
         } catch (Exception e) {
-            LOGGER.error(
-                    "Plaid: Failed to get transactions (accessToken length: {}, startDate: {}, endDate: {}): {}",
-                    accessToken.length(),
-                    startDate,
-                    endDate,
-                    e.getMessage(),
-                    e);
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error(
+                        "Plaid: Failed to get transactions (accessToken length: {}, startDate: {}, endDate: {}): {}",
+                        accessToken.length(),
+                        startDate,
+                        endDate,
+                        e.getMessage(),
+                        e);
+            }
             throw new AppException(
                     ErrorCode.PLAID_CONNECTION_FAILED,
                     String.format("Failed to get transactions: %s", e.getMessage()),
@@ -854,12 +956,16 @@ public class PlaidService {
                                 request.getClass().getMethod("setQuery", String.class);
                         method.invoke(request, query);
                     } catch (Exception e2) {
-                        LOGGER.warn(
-                                "Could not set query on InstitutionsGetRequest: {}",
-                                e2.getMessage());
+                        if (LOGGER.isWarnEnabled()) {
+                            LOGGER.warn(
+                                    "Could not set query on InstitutionsGetRequest: {}",
+                                    e2.getMessage());
+                        }
                     }
                 } catch (Exception e) {
-                    LOGGER.warn("Error setting query: {}", e.getMessage());
+                    if (LOGGER.isWarnEnabled()) {
+                        LOGGER.warn("Error setting query: {}", e.getMessage());
+                    }
                 }
             }
             request.count(count);
@@ -873,14 +979,18 @@ public class PlaidService {
                         ErrorCode.PLAID_CONNECTION_FAILED, "Failed to get institutions");
             }
 
-            LOGGER.debug(
-                    "Plaid: Retrieved {} institutions",
-                    response.getInstitutions() != null ? response.getInstitutions().size() : 0);
+            if (LOGGER.isDebugEnabled()) {
+                LOGGER.debug(
+                        "Plaid: Retrieved {} institutions",
+                        response.getInstitutions() != null ? response.getInstitutions().size() : 0);
+            }
             return response;
         } catch (AppException e) {
             throw e;
         } catch (Exception e) {
-            LOGGER.error("Plaid: Failed to get institutions: {}", e.getMessage(), e);
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error("Plaid: Failed to get institutions: {}", e.getMessage(), e);
+            }
             throw new AppException(
                     ErrorCode.PLAID_CONNECTION_FAILED, "Failed to get institutions", null, null, e);
         }
@@ -903,12 +1013,16 @@ public class PlaidService {
                 throw new AppException(ErrorCode.PLAID_CONNECTION_FAILED, "Failed to remove item");
             }
 
-            LOGGER.info("Plaid: Item removed successfully");
+            if (LOGGER.isInfoEnabled()) {
+                LOGGER.info("Plaid: Item removed successfully");
+            }
             return response;
         } catch (AppException e) {
             throw e;
         } catch (Exception e) {
-            LOGGER.error("Plaid: Failed to remove item: {}", e.getMessage(), e);
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error("Plaid: Failed to remove item: {}", e.getMessage(), e);
+            }
             throw new AppException(
                     ErrorCode.PLAID_CONNECTION_FAILED, "Failed to remove item", null, null, e);
         }
@@ -939,8 +1053,10 @@ public class PlaidService {
         } catch (AppException e) {
             throw e;
         } catch (Exception e) {
-            LOGGER.error(
-                    "Plaid: webhook key fetch failed for kid={}: {}", keyId, e.getMessage(), e);
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error(
+                        "Plaid: webhook key fetch failed for kid={}: {}", keyId, e.getMessage(), e);
+            }
             throw new AppException(
                     ErrorCode.PLAID_CONNECTION_FAILED,
                     "Failed to fetch webhook verification key",
@@ -1007,7 +1123,9 @@ public class PlaidService {
 
             return error;
         } catch (Exception e) {
-            LOGGER.debug("Failed to parse Plaid error response: {}", e.getMessage());
+            if (LOGGER.isDebugEnabled()) {
+                LOGGER.debug("Failed to parse Plaid error response: {}", e.getMessage());
+            }
             return null;
         }
     }

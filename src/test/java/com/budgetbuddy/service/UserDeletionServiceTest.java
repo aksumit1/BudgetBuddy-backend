@@ -30,6 +30,7 @@ import com.budgetbuddy.repository.dynamodb.AccountRepository;
 import com.budgetbuddy.repository.dynamodb.AnomalyFeedbackRepository;
 import com.budgetbuddy.repository.dynamodb.AuditLogRepository;
 import com.budgetbuddy.repository.dynamodb.BudgetRepository;
+import com.budgetbuddy.repository.dynamodb.CustomMerchantMappingRepository;
 import com.budgetbuddy.repository.dynamodb.DeviceTokenRepository;
 import com.budgetbuddy.repository.dynamodb.FIDO2CredentialRepository;
 import com.budgetbuddy.repository.dynamodb.GoalRepository;
@@ -37,6 +38,7 @@ import com.budgetbuddy.repository.dynamodb.NetWorthSnapshotRepository;
 import com.budgetbuddy.repository.dynamodb.SubscriptionRepository;
 import com.budgetbuddy.repository.dynamodb.TransactionActionRepository;
 import com.budgetbuddy.repository.dynamodb.TransactionRepository;
+import com.budgetbuddy.repository.dynamodb.UserCorrectionRepository;
 import com.budgetbuddy.repository.dynamodb.UserPreferencesRepository;
 import com.budgetbuddy.repository.dynamodb.UserRepository;
 import java.util.ArrayList;
@@ -88,6 +90,10 @@ class UserDeletionServiceTest {
     @Mock private NetWorthSnapshotRepository netWorthSnapshotRepository;
 
     @Mock private UserPreferencesRepository userPreferencesRepository;
+
+    @Mock private UserCorrectionRepository userCorrectionRepository;
+
+    @Mock private CustomMerchantMappingRepository customMerchantMappingRepository;
 
     @InjectMocks private UserDeletionService userDeletionService;
 

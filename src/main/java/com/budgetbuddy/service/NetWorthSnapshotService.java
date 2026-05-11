@@ -51,6 +51,7 @@ public class NetWorthSnapshotService {
     private final AccountRepository accountRepository;
     private final DynamoDbTable<UserTable> userTable;
     private final DistributedLockService distributedLock;
+    private final com.budgetbuddy.observability.ScanRateLimiter scanRateLimiter;
 
     public NetWorthSnapshotService(
             final NetWorthSnapshotRepository snapshotRepository,
@@ -59,7 +60,8 @@ public class NetWorthSnapshotService {
             @org.springframework.beans.factory.annotation.Value(
                             "${app.aws.dynamodb.table-prefix:BudgetBuddy}")
                     final String tablePrefix,
-            final DistributedLockService distributedLock) {
+            final DistributedLockService distributedLock,
+            final com.budgetbuddy.observability.ScanRateLimiter scanRateLimiter) {
         this.snapshotRepository = snapshotRepository;
         this.accountRepository = accountRepository;
         // UserRepository doesn't expose findAll — scan the table directly here for the
@@ -67,6 +69,7 @@ public class NetWorthSnapshotService {
         this.userTable =
                 enhancedClient.table(tablePrefix + "-Users", TableSchema.fromBean(UserTable.class));
         this.distributedLock = distributedLock;
+        this.scanRateLimiter = scanRateLimiter;
     }
 
     /**
@@ -83,6 +86,10 @@ public class NetWorthSnapshotService {
     }
 
     private void snapshotAllUsers(final LocalDate today) {
+        if (!scanRateLimiter.acquire()) {
+            LOGGER.warn("Net-worth nightly snapshot skipped — scan rate limiter rejected permit");
+            return;
+        }
         try {
             int users = 0;
             final var pages = userTable.scan();
@@ -92,16 +99,24 @@ public class NetWorthSnapshotService {
                     try {
                         snapshotOne(user, today);
                     } catch (Exception e) {
-                        LOGGER.warn(
-                                "Net-worth snapshot failed for user {}: {}",
-                                user.getUserId(),
-                                e.getMessage());
+                        if (LOGGER.isWarnEnabled()) {
+                            LOGGER.warn(
+                                    "Net-worth snapshot failed for user {}: {}",
+                                    user.getUserId(),
+                                    e.getMessage());
+                        }
                     }
                 }
             }
-            LOGGER.info("Net-worth nightly snapshot complete for {} users", users);
+            if (LOGGER.isInfoEnabled()) {
+                LOGGER.info("Net-worth nightly snapshot complete for {} users", users);
+            }
         } catch (Exception e) {
-            LOGGER.error("Net-worth nightly snapshot pass failed: {}", e.getMessage(), e);
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error("Net-worth nightly snapshot pass failed: {}", e.getMessage(), e);
+            }
+        } finally {
+            scanRateLimiter.release();
         }
     }
 
