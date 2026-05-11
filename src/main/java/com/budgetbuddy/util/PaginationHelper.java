@@ -18,10 +18,14 @@ import org.springframework.stereotype.Component;
 // they're intentionally data-only; behaviour belongs in the controller/service.
 @SuppressWarnings({"PMD.DataClass", "PMD.OnlyOneReturn"})
 @SuppressFBWarnings(
-        value = {"EI_EXPOSE_REP"},
+        value = {"EI_EXPOSE_REP", "ST_WRITE_TO_STATIC_FROM_INSTANCE_METHOD"},
         justification =
                 "JSON DTO / DynamoDB entity getters expose lists by reference; "
-                        + "the design is value-semantic and Jackson creates fresh instances; Spring constructor injection — beans are shared by design")
+                        + "the design is value-semantic and Jackson creates fresh instances; Spring constructor injection — beans are shared by design. "
+                        + "ST_WRITE_TO_STATIC: the constructor seeds defaultPageSize/maxPageSize statics from "
+                        + "Spring @Value config because callers use the static getDefaultPageSize / getMaxPageSize "
+                        + "API and migrating every callsite to instance methods is out of scope; "
+                        + "PaginationHelper is a singleton so the static-write happens exactly once at bean creation.")
 @Component
 public final class PaginationHelper {
 

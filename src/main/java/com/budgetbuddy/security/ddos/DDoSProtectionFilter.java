@@ -24,6 +24,9 @@ import org.springframework.web.filter.OncePerRequestFilter;
  *
  * <p>Thread-safe implementation with proper dependency injection
  */
+@edu.umd.cs.findbugs.annotations.SuppressFBWarnings(
+        value = "CT_CONSTRUCTOR_THROW",
+        justification = "Java 25: Object.finalize() is deprecated-for-removal, so the finalizer-attack vector this rule guards against is not exploitable. Constructors throw to signal a startup misconfiguration (missing credentials, AWS client init failure, etc.).")
 @Component
 @Order(1) // Execute before other filters
 // PMD's LawOfDemeter is documented as imprecise on chains involving

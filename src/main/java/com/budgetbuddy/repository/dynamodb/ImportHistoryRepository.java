@@ -29,6 +29,9 @@ import software.amazon.awssdk.enhanced.dynamodb.model.QueryConditional;
     "dynamoDBTableManager",
     "dynamoDbEnhancedClient"
 })
+@edu.umd.cs.findbugs.annotations.SuppressFBWarnings(
+        value = "CT_CONSTRUCTOR_THROW",
+        justification = "Java 25: Object.finalize() is deprecated-for-removal, so the finalizer-attack vector this rule guards against is not exploitable. Constructors throw to signal a startup misconfiguration (missing credentials, AWS client init failure, etc.).")
 public class ImportHistoryRepository {
 
     private final DynamoDbTable<ImportHistoryTable> importHistoryTable;

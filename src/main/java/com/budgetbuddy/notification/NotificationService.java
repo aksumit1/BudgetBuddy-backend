@@ -30,9 +30,9 @@ import software.amazon.awssdk.services.sns.model.PublishResponse;
 // but Spring's IoC container intentionally shares the same bean across
 // callers — defensive-copying it would break dependency injection.
 @SuppressFBWarnings(
-        value = {"EI_EXPOSE_REP"},
+        value = {"EI_EXPOSE_REP", "CT_CONSTRUCTOR_THROW"},
         justification =
-                "JSON DTO / DynamoDB entity getters expose lists by reference; "
+                "JSON DTO / DynamoDB entity getters expose lists by reference; ; CT_CONSTRUCTOR_THROW: Java 25 deprecates Object.finalize() for removal, so the finalizer-attack vector this rule guards against is not exploitable"
                         + "the design is value-semantic and Jackson creates fresh instances; Spring constructor injection — beans are shared by design")
 @SuppressWarnings({
     "PMD.LawOfDemeter",
