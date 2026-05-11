@@ -1,12 +1,9 @@
 package com.budgetbuddy.compliance;
 
-import com.budgetbuddy.model.dynamodb.UserTable;
 import com.budgetbuddy.service.UserService;
 import java.util.Locale;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 
 /**
@@ -81,5 +78,4 @@ public class MutationAuditInterceptor {
             LOGGER.warn("Mutation audit log failed ({} {}): {}", entityType, verb, e.getMessage());
         }
     }
-
 }

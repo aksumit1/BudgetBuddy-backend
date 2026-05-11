@@ -1057,10 +1057,24 @@ public class SubscriptionService {
     // get bucketed as SOFTWARE.
 
     private static final String[] STREAMING_KEYWORDS = {
-        "netflix", "hulu", "disney", "hbo", "paramount", "peacock", "spotify",
-        "apple music", "youtube premium", "youtube tv", "youtube music",
-        "youtubemusic", "amazon prime", "prime video", "showtime", "starz",
-        "crunchyroll", "funimation"
+        "netflix",
+        "hulu",
+        "disney",
+        "hbo",
+        "paramount",
+        "peacock",
+        "spotify",
+        "apple music",
+        "youtube premium",
+        "youtube tv",
+        "youtube music",
+        "youtubemusic",
+        "amazon prime",
+        "prime video",
+        "showtime",
+        "starz",
+        "crunchyroll",
+        "funimation"
     };
 
     private static final String[] AI_SERVICE_KEYWORDS = {
@@ -1068,20 +1082,39 @@ public class SubscriptionService {
     };
 
     private static final String[] SOFTWARE_KEYWORDS = {
-        "adobe", "microsoft 365", "office 365", "github", "canva", "grammarly",
-        "notion", "evernote"
+        "adobe", "microsoft 365", "office 365", "github", "canva", "grammarly", "notion", "evernote"
     };
 
     private static final String[] NEWS_MEDIA_KEYWORDS = {
-        "barrons", "wsj", "wall street journal", "ny times", "new york times",
-        "nytimes", "financial times", "ft.com", "moneycontrol", "marketwatch",
-        "consumer reports", "health magazine", "the economist", "forbes",
-        "time magazine", "the atlantic"
+        "barrons",
+        "wsj",
+        "wall street journal",
+        "ny times",
+        "new york times",
+        "nytimes",
+        "financial times",
+        "ft.com",
+        "moneycontrol",
+        "marketwatch",
+        "consumer reports",
+        "health magazine",
+        "the economist",
+        "forbes",
+        "time magazine",
+        "the atlantic"
     };
 
     private static final String[] RETAIL_MEMBERSHIP_KEYWORDS = {
-        "costco", "sam's club", "sams club", "bjs", "bj's", "walmart plus",
-        "wmt plus", "target circle", "best buy totaltech", "best buy membership"
+        "costco",
+        "sam's club",
+        "sams club",
+        "bjs",
+        "bj's",
+        "walmart plus",
+        "wmt plus",
+        "target circle",
+        "best buy totaltech",
+        "best buy membership"
     };
 
     private static final String[] PARKING_KEYWORDS = {
@@ -1098,13 +1131,9 @@ public class SubscriptionService {
         "dropbox", "icloud", "google drive", "google one", "onedrive", "box", "pcloud"
     };
 
-    private static final String[] VPN_KEYWORDS = {
-        "nordvpn", "expressvpn", "surfshark"
-    };
+    private static final String[] VPN_KEYWORDS = {"nordvpn", "expressvpn", "surfshark"};
 
-    private static final String[] RIDESHARE_MEMBERSHIP_KEYWORDS = {
-        "lyft pink", "uber one"
-    };
+    private static final String[] RIDESHARE_MEMBERSHIP_KEYWORDS = {"lyft pink", "uber one"};
 
     private static boolean anyContains(final String haystack, final String[] needles) {
         for (final String n : needles) {

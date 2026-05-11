@@ -1,6 +1,5 @@
 package com.budgetbuddy.api;
 
-import com.budgetbuddy.compliance.financial.FinancialComplianceService;
 import com.budgetbuddy.compliance.hipaa.HIPAAComplianceService;
 import com.budgetbuddy.compliance.iso27001.ISO27001ComplianceService;
 import com.budgetbuddy.compliance.soc2.SOC2ComplianceService;

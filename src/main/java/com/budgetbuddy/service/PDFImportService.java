@@ -879,8 +879,20 @@ public class PDFImportService {
 
     private static final List<String> US_ADDRESS_TAILS =
             List.of(
-                    ", ny ", ", ca ", ", tx ", ", fl ", ", il ", ", pa ", ", oh ", ", ga ",
-                    ", nc ", ", mi ", ", nj ", ", va ", " united states", " usa");
+                    ", ny ",
+                    ", ca ",
+                    ", tx ",
+                    ", fl ",
+                    ", il ",
+                    ", pa ",
+                    ", oh ",
+                    ", ga ",
+                    ", nc ",
+                    ", mi ",
+                    ", nj ",
+                    ", va ",
+                    " united states",
+                    " usa");
 
     private static final List<String> US_INSTITUTION_HINTS =
             List.of(
@@ -1596,55 +1608,185 @@ public class PDFImportService {
     // Lifted from the method body so each detector is a small predicate and
     // the lists aren't reallocated on every call.
 
-    private static final List<String> NAME_REJECT_VERBS = List.of(
-            "send", "post", "continue", "pay", "receive", "process", "submit",
-            "activate", "register", "enroll", "log", "sign", "click", "visit",
-            "call", "contact");
+    private static final List<String> NAME_REJECT_VERBS =
+            List.of(
+                    "send",
+                    "post",
+                    "continue",
+                    "pay",
+                    "receive",
+                    "process",
+                    "submit",
+                    "activate",
+                    "register",
+                    "enroll",
+                    "log",
+                    "sign",
+                    "click",
+                    "visit",
+                    "call",
+                    "contact");
 
-    private static final List<String> NAME_REJECT_FINANCIAL_NOUNS = List.of(
-            "payment", "balance", "credit", "sale", "account", TRANSACTION,
-            STATEMENT, "summary", DETAILS, "charges", "fees", "amount",
-            "interest", "rate", APR, "adjustment", "deposit", "withdrawal",
-            "transfer", "debit", "cash", "advance", "autopay", "bill",
-            "invoice", "receipt");
+    private static final List<String> NAME_REJECT_FINANCIAL_NOUNS =
+            List.of(
+                    "payment",
+                    "balance",
+                    "credit",
+                    "sale",
+                    "account",
+                    TRANSACTION,
+                    STATEMENT,
+                    "summary",
+                    DETAILS,
+                    "charges",
+                    "fees",
+                    "amount",
+                    "interest",
+                    "rate",
+                    APR,
+                    "adjustment",
+                    "deposit",
+                    "withdrawal",
+                    "transfer",
+                    "debit",
+                    "cash",
+                    "advance",
+                    "autopay",
+                    "bill",
+                    "invoice",
+                    "receipt");
 
-    private static final List<String> NAME_REJECT_CONJUNCTIONS = List.of(
-            "and", "or", "but", "nor", "for", "so", "yet");
+    private static final List<String> NAME_REJECT_CONJUNCTIONS =
+            List.of("and", "or", "but", "nor", "for", "so", "yet");
 
-    private static final List<String> NAME_REJECT_PREPOSITIONS = List.of(
-            "to", "from", "on", "at", "in", "for", "with", "by", "about", "over",
-            "under", "between", "through", "during", "before", "after", "above",
-            "below");
+    private static final List<String> NAME_REJECT_PREPOSITIONS =
+            List.of(
+                    "to", "from", "on", "at", "in", "for", "with", "by", "about", "over", "under",
+                    "between", "through", "during", "before", "after", "above", "below");
 
-    private static final List<String> NAME_REJECT_EXCLUDED_WORDS = List.of(
-            TRANSACTION, "account", "promo", "phone", "number", "date", "amount",
-            "amounts", "balance", STATEMENT, "period", "page", "card", "member",
-            "holder", "cardholder", "summary", DETAILS, "information", "sale",
-            "post", "charges", "payment", "history", APR, "variable", "interest",
-            "fee", "fees", "standard", "tty", "annual", "rate", "percentage",
-            "subject", "from", "to", "available", "pay", "over", "time", "limit",
-            "about", "trailing", "dated", "your", "is", "the", "on", "continued",
-            "next", "new", "cash", "advances", "autopay", "enclosed", "express",
-            "digital", "goods", "apps", "news", "rewards", "purchases", "credits",
-            "debits", "deposits", "withdrawals", MERCHANT, "description", "vendor",
-            "store", "shop", "retail", "service", "services");
+    private static final List<String> NAME_REJECT_EXCLUDED_WORDS =
+            List.of(
+                    TRANSACTION,
+                    "account",
+                    "promo",
+                    "phone",
+                    "number",
+                    "date",
+                    "amount",
+                    "amounts",
+                    "balance",
+                    STATEMENT,
+                    "period",
+                    "page",
+                    "card",
+                    "member",
+                    "holder",
+                    "cardholder",
+                    "summary",
+                    DETAILS,
+                    "information",
+                    "sale",
+                    "post",
+                    "charges",
+                    "payment",
+                    "history",
+                    APR,
+                    "variable",
+                    "interest",
+                    "fee",
+                    "fees",
+                    "standard",
+                    "tty",
+                    "annual",
+                    "rate",
+                    "percentage",
+                    "subject",
+                    "from",
+                    "to",
+                    "available",
+                    "pay",
+                    "over",
+                    "time",
+                    "limit",
+                    "about",
+                    "trailing",
+                    "dated",
+                    "your",
+                    "is",
+                    "the",
+                    "on",
+                    "continued",
+                    "next",
+                    "new",
+                    "cash",
+                    "advances",
+                    "autopay",
+                    "enclosed",
+                    "express",
+                    "digital",
+                    "goods",
+                    "apps",
+                    "news",
+                    "rewards",
+                    "purchases",
+                    "credits",
+                    "debits",
+                    "deposits",
+                    "withdrawals",
+                    MERCHANT,
+                    "description",
+                    "vendor",
+                    "store",
+                    "shop",
+                    "retail",
+                    "service",
+                    "services");
 
-    private static final List<String> NAME_REJECT_HEADER_PHRASES = List.of(
-            "transaction details", "account summary", "statement period",
-            "payment information", "account information", "transaction history",
-            "account details", "statement details", "agreement for details",
-            "cardmember agreement", "cardholder agreement", "agreement",
-            DETAILS, "description", "balance", "interest rate",
-            "pay over time limit", "available pay over time",
-            "annual percentage rate", APR, "trailing interest",
-            "transactions dated", "continued on next page", "continued",
-            "send general inquiries", "general inquiries", "platinum card",
-            "american express", "autopay amount", "amount enclosed",
-            "cash advances", "digital goods", "apps", "subject to", "from to",
-            "about", "morgan stanley", "rewards summary", "summary", "news");
+    private static final List<String> NAME_REJECT_HEADER_PHRASES =
+            List.of(
+                    "transaction details",
+                    "account summary",
+                    "statement period",
+                    "payment information",
+                    "account information",
+                    "transaction history",
+                    "account details",
+                    "statement details",
+                    "agreement for details",
+                    "cardmember agreement",
+                    "cardholder agreement",
+                    "agreement",
+                    DETAILS,
+                    "description",
+                    "balance",
+                    "interest rate",
+                    "pay over time limit",
+                    "available pay over time",
+                    "annual percentage rate",
+                    APR,
+                    "trailing interest",
+                    "transactions dated",
+                    "continued on next page",
+                    "continued",
+                    "send general inquiries",
+                    "general inquiries",
+                    "platinum card",
+                    "american express",
+                    "autopay amount",
+                    "amount enclosed",
+                    "cash advances",
+                    "digital goods",
+                    "apps",
+                    "subject to",
+                    "from to",
+                    "about",
+                    "morgan stanley",
+                    "rewards summary",
+                    "summary",
+                    "news");
 
-    private static final List<String> NAME_REJECT_COMPANY_NAMES = List.of(
-            "platinum card", "gold card", "silver card");
+    private static final List<String> NAME_REJECT_COMPANY_NAMES =
+            List.of("platinum card", "gold card", "silver card");
 
     private boolean isValidNameFormat(final String candidate) {
         if (candidate == null || candidate.isBlank()) {
@@ -1793,8 +1935,8 @@ public class PDFImportService {
     }
 
     /**
-     * Digits, currency symbols, punctuation that never belongs in a name, URL-ish
-     * patterns, date / phone shapes. Any hit means "this is not a name".
+     * Digits, currency symbols, punctuation that never belongs in a name, URL-ish patterns, date /
+     * phone shapes. Any hit means "this is not a name".
      */
     private boolean hasDisallowedCharacters(final String trimmed) {
         if (trimmed.matches(".*\\d.*")) {
@@ -1834,9 +1976,9 @@ public class PDFImportService {
     }
 
     /**
-     * Names must be either entirely Title Case ("John Doe") or entirely ALL CAPS
-     * ("JOHN DOE"). Mixed shapes like "John DOE" or "JOHN doe" reject — they
-     * usually come from OCR / column-mashed-up lines.
+     * Names must be either entirely Title Case ("John Doe") or entirely ALL CAPS ("JOHN DOE").
+     * Mixed shapes like "John DOE" or "JOHN doe" reject — they usually come from OCR /
+     * column-mashed-up lines.
      */
     private boolean hasConsistentCapitalization(final String[] words) {
         boolean allWordsAllCaps = true;
@@ -1867,32 +2009,69 @@ public class PDFImportService {
         return allWordsAllCaps || allWordsTitleCase;
     }
 
-    private static final List<String> US_STATE_ABBREVIATIONS_FOR_NAME = List.of(
-            "AL", "AK", "AZ", "AR", "CA", "CO", "CT", "DE", "FL", "GA", "HI", "ID",
-            "IL", "IN", "IA", "KS", "KY", "LA", "ME", "MD", "MA", "MI", "MN", "MS",
-            "MO", "MT", "NE", "NV", "NH", "NJ", "NM", "NY", "NC", "ND", "OH", "OK",
-            "OR", "PA", "RI", "SC", "SD", "TN", "TX", "UT", "VT", "VA", "WA", "WV",
-            "WI", "WY", "DC");
+    private static final List<String> US_STATE_ABBREVIATIONS_FOR_NAME =
+            List.of(
+                    "AL", "AK", "AZ", "AR", "CA", "CO", "CT", "DE", "FL", "GA", "HI", "ID", "IL",
+                    "IN", "IA", "KS", "KY", "LA", "ME", "MD", "MA", "MI", "MN", "MS", "MO", "MT",
+                    "NE", "NV", "NH", "NJ", "NM", "NY", "NC", "ND", "OH", "OK", "OR", "PA", "RI",
+                    "SC", "SD", "TN", "TX", "UT", "VT", "VA", "WA", "WV", "WI", "WY", "DC");
 
-    private static final List<String> COUNTRY_NAMES_FOR_NAME_FILTER = List.of(
-            "USA", "US", "UNITED STATES", "UNITED STATES OF AMERICA", "AMERICA",
-            "UK", "UNITED KINGDOM", "BRITAIN", "GREAT BRITAIN", "INDIA", "IND",
-            "BHARAT", "CANADA", "CAN", "AUSTRALIA", "AUS", "GERMANY", "DEU",
-            "FRANCE", "FRA", "JAPAN", "JPN", "CHINA", "CHN", "INT", "INTERNATIONAL");
+    private static final List<String> COUNTRY_NAMES_FOR_NAME_FILTER =
+            List.of(
+                    "USA",
+                    "US",
+                    "UNITED STATES",
+                    "UNITED STATES OF AMERICA",
+                    "AMERICA",
+                    "UK",
+                    "UNITED KINGDOM",
+                    "BRITAIN",
+                    "GREAT BRITAIN",
+                    "INDIA",
+                    "IND",
+                    "BHARAT",
+                    "CANADA",
+                    "CAN",
+                    "AUSTRALIA",
+                    "AUS",
+                    "GERMANY",
+                    "DEU",
+                    "FRANCE",
+                    "FRA",
+                    "JAPAN",
+                    "JPN",
+                    "CHINA",
+                    "CHN",
+                    "INT",
+                    "INTERNATIONAL");
 
-    private static final List<String> AIRPORT_LIKE_TWO_LETTER_CODES = List.of(
-            "DL", "INT", "UK", "US", "CA", "NY", "LA", "TX", "FL");
+    private static final List<String> AIRPORT_LIKE_TWO_LETTER_CODES =
+            List.of("DL", "INT", "UK", "US", "CA", "NY", "LA", "TX", "FL");
 
-    private static final List<String> AIRLINE_MERCHANT_NAMES = List.of(
-            "DELTA AIR LINES", "DELTA AIR", "DELTA", "AMERICAN AIRLINES",
-            "AMERICAN AIR", "UNITED AIRLINES", "UNITED AIR", "SOUTHWEST AIRLINES",
-            "SOUTHWEST AIR", "JETBLUE", "JET BLUE", "LULULEMON ATHLETICA",
-            "LULULEMON", "AMAZON", "AMAZON.COM", "WALMART", "TARGET", "STARBUCKS");
+    private static final List<String> AIRLINE_MERCHANT_NAMES =
+            List.of(
+                    "DELTA AIR LINES",
+                    "DELTA AIR",
+                    "DELTA",
+                    "AMERICAN AIRLINES",
+                    "AMERICAN AIR",
+                    "UNITED AIRLINES",
+                    "UNITED AIR",
+                    "SOUTHWEST AIRLINES",
+                    "SOUTHWEST AIR",
+                    "JETBLUE",
+                    "JET BLUE",
+                    "LULULEMON ATHLETICA",
+                    "LULULEMON",
+                    "AMAZON",
+                    "AMAZON.COM",
+                    "WALMART",
+                    "TARGET",
+                    "STARBUCKS");
 
     /**
-     * Reject lines that include US state abbreviations, country names, common
-     * airport/transaction 2-letter codes (in ALL CAPS contexts), or airline /
-     * big-retailer merchant names.
+     * Reject lines that include US state abbreviations, country names, common airport/transaction
+     * 2-letter codes (in ALL CAPS contexts), or airline / big-retailer merchant names.
      */
     private boolean containsStateOrCountryToken(final String trimmed, final String[] words) {
         final String upperTrimmed = trimmed.toUpperCase(Locale.ROOT);
@@ -1913,8 +2092,7 @@ public class PDFImportService {
             return false;
         }
         final boolean isAllCaps =
-                trimmed.equals(trimmed.toUpperCase(Locale.ROOT))
-                        && trimmed.matches(".*[A-Z].*");
+                trimmed.equals(trimmed.toUpperCase(Locale.ROOT)) && trimmed.matches(".*[A-Z].*");
         for (final String word : words) {
             if (word == null || word.isBlank()) {
                 continue;
@@ -2838,7 +3016,7 @@ public class PDFImportService {
 
         // Find transaction table header
         int headerIndex = -1;
-        List<String> headers = null;  // assigned per-section inside the loop below
+        List<String> headers = null; // assigned per-section inside the loop below
 
         // Common transaction header patterns
         final List<List<String>> transactionHeaderPatterns =

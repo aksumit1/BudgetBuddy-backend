@@ -355,8 +355,13 @@ public class PlannerController {
     }
 
     @edu.umd.cs.findbugs.annotations.SuppressFBWarnings(
-        value = {"URF_UNREAD_FIELD", "URF_UNREAD_PUBLIC_OR_PROTECTED_FIELD", "UWF_UNWRITTEN_PUBLIC_OR_PROTECTED_FIELD", "UWF_FIELD_NOT_INITIALIZED_IN_CONSTRUCTOR"},
-        justification = "DTO — fields are read/written by Jackson via reflection")
+            value = {
+                "URF_UNREAD_FIELD",
+                "URF_UNREAD_PUBLIC_OR_PROTECTED_FIELD",
+                "UWF_UNWRITTEN_PUBLIC_OR_PROTECTED_FIELD",
+                "UWF_FIELD_NOT_INITIALIZED_IN_CONSTRUCTOR"
+            },
+            justification = "DTO — fields are read/written by Jackson via reflection")
     public static class EvaluateRequest {
         public BigDecimal amount;
         public String category;
