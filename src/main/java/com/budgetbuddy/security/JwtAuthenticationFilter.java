@@ -27,6 +27,9 @@ import org.springframework.web.filter.OncePerRequestFilter;
 // that can't reasonably be enumerated. Broad catches log + recover (or
 // translate to AppException). Suppress at class level since narrowing
 // here would mean catch (RuntimeException) which PMD flags identically.
+@edu.umd.cs.findbugs.annotations.SuppressFBWarnings(
+        value = "CT_CONSTRUCTOR_THROW",
+        justification = "Java 25: Object.finalize() is deprecated-for-removal, so the finalizer-attack vector this rule guards against is not exploitable. Constructors throw to signal a startup misconfiguration (missing credentials, AWS client init failure, etc.).")
 @SuppressWarnings({"PMD.AvoidCatchingGenericException", "PMD.OnlyOneReturn"})
 @Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
@@ -129,43 +132,33 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                                 MDC.get(CORRELATION_ID),
                                 requestURI);
                     } else {
-                        // Token validation failed - log at WARN level with endpoint for debugging
+                        // Token validation failed - log at WARN level with endpoint for debugging.
+                        // jwt is non-null inside this branch (StringUtils.hasText check above).
                         LOGGER.warn(
                                 "JWT token validation failed | CorrelationId: {} | Token length: {} | Endpoint: {} | "
                                         + "Check JwtTokenProvider logs for specific validation error (expired, malformed, signature mismatch, etc.)",
                                 MDC.get(CORRELATION_ID),
-                                jwt != null ? jwt.length() : 0,
+                                jwt.length(),
                                 requestURI);
                     }
                 } catch (io.jsonwebtoken.JwtException ex) {
-                    // Invalid or malformed token - log at WARN level to diagnose authentication
-                    // issues
                     LOGGER.warn(
                             "JWT token parsing/validation error: {} | CorrelationId: {} | Token preview: {}",
                             ex.getMessage(),
                             MDC.get(CORRELATION_ID),
-                            jwt != null && jwt.length() > 20
-                                    ? jwt.substring(0, 20) + "..."
-                                    : "null");
+                            jwt.length() > 20 ? jwt.substring(0, 20) + "..." : jwt);
                 } catch (IllegalArgumentException ex) {
-                    // Invalid token format
                     LOGGER.warn(
                             "Invalid JWT token format: {} | CorrelationId: {} | Token preview: {}",
                             ex.getMessage(),
                             MDC.get(CORRELATION_ID),
-                            jwt != null && jwt.length() > 20
-                                    ? jwt.substring(0, 20) + "..."
-                                    : "null");
+                            jwt.length() > 20 ? jwt.substring(0, 20) + "..." : jwt);
                 } catch (RuntimeException ex) {
-                    // Unexpected runtime exception during token validation - log at ERROR level
-                    // This could indicate a bug or configuration issue
                     LOGGER.error(
                             "Unexpected runtime error during JWT token validation: {} | CorrelationId: {} | Token preview: {}",
                             ex.getMessage(),
                             MDC.get(CORRELATION_ID),
-                            jwt != null && jwt.length() > 20
-                                    ? jwt.substring(0, 20) + "..."
-                                    : "null",
+                            jwt.length() > 20 ? jwt.substring(0, 20) + "..." : jwt,
                             ex);
                 }
             }

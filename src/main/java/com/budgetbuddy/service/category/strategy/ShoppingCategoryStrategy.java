@@ -21,11 +21,14 @@ public class ShoppingCategoryStrategy extends BaseCategoryStrategy {
     @Override
     public String detectCategory(
             final String normalizedMerchantName,
-            final String descriptionLower,
+            final String descriptionLowerInput,
             final String merchantName) {
         if (normalizedMerchantName == null || normalizedMerchantName.isBlank()) {
             return null;
         }
+        // Normalize null description once at entry — the body assumes non-null for .contains()
+        // checks, so it would NPE before reaching the later defensive null check.
+        final String descriptionLower = descriptionLowerInput != null ? descriptionLowerInput : "";
 
         // Sports equipment/gear (ski gear, outdoor equipment, etc.) - Must come BEFORE
         // clothing/apparel
@@ -57,7 +60,8 @@ public class ShoppingCategoryStrategy extends BaseCategoryStrategy {
         // Clothing/Apparel patterns - Must come BEFORE general shopping stores
         final String merchantLowerForShopping =
                 merchantName != null ? merchantName.toLowerCase(Locale.ROOT) : "";
-        final String descLowerForShopping = descriptionLower != null ? descriptionLower : "";
+        // descriptionLower is already non-null (normalized at method entry).
+        final String descLowerForShopping = descriptionLower;
 
         if (normalizedMerchantName.contains(CLOTHING)
                 || normalizedMerchantName.contains(APPAREL)

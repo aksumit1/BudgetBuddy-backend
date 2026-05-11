@@ -1047,12 +1047,15 @@ public class TransactionService {
         final AccountTable account = resolveAccountForCreate(user, accountId, plaidAccountId);
 
         // CRITICAL: Verify account belongs to user (already checked for Plaid accounts above, but
-        // double-check for safety)
-        if (account.getUserId() == null || !account.getUserId().equals(user.getUserId())) {
+        // double-check for safety). Capture the userId in a local so the null check and the
+        // equality check use the same value — also clears SpotBugs's RCN false positive on the
+        // double-getUserId() pattern.
+        final String accountUserId = account.getUserId();
+        if (accountUserId == null || !accountUserId.equals(user.getUserId())) {
             throw new AppException(
                     ErrorCode.UNAUTHORIZED_ACCESS,
                     "Account does not belong to user. Account userId: "
-                            + account.getUserId()
+                            + accountUserId
                             + ", User userId: "
                             + user.getUserId());
         }

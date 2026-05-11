@@ -1938,10 +1938,10 @@ public class TransactionTypeCategoryService {
             }
         }
 
-        // Fallback to default region keywords if region-specific didn't match
-        // CRITICAL: Handle null region (defensive programming)
-        final String defaultRegion =
-                globalFinancialConfig != null ? globalFinancialConfig.getDefaultRegion() : "US";
+        // Fallback to default region keywords if region-specific didn't match. globalFinancialConfig
+        // is Spring-injected so non-null at runtime; the earlier call (line above) would have NPE'd
+        // if it were null, so the previous defensive ternary here was a SpotBugs RCN false positive.
+        final String defaultRegion = globalFinancialConfig.getDefaultRegion();
         if (region != null && !region.equals(defaultRegion)) {
             for (final String keyword : importCategoryConfig.getCreditCardKeywords()) {
                 if (combined.contains(keyword.toLowerCase(Locale.ROOT))) {

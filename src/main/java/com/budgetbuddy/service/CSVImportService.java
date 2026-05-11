@@ -7502,8 +7502,9 @@ public class CSVImportService {
         // TST* is a restaurant POS terminal code and should be detected BEFORE utilities
         if (descLower.contains("tst*")
                 || normalizedDesc.contains("tst*")
-                || (description.toUpperCase(Locale.ROOT).startsWith("TST*"))
-                || (description != null && description.toUpperCase(Locale.ROOT).contains("TST*"))) {
+                || (description != null
+                        && (description.toUpperCase(Locale.ROOT).startsWith("TST*")
+                                || description.toUpperCase(Locale.ROOT).contains("TST*")))) {
             LOGGER.debug("🏷️ detectCategoryFromDescription: Detected TST* pattern → 'dining'");
             return DINING;
         }
@@ -7541,8 +7542,9 @@ public class CSVImportService {
         // TPD must be detected BEFORE utilities because it might be misclassified
         if (descLower.contains("tpd")
                 || normalizedDesc.contains("tpd")
-                || (description.toUpperCase(Locale.ROOT).startsWith("TPD"))
-                || (description != null && description.toUpperCase(Locale.ROOT).contains("TPD"))
+                || (description != null
+                        && (description.toUpperCase(Locale.ROOT).startsWith("TPD")
+                                || description.toUpperCase(Locale.ROOT).contains("TPD")))
                 || descLower.contains("top pot donuts")
                 || descLower.contains("toppotdonuts")
                 || descLower.contains("top pot")

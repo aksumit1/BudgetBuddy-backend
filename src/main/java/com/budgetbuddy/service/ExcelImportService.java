@@ -178,12 +178,11 @@ public class ExcelImportService {
 
             // Get first sheet (most common case)
             final Sheet sheet = workbook.getSheetAt(0);
-            final String sheetName = sheet.getSheetName();
-
             if (sheet == null || sheet.getPhysicalNumberOfRows() == 0) {
                 throw new AppException(
                         ErrorCode.INVALID_INPUT, "Excel file is empty or has no data");
             }
+            final String sheetName = sheet.getSheetName();
 
             LOGGER.info(
                     "Using sheet: '{}' with {} rows", sheetName, sheet.getPhysicalNumberOfRows());

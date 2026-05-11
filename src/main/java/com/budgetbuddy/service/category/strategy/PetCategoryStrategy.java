@@ -19,11 +19,14 @@ public class PetCategoryStrategy extends BaseCategoryStrategy {
     @Override
     public String detectCategory(
             final String normalizedMerchantName,
-            final String descriptionLower,
+            final String descriptionLowerInput,
             final String merchantName) {
         if (normalizedMerchantName == null || normalizedMerchantName.isBlank()) {
             return null;
         }
+        // Normalize null description once at entry — the body assumes a non-null string for
+        // .contains() checks, so it would NPE before reaching the later defensive null check.
+        final String descriptionLower = descriptionLowerInput != null ? descriptionLowerInput : "";
 
         if (normalizedMerchantName.contains("petsmart") || descriptionLower.contains("petsmart")) {
             return PET;
@@ -84,7 +87,8 @@ public class PetCategoryStrategy extends BaseCategoryStrategy {
         // characters
         final String merchantLower =
                 merchantName != null ? merchantName.toLowerCase(Locale.ROOT) : "";
-        final String descLowerForJournals = descriptionLower != null ? descriptionLower : "";
+        // descriptionLower is already non-null (normalized at method entry).
+        final String descLowerForJournals = descriptionLower;
 
         final String[] newsJournals = {
             BARRONS,
