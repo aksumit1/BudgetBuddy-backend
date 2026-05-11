@@ -47,6 +47,7 @@ public class WeeklyDigestService {
     private final BudgetRepository budgetRepository;
     private final GoalRepository goalRepository;
     private final DataChangeNotificationService notificationService;
+    private final DistributedLockService distributedLock;
 
     public WeeklyDigestService(
             final DynamoDbEnhancedClient enhancedClient,
@@ -56,18 +57,29 @@ public class WeeklyDigestService {
             final TransactionRepository transactionRepository,
             final BudgetRepository budgetRepository,
             final GoalRepository goalRepository,
-            final DataChangeNotificationService notificationService) {
+            final DataChangeNotificationService notificationService,
+            final DistributedLockService distributedLock) {
         this.userTable =
                 enhancedClient.table(tablePrefix + "-Users", TableSchema.fromBean(UserTable.class));
         this.transactionRepository = transactionRepository;
         this.budgetRepository = budgetRepository;
         this.goalRepository = goalRepository;
         this.notificationService = notificationService;
+        this.distributedLock = distributedLock;
     }
 
-    /** Monday 09:00 UTC. Per-user-timezone delivery is a later concern. */
+    /**
+     * Monday 09:00 UTC. Per-user-timezone delivery is a later concern. Distributed-lock guarded so
+     * we don't push N duplicate notifications per user when ECS is scaled out.
+     */
     @Scheduled(cron = "0 0 9 ? * MON", zone = "UTC")
     public void weeklyDigest() {
+        final LocalDate today = LocalDate.now(java.time.ZoneOffset.UTC);
+        final String lockKey = "weeklyDigest:" + today;
+        distributedLock.runOnce(lockKey, 60, this::weeklyDigestInner);
+    }
+
+    private void weeklyDigestInner() {
         try {
             int count = 0;
             final var pages = userTable.scan();

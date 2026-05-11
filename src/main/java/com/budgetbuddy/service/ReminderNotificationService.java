@@ -57,19 +57,23 @@ public class ReminderNotificationService {
     private final TransactionActionRepository actionRepository;
     private final UserRepository userRepository;
     private final NotificationService notificationService;
+    private final DistributedLockService distributedLock;
 
     public ReminderNotificationService(
             final TransactionActionRepository actionRepository,
             final UserRepository userRepository,
-            final NotificationService notificationService) {
+            final NotificationService notificationService,
+            final DistributedLockService distributedLock) {
         this.actionRepository = actionRepository;
         this.userRepository = userRepository;
         this.notificationService = notificationService;
+        this.distributedLock = distributedLock;
     }
 
     /**
-     * Scheduled job to check and send reminder notifications Runs every hour to check for reminders
-     * that should be sent
+     * Scheduled job to check and send reminder notifications. Runs every hour. Distributed-lock
+     * guarded so when ECS scales out we don't fire the same hourly reminder N times. The lock key
+     * includes the hour bucket so consecutive hourly runs don't collide.
      *
      * <p>Checks actions where: - reminderDate is not null - reminderDate is in the past (should
      * have been sent) - reminderDate is within the last hour (to catch reminders that just passed)
@@ -77,6 +81,18 @@ public class ReminderNotificationService {
      */
     @Scheduled(cron = "0 0 * * * ?") // Every hour at minute 0
     public void sendReminderNotifications() {
+        // Hour-granular lock key: format yyyy-MM-ddTHH so each hourly fire is its own window.
+        final String hourKey =
+                Instant.now()
+                        .atZone(java.time.ZoneOffset.UTC)
+                        .truncatedTo(java.time.temporal.ChronoUnit.HOURS)
+                        .toString();
+        final String lockKey = "reminderNotifications:" + hourKey;
+        // TTL 30min — bounded by # of due reminders; even at very large scale this fits.
+        distributedLock.runOnce(lockKey, 30, this::sendReminderNotificationsInner);
+    }
+
+    private void sendReminderNotificationsInner() {
         LOGGER.info("Starting reminder notification check");
 
         try {

@@ -140,12 +140,12 @@ public class TransactionRepository {
     }
 
     /**
-     * Disaster-fallback fetch used when a GSI is missing and the caller can't paginate. Returns
-     * up to {@link #MAX_FALLBACK_FETCH} transactions for {@code userId} (walks the
-     * {@code UserIdDateIndex} GSI directly, bypassing the 100-row cap on {@link
-     * #findByUserId(String, int, int)}). Logs a WARN if the cap is hit — that means either a
-     * power user with 50k+ transactions or, more likely, a misconfigured prod GSI that should be
-     * fixed at the infra layer rather than papered over in code.
+     * Disaster-fallback fetch used when a GSI is missing and the caller can't paginate. Returns up
+     * to {@link #MAX_FALLBACK_FETCH} transactions for {@code userId} (walks the {@code
+     * UserIdDateIndex} GSI directly, bypassing the 100-row cap on {@link #findByUserId(String, int,
+     * int)}). Logs a WARN if the cap is hit — that means either a power user with 50k+ transactions
+     * or, more likely, a misconfigured prod GSI that should be fixed at the infra layer rather than
+     * papered over in code.
      */
     public List<TransactionTable> findByUserIdCapped(final String userId) {
         if (userId == null || userId.isEmpty()) {
@@ -174,13 +174,54 @@ public class TransactionRepository {
                     out.add(item);
                 }
             }
+            return out;
+        } catch (ResourceNotFoundException e) {
+            return fallbackScanForUserCapped(userId);
+        } catch (RuntimeException e) {
+            final Throwable cause = e.getCause();
+            final String msg =
+                    e.getMessage() != null ? e.getMessage().toLowerCase(Locale.ROOT) : "";
+            if (cause instanceof ResourceNotFoundException
+                    || msg.contains("index not found")
+                    || msg.contains("resource not found")) {
+                return fallbackScanForUserCapped(userId);
+            }
+            org.slf4j.LoggerFactory.getLogger(TransactionRepository.class)
+                    .warn("findByUserIdCapped failed for userId {}: {}", userId, e.getMessage(), e);
+            return out;
+        }
+    }
+
+    /**
+     * Last-resort fallback when even the {@code UserIdDateIndex} GSI is missing — table-scan and
+     * filter by userId in memory. Capped at {@link #MAX_FALLBACK_FETCH} rows just like the GSI
+     * path. WARN-logged so the GSI gap is visible in CloudWatch.
+     */
+    private List<TransactionTable> fallbackScanForUserCapped(final String userId) {
+        org.slf4j.LoggerFactory.getLogger(TransactionRepository.class)
+                .warn(
+                        "UserIdDateIndex GSI not found for userId {}; falling back to base-table"
+                                + " scan in findByUserIdCapped.",
+                        userId);
+        final List<TransactionTable> out = new ArrayList<>();
+        try {
+            final SdkIterable<software.amazon.awssdk.enhanced.dynamodb.model.Page<TransactionTable>>
+                    scanPages = transactionTable.scan();
+            for (final software.amazon.awssdk.enhanced.dynamodb.model.Page<TransactionTable> page :
+                    scanPages) {
+                for (final TransactionTable item : page.items()) {
+                    if (item == null || !userId.equals(item.getUserId())) {
+                        continue;
+                    }
+                    if (out.size() >= MAX_FALLBACK_FETCH) {
+                        return out;
+                    }
+                    out.add(item);
+                }
+            }
         } catch (Exception e) {
             org.slf4j.LoggerFactory.getLogger(TransactionRepository.class)
-                    .warn(
-                            "findByUserIdCapped failed for userId {}: {}",
-                            userId,
-                            e.getMessage(),
-                            e);
+                    .error("Fallback scan failed for userId {}: {}", userId, e.getMessage(), e);
         }
         return out;
     }
@@ -738,8 +779,7 @@ public class TransactionRepository {
                             "UserIdUpdatedAtIndex GSI not found for userId {}. Falling back to findByUserId and filtering in memory.",
                             userId);
             try {
-                final List<TransactionTable> allTransactions =
-                        findByUserIdCapped(userId);
+                final List<TransactionTable> allTransactions = findByUserIdCapped(userId);
                 int count = 0;
                 for (final TransactionTable transaction : allTransactions) {
                     if (transaction.getUpdatedAtTimestamp() != null
@@ -774,8 +814,7 @@ public class TransactionRepository {
                                 "UserIdUpdatedAtIndex GSI not found for userId {} (wrapped exception). Falling back to findByUserId and filtering in memory.",
                                 userId);
                 try {
-                    final List<TransactionTable> allTransactions =
-                            findByUserIdCapped(userId);
+                    final List<TransactionTable> allTransactions = findByUserIdCapped(userId);
                     int count = 0;
                     for (final TransactionTable transaction : allTransactions) {
                         if (transaction.getUpdatedAtTimestamp() != null
@@ -818,8 +857,7 @@ public class TransactionRepository {
                                 "UserIdUpdatedAtIndex GSI not found for userId {} (detected from error message). Falling back to findByUserId and filtering in memory.",
                                 userId);
                 try {
-                    final List<TransactionTable> allTransactions =
-                            findByUserIdCapped(userId);
+                    final List<TransactionTable> allTransactions = findByUserIdCapped(userId);
                     int count = 0;
                     for (final TransactionTable transaction : allTransactions) {
                         if (transaction.getUpdatedAtTimestamp() != null
@@ -984,8 +1022,7 @@ public class TransactionRepository {
                             e.getMessage());
 
             // Get all transactions for this user and account (fallback)
-            final List<TransactionTable> userTransactions =
-                    findByUserIdCapped(userId);
+            final List<TransactionTable> userTransactions = findByUserIdCapped(userId);
 
             return userTransactions.stream()
                     .filter(t -> t != null && accountId.equals(t.getAccountId()))

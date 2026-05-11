@@ -44,30 +44,36 @@ public class DataArchivingService {
     private final UserRepository userRepository;
     private final S3Service s3Service;
     private final ObjectMapper objectMapper;
+    private final DistributedLockService distributedLock;
 
     public DataArchivingService(
             final TransactionRepository transactionRepository,
             final UserRepository userRepository,
             final S3Service s3Service,
-            final ObjectMapper objectMapper) {
+            final ObjectMapper objectMapper,
+            final DistributedLockService distributedLock) {
         this.transactionRepository = transactionRepository;
         this.userRepository = userRepository;
         this.s3Service = s3Service;
         this.objectMapper = objectMapper;
+        this.distributedLock = distributedLock;
     }
 
     /**
-     * Archive old transactions to S3 Glacier Runs monthly to minimize storage costs
+     * Archive old transactions to S3 Glacier Runs monthly to minimize storage costs.
      *
-     * <p>IMPLEMENTATION: Uses GSI-based queries per user for efficient archiving For production at
-     * scale, consider implementing DynamoDB TTL + Streams: 1. Set TTL attribute on transactions
-     * older than ARCHIVE_DAYS 2. Configure DynamoDB Streams to capture deletions 3. Stream handler
-     * calls archiveTransactions() for deleted items
-     *
-     * <p>Current implementation: Per-user GSI queries (efficient for moderate scale)
+     * <p>Distributed-lock guarded so when ECS auto-scales to N tasks the archive runs exactly once
+     * per month — otherwise each task would race to S3-PUT the same object key.
      */
     @Scheduled(cron = "0 10 2 1 * ?", zone = "UTC") // First of month 02:10 UTC (staggered)
     public void archiveOldTransactions() {
+        final LocalDate today = LocalDate.now();
+        final String lockKey = "dataArchiving:" + today.withDayOfMonth(1);
+        // 4-hour TTL — archive can iterate over thousands of users with S3 PUTs.
+        distributedLock.runOnce(lockKey, 240, this::archiveOldTransactionsInner);
+    }
+
+    private void archiveOldTransactionsInner() {
         final LocalDate cutoffDate = LocalDate.now().minusDays(ARCHIVE_DAYS);
         LOGGER.info("Starting transaction archiving for data before {}", cutoffDate);
 

@@ -35,6 +35,8 @@ class ReminderNotificationServiceTest {
 
     @Mock private NotificationService notificationService;
 
+    @Mock private DistributedLockService distributedLock;
+
     @InjectMocks private ReminderNotificationService reminderNotificationService;
 
     private UserTable testUser;

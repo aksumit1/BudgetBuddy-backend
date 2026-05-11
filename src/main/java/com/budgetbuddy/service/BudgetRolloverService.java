@@ -60,22 +60,28 @@ public class BudgetRolloverService {
 
     private final BudgetRepository budgetRepository;
     private final TransactionRepository transactionRepository;
+    private final DistributedLockService distributedLock;
 
     public BudgetRolloverService(
             final BudgetRepository budgetRepository,
-            final TransactionRepository transactionRepository) {
+            final TransactionRepository transactionRepository,
+            final DistributedLockService distributedLock) {
         this.budgetRepository = budgetRepository;
         this.transactionRepository = transactionRepository;
+        this.distributedLock = distributedLock;
     }
 
     /**
      * Cron: 00:30 UTC, on the 1st of every month. Offset 30 min past midnight to let any in-flight
-     * end-of-month transaction ingests land before we close the books.
+     * end-of-month transaction ingests land before we close the books. Guarded by a distributed
+     * lock so when ECS auto-scales to N tasks the rollover runs exactly once — otherwise each task
+     * would double-credit every rollover-enabled budget at the start of the month.
      */
     @Scheduled(cron = "0 30 0 1 * *", zone = "UTC")
     public void monthlyRollover() {
         final LocalDate today = LocalDate.now(ZoneOffset.UTC);
-        runRollover(today);
+        final String lockKey = "budgetRollover:" + today;
+        distributedLock.runOnce(lockKey, 60, () -> runRollover(today));
     }
 
     /**

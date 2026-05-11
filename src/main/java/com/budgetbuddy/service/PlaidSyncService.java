@@ -38,6 +38,10 @@ public class PlaidSyncService {
         this.syncOrchestrator = syncOrchestrator;
     }
 
+    // scheduledSync() below is a documented stub awaiting access-token storage; no distributed
+    // lock needed because the body has no side effects. When real sync wiring lands, wrap the
+    // body in `distributedLock.runOnce("plaidScheduledSync:" + today, 120, this::doSync)`.
+
     /**
      * Sync accounts for a user Delegates to PlaidAccountSyncService for better modularity
      *

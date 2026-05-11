@@ -248,8 +248,8 @@ public class FinancialComplianceService {
     }
 
     /**
-     * Heuristic threshold check used by {@link #monitorTransaction}. ML-driven scoring belongs
-     * here later (per-user baselines, velocity, merchant rep); the constant is the floor.
+     * Heuristic threshold check used by {@link #monitorTransaction}. ML-driven scoring belongs here
+     * later (per-user baselines, velocity, merchant rep); the constant is the floor.
      */
     private boolean isSuspiciousTransaction(final BigDecimal amount, final String userId) {
         if (amount == null) {

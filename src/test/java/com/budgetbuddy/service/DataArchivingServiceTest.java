@@ -39,6 +39,8 @@ class DataArchivingServiceTest {
 
     @Mock private S3Service s3Service;
 
+    @Mock private DistributedLockService distributedLock;
+
     private ObjectMapper objectMapper;
     private DataArchivingService dataArchivingService;
 
@@ -46,9 +48,27 @@ class DataArchivingServiceTest {
     void setUp() {
         MockitoAnnotations.openMocks(this);
         objectMapper = new ObjectMapper();
+        // The scheduled wrapper acquires a distributed lock; in tests we exercise the inner
+        // logic directly, so make the lock unconditionally run its work block.
+        org.mockito.Mockito.lenient()
+                .when(
+                        distributedLock.runOnce(
+                                org.mockito.ArgumentMatchers.anyString(),
+                                org.mockito.ArgumentMatchers.anyInt(),
+                                org.mockito.ArgumentMatchers.any(Runnable.class)))
+                .thenAnswer(
+                        invocation -> {
+                            final Runnable work = invocation.getArgument(2);
+                            work.run();
+                            return true;
+                        });
         dataArchivingService =
                 new DataArchivingService(
-                        transactionRepository, userRepository, s3Service, objectMapper);
+                        transactionRepository,
+                        userRepository,
+                        s3Service,
+                        objectMapper,
+                        distributedLock);
     }
 
     @Test

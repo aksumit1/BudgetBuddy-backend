@@ -50,6 +50,7 @@ public class NetWorthSnapshotService {
     private final NetWorthSnapshotRepository snapshotRepository;
     private final AccountRepository accountRepository;
     private final DynamoDbTable<UserTable> userTable;
+    private final DistributedLockService distributedLock;
 
     public NetWorthSnapshotService(
             final NetWorthSnapshotRepository snapshotRepository,
@@ -57,20 +58,32 @@ public class NetWorthSnapshotService {
             final DynamoDbEnhancedClient enhancedClient,
             @org.springframework.beans.factory.annotation.Value(
                             "${app.aws.dynamodb.table-prefix:BudgetBuddy}")
-                    final String tablePrefix) {
+                    final String tablePrefix,
+            final DistributedLockService distributedLock) {
         this.snapshotRepository = snapshotRepository;
         this.accountRepository = accountRepository;
         // UserRepository doesn't expose findAll — scan the table directly here for the
         // nightly job. The users table is small enough that a scan is fine.
         this.userTable =
                 enhancedClient.table(tablePrefix + "-Users", TableSchema.fromBean(UserTable.class));
+        this.distributedLock = distributedLock;
     }
 
-    /** Cron: 02:30 UTC daily. Off-peak; small enough scan that nightly is fine. */
+    /**
+     * Cron: 02:30 UTC daily. Off-peak; small enough scan that nightly is fine. Distributed-lock
+     * guarded so N ECS tasks don't each write a duplicate snapshot per user per day. The snapshot
+     * save itself is idempotent (deterministic snapshotId) but the read-side fan-out is not —
+     * duplicating the read is wasted DynamoDB cost.
+     */
     @Scheduled(cron = "0 30 2 * * *", zone = "UTC")
     public void nightlySnapshot() {
+        final LocalDate today = LocalDate.now(java.time.ZoneOffset.UTC);
+        final String lockKey = "netWorthSnapshot:" + today;
+        distributedLock.runOnce(lockKey, 120, () -> snapshotAllUsers(today));
+    }
+
+    private void snapshotAllUsers(final LocalDate today) {
         try {
-            final LocalDate today = LocalDate.now(java.time.ZoneOffset.UTC);
             int users = 0;
             final var pages = userTable.scan();
             for (final var page : pages) {
