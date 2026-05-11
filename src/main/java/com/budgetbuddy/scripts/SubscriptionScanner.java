@@ -68,25 +68,11 @@ public class SubscriptionScanner implements CommandLineRunner {
         LOGGER.info("----------------------------------------");
 
         try {
-            // Get all subscriptions from repository
-            final List<SubscriptionTable> allSubscriptions = new ArrayList<>();
-
-            // Scan by getting all unique user IDs first (if possible)
-            // For now, we'll need to scan the table
-            // In production, you might want to maintain a user ID list
-
-            // Get subscriptions for a sample user (you can modify this)
-            // For full scan, you'd need to iterate through all users
-
+            // Scaffolding for a future full subscription scan. The intended flow:
+            //   1. Build a user-id set (currently TODO — needs a users-table scan).
+            //   2. For each user, load their SubscriptionTable rows.
+            //   3. Run analysis. For now we only log the structure.
             LOGGER.info("Scanning subscription table...");
-
-            // Try to get subscriptions for known users
-            // This is a simplified version - in production, you'd scan all users
-            final Set<String> userIds = new HashSet<>();
-
-            // For demonstration, we'll show how to analyze subscriptions
-            // In practice, you'd need to get all user IDs first
-
             LOGGER.info("Note: Full scan requires iterating through all users");
             LOGGER.info("For now, showing analysis structure");
 

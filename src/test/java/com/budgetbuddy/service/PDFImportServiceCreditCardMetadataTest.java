@@ -27,11 +27,11 @@ import org.mockito.quality.Strictness;
 @MockitoSettings(strictness = Strictness.LENIENT)
 class PDFImportServiceCreditCardMetadataTest {
 
-    private static final String EXTRACTREWARDPOINTS = "extractRewardPoints";
     private static final String EXTRACTMINIMUMPAYMENTDUE = "extractMinimumPaymentDue";
     private static final String EXTRACTPAYMENTDUEDATE = "extractPaymentDueDate";
 
     private PDFImportService pdfImportService;
+    private RewardExtractor rewardExtractor;
 
     @BeforeEach
     void setUp() {
@@ -41,6 +41,7 @@ class PDFImportServiceCreditCardMetadataTest {
                 org.mockito.Mockito.mock(ImportCategoryParser.class);
         org.mockito.Mockito.mock(TransactionTypeCategoryService.class);
         final EnhancedPatternMatcher enhancedPatternMatcher = new EnhancedPatternMatcher();
+        rewardExtractor = new RewardExtractor();
         pdfImportService =
                 new PDFImportService(
                         accountDetectionService,
@@ -304,13 +305,8 @@ class PDFImportServiceCreditCardMetadataTest {
             "01/10/2024 Grocery Store $50.00"
         };
 
-        // Use reflection to access private extractRewardPoints method
-        final java.lang.reflect.Method method =
-                PDFImportService.class.getDeclaredMethod(EXTRACTREWARDPOINTS, String[].class);
-        method.setAccessible(true);
-
         // When
-        final Long result = (Long) method.invoke(pdfImportService, (Object) lines);
+        final Long result = rewardExtractor.extractRewardPoints(lines);
 
         // Then
         assertNotNull(result);
@@ -327,13 +323,8 @@ class PDFImportServiceCreditCardMetadataTest {
             "01/10/2024 Grocery Store $50.00"
         };
 
-        // Use reflection to access private extractRewardPoints method
-        final java.lang.reflect.Method method =
-                PDFImportService.class.getDeclaredMethod(EXTRACTREWARDPOINTS, String[].class);
-        method.setAccessible(true);
-
         // When
-        final Long result = (Long) method.invoke(pdfImportService, (Object) lines);
+        final Long result = rewardExtractor.extractRewardPoints(lines);
 
         // Then
         assertNotNull(result);
@@ -350,13 +341,8 @@ class PDFImportServiceCreditCardMetadataTest {
             "01/10/2024 Grocery Store $50.00"
         };
 
-        // Use reflection to access private extractRewardPoints method
-        final java.lang.reflect.Method method =
-                PDFImportService.class.getDeclaredMethod(EXTRACTREWARDPOINTS, String[].class);
-        method.setAccessible(true);
-
         // When
-        final Long result = (Long) method.invoke(pdfImportService, (Object) lines);
+        final Long result = rewardExtractor.extractRewardPoints(lines);
 
         // Then
         assertNotNull(result);
@@ -377,13 +363,8 @@ class PDFImportServiceCreditCardMetadataTest {
             "01/10/2024 Grocery Store $50.00"
         };
 
-        // Use reflection to access private extractRewardPoints method
-        final java.lang.reflect.Method method =
-                PDFImportService.class.getDeclaredMethod(EXTRACTREWARDPOINTS, String[].class);
-        method.setAccessible(true);
-
         // When
-        final Long result = (Long) method.invoke(pdfImportService, (Object) lines);
+        final Long result = rewardExtractor.extractRewardPoints(lines);
 
         // Then
         assertNotNull(result);
@@ -401,13 +382,8 @@ class PDFImportServiceCreditCardMetadataTest {
             "01/10/2024 Grocery Store $50.00"
         };
 
-        // Use reflection to access private extractRewardPoints method
-        final java.lang.reflect.Method method =
-                PDFImportService.class.getDeclaredMethod(EXTRACTREWARDPOINTS, String[].class);
-        method.setAccessible(true);
-
         // When
-        final Long result = (Long) method.invoke(pdfImportService, (Object) lines);
+        final Long result = rewardExtractor.extractRewardPoints(lines);
 
         // Then
         assertNotNull(result);
@@ -424,13 +400,8 @@ class PDFImportServiceCreditCardMetadataTest {
             "01/10/2024 Grocery Store $50.00"
         };
 
-        // Use reflection to access private extractRewardPoints method
-        final java.lang.reflect.Method method =
-                PDFImportService.class.getDeclaredMethod(EXTRACTREWARDPOINTS, String[].class);
-        method.setAccessible(true);
-
         // When
-        final Long result = (Long) method.invoke(pdfImportService, (Object) lines);
+        final Long result = rewardExtractor.extractRewardPoints(lines);
 
         // Then
         assertNotNull(result);
@@ -447,13 +418,8 @@ class PDFImportServiceCreditCardMetadataTest {
             "01/10/2024 Grocery Store $50.00"
         };
 
-        // Use reflection to access private extractRewardPoints method
-        final java.lang.reflect.Method method =
-                PDFImportService.class.getDeclaredMethod(EXTRACTREWARDPOINTS, String[].class);
-        method.setAccessible(true);
-
         // When
-        final Long result = (Long) method.invoke(pdfImportService, (Object) lines);
+        final Long result = rewardExtractor.extractRewardPoints(lines);
 
         // Then
         assertNotNull(result);
@@ -470,13 +436,8 @@ class PDFImportServiceCreditCardMetadataTest {
             "01/10/2024 Grocery Store $50.00"
         };
 
-        // Use reflection to access private extractRewardPoints method
-        final java.lang.reflect.Method method =
-                PDFImportService.class.getDeclaredMethod(EXTRACTREWARDPOINTS, String[].class);
-        method.setAccessible(true);
-
         // When
-        final Long result = (Long) method.invoke(pdfImportService, (Object) lines);
+        final Long result = rewardExtractor.extractRewardPoints(lines);
 
         // Then
         assertNotNull(result);
@@ -493,13 +454,8 @@ class PDFImportServiceCreditCardMetadataTest {
             "01/10/2024 Grocery Store $50.00"
         };
 
-        // Use reflection to access private extractRewardPoints method
-        final java.lang.reflect.Method method =
-                PDFImportService.class.getDeclaredMethod(EXTRACTREWARDPOINTS, String[].class);
-        method.setAccessible(true);
-
         // When
-        final Long result = (Long) method.invoke(pdfImportService, (Object) lines);
+        final Long result = rewardExtractor.extractRewardPoints(lines);
 
         // Then
         assertNull(result);
@@ -507,23 +463,18 @@ class PDFImportServiceCreditCardMetadataTest {
 
     @Test
     void testExtractRewardPointsExceedsMaxReturnsNull() throws Exception {
-        // Given - PDF text with points exceeding 10 million
+        // Given - PDF text with points exceeding the 100M reasonable-points cap
         final String[] lines = {
             "Credit Card Statement",
-            "Points: 10,000,001",
+            "Points: 100,000,001",
             "Date Description Amount",
             "01/10/2024 Grocery Store $50.00"
         };
 
-        // Use reflection to access private extractRewardPoints method
-        final java.lang.reflect.Method method =
-                PDFImportService.class.getDeclaredMethod(EXTRACTREWARDPOINTS, String[].class);
-        method.setAccessible(true);
-
         // When
-        final Long result = (Long) method.invoke(pdfImportService, (Object) lines);
+        final Long result = rewardExtractor.extractRewardPoints(lines);
 
-        // Then - Should not extract points exceeding 10 million
+        // Then - Should reject values above the reasonable-points cap
         assertNull(result);
     }
 
@@ -551,17 +502,12 @@ class PDFImportServiceCreditCardMetadataTest {
                 PDFImportService.class.getDeclaredMethod(EXTRACTMINIMUMPAYMENTDUE, String[].class);
         extractMinPaymentMethod.setAccessible(true);
 
-        final java.lang.reflect.Method extractPointsMethod =
-                PDFImportService.class.getDeclaredMethod(EXTRACTREWARDPOINTS, String[].class);
-        extractPointsMethod.setAccessible(true);
-
         // When
         final LocalDate paymentDueDate =
                 (LocalDate) extractDueDateMethod.invoke(pdfImportService, lines, 2024, true);
         final BigDecimal minimumPaymentDue =
                 (BigDecimal) extractMinPaymentMethod.invoke(pdfImportService, (Object) lines);
-        final Long rewardPoints =
-                (Long) extractPointsMethod.invoke(pdfImportService, (Object) lines);
+        final Long rewardPoints = rewardExtractor.extractRewardPoints(lines);
 
         // Then - All metadata should be extracted
         assertNotNull(paymentDueDate);

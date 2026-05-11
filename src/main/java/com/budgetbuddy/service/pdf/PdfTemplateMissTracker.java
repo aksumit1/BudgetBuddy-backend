@@ -188,6 +188,9 @@ public class PdfTemplateMissTracker {
         }
     }
 
+    @edu.umd.cs.findbugs.annotations.SuppressFBWarnings(
+            value = {"URF_UNREAD_FIELD"},
+            justification = "Telemetry DTO — fields read for serialization/logging")
     private static final class MissEvent {
         final Instant at;
         final int pageCount;

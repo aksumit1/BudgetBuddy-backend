@@ -36,7 +36,7 @@ import org.springframework.stereotype.Service;
 // Test methods declare `throws Exception` for setup convenience —
 // JUnit idiom; the rule is a noise generator on test classes.
 @SuppressFBWarnings(
-        value = {"EI_EXPOSE_REP", "THROWS_METHOD_THROWS_CLAUSE_BASIC_EXCEPTION", "EI_EXPOSE_REP2"},
+        value = {"EI_EXPOSE_REP", "THROWS_METHOD_THROWS_CLAUSE_BASIC_EXCEPTION"},
         justification =
                 "JSON DTO / DynamoDB entity getters expose lists by reference; "
                         + "the design is value-semantic and Jackson creates fresh instances; Apache POI / IO methods throw checked Exception; "

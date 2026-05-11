@@ -174,127 +174,117 @@ public class FileSecurityValidator {
         if (filePath == null || filePath.isBlank()) {
             throw new AppException(ErrorCode.INVALID_INPUT, "File path cannot be null or empty");
         }
+        rejectUntrustedUnixAbsolutePath(filePath);
+        rejectWindowsAbsolutePath(filePath);
+        rejectNullByteInPath(filePath);
+        return normalizeAndValidate(filePath);
+    }
 
-        // CRITICAL: Check for absolute paths (security risk)
-        // Unix/Linux absolute paths
-        if (filePath.startsWith("/")) {
-            // Allow absolute paths only for trusted system directories (e.g., /tmp/,
-            // /var/folders/.../T on macOS)
-            boolean isTrustedPath = false;
-
-            // First check exact matches in trusted directories list
-            for (final String trustedDir : TRUSTED_SYSTEM_DIRECTORIES) {
-                if (filePath.startsWith(trustedDir + "/") || filePath.equals(trustedDir)) {
-                    isTrustedPath = true;
-                    break;
-                }
-            }
-
-            // If not found, check if path is within system temp directory (handles macOS
-            // /var/folders/.../T paths)
-            if (!isTrustedPath) {
-                try {
-                    final Path filePathObj = Paths.get(filePath);
-                    final Path tempDirObj = Paths.get(SYSTEM_TEMP_DIR);
-                    // Check if the file path is within the system temp directory
-                    if (filePathObj.normalize().startsWith(tempDirObj.normalize())) {
-                        isTrustedPath = true;
-                    }
-                } catch (Exception e) {
-                    // If path comparison fails, continue with validation (will fail if not trusted)
-                    LOGGER.debug("Error comparing paths: {}", e.getMessage());
-                }
-            }
-
-            if (!isTrustedPath) {
-                LOGGER.warn("Absolute path detected (not in trusted directory): {}", filePath);
-                throw new AppException(
-                        ErrorCode.INVALID_INPUT, INVALID_FILE_PATH_ABSOLUTE_PATHS_ARE_NOT);
-            }
-            // For trusted paths, continue validation for path traversal
+    /** Reject Unix-style absolute paths unless they sit inside a trusted system directory. */
+    private void rejectUntrustedUnixAbsolutePath(final String filePath) {
+        if (!filePath.startsWith("/")) {
+            return;
         }
+        if (isInTrustedSystemDirectory(filePath) || isWithinSystemTempDir(filePath)) {
+            return;
+        }
+        LOGGER.warn("Absolute path detected (not in trusted directory): {}", filePath);
+        throw new AppException(
+                ErrorCode.INVALID_INPUT, INVALID_FILE_PATH_ABSOLUTE_PATHS_ARE_NOT);
+    }
 
-        // Windows absolute paths (C:\, D:\, etc.)
+    /** Reject Windows-style absolute paths ("C:\..."). */
+    private static void rejectWindowsAbsolutePath(final String filePath) {
         if (filePath.matches("^[A-Za-z]:[/\\\\].*")) {
             LOGGER.warn("Windows absolute path detected: {}", filePath);
             throw new AppException(
                     ErrorCode.INVALID_INPUT, INVALID_FILE_PATH_ABSOLUTE_PATHS_ARE_NOT);
         }
+    }
 
-        // Check for null bytes (before normalization)
+    /** Reject null bytes embedded in the raw path (before normalization). */
+    private static void rejectNullByteInPath(final String filePath) {
         if (NULL_BYTE_PATTERN.matcher(filePath).find()) {
             LOGGER.warn("Null byte detected in file path: {}", filePath);
             throw new AppException(
                     ErrorCode.INVALID_INPUT, "Invalid file path: null byte detected");
         }
+    }
 
+    /**
+     * Run the post-normalize traversal/absolute-path checks. Anything thrown from Paths.get() is
+     * wrapped into an AppException so callers see a uniform error.
+     */
+    private Path normalizeAndValidate(final String filePath) {
         try {
-            final Path path = Paths.get(filePath);
-            final Path normalized = path.normalize();
-
-            // CRITICAL: Check for path traversal patterns AFTER normalization
-            // This allows legitimate paths like "data/../data/model.json" which normalize to
-            // "data/model.json"
-            final String normalizedPath = normalized.toString();
-            if (PATH_TRAVERSAL_PATTERN.matcher(normalizedPath).find()) {
-                LOGGER.warn(
-                        "Path traversal attempt detected after normalization: {}", normalizedPath);
-                throw new AppException(ErrorCode.INVALID_INPUT, INVALID_FILE_PATH_PATH_TRAVERSAL);
-            }
-
-            // CRITICAL: Double-check for absolute paths after normalization
-            if (normalized.isAbsolute()) {
-                // Allow absolute paths only for trusted system directories
-                final String normalizedStr = normalized.toString();
-                boolean isTrustedPath = false;
-
-                // First check exact matches in trusted directories list
-                for (final String trustedDir : TRUSTED_SYSTEM_DIRECTORIES) {
-                    if (normalizedStr.startsWith(trustedDir + "/")
-                            || normalizedStr.equals(trustedDir)) {
-                        isTrustedPath = true;
-                        break;
-                    }
-                }
-
-                // If not found, check if normalized path is within system temp directory (handles
-                // macOS paths)
-                if (!isTrustedPath) {
-                    try {
-                        final Path tempDirObj = Paths.get(SYSTEM_TEMP_DIR);
-                        // Check if the normalized path is within the system temp directory
-                        if (normalized.startsWith(tempDirObj.normalize())) {
-                            isTrustedPath = true;
-                        }
-                    } catch (Exception e) {
-                        // If path comparison fails, continue with validation (will fail if not
-                        // trusted)
-                        LOGGER.debug("Error comparing normalized paths: {}", e.getMessage());
-                    }
-                }
-
-                if (!isTrustedPath) {
-                    LOGGER.warn(
-                            "Absolute path detected after normalization (not in trusted directory): {}",
-                            normalized);
-                    throw new AppException(
-                            ErrorCode.INVALID_INPUT, INVALID_FILE_PATH_ABSOLUTE_PATHS_ARE_NOT);
-                }
-            }
-
-            // Ensure normalized path doesn't contain .. (double check)
-            if (normalized.toString().contains("..")) {
-                LOGGER.warn("Path traversal detected after normalization: {}", normalized);
-                throw new AppException(ErrorCode.INVALID_INPUT, INVALID_FILE_PATH_PATH_TRAVERSAL);
-            }
-
+            final Path normalized = Paths.get(filePath).normalize();
+            enforcePostNormalizationRules(normalized);
             return normalized;
         } catch (AppException e) {
-            // Re-throw AppException as-is
             throw e;
         } catch (Exception e) {
             LOGGER.error("Error validating file path: {}", e.getMessage());
             throw new AppException(ErrorCode.INVALID_INPUT, "Invalid file path: " + e.getMessage());
+        }
+    }
+
+    /** Post-normalization checks: traversal regex, trusted absolute, stray ".." segments. */
+    private void enforcePostNormalizationRules(final Path normalized) {
+        final String normalizedStr = normalized.toString();
+        if (PATH_TRAVERSAL_PATTERN.matcher(normalizedStr).find()) {
+            LOGGER.warn("Path traversal attempt detected after normalization: {}", normalizedStr);
+            throw new AppException(ErrorCode.INVALID_INPUT, INVALID_FILE_PATH_PATH_TRAVERSAL);
+        }
+        if (normalized.isAbsolute()) {
+            rejectUntrustedNormalizedAbsolutePath(normalized);
+        }
+        // Defense-in-depth: a malformed segment like "..foo" can survive Path.normalize().
+        if (normalizedStr.contains("..")) {
+            LOGGER.warn("Path traversal detected after normalization: {}", normalized);
+            throw new AppException(ErrorCode.INVALID_INPUT, INVALID_FILE_PATH_PATH_TRAVERSAL);
+        }
+    }
+
+    private void rejectUntrustedNormalizedAbsolutePath(final Path normalized) {
+        final String normalizedStr = normalized.toString();
+        if (isInTrustedSystemDirectory(normalizedStr)
+                || isPathWithinSystemTempDir(normalized)) {
+            return;
+        }
+        LOGGER.warn(
+                "Absolute path detected after normalization (not in trusted directory): {}",
+                normalized);
+        throw new AppException(
+                ErrorCode.INVALID_INPUT, INVALID_FILE_PATH_ABSOLUTE_PATHS_ARE_NOT);
+    }
+
+    /** True if {@code filePath} starts with any TRUSTED_SYSTEM_DIRECTORIES entry. */
+    private static boolean isInTrustedSystemDirectory(final String filePath) {
+        for (final String trustedDir : TRUSTED_SYSTEM_DIRECTORIES) {
+            if (filePath.equals(trustedDir) || filePath.startsWith(trustedDir + "/")) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /** True if the raw {@code filePath} normalizes to a location inside the system temp dir. */
+    private static boolean isWithinSystemTempDir(final String filePath) {
+        try {
+            return Paths.get(filePath).normalize().startsWith(Paths.get(SYSTEM_TEMP_DIR).normalize());
+        } catch (Exception e) {
+            LOGGER.debug("Error comparing paths: {}", e.getMessage());
+            return false;
+        }
+    }
+
+    /** True if an already-normalized {@code path} is inside the system temp dir. */
+    private static boolean isPathWithinSystemTempDir(final Path normalized) {
+        try {
+            return normalized.startsWith(Paths.get(SYSTEM_TEMP_DIR).normalize());
+        } catch (Exception e) {
+            LOGGER.debug("Error comparing normalized paths: {}", e.getMessage());
+            return false;
         }
     }
 

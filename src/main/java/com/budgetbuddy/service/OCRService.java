@@ -36,6 +36,8 @@ public class OCRService {
 
     private static final String ENG = "eng";
 
+    private static final long MAX_PDF_SIZE_BYTES = 100L * 1024 * 1024; // 100 MB
+
     private static final Logger LOGGER = LoggerFactory.getLogger(OCRService.class);
 
     private final ITesseract tesseract;
@@ -124,13 +126,12 @@ public class OCRService {
         }
 
         // Validate PDF size (prevent OOM attacks)
-        final long MAX_PDF_SIZE = 100 * 1024 * 1024; // 100 MB
-        if (pdfBytes.length > MAX_PDF_SIZE) {
+        if (pdfBytes.length > MAX_PDF_SIZE_BYTES) {
             throw new IllegalArgumentException(
                     "PDF file too large: "
                             + pdfBytes.length
                             + " bytes (max: "
-                            + MAX_PDF_SIZE
+                            + MAX_PDF_SIZE_BYTES
                             + ")");
         }
 
@@ -273,8 +274,7 @@ public class OCRService {
         }
 
         // Validate PDF size
-        final long MAX_PDF_SIZE = 100 * 1024 * 1024; // 100 MB
-        if (pdfBytes.length > MAX_PDF_SIZE) {
+        if (pdfBytes.length > MAX_PDF_SIZE_BYTES) {
             LOGGER.warn("PDF file too large for scan detection: {} bytes", pdfBytes.length);
             return false; // Assume text-based for very large files
         }

@@ -684,6 +684,9 @@ public class CategoryClassificationModel {
      * Model data structure for JSON serialization SECURITY: Replaces unsafe Java serialization with
      * safe JSON serialization
      */
+    @edu.umd.cs.findbugs.annotations.SuppressFBWarnings(
+            value = {"URF_UNREAD_FIELD", "URF_UNREAD_PUBLIC_OR_PROTECTED_FIELD"},
+            justification = "DTO — fields are read by Jackson via reflection")
     private static class ModelData {
         public Map<String, Map<String, Integer>> merchantCategoryCounts;
         public Map<String, Map<String, Integer>> keywordCategoryCounts;

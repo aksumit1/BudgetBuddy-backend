@@ -259,6 +259,9 @@ public class RecurringIncomeDetector {
         return Math.max(0, Math.min(1.0, (tightness * 0.7) + (volumeBonus * 0.3)));
     }
 
+    @edu.umd.cs.findbugs.annotations.SuppressFBWarnings(
+        value = {"URF_UNREAD_FIELD", "URF_UNREAD_PUBLIC_OR_PROTECTED_FIELD", "UWF_UNWRITTEN_PUBLIC_OR_PROTECTED_FIELD", "UWF_FIELD_NOT_INITIALIZED_IN_CONSTRUCTOR"},
+        justification = "DTO — fields are read/written by Jackson via reflection")
     public static class RecurringIncome {
         public String userId;
         public String merchantName;
@@ -271,6 +274,9 @@ public class RecurringIncomeDetector {
         public int sampleCount;
     }
 
+    @edu.umd.cs.findbugs.annotations.SuppressFBWarnings(
+        value = {"URF_UNREAD_FIELD", "URF_UNREAD_PUBLIC_OR_PROTECTED_FIELD", "UWF_UNWRITTEN_PUBLIC_OR_PROTECTED_FIELD", "UWF_FIELD_NOT_INITIALIZED_IN_CONSTRUCTOR"},
+        justification = "DTO — fields are read/written by Jackson via reflection")
     public static class CashFlowPoint {
         public LocalDate date;
         public BigDecimal projectedIncome;

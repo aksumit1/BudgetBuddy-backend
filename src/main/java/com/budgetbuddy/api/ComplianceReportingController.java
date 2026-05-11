@@ -35,28 +35,12 @@ public class ComplianceReportingController {
     private static final String USER_NOT_FOUND_1 = "User not found";
 
     private final SOC2ComplianceService soc2ComplianceService;
-
-    @SuppressWarnings("unused") // Reserved for future HIPAA reporting
-    private final HIPAAComplianceService hipaaComplianceService;
-
-    @SuppressWarnings("unused") // Reserved for future ISO27001 reporting
-    private final ISO27001ComplianceService iso27001ComplianceService;
-
-    @SuppressWarnings("unused") // Reserved for future financial reporting
-    private final FinancialComplianceService financialComplianceService;
-
     private final com.budgetbuddy.service.UserService userService;
 
     public ComplianceReportingController(
             final SOC2ComplianceService soc2ComplianceService,
-            final HIPAAComplianceService hipaaComplianceService,
-            final ISO27001ComplianceService iso27001ComplianceService,
-            final FinancialComplianceService financialComplianceService,
             final com.budgetbuddy.service.UserService userService) {
         this.soc2ComplianceService = soc2ComplianceService;
-        this.hipaaComplianceService = hipaaComplianceService;
-        this.iso27001ComplianceService = iso27001ComplianceService;
-        this.financialComplianceService = financialComplianceService;
         this.userService = userService;
     }
 

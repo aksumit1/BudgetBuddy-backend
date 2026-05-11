@@ -30,7 +30,7 @@ import org.springframework.stereotype.Service;
 // but Spring's IoC container intentionally shares the same bean across
 // callers — defensive-copying it would break dependency injection.
 @SuppressFBWarnings(
-        value = {"EI_EXPOSE_REP", "EI_EXPOSE_REP2"},
+        value = {"EI_EXPOSE_REP"},
         justification =
                 "JSON DTO / DynamoDB entity getters expose lists by reference; "
                         + "the design is value-semantic and Jackson creates fresh instances; Spring constructor injection — beans are shared by design")
@@ -600,78 +600,117 @@ public class TaxExportService {
         return taxTx;
     }
 
+    /** Lower-cased fields a transaction is classified against. {@link #amount} stays in original form. */
+    private record TaxContext(
+            String description,
+            String merchantName,
+            String category,
+            BigDecimal amount,
+            String paymentChannel) {}
+
+    private static String lowerOrEmpty(final String value) {
+        return value != null ? value.toLowerCase(Locale.ROOT) : "";
+    }
+
     /** Determine tax category for a transaction */
     private String determineTaxCategory(final TransactionTable transaction) {
-        final String description =
-                transaction.getDescription() != null
-                        ? transaction.getDescription().toLowerCase(Locale.ROOT)
-                        : "";
-        final String merchantName =
-                transaction.getMerchantName() != null
-                        ? transaction.getMerchantName().toLowerCase(Locale.ROOT)
-                        : "";
-        final String category =
-                transaction.getCategoryPrimary() != null
-                        ? transaction.getCategoryPrimary().toLowerCase(Locale.ROOT)
-                        : "";
-        final BigDecimal amount = transaction.getAmount();
-        final String paymentChannel =
-                transaction.getPaymentChannel() != null
-                        ? transaction.getPaymentChannel().toLowerCase(Locale.ROOT)
-                        : "";
+        final TaxContext ctx =
+                new TaxContext(
+                        lowerOrEmpty(transaction.getDescription()),
+                        lowerOrEmpty(transaction.getMerchantName()),
+                        lowerOrEmpty(transaction.getCategoryPrimary()),
+                        transaction.getAmount(),
+                        lowerOrEmpty(transaction.getPaymentChannel()));
 
-        // Use local helper methods for detection
-        if (isSalaryTransaction(description, amount, paymentChannel)) {
+        String result = classifyAsIncomeOrACH(ctx);
+        if (result != null) {
+            return result;
+        }
+        result = classifyAsInterestOrDividend(ctx);
+        if (result != null) {
+            return result;
+        }
+        result = classifyAsItemizedDeduction(ctx);
+        if (result != null) {
+            return result;
+        }
+        result = classifyAsTaxPayment(ctx);
+        if (result != null) {
+            return result;
+        }
+        result = classifyAsMedicalOrInvestment(ctx);
+        if (result != null) {
+            return result;
+        }
+        return "OTHER";
+    }
+
+    private String classifyAsIncomeOrACH(final TaxContext ctx) {
+        if (isSalaryTransaction(ctx.description(), ctx.amount(), ctx.paymentChannel())) {
             return "SALARY";
         }
-        if (isRSUTransaction(category, description, merchantName, amount)) {
+        if (isRSUTransaction(ctx.category(), ctx.description(), ctx.merchantName(), ctx.amount())) {
             return "RSU";
         }
-        if (isACHTransaction(description, paymentChannel)) {
-            return amount.compareTo(BigDecimal.ZERO) > 0 ? "ACH_INCOME" : "ACH_EXPENSE";
+        if (isACHTransaction(ctx.description(), ctx.paymentChannel())) {
+            return ctx.amount().compareTo(BigDecimal.ZERO) > 0 ? "ACH_INCOME" : "ACH_EXPENSE";
         }
-        // Check for mortgage interest FIRST (before general interest)
-        final String descLower = description.toLowerCase(Locale.ROOT);
-        if (descLower.contains("mortgage") && descLower.contains(INTEREST)) {
+        return null;
+    }
+
+    private static String classifyAsInterestOrDividend(final TaxContext ctx) {
+        // Mortgage interest is checked first so it isn't shadowed by the general INTEREST rule.
+        if (ctx.description().contains("mortgage") && ctx.description().contains(INTEREST)) {
             return "MORTGAGE_INTEREST";
         }
-        if (INTEREST.equals(category) || descLower.contains(INTEREST)) {
+        if (INTEREST.equals(ctx.category()) || ctx.description().contains(INTEREST)) {
             return "INTEREST";
         }
-        if ("dividend".equals(category) || description.contains("dividend")) {
+        if ("dividend".equals(ctx.category()) || ctx.description().contains("dividend")) {
             return "DIVIDEND";
         }
-        if (isCharityTransaction(description, category)) {
+        return null;
+    }
+
+    private String classifyAsItemizedDeduction(final TaxContext ctx) {
+        if (isCharityTransaction(ctx.description(), ctx.category())) {
             return "CHARITY";
         }
-        if (isDMVFeeTransaction(description, merchantName)) {
+        if (isDMVFeeTransaction(ctx.description(), ctx.merchantName())) {
             return "DMV";
         }
-        if (isCPAFeeTransaction(description, merchantName)) {
+        if (isCPAFeeTransaction(ctx.description(), ctx.merchantName())) {
             return "CPA";
         }
-        if (isTuitionTransaction(description, merchantName, category)) {
+        if (isTuitionTransaction(ctx.description(), ctx.merchantName(), ctx.category())) {
             return "TUITION";
         }
-        if (isPropertyTaxTransaction(description, merchantName)) {
+        return null;
+    }
+
+    private String classifyAsTaxPayment(final TaxContext ctx) {
+        if (isPropertyTaxTransaction(ctx.description(), ctx.merchantName())) {
             return "PROPERTY_TAX";
         }
-        if (isStateTaxTransaction(description, merchantName)) {
+        if (isStateTaxTransaction(ctx.description(), ctx.merchantName())) {
             return "STATE_TAX";
         }
-        if (isLocalTaxTransaction(description, merchantName)) {
+        if (isLocalTaxTransaction(ctx.description(), ctx.merchantName())) {
             return "LOCAL_TAX";
         }
-        if ("healthcare".equals(category) || description.contains("medical")) {
+        return null;
+    }
+
+    private static String classifyAsMedicalOrInvestment(final TaxContext ctx) {
+        if ("healthcare".equals(ctx.category()) || ctx.description().contains("medical")) {
             return "MEDICAL";
         }
-        if ("investment".equals(category)
-                || description.contains("stock sale")
-                || description.contains("capital gain")) {
-            return amount.compareTo(BigDecimal.ZERO) > 0 ? "CAPITAL_GAIN" : "CAPITAL_LOSS";
+        if ("investment".equals(ctx.category())
+                || ctx.description().contains("stock sale")
+                || ctx.description().contains("capital gain")) {
+            return ctx.amount().compareTo(BigDecimal.ZERO) > 0 ? "CAPITAL_GAIN" : "CAPITAL_LOSS";
         }
-
-        return "OTHER";
+        return null;
     }
 
     /** Determine tax tag for a transaction */

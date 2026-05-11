@@ -60,18 +60,10 @@ public class AnalyticsTrendsController {
     private static final DateTimeFormatter DATE = DateTimeFormatter.ISO_LOCAL_DATE;
 
     private final UserService userService;
-    private final TransactionRepository transactionRepository;
-    private final NetWorthSnapshotRepository netWorthRepository;
     private final TrendsCache trendsCache;
 
-    public AnalyticsTrendsController(
-            final UserService userService,
-            final TransactionRepository transactionRepository,
-            final NetWorthSnapshotRepository netWorthRepository,
-            final TrendsCache trendsCache) {
+    public AnalyticsTrendsController(final UserService userService, final TrendsCache trendsCache) {
         this.userService = userService;
-        this.transactionRepository = transactionRepository;
-        this.netWorthRepository = netWorthRepository;
         this.trendsCache = trendsCache;
     }
 

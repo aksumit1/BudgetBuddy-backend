@@ -76,11 +76,6 @@ public class GoalMilestoneService {
         final BigDecimal currentAmount =
                 goal.getCurrentAmount() != null ? goal.getCurrentAmount() : BigDecimal.ZERO;
         final BigDecimal targetAmount = goal.getTargetAmount();
-        @SuppressWarnings("unused")
-        final BigDecimal progress =
-                targetAmount.compareTo(BigDecimal.ZERO) > 0
-                        ? currentAmount.divide(targetAmount, 4, RoundingMode.HALF_UP)
-                        : BigDecimal.ZERO;
 
         final List<Milestone> milestones = new ArrayList<>();
 

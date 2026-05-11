@@ -107,10 +107,16 @@ public class HouseholdController {
 
     // MARK - DTOs
 
+    @edu.umd.cs.findbugs.annotations.SuppressFBWarnings(
+        value = {"URF_UNREAD_FIELD", "URF_UNREAD_PUBLIC_OR_PROTECTED_FIELD", "UWF_UNWRITTEN_PUBLIC_OR_PROTECTED_FIELD", "UWF_FIELD_NOT_INITIALIZED_IN_CONSTRUCTOR"},
+        justification = "DTO — fields are read/written by Jackson via reflection")
     public static class InviteRequest {
         public String email;
     }
 
+    @edu.umd.cs.findbugs.annotations.SuppressFBWarnings(
+        value = {"URF_UNREAD_FIELD", "URF_UNREAD_PUBLIC_OR_PROTECTED_FIELD", "UWF_UNWRITTEN_PUBLIC_OR_PROTECTED_FIELD", "UWF_FIELD_NOT_INITIALIZED_IN_CONSTRUCTOR"},
+        justification = "DTO — fields are read/written by Jackson via reflection")
     public static class PreferencesRequest {
         public boolean shareNetWorth;
         public boolean shareGoals;

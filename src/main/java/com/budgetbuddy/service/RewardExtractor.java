@@ -49,6 +49,16 @@ public class RewardExtractor {
     private static final long MAX_REASONABLE_POINTS = 100_000_000L; // 100 million points
     private static final BigDecimal MAX_REASONABLE_CASH_BACK = new BigDecimal("999999.99");
 
+    // Pre-compiled patterns shared by the multi-line points scan. Compile-once avoids the
+    // per-call allocation that used to live inside extractRewardPoints.
+    private static final Pattern MULTI_LINE_REWARD_LINE1 =
+            Pattern.compile("(?i).*(?:points|pts|rewards|miles|available|total).*");
+    private static final Pattern MULTI_LINE_ACCOUNT_HINT =
+            Pattern.compile("(?i).*(?:account|as\\s+of).*");
+    private static final Pattern DATE_IN_LINE = Pattern.compile(".*\\d{1,2}/\\d{1,2}/\\d{2,4}.*");
+    private static final Pattern ACCOUNT_NUMBER_TAIL = Pattern.compile(".*\\d{4}\\s*$");
+    private static final Pattern NUMBER_WITH_COMMA = Pattern.compile("(\\d{1,7}(?:,\\d{3})+)");
+
     /** Reward pattern definition */
     public static class RewardPattern {
         private final String name;
@@ -301,13 +311,19 @@ public class RewardExtractor {
         if (lines == null || lines.length == 0) {
             return null;
         }
+        final Long single = extractPointsSingleLine(lines);
+        if (single != null) {
+            return single;
+        }
+        return extractPointsMultiLine(lines);
+    }
 
-        // Try single-line extraction first
+    /** Walk each line and try {@link #extractRewardFromLine} for a points hit. */
+    private Long extractPointsSingleLine(final String[] lines) {
         for (final String line : lines) {
             if (line == null || line.isBlank()) {
                 continue;
             }
-
             final RewardResult result = extractRewardFromLine(line.trim());
             if (result != null
                     && result.getType() == RewardType.POINTS
@@ -319,71 +335,65 @@ public class RewardExtractor {
                 return result.getPoints();
             }
         }
+        return null;
+    }
 
-        // Try multi-line extraction (check current line + next 2 lines)
-        for (int i = 0;
-                i < lines.length - 1;
-                i++) { // Changed to -1 to allow checking line2 when only 2 lines exist
-            final String line1 = lines[i] != null ? lines[i].trim() : "";
-            final String line2 =
-                    i + 1 < lines.length ? (lines[i + 1] != null ? lines[i + 1].trim() : "") : "";
-            final String line3 =
-                    i + 2 < lines.length ? (lines[i + 2] != null ? lines[i + 2].trim() : "") : "";
+    /**
+     * Sliding 3-line window: when a line mentions reward keywords, check the following one or two
+     * lines for the actual number.
+     */
+    private Long extractPointsMultiLine(final String[] lines) {
+        for (int i = 0; i < lines.length - 1; i++) {
+            final String line1 = safeTrim(lines, i);
+            if (!MULTI_LINE_REWARD_LINE1.matcher(line1).matches()) {
+                continue;
+            }
+            final String line2 = safeTrim(lines, i + 1);
+            final String line3 = safeTrim(lines, i + 2);
 
-            // Check if line1 contains reward keywords (including "available", "total", etc.)
-            if (line1.matches("(?i).*(?:points|pts|rewards|miles|available|total).*")) {
-                // Check line2 for number (skip if it looks like a date or account number)
-                if (!line2.matches(".*\\d{1,2}/\\d{1,2}/\\d{2,4}.*")
-                        && // Not a date
-                        !line2.matches(".*\\d{4}\\s*$")) { // Not a 4-digit account number at end
-                    final Pattern numberPattern =
-                            Pattern.compile("(\\d{1,7}(?:,\\d{3})+)"); // Must have comma (thousands
-                    // separator)
-                    final Matcher matcher = numberPattern.matcher(line2);
-                    if (matcher.find()) {
-                        final String pointsStr = matcher.group(1).replaceAll(",", "");
-                        try {
-                            final long points = Long.parseLong(pointsStr);
-                            if (points >= 0 && points <= MAX_REASONABLE_POINTS) {
-                                LOGGER.debug(
-                                        "✓ Extracted reward points from multi-line: {} (line2)",
-                                        points);
-                                return points;
-                            }
-                        } catch (NumberFormatException e) {
-                            // Continue to line3
-                        }
-                    }
-                }
-
-                // Check line3 for number (if line2 had account details)
-                if (line2.matches("(?i).*(?:account|as\\s+of).*")) {
-                    if (!line3.matches(".*\\d{1,2}/\\d{1,2}/\\d{2,4}.*")
-                            && // Not a date
-                            !line3.matches(
-                                    ".*\\d{4}\\s*$")) { // Not a 4-digit account number at end
-                        final Pattern numberPattern =
-                                Pattern.compile("(\\d{1,7}(?:,\\d{3})+)"); // Must have comma
-                        final Matcher matcher = numberPattern.matcher(line3);
-                        if (matcher.find()) {
-                            final String pointsStr = matcher.group(1).replaceAll(",", "");
-                            try {
-                                final long points = Long.parseLong(pointsStr);
-                                if (points >= 0 && points <= MAX_REASONABLE_POINTS) {
-                                    LOGGER.debug(
-                                            "✓ Extracted reward points from multi-line: {} (line3)",
-                                            points);
-                                    return points;
-                                }
-                            } catch (NumberFormatException e) {
-                                // Continue
-                            }
-                        }
-                    }
+            final Long fromLine2 = parsePointsIfNotDateOrAccount(line2, "line2");
+            if (fromLine2 != null) {
+                return fromLine2;
+            }
+            if (MULTI_LINE_ACCOUNT_HINT.matcher(line2).matches()) {
+                final Long fromLine3 = parsePointsIfNotDateOrAccount(line3, "line3");
+                if (fromLine3 != null) {
+                    return fromLine3;
                 }
             }
         }
+        return null;
+    }
 
+    /** Trim {@code lines[idx]} if in range, else return empty string. */
+    private static String safeTrim(final String[] lines, final int idx) {
+        if (idx < 0 || idx >= lines.length || lines[idx] == null) {
+            return "";
+        }
+        return lines[idx].trim();
+    }
+
+    /**
+     * Pull the first comma-grouped number out of {@code line} as long as the line doesn't look
+     * like a date or a 4-digit account number suffix.
+     */
+    private Long parsePointsIfNotDateOrAccount(final String line, final String origin) {
+        if (DATE_IN_LINE.matcher(line).matches() || ACCOUNT_NUMBER_TAIL.matcher(line).matches()) {
+            return null;
+        }
+        final Matcher matcher = NUMBER_WITH_COMMA.matcher(line);
+        if (!matcher.find()) {
+            return null;
+        }
+        try {
+            final long points = Long.parseLong(matcher.group(1).replaceAll(",", ""));
+            if (points >= 0 && points <= MAX_REASONABLE_POINTS) {
+                LOGGER.debug("✓ Extracted reward points from multi-line: {} ({})", points, origin);
+                return points;
+            }
+        } catch (NumberFormatException e) {
+            // fall through to null
+        }
         return null;
     }
 

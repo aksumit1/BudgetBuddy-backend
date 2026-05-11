@@ -55,6 +55,9 @@ public class DailyReadEmailController {
         return ResponseEntity.noContent().build();
     }
 
+    @edu.umd.cs.findbugs.annotations.SuppressFBWarnings(
+        value = {"URF_UNREAD_FIELD", "URF_UNREAD_PUBLIC_OR_PROTECTED_FIELD", "UWF_UNWRITTEN_PUBLIC_OR_PROTECTED_FIELD", "UWF_FIELD_NOT_INITIALIZED_IN_CONSTRUCTOR"},
+        justification = "DTO — fields are read/written by Jackson via reflection")
     public static class SetOptInRequest {
         public boolean optedIn;
     }

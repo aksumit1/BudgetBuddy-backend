@@ -33,7 +33,7 @@ import org.springframework.web.context.request.WebRequest;
 // they're intentionally data-only; behaviour belongs in the controller/service.
 @SuppressWarnings({"PMD.DataClass", "PMD.OnlyOneReturn"})
 @SuppressFBWarnings(
-        value = {"EI_EXPOSE_REP", "EI_EXPOSE_REP2"},
+        value = {"EI_EXPOSE_REP"},
         justification =
                 "JSON DTO / DynamoDB entity getters expose lists by reference; "
                         + "the design is value-semantic and Jackson creates fresh instances; Spring constructor injection — beans are shared by design")
@@ -57,9 +57,6 @@ public class EnhancedGlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleAppException(
             final AppException ex, final WebRequest request) {
         final String correlationId = MDC.get(CORRELATION_ID);
-        // Locale retrieved but not currently used - kept for potential future localization
-        @SuppressWarnings("unused")
-        final Locale locale = request.getLocale();
 
         String localizedMessage = messageUtil.getErrorMessage(ex.getErrorCode().name());
         if (localizedMessage.equals(
@@ -155,9 +152,6 @@ public class EnhancedGlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleValidationException(
             final MethodArgumentNotValidException ex, final WebRequest request) {
         final String correlationId = MDC.get(CORRELATION_ID);
-        // Locale retrieved but not currently used - kept for potential future localization
-        @SuppressWarnings("unused")
-        final Locale locale = request.getLocale();
 
         final Map<String, String> validationErrors = new HashMap<>();
         ex.getBindingResult()

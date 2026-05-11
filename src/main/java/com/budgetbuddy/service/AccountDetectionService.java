@@ -1360,282 +1360,287 @@ public class AccountDetectionService {
         if (headers == null || headers.isEmpty()) {
             return detectFromFilename(filename);
         }
-
         final DetectedAccount detected = new DetectedAccount();
-        final Map<String, String> headerMap = new HashMap<>();
-        final Map<String, Integer> headerIndexMap = new HashMap<>(); // Track column indices
+        final HeaderIndex index = buildHeaderIndex(headers);
 
-        // Log all headers (ignore empty lines)
-        LOGGER.info("=== HEADER ANALYSIS START ===");
-        LOGGER.info("Total headers found: {}", headers.size());
-        for (int i = 0; i < headers.size(); i++) {
-            final String header = headers.get(i);
-            if (header != null && !header.isBlank()) {
-                // Handle text on left/right side of same line (split by whitespace/tabs)
-                final String[] parts = header.split("\\s{2,}|\\t+"); // Split on 2+ spaces or tabs
-                for (final String part : parts) {
-                    final String trimmed = part.trim();
-                    if (!trimmed.isEmpty()) {
-                        LOGGER.info(
-                                "Header [Column {}]: '{}' (full: '{}')", i + 1, trimmed, header);
-                    }
-                }
-
-                final String lower = header.toLowerCase(Locale.ROOT).trim();
-                if (!lower.isEmpty()) {
-                    headerMap.put(lower, header); // Keep original for display
-                    headerIndexMap.put(lower, i); // Track column index
-                }
-            }
-        }
-        LOGGER.info("=== HEADER ANALYSIS END ===");
-
-        // CRITICAL: Check if headers look like a transaction table (not account metadata)
+        // Transaction-table headers look like "Date | Description | Amount" — we
+        // skip account-metadata extraction from them because the column names
+        // mean transaction-type, not account-type.
         final boolean isTransactionTable = isTransactionTableHeadersInternal(headers);
         if (isTransactionTable) {
             LOGGER.info(
                     "⚠️ Headers appear to be transaction table headers - skipping account info extraction from header text");
-            // For transaction tables, only extract from dedicated account metadata columns
-            // Don't extract from generic transaction columns like "type", "description", etc.
         }
 
-        // Extract account number from headers (look for patterns in header text itself)
+        extractAccountNumberInfo(headers, detected, index);
+        extractAccountNameInfo(headers, detected, index);
+        extractInstitutionInfo(headers, detected, index);
+        extractAccountTypeInfo(headers, detected, index, isTransactionTable);
+        extractInstitutionNameFromText(headers, detected, isTransactionTable);
+        extractBalanceInfo(headers, detected);
+        mergeFilenameDetection(detected, filename, isTransactionTable);
+
+        return detected;
+    }
+
+    /**
+     * Lower-cased header keys mapped to original strings + column indices.
+     * Wraps both maps so the column-detect helpers don't take five parameters.
+     */
+    private static final class HeaderIndex {
+        final Map<String, String> headerMap;
+        final Map<String, Integer> headerIndexMap;
+
+        HeaderIndex(final Map<String, String> headerMap, final Map<String, Integer> headerIndexMap) {
+            this.headerMap = headerMap;
+            this.headerIndexMap = headerIndexMap;
+        }
+    }
+
+    private HeaderIndex buildHeaderIndex(final List<String> headers) {
+        final Map<String, String> headerMap = new HashMap<>();
+        final Map<String, Integer> headerIndexMap = new HashMap<>();
+        LOGGER.info("=== HEADER ANALYSIS START ===");
+        LOGGER.info("Total headers found: {}", headers.size());
+        for (int i = 0; i < headers.size(); i++) {
+            final String header = headers.get(i);
+            if (header == null || header.isBlank()) {
+                continue;
+            }
+            // Statement headers often pack two labels into one line separated by
+            // tabs / wide spaces ("ACCOUNT NUMBER   ENDING BALANCE") — split for logging.
+            for (final String part : header.split("\\s{2,}|\\t+")) {
+                final String trimmed = part.trim();
+                if (!trimmed.isEmpty()) {
+                    LOGGER.info("Header [Column {}]: '{}' (full: '{}')", i + 1, trimmed, header);
+                }
+            }
+            final String lower = header.toLowerCase(Locale.ROOT).trim();
+            if (!lower.isEmpty()) {
+                headerMap.put(lower, header);
+                headerIndexMap.put(lower, i);
+            }
+        }
+        LOGGER.info("=== HEADER ANALYSIS END ===");
+        return new HeaderIndex(headerMap, headerIndexMap);
+    }
+
+    private void extractAccountNumberInfo(
+            final List<String> headers, final DetectedAccount detected, final HeaderIndex index) {
+        // Inline patterns first (e.g., "Account Number: ****1234" baked into the header text).
         final String accountNumber = extractAccountNumberFromText(String.join(" ", headers));
         if (accountNumber != null) {
             detected.setAccountNumber(accountNumber);
             LOGGER.info("✓ Extracted account number from headers: {}", accountNumber);
         }
-
-        // Look for account number column header
-        final Integer accountNumberColumnIndex =
-                findColumnIndex(headerMap, headerIndexMap, ACCOUNT_NUMBER_KEYWORDS);
-        if (accountNumberColumnIndex != null) {
-            final String headerName = headers.get(accountNumberColumnIndex);
+        // Column-presence (value will land on a data row).
+        final Integer columnIndex =
+                findColumnIndex(index.headerMap, index.headerIndexMap, ACCOUNT_NUMBER_KEYWORDS);
+        if (columnIndex != null) {
             LOGGER.info(
                     "✓ Found account number column at index {}: '{}'",
-                    accountNumberColumnIndex,
-                    headerName);
-            // Note: Account number value will be extracted from data rows, not header
+                    columnIndex,
+                    headers.get(columnIndex));
         }
+    }
 
-        // Look for account name column
-        final Integer accountNameColumnIndex =
+    private void extractAccountNameInfo(
+            final List<String> headers, final DetectedAccount detected, final HeaderIndex index) {
+        final Integer columnIndex =
                 findColumnIndex(
-                        headerMap,
-                        headerIndexMap,
+                        index.headerMap,
+                        index.headerIndexMap,
                         Arrays.asList(ACCOUNT_NAME, "accountname", ACCOUNT, "acct name"));
-        if (accountNameColumnIndex != null) {
-            final String headerName = headers.get(accountNameColumnIndex);
-            LOGGER.info(
-                    "✓ Found account name column at index {}: '{}'",
-                    accountNameColumnIndex,
-                    headerName);
-            // CRITICAL: Extract account name value from header text (e.g., "Account Name: Chase
-            // Checking" -> "Chase Checking")
-            final String accountName = extractAccountNameFromValue(headerName);
-            if (accountName != null) {
-                // If accountName is empty string, it means column exists but value not in header
-                // Set a placeholder to indicate the column was found (value will come from data
-                // rows)
-                if (accountName.isEmpty()) {
-                    detected.setAccountName(""); // Empty string indicates column exists
-                    LOGGER.info(
-                            "✓ Found account name column (value will be extracted from data rows)");
-                } else {
-                    detected.setAccountName(accountName);
-                    LOGGER.info("✓ Extracted account name from header: {}", accountName);
-                }
-            }
+        if (columnIndex == null) {
+            return;
         }
+        final String headerName = headers.get(columnIndex);
+        LOGGER.info("✓ Found account name column at index {}: '{}'", columnIndex, headerName);
+        final String accountName = extractAccountNameFromValue(headerName);
+        if (accountName == null) {
+            return;
+        }
+        if (accountName.isEmpty()) {
+            // Column exists but value will come from a data row.
+            detected.setAccountName("");
+            LOGGER.info("✓ Found account name column (value will be extracted from data rows)");
+        } else {
+            detected.setAccountName(accountName);
+            LOGGER.info("✓ Extracted account name from header: {}", accountName);
+        }
+    }
 
-        // Look for institution column or product name
+    private void extractInstitutionInfo(
+            final List<String> headers, final DetectedAccount detected, final HeaderIndex index) {
         final Integer institutionColumnIndex =
-                findColumnIndex(headerMap, headerIndexMap, INSTITUTION_KEYWORDS_HEADERS);
+                findColumnIndex(index.headerMap, index.headerIndexMap, INSTITUTION_KEYWORDS_HEADERS);
         final Integer productNameColumnIndex =
-                findColumnIndex(headerMap, headerIndexMap, PRODUCT_NAME_KEYWORDS);
+                findColumnIndex(index.headerMap, index.headerIndexMap, PRODUCT_NAME_KEYWORDS);
 
-        // Prefer product name over institution name
+        // Prefer product name over generic institution column.
         if (productNameColumnIndex != null) {
-            final String headerName = headers.get(productNameColumnIndex);
-            LOGGER.info(
-                    "✓ Found product name column at index {}: '{}'",
-                    productNameColumnIndex,
-                    headerName);
-            // CRITICAL: Extract institution/product name value from header text
-            final String institutionName = extractInstitutionFromValue(headerName);
-            if (institutionName != null) {
-                // If institutionName is empty string, it means column exists but value not in
-                // header
-                // Set a placeholder to indicate the column was found (value will come from data
-                // rows)
-                if (institutionName.isEmpty()) {
-                    detected.setInstitutionName(""); // Empty string indicates column exists
-                    LOGGER.info(
-                            "✓ Found institution/product name column (value will be extracted from data rows)");
-                } else {
-                    detected.setInstitutionName(institutionName);
-                    LOGGER.info("✓ Extracted institution name from header: {}", institutionName);
-                }
-            }
-        } else if (institutionColumnIndex != null) {
-            final String headerName = headers.get(institutionColumnIndex);
-            LOGGER.info(
-                    "✓ Found institution column at index {}: '{}'",
-                    institutionColumnIndex,
-                    headerName);
-            // CRITICAL: Extract institution name value from header text
-            // Even for transaction tables, extract from column header if it contains a value
-            final String institutionName = extractInstitutionFromValue(headerName);
-            if (institutionName != null) {
-                // If institutionName is empty string, it means column exists but value not in
-                // header
-                // Set a placeholder to indicate the column was found (value will come from data
-                // rows)
-                if (institutionName.isEmpty()) {
-                    detected.setInstitutionName(""); // Empty string indicates column exists
-                    LOGGER.info(
-                            "✓ Found institution column (value will be extracted from data rows)");
-                } else {
-                    detected.setInstitutionName(institutionName);
-                    LOGGER.info("✓ Extracted institution name from header: {}", institutionName);
-                }
-            } else {
-                // Column found but no value extracted - set empty string to indicate column exists
-                detected.setInstitutionName("");
-                LOGGER.info("✓ Found institution column (value will be extracted from data rows)");
-            }
+            assignInstitutionFromColumn(
+                    headers, detected, productNameColumnIndex, "product name");
+            return;
         }
+        if (institutionColumnIndex != null) {
+            assignInstitutionFromColumn(headers, detected, institutionColumnIndex, "institution");
+        }
+    }
 
-        // Look for account type column (but only if it's NOT a transaction table)
-        // In transaction tables, "type" usually means transaction type, not account type
-        Integer accountTypeColumnIndex = null;
-        if (!isTransactionTable) {
-            accountTypeColumnIndex =
-                    findColumnIndex(headerMap, headerIndexMap, ACCOUNT_TYPE_KEYWORDS);
-            if (accountTypeColumnIndex != null) {
-                final String headerName = headers.get(accountTypeColumnIndex);
-                LOGGER.info(
-                        "✓ Found account type column at index {}: '{}'",
-                        accountTypeColumnIndex,
-                        headerName);
-                // Note: Account type value will be extracted from data rows, not header
-            }
+    private void assignInstitutionFromColumn(
+            final List<String> headers,
+            final DetectedAccount detected,
+            final int columnIndex,
+            final String label) {
+        final String headerName = headers.get(columnIndex);
+        LOGGER.info("✓ Found {} column at index {}: '{}'", label, columnIndex, headerName);
+        final String institutionName = extractInstitutionFromValue(headerName);
+        if (institutionName == null) {
+            // Column exists but no value yet.
+            detected.setInstitutionName("");
+            LOGGER.info("✓ Found {} column (value will be extracted from data rows)", label);
+            return;
+        }
+        if (institutionName.isEmpty()) {
+            detected.setInstitutionName("");
+            LOGGER.info("✓ Found {} column (value will be extracted from data rows)", label);
         } else {
+            detected.setInstitutionName(institutionName);
+            LOGGER.info("✓ Extracted institution name from header: {}", institutionName);
+        }
+    }
+
+    private void extractAccountTypeInfo(
+            final List<String> headers,
+            final DetectedAccount detected,
+            final HeaderIndex index,
+            final boolean isTransactionTable) {
+        // "type" in a transaction table means transaction-type, not account-type — skip both checks.
+        if (isTransactionTable) {
             LOGGER.info(
-                    "⚠️ Skipping account type column detection - headers are transaction table");
+                    "⚠️ Skipping account type detection - headers are transaction table");
+            return;
         }
-
-        // CRITICAL: Only extract account type from header text if NOT a transaction table
-        // Transaction tables often have "type" columns that refer to transaction type, not account
-        // type
-        if (!isTransactionTable) {
-            final String accountType = extractAccountTypeFromText(String.join(" ", headers));
-            if (accountType != null) {
-                detected.setAccountType(accountType);
-                LOGGER.info("✓ Extracted account type from headers: {}", accountType);
-            }
-        } else {
+        final Integer columnIndex =
+                findColumnIndex(index.headerMap, index.headerIndexMap, ACCOUNT_TYPE_KEYWORDS);
+        if (columnIndex != null) {
             LOGGER.info(
-                    "⚠️ Skipping account type extraction from header text - headers are transaction table");
+                    "✓ Found account type column at index {}: '{}'",
+                    columnIndex,
+                    headers.get(columnIndex));
         }
-
-        // CRITICAL: Only extract institution name from header text if NOT a transaction table
-        // Transaction tables may contain words like "posting", "description" that contain bank name
-        // substrings
-        // Also skip if headers are too short (single word headers like "Date" don't contain
-        // institution names)
-        if (!isTransactionTable && headers.size() > 1) {
-            final String headerText = String.join(" ", headers);
-            // Only try extraction if header text has sufficient content (more than just column
-            // names)
-            // Single word headers like "Date" won't contain institution names
-            if (headerText.trim().length()
-                    > 10) { // At least 10 characters to have meaningful content
-                final String institutionFromText = extractInstitutionFromTextStrict(headerText);
-                if (institutionFromText != null) {
-                    detected.setInstitutionName(institutionFromText);
-                    LOGGER.info(
-                            "✓ Extracted institution name from headers: {}", institutionFromText);
-                }
-            } else {
-                LOGGER.info(
-                        "⚠️ Skipping institution name extraction - header text too short (likely just column names)");
-            }
-        } else {
-            if (isTransactionTable) {
-                LOGGER.info(
-                        "⚠️ Skipping institution name extraction from header text - headers are transaction table");
-            } else {
-                LOGGER.info(
-                        "⚠️ Skipping institution name extraction from header text - only {} header(s) (likely just column names)",
-                        headers.size());
-            }
+        final String accountType = extractAccountTypeFromText(String.join(" ", headers));
+        if (accountType != null) {
+            detected.setAccountType(accountType);
+            LOGGER.info("✓ Extracted account type from headers: {}", accountType);
         }
+    }
 
-        // Extract balance from headers (if account type is known or can be inferred)
-        final String detectedAccountType = detected.getAccountType();
+    private void extractInstitutionNameFromText(
+            final List<String> headers,
+            final DetectedAccount detected,
+            final boolean isTransactionTable) {
+        if (isTransactionTable) {
+            LOGGER.info(
+                    "⚠️ Skipping institution name extraction from header text - headers are transaction table");
+            return;
+        }
+        if (headers.size() <= 1) {
+            LOGGER.info(
+                    "⚠️ Skipping institution name extraction from header text - only {} header(s)",
+                    headers.size());
+            return;
+        }
+        final String headerText = String.join(" ", headers);
+        // Single-word column names like "Date" are too short to ever contain
+        // an institution name; the strict matcher would false-positive on them.
+        if (headerText.trim().length() <= 10) {
+            LOGGER.info(
+                    "⚠️ Skipping institution name extraction - header text too short (likely just column names)");
+            return;
+        }
+        final String institutionFromText = extractInstitutionFromTextStrict(headerText);
+        if (institutionFromText != null) {
+            detected.setInstitutionName(institutionFromText);
+            LOGGER.info("✓ Extracted institution name from headers: {}", institutionFromText);
+        }
+    }
+
+    private void extractBalanceInfo(final List<String> headers, final DetectedAccount detected) {
         final java.math.BigDecimal balance =
-                extractBalanceFromHeaders(headers, detectedAccountType);
+                extractBalanceFromHeaders(headers, detected.getAccountType());
         if (balance != null) {
             detected.setBalance(balance);
             LOGGER.info("✓ Extracted balance from headers: {}", balance);
         }
+    }
 
-        // CRITICAL: Prioritize filename detection, especially for transaction tables
+    /**
+     * Filename detection often disambiguates a transaction-table parse where
+     * the headers couldn't tell us the institution. For transaction tables
+     * the filename wins; for everything else it fills in only what's missing.
+     */
+    private void mergeFilenameDetection(
+            final DetectedAccount detected,
+            final String filename,
+            final boolean isTransactionTable) {
         final DetectedAccount fromFilename = detectFromFilename(filename);
-        if (fromFilename != null) {
-            // For transaction tables, prioritize filename over header text
-            if (isTransactionTable) {
-                // Use filename values if available, only fall back to header values if filename
-                // doesn't have them
-                if (fromFilename.getInstitutionName() != null) {
-                    detected.setInstitutionName(fromFilename.getInstitutionName());
-                    LOGGER.info(
-                            "✓ Using institution name from filename (transaction table): {}",
-                            fromFilename.getInstitutionName());
-                }
-                if (fromFilename.getAccountType() != null) {
-                    detected.setAccountType(fromFilename.getAccountType());
-                    detected.setAccountSubtype(fromFilename.getAccountSubtype());
-                    LOGGER.info(
-                            "✓ Using account type from filename (transaction table): {} / {}",
-                            fromFilename.getAccountType(),
-                            fromFilename.getAccountSubtype());
-                }
-                if (fromFilename.getAccountNumber() != null) {
-                    detected.setAccountNumber(fromFilename.getAccountNumber());
-                    LOGGER.info(
-                            "✓ Using account number from filename (transaction table): {}",
-                            fromFilename.getAccountNumber());
-                }
-            } else {
-                // For non-transaction tables, use header values if available, fall back to filename
-                if (detected.getInstitutionName() == null
-                        && fromFilename.getInstitutionName() != null) {
-                    detected.setInstitutionName(fromFilename.getInstitutionName());
-                    LOGGER.info(
-                            "✓ Using institution name from filename: {}",
-                            fromFilename.getInstitutionName());
-                }
-                if (detected.getAccountType() == null && fromFilename.getAccountType() != null) {
-                    detected.setAccountType(fromFilename.getAccountType());
-                    detected.setAccountSubtype(fromFilename.getAccountSubtype());
-                    LOGGER.info(
-                            "✓ Using account type from filename: {} / {}",
-                            fromFilename.getAccountType(),
-                            fromFilename.getAccountSubtype());
-                }
-                if (detected.getAccountNumber() == null
-                        && fromFilename.getAccountNumber() != null) {
-                    detected.setAccountNumber(fromFilename.getAccountNumber());
-                    LOGGER.info(
-                            "✓ Using account number from filename: {}",
-                            fromFilename.getAccountNumber());
-                }
-            }
+        if (fromFilename == null) {
+            return;
         }
+        if (isTransactionTable) {
+            applyFilenameOverride(detected, fromFilename);
+        } else {
+            applyFilenameFallback(detected, fromFilename);
+        }
+    }
 
-        return detected;
+    private void applyFilenameOverride(
+            final DetectedAccount detected, final DetectedAccount fromFilename) {
+        if (fromFilename.getInstitutionName() != null) {
+            detected.setInstitutionName(fromFilename.getInstitutionName());
+            LOGGER.info(
+                    "✓ Using institution name from filename (transaction table): {}",
+                    fromFilename.getInstitutionName());
+        }
+        if (fromFilename.getAccountType() != null) {
+            detected.setAccountType(fromFilename.getAccountType());
+            detected.setAccountSubtype(fromFilename.getAccountSubtype());
+            LOGGER.info(
+                    "✓ Using account type from filename (transaction table): {} / {}",
+                    fromFilename.getAccountType(),
+                    fromFilename.getAccountSubtype());
+        }
+        if (fromFilename.getAccountNumber() != null) {
+            detected.setAccountNumber(fromFilename.getAccountNumber());
+            LOGGER.info(
+                    "✓ Using account number from filename (transaction table): {}",
+                    fromFilename.getAccountNumber());
+        }
+    }
+
+    private void applyFilenameFallback(
+            final DetectedAccount detected, final DetectedAccount fromFilename) {
+        if (detected.getInstitutionName() == null && fromFilename.getInstitutionName() != null) {
+            detected.setInstitutionName(fromFilename.getInstitutionName());
+            LOGGER.info(
+                    "✓ Using institution name from filename: {}",
+                    fromFilename.getInstitutionName());
+        }
+        if (detected.getAccountType() == null && fromFilename.getAccountType() != null) {
+            detected.setAccountType(fromFilename.getAccountType());
+            detected.setAccountSubtype(fromFilename.getAccountSubtype());
+            LOGGER.info(
+                    "✓ Using account type from filename: {} / {}",
+                    fromFilename.getAccountType(),
+                    fromFilename.getAccountSubtype());
+        }
+        if (detected.getAccountNumber() == null && fromFilename.getAccountNumber() != null) {
+            detected.setAccountNumber(fromFilename.getAccountNumber());
+            LOGGER.info(
+                    "✓ Using account number from filename: {}", fromFilename.getAccountNumber());
+        }
     }
 
     /**
@@ -1827,122 +1832,147 @@ public class AccountDetectionService {
         if (userId == null || detected == null) {
             return null;
         }
-
-        // Try to match by account number and institution
-        if (detected.getAccountNumber() != null && detected.getInstitutionName() != null) {
-            try {
-                final Optional<AccountTable> accountOpt =
-                        accountRepository.findByAccountNumberAndInstitution(
-                                detected.getAccountNumber(), detected.getInstitutionName(), userId);
-                if (accountOpt.isPresent()) {
-                    LOGGER.info(
-                            "Matched detected account to existing account: {} (accountId: {})",
-                            detected.getAccountName(),
-                            accountOpt.get().getAccountId());
-                    return accountOpt.get().getAccountId();
-                }
-            } catch (Exception e) {
-                LOGGER.warn("Error matching account by number and institution: {}", e.getMessage());
-                // Continue to next matching strategy
-            }
+        String matched = matchByNumberAndInstitution(userId, detected);
+        if (matched != null) {
+            return matched;
         }
-
-        // Try to match by account number only
-        // CRITICAL FIX: Normalize account numbers before comparison (handles hyphens, spaces, etc.)
-        // Only try if account number is not null AND not empty
-        if (detected.getAccountNumber() != null && !detected.getAccountNumber().isBlank()) {
-            try {
-                // Normalize detected account number
-                final String normalizedDetected =
-                        normalizeAccountNumberForMatching(detected.getAccountNumber());
-
-                // Try exact match first (repository method)
-                final Optional<AccountTable> accountOpt =
-                        accountRepository.findByAccountNumber(detected.getAccountNumber(), userId);
-                if (accountOpt.isPresent()) {
-                    LOGGER.info(
-                            "Matched detected account by number only (exact match): {} (accountId: {})",
-                            detected.getAccountName(),
-                            accountOpt.get().getAccountId());
-                    return accountOpt.get().getAccountId();
-                }
-
-                // Fallback: Try normalized match (in case stored account number is in different
-                // format)
-                if (!normalizedDetected.isEmpty()) {
-                    final List<AccountTable> userAccounts = accountRepository.findByUserId(userId);
-                    for (final AccountTable account : userAccounts) {
-                        if (account.getAccountNumber() != null) {
-                            final String normalizedExisting =
-                                    normalizeAccountNumberForMatching(account.getAccountNumber());
-                            if (normalizedDetected.equals(normalizedExisting)) {
-                                LOGGER.info(
-                                        "Matched detected account by number only (normalized match): {} (accountId: {})",
-                                        detected.getAccountName(),
-                                        account.getAccountId());
-                                return account.getAccountId();
-                            }
-                        }
-                    }
-                }
-            } catch (Exception e) {
-                LOGGER.warn("Error matching account by number only: {}", e.getMessage());
-                // Continue to next matching strategy
-            }
+        matched = matchByAccountNumberOnly(userId, detected);
+        if (matched != null) {
+            return matched;
         }
-
-        // Try to match by institution name and account type
-        if (detected.getInstitutionName() != null && detected.getAccountType() != null) {
-            try {
-                final List<AccountTable> userAccounts = accountRepository.findByUserId(userId);
-                for (final AccountTable account : userAccounts) {
-                    // CRITICAL FIX: Handle null institution name in account
-                    final String accountInstitutionName = account.getInstitutionName();
-                    if (detected.getInstitutionName().equalsIgnoreCase(accountInstitutionName)
-                            && detected.getAccountType().equals(account.getAccountType())) {
-                        // If we have account number (not null and not empty), prefer exact match
-                        // (with normalization)
-                        // CRITICAL FIX: Normalize account numbers before comparison
-                        // If account number is null or empty, match by institution and type only
-                        final String detectedAccountNumber = detected.getAccountNumber();
-                        boolean accountNumberMatches =
-                                true; // Default to true if no account number to match
-
-                        if (detectedAccountNumber != null && !detectedAccountNumber.isBlank()) {
-                            // We have an account number - must match
-                            final String normalizedDetected =
-                                    normalizeAccountNumberForMatching(detectedAccountNumber);
-                            final String normalizedExisting =
-                                    account.getAccountNumber() != null
-                                            ? normalizeAccountNumberForMatching(
-                                                    account.getAccountNumber())
-                                            : "";
-                            accountNumberMatches = normalizedDetected.equals(normalizedExisting);
-                        } else {
-                            // No account number in detected account - match by institution and type
-                            // only
-                            accountNumberMatches = true;
-                        }
-
-                        if (accountNumberMatches) {
-                            LOGGER.info(
-                                    "Matched detected account by institution and type: {} (accountId: {})",
-                                    detected.getAccountName(),
-                                    account.getAccountId());
-                            return account.getAccountId();
-                        }
-                    }
-                }
-            } catch (Exception e) {
-                LOGGER.warn("Error matching account by institution and type: {}", e.getMessage());
-                // Return null if all matching strategies fail
-            }
+        matched = matchByInstitutionAndType(userId, detected);
+        if (matched != null) {
+            return matched;
         }
-
         LOGGER.info(
                 "No existing account match found for detected account: {}",
                 detected.getAccountName() != null ? detected.getAccountName() : "Unknown");
         return null;
+    }
+
+    /** Strategy 1: repository lookup by (accountNumber, institutionName). */
+    private String matchByNumberAndInstitution(
+            final String userId, final DetectedAccount detected) {
+        if (detected.getAccountNumber() == null || detected.getInstitutionName() == null) {
+            return null;
+        }
+        try {
+            final Optional<AccountTable> accountOpt =
+                    accountRepository.findByAccountNumberAndInstitution(
+                            detected.getAccountNumber(), detected.getInstitutionName(), userId);
+            if (accountOpt.isPresent()) {
+                LOGGER.info(
+                        "Matched detected account to existing account: {} (accountId: {})",
+                        detected.getAccountName(),
+                        accountOpt.get().getAccountId());
+                return accountOpt.get().getAccountId();
+            }
+        } catch (Exception e) {
+            LOGGER.warn("Error matching account by number and institution: {}", e.getMessage());
+        }
+        return null;
+    }
+
+    /**
+     * Strategy 2: match by account number alone. Tries the exact-value repository method first,
+     * then falls back to comparing the last-4-digit normalized form against every user account.
+     */
+    private String matchByAccountNumberOnly(final String userId, final DetectedAccount detected) {
+        if (detected.getAccountNumber() == null || detected.getAccountNumber().isBlank()) {
+            return null;
+        }
+        try {
+            final Optional<AccountTable> accountOpt =
+                    accountRepository.findByAccountNumber(detected.getAccountNumber(), userId);
+            if (accountOpt.isPresent()) {
+                LOGGER.info(
+                        "Matched detected account by number only (exact match): {} (accountId: {})",
+                        detected.getAccountName(),
+                        accountOpt.get().getAccountId());
+                return accountOpt.get().getAccountId();
+            }
+            return findNormalizedAccountNumberMatch(userId, detected);
+        } catch (Exception e) {
+            LOGGER.warn("Error matching account by number only: {}", e.getMessage());
+            return null;
+        }
+    }
+
+    private String findNormalizedAccountNumberMatch(
+            final String userId, final DetectedAccount detected) {
+        final String normalizedDetected =
+                normalizeAccountNumberForMatching(detected.getAccountNumber());
+        if (normalizedDetected.isEmpty()) {
+            return null;
+        }
+        for (final AccountTable account : accountRepository.findByUserId(userId)) {
+            if (account.getAccountNumber() == null) {
+                continue;
+            }
+            final String normalizedExisting =
+                    normalizeAccountNumberForMatching(account.getAccountNumber());
+            if (normalizedDetected.equals(normalizedExisting)) {
+                LOGGER.info(
+                        "Matched detected account by number only (normalized match): {} (accountId: {})",
+                        detected.getAccountName(),
+                        account.getAccountId());
+                return account.getAccountId();
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Strategy 3: match by (institutionName, accountType). If the detected record carries an
+     * account number, the candidate must also match it (normalized); otherwise institution + type
+     * alone is enough.
+     */
+    private String matchByInstitutionAndType(final String userId, final DetectedAccount detected) {
+        if (detected.getInstitutionName() == null || detected.getAccountType() == null) {
+            return null;
+        }
+        try {
+            for (final AccountTable account : accountRepository.findByUserId(userId)) {
+                if (!isInstitutionAndTypeMatch(detected, account)) {
+                    continue;
+                }
+                if (!accountNumbersMatchOrAbsent(detected, account)) {
+                    continue;
+                }
+                LOGGER.info(
+                        "Matched detected account by institution and type: {} (accountId: {})",
+                        detected.getAccountName(),
+                        account.getAccountId());
+                return account.getAccountId();
+            }
+        } catch (Exception e) {
+            LOGGER.warn("Error matching account by institution and type: {}", e.getMessage());
+        }
+        return null;
+    }
+
+    private static boolean isInstitutionAndTypeMatch(
+            final DetectedAccount detected, final AccountTable account) {
+        return detected.getInstitutionName().equalsIgnoreCase(account.getInstitutionName())
+                && detected.getAccountType().equals(account.getAccountType());
+    }
+
+    /**
+     * True when the detected account has no account number, or its normalized number equals the
+     * candidate's normalized number. (Empty existing number is normalized to "".)
+     */
+    private boolean accountNumbersMatchOrAbsent(
+            final DetectedAccount detected, final AccountTable account) {
+        final String detectedAccountNumber = detected.getAccountNumber();
+        if (detectedAccountNumber == null || detectedAccountNumber.isBlank()) {
+            return true;
+        }
+        final String normalizedDetected = normalizeAccountNumberForMatching(detectedAccountNumber);
+        final String normalizedExisting =
+                account.getAccountNumber() != null
+                        ? normalizeAccountNumberForMatching(account.getAccountNumber())
+                        : "";
+        return normalizedDetected.equals(normalizedExisting);
     }
 
     // Helper methods
@@ -2664,6 +2694,301 @@ public class AccountDetectionService {
         return headerText;
     }
 
+    // ---- extractProductNameFromPDF: lifted lists / pre-compiled patterns ----
+    // Lists used to live as locals inside the method, which inflated cyclomatic
+    // complexity and re-allocated every call. Keeping them as static finals so
+    // the patterns compile once per process and the per-line scan stays tight.
+
+    /**
+     * Product-name indicator tokens, ordered most specific → least specific so the longest-match
+     * loop prefers "marriott bonvoy premier" over a bare "marriott".
+     */
+    private static final List<String> SPECIFIC_PRODUCT_INDICATORS =
+            List.of(
+                    PRIME_VISA,
+                    AMAZON_PRIME_VISA,
+                    AMAZON_PRIME_CARD,
+                    PRIME_REWARDS_VISA,
+                    PRIME_VISA_SIGNATURE,
+                    AMAZON_PRIME_REWARDS,
+                    "prime card",
+                    MARRIOTT_BONVOY_PREMIER,
+                    MARRIOTT_BONVOY,
+                    DOUBLE_CASH,
+                    CASH_BACK,
+                    ACTIVE_CASH,
+                    BLUE_CASH,
+                    FREEDOM_ULTIMATE,
+                    FREEDOM_UNLIMITED,
+                    FREEDOM,
+                    SAPPHIRE_RESERVE,
+                    SAPPHIRE_PREFERRED,
+                    SAPPHIRE,
+                    VISA_SIGNATURE,
+                    VISA_INFINITE,
+                    VISA_PLATINUM,
+                    "visa classic",
+                    MASTERCARD_WORLD,
+                    MASTERCARD_WORLD_ELITE,
+                    "mastercard platinum",
+                    "mastercard gold",
+                    AMEX_PLATINUM,
+                    AMEX_GOLD,
+                    "amex green",
+                    "amex blue",
+                    QUICKSILVER,
+                    VENTURE,
+                    SAVOR,
+                    SPARK,
+                    PREMIER,
+                    "diamond preferred",
+                    "it",
+                    MILES,
+                    UNLIMITED,
+                    EVERYDAY,
+                    POINTS,
+                    HILTON,
+                    HYATT,
+                    DELTA,
+                    MARRIOTT,
+                    BONVOY,
+                    PLATINUM,
+                    GOLD,
+                    SILVER,
+                    "titanium",
+                    SIGNATURE,
+                    WORLD,
+                    ELITE,
+                    INFINITE,
+                    RESERVE,
+                    PREFERRED,
+                    "ultimate",
+                    CLASSIC,
+                    PREMIUM,
+                    BLACK,
+                    DIAMOND,
+                    IMPERIAL,
+                    ROYAL,
+                    PRESTIGE,
+                    EXCLUSIVE,
+                    TRAVEL,
+                    BUSINESS,
+                    REWARDS,
+                    CARD,
+                    "®",
+                    "™");
+
+    /**
+     * Subset of SPECIFIC_PRODUCT_INDICATORS that are strong enough to override generic-term
+     * filtering (e.g. allows "Sapphire Reserve" on a line that also contains "account"). All
+     * entries are lowercase so callers can substring-match without re-lowering.
+     */
+    private static final List<String> STRONG_PRODUCT_INDICATORS =
+            List.of(
+                    PRIME_VISA,
+                    AMAZON_PRIME_VISA,
+                    AMAZON_PRIME_CARD,
+                    PRIME_REWARDS_VISA,
+                    PRIME_VISA_SIGNATURE,
+                    AMAZON_PRIME_REWARDS,
+                    FREEDOM_ULTIMATE,
+                    FREEDOM_UNLIMITED,
+                    FREEDOM,
+                    SAPPHIRE_RESERVE,
+                    SAPPHIRE_PREFERRED,
+                    SAPPHIRE,
+                    ACTIVE_CASH,
+                    DOUBLE_CASH,
+                    CASH_BACK,
+                    BLUE_CASH,
+                    MARRIOTT_BONVOY_PREMIER,
+                    MARRIOTT_BONVOY,
+                    VISA_SIGNATURE,
+                    VISA_INFINITE,
+                    VISA_PLATINUM,
+                    MASTERCARD_WORLD,
+                    MASTERCARD_WORLD_ELITE,
+                    AMEX_PLATINUM,
+                    AMEX_GOLD,
+                    QUICKSILVER,
+                    SPARK,
+                    VENTURE,
+                    SAVOR);
+
+    /** Generic terms that, if present without a strong product indicator, disqualify the line. */
+    private static final List<String> GENERIC_TERMS_TO_SKIP =
+            List.of(
+                    "mobile app",
+                    "mobile",
+                    "app",
+                    "website",
+                    "statement",
+                    ACCOUNT,
+                    "login",
+                    "register",
+                    "contact",
+                    "support",
+                    "help");
+
+    /** Action phrases ("visit", "call", "log in", ...) that mark instructional lines. */
+    private static final List<String> ACTION_PHRASES =
+            List.of(
+                    "activate for free",
+                    "visit a",
+                    "visit",
+                    "go to",
+                    "log in",
+                    "sign in",
+                    "register",
+                    "enroll",
+                    "call",
+                    CONTACT_US,
+                    "customer service");
+
+    /** Matches www., http(s)://, or a bare ".xx" TLD-shaped fragment. */
+    private static final Pattern URL_DETECT_PATTERN =
+            Pattern.compile(".*\\b(?:www\\.|http://|https://|\\.[a-z]{2,})\\b.*");
+
+    /** Matches "chase.com", "wells fargo.com", etc. — common contact-line domains. */
+    private static final Pattern DOMAIN_DETECT_PATTERN =
+            Pattern.compile(
+                    ".*\\b(?:chase|wells\\s*fargo|bankofamerica|citibank|americanexpress|amex)\\s*\\.\\s*com\\b.*");
+
+    /** Matches lines that look like a card-scheme mention, used to keep "online" in the name. */
+    private static final Pattern CARD_SCHEME_PATTERN =
+            Pattern.compile(".*(?:visa|mastercard|amex|discover).*");
+
+    /**
+     * Pre-compiled blacklist patterns for contact info / address / phone / email lines that look
+     * like a product line but aren't. Compiled once per process rather than per-call per-line.
+     */
+    private static final List<Pattern> BLACKLIST_PATTERNS = compileBlacklistPatterns();
+
+    private static List<Pattern> compileBlacklistPatterns() {
+        final String[] sources = {
+            "write us at",
+            "write us",
+            "questions",
+            "question",
+            "if you have",
+            CONTACT_US,
+            "call us",
+            "email us",
+            "mail us",
+            "send us",
+            "customer service",
+            "customer support",
+            "technical support",
+            "p\\.o\\. box",
+            "po box",
+            "p.o. box",
+            "post office box",
+            "street",
+            "avenue",
+            "road",
+            "boulevard",
+            "drive",
+            "lane",
+            "suite",
+            "apt",
+            "apartment",
+            "unit",
+            "\\d{5}(?:-\\d{4})?",
+            "\\d{5}\\s+\\d{4}",
+            "\\b[A-Z]{2}\\s+\\d{5}",
+            "el paso",
+            "san francisco",
+            "new york",
+            "los angeles",
+            "\\d{1,3}[\\-.]?\\d{3}[\\-.]?\\d{3}[\\-.]?\\d{4}",
+            "\\(\\s*\\d{1,3}\\s*[\\-)]?\\s*\\d{3}",
+            "@",
+            "\\b[a-z0-9._%+-]+@[a-z0-9.-]+\\.[a-z]{2,}\\b",
+            "electronic funds",
+            "funds services",
+            "services,",
+            "services.",
+            "you may also",
+            "you may",
+            "for more",
+            "for additional",
+            "please",
+            "thank you",
+            "sincerely",
+            "regards"
+        };
+        final List<Pattern> compiled = new ArrayList<>(sources.length);
+        for (final String src : sources) {
+            compiled.add(Pattern.compile(src, Pattern.CASE_INSENSITIVE));
+        }
+        return List.copyOf(compiled);
+    }
+
+    /**
+     * Candidate-selection priority list (most specific first). The selection pass walks this list
+     * and returns the first candidate whose matched indicator (or text) contains the priority
+     * entry. Distinct from SPECIFIC_PRODUCT_INDICATORS because the ordering is different — the
+     * indicator list is tuned for "is this a product line?" matching, this list is tuned for
+     * "which of N candidates is the best one to keep?".
+     */
+    private static final List<String> SPECIFIC_CARD_NAMES_PRIORITY =
+            List.of(
+                    PRIME_VISA,
+                    AMAZON_PRIME_VISA,
+                    AMAZON_PRIME_CARD,
+                    PRIME_REWARDS_VISA,
+                    PRIME_VISA_SIGNATURE,
+                    AMAZON_PRIME_REWARDS,
+                    "prime card",
+                    MARRIOTT_BONVOY_PREMIER,
+                    MARRIOTT_BONVOY,
+                    "bonvoy premier",
+                    BONVOY,
+                    FREEDOM_ULTIMATE,
+                    FREEDOM_UNLIMITED,
+                    FREEDOM,
+                    ACTIVE_CASH,
+                    SAPPHIRE_RESERVE,
+                    SAPPHIRE_PREFERRED,
+                    SAPPHIRE,
+                    DOUBLE_CASH,
+                    CASH_BACK,
+                    BLUE_CASH,
+                    VISA_SIGNATURE,
+                    VISA_INFINITE,
+                    VISA_PLATINUM,
+                    "visa classic",
+                    MASTERCARD_WORLD_ELITE,
+                    MASTERCARD_WORLD,
+                    "mastercard platinum",
+                    AMEX_PLATINUM,
+                    AMEX_GOLD,
+                    "amex green",
+                    QUICKSILVER,
+                    SPARK,
+                    VENTURE,
+                    SAVOR,
+                    DOUBLE_CASH,
+                    PREMIER,
+                    "diamond preferred",
+                    "it",
+                    MILES,
+                    CASH_BACK,
+                    UNLIMITED,
+                    EVERYDAY,
+                    PLATINUM,
+                    GOLD,
+                    SILVER,
+                    SIGNATURE,
+                    WORLD,
+                    ELITE,
+                    INFINITE,
+                    "ultimate",
+                    HILTON,
+                    HYATT,
+                    DELTA,
+                    MARRIOTT);
+
     /**
      * Extract product/card name from PDF content General approach that works for ALL credit card
      * issuers and product names Uses institution keywords list instead of hardcoded values
@@ -2673,613 +2998,282 @@ public class AccountDetectionService {
             return null;
         }
 
-        // Pattern 0a: Extract Prime Visa from "YOUR PRIME VISA POINTS" or "Prime Visa" patterns
-        // High priority - very specific pattern for Amazon Prime Visa cards
-        final Pattern primeVisaPattern =
-                Pattern.compile(
-                        "(?i)(?:your\\s+)?(prime\\s+visa|amazon\\s+prime\\s+visa|prime\\s+rewards\\s+visa|prime\\s+visa\\s+signature)(?:\\s+points|\\s+card|\\s*®|\\s*™)?",
-                        Pattern.CASE_INSENSITIVE);
-        final Matcher primeVisaMatcher = primeVisaPattern.matcher(headerText);
-        if (primeVisaMatcher.find()) {
-            String cardName = primeVisaMatcher.group(1).trim();
-            cardName = cardName.replaceAll("\\s+", " "); // Normalize whitespace
-            // Capitalize properly: "Prime Visa" or "Amazon Prime Visa"
-            cardName = capitalizeCardName(cardName);
-            if (cardName.length() > 3 && cardName.length() < 100) {
-                LOGGER.info("Extracted product name from 'Prime Visa' pattern: {}", cardName);
-                return cardName;
-            }
+        // Try the high-precision regex paths first — these handle "Prime Visa" /
+        // "thank you for using your X card" / "Reward your routine ... with your X"
+        // phrasings that turn up in the marketing header of credit-card statements.
+        String name = tryExtractPrimeVisaName(headerText);
+        if (name != null) {
+            return name;
+        }
+        name = tryExtractThankYouCardName(headerText);
+        if (name != null) {
+            return name;
+        }
+        name = tryExtractRewardPhraseCardName(headerText);
+        if (name != null) {
+            return name;
         }
 
-        // Pattern 0b: Extract card name from "thank you for using your [card name]" phrases
-        // Example: "thank you for using your marriott bonvoy® premier credit card"
-        final Pattern thankYouPattern =
-                Pattern.compile(
-                        "(?i)thank\\s+you\\s+for\\s+using\\s+your\\s+([a-z0-9\\s®™©]+?)\\s*(?:credit\\s*)?card",
-                        Pattern.CASE_INSENSITIVE);
-        final Matcher thankYouMatcher = thankYouPattern.matcher(headerText);
-        if (thankYouMatcher.find()) {
-            String cardName = thankYouMatcher.group(1).trim();
-            cardName = cardName.replaceAll("\\s+", " "); // Normalize whitespace
-            if (cardName.length() > 3 && cardName.length() < 100) {
-                LOGGER.info("Extracted product name from 'thank you' pattern: {}", cardName);
-                return cardName;
-            }
+        // Pattern 1: scan each line for institution + product-indicator and collect candidates.
+        final List<Map.Entry<String, String>> candidateProductNames = new ArrayList<>();
+        for (final String line : headerText.split("\n")) {
+            tryAddProductCandidateFromLine(line, candidateProductNames);
         }
-
-        // Pattern 0c: Extract from "Reward your routine everywhere you shop with your [card name]"
-        // phrases
-        // Example: "Reward your routine everywhere you shop with your Prime Visa."
-        final Pattern rewardPattern =
-                Pattern.compile(
-                        "(?i)reward\\s+(?:your\\s+)?(?:routine|everywhere|.*?)\\s+(?:with\\s+your\\s+)?([a-z0-9\\s®™©]+?)\\s*(?:card|\\s*®|\\s*™|\\s*\\.)?",
-                        Pattern.CASE_INSENSITIVE);
-        final Matcher rewardMatcher = rewardPattern.matcher(headerText);
-        if (rewardMatcher.find()) {
-            String cardName = rewardMatcher.group(1).trim();
-            cardName = cardName.replaceAll("\\s+", " "); // Normalize whitespace
-            // Check if it's a valid card name (contains card product keywords)
-            if (isValidCardProductName(cardName)) {
-                cardName = capitalizeCardName(cardName);
-                if (cardName.length() > 3 && cardName.length() < 100) {
-                    LOGGER.info("Extracted product name from 'reward' pattern: {}", cardName);
-                    return cardName;
-                }
-            }
-        }
-
-        // Pattern 1: Look for lines containing institution keyword + product name + CARD
-        // This works for any institution in our keyword list
-        // CRITICAL: Process lines and collect potential matches, then prioritize by specificity
-        final String[] lines = headerText.split("\n");
-        // Store candidates with their matched indicators for better prioritization
-        final List<Map.Entry<String, String>> candidateProductNames =
-                new ArrayList<>(); // candidate -> matchedIndicator
-
-        for (final String line : lines) {
-            if (line == null || line.isBlank()) {
-                continue;
-            }
-
-            final String trimmedLine = line.trim();
-            final String lowerLine = trimmedLine.toLowerCase(Locale.ROOT);
-
-            // Check if line contains any institution keyword
-            String foundInstitution = null;
-            for (final String institution : INSTITUTION_KEYWORDS) {
-                final String lowerInstitution = institution.toLowerCase(Locale.ROOT);
-                // Use word boundaries to avoid false matches
-                final Pattern institutionPattern =
-                        Pattern.compile(
-                                "\\b" + Pattern.quote(lowerInstitution) + "\\b",
-                                Pattern.CASE_INSENSITIVE);
-                if (institutionPattern.matcher(lowerLine).find()) {
-                    foundInstitution = institution;
-                    break;
-                }
-            }
-
-            // If we found an institution, check if this looks like a product name line
-            if (foundInstitution != null) {
-                // Product name indicators (works for all card types globally)
-                // Prioritize specific card product names over generic terms
-                // List ordered by specificity (most specific first)
-                final List<String> specificProductIndicators =
-                        Arrays.asList(
-                                // Multi-word card names (most specific first)
-                                // Amazon/Prime Cards
-                                PRIME_VISA,
-                                AMAZON_PRIME_VISA,
-                                AMAZON_PRIME_CARD,
-                                PRIME_REWARDS_VISA,
-                                PRIME_VISA_SIGNATURE,
-                                AMAZON_PRIME_REWARDS,
-                                "prime card",
-                                // Chase Cards
-                                MARRIOTT_BONVOY_PREMIER,
-                                MARRIOTT_BONVOY,
-                                DOUBLE_CASH,
-                                CASH_BACK,
-                                ACTIVE_CASH,
-                                BLUE_CASH,
-                                FREEDOM_ULTIMATE,
-                                FREEDOM_UNLIMITED,
-                                FREEDOM,
-                                SAPPHIRE_RESERVE,
-                                SAPPHIRE_PREFERRED,
-                                SAPPHIRE,
-                                // Visa/Mastercard/Amex Tier Cards
-                                VISA_SIGNATURE,
-                                VISA_INFINITE,
-                                VISA_PLATINUM,
-                                "visa classic",
-                                MASTERCARD_WORLD,
-                                MASTERCARD_WORLD_ELITE,
-                                "mastercard platinum",
-                                "mastercard gold",
-                                AMEX_PLATINUM,
-                                AMEX_GOLD,
-                                "amex green",
-                                "amex blue",
-                                // Capital One Cards
-                                QUICKSILVER,
-                                VENTURE,
-                                SAVOR,
-                                SPARK,
-                                // Citi Cards
-                                DOUBLE_CASH,
-                                PREMIER,
-                                "diamond preferred",
-                                // Discover Cards
-                                "it",
-                                MILES,
-                                CASH_BACK,
-                                // Single-word and other specific indicators
-                                UNLIMITED,
-                                EVERYDAY,
-                                MILES,
-                                POINTS,
-                                HILTON,
-                                HYATT,
-                                DELTA,
-                                MARRIOTT,
-                                BONVOY,
-                                PLATINUM,
-                                GOLD,
-                                SILVER,
-                                "titanium",
-                                SIGNATURE,
-                                WORLD,
-                                ELITE,
-                                INFINITE,
-                                RESERVE,
-                                PREFERRED,
-                                "ultimate",
-                                CLASSIC,
-                                PREMIUM,
-                                BLACK,
-                                DIAMOND,
-                                IMPERIAL,
-                                ROYAL,
-                                PRESTIGE,
-                                EXCLUSIVE,
-                                TRAVEL,
-                                BUSINESS,
-                                REWARDS,
-                                CARD,
-                                "®",
-                                "™");
-
-                // Check for specific product indicators first (higher priority)
-                // Use longest match first to prefer "marriott bonvoy premier" over just "marriott"
-                String matchedProductIndicator = null;
-                int longestMatchLength = 0;
-                for (final String indicator : specificProductIndicators) {
-                    final String lowerIndicator = indicator.toLowerCase(Locale.ROOT);
-                    if (lowerLine.contains(lowerIndicator)) {
-                        // Prefer longer matches (more specific)
-                        if (indicator.length() > longestMatchLength) {
-                            matchedProductIndicator = indicator;
-                            longestMatchLength = indicator.length();
-                        }
-                    }
-                }
-
-                // Skip lines with generic terms that are not card products (lower priority)
-                // Only skip if these appear with URLs or are clearly not card names
-                final List<String> genericTermsToSkip =
-                        Arrays.asList(
-                                "mobile app",
-                                "mobile",
-                                "app",
-                                "website",
-                                "statement",
-                                ACCOUNT,
-                                "login",
-                                "register",
-                                "contact",
-                                "support",
-                                "help");
-
-                // Additional check: skip lines that contain URLs (likely not card names)
-                // Pattern matches: www., http://, https://, or domain extensions like .com, .org,
-                // etc.
-                final boolean containsUrl =
-                        lowerLine.matches(".*\\b(?:www\\.|http://|https://|\\.[a-z]{2,})\\b.*");
-
-                // Also check for common URL patterns like "chase.com", "wellsfargo.com"
-                final boolean containsDomain =
-                        lowerLine.matches(
-                                ".*\\b(?:chase|wells\\s*fargo|bankofamerica|citibank|americanexpress|amex)\\s*\\.\\s*com\\b.*");
-
-                // CRITICAL: Define strong product indicators BEFORE using them
-                // Strong indicators are specific card names, not generic terms like CARD
-                final List<String> strongProductIndicators =
-                        Arrays.asList(
-                                // Amazon/Prime Cards (highest priority - very specific)
-                                PRIME_VISA,
-                                AMAZON_PRIME_VISA,
-                                AMAZON_PRIME_CARD,
-                                PRIME_REWARDS_VISA,
-                                PRIME_VISA_SIGNATURE,
-                                AMAZON_PRIME_REWARDS,
-                                // Chase Cards
-                                FREEDOM_ULTIMATE,
-                                FREEDOM_UNLIMITED,
-                                FREEDOM,
-                                SAPPHIRE_RESERVE,
-                                SAPPHIRE_PREFERRED,
-                                SAPPHIRE,
-                                ACTIVE_CASH,
-                                DOUBLE_CASH,
-                                CASH_BACK,
-                                BLUE_CASH,
-                                MARRIOTT_BONVOY_PREMIER,
-                                MARRIOTT_BONVOY,
-                                // Visa/Mastercard/Amex Tier Cards
-                                VISA_SIGNATURE,
-                                VISA_INFINITE,
-                                VISA_PLATINUM,
-                                MASTERCARD_WORLD,
-                                MASTERCARD_WORLD_ELITE,
-                                AMEX_PLATINUM,
-                                AMEX_GOLD,
-                                // Other specific cards
-                                QUICKSILVER,
-                                SPARK,
-                                VENTURE,
-                                SAVOR);
-
-                boolean hasGenericTerm = false;
-                // CRITICAL: More aggressive filtering for generic terms
-                // If line contains "mobile app" or similar terms, it's almost certainly not a card
-                // name
-                // unless it has a very strong product indicator
-                for (final String term : genericTermsToSkip) {
-                    final String lowerTerm = term.toLowerCase(Locale.ROOT);
-                    if (lowerLine.contains(lowerTerm)) {
-                        // If we have a strong product indicator, allow it
-                        // Otherwise, reject the line
-                        if (matchedProductIndicator == null) {
-                            hasGenericTerm = true;
-                            break;
-                        } else {
-                            // Check if the matched indicator is strong enough to override generic
-                            // term
-                            boolean isStrongEnough = false;
-                            for (final String strongIndicator : strongProductIndicators) {
-                                if (matchedProductIndicator
-                                        .toLowerCase(Locale.ROOT)
-                                        .contains(strongIndicator.toLowerCase(Locale.ROOT))) {
-                                    isStrongEnough = true;
-                                    break;
-                                }
-                            }
-                            // If not strong enough, still reject
-                            if (!isStrongEnough) {
-                                hasGenericTerm = true;
-                                break;
-                            }
-                        }
-                    }
-                }
-
-                boolean hasStrongIndicator = false;
-                if (matchedProductIndicator != null) {
-                    for (final String strongIndicator : strongProductIndicators) {
-                        if (matchedProductIndicator
-                                .toLowerCase(Locale.ROOT)
-                                .contains(strongIndicator.toLowerCase(Locale.ROOT))) {
-                            hasStrongIndicator = true;
-                            break;
-                        }
-                    }
-                }
-
-                // Skip lines with URLs/domains unless they have a strong product indicator
-                if ((containsUrl || containsDomain) && !hasStrongIndicator) {
-                    LOGGER.info(
-                            "Skipping line with URL/domain and no strong product indicator: {}",
-                            trimmedLine);
-                    continue;
-                }
-
-                // Also skip lines with action phrases that indicate website/branch instructions
-                final List<String> actionPhrases =
-                        Arrays.asList(
-                                "activate for free",
-                                "visit a",
-                                "visit",
-                                "go to",
-                                "log in",
-                                "sign in",
-                                "register",
-                                "enroll",
-                                "call",
-                                CONTACT_US,
-                                "customer service");
-                boolean hasActionPhrase = false;
-                for (final String phrase : actionPhrases) {
-                    if (lowerLine.contains(phrase.toLowerCase(Locale.ROOT))) {
-                        hasActionPhrase = true;
-                        break;
-                    }
-                }
-                // Always skip lines with action phrases + URLs/domains (even if they have
-                // indicators)
-                if (hasActionPhrase && (containsUrl || containsDomain)) {
-                    LOGGER.info("Skipping line with action phrase and URL/domain: {}", trimmedLine);
-                    continue;
-                }
-
-                // CRITICAL: Blacklist patterns for contact information, addresses, and
-                // non-product-name content
-                final List<String> blacklistPatterns =
-                        Arrays.asList(
-                                // Contact information patterns
-                                "write us at",
-                                "write us",
-                                "questions",
-                                "question",
-                                "if you have",
-                                CONTACT_US,
-                                "call us",
-                                "email us",
-                                "mail us",
-                                "send us",
-                                "customer service",
-                                "customer support",
-                                "technical support",
-                                // Address patterns
-                                "p\\.o\\. box",
-                                "po box",
-                                "p.o. box",
-                                "post office box",
-                                "street",
-                                "avenue",
-                                "road",
-                                "boulevard",
-                                "drive",
-                                "lane",
-                                "suite",
-                                "apt",
-                                "apartment",
-                                "unit",
-                                // ZIP code patterns (5 digits or ZIP+4)
-                                "\\d{5}(?:-\\d{4})?",
-                                "\\d{5}\\s+\\d{4}",
-                                // State abbreviations followed by ZIP (e.g., "TX 79998")
-                                "\\b[A-Z]{2}\\s+\\d{5}",
-                                // City, State patterns
-                                "el paso",
-                                "san francisco",
-                                "new york",
-                                "los angeles",
-                                // Phone number patterns
-                                "\\d{1,3}[\\-.]?\\d{3}[\\-.]?\\d{3}[\\-.]?\\d{4}",
-                                "\\(\\s*\\d{1,3}\\s*[\\-)]?\\s*\\d{3}",
-                                // Email patterns
-                                "@",
-                                "\\b[a-z0-9._%+-]+@[a-z0-9.-]+\\.[a-z]{2,}\\b",
-                                // Other non-product patterns
-                                "electronic funds",
-                                "funds services",
-                                "services,",
-                                "services.",
-                                "you may also",
-                                "you may",
-                                "for more",
-                                "for additional",
-                                "please",
-                                "thank you",
-                                "sincerely",
-                                "regards");
-
-                boolean matchesBlacklist = false;
-                for (final String blacklistPattern : blacklistPatterns) {
-                    final Pattern pattern =
-                            Pattern.compile(blacklistPattern, Pattern.CASE_INSENSITIVE);
-                    if (pattern.matcher(trimmedLine).find()) {
-                        matchesBlacklist = true;
-                        // Skipping line matching blacklist pattern
-                        break;
-                    }
-                }
-                if (matchesBlacklist) {
-                    continue;
-                }
-
-                // Skip "online" only if it appears with URLs or is clearly not part of a card name
-                if (lowerLine.contains("online") && matchedProductIndicator != null) {
-                    // Only skip if it's clearly a website reference (contains URL)
-                    if (containsUrl
-                            && !lowerLine.matches(".*(?:visa|mastercard|amex|discover).*")) {
-                        hasGenericTerm = true;
-                    }
-                } else if (lowerLine.contains("online") && matchedProductIndicator == null) {
-                    hasGenericTerm = true;
-                }
-
-                // If line has institution + specific product indicator, and is reasonably short
-                // (likely a product name)
-                if (matchedProductIndicator != null
-                        && !hasGenericTerm
-                        && trimmedLine.length() < 150) {
-                    String productName = trimmedLine;
-
-                    // For multi-word indicators like "marriott bonvoy premier", try to extract the
-                    // full card name
-                    // by finding the portion of the line that contains the matched indicator
-                    if (matchedProductIndicator.contains(" ")) {
-                        // Try to extract a more complete card name from the line
-                        // Look for patterns like "Chase Marriott Bonvoy Premier Card" or "Marriott
-                        // Bonvoy Premier"
-                        final Pattern fullCardNamePattern =
-                                Pattern.compile(
-                                        "(?i)(?:chase\\s+)?(?:"
-                                                + Pattern.quote(foundInstitution)
-                                                + "\\s+)?([a-z0-9\\s®™©]*?"
-                                                + Pattern.quote(matchedProductIndicator)
-                                                + "[a-z0-9\\s®™©]*?)(?:\\s+card|\\s*®|\\s*™)?",
-                                        Pattern.CASE_INSENSITIVE);
-                        final Matcher fullCardMatcher = fullCardNamePattern.matcher(productName);
-                        if (fullCardMatcher.find()) {
-                            final String extractedName = fullCardMatcher.group(1).trim();
-                            if (extractedName.length() > matchedProductIndicator.length()
-                                    && extractedName.length() < 100) {
-                                productName = extractedName;
-                            }
-                        }
-                    }
-
-                    // Clean up the product name
-                    productName = productName.replaceAll("\\s+", " "); // Normalize whitespace
-
-                    // CRITICAL: Validate product name before adding as candidate
-                    if (!isValidProductName(productName)) {
-                        LOGGER.info(
-                                "Rejected candidate product name (validation failed): {}",
-                                productName);
-                        continue;
-                    }
-
-                    // Store candidate with its matched indicator for prioritization
-                    candidateProductNames.add(
-                            new java.util.AbstractMap.SimpleEntry<>(
-                                    productName, matchedProductIndicator));
-                    LOGGER.info(
-                            "Found candidate product name: {} (matched indicator: {})",
-                            productName,
-                            matchedProductIndicator);
-                }
-            }
-        }
-
-        // Prioritize candidates: prefer specific card names over generic terms
         if (!candidateProductNames.isEmpty()) {
-            // Sort by specificity: lines with specific card product names first
-            // Order matters - most specific first
-            final List<String> specificCardNames =
-                    Arrays.asList(
-                            // Amazon/Prime Cards (highest priority - very specific)
-                            PRIME_VISA,
-                            AMAZON_PRIME_VISA,
-                            AMAZON_PRIME_CARD,
-                            PRIME_REWARDS_VISA,
-                            PRIME_VISA_SIGNATURE,
-                            AMAZON_PRIME_REWARDS,
-                            "prime card",
-                            // Chase Cards
-                            MARRIOTT_BONVOY_PREMIER,
-                            MARRIOTT_BONVOY,
-                            "bonvoy premier",
-                            BONVOY,
-                            FREEDOM_ULTIMATE,
-                            FREEDOM_UNLIMITED,
-                            FREEDOM,
-                            ACTIVE_CASH,
-                            SAPPHIRE_RESERVE,
-                            SAPPHIRE_PREFERRED,
-                            SAPPHIRE,
-                            DOUBLE_CASH,
-                            CASH_BACK,
-                            BLUE_CASH,
-                            // Visa/Mastercard/Amex Tier Cards
-                            VISA_SIGNATURE,
-                            VISA_INFINITE,
-                            VISA_PLATINUM,
-                            "visa classic",
-                            MASTERCARD_WORLD_ELITE,
-                            MASTERCARD_WORLD,
-                            "mastercard platinum",
-                            AMEX_PLATINUM,
-                            AMEX_GOLD,
-                            "amex green",
-                            // Capital One Cards
-                            QUICKSILVER,
-                            SPARK,
-                            VENTURE,
-                            SAVOR,
-                            // Citi Cards
-                            DOUBLE_CASH,
-                            PREMIER,
-                            "diamond preferred",
-                            // Discover Cards
-                            "it",
-                            MILES,
-                            CASH_BACK,
-                            // Other specific cards
-                            UNLIMITED,
-                            EVERYDAY,
-                            PLATINUM,
-                            GOLD,
-                            SILVER,
-                            SIGNATURE,
-                            WORLD,
-                            ELITE,
-                            INFINITE,
-                            "ultimate",
-                            HILTON,
-                            HYATT,
-                            DELTA,
-                            MARRIOTT);
-
-            // First pass: prioritize by matched indicator (most specific first)
-            for (final String cardName : specificCardNames) {
-                for (final Map.Entry<String, String> entry : candidateProductNames) {
-                    final String candidate = entry.getKey();
-                    final String matchedIndicator = entry.getValue();
-                    final String lowerCandidate = candidate.toLowerCase(Locale.ROOT);
-                    final String lowerMatchedIndicator =
-                            matchedIndicator != null
-                                    ? matchedIndicator.toLowerCase(Locale.ROOT)
-                                    : "";
-
-                    // Check if the matched indicator or candidate contains the specific card name
-                    if (lowerMatchedIndicator.contains(cardName.toLowerCase(Locale.ROOT))
-                            || lowerCandidate.contains(cardName.toLowerCase(Locale.ROOT))) {
-                        LOGGER.info(
-                                "Extracted product name (prioritized specific card name '{}'): {}",
-                                cardName,
-                                candidate);
-                        return candidate;
-                    }
-                }
-            }
-
-            // Second pass: if no match by indicator, check candidate text only
-            for (final String cardName : specificCardNames) {
-                for (final Map.Entry<String, String> entry : candidateProductNames) {
-                    final String candidate = entry.getKey();
-                    final String lowerCandidate = candidate.toLowerCase(Locale.ROOT);
-                    if (lowerCandidate.contains(cardName.toLowerCase(Locale.ROOT))) {
-                        LOGGER.info(
-                                "Extracted product name (prioritized by candidate text '{}'): {}",
-                                cardName,
-                                candidate);
-                        return candidate;
-                    }
-                }
-            }
-
-            // If no specific card name found, validate and return the first valid candidate
-            for (final Map.Entry<String, String> entry : candidateProductNames) {
-                final String candidate = entry.getKey();
-                if (isValidProductName(candidate)) {
-                    LOGGER.info("Extracted product name (first valid candidate): {}", candidate);
-                    return candidate;
-                } else {
-                    LOGGER.info("Skipped invalid candidate: {}", candidate);
-                }
-            }
-
-            // If all candidates were invalid, return null
-            // No valid product name candidates found after validation
-            return null;
+            return selectBestProductCandidate(candidateProductNames);
         }
 
-        // Pattern 2: Regex pattern for "Institution Product Name Card" format
-        // Build regex dynamically from institution keywords
+        // Pattern 2: fallback regex against the full header text.
+        return extractProductNameByInstitutionRegex(headerText);
+    }
+
+    /**
+     * Inspect one line of header text. If it looks like a product-name line for some institution,
+     * append the extracted candidate (plus the indicator that matched) to {@code outCandidates}.
+     */
+    private void tryAddProductCandidateFromLine(
+            final String line, final List<Map.Entry<String, String>> outCandidates) {
+        if (line == null || line.isBlank()) {
+            return;
+        }
+        final String trimmedLine = line.trim();
+        final String lowerLine = trimmedLine.toLowerCase(Locale.ROOT);
+
+        final String foundInstitution = findInstitutionInLine(lowerLine);
+        if (foundInstitution == null) {
+            return;
+        }
+        final String matchedIndicator = findLongestProductIndicator(lowerLine);
+        if (matchedIndicator == null || trimmedLine.length() >= 150) {
+            return;
+        }
+        if (shouldRejectProductLine(trimmedLine, lowerLine, matchedIndicator)) {
+            return;
+        }
+
+        final String productName =
+                expandToFullCardName(trimmedLine, matchedIndicator, foundInstitution)
+                        .replaceAll("\\s+", " ");
+        if (!isValidProductName(productName)) {
+            LOGGER.info("Rejected candidate product name (validation failed): {}", productName);
+            return;
+        }
+        outCandidates.add(new java.util.AbstractMap.SimpleEntry<>(productName, matchedIndicator));
+        LOGGER.info(
+                "Found candidate product name: {} (matched indicator: {})",
+                productName,
+                matchedIndicator);
+    }
+
+    /**
+     * Filter chain for product-line candidates. Returns true if the line should be skipped because
+     * it looks like a non-product line (URL-only, instructional, blacklisted contact info, etc.).
+     */
+    private boolean shouldRejectProductLine(
+            final String trimmedLine, final String lowerLine, final String matchedIndicator) {
+        if (lineHasBlockingGenericTerm(lowerLine, matchedIndicator)) {
+            return true;
+        }
+        final boolean containsUrl = URL_DETECT_PATTERN.matcher(lowerLine).matches();
+        final boolean containsDomain = DOMAIN_DETECT_PATTERN.matcher(lowerLine).matches();
+        final boolean urlOrDomain = containsUrl || containsDomain;
+        if (urlOrDomain && !hasStrongProductIndicator(matchedIndicator)) {
+            LOGGER.info(
+                    "Skipping line with URL/domain and no strong product indicator: {}",
+                    trimmedLine);
+            return true;
+        }
+        if (urlOrDomain && lineHasActionPhrase(lowerLine)) {
+            LOGGER.info("Skipping line with action phrase and URL/domain: {}", trimmedLine);
+            return true;
+        }
+        if (lineMatchesBlacklist(trimmedLine)) {
+            return true;
+        }
+        // "online" is a generic disqualifier only when paired with a URL and the line doesn't
+        // mention a card scheme — otherwise it could be part of a legitimate "Visa Online" name.
+        return containsUrl
+                && lowerLine.contains("online")
+                && !CARD_SCHEME_PATTERN.matcher(lowerLine).matches();
+    }
+
+    /** Return the first INSTITUTION_KEYWORDS entry that matches {@code lowerLine}, or null. */
+    private static String findInstitutionInLine(final String lowerLine) {
+        for (final String institution : INSTITUTION_KEYWORDS) {
+            final Pattern institutionPattern =
+                    Pattern.compile(
+                            "\\b" + Pattern.quote(institution.toLowerCase(Locale.ROOT)) + "\\b",
+                            Pattern.CASE_INSENSITIVE);
+            if (institutionPattern.matcher(lowerLine).find()) {
+                return institution;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Return the longest SPECIFIC_PRODUCT_INDICATORS entry contained in {@code lowerLine}, or
+     * null. Longest-match prefers "marriott bonvoy premier" over a bare "marriott".
+     */
+    private static String findLongestProductIndicator(final String lowerLine) {
+        String best = null;
+        int bestLen = 0;
+        for (final String indicator : SPECIFIC_PRODUCT_INDICATORS) {
+            final String lowerIndicator = indicator.toLowerCase(Locale.ROOT);
+            if (lowerLine.contains(lowerIndicator) && indicator.length() > bestLen) {
+                best = indicator;
+                bestLen = indicator.length();
+            }
+        }
+        return best;
+    }
+
+    /** True if {@code matchedIndicator} is in the strong-indicator list (substring match). */
+    private static boolean hasStrongProductIndicator(final String matchedIndicator) {
+        if (matchedIndicator == null) {
+            return false;
+        }
+        final String lower = matchedIndicator.toLowerCase(Locale.ROOT);
+        for (final String strong : STRONG_PRODUCT_INDICATORS) {
+            if (lower.contains(strong.toLowerCase(Locale.ROOT))) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * True if the line contains a generic term ("mobile app", "statement", ...) and the matched
+     * indicator isn't strong enough to override it.
+     */
+    private static boolean lineHasBlockingGenericTerm(
+            final String lowerLine, final String matchedIndicator) {
+        for (final String term : GENERIC_TERMS_TO_SKIP) {
+            if (lowerLine.contains(term.toLowerCase(Locale.ROOT))
+                    && !hasStrongProductIndicator(matchedIndicator)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /** True if {@code lowerLine} contains any of the instructional action phrases. */
+    private static boolean lineHasActionPhrase(final String lowerLine) {
+        for (final String phrase : ACTION_PHRASES) {
+            if (lowerLine.contains(phrase.toLowerCase(Locale.ROOT))) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /** True if {@code trimmedLine} matches any pre-compiled blacklist pattern. */
+    private static boolean lineMatchesBlacklist(final String trimmedLine) {
+        for (final Pattern pattern : BLACKLIST_PATTERNS) {
+            if (pattern.matcher(trimmedLine).find()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * For a multi-word indicator like "marriott bonvoy premier", widen the candidate to capture
+     * the full "Chase Marriott Bonvoy Premier" if the surrounding line supports it. Single-word
+     * indicators just return the trimmed line as-is.
+     */
+    private static String expandToFullCardName(
+            final String trimmedLine, final String matchedIndicator, final String foundInstitution) {
+        if (!matchedIndicator.contains(" ")) {
+            return trimmedLine;
+        }
+        final Pattern fullCardNamePattern =
+                Pattern.compile(
+                        "(?i)(?:chase\\s+)?(?:"
+                                + Pattern.quote(foundInstitution)
+                                + "\\s+)?([a-z0-9\\s®™©]*?"
+                                + Pattern.quote(matchedIndicator)
+                                + "[a-z0-9\\s®™©]*?)(?:\\s+card|\\s*®|\\s*™)?",
+                        Pattern.CASE_INSENSITIVE);
+        final Matcher fullCardMatcher = fullCardNamePattern.matcher(trimmedLine);
+        if (fullCardMatcher.find()) {
+            final String extractedName = fullCardMatcher.group(1).trim();
+            if (extractedName.length() > matchedIndicator.length() && extractedName.length() < 100) {
+                return extractedName;
+            }
+        }
+        return trimmedLine;
+    }
+
+    /**
+     * Pick the best candidate from {@code candidates} using a three-pass priority scheme:
+     *   1) match by indicator against SPECIFIC_CARD_NAMES_PRIORITY,
+     *   2) match by candidate text against the same priority list,
+     *   3) first candidate that passes {@link #isValidProductName}.
+     */
+    private String selectBestProductCandidate(
+            final List<Map.Entry<String, String>> candidates) {
+        for (final String cardName : SPECIFIC_CARD_NAMES_PRIORITY) {
+            final String byIndicator = matchCandidateByIndicator(candidates, cardName);
+            if (byIndicator != null) {
+                return byIndicator;
+            }
+        }
+        for (final String cardName : SPECIFIC_CARD_NAMES_PRIORITY) {
+            final String byText = matchCandidateByText(candidates, cardName);
+            if (byText != null) {
+                return byText;
+            }
+        }
+        for (final Map.Entry<String, String> entry : candidates) {
+            final String candidate = entry.getKey();
+            if (isValidProductName(candidate)) {
+                LOGGER.info("Extracted product name (first valid candidate): {}", candidate);
+                return candidate;
+            }
+            LOGGER.info("Skipped invalid candidate: {}", candidate);
+        }
+        return null;
+    }
+
+    private static String matchCandidateByIndicator(
+            final List<Map.Entry<String, String>> candidates, final String cardName) {
+        final String lowerCardName = cardName.toLowerCase(Locale.ROOT);
+        for (final Map.Entry<String, String> entry : candidates) {
+            final String candidate = entry.getKey();
+            final String matched = entry.getValue();
+            final String lowerCandidate = candidate.toLowerCase(Locale.ROOT);
+            final String lowerMatched =
+                    matched != null ? matched.toLowerCase(Locale.ROOT) : "";
+            if (lowerMatched.contains(lowerCardName) || lowerCandidate.contains(lowerCardName)) {
+                LOGGER.info(
+                        "Extracted product name (prioritized specific card name '{}'): {}",
+                        cardName,
+                        candidate);
+                return candidate;
+            }
+        }
+        return null;
+    }
+
+    private static String matchCandidateByText(
+            final List<Map.Entry<String, String>> candidates, final String cardName) {
+        final String lowerCardName = cardName.toLowerCase(Locale.ROOT);
+        for (final Map.Entry<String, String> entry : candidates) {
+            final String candidate = entry.getKey();
+            if (candidate.toLowerCase(Locale.ROOT).contains(lowerCardName)) {
+                LOGGER.info(
+                        "Extracted product name (prioritized by candidate text '{}'): {}",
+                        cardName,
+                        candidate);
+                return candidate;
+            }
+        }
+        return null;
+    }
+
+    /** Pattern 2 fallback: "Institution Product Name Card"-style regex against the full text. */
+    private String extractProductNameByInstitutionRegex(final String headerText) {
         final StringBuilder institutionPattern = new StringBuilder("(?i)(?:");
         for (int i = 0; i < INSTITUTION_KEYWORDS.size(); i++) {
             if (i > 0) {
@@ -3293,12 +3287,82 @@ public class AccountDetectionService {
                 Pattern.compile(institutionPattern.toString(), Pattern.CASE_INSENSITIVE);
         final Matcher matcher = pattern.matcher(headerText);
         if (matcher.find()) {
-            String productName = matcher.group(0).trim();
-            productName = productName.replaceAll("\\s+", " "); // Normalize whitespace
+            final String productName = matcher.group(0).trim().replaceAll("\\s+", " ");
             LOGGER.info("Extracted product name (regex pattern): {}", productName);
             return productName;
         }
+        return null;
+    }
 
+
+    // ---- extractProductNameFromPDF: focused regex paths ----
+    // Each helper tries one shape of marketing phrasing and returns the
+    // extracted card name (already normalized + capitalized) or null.
+    // Kept as static finals so the regex compiles once per process.
+
+    private static final Pattern PRIME_VISA_PATTERN =
+            Pattern.compile(
+                    "(?i)(?:your\\s+)?(prime\\s+visa|amazon\\s+prime\\s+visa|prime\\s+rewards\\s+visa|prime\\s+visa\\s+signature)(?:\\s+points|\\s+card|\\s*®|\\s*™)?",
+                    Pattern.CASE_INSENSITIVE);
+
+    private static final Pattern THANK_YOU_FOR_USING_PATTERN =
+            Pattern.compile(
+                    "(?i)thank\\s+you\\s+for\\s+using\\s+your\\s+([a-z0-9\\s®™©]+?)\\s*(?:credit\\s*)?card",
+                    Pattern.CASE_INSENSITIVE);
+
+    private static final Pattern REWARD_PHRASE_PATTERN =
+            Pattern.compile(
+                    "(?i)reward\\s+(?:your\\s+)?(?:routine|everywhere|.*?)\\s+(?:with\\s+your\\s+)?([a-z0-9\\s®™©]+?)\\s*(?:card|\\s*®|\\s*™|\\s*\\.)?",
+                    Pattern.CASE_INSENSITIVE);
+
+    /** "YOUR PRIME VISA POINTS" → "Prime Visa". Highest-precision card-marketing line. */
+    private String tryExtractPrimeVisaName(final String headerText) {
+        final Matcher m = PRIME_VISA_PATTERN.matcher(headerText);
+        if (!m.find()) {
+            return null;
+        }
+        final String cardName = capitalizeCardName(m.group(1).trim().replaceAll("\\s+", " "));
+        if (cardName.length() > 3 && cardName.length() < 100) {
+            LOGGER.info("Extracted product name from 'Prime Visa' pattern: {}", cardName);
+            return cardName;
+        }
+        return null;
+    }
+
+    /** "thank you for using your marriott bonvoy® premier credit card" → "marriott bonvoy® premier". */
+    private String tryExtractThankYouCardName(final String headerText) {
+        final Matcher m = THANK_YOU_FOR_USING_PATTERN.matcher(headerText);
+        if (!m.find()) {
+            return null;
+        }
+        final String cardName = m.group(1).trim().replaceAll("\\s+", " ");
+        if (cardName.length() > 3 && cardName.length() < 100) {
+            LOGGER.info("Extracted product name from 'thank you' pattern: {}", cardName);
+            return cardName;
+        }
+        return null;
+    }
+
+    /**
+     * "Reward your routine everywhere you shop with your Prime Visa." → "Prime Visa".
+     * The trailing-text check is required because the regex is greedy and would
+     * happily extract non-card-product strings without the {@link #isValidCardProductName}
+     * gate.
+     */
+    private String tryExtractRewardPhraseCardName(final String headerText) {
+        final Matcher m = REWARD_PHRASE_PATTERN.matcher(headerText);
+        if (!m.find()) {
+            return null;
+        }
+        String cardName = m.group(1).trim().replaceAll("\\s+", " ");
+        if (!isValidCardProductName(cardName)) {
+            return null;
+        }
+        cardName = capitalizeCardName(cardName);
+        if (cardName.length() > 3 && cardName.length() < 100) {
+            LOGGER.info("Extracted product name from 'reward' pattern: {}", cardName);
+            return cardName;
+        }
         return null;
     }
 

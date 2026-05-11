@@ -73,7 +73,7 @@ import org.springframework.web.multipart.MultipartFile;
 // but Spring's IoC container intentionally shares the same bean across
 // callers — defensive-copying it would break dependency injection.
 @SuppressFBWarnings(
-        value = {"EI_EXPOSE_REP", "EI_EXPOSE_REP2"},
+        value = {"EI_EXPOSE_REP"},
         justification =
                 "JSON DTO / DynamoDB entity getters expose lists by reference (design is "
                         + "value-semantic, Jackson creates fresh instances); Spring constructor "
@@ -5609,15 +5609,6 @@ public class TransactionController {
         final String result = name.toString().trim();
         // CRITICAL FIX: Ensure we always return a non-empty name
         return result.isEmpty() ? "Imported Account" : result;
-    }
-
-    /**
-     * Generate account name in format: <institutionName><accountType><last4digits> Overloaded
-     * method for backward compatibility (without subtype)
-     */
-    private String generateAccountName(
-            final String institutionName, final String accountType, final String accountNumber) {
-        return generateAccountName(institutionName, accountType, null, accountNumber);
     }
 
     private String sanitizeAccountName(final String name) {

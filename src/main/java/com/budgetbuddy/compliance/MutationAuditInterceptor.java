@@ -82,19 +82,4 @@ public class MutationAuditInterceptor {
         }
     }
 
-    /** Best-effort email lookup. Falls back to the userId when the user row is gone. */
-    @SuppressWarnings("PMD.AvoidCatchingGenericException")
-    private String resolveEmail(final String userId) {
-        final Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        if (auth != null && auth.getName() != null) {
-            return auth.getName();
-        }
-        try {
-            return userService.findById(userId).map(UserTable::getEmail).orElse(userId);
-        } catch (Exception ignored) {
-            // userService.findById() can fan out to DynamoDB / network failures;
-            // treat any of them as "user not found" and fall back to the id.
-            return userId;
-        }
-    }
 }

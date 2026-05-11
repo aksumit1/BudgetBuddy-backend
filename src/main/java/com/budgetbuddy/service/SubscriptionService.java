@@ -823,115 +823,6 @@ public class SubscriptionService {
     }
 
     /**
-     * @deprecated Replaced by groupTransactionsByMerchant which uses existing fuzzy matching
-     *     service ML-based pattern detection for recurring transactions
-     */
-    @Deprecated
-    private Map<String, List<TransactionTable>> detectRecurringPatterns(
-            final List<TransactionTable> allTransactions,
-            final Set<String> alreadyMatchedMerchants) {
-        final Map<String, List<TransactionTable>> patterns = new HashMap<>();
-
-        // Filter to expenses only
-        final List<TransactionTable> expenses =
-                allTransactions.stream()
-                        .filter(
-                                tx ->
-                                        tx.getAmount() != null
-                                                && tx.getAmount().compareTo(BigDecimal.ZERO) < 0)
-                        .collect(Collectors.toList());
-
-        // Group by similar amounts (within 5% tolerance) and similar descriptions
-        final Map<BigDecimal, List<TransactionTable>> byAmount = groupByAmount(expenses);
-
-        for (final Map.Entry<BigDecimal, List<TransactionTable>> amountEntry :
-                byAmount.entrySet()) {
-            final List<TransactionTable> sameAmountTxs = amountEntry.getValue();
-
-            if (sameAmountTxs.size() < 2) {
-                continue; // Need at least 2 transactions
-            }
-
-            // Group by fuzzy merchant/description similarity
-            final Map<String, List<TransactionTable>> bySimilarMerchant = new HashMap<>();
-
-            for (final TransactionTable tx : sameAmountTxs) {
-                final String merchant = tx.getMerchantName() != null ? tx.getMerchantName() : "";
-                final String description = tx.getDescription() != null ? tx.getDescription() : "";
-                final String combined =
-                        (merchant + " " + description).toLowerCase(Locale.ROOT).trim();
-
-                // Find similar existing group (fuzzy match)
-                String matchedKey = null;
-                for (final String existingKey : bySimilarMerchant.keySet()) {
-                    if (isSimilarMerchant(combined, existingKey)) {
-                        matchedKey = existingKey;
-                        break;
-                    }
-                }
-
-                if (matchedKey != null) {
-                    bySimilarMerchant.get(matchedKey).add(tx);
-                } else {
-                    // Create new group - but skip if already matched by merchant name
-                    String normalizedKey = StringUtils.normalizeMerchantName(merchant);
-                    if (normalizedKey.isEmpty()) {
-                        normalizedKey =
-                                description.length() > 30
-                                        ? description.substring(0, 30)
-                                        : description;
-                    }
-
-                    // Skip if this merchant was already matched in first pass
-                    boolean alreadyMatched = false;
-                    for (final String matchedMerchant : alreadyMatchedMerchants) {
-                        if (isSimilarMerchant(normalizedKey, matchedMerchant)) {
-                            alreadyMatched = true;
-                            break;
-                        }
-                    }
-
-                    if (!alreadyMatched) {
-                        bySimilarMerchant.put(normalizedKey, new ArrayList<>(List.of(tx)));
-                    }
-                }
-            }
-
-            // Check each group for recurring pattern
-            for (final Map.Entry<String, List<TransactionTable>> merchantEntry :
-                    bySimilarMerchant.entrySet()) {
-                final List<TransactionTable> groupTxs = merchantEntry.getValue();
-
-                if (groupTxs.size() < 2) {
-                    continue;
-                }
-
-                // Sort by date
-                groupTxs.sort(
-                        (a, b) -> {
-                            final LocalDate dateA = parseDate(a.getTransactionDate());
-                            final LocalDate dateB = parseDate(b.getTransactionDate());
-                            if (dateA == null || dateB == null) {
-                                return 0;
-                            }
-                            return dateA.compareTo(dateB);
-                        });
-
-                // Check if dates show recurring pattern
-                final Subscription.SubscriptionFrequency frequency = detectFrequency(groupTxs);
-
-                if (frequency != null) {
-                    // This is a recurring pattern - add to patterns map
-                    final String patternKey = merchantEntry.getKey() + "_" + amountEntry.getKey();
-                    patterns.put(patternKey, groupTxs);
-                }
-            }
-        }
-
-        return patterns;
-    }
-
-    /**
      * Checks if two merchant/description strings are similar (fuzzy match) Uses simple similarity
      * check - can be enhanced with Levenshtein distance
      */
@@ -1148,73 +1039,6 @@ public class SubscriptionService {
         return grouped;
     }
 
-    /* Normalizes merchant name for grouping */
-
-    /**
-     * Enhanced subscription transaction detection using merchant database Uses category detection
-     * from merchant database and category analysis
-     */
-    private boolean isSubscriptionTransaction(final TransactionTable tx) {
-        final String categoryPrimary = tx.getCategoryPrimary();
-        final String categoryDetailed = tx.getCategoryDetailed();
-        final String description = tx.getDescription();
-        final String merchantName = tx.getMerchantName();
-        final BigDecimal amount = tx.getAmount();
-
-        // 1. Direct subscription category (highest confidence)
-        if ((SUBSCRIPTIONS.equalsIgnoreCase(categoryPrimary))
-                || (SUBSCRIPTIONS.equalsIgnoreCase(categoryDetailed))) {
-            return true;
-        }
-
-        // 2. Check categoryDetailed for subscription indicators
-        if (categoryDetailed != null) {
-            final String detailedLower = categoryDetailed.toLowerCase(Locale.ROOT);
-            if (detailedLower.contains(SUBSCRIPTION)
-                    || detailedLower.contains(MEMBERSHIP)
-                    || detailedLower.contains(RECURRING)) {
-                return true;
-            }
-        }
-
-        // 3. Use unified detection to check if merchant is subscription-related
-        final EnhancedCategoryDetectionService.DetectionResult detectionResult =
-                enhancedCategoryDetectionService.detectCategoryWithContext(
-                        merchantName, description, amount, null, null, null, null);
-        if (detectionResult != null
-                && detectionResult.category != null
-                && SUBSCRIPTION_CATEGORIES.contains(
-                        detectionResult.category.toLowerCase(Locale.ROOT))) {
-            return true;
-        }
-
-        // 4. Check transaction categories for subscription-related categories
-        if (categoryPrimary != null
-                && SUBSCRIPTION_CATEGORIES.contains(categoryPrimary.toLowerCase(Locale.ROOT))) {
-            return true;
-        }
-
-        // 5. Insurance is typically recurring
-        if (INSURANCE.equalsIgnoreCase(categoryPrimary)
-                || (categoryDetailed != null
-                        && categoryDetailed.toLowerCase(Locale.ROOT).contains(INSURANCE))) {
-            return true;
-        }
-
-        // 6. Check for subscription keywords in description
-        if (description != null) {
-            final String descLower = description.toLowerCase(Locale.ROOT);
-            if (descLower.contains(SUBSCRIPTION)
-                    || descLower.contains(MEMBERSHIP)
-                    || descLower.contains(RECURRING)
-                    || descLower.contains("premium")) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
     /**
      * @deprecated Use merchant database instead via isSubscriptionTransaction Checks if merchant is
      *     a known subscription service using merchant database
@@ -1225,233 +1049,208 @@ public class SubscriptionService {
         return false;
     }
 
-    /**
-     * Checks if description/merchant contains subscription keywords Enhanced to avoid false
-     * positives
-     */
-    private boolean isSubscriptionKeyword(final String description, final String merchantName) {
-        if (description == null && merchantName == null) {
-            return false;
-        }
+    /** Infers subscription type from transaction category and merchant */
+    // ---- inferSubscriptionType: keyword tables, one per detector ----
+    // Each block is matched IFF every keyword check is `contains()` on the
+    // lowercase merchant+description string. Order of detectors matters: AI
+    // services must run before generic software so "Cursor" / "ChatGPT" don't
+    // get bucketed as SOFTWARE.
 
-        final String combined =
-                ((merchantName != null ? merchantName : "")
-                                + " "
-                                + (description != null ? description : ""))
-                        .toLowerCase(Locale.ROOT);
+    private static final String[] STREAMING_KEYWORDS = {
+        "netflix", "hulu", "disney", "hbo", "paramount", "peacock", "spotify",
+        "apple music", "youtube premium", "youtube tv", "youtube music",
+        "youtubemusic", "amazon prime", "prime video", "showtime", "starz",
+        "crunchyroll", "funimation"
+    };
 
-        // Check for explicit subscription keywords (including abbreviations)
-        if (combined.contains(SUBSCRIPTION)
-                || combined.contains("subscr")
-                || // Common abbreviation (SUBSCR)
-                combined.contains("monthly")
-                || combined.contains("annual")
-                || combined.contains(RECURRING)
-                || combined.contains(MEMBERSHIP)
-                || combined.contains("premium")) {
-            // CRITICAL: Exclude false positives
-            // Don't match if it's a ride-sharing service without subscription keywords
-            if (combined.contains("lyft")
-                    && !combined.contains("pink")
-                    && !combined.contains(SUBSCRIPTION)
-                    && !combined.contains(MEMBERSHIP)) {
-                return false; // Regular Lyft ride, not subscription
+    private static final String[] AI_SERVICE_KEYWORDS = {
+        "openai", "chatgpt", "cursor", "anthropic", "meta ai", "claude"
+    };
+
+    private static final String[] SOFTWARE_KEYWORDS = {
+        "adobe", "microsoft 365", "office 365", "github", "canva", "grammarly",
+        "notion", "evernote"
+    };
+
+    private static final String[] NEWS_MEDIA_KEYWORDS = {
+        "barrons", "wsj", "wall street journal", "ny times", "new york times",
+        "nytimes", "financial times", "ft.com", "moneycontrol", "marketwatch",
+        "consumer reports", "health magazine", "the economist", "forbes",
+        "time magazine", "the atlantic"
+    };
+
+    private static final String[] RETAIL_MEMBERSHIP_KEYWORDS = {
+        "costco", "sam's club", "sams club", "bjs", "bj's", "walmart plus",
+        "wmt plus", "target circle", "best buy totaltech", "best buy membership"
+    };
+
+    private static final String[] PARKING_KEYWORDS = {
+        "parking", "spothero", "parkmobile", "parkwhiz"
+    };
+
+    private static final String[] FITNESS_KEYWORDS = {
+        "gym", "fitness", "health club", "sports club", "planet fitness",
+        "equinox", "lifetime fitness", "peloton", "classpass", "orange theory",
+        "crossfit", "yoga", "pilates", "barre"
+    };
+
+    private static final String[] CLOUD_STORAGE_KEYWORDS = {
+        "dropbox", "icloud", "google drive", "google one", "onedrive", "box", "pcloud"
+    };
+
+    private static final String[] VPN_KEYWORDS = {
+        "nordvpn", "expressvpn", "surfshark"
+    };
+
+    private static final String[] RIDESHARE_MEMBERSHIP_KEYWORDS = {
+        "lyft pink", "uber one"
+    };
+
+    private static boolean anyContains(final String haystack, final String[] needles) {
+        for (final String n : needles) {
+            if (haystack.contains(n)) {
+                return true;
             }
-            if (combined.contains("uber")
-                    && !combined.contains("one")
-                    && !combined.contains(SUBSCRIPTION)
-                    && !combined.contains(MEMBERSHIP)) {
-                return false; // Regular Uber ride, not subscription
-            }
-            return true;
         }
-
-        // Fallback to known subscription services
         return false;
     }
 
-    /** Infers subscription type from transaction category and merchant */
     private String inferSubscriptionType(final TransactionTable tx) {
         final String categoryPrimary = tx.getCategoryPrimary();
         final String categoryDetailed = tx.getCategoryDetailed();
         final String merchant = tx.getMerchantName();
         final String description = tx.getDescription();
-
         final String combined =
                 ((merchant != null ? merchant : "")
                                 + " "
                                 + (description != null ? description : ""))
                         .toLowerCase(Locale.ROOT);
 
-        // Streaming services
-        if ("entertainment".equalsIgnoreCase(categoryPrimary)
-                || (categoryDetailed != null
-                        && categoryDetailed.toLowerCase(Locale.ROOT).contains(STREAMING))) {
-            if (combined.contains("netflix")
-                    || combined.contains("hulu")
-                    || combined.contains("disney")
-                    || combined.contains("hbo")
-                    || combined.contains("paramount")
-                    || combined.contains("peacock")
-                    || combined.contains("spotify")
-                    || combined.contains("apple music")
-                    || combined.contains("youtube premium")
-                    || combined.contains("youtube tv")
-                    || combined.contains("youtube music")
-                    || combined.contains("youtubemusic")
-                    || combined.contains("amazon prime")
-                    || combined.contains("prime video")
-                    || combined.contains("showtime")
-                    || combined.contains("starz")
-                    || combined.contains("crunchyroll")
-                    || combined.contains("funimation")) {
-                return STREAMING;
-            }
-        }
+        String type = detectStreaming(categoryPrimary, categoryDetailed, combined);
+        if (type != null) return type;
 
-        // Also check for YouTube Music even if category doesn't match
+        type = detectAiService(combined);
+        if (type != null) return type;
+
+        type = detectSoftware(categoryPrimary, categoryDetailed, combined);
+        if (type != null) return type;
+
+        type = detectNewsMedia(combined);
+        if (type != null) return type;
+
+        type = detectRetailMembership(combined);
+        if (type != null) return type;
+
+        type = detectInsurance(categoryPrimary, combined);
+        if (type != null) return type;
+
+        type = detectParking(combined);
+        if (type != null) return type;
+
+        type = detectFitness(categoryPrimary, categoryDetailed, combined);
+        if (type != null) return type;
+
+        type = detectCloudStorage(categoryDetailed, combined);
+        if (type != null) return type;
+
+        type = detectVpn(combined);
+        if (type != null) return type;
+
+        type = detectRideshareMembership(combined);
+        if (type != null) return type;
+
+        return "other";
+    }
+
+    private String detectStreaming(
+            final String categoryPrimary, final String categoryDetailed, final String combined) {
+        final boolean categoryMatches =
+                "entertainment".equalsIgnoreCase(categoryPrimary)
+                        || (categoryDetailed != null
+                                && categoryDetailed.toLowerCase(Locale.ROOT).contains(STREAMING));
+        if (categoryMatches && anyContains(combined, STREAMING_KEYWORDS)) {
+            return STREAMING;
+        }
+        // YouTube Music is treated as streaming even when category doesn't match
         if (combined.contains("youtube music") || combined.contains("youtubemusic")) {
             return STREAMING;
         }
+        return null;
+    }
 
-        // AI services — check BEFORE generic software so Cursor / ChatGPT /
-        // Claude / Anthropic surface as "ai_service" even when the importer
-        // labelled them "tech" / SOFTWARE.
-        if (combined.contains("openai")
-                || combined.contains("chatgpt")
-                || combined.contains("cursor")
-                || combined.contains("anthropic")
-                || combined.contains("meta ai")
-                || combined.contains("claude")) {
-            return "ai_service";
-        }
+    private String detectAiService(final String combined) {
+        return anyContains(combined, AI_SERVICE_KEYWORDS) ? "ai_service" : null;
+    }
 
-        // Software subscriptions
-        if ("tech".equalsIgnoreCase(categoryPrimary)
-                || (categoryDetailed != null
-                        && (categoryDetailed.toLowerCase(Locale.ROOT).contains(SOFTWARE)
-                                || categoryDetailed.toLowerCase(Locale.ROOT).contains("saas")))) {
-            if (combined.contains("adobe")
-                    || combined.contains("microsoft 365")
-                    || combined.contains("office 365")
-                    || combined.contains("github")
-                    || combined.contains("canva")
-                    || combined.contains("grammarly")
-                    || combined.contains("notion")
-                    || combined.contains("evernote")) {
-                return SOFTWARE;
-            }
-        }
+    private String detectSoftware(
+            final String categoryPrimary, final String categoryDetailed, final String combined) {
+        final boolean categoryMatches =
+                "tech".equalsIgnoreCase(categoryPrimary)
+                        || (categoryDetailed != null
+                                && (categoryDetailed.toLowerCase(Locale.ROOT).contains(SOFTWARE)
+                                        || categoryDetailed
+                                                .toLowerCase(Locale.ROOT)
+                                                .contains("saas")));
+        return categoryMatches && anyContains(combined, SOFTWARE_KEYWORDS) ? SOFTWARE : null;
+    }
 
-        // Newspaper / magazine subscriptions — these are media subscriptions,
-        // not warehouse/retail memberships.
-        if (combined.contains("barrons")
-                || combined.contains("wsj")
-                || combined.contains("wall street journal")
-                || combined.contains("ny times")
-                || combined.contains("new york times")
-                || combined.contains("nytimes")
-                || combined.contains("financial times")
-                || combined.contains("ft.com")
-                || combined.contains("moneycontrol")
-                || combined.contains("marketwatch")
-                || combined.contains("consumer reports")
-                || combined.contains("health magazine")
-                || combined.contains("the economist")
-                || combined.contains("forbes")
-                || combined.contains("time magazine")
-                || combined.contains("the atlantic")) {
-            return "news_media";
-        }
+    private String detectNewsMedia(final String combined) {
+        return anyContains(combined, NEWS_MEDIA_KEYWORDS) ? "news_media" : null;
+    }
 
-        // Retail memberships
-        if (combined.contains("costco")
-                || combined.contains("sam's club")
-                || combined.contains("sams club")
-                || combined.contains("bjs")
-                || combined.contains("bj's")
-                || combined.contains("walmart plus")
-                || combined.contains("wmt plus")
-                || combined.contains("target circle")
-                || combined.contains("best buy totaltech")
-                || combined.contains("best buy membership")) {
+    private String detectRetailMembership(final String combined) {
+        return anyContains(combined, RETAIL_MEMBERSHIP_KEYWORDS) ? MEMBERSHIP : null;
+    }
+
+    private String detectInsurance(final String categoryPrimary, final String combined) {
+        final boolean mentions =
+                combined.contains(INSURANCE)
+                        || combined.contains("premium")
+                        || (categoryPrimary != null
+                                && categoryPrimary.toLowerCase(Locale.ROOT).contains(INSURANCE));
+        // Insurance is its own subscriptionCategory, not a "type"; explicitly
+        // return "other" so downstream code routes it correctly.
+        return mentions ? "other" : null;
+    }
+
+    private String detectParking(final String combined) {
+        return anyContains(combined, PARKING_KEYWORDS) ? MEMBERSHIP : null;
+    }
+
+    private String detectFitness(
+            final String categoryPrimary, final String categoryDetailed, final String combined) {
+        if (anyContains(combined, FITNESS_KEYWORDS)) {
             return MEMBERSHIP;
         }
-
-        // Insurance
-        if (combined.contains(INSURANCE)
-                || combined.contains("premium")
-                || (categoryPrimary != null
-                        && categoryPrimary.toLowerCase(Locale.ROOT).contains(INSURANCE))) {
-            return "other"; // Insurance is a separate category
-        }
-
-        // Parking
-        if (combined.contains("parking")
-                || combined.contains("spothero")
-                || combined.contains("parkmobile")
-                || combined.contains("parkwhiz")) {
+        // Category-gated subset (kept for compatibility with original logic)
+        final boolean healthCategory =
+                "health".equalsIgnoreCase(categoryPrimary)
+                        || (categoryDetailed != null
+                                && categoryDetailed.toLowerCase(Locale.ROOT).contains("fitness"));
+        if (healthCategory
+                && (combined.contains("gym")
+                        || combined.contains("fitness")
+                        || combined.contains("peloton")
+                        || combined.contains("classpass"))) {
             return MEMBERSHIP;
         }
+        return null;
+    }
 
-        // Health & Fitness
-        if (combined.contains("gym")
-                || combined.contains("fitness")
-                || combined.contains("health club")
-                || combined.contains("sports club")
-                || combined.contains("planet fitness")
-                || combined.contains("equinox")
-                || combined.contains("lifetime fitness")
-                || combined.contains("peloton")
-                || combined.contains("classpass")
-                || combined.contains("orange theory")
-                || combined.contains("crossfit")
-                || combined.contains("yoga")
-                || combined.contains("pilates")
-                || combined.contains("barre")) {
-            return MEMBERSHIP;
+    private String detectCloudStorage(final String categoryDetailed, final String combined) {
+        if (categoryDetailed == null
+                || !categoryDetailed.toLowerCase(Locale.ROOT).contains("cloud")) {
+            return null;
         }
+        return anyContains(combined, CLOUD_STORAGE_KEYWORDS) ? "cloud_storage" : null;
+    }
 
-        // Cloud storage
-        if (categoryDetailed != null
-                && categoryDetailed.toLowerCase(Locale.ROOT).contains("cloud")) {
-            if (combined.contains("dropbox")
-                    || combined.contains("icloud")
-                    || combined.contains("google drive")
-                    || combined.contains("google one")
-                    || combined.contains("onedrive")
-                    || combined.contains("box")
-                    || combined.contains("pcloud")) {
-                return "cloud_storage";
-            }
-        }
+    private String detectVpn(final String combined) {
+        return anyContains(combined, VPN_KEYWORDS) ? SOFTWARE : null;
+    }
 
-        // Health/Fitness memberships
-        if ("health".equalsIgnoreCase(categoryPrimary)
-                || (categoryDetailed != null
-                        && categoryDetailed.toLowerCase(Locale.ROOT).contains("fitness"))) {
-            if (combined.contains("gym")
-                    || combined.contains("fitness")
-                    || combined.contains("peloton")
-                    || combined.contains("classpass")) {
-                return MEMBERSHIP;
-            }
-        }
-
-        // VPN services
-        if (combined.contains("nordvpn")
-                || combined.contains("expressvpn")
-                || combined.contains("surfshark")) {
-            return SOFTWARE; // VPN is software
-        }
-
-        // Ride-sharing subscriptions (Lyft Pink, Uber One)
-        if (combined.contains("lyft pink") || combined.contains("uber one")) {
-            return MEMBERSHIP;
-        }
-
-        // Default
-        return "other";
+    private String detectRideshareMembership(final String combined) {
+        return anyContains(combined, RIDESHARE_MEMBERSHIP_KEYWORDS) ? MEMBERSHIP : null;
     }
 
     /**

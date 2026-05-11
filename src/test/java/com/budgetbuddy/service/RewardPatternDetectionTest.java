@@ -3,7 +3,6 @@ package com.budgetbuddy.service;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import java.lang.reflect.Method;
 import java.math.BigDecimal;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
@@ -21,17 +20,12 @@ import org.junit.jupiter.api.Test;
         justification = "JUnit idiom — test methods accept any setup exception")
 class RewardPatternDetectionTest {
 
-    private PDFImportService pdfImportService;
-    private Method extractRewardPoints;
+    private RewardExtractor rewardExtractor;
     private BalanceExtractor balanceExtractor;
 
     @BeforeEach
     void setUp() throws Exception {
-        pdfImportService = new PDFImportService(null, null, null, null);
-        extractRewardPoints =
-                PDFImportService.class.getDeclaredMethod("extractRewardPoints", String[].class);
-        extractRewardPoints.setAccessible(true);
-
+        rewardExtractor = new RewardExtractor();
         balanceExtractor = new BalanceExtractor();
     }
 
@@ -43,7 +37,7 @@ class RewardPatternDetectionTest {
 
         // When: Extract reward points (this should detect cash back balance)
         final Long rewardPoints =
-                (Long) extractRewardPoints.invoke(pdfImportService, (Object) lines);
+                rewardExtractor.extractRewardPoints(lines);
 
         // Note: extractRewardPoints looks for "points", not "cash back balance"
         // So this might return null. We need to check if cash back balance is handled separately.
@@ -96,7 +90,7 @@ class RewardPatternDetectionTest {
 
         // When: Extract reward points
         final Long rewardPoints =
-                (Long) extractRewardPoints.invoke(pdfImportService, (Object) lines);
+                rewardExtractor.extractRewardPoints(lines);
 
         // Then: Should detect the points (8,733)
         if (rewardPoints != null) {

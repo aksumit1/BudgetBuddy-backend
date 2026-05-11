@@ -38,7 +38,7 @@ import org.springframework.stereotype.Service;
 // but Spring's IoC container intentionally shares the same bean across
 // callers — defensive-copying it would break dependency injection.
 @SuppressFBWarnings(
-        value = {"EI_EXPOSE_REP", "EI_EXPOSE_REP2"},
+        value = {"EI_EXPOSE_REP"},
         justification =
                 "JSON DTO / DynamoDB entity getters expose lists by reference; "
                         + "the design is value-semantic and Jackson creates fresh instances; Spring constructor injection — beans are shared by design")
@@ -70,6 +70,38 @@ public class CSVImportService {
     private static final String DEPOSITORY = "depository";
     private static final String ERACTOLL = "eractoll";
     private static final String EPAYMENT = "epayment";
+
+    /**
+     * School type keywords used by detectCategoryFromDescription's school + charity passes. Lifted
+     * to class scope so the charity fallback can reuse the same list without re-declaring it.
+     */
+    private static final String[] SCHOOL_TYPES = {
+        "middle school",
+        "middleschool",
+        "high school",
+        "highschool",
+        "elementary school",
+        "elementaryschool",
+        "elementary",
+        "secondary school",
+        "secondaryschool",
+        "senior secondary school",
+        "seniorschool",
+        "college",
+        "university",
+        "phd",
+        "ph.d",
+        "ph.d.",
+        "doctorate",
+        "graduate school",
+        "graduateschool",
+        "school district",
+        "schooldistrict",
+        "bellevue school district",
+        "bellevueschooldistrict",
+        "tyee middle school",
+        "tyeemiddleschool"
+    };
     private static final String E_PAYMENT = "e-payment";
     private static final String DIVIDEND = "dividend";
     private static final String IRA = "ira";
@@ -3745,105 +3777,6 @@ public class CSVImportService {
                 accountSubtype);
     }
 
-    private String applyInvestmentRules(
-            final String description,
-            final String merchantName,
-            String categoryString,
-            final BigDecimal amount,
-            String transactionType,
-            String accountType) {
-        if (amount == null) {
-            return null;
-        }
-
-        final String descLower = description != null ? description.toLowerCase(Locale.ROOT) : "";
-        final String merchantLower =
-                merchantName != null ? merchantName.toLowerCase(Locale.ROOT) : "";
-        final String combinedText = (merchantLower + " " + descLower).trim();
-
-        // Investment fees (negative amounts)
-        if (amount.compareTo(BigDecimal.ZERO) < 0
-                && (combinedText.contains(FEE)
-                        || combinedText.contains("management fee")
-                        || combinedText.contains("advisory fee")
-                        || combinedText.contains("custodian fee")
-                        || combinedText.contains("account fee")
-                        || combinedText.contains("administrative fee")
-                        || combinedText.contains("expense ratio")
-                        || combinedText.contains("expense fee"))) {
-            return "investmentFees";
-        }
-
-        // Investment purchase (negative amounts)
-        if (amount.compareTo(BigDecimal.ZERO) < 0
-                && (combinedText.contains("purchase")
-                        || combinedText.contains("buy")
-                        || combinedText.contains("contribution")
-                        || combinedText.contains(DEPOSIT))
-                && !combinedText.contains(FEE)
-                && !combinedText.contains(TRANSFER)) {
-            return "investmentPurchase";
-        }
-
-        // Investment sale (positive amounts)
-        if (amount.compareTo(BigDecimal.ZERO) > 0
-                && (combinedText.contains("sale")
-                        || combinedText.contains("sell")
-                        || combinedText.contains("redemption")
-                        || combinedText.contains("withdrawal")
-                        || combinedText.contains("distribution")
-                        || combinedText.contains("proceeds"))) {
-            return "investmentSold";
-        }
-
-        // Deposit from investment firm (positive amounts)
-        if (amount.compareTo(BigDecimal.ZERO) > 0) {
-            final String[] investmentFirms = {
-                "morgan stanley",
-                "morganstanley",
-                "fidelity",
-                "vanguard",
-                "schwab",
-                "charles schwab",
-                "td ameritrade",
-                "etrade",
-                "robinhood",
-                "merrill lynch",
-                "goldman sachs"
-            };
-            for (final String firm : investmentFirms) {
-                if ((descLower.contains(firm) || merchantLower.contains(firm))
-                        && (descLower.contains(TRANSFER)
-                                || descLower.contains(FROM)
-                                || descLower.contains(DEPOSIT))) {
-                    return DEPOSIT;
-                }
-            }
-        }
-
-        return null;
-    }
-
-    /** Apply income-specific category rules */
-    private String applyIncomeRules(
-            final String description,
-            final String merchantName,
-            final BigDecimal amount,
-            final String paymentChannel,
-            final String accountType,
-            final String accountSubtype) {
-        // Use existing helper method
-        return determineIncomeCategoryFromContext(
-                description, merchantName, amount, paymentChannel, accountType, accountSubtype);
-    }
-
-    /** Apply loan-specific category rules */
-    private String applyLoanRules(String description, String merchantName) {
-        // Loan-specific rules are already handled in early checks (loanEscrow, loanBills, payment)
-        // This is mainly for any additional loan-specific logic
-        return null;
-    }
-
     /**
      * LEGACY parseCategory implementation - kept for reference/testing This is the original complex
      * implementation with 480+ lines
@@ -6420,6 +6353,100 @@ public class CSVImportService {
         // CRITICAL FIX: Airport lounges (Centurion Lounge, Priority Pass, Admirals Club, etc.) -
         // travel, NOT utilities
         // Check for Centurion Lounge first (most specific pattern)
+        String result;
+        result = detectCategoryStep01Travel(descLower, normalizedDesc, description, merchantName, amount);
+        if (result != null) {
+            return result;
+        }
+        result = detectCategoryStep02Rideshare(descLower, normalizedDesc, description, merchantName, amount);
+        if (result != null) {
+            return result;
+        }
+        result = detectCategoryStep03GasStation(descLower, normalizedDesc, description, merchantName, amount);
+        if (result != null) {
+            return result;
+        }
+        result = detectCategoryStep04PosDining(descLower, normalizedDesc, description, merchantName, amount);
+        if (result != null) {
+            return result;
+        }
+        result = detectCategoryStep05Parking(descLower, normalizedDesc, description, merchantName, amount);
+        if (result != null) {
+            return result;
+        }
+        result = detectCategoryStep06SportsFitnessClubs(descLower, normalizedDesc, description, merchantName, amount);
+        if (result != null) {
+            return result;
+        }
+        result = detectCategoryStep07BookStores(descLower, normalizedDesc, description, merchantName, amount);
+        if (result != null) {
+            return result;
+        }
+        result = detectCategoryStep08Utilities(descLower, normalizedDesc, description, merchantName, amount);
+        if (result != null) {
+            return result;
+        }
+        result = detectCategoryStep09SpecificGroceries(descLower, normalizedDesc, description, merchantName, amount);
+        if (result != null) {
+            return result;
+        }
+        result = detectCategoryStep10SpecificRestaurants(descLower, normalizedDesc, description, merchantName, amount);
+        if (result != null) {
+            return result;
+        }
+        result = detectCategoryStep11PetTech(descLower, normalizedDesc, description, merchantName, amount);
+        if (result != null) {
+            return result;
+        }
+        result = detectCategoryStep12GymBeautySports(descLower, normalizedDesc, description, merchantName, amount);
+        if (result != null) {
+            return result;
+        }
+        result = detectCategoryStep13MoreTransportAndQfc(descLower, normalizedDesc, description, merchantName, amount);
+        if (result != null) {
+            return result;
+        }
+        result = detectCategoryStep14SchoolPaymentsAndTypes(descLower, normalizedDesc, description, merchantName, amount);
+        if (result != null) {
+            return result;
+        }
+        result = detectCategoryStep15SubscriptionsAndCharity(descLower, normalizedDesc, description, merchantName, amount);
+        if (result != null) {
+            return result;
+        }
+        result = detectCategoryStep16PetClinicHealth(descLower, normalizedDesc, description, merchantName, amount);
+        if (result != null) {
+            return result;
+        }
+        result = detectCategoryStep17TransportTicketsTolls(descLower, normalizedDesc, description, merchantName, amount);
+        if (result != null) {
+            return result;
+        }
+        result = detectCategoryStep18MoreRestaurants(descLower, normalizedDesc, description, merchantName, amount);
+        if (result != null) {
+            return result;
+        }
+        result = detectCategoryStep19ExamsAndRegional(descLower, normalizedDesc, description, merchantName, amount);
+        if (result != null) {
+            return result;
+        }
+        result = detectCategoryStep20Entertainment(descLower, normalizedDesc, description, merchantName, amount);
+        if (result != null) {
+            return result;
+        }
+
+        LOGGER.debug(
+                "detectCategoryFromDescription: No match found for description '{}'",
+                description);
+        return null;
+    }
+
+    private String detectCategoryStep01Travel(
+            final String descLower,
+            final String normalizedDesc,
+            final String description,
+            final String merchantName,
+            final BigDecimal amount) {
         if (descLower.contains("centurion lounge")
                 || descLower.contains("centurionlounge")
                 || descLower.contains("axp centurion")
@@ -6504,7 +6531,15 @@ public class CSVImportService {
                 return TRAVEL;
             }
         }
+        return null;
+    }
 
+    private String detectCategoryStep02Rideshare(
+            final String descLower,
+            final String normalizedDesc,
+            final String description,
+            final String merchantName,
+            final BigDecimal amount) {
         // CRITICAL FIX: Ride-sharing services (Lyft, Uber) - transportation, NOT subscriptions
         // Exception: Lyft Pink subscription, Uber One subscription are subscriptions
         if (descLower.contains("lyft")) {
@@ -6570,7 +6605,15 @@ public class CSVImportService {
                 return TRANSPORTATION;
             }
         }
+        return null;
+    }
 
+    private String detectCategoryStep03GasStation(
+            final String descLower,
+            final String normalizedDesc,
+            final String description,
+            final String merchantName,
+            final BigDecimal amount) {
         // CRITICAL FIX: Gas stations (Exxon, Shell, Chevron, BP, Mobil, Buc-ee's, etc.) -
         // transportation, NOT subscriptions
         // Well-known gas station brands - always transportation
@@ -6657,7 +6700,15 @@ public class CSVImportService {
         // CRITICAL FIX: Check description for utility companies and patterns (merchant name might
         // be in description)
         // NOTE: normalizedDesc is already defined at the top of the function
+        return null;
+    }
 
+    private String detectCategoryStep04PosDining(
+            final String descLower,
+            final String normalizedDesc,
+            final String description,
+            final String merchantName,
+            final BigDecimal amount) {
         // CRITICAL FIX: TST* pattern (Toast POS system) - dining, NOT utilities
         // TST* is a restaurant POS terminal code and should be detected BEFORE utilities
         if (descLower.contains("tst*")
@@ -6726,7 +6777,15 @@ public class CSVImportService {
                     "🏷️ detectCategoryFromDescription: Detected Burger and Kabob Hut → 'dining'");
             return DINING;
         }
+        return null;
+    }
 
+    private String detectCategoryStep05Parking(
+            final String descLower,
+            final String normalizedDesc,
+            final String description,
+            final String merchantName,
+            final BigDecimal amount) {
         // CRITICAL FIX: Parking payment services (PAY BY PHONE, ParkMobile, etc.) - transportation,
         // NOT utilities
         // These must be detected BEFORE utilities because "phone" keyword might match utilities
@@ -6764,7 +6823,15 @@ public class CSVImportService {
                 return TRANSPORTATION;
             }
         }
+        return null;
+    }
 
+    private String detectCategoryStep06SportsFitnessClubs(
+            final String descLower,
+            final String normalizedDesc,
+            final String description,
+            final String merchantName,
+            final BigDecimal amount) {
         // CRITICAL FIX: Sports clubs and fitness centers (badminton club, gym, fitness center,
         // etc.) - health, NOT utilities
         // These must be detected BEFORE utilities because "club" might be misclassified
@@ -6799,7 +6866,15 @@ public class CSVImportService {
                 return HEALTH;
             }
         }
+        return null;
+    }
 
+    private String detectCategoryStep07BookStores(
+            final String descLower,
+            final String normalizedDesc,
+            final String description,
+            final String merchantName,
+            final BigDecimal amount) {
         // CRITICAL FIX: University book stores and book stores - education, NOT utilities
         // These must be detected BEFORE utilities because STORE might be misclassified
         if (descLower.contains("university book store")
@@ -6825,7 +6900,15 @@ public class CSVImportService {
             LOGGER.debug("🏷️ detectCategoryFromDescription: Detected book store → 'education'");
             return EDUCATION;
         }
+        return null;
+    }
 
+    private String detectCategoryStep08Utilities(
+            final String descLower,
+            final String normalizedDesc,
+            final String description,
+            final String merchantName,
+            final BigDecimal amount) {
         final String[] utilityCompanies = {
             "puget sound energy",
             "pse",
@@ -6878,7 +6961,15 @@ public class CSVImportService {
                 return UTILITIES;
             }
         }
+        return null;
+    }
 
+    private String detectCategoryStep09SpecificGroceries(
+            final String descLower,
+            final String normalizedDesc,
+            final String description,
+            final String merchantName,
+            final BigDecimal amount) {
         // CRITICAL FIX: Check description for specific grocery store names (merchant name might be
         // in description)
         // This handles cases where CSV doesn't have a separate merchant name column
@@ -6939,7 +7030,15 @@ public class CSVImportService {
                     "🏷️ detectCategoryFromDescription: Detected Sunny Honey Company → 'groceries'");
             return GROCERIES;
         }
+        return null;
+    }
 
+    private String detectCategoryStep10SpecificRestaurants(
+            final String descLower,
+            final String normalizedDesc,
+            final String description,
+            final String merchantName,
+            final BigDecimal amount) {
         // Specific Restaurants in Description - Must come before general restaurant patterns
         final String[] specificRestaurantsInDesc = {
             "daeho",
@@ -7054,7 +7153,15 @@ public class CSVImportService {
             }
             return DINING;
         }
+        return null;
+    }
 
+    private String detectCategoryStep11PetTech(
+            final String descLower,
+            final String normalizedDesc,
+            final String description,
+            final String merchantName,
+            final BigDecimal amount) {
         // Pet keywords (including SP Farmers Fetch Bones)
         if (descLower.contains("pet")
                 || descLower.contains("veterinary")
@@ -7093,7 +7200,15 @@ public class CSVImportService {
             LOGGER.debug("🏷️ detectCategoryFromDescription: Detected tech keywords → 'tech'");
             return "tech";
         }
+        return null;
+    }
 
+    private String detectCategoryStep12GymBeautySports(
+            final String descLower,
+            final String normalizedDesc,
+            final String description,
+            final String merchantName,
+            final BigDecimal amount) {
         // CRITICAL FIX: Check for gyms/fitness in description (common when merchantName is null)
         // Moved to health category
         final String[] gymKeywords = {
@@ -7232,7 +7347,15 @@ public class CSVImportService {
                     "🏷️ detectCategoryFromDescription: Detected home improvement → 'home improvement'");
             return "home improvement";
         }
+        return null;
+    }
 
+    private String detectCategoryStep13MoreTransportAndQfc(
+            final String descLower,
+            final String normalizedDesc,
+            final String description,
+            final String merchantName,
+            final BigDecimal amount) {
         // COSTCO GAS in description
         if (descLower.contains("costco gas")
                 || descLower.contains("costcogas")
@@ -7290,7 +7413,15 @@ public class CSVImportService {
             LOGGER.debug("🏷️ detectCategoryFromDescription: Detected QFC → 'groceries'");
             return GROCERIES;
         }
+        return null;
+    }
 
+    private String detectCategoryStep14SchoolPaymentsAndTypes(
+            final String descLower,
+            final String normalizedDesc,
+            final String description,
+            final String merchantName,
+            final BigDecimal amount) {
         // Education/School Payments
         // PayPAMS - online school payments for food (dining)
         if (descLower.contains("paypams") || descLower.contains("pay pams")) {
@@ -7311,34 +7442,7 @@ public class CSVImportService {
 
         // CRITICAL FIX: Check for all school/education types FIRST (before charity)
         // Middle school, high school, elementary school, college, university, PhD, etc. → education
-        final String[] schoolTypes = {
-            "middle school",
-            "middleschool",
-            "high school",
-            "highschool",
-            "elementary school",
-            "elementaryschool",
-            "elementary",
-            "secondary school",
-            "secondaryschool",
-            "senior secondary school",
-            "seniorschool",
-            "college",
-            "university",
-            "phd",
-            "ph.d",
-            "ph.d.",
-            "doctorate",
-            "graduate school",
-            "graduateschool",
-            "school district",
-            "schooldistrict",
-            "bellevue school district",
-            "bellevueschooldistrict",
-            "tyee middle school",
-            "tyeemiddleschool"
-        };
-        for (final String school : schoolTypes) {
+        for (final String school : SCHOOL_TYPES) {
             if (descLower.contains(school)) {
                 LOGGER.debug(
                         "🏷️ detectCategoryFromDescription: Detected school type '{}' → 'education'",
@@ -7346,7 +7450,15 @@ public class CSVImportService {
                 return EDUCATION;
             }
         }
+        return null;
+    }
 
+    private String detectCategoryStep15SubscriptionsAndCharity(
+            final String descLower,
+            final String normalizedDesc,
+            final String description,
+            final String merchantName,
+            final BigDecimal amount) {
         // CRITICAL: Subscription merchants (WSJ, NYTimes, etc.) - subscriptions, NOT education
         // Must come BEFORE all education checks to avoid false positives
         final String[] subscriptionMerchants = {
@@ -7424,7 +7536,7 @@ public class CSVImportService {
                 || descLower.contains("donation")) {
             // Skip if it's actually a school (already handled above)
             boolean isSchool = false;
-            for (final String school : schoolTypes) {
+            for (final String school : SCHOOL_TYPES) {
                 if (descLower.contains(school)) {
                     isSchool = true;
                     break;
@@ -7436,7 +7548,15 @@ public class CSVImportService {
                 return CHARITY;
             }
         }
+        return null;
+    }
 
+    private String detectCategoryStep16PetClinicHealth(
+            final String descLower,
+            final String normalizedDesc,
+            final String description,
+            final String merchantName,
+            final BigDecimal amount) {
         // CRITICAL FIX: Pet care clinics (specialized) - pet, NOT healthcare
         // Pet care clinics should be detected BEFORE general healthcare/clinic detection
         if (descLower.contains("petcare clinic")
@@ -7520,7 +7640,15 @@ public class CSVImportService {
                     "🏷️ detectCategoryFromDescription: Detected health/beauty service → 'health'");
             return HEALTH;
         }
+        return null;
+    }
 
+    private String detectCategoryStep17TransportTicketsTolls(
+            final String descLower,
+            final String normalizedDesc,
+            final String description,
+            final String merchantName,
+            final BigDecimal amount) {
         // LUL Ticket Machine (London Underground) - transportation
         if (descLower.contains("lul ticket machine")
                 || descLower.contains("lulticketmachine")
@@ -7599,7 +7727,15 @@ public class CSVImportService {
                     "🏷️ detectCategoryFromDescription: Detected car service → 'transportation'");
             return TRANSPORTATION;
         }
+        return null;
+    }
 
+    private String detectCategoryStep18MoreRestaurants(
+            final String descLower,
+            final String normalizedDesc,
+            final String description,
+            final String merchantName,
+            final BigDecimal amount) {
         // Restaurant keywords (Burger and Kabob Hut, Insomnia Cookies, Banaras, Resy, Maxmillen)
         if (descLower.contains("burger and kabob hut")
                 || descLower.contains("burgerandkabobhut")
@@ -7618,7 +7754,15 @@ public class CSVImportService {
             LOGGER.debug("🏷️ detectCategoryFromDescription: Detected restaurant → 'dining'");
             return DINING;
         }
+        return null;
+    }
 
+    private String detectCategoryStep19ExamsAndRegional(
+            final String descLower,
+            final String normalizedDesc,
+            final String description,
+            final String merchantName,
+            final BigDecimal amount) {
         // CRITICAL FIX: Check for exam/testing keywords FIRST (AAMC, SAT, TOEFL, GRE, GMAT, LSAT,
         // MCAT, etc.)
         // These should be categorized as EDUCATION even if they're sometimes miscategorized as
@@ -7792,7 +7936,15 @@ public class CSVImportService {
                 return EDUCATION;
             }
         }
+        return null;
+    }
 
+    private String detectCategoryStep20Entertainment(
+            final String descLower,
+            final String normalizedDesc,
+            final String description,
+            final String merchantName,
+            final BigDecimal amount) {
         // Entertainment keywords (State Fair, Disney, Universal Studio, Sea World, camping)
         // CRITICAL FIX: Check for movie theaters and entertainment venues in description
         // Use word boundaries for short names like "amc" to prevent false matches
@@ -7830,8 +7982,6 @@ public class CSVImportService {
             return "entertainment";
         }
 
-        LOGGER.debug(
-                "detectCategoryFromDescription: No match found for description '{}'", description);
         return null;
     }
 }

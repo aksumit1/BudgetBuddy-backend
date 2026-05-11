@@ -21,6 +21,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.regex.PatternSyntaxException;
 import java.util.stream.Collectors;
 import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.pdmodel.PDDocument;
@@ -43,7 +44,7 @@ import org.springframework.stereotype.Service;
 // but Spring's IoC container intentionally shares the same bean across
 // callers — defensive-copying it would break dependency injection.
 @SuppressFBWarnings(
-        value = {"EI_EXPOSE_REP", "EI_EXPOSE_REP2"},
+        value = {"EI_EXPOSE_REP"},
         justification =
                 "JSON DTO / DynamoDB entity getters expose lists by reference; "
                         + "the design is value-semantic and Jackson creates fresh instances; Spring constructor injection — beans are shared by design")
@@ -871,6 +872,30 @@ public class PDFImportService {
         return result;
     }
 
+    // ---- detectUSLocale: lifted indicator lists / pre-compiled patterns ----
+
+    private static final List<String> US_CURRENCY_LOWER_INDICATORS =
+            List.of("currency: usd", "currency code: usd");
+
+    private static final List<String> US_ADDRESS_TAILS =
+            List.of(
+                    ", ny ", ", ca ", ", tx ", ", fl ", ", il ", ", pa ", ", oh ", ", ga ",
+                    ", nc ", ", mi ", ", nj ", ", va ", " united states", " usa");
+
+    private static final List<String> US_INSTITUTION_HINTS =
+            List.of(
+                    "american express",
+                    "amex",
+                    "chase",
+                    "bank of america",
+                    "wells fargo",
+                    "citibank",
+                    "capital one");
+
+    private static final Pattern US_ZIP_PATTERN = Pattern.compile(".*\\b\\d{5}\\b.*");
+    private static final Pattern US_PHONE_DASH_PATTERN =
+            Pattern.compile(".*\\b1-\\d{3}-\\d{3}-\\d{4}\\b.*");
+
     /**
      * Detect US locale from PDF headers based on currency, address, phone code Looks for USD, $, US
      * addresses, US phone codes (+1), etc.
@@ -879,57 +904,43 @@ public class PDFImportService {
         if (text == null || text.isEmpty()) {
             return false;
         }
-
-        // Get first 5000 chars (headers are usually at the top)
+        // Headers are at the top of the document, so a 5000-char prefix is plenty and bounds the
+        // cost of the substring matching that follows.
         final String headerText = text.length() > 5000 ? text.substring(0, 5000) : text;
         final String lower = headerText.toLowerCase(Locale.ROOT);
 
-        // Check for USD currency indicator
-        if (headerText.contains("USD")
-                || headerText.contains("$")
-                || lower.contains("currency: usd")
-                || lower.contains("currency code: usd")) {
+        return hasUSCurrencyIndicator(headerText, lower)
+                || hasUSAddressIndicator(lower)
+                || hasUSPhoneIndicator(lower)
+                || containsAny(lower, US_INSTITUTION_HINTS);
+    }
+
+    private static boolean hasUSCurrencyIndicator(final String headerText, final String lower) {
+        if (headerText.contains("USD") || headerText.contains("$")) {
             return true;
         }
+        return containsAny(lower, US_CURRENCY_LOWER_INDICATORS);
+    }
 
-        // Check for US address patterns (e.g., "123 Main St, New York, NY 10001")
-        if (lower.matches(".*\\b\\d{5}\\b.*")
-                && // 5-digit ZIP code
-                (lower.contains(", ny ")
-                        || lower.contains(", ca ")
-                        || lower.contains(", tx ")
-                        || lower.contains(", fl ")
-                        || lower.contains(", il ")
-                        || lower.contains(", pa ")
-                        || lower.contains(", oh ")
-                        || lower.contains(", ga ")
-                        || lower.contains(", nc ")
-                        || lower.contains(", mi ")
-                        || lower.contains(", nj ")
-                        || lower.contains(", va ")
-                        || lower.contains(" united states")
-                        || lower.contains(" usa"))) {
-            return true;
+    private static boolean hasUSAddressIndicator(final String lower) {
+        if (!US_ZIP_PATTERN.matcher(lower).matches()) {
+            return false;
         }
+        return containsAny(lower, US_ADDRESS_TAILS);
+    }
 
-        // Check for US phone code (+1)
-        if (lower.contains("+1")
+    private static boolean hasUSPhoneIndicator(final String lower) {
+        return lower.contains("+1")
                 || lower.contains("(1)")
-                || lower.matches(".*\\b1-\\d{3}-\\d{3}-\\d{4}\\b.*")) { // 1-XXX-XXX-XXXX format
-            return true;
-        }
+                || US_PHONE_DASH_PATTERN.matcher(lower).matches();
+    }
 
-        // Check for common US institutions in header
-        if (lower.contains("american express")
-                || lower.contains("amex")
-                || lower.contains("chase")
-                || lower.contains("bank of america")
-                || lower.contains("wells fargo")
-                || lower.contains("citibank")
-                || lower.contains("capital one")) {
-            return true;
+    private static boolean containsAny(final String haystack, final List<String> needles) {
+        for (final String needle : needles) {
+            if (haystack.contains(needle)) {
+                return true;
+            }
         }
-
         return false;
     }
 
@@ -1581,630 +1592,362 @@ public class PDFImportService {
         return true;
     }
 
+    // ---- isValidNameFormat: constants ----
+    // Lifted from the method body so each detector is a small predicate and
+    // the lists aren't reallocated on every call.
+
+    private static final List<String> NAME_REJECT_VERBS = List.of(
+            "send", "post", "continue", "pay", "receive", "process", "submit",
+            "activate", "register", "enroll", "log", "sign", "click", "visit",
+            "call", "contact");
+
+    private static final List<String> NAME_REJECT_FINANCIAL_NOUNS = List.of(
+            "payment", "balance", "credit", "sale", "account", TRANSACTION,
+            STATEMENT, "summary", DETAILS, "charges", "fees", "amount",
+            "interest", "rate", APR, "adjustment", "deposit", "withdrawal",
+            "transfer", "debit", "cash", "advance", "autopay", "bill",
+            "invoice", "receipt");
+
+    private static final List<String> NAME_REJECT_CONJUNCTIONS = List.of(
+            "and", "or", "but", "nor", "for", "so", "yet");
+
+    private static final List<String> NAME_REJECT_PREPOSITIONS = List.of(
+            "to", "from", "on", "at", "in", "for", "with", "by", "about", "over",
+            "under", "between", "through", "during", "before", "after", "above",
+            "below");
+
+    private static final List<String> NAME_REJECT_EXCLUDED_WORDS = List.of(
+            TRANSACTION, "account", "promo", "phone", "number", "date", "amount",
+            "amounts", "balance", STATEMENT, "period", "page", "card", "member",
+            "holder", "cardholder", "summary", DETAILS, "information", "sale",
+            "post", "charges", "payment", "history", APR, "variable", "interest",
+            "fee", "fees", "standard", "tty", "annual", "rate", "percentage",
+            "subject", "from", "to", "available", "pay", "over", "time", "limit",
+            "about", "trailing", "dated", "your", "is", "the", "on", "continued",
+            "next", "new", "cash", "advances", "autopay", "enclosed", "express",
+            "digital", "goods", "apps", "news", "rewards", "purchases", "credits",
+            "debits", "deposits", "withdrawals", MERCHANT, "description", "vendor",
+            "store", "shop", "retail", "service", "services");
+
+    private static final List<String> NAME_REJECT_HEADER_PHRASES = List.of(
+            "transaction details", "account summary", "statement period",
+            "payment information", "account information", "transaction history",
+            "account details", "statement details", "agreement for details",
+            "cardmember agreement", "cardholder agreement", "agreement",
+            DETAILS, "description", "balance", "interest rate",
+            "pay over time limit", "available pay over time",
+            "annual percentage rate", APR, "trailing interest",
+            "transactions dated", "continued on next page", "continued",
+            "send general inquiries", "general inquiries", "platinum card",
+            "american express", "autopay amount", "amount enclosed",
+            "cash advances", "digital goods", "apps", "subject to", "from to",
+            "about", "morgan stanley", "rewards summary", "summary", "news");
+
+    private static final List<String> NAME_REJECT_COMPANY_NAMES = List.of(
+            "platinum card", "gold card", "silver card");
+
     private boolean isValidNameFormat(final String candidate) {
         if (candidate == null || candidate.isBlank()) {
             return false;
         }
-
         final String trimmed = candidate.trim();
         final String lowerTrimmed = trimmed.toLowerCase(Locale.ROOT);
-
-        // ========== SEMANTIC CATEGORY-BASED REJECTION ==========
-        // Reject if line starts with words from these categories (more semantic and maintainable)
-
-        // Verbs (action words - unlikely to be names)
-        final List<String> verbs =
-                Arrays.asList(
-                        "send",
-                        "post",
-                        "continue",
-                        "pay",
-                        "receive",
-                        "process",
-                        "submit",
-                        "activate",
-                        "register",
-                        "enroll",
-                        "log",
-                        "sign",
-                        "click",
-                        "visit",
-                        "call",
-                        "contact");
-
-        // Financial nouns (financial/administrative terms - unlikely to be names)
-        final List<String> financialNouns =
-                Arrays.asList(
-                        "payment",
-                        "balance",
-                        "credit",
-                        "sale",
-                        "account",
-                        TRANSACTION,
-                        STATEMENT,
-                        "summary",
-                        DETAILS,
-                        "charges",
-                        "fees",
-                        "amount",
-                        "interest",
-                        "rate",
-                        APR,
-                        "adjustment",
-                        "deposit",
-                        "withdrawal",
-                        "transfer",
-                        "debit",
-                        "credit",
-                        "cash",
-                        "advance",
-                        "autopay",
-                        "bill",
-                        "invoice",
-                        "receipt");
-
-        // Conjunctions (connecting words - unlikely to start names)
-        final List<String> conjunctions =
-                Arrays.asList("and", "or", "but", "nor", "for", "so", "yet");
-
-        // Prepositions (relational words - unlikely to start names)
-        final List<String> prepositions =
-                Arrays.asList(
-                        "to", "from", "on", "at", "in", "for", "with", "by", "about", "over",
-                        "under", "between", "through", "during", "before", "after", "above",
-                        "below");
-
-        // Check if line starts with any word from these categories
-        final String[] firstWordsCheck = lowerTrimmed.split("\\s+");
-        if (firstWordsCheck.length > 0) {
-            final String firstWord = firstWordsCheck[0].trim();
-            if (verbs.contains(firstWord)
-                    || financialNouns.contains(firstWord)
-                    || conjunctions.contains(firstWord)
-                    || prepositions.contains(firstWord)) {
-                // Rejected name candidate - starts with verb/financial noun/conjunction/preposition
-                return false;
-            }
-        }
-
-        // ========== EXCLUDE WORDS ==========
-        // Reject if line contains any excluded word (using word boundaries to avoid false
-        // positives)
-        // This prevents "Standard Purchases", "Credits Amount", etc. from being detected as names
-        final List<String> excludedWords =
-                Arrays.asList(
-                        TRANSACTION,
-                        "account",
-                        "promo",
-                        "phone",
-                        "number",
-                        "date",
-                        "amount",
-                        "amounts",
-                        "balance",
-                        STATEMENT,
-                        "period",
-                        "page",
-                        "card",
-                        "member",
-                        "holder",
-                        "cardholder",
-                        "summary",
-                        DETAILS,
-                        "information",
-                        "sale",
-                        "post",
-                        "charges",
-                        "payment",
-                        "history",
-                        APR,
-                        "variable",
-                        "interest",
-                        "fee",
-                        "fees",
-                        "standard",
-                        "tty",
-                        "annual",
-                        "rate",
-                        "percentage",
-                        "subject",
-                        "from",
-                        "to",
-                        "available",
-                        "pay",
-                        "over",
-                        "time",
-                        "limit",
-                        "about",
-                        "trailing",
-                        "dated",
-                        "your",
-                        "is",
-                        "the",
-                        "on",
-                        "continued",
-                        "next",
-                        "new",
-                        "cash",
-                        "advances",
-                        "autopay",
-                        "enclosed",
-                        "express",
-                        "digital",
-                        "goods",
-                        "apps",
-                        "news",
-                        "rewards",
-                        "purchases",
-                        "credits",
-                        "debits",
-                        "deposits",
-                        "withdrawals",
-                        MERCHANT,
-                        "description",
-                        "vendor",
-                        "store",
-                        "shop",
-                        "retail",
-                        "service",
-                        "services");
-
-        // Reject if line contains any excluded word (using word boundaries)
-        // This catches cases like "Standard Purchases", "Credits Amount", etc.
         final String[] lineWords = lowerTrimmed.split("\\s+");
-        for (final String lineWord : lineWords) {
-            // Remove punctuation for comparison
-            final String cleanWord = lineWord.replaceAll("[.,;:!?()\\[\\]{}\"']+$", "").trim();
-            if (!cleanWord.isEmpty() && excludedWords.contains(cleanWord)) {
-                return false; // Reject if line contains any excluded word
-            }
-        }
 
-        // Reject common header phrases (combinations of excluded words that are clearly not names)
-        // Check both exact match and contains match for phrases that should match anywhere in the
-        // line
-        final List<String> headerPhrases =
-                Arrays.asList(
-                        "transaction details",
-                        "account summary",
-                        "statement period",
-                        "payment information",
-                        "account information",
-                        "transaction history",
-                        "account details",
-                        "statement details",
-                        "agreement for details",
-                        "cardmember agreement",
-                        "cardholder agreement",
-                        "agreement",
-                        DETAILS,
-                        "description",
-                        "balance",
-                        "interest rate",
-                        "pay over time limit",
-                        "available pay over time",
-                        "annual percentage rate",
-                        APR,
-                        "trailing interest",
-                        "transactions dated",
-                        "continued on next page",
-                        "continued", // Explicitly reject standalone "continued" (common in
-                        // statement footers)
-                        "send general inquiries",
-                        "general inquiries", // Reject instruction phrases (e.g., "Send general
-                        // inquiries to")
-                        "platinum card",
-                        "american express",
-                        "autopay amount",
-                        "amount enclosed",
-                        "cash advances",
-                        "digital goods",
-                        "apps",
-                        "subject to",
-                        "from to",
-                        "about",
-                        "morgan stanley",
-                        "rewards summary",
-                        "summary",
-                        "news" // Reject section headers like "Wells Fargo Rewards Summary", "Wells
-                        // Fargo News"
-                        );
-        for (final String phrase : headerPhrases) {
-            if (lowerTrimmed.equals(phrase) || lowerTrimmed.contains(phrase)) {
-                return false; // Reject common header phrases (exact match or contains match)
-            }
+        if (startsWithRejectedCategory(lineWords)) {
+            return false;
         }
-
-        // Reject bank/institution names using word boundaries (prevents false positives like
-        // "O'Brien" matching "bri")
-        // CRITICAL: Use word boundaries to avoid false positives (e.g., "O'Brien" contains "bri"
-        // but is not a bank name)
-        // This matches the approach used in extractAccountHolderNameFromPDF for consistency
-        if (accountDetectionService != null) {
-            final List<String> institutionKeywords =
-                    accountDetectionService.getInstitutionKeywordsForFiltering();
-            if (!institutionKeywords.isEmpty()) {
-                for (final String bankName : institutionKeywords) {
-                    // Skip null or empty bank names
-                    if (bankName == null || bankName.isBlank()) {
-                        continue;
-                    }
-                    // Use word boundaries to match whole words only
-                    // This prevents "O'Brien" from matching "bri" or "BRI" (Bank of India)
-                    try {
-                        final Pattern bankPattern =
-                                Pattern.compile(
-                                        "\\b"
-                                                + Pattern.quote(bankName.toLowerCase(Locale.ROOT))
-                                                + "\\b",
-                                        Pattern.CASE_INSENSITIVE);
-                        if (bankPattern.matcher(lowerTrimmed).find()) {
-                            // Rejected name candidate - contains bank/institution name
-                            return false;
-                        }
-                    } catch (Exception e) {
-                        // Log pattern compilation errors but don't fail validation
-                        LOGGER.warn(
-                                "Failed to compile pattern for bank name '{}': {}",
-                                bankName,
-                                e.getMessage());
-                    }
-                }
-            }
+        if (containsAnyExcludedWord(lineWords)) {
+            return false;
         }
-
-        // Reject specific known company/brand names and bank names that appear in headers (fallback
-        // for patterns not in INSTITUTION_KEYWORDS)
-        final List<String> companyNames =
-                Arrays.asList(
-                        "platinum card",
-                        "gold card",
-                        "silver card" // Card types not in INSTITUTION_KEYWORDS
-                        );
-        for (final String company : companyNames) {
-            // Use word boundaries for consistency
-            final Pattern companyPattern =
-                    Pattern.compile(
-                            "\\b" + Pattern.quote(company) + "\\b", Pattern.CASE_INSENSITIVE);
-            if (companyPattern.matcher(lowerTrimmed).find()) {
-                // Rejected name candidate - contains company/card name
-                return false;
-            }
+        if (matchesHeaderPhrase(lowerTrimmed)) {
+            return false;
         }
-
-        // Reject lines that start with "DESCRIPTION" followed by equals or other text (header
-        // pattern)
+        if (matchesInstitutionKeyword(lowerTrimmed)) {
+            return false;
+        }
+        if (matchesKnownCompanyName(lowerTrimmed)) {
+            return false;
+        }
+        // "DESCRIPTION = …" / "Description: …" header lines.
         if (lowerTrimmed.startsWith("description")
                 && (lowerTrimmed.contains("=") || lowerTrimmed.contains(":"))) {
             return false;
         }
-
-        // Reject if line contains multiple excluded words (likely a header, not a name)
-        // E.g., "Transaction Details", "Account Summary" - these are headers, not names
-        // Note: lineWords was already declared above, so we reuse it here
-        int excludedWordCount = 0;
-        for (final String lineWord : lineWords) {
-            // Remove punctuation for comparison (consistent with earlier check)
-            final String cleanWord = lineWord.replaceAll("[.,;:!?()\\[\\]{}\"']+$", "").trim();
-            if (!cleanWord.isEmpty() && excludedWords.contains(cleanWord)) {
-                excludedWordCount++;
-            }
+        if (countExcludedWords(lineWords) >= 2) {
+            return false;
         }
-        if (excludedWordCount >= 2) {
-            return false; // Reject if line contains 2+ excluded words (likely a header)
-        }
-
-        // Must be 1-5 words
         final String[] words = trimmed.split("\\s+");
         if (words.length < 1 || words.length > 5) {
             return false;
         }
+        if (hasDisallowedCharacters(trimmed)) {
+            return false;
+        }
+        if (!trimmed.matches(".*[a-zA-Z].*")) {
+            return false;
+        }
+        if (!hasConsistentCapitalization(words)) {
+            return false;
+        }
 
-        // No digits anywhere
+        if (containsStateOrCountryToken(trimmed, words)) {
+            return false;
+        }
+        if (endsWithSingleLetterAirportCode(trimmed, words)) {
+            return false;
+        }
+        // All validation checks passed
+        return true;
+    }
+
+    // ---- isValidNameFormat: helper predicates ----
+
+    /** True if the first word of the line is a verb/financial-noun/conjunction/preposition. */
+    private boolean startsWithRejectedCategory(final String[] lineWords) {
+        if (lineWords.length == 0) {
+            return false;
+        }
+        final String firstWord = lineWords[0].trim();
+        return NAME_REJECT_VERBS.contains(firstWord)
+                || NAME_REJECT_FINANCIAL_NOUNS.contains(firstWord)
+                || NAME_REJECT_CONJUNCTIONS.contains(firstWord)
+                || NAME_REJECT_PREPOSITIONS.contains(firstWord);
+    }
+
+    private static final Pattern TRAILING_PUNCTUATION = Pattern.compile("[.,;:!?()\\[\\]{}\"']+$");
+
+    /** True if any word (with trailing punctuation stripped) is in the excluded set. */
+    private boolean containsAnyExcludedWord(final String[] lineWords) {
+        for (final String lineWord : lineWords) {
+            final String cleanWord = TRAILING_PUNCTUATION.matcher(lineWord).replaceAll("").trim();
+            if (!cleanWord.isEmpty() && NAME_REJECT_EXCLUDED_WORDS.contains(cleanWord)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private int countExcludedWords(final String[] lineWords) {
+        int count = 0;
+        for (final String lineWord : lineWords) {
+            final String cleanWord = TRAILING_PUNCTUATION.matcher(lineWord).replaceAll("").trim();
+            if (!cleanWord.isEmpty() && NAME_REJECT_EXCLUDED_WORDS.contains(cleanWord)) {
+                count++;
+            }
+        }
+        return count;
+    }
+
+    private boolean matchesHeaderPhrase(final String lowerTrimmed) {
+        for (final String phrase : NAME_REJECT_HEADER_PHRASES) {
+            if (lowerTrimmed.equals(phrase) || lowerTrimmed.contains(phrase)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /** Bank / institution name match using word boundaries (so "O'Brien" doesn't hit "bri"). */
+    private boolean matchesInstitutionKeyword(final String lowerTrimmed) {
+        if (accountDetectionService == null) {
+            return false;
+        }
+        final List<String> institutionKeywords =
+                accountDetectionService.getInstitutionKeywordsForFiltering();
+        if (institutionKeywords.isEmpty()) {
+            return false;
+        }
+        for (final String bankName : institutionKeywords) {
+            if (bankName == null || bankName.isBlank()) {
+                continue;
+            }
+            try {
+                final Pattern bankPattern =
+                        Pattern.compile(
+                                "\\b" + Pattern.quote(bankName.toLowerCase(Locale.ROOT)) + "\\b",
+                                Pattern.CASE_INSENSITIVE);
+                if (bankPattern.matcher(lowerTrimmed).find()) {
+                    return true;
+                }
+            } catch (PatternSyntaxException e) {
+                LOGGER.warn(
+                        "Failed to compile pattern for bank name '{}': {}",
+                        bankName,
+                        e.getMessage());
+            }
+        }
+        return false;
+    }
+
+    private boolean matchesKnownCompanyName(final String lowerTrimmed) {
+        for (final String company : NAME_REJECT_COMPANY_NAMES) {
+            final Pattern companyPattern =
+                    Pattern.compile(
+                            "\\b" + Pattern.quote(company) + "\\b", Pattern.CASE_INSENSITIVE);
+            if (companyPattern.matcher(lowerTrimmed).find()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Digits, currency symbols, punctuation that never belongs in a name, URL-ish
+     * patterns, date / phone shapes. Any hit means "this is not a name".
+     */
+    private boolean hasDisallowedCharacters(final String trimmed) {
         if (trimmed.matches(".*\\d.*")) {
-            return false;
+            return true;
         }
-
-        // No special characters that indicate transaction data: %, $, +, -, dates, phone numbers
-        // Check for currency symbols
         if (trimmed.matches(".*[\\$€£¥₹].*")) {
-            return false;
+            return true;
         }
-
-        // Check for percentage signs, asterisks, equals signs, and colons (used in
-        // headers/descriptions)
         if (trimmed.contains("%")
                 || trimmed.contains("*")
                 || trimmed.contains("=")
                 || trimmed.contains(":")) {
-            return false;
+            return true;
         }
-
-        // Check for forward slashes and backslashes (used in URLs, paths, domains - e.g.,
-        // "HULU.COM/BILL")
         if (trimmed.contains("/") || trimmed.contains("\\")) {
-            return false;
+            return true;
         }
-
-        // Check for domain patterns (e.g., ".COM", ".NET", ".ORG", ".BILL", etc.)
-        // This catches merchant names like "HULU.COM/BILL"
+        // URL / file-extension shapes (".com", ".net", "HULU.COM/BILL", etc.)
         if (trimmed.matches(".*\\.[A-Z]{2,4}(?:/.*)?")
                 || trimmed.matches(".*\\.[a-z]{2,4}(?:/.*)?")) {
-            return false;
+            return true;
         }
-
-        // Check for trademark/copyright symbols
         if (trimmed.contains("®") || trimmed.contains("©") || trimmed.contains("™")) {
-            return false;
+            return true;
         }
-
-        // Check for +/- signs (but allow hyphenated names like "Mary-Jane")
-        // Allow hyphens only between words, not at start/end
         if (trimmed.matches(".*[+].*")
                 || trimmed.matches(".*\\-[^a-zA-Z].*")
                 || trimmed.startsWith("-")
                 || trimmed.endsWith("-")) {
-            return false;
+            return true;
         }
-
-        // Check for date patterns (MM/DD/YYYY, DD/MM/YYYY, etc.)
         if (trimmed.matches(".*\\d{1,2}[/-]\\d{1,2}(?:[/-]\\d{2,4})?.*")) {
-            return false;
+            return true;
         }
+        return trimmed.matches(".*\\d{1,3}[\\-.]?\\d{3}[\\-.]?\\d{3}[\\-.]?\\d{4}.*")
+                || trimmed.matches(".*\\(\\s*\\d{1,3}\\s*[\\-)]?\\s*\\d{3}.*");
+    }
 
-        // Check for phone number patterns
-        if (trimmed.matches(".*\\d{1,3}[\\-.]?\\d{3}[\\-.]?\\d{3}[\\-.]?\\d{4}.*")
-                || trimmed.matches(".*\\(\\s*\\d{1,3}\\s*[\\-)]?\\s*\\d{3}.*")) {
-            return false;
-        }
-
-        // Should contain at least one letter
-        if (!trimmed.matches(".*[a-zA-Z].*")) {
-            return false;
-        }
-
-        // ========== STRICT CAPITALIZATION VALIDATION ==========
-        // Require either ALL CAPS for entire name OR Title Case for entire name (first letter of
-        // every word capitalized)
-        // Reject mixed case like "john Doe", "JOHN doe", "John DOE" (mixed ALL CAPS + Title Case)
-        // Allow: "John Doe", "JOHN DOE", "Mary-Jane Smith", "O'Brien", "MARY-JANE SMITH"
+    /**
+     * Names must be either entirely Title Case ("John Doe") or entirely ALL CAPS
+     * ("JOHN DOE"). Mixed shapes like "John DOE" or "JOHN doe" reject — they
+     * usually come from OCR / column-mashed-up lines.
+     */
+    private boolean hasConsistentCapitalization(final String[] words) {
         boolean allWordsAllCaps = true;
         boolean allWordsTitleCase = true;
-
         for (final String word : words) {
             if (word.isEmpty()) {
                 continue;
             }
-
-            // Split by hyphens and apostrophes to check each part separately
-            // E.g., "Mary-Jane" -> ["Mary", "Jane"], "O'Brien" -> ["O", "Brien"]
             final String[] wordParts = word.split("[-']+");
-            boolean wordIsAllCaps = true;
-            boolean wordIsTitleCase = true;
-
             for (final String part : wordParts) {
                 if (part.isEmpty()) {
-                    continue; // Skip empty parts from consecutive hyphens/apostrophes
-
-                    // Remove trailing period (common in abbreviations like "J." or suffixes like
-                    // "Jr.")
-                    // But keep the period for validation - we'll check the base part
+                    continue;
                 }
                 final String partWithoutPeriod = part.replaceAll("\\.$", "");
                 if (partWithoutPeriod.isEmpty()) {
-                    continue; // Part is only a period
-
-                    // Check if part (without trailing period) is ALL CAPS (must contain at least
-                    // one
-                    // letter and all letters uppercase)
+                    continue;
                 }
                 if (!partWithoutPeriod.matches(".*[A-Z].*")
                         || !partWithoutPeriod.equals(partWithoutPeriod.toUpperCase(Locale.ROOT))) {
-                    wordIsAllCaps = false;
+                    allWordsAllCaps = false;
                 }
-
-                // Check if part (without trailing period) is Title Case (first letter uppercase,
-                // rest lowercase)
-                // Single letter uppercase (like "O" in "O'Brien" or "J" in "J.") is considered
-                // Title Case
                 if (!partWithoutPeriod.matches("^[A-Z][a-z]*$")
                         && !partWithoutPeriod.matches("^[A-Z]$")) {
-                    wordIsTitleCase = false;
+                    allWordsTitleCase = false;
                 }
             }
-
-            // If any word is not ALL CAPS, then entire name is not ALL CAPS
-            if (!wordIsAllCaps) {
-                allWordsAllCaps = false;
-            }
-
-            // If any word is not Title Case, then entire name is not Title Case
-            if (!wordIsTitleCase) {
-                allWordsTitleCase = false;
-            }
         }
+        return allWordsAllCaps || allWordsTitleCase;
+    }
 
-        // Must be either ALL CAPS for entire name OR Title Case for entire name (consistent
-        // capitalization)
-        // Reject mixed case like "john Doe", "JOHN doe", "John DOE" (mixed ALL CAPS + Title Case)
-        if (!allWordsAllCaps && !allWordsTitleCase) {
-            // Rejected name candidate - invalid capitalization
-            return false;
-        }
+    private static final List<String> US_STATE_ABBREVIATIONS_FOR_NAME = List.of(
+            "AL", "AK", "AZ", "AR", "CA", "CO", "CT", "DE", "FL", "GA", "HI", "ID",
+            "IL", "IN", "IA", "KS", "KY", "LA", "ME", "MD", "MA", "MI", "MN", "MS",
+            "MO", "MT", "NE", "NV", "NH", "NJ", "NM", "NY", "NC", "ND", "OH", "OK",
+            "OR", "PA", "RI", "SC", "SD", "TN", "TX", "UT", "VT", "VA", "WA", "WV",
+            "WI", "WY", "DC");
 
-        // Reject names containing US state abbreviations (as whole words) - indicates address, not
-        // name
-        // This matches the approach used in extractAccountHolderNameFromPDF for consistency
-        final List<String> usStateAbbreviations =
-                Arrays.asList(
-                        "AL", "AK", "AZ", "AR", "CA", "CO", "CT", "DE", "FL", "GA", "HI", "ID",
-                        "IL", "IN", "IA", "KS", "KY", "LA", "ME", "MD", "MA", "MI", "MN", "MS",
-                        "MO", "MT", "NE", "NV", "NH", "NJ", "NM", "NY", "NC", "ND", "OH", "OK",
-                        "OR", "PA", "RI", "SC", "SD", "TN", "TX", "UT", "VT", "VA", "WA", "WV",
-                        "WI", "WY", "DC");
+    private static final List<String> COUNTRY_NAMES_FOR_NAME_FILTER = List.of(
+            "USA", "US", "UNITED STATES", "UNITED STATES OF AMERICA", "AMERICA",
+            "UK", "UNITED KINGDOM", "BRITAIN", "GREAT BRITAIN", "INDIA", "IND",
+            "BHARAT", "CANADA", "CAN", "AUSTRALIA", "AUS", "GERMANY", "DEU",
+            "FRANCE", "FRA", "JAPAN", "JPN", "CHINA", "CHN", "INT", "INTERNATIONAL");
 
-        // Reject names containing country names or country codes
-        // Check both single-word and multi-word country names
-        final List<String> countryNames =
-                Arrays.asList(
-                        "USA",
-                        "US",
-                        "UNITED STATES",
-                        "UNITED STATES OF AMERICA",
-                        "AMERICA",
-                        "UK",
-                        "UNITED KINGDOM",
-                        "BRITAIN",
-                        "GREAT BRITAIN",
-                        "INDIA",
-                        "IND",
-                        "BHARAT",
-                        "CANADA",
-                        "CAN",
-                        "AUSTRALIA",
-                        "AUS",
-                        "GERMANY",
-                        "DEU",
-                        "FRANCE",
-                        "FRA",
-                        "JAPAN",
-                        "JPN",
-                        "CHINA",
-                        "CHN",
-                        "INT",
-                        "INTERNATIONAL" // Common in airport codes and transaction descriptions
-                        );
+    private static final List<String> AIRPORT_LIKE_TWO_LETTER_CODES = List.of(
+            "DL", "INT", "UK", "US", "CA", "NY", "LA", "TX", "FL");
 
-        // Reject names containing common 2-letter codes that appear in transaction
-        // descriptions/airport codes
-        // These are often false positives (e.g., "DELHI DL K", "SEATTLE-TACOMA INT DL H")
-        // Note: We only reject these in all-caps contexts to avoid false positives with valid names
-        final List<String> commonTwoLetterCodes =
-                Arrays.asList(
-                        "DL",
-                        "INT",
-                        "UK",
-                        "US",
-                        "CA",
-                        "NY",
-                        "LA",
-                        "TX",
-                        "FL" // Common airport/state/country codes
-                        );
+    private static final List<String> AIRLINE_MERCHANT_NAMES = List.of(
+            "DELTA AIR LINES", "DELTA AIR", "DELTA", "AMERICAN AIRLINES",
+            "AMERICAN AIR", "UNITED AIRLINES", "UNITED AIR", "SOUTHWEST AIRLINES",
+            "SOUTHWEST AIR", "JETBLUE", "JET BLUE", "LULULEMON ATHLETICA",
+            "LULULEMON", "AMAZON", "AMAZON.COM", "WALMART", "TARGET", "STARBUCKS");
 
-        // Reject common airline/merchant names that appear in transaction descriptions
-        final List<String> airlineMerchantNames =
-                Arrays.asList(
-                        "DELTA AIR LINES",
-                        "DELTA AIR",
-                        "DELTA",
-                        "AMERICAN AIRLINES",
-                        "AMERICAN AIR",
-                        "UNITED AIRLINES",
-                        "UNITED AIR",
-                        "SOUTHWEST AIRLINES",
-                        "SOUTHWEST AIR",
-                        "JETBLUE",
-                        "JET BLUE",
-                        "LULULEMON ATHLETICA",
-                        "LULULEMON",
-                        "AMAZON",
-                        "AMAZON.COM",
-                        "WALMART",
-                        "TARGET",
-                        "STARBUCKS");
-
-        // First, check if entire line matches a country name (handles multi-word names like "UNITED
-        // STATES")
+    /**
+     * Reject lines that include US state abbreviations, country names, common
+     * airport/transaction 2-letter codes (in ALL CAPS contexts), or airline /
+     * big-retailer merchant names.
+     */
+    private boolean containsStateOrCountryToken(final String trimmed, final String[] words) {
         final String upperTrimmed = trimmed.toUpperCase(Locale.ROOT);
-        for (final String countryName : countryNames) {
+        for (final String countryName : COUNTRY_NAMES_FOR_NAME_FILTER) {
             if (upperTrimmed.equals(countryName)
                     || upperTrimmed.contains(" " + countryName + " ")
                     || upperTrimmed.startsWith(countryName + " ")
                     || upperTrimmed.endsWith(" " + countryName)) {
-                // Rejected name candidate - matches or contains country name
-                return false;
+                return true;
             }
         }
-
-        // Check if entire line matches an airline/merchant name
-        for (final String merchantName : airlineMerchantNames) {
+        for (final String merchantName : AIRLINE_MERCHANT_NAMES) {
             if (upperTrimmed.equals(merchantName) || upperTrimmed.contains(merchantName)) {
-                // Rejected name candidate - matches or contains airline/merchant name
-                return false;
+                return true;
             }
         }
-
-        final String[] nameWords = trimmed.split("\\s+");
-        // Guard against empty array (shouldn't happen due to earlier checks, but defensive)
-        if (nameWords.length > 0) {
-            final boolean isAllCaps =
-                    trimmed.equals(trimmed.toUpperCase(Locale.ROOT))
-                            && trimmed.matches(".*[A-Z].*");
-
-            for (final String word : nameWords) {
-                if (word == null || word.isBlank()) {
-                    continue; // Skip null or empty words
-                }
-                // Remove punctuation for comparison (e.g., "WA," -> "WA")
-                final String cleanWord =
-                        word.replaceAll("[.,;:]+$", "").trim().toUpperCase(Locale.ROOT);
-                if (cleanWord.isEmpty()) {
-                    continue;
-                }
-
-                // Check US state abbreviations
-                if (usStateAbbreviations.contains(cleanWord)) {
-                    // Rejected name candidate - contains US state abbreviation
-                    return false;
-                }
-
-                // Check single-word country names (multi-word already checked above)
-                if (countryNames.contains(cleanWord)) {
-                    // Rejected name candidate - contains country name
-                    return false;
-                }
-
-                // Check 2-letter codes - only reject in all-caps contexts (to avoid false
-                // positives)
-                // Single letter words are allowed (e.g., "J." in "John J. Smith", "O" in "O'Brien")
-                // But 2-letter codes in all-caps are likely airport/location codes, not names
-                if (isAllCaps
-                        && cleanWord.length() == 2
-                        && commonTwoLetterCodes.contains(cleanWord)) {
-                    // Rejected name candidate - contains 2-letter code in all-caps context
-                    // Examples: "DELHI DL K", "SEATTLE-TACOMA INT DL H"
-                    return false;
-                }
+        if (words.length == 0) {
+            return false;
+        }
+        final boolean isAllCaps =
+                trimmed.equals(trimmed.toUpperCase(Locale.ROOT))
+                        && trimmed.matches(".*[A-Z].*");
+        for (final String word : words) {
+            if (word == null || word.isBlank()) {
+                continue;
+            }
+            final String cleanWord =
+                    word.replaceAll("[.,;:]+$", "").trim().toUpperCase(Locale.ROOT);
+            if (cleanWord.isEmpty()) {
+                continue;
+            }
+            if (US_STATE_ABBREVIATIONS_FOR_NAME.contains(cleanWord)) {
+                return true;
+            }
+            if (COUNTRY_NAMES_FOR_NAME_FILTER.contains(cleanWord)) {
+                return true;
+            }
+            if (isAllCaps
+                    && cleanWord.length() == 2
+                    && AIRPORT_LIKE_TWO_LETTER_CODES.contains(cleanWord)) {
+                return true;
             }
         }
+        return false;
+    }
 
-        // Reject all-caps names ending with standalone single letters (likely airport/location
-        // codes)
-        // Examples: "DELHI DL K", "SEATTLE-TACOMA INT DL H"
-        // Single letters are valid in names when part of proper patterns (e.g., "J." in "John J.
-        // Smith")
-        // But standalone single letters at the end of all-caps lines are suspicious
-        // Note: 'words' variable was already declared above, so we reuse it here
-        if (trimmed.equals(trimmed.toUpperCase(Locale.ROOT))
-                && trimmed.matches(".*[A-Z].*")
-                && words.length > 1) {
-            final String lastWord = words[words.length - 1].trim();
-            // Remove punctuation
-            final String cleanLastWord = lastWord.replaceAll("[.,;:]+$", "").trim();
-            // If last word is a single letter (and line has multiple words), it's likely a code,
-            // not a name
-            // Allow single letter if it's the only word (might be a valid single-letter name,
-            // though rare)
-            if (cleanLastWord.length() == 1 && cleanLastWord.matches("[A-Z]")) {
-                // Rejected name candidate - all-caps name ending with standalone single letter
-                // This catches patterns like "DELHI DL K", "SEATTLE-TACOMA INT DL H"
-                return false;
-            }
+    /** Reject "DELHI DL K"-style lines: ALL CAPS, multi-word, single-letter trailing token. */
+    private boolean endsWithSingleLetterAirportCode(final String trimmed, final String[] words) {
+        if (!trimmed.equals(trimmed.toUpperCase(Locale.ROOT))
+                || !trimmed.matches(".*[A-Z].*")
+                || words.length <= 1) {
+            return false;
         }
-
-        // All validation checks passed
-        return true;
+        final String lastWord = words[words.length - 1].trim().replaceAll("[.,;:]+$", "").trim();
+        return lastWord.length() == 1 && lastWord.matches("[A-Z]");
     }
 
     /**
@@ -3095,7 +2838,7 @@ public class PDFImportService {
 
         // Find transaction table header
         int headerIndex = -1;
-        List<String> headers = new ArrayList<>();
+        List<String> headers = null;  // assigned per-section inside the loop below
 
         // Common transaction header patterns
         final List<List<String>> transactionHeaderPatterns =
@@ -5244,76 +4987,6 @@ public class PDFImportService {
     }
 
     /**
-     * Pattern 3: Similar to Pattern 1, but the subsequent lines have more details Line 1: "10/03
-     * PRET A MANGER LONDON GBR Restaurants $5.66" Line 2: "APPLE PAY ENDING IN 8772" Line 3:
-     * "4.20 @ 00000001.3476190 GBP" Returns the first line transaction, subsequent lines are
-     * ignored (details only)
-     */
-    private Map<String, String> parsePattern3(final String line, final Integer inferredYear) {
-        // Same as Pattern 1, but we'll handle multi-line in the caller
-        return parsePattern1(line, inferredYear);
-    }
-
-    /**
-     * Pattern 4: Starts with last 4 digits of card number, XX/YY date, XX/YY date, Transaction Id,
-     * Transaction Description or merchant name with spaces, location, Amount without $symbol
-     * Example: "6779 11/17 11/18 2424052A2G30JEWD5 WSDOT-GOODTOGO ONLINE RENTON WA 73.45"
-     */
-    private Map<String, String> parsePattern4(final String line, final Integer inferredYear) {
-        if (line == null || line.isBlank()) {
-            return null;
-        }
-
-        final Matcher matcher = PATTERN4_CARD_DATES_ID_DESC_LOC_AMOUNT.matcher(line.trim());
-        if (matcher.find()) {
-            final String dateStr = matcher.group(3); // Use posting date (second date)
-            // Group 1 = 4-digit year, group 4 = the alphanumeric card/transaction ID.
-            // The last 4 chars of that ID is a good approximation for card-last-4
-            // when the issuer encodes it there (WSDOT tolls + some business cards).
-            // We surface this so iOS can show per-card grouping on multi-card statements.
-            final String cardIdToken = matcher.group(4);
-            String cardLastFour = null;
-            if (cardIdToken != null && cardIdToken.length() >= 4) {
-                final String tail = cardIdToken.substring(cardIdToken.length() - 4);
-                if (tail.matches("\\d{4}")) {
-                    cardLastFour = tail;
-                }
-            }
-
-            String description = matcher.group(5).trim();
-            description =
-                    description
-                            .replaceFirst("^\\s*\\d{1,2}[/-]\\d{1,2}(?:[/-]\\d{2,4})?\\s+", "")
-                            .trim();
-            final String location = matcher.group(6).trim();
-            final String amountStr =
-                    matcher.group(7) != null && !matcher.group(7).isEmpty()
-                            ? matcher.group(7)
-                            : matcher.group(8);
-
-            if (amountStr == null || amountStr.isBlank()) {
-                return null;
-            }
-
-            final String amountWithSymbol =
-                    amountStr.startsWith("$") || amountStr.startsWith("(")
-                            ? amountStr
-                            : "$" + amountStr;
-            final Map<String, String> row =
-                    createTransactionRow(
-                            dateStr, description, amountWithSymbol, null, inferredYear);
-            if (!location.isBlank()) {
-                row.put(LOCATION, location.trim());
-            }
-            if (cardLastFour != null) {
-                row.put("cardLastFour", cardLastFour);
-            }
-            return row;
-        }
-        return null;
-    }
-
-    /**
      * Pattern 5: Date XX/YY, XX/YY date, Transaction description or merchant name, Location with
      * spaces, $value Example: "10/08 10/08 DOLLAR TREE TUKWILA WA $19.84"
      */
@@ -5354,14 +5027,6 @@ public class PDFImportService {
             return row;
         }
         return null;
-    }
-
-    /**
-     * Pattern 6: Similar to pattern 5 Example: "05/29 05/29 COSTCO WHSE #0002 PORTLAND OR $7.78"
-     */
-    private Map<String, String> parsePattern6(final String line, final Integer inferredYear) {
-        // Same as Pattern 5
-        return parsePattern5(line, inferredYear);
     }
 
     /*
@@ -6624,180 +6289,6 @@ public class PDFImportService {
                         final BigDecimal amount = parseAmount(amountStr);
                         if (amount != null && amount.compareTo(BigDecimal.ZERO) > 0) {
                             return amount;
-                        }
-                    }
-                }
-            }
-        }
-
-        return null;
-    }
-
-    /**
-     * Extract reward points from PDF text Can be 1-3 lines: 1 line: <Some text Points><optional :
-     * or delimiter><optional account details><Optional as of date><Number 0-10M> Multi-line: next
-     * line may have points, or second line has account details, and third line has points
-     */
-    private Long extractRewardPoints(final String[] lines) {
-        // Pattern for reward points: looks for "Points" keyword followed by a number (0 to 10
-        // million)
-        // CRITICAL FIX: Pattern must handle "as of date" and skip dates/account numbers
-        // Pattern 1: "Points as of MM/DD/YYYY: 5,000" - match number after colon
-        final Pattern pointsWithAsOfPattern =
-                Pattern.compile(
-                        "(?i)(?:points|pts|rewards\\s+points|membership\\s+rewards\\s+points|thank\\s+you\\s+points|citi\\s+thank\\s+you\\s+points)"
-                                + "\\s+as\\s+of\\s+\\d{1,2}/\\d{1,2}/\\d{2,4}[\\s:]+"
-                                + "(\\d{1,7}(?:,\\d{3})*)" // Number after date and colon
-                        );
-
-        // Pattern 2: "Points: 5,000" or "Points 5,000" (standard format)
-        final Pattern pointsPattern =
-                Pattern.compile(
-                        "(?i)(?:membership\\s+rewards\\s+points|thank\\s+you\\s+points|citi\\s+thank\\s+you\\s+points|"
-                                + "rewards\\s+points|points|pts)[\\s:]+"
-                                + "(?![\\d/]{1,2}/[\\d/]{1,2}/[\\d]{2,4})"
-                                + // Negative lookahead: don't match dates immediately after
-                                "(\\d{1,7}(?:,\\d{3})*)" // Number with optional thousands
-                        // separators (0 to 10 million)
-                        );
-
-        // Pattern 2a: "Total points transferred to [Partner] 8,733" (e.g., "Total points
-        // transferred to Marriott 8,733")
-        final Pattern pointsTransferredPattern =
-                Pattern.compile(
-                        "(?i)total\\s+points\\s+transferred\\s+to\\s+[a-z]+\\s+"
-                                + "(\\d{1,7}(?:,\\d{3})*)" // Number with optional thousands
-                        // separators
-                        );
-
-        // Pattern 3: Simpler pattern for "Points" or "Pts" followed by number
-        final Pattern simplePointsPattern =
-                Pattern.compile(
-                        "(?i)(?:points|pts)[\\s:]+"
-                                + "(?![\\d/]{1,2}/[\\d/]{1,2}/[\\d]{2,4})"
-                                + // Negative lookahead: don't match dates
-                                "(\\d{1,7}(?:,\\d{3})*)" // Number with optional thousands
-                        // separators
-                        );
-
-        // Try single-line extraction first
-        for (final String line : lines) {
-            if (line == null || line.isBlank()) {
-                continue;
-            }
-
-            final String normalizedLine = line.trim();
-
-            // Try "as of date" pattern first (most specific)
-            Matcher matcher = pointsWithAsOfPattern.matcher(normalizedLine);
-            if (matcher.find()) {
-                final String pointsStr = matcher.group(1).replaceAll(",", "");
-                try {
-                    final long points = Long.parseLong(pointsStr);
-                    if (points >= 0 && points <= 10_000_000) {
-                        return points;
-                    }
-                } catch (NumberFormatException e) {
-                    // Continue to next pattern
-                }
-            }
-
-            // Try "points transferred to" pattern (e.g., "Total points transferred to Marriott
-            // 8,733")
-            matcher = pointsTransferredPattern.matcher(normalizedLine);
-            if (matcher.find()) {
-                final String pointsStr = matcher.group(1).replaceAll(",", "");
-                try {
-                    final long points = Long.parseLong(pointsStr);
-                    if (points >= 0 && points <= 10_000_000) {
-                        return points;
-                    }
-                } catch (NumberFormatException e) {
-                    // Continue to next pattern
-                }
-            }
-
-            // Try detailed pattern
-            matcher = pointsPattern.matcher(normalizedLine);
-            if (matcher.find()) {
-                final String pointsStr = matcher.group(1).replaceAll(",", "");
-                try {
-                    final long points = Long.parseLong(pointsStr);
-                    if (points >= 0 && points <= 10_000_000) {
-                        return points;
-                    }
-                } catch (NumberFormatException e) {
-                    // Continue to next pattern
-                }
-            }
-
-            // Try simple pattern
-            matcher = simplePointsPattern.matcher(normalizedLine);
-            if (matcher.find()) {
-                final String pointsStr = matcher.group(1).replaceAll(",", "");
-                try {
-                    final long points = Long.parseLong(pointsStr);
-                    if (points >= 0 && points <= 10_000_000) {
-                        return points;
-                    }
-                } catch (NumberFormatException e) {
-                    // Continue to next line
-                }
-            }
-        }
-
-        // Try multi-line extraction (check current line + next 2 lines)
-        for (int i = 0; i < lines.length - 2; i++) {
-            final String line1 = lines[i] != null ? lines[i].trim() : "";
-            final String line2 =
-                    i + 1 < lines.length ? (lines[i + 1] != null ? lines[i + 1].trim() : "") : "";
-            final String line3 =
-                    i + 2 < lines.length ? (lines[i + 2] != null ? lines[i + 2].trim() : "") : "";
-
-            // Check if line1 contains "Points" keyword
-            if (line1.matches("(?i).*(?:points|pts|rewards).*")) {
-                // CRITICAL FIX: Pattern must exclude dates and account numbers (4 digits at end)
-                // Match numbers with commas (thousands separators) - these are likely points, not
-                // dates/account numbers
-                final Pattern numberPattern =
-                        Pattern.compile("(\\d{1,7}(?:,\\d{3})+)"); // Must have at least one comma
-                // (thousands separator)
-
-                // Check line2 for number (skip if it looks like a date or account number)
-                if (!line2.matches(".*\\d{1,2}/\\d{1,2}/\\d{2,4}.*")
-                        && // Not a date
-                        !line2.matches(".*\\d{4}\\s*$")) { // Not a 4-digit account number at end
-                    final Matcher matcher = numberPattern.matcher(line2);
-                    if (matcher.find()) {
-                        final String pointsStr = matcher.group(1).replaceAll(",", "");
-                        try {
-                            final long points = Long.parseLong(pointsStr);
-                            if (points >= 0 && points <= 10_000_000) {
-                                return points;
-                            }
-                        } catch (NumberFormatException e) {
-                            // Continue to line3
-                        }
-                    }
-                }
-
-                // Check line3 for number (if line2 had account details)
-                if (line2.matches("(?i).*(?:account|as\\s+of).*")) {
-                    if (!line3.matches(".*\\d{1,2}/\\d{1,2}/\\d{2,4}.*")
-                            && // Not a date
-                            !line3.matches(
-                                    ".*\\d{4}\\s*$")) { // Not a 4-digit account number at end
-                        final Matcher matcher = numberPattern.matcher(line3);
-                        if (matcher.find()) {
-                            final String pointsStr = matcher.group(1).replaceAll(",", "");
-                            try {
-                                final long points = Long.parseLong(pointsStr);
-                                if (points >= 0 && points <= 10_000_000) {
-                                    return points;
-                                }
-                            } catch (NumberFormatException e) {
-                                // Continue
-                            }
                         }
                     }
                 }

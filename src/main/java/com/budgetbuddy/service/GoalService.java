@@ -709,7 +709,8 @@ public class GoalService {
             fresh.setDeletedAt(Instant.now());
             fresh.setUpdatedAt(Instant.now());
             goalRepository.saveWithLock(fresh);
-            goal = fresh;
+            // The retry succeeds on the freshly-read row; `goal` isn't read
+            // after this block, so no need to re-assign it.
         }
         LOGGER.info("Soft-deleted goal {} for user {}", goalId, user.getUserId());
 
