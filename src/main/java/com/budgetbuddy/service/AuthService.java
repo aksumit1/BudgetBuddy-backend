@@ -95,10 +95,9 @@ public class AuthService {
     }
 
     /**
-     * Find a user by email, throwing INVALID_CREDENTIALS on missing or disabled accounts.
-     * The {@code missingMessage} is the user-visible error if the lookup fails — we use
-     * a generic "invalid email or password" for the login path to avoid leaking which
-     * emails exist.
+     * Find a user by email, throwing INVALID_CREDENTIALS on missing or disabled accounts. The
+     * {@code missingMessage} is the user-visible error if the lookup fails — we use a generic
+     * "invalid email or password" for the login path to avoid leaking which emails exist.
      */
     private UserTable loadActiveUser(final String email, final String missingMessage) {
         final UserTable user =
@@ -115,14 +114,13 @@ public class AuthService {
     }
 
     /**
-     * Verify a secure-format login: client-hashed password is re-hashed with the
-     * server salt and compared against the stored hash. Throws on any pre-condition
-     * violation (missing hash, missing salt, mismatch).
+     * Verify a secure-format login: client-hashed password is re-hashed with the server salt and
+     * compared against the stored hash. Throws on any pre-condition violation (missing hash,
+     * missing salt, mismatch).
      */
     private void verifySecureFormatCredentials(final AuthRequest request, final UserTable user) {
         if (user.getPasswordHash() == null || user.getPasswordHash().isEmpty()) {
-            LOGGER.warn(
-                    "User {} has no password hash stored. Legacy account?", request.getEmail());
+            LOGGER.warn("User {} has no password hash stored. Legacy account?", request.getEmail());
             throw new AppException(ErrorCode.INVALID_CREDENTIALS, INVALID_EMAIL_OR_PASSWORD);
         }
         final String serverSalt = user.getServerSalt();
@@ -157,8 +155,8 @@ public class AuthService {
     }
 
     /**
-     * Translate the user's roles into Spring's {@code GrantedAuthority} list,
-     * defaulting to {@code ROLE_USER} when no roles are recorded.
+     * Translate the user's roles into Spring's {@code GrantedAuthority} list, defaulting to {@code
+     * ROLE_USER} when no roles are recorded.
      */
     private Collection<org.springframework.security.core.GrantedAuthority> buildAuthorities(
             final UserTable user) {
@@ -172,9 +170,9 @@ public class AuthService {
     }
 
     /**
-     * Build Spring's {@code UserDetails} for token issuance. Refuses to build one
-     * when the stored password hash is missing — that's an internal-state bug and
-     * a 500 is more accurate than letting JWT generation fail downstream.
+     * Build Spring's {@code UserDetails} for token issuance. Refuses to build one when the stored
+     * password hash is missing — that's an internal-state bug and a 500 is more accurate than
+     * letting JWT generation fail downstream.
      */
     private org.springframework.security.core.userdetails.UserDetails buildSpringUserDetails(
             final UserTable user,
@@ -199,10 +197,9 @@ public class AuthService {
     }
 
     /**
-     * Wraps the post-verification work shared by {@code authenticate} and
-     * {@code authenticateAfterRegistration}: build authorities + UserDetails,
-     * generate tokens, populate the security context, update lastLogin, warm
-     * the user's cache, and assemble the AuthResponse.
+     * Wraps the post-verification work shared by {@code authenticate} and {@code
+     * authenticateAfterRegistration}: build authorities + UserDetails, generate tokens, populate
+     * the security context, update lastLogin, warm the user's cache, and assemble the AuthResponse.
      */
     private AuthResponse issueAuthResponse(final UserTable user, final String logPrefix) {
         final Collection<org.springframework.security.core.GrantedAuthority> authorities =
@@ -232,8 +229,8 @@ public class AuthService {
     }
 
     /**
-     * Pull the expiry out of the JWT; fall back to 24h from now if the token
-     * doesn't carry one (defensive — the provider should always set this).
+     * Pull the expiry out of the JWT; fall back to 24h from now if the token doesn't carry one
+     * (defensive — the provider should always set this).
      */
     private LocalDateTime computeAccessTokenExpiry(final String accessToken) {
         Date expirationDate = tokenProvider.getExpirationDateFromToken(accessToken);

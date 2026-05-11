@@ -1384,14 +1384,15 @@ public class AccountDetectionService {
     }
 
     /**
-     * Lower-cased header keys mapped to original strings + column indices.
-     * Wraps both maps so the column-detect helpers don't take five parameters.
+     * Lower-cased header keys mapped to original strings + column indices. Wraps both maps so the
+     * column-detect helpers don't take five parameters.
      */
     private static final class HeaderIndex {
         final Map<String, String> headerMap;
         final Map<String, Integer> headerIndexMap;
 
-        HeaderIndex(final Map<String, String> headerMap, final Map<String, Integer> headerIndexMap) {
+        HeaderIndex(
+                final Map<String, String> headerMap, final Map<String, Integer> headerIndexMap) {
             this.headerMap = headerMap;
             this.headerIndexMap = headerIndexMap;
         }
@@ -1473,14 +1474,14 @@ public class AccountDetectionService {
     private void extractInstitutionInfo(
             final List<String> headers, final DetectedAccount detected, final HeaderIndex index) {
         final Integer institutionColumnIndex =
-                findColumnIndex(index.headerMap, index.headerIndexMap, INSTITUTION_KEYWORDS_HEADERS);
+                findColumnIndex(
+                        index.headerMap, index.headerIndexMap, INSTITUTION_KEYWORDS_HEADERS);
         final Integer productNameColumnIndex =
                 findColumnIndex(index.headerMap, index.headerIndexMap, PRODUCT_NAME_KEYWORDS);
 
         // Prefer product name over generic institution column.
         if (productNameColumnIndex != null) {
-            assignInstitutionFromColumn(
-                    headers, detected, productNameColumnIndex, "product name");
+            assignInstitutionFromColumn(headers, detected, productNameColumnIndex, "product name");
             return;
         }
         if (institutionColumnIndex != null) {
@@ -1516,10 +1517,10 @@ public class AccountDetectionService {
             final DetectedAccount detected,
             final HeaderIndex index,
             final boolean isTransactionTable) {
-        // "type" in a transaction table means transaction-type, not account-type — skip both checks.
+        // "type" in a transaction table means transaction-type, not account-type — skip both
+        // checks.
         if (isTransactionTable) {
-            LOGGER.info(
-                    "⚠️ Skipping account type detection - headers are transaction table");
+            LOGGER.info("⚠️ Skipping account type detection - headers are transaction table");
             return;
         }
         final Integer columnIndex =
@@ -1577,9 +1578,9 @@ public class AccountDetectionService {
     }
 
     /**
-     * Filename detection often disambiguates a transaction-table parse where
-     * the headers couldn't tell us the institution. For transaction tables
-     * the filename wins; for everything else it fills in only what's missing.
+     * Filename detection often disambiguates a transaction-table parse where the headers couldn't
+     * tell us the institution. For transaction tables the filename wins; for everything else it
+     * fills in only what's missing.
      */
     private void mergeFilenameDetection(
             final DetectedAccount detected,
@@ -2928,8 +2929,8 @@ public class AccountDetectionService {
      * Candidate-selection priority list (most specific first). The selection pass walks this list
      * and returns the first candidate whose matched indicator (or text) contains the priority
      * entry. Distinct from SPECIFIC_PRODUCT_INDICATORS because the ordering is different — the
-     * indicator list is tuned for "is this a product line?" matching, this list is tuned for
-     * "which of N candidates is the best one to keep?".
+     * indicator list is tuned for "is this a product line?" matching, this list is tuned for "which
+     * of N candidates is the best one to keep?".
      */
     private static final List<String> SPECIFIC_CARD_NAMES_PRIORITY =
             List.of(
@@ -3112,8 +3113,8 @@ public class AccountDetectionService {
     }
 
     /**
-     * Return the longest SPECIFIC_PRODUCT_INDICATORS entry contained in {@code lowerLine}, or
-     * null. Longest-match prefers "marriott bonvoy premier" over a bare "marriott".
+     * Return the longest SPECIFIC_PRODUCT_INDICATORS entry contained in {@code lowerLine}, or null.
+     * Longest-match prefers "marriott bonvoy premier" over a bare "marriott".
      */
     private static String findLongestProductIndicator(final String lowerLine) {
         String best = null;
@@ -3178,12 +3179,14 @@ public class AccountDetectionService {
     }
 
     /**
-     * For a multi-word indicator like "marriott bonvoy premier", widen the candidate to capture
-     * the full "Chase Marriott Bonvoy Premier" if the surrounding line supports it. Single-word
+     * For a multi-word indicator like "marriott bonvoy premier", widen the candidate to capture the
+     * full "Chase Marriott Bonvoy Premier" if the surrounding line supports it. Single-word
      * indicators just return the trimmed line as-is.
      */
     private static String expandToFullCardName(
-            final String trimmedLine, final String matchedIndicator, final String foundInstitution) {
+            final String trimmedLine,
+            final String matchedIndicator,
+            final String foundInstitution) {
         if (!matchedIndicator.contains(" ")) {
             return trimmedLine;
         }
@@ -3198,7 +3201,8 @@ public class AccountDetectionService {
         final Matcher fullCardMatcher = fullCardNamePattern.matcher(trimmedLine);
         if (fullCardMatcher.find()) {
             final String extractedName = fullCardMatcher.group(1).trim();
-            if (extractedName.length() > matchedIndicator.length() && extractedName.length() < 100) {
+            if (extractedName.length() > matchedIndicator.length()
+                    && extractedName.length() < 100) {
                 return extractedName;
             }
         }
@@ -3206,13 +3210,11 @@ public class AccountDetectionService {
     }
 
     /**
-     * Pick the best candidate from {@code candidates} using a three-pass priority scheme:
-     *   1) match by indicator against SPECIFIC_CARD_NAMES_PRIORITY,
-     *   2) match by candidate text against the same priority list,
-     *   3) first candidate that passes {@link #isValidProductName}.
+     * Pick the best candidate from {@code candidates} using a three-pass priority scheme: 1) match
+     * by indicator against SPECIFIC_CARD_NAMES_PRIORITY, 2) match by candidate text against the
+     * same priority list, 3) first candidate that passes {@link #isValidProductName}.
      */
-    private String selectBestProductCandidate(
-            final List<Map.Entry<String, String>> candidates) {
+    private String selectBestProductCandidate(final List<Map.Entry<String, String>> candidates) {
         for (final String cardName : SPECIFIC_CARD_NAMES_PRIORITY) {
             final String byIndicator = matchCandidateByIndicator(candidates, cardName);
             if (byIndicator != null) {
@@ -3243,8 +3245,7 @@ public class AccountDetectionService {
             final String candidate = entry.getKey();
             final String matched = entry.getValue();
             final String lowerCandidate = candidate.toLowerCase(Locale.ROOT);
-            final String lowerMatched =
-                    matched != null ? matched.toLowerCase(Locale.ROOT) : "";
+            final String lowerMatched = matched != null ? matched.toLowerCase(Locale.ROOT) : "";
             if (lowerMatched.contains(lowerCardName) || lowerCandidate.contains(lowerCardName)) {
                 LOGGER.info(
                         "Extracted product name (prioritized specific card name '{}'): {}",
@@ -3294,7 +3295,6 @@ public class AccountDetectionService {
         return null;
     }
 
-
     // ---- extractProductNameFromPDF: focused regex paths ----
     // Each helper tries one shape of marketing phrasing and returns the
     // extracted card name (already normalized + capitalized) or null.
@@ -3329,7 +3329,9 @@ public class AccountDetectionService {
         return null;
     }
 
-    /** "thank you for using your marriott bonvoy® premier credit card" → "marriott bonvoy® premier". */
+    /**
+     * "thank you for using your marriott bonvoy® premier credit card" → "marriott bonvoy® premier".
+     */
     private String tryExtractThankYouCardName(final String headerText) {
         final Matcher m = THANK_YOU_FOR_USING_PATTERN.matcher(headerText);
         if (!m.find()) {
@@ -3344,10 +3346,9 @@ public class AccountDetectionService {
     }
 
     /**
-     * "Reward your routine everywhere you shop with your Prime Visa." → "Prime Visa".
-     * The trailing-text check is required because the regex is greedy and would
-     * happily extract non-card-product strings without the {@link #isValidCardProductName}
-     * gate.
+     * "Reward your routine everywhere you shop with your Prime Visa." → "Prime Visa". The
+     * trailing-text check is required because the regex is greedy and would happily extract
+     * non-card-product strings without the {@link #isValidCardProductName} gate.
      */
     private String tryExtractRewardPhraseCardName(final String headerText) {
         final Matcher m = REWARD_PHRASE_PATTERN.matcher(headerText);
@@ -3673,9 +3674,8 @@ public class AccountDetectionService {
     }
 
     /**
-     * Direct "Name: ..." style patterns. Order matters only for the
-     * pattern-index used in the candidate's debug log; matches are weighted
-     * uniformly at priority 100.
+     * Direct "Name: ..." style patterns. Order matters only for the pattern-index used in the
+     * candidate's debug log; matches are weighted uniformly at priority 100.
      */
     private static final Pattern[] DIRECT_NAME_PATTERNS = {
         Pattern.compile("(?i)card\\s*member\\s*:?\\s*(.+)"),
@@ -3689,9 +3689,8 @@ public class AccountDetectionService {
     };
 
     /**
-     * STEP 1: for each non-empty line, try every {@link #DIRECT_NAME_PATTERNS}
-     * regex and add valid hits to {@code candidateMap} (merging on
-     * case-insensitive name).
+     * STEP 1: for each non-empty line, try every {@link #DIRECT_NAME_PATTERNS} regex and add valid
+     * hits to {@code candidateMap} (merging on case-insensitive name).
      */
     private void collectFromDirectNamePatterns(
             final String[] lines,
@@ -3718,9 +3717,9 @@ public class AccountDetectionService {
     }
 
     /**
-     * Header lines that are documents-style ("Statement Period", "Account
-     * Summary", column headers, etc.) — never a person's name. Filtering
-     * these early prevents pattern false-positives downstream.
+     * Header lines that are documents-style ("Statement Period", "Account Summary", column headers,
+     * etc.) — never a person's name. Filtering these early prevents pattern false-positives
+     * downstream.
      */
     private boolean isObviouslyNotANameLine(final String lowerLine) {
         if (lowerLine.contains("statement period")
@@ -3772,8 +3771,8 @@ public class AccountDetectionService {
     }
 
     /**
-     * Strip newlines / context markers / lingering "Name:" prefixes from a raw
-     * regex-captured name fragment.
+     * Strip newlines / context markers / lingering "Name:" prefixes from a raw regex-captured name
+     * fragment.
      */
     private String cleanCapturedName(final String rawCapture) {
         String rawName = rawCapture.replaceAll("[\\r\\n]+", " ").trim();
@@ -3792,8 +3791,8 @@ public class AccountDetectionService {
     }
 
     /**
-     * Merge into existing candidate if the (case-insensitive) name has been
-     * seen, otherwise add a new entry.
+     * Merge into existing candidate if the (case-insensitive) name has been seen, otherwise add a
+     * new entry.
      */
     private void addOrMergeCandidate(
             final Map<String, NameCandidate> candidateMap,
@@ -3801,10 +3800,10 @@ public class AccountDetectionService {
             final int priority,
             final String patternType,
             final boolean isContextual) {
-        final boolean isAllCaps =
-                name.equals(name.toUpperCase(Locale.ROOT)) && name.matches(A_Z);
+        final boolean isAllCaps = name.equals(name.toUpperCase(Locale.ROOT)) && name.matches(A_Z);
         final String normalizedName = name.trim().toLowerCase(Locale.ROOT);
-        final NameCandidate fresh = new NameCandidate(name, priority, patternType, isAllCaps, isContextual);
+        final NameCandidate fresh =
+                new NameCandidate(name, priority, patternType, isAllCaps, isContextual);
         final NameCandidate existing = candidateMap.get(normalizedName);
         if (existing != null) {
             existing.merge(fresh);
@@ -3826,10 +3825,9 @@ public class AccountDetectionService {
                     Pattern.CASE_INSENSITIVE);
 
     /**
-     * STEP 2: for each non-empty line, the *previous* non-empty line might be
-     * a name if the current line looks like an address, member-since, account
-     * number, or card number. Also handles same-line "Name ... Account #"
-     * patterns where the name and the marker are on one line.
+     * STEP 2: for each non-empty line, the *previous* non-empty line might be a name if the current
+     * line looks like an address, member-since, account number, or card number. Also handles
+     * same-line "Name ... Account #" patterns where the name and the marker are on one line.
      */
     private void collectFromContextualLinePatterns(
             final String[] lines,
@@ -3886,17 +3884,24 @@ public class AccountDetectionService {
                 }
             }
             // Same-line patterns also tried here (in addition to STEP 2B which sweeps all lines)
-            tryNameBeforeMarker(currentLine, excludedWords, NAME_BEFORE_ACCOUNT_PATTERN,
-                    "same_line_account", candidateMap);
-            tryNameBeforeMarker(currentLine, excludedWords, NAME_BEFORE_CARD_PATTERN,
-                    "same_line_card", candidateMap);
+            tryNameBeforeMarker(
+                    currentLine,
+                    excludedWords,
+                    NAME_BEFORE_ACCOUNT_PATTERN,
+                    "same_line_account",
+                    candidateMap);
+            tryNameBeforeMarker(
+                    currentLine,
+                    excludedWords,
+                    NAME_BEFORE_CARD_PATTERN,
+                    "same_line_card",
+                    candidateMap);
         }
     }
 
     /**
-     * STEP 2B: same-line "Name ... Account Number" / "Name ... Card Number" sweep
-     * across every line. Catches single-line statement headers that STEP 2's
-     * previous-line walk doesn't cover.
+     * STEP 2B: same-line "Name ... Account Number" / "Name ... Card Number" sweep across every
+     * line. Catches single-line statement headers that STEP 2's previous-line walk doesn't cover.
      */
     private void collectFromSameLinePatterns(
             final String[] lines,
@@ -3907,10 +3912,18 @@ public class AccountDetectionService {
             if (trimmed.isEmpty()) {
                 continue;
             }
-            tryNameBeforeMarker(trimmed, excludedWords, NAME_BEFORE_ACCOUNT_PATTERN,
-                    "same_line_account_all", candidateMap);
-            tryNameBeforeMarker(trimmed, excludedWords, NAME_BEFORE_CARD_PATTERN,
-                    "same_line_card_all", candidateMap);
+            tryNameBeforeMarker(
+                    trimmed,
+                    excludedWords,
+                    NAME_BEFORE_ACCOUNT_PATTERN,
+                    "same_line_account_all",
+                    candidateMap);
+            tryNameBeforeMarker(
+                    trimmed,
+                    excludedWords,
+                    NAME_BEFORE_CARD_PATTERN,
+                    "same_line_card_all",
+                    candidateMap);
         }
     }
 
@@ -3924,7 +3937,9 @@ public class AccountDetectionService {
         return null;
     }
 
-    /** True if the line shows the hallmarks of a street address (ZIP, "PO Box", leading number, …). */
+    /**
+     * True if the line shows the hallmarks of a street address (ZIP, "PO Box", leading number, …).
+     */
     private boolean isAddressLine(final String currentLineLower) {
         return currentLineLower.matches(".*\\baddress\\b.*")
                 || currentLineLower.matches(".*\\bstreet\\b.*")
@@ -3940,8 +3955,8 @@ public class AccountDetectionService {
     }
 
     /**
-     * Three-line address form (name / street / city-state-ZIP). Returns true
-     * when the next line has a ZIP and the current line looks like a street.
+     * Three-line address form (name / street / city-state-ZIP). Returns true when the next line has
+     * a ZIP and the current line looks like a street.
      */
     private boolean isThreeLineAddress(
             final String[] lines, final int currentIndex, final String currentLineLower) {
@@ -3982,19 +3997,19 @@ public class AccountDetectionService {
     }
 
     /** US state abbreviations (50 states + DC), used to reject address-y "name" candidates. */
-    private static final List<String> US_STATE_ABBREVIATIONS = List.of(
-            "AL", "AK", "AZ", "AR", "CA", "CO", "CT", "DE", "FL", "GA", "HI", "ID",
-            "IL", "IN", "IA", "KS", "KY", "LA", "ME", "MD", "MA", "MI", "MN", "MS",
-            "MO", "MT", "NE", "NV", "NH", "NJ", "NM", "NY", "NC", "ND", "OH", "OK",
-            "OR", "PA", "RI", "SC", "SD", "TN", "TX", "UT", "VT", "VA", "WA", "WV",
-            "WI", "WY", "DC");
+    private static final List<String> US_STATE_ABBREVIATIONS =
+            List.of(
+                    "AL", "AK", "AZ", "AR", "CA", "CO", "CT", "DE", "FL", "GA", "HI", "ID", "IL",
+                    "IN", "IA", "KS", "KY", "LA", "ME", "MD", "MA", "MI", "MN", "MS", "MO", "MT",
+                    "NE", "NV", "NH", "NJ", "NM", "NY", "NC", "ND", "OH", "OK", "OR", "PA", "RI",
+                    "SC", "SD", "TN", "TX", "UT", "VT", "VA", "WA", "WV", "WI", "WY", "DC");
 
     /**
-     * Drop candidates that are obviously not a person's name: bank/institution
-     * keywords, or names that include a US state abbreviation (we picked up an
-     * address line, not a name).
+     * Drop candidates that are obviously not a person's name: bank/institution keywords, or names
+     * that include a US state abbreviation (we picked up an address line, not a name).
      */
-    private List<NameCandidate> filterNameCandidates(final Map<String, NameCandidate> candidateMap) {
+    private List<NameCandidate> filterNameCandidates(
+            final Map<String, NameCandidate> candidateMap) {
         final List<NameCandidate> valid = new ArrayList<>();
         LOGGER.debug("Filtering {} candidates", candidateMap.size());
         for (final NameCandidate candidate : candidateMap.values()) {
@@ -4044,9 +4059,8 @@ public class AccountDetectionService {
     }
 
     /**
-     * Sort by composite score and return the winner. Logs every candidate's
-     * score breakdown at DEBUG so a misidentified name can be traced back to
-     * which signal pushed it to the top.
+     * Sort by composite score and return the winner. Logs every candidate's score breakdown at
+     * DEBUG so a misidentified name can be traced back to which signal pushed it to the top.
      */
     private NameCandidate selectBestNameCandidate(final List<NameCandidate> validCandidates) {
         validCandidates.sort(
@@ -4353,17 +4367,17 @@ public class AccountDetectionService {
     }
 
     /**
-     * Account-holder name candidate found in PDF header text. One instance per
-     * unique normalized name (case-insensitive); subsequent occurrences merge
-     * via {@link #merge}. Composite scoring is in {@link #calculateCompositeScore}.
+     * Account-holder name candidate found in PDF header text. One instance per unique normalized
+     * name (case-insensitive); subsequent occurrences merge via {@link #merge}. Composite scoring
+     * is in {@link #calculateCompositeScore}.
      *
-     * <p>Extracted from {@link #extractAccountHolderNameFromPDF} to keep the
-     * extractor method's cyclomatic complexity manageable.
+     * <p>Extracted from {@link #extractAccountHolderNameFromPDF} to keep the extractor method's
+     * cyclomatic complexity manageable.
      */
     private static final class NameCandidate {
         final String name;
-        int priority;        // higher = better
-        String patternType;  // for logging; updated when a higher-priority hit lands
+        int priority; // higher = better
+        String patternType; // for logging; updated when a higher-priority hit lands
         boolean isAllCaps;
         boolean isContextual;
         int frequency = 1;
@@ -4400,10 +4414,9 @@ public class AccountDetectionService {
         }
 
         /**
-         * Composite score; higher is better. Weighting rationale lives at
-         * each component below. The single-word and all-lowercase penalties
-         * are large enough to dominate ties — proper names should not be one
-         * lowercase token.
+         * Composite score; higher is better. Weighting rationale lives at each component below. The
+         * single-word and all-lowercase penalties are large enough to dominate ties — proper names
+         * should not be one lowercase token.
          */
         double calculateCompositeScore() {
             final double priorityScore = priority * 90.0;
