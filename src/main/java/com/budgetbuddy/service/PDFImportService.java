@@ -3285,6 +3285,78 @@ public class PDFImportService {
      * pattern-specific parsers for all 7 identified transaction patterns Also supports username
      * detection for multi-card family accounts
      */
+    /**
+     * Disposition filter for the fallback-parsing path of extractTransactionsFallback. Overlaps
+     * with {@link #isInformationalLineToSkip} but is intentionally separate — this version
+     * additionally filters statement-period / account-number / total / balance lines (which the
+     * smart-column path doesn't), uses "closing date"/"statement date" length cutoffs, and keeps
+     * the phone-number filters slightly looser to catch the additional patterns we've seen in
+     * fallback parsing. Returns true when the line should be skipped.
+     */
+    @SuppressWarnings("PMD.CyclomaticComplexity")
+    private boolean isFallbackInformationalLine(final String line, final String lineLower) {
+        return lineLower.contains("statement period")
+                || lineLower.contains("account number")
+                || lineLower.contains("total")
+                || lineLower.contains("balance")
+                || lineLower.matches(".*\\bp\\.?\\s*\\d+\\s*/\\s*\\d+.*")
+                || lineLower.matches(".*\\bpage\\s+\\d+\\s+of\\s+\\d+.*")
+                || lineLower.contains("pay over time")
+                || lineLower.contains("cash advances")
+                || lineLower.contains("interest rate")
+                || (lineLower.contains(APR)
+                        && (lineLower.contains("annual percentage rate")
+                                || lineLower.contains("interest rate")))
+                || lineLower.contains("annual percentage rate")
+                || (lineLower.contains("this date may not be")
+                        || lineLower.contains("your bank will debit")
+                        || lineLower.contains("should be made before")
+                        || lineLower.contains("you may have to pay")
+                        || lineLower.contains("for at least the difference")
+                        || (lineLower.contains("payment due date")
+                                && !lineLower.contains("received")
+                                && !lineLower.contains("credit")
+                                && line.length() > 50)
+                        || (lineLower.contains("available and pending as of") && line.length() > 50)
+                        || (lineLower.contains("closing date")
+                                && line.length() > 50
+                                && !lineLower.contains(TRANSACTION))
+                        || (lineLower.contains("statement date")
+                                && line.length() > 50
+                                && !lineLower.contains(TRANSACTION))
+                        || lineLower.contains("open to close date")
+                        || lineLower.matches(".*open.*to.*close.*date.*")
+                        || lineLower.matches(".*\\b\\d{5}-\\d{4}\\b.*")
+                        || lineLower.matches(".*\\b[a-z]{2}\\s+\\d{5}-\\d{4}\\b.*")
+                        || ((lineLower.contains("carol stream")
+                                        || lineLower.contains("street")
+                                        || lineLower.contains("address")
+                                        || lineLower.contains("city")
+                                        || lineLower.contains("state")
+                                        || lineLower.contains("zip"))
+                                && lineLower.matches(".*\\d{5}.*"))
+                        || lineLower.matches(".*\\d{1,2}\\s*-\\s*\\d{1,2}\\s+days?.*")
+                        || lineLower.matches(".*\\d{1,2}\\s+to\\s+\\d{1,2}\\s+days?.*")
+                        || lineLower.matches(".*\\d{1,3}-\\d{3}-\\d{3}-\\d{4}.*")
+                        || lineLower.matches(".*\\d{1,3}-\\d{3}-\\d{4}-\\d{4}.*")
+                        || lineLower.matches(".*\\d{3}-\\d{3}-\\d{4}.*")
+                        || ((lineLower.contains("call us at")
+                                        || lineLower.contains("call")
+                                        || lineLower.contains("phone"))
+                                && (lineLower.matches(".*\\d{1,3}-\\d{3}-.*")
+                                        || lineLower.matches(".*\\(\\s*\\d{1,3}-\\d{3}-.*")))
+                        || lineLower.contains("customer service")
+                        || lineLower.contains("relay calls")
+                        || lineLower.contains("relay call")
+                        || lineLower.contains("operator relay")
+                        || lineLower.contains("we accept")
+                        || lineLower.matches("^\\d{3,}\\s+\\d{1,2}/\\d{1,2}/\\d{2,4}[a-z]+$")
+                        || lineLower.matches("^\\d{3,}\\s+\\d{1,2}/\\d{1,2}/\\d{2,4}\\s+[a-z]+$")
+                        || (lineLower.matches(
+                                        ".*\\d{1,2}/\\d{1,2}/\\d{2,4}\\s+(through|to|\\-)\\s+\\d{1,2}/\\d{1,2}/\\d{2,4}.*")
+                                && !lineLower.matches(".*\\$.*\\d{1,2}/\\d{1,2}/\\d{2,4}.*")));
+    }
+
     private List<Map<String, String>> extractTransactionsFallback(
             final String[] lines,
             final Integer inferredYear,
@@ -3428,117 +3500,8 @@ public class PDFImportService {
             }
 
             // Fallback to original pattern matching if pattern-specific parsers didn't match
-            // Skip obvious non-transaction lines
             final String lineLower = line.toLowerCase(Locale.ROOT);
-            if (lineLower.contains("statement period")
-                    || lineLower.contains("account number")
-                    || lineLower.contains("total")
-                    || lineLower.contains("balance")
-                    ||
-                    // Skip page numbers (e.g., "p. 1/9", "p. 2/9", "page 1 of 9")
-                    lineLower.matches(".*\\bp\\.?\\s*\\d+\\s*/\\s*\\d+.*")
-                    || lineLower.matches(".*\\bpage\\s+\\d+\\s+of\\s+\\d+.*")
-                    ||
-                    // Skip informational headers like "Pay Over Time", "Cash Advances"
-                    // Note: We don't filter "%" at line level to avoid false negatives (e.g., "1%
-                    // Cashback Bonus")
-                    lineLower.contains("pay over time")
-                    || lineLower.contains("cash advances")
-                    || lineLower.contains("interest rate")
-                    ||
-                    // Only reject APR if it's clearly informational (e.g., "annual percentage
-                    // rate"), not transaction descriptions
-                    (lineLower.contains(APR)
-                            && (lineLower.contains("annual percentage rate")
-                                    || lineLower.contains("interest rate")))
-                    || lineLower.contains("annual percentage rate")
-                    ||
-                    // Skip payment due date and related informational text (only if clearly
-                    // informational, not transactions)
-                    // Check for longer informational phrases that are clearly not transactions
-                    (lineLower.contains("this date may not be")
-                            || lineLower.contains("your bank will debit")
-                            || lineLower.contains("should be made before")
-                            || lineLower.contains("you may have to pay")
-                            || lineLower.contains("for at least the difference")
-                            || (lineLower.contains("payment due date")
-                                    && !lineLower.contains("received")
-                                    && !lineLower.contains("credit")
-                                    && line.length() > 50)
-                            || (lineLower.contains("available and pending as of")
-                                    && line.length() > 50)
-                            || (lineLower.contains("closing date")
-                                    && line.length() > 50
-                                    && !lineLower.contains(TRANSACTION))
-                            || (lineLower.contains("statement date")
-                                    && line.length() > 50
-                                    && !lineLower.contains(TRANSACTION))
-                            ||
-                            // Filter "Open to Close Date" headers (false positive - informational
-                            // line)
-                            lineLower.contains("open to close date")
-                            || lineLower.matches(".*open.*to.*close.*date.*")
-                            ||
-                            // Filter address/zip code lines (e.g., "IL 60197-6103", "Carol Stream,
-                            // IL 60197-6103")
-                            lineLower.matches(".*\\b\\d{5}-\\d{4}\\b.*")
-                            || // ZIP+4 format: "60197-6103"
-                            lineLower.matches(".*\\b[a-z]{2}\\s+\\d{5}-\\d{4}\\b.*")
-                            || // State + ZIP: "IL 60197-6103"
-                            (lineLower.contains("carol stream")
-                                            || lineLower.contains("street")
-                                            || lineLower.contains("address")
-                                            || lineLower.contains("city")
-                                            || lineLower.contains("state")
-                                            || lineLower.contains("zip"))
-                                    && lineLower.matches(".*\\d{5}.*")
-                            || // Address context with zip code
-                            // Filter number ranges with "days" (e.g., "7-10 days", "7 to 10 days")
-                            (lineLower.matches(".*\\d{1,2}\\s*-\\s*\\d{1,2}\\s+days?.*")
-                                    || lineLower.matches(".*\\d{1,2}\\s+to\\s+\\d{1,2}\\s+days?.*"))
-                            || // "7-10 days" or "7 to 10 days"
-                            // Filter phone number lines (false positives - match phone number
-                            // patterns like 1-800-xxx-xxxx)
-                            lineLower.matches(".*\\d{1,3}-\\d{3}-\\d{3}-\\d{4}.*")
-                            || // Pattern: "1-800-436-7958"
-                            lineLower.matches(".*\\d{1,3}-\\d{3}-\\d{4}-\\d{4}.*")
-                            || // Pattern: "1-302-594-8200"
-                            lineLower.matches(".*\\d{3}-\\d{3}-\\d{4}.*")
-                            || // Pattern: "800-436-7958"
-                            ((lineLower.contains("call us at")
-                                            || lineLower.contains("call")
-                                            || lineLower.contains("phone"))
-                                    && (lineLower.matches(".*\\d{1,3}-\\d{3}-.*")
-                                            || lineLower.matches(".*\\(\\s*\\d{1,3}-\\d{3}-.*")))
-                            || // Phone number context
-                            // Filter customer service and relay calls lines
-                            lineLower.contains("customer service")
-                            || // Customer service lines (e.g., "24-hour customer service:
-                            // 1-866-229-6633")
-                            lineLower.contains("relay calls")
-                            || lineLower.contains("relay call")
-                            || // Relay calls lines (e.g., "we accept all relay calls, including
-                            // 711")
-                            lineLower.contains("operator relay")
-                            || // Operator relay lines
-                            lineLower.contains("we accept")
-                            || // "We accept" lines (e.g., "we accept all relay calls")
-                            // Filter reference number + date + name pattern (e.g., "776
-                            // 10/10/2025Agarwal" - FICO score lines)
-                            lineLower.matches("^\\d{3,}\\s+\\d{1,2}/\\d{1,2}/\\d{2,4}[a-z]+$")
-                            || // Pattern: "776 10/10/2025Agarwal"
-                            lineLower.matches("^\\d{3,}\\s+\\d{1,2}/\\d{1,2}/\\d{2,4}\\s+[a-z]+$")
-                            || // Pattern with space: "776 10/10/2025 Agarwal"
-                            // Filter date ranges (e.g., "10/1/25 through 12/31/25", "10/1/25 to
-                            // 12/31/25")
-                            (lineLower.matches(
-                                            ".*\\d{1,2}/\\d{1,2}/\\d{2,4}\\s+(through|to|\\-)\\s+\\d{1,2}/\\d{1,2}/\\d{2,4}.*")
-                                    && !lineLower.matches(
-                                            ".*\\$.*\\d{1,2}/\\d{1,2}/\\d{2,4}.*")))) { // Allow if
-                // it has $
-                // (could be
-                // a valid
-                // transaction with date range in description)
+            if (isFallbackInformationalLine(line, lineLower)) {
                 continue;
             }
 
