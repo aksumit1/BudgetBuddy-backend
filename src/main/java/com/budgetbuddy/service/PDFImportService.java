@@ -3891,33 +3891,25 @@ public class PDFImportService {
      * Smart column extraction for PDF transaction rows Handles multi-word descriptions by detecting
      * date and amount columns, then treating everything in between as description
      */
-    private Map<String, String> extractRowWithSmartColumnDetection(
-            final String line, final List<String> headers, final Integer inferredYear) {
-        final Map<String, String> row = new HashMap<>();
-        // LOGGER.debug("SUM LINE {}", line);
-        // Skip page numbers and informational lines
-        final String lineLower = line.toLowerCase(Locale.ROOT).trim();
-        if (lineLower.matches(".*\\bp\\.?\\s*\\d+\\s*/\\s*\\d+.*")
+    /**
+     * Disposition filter for the "smart column detection" parser — strip out page numbers,
+     * informational headers ("Pay Over Time", "Statement Date"), address/zip lines, day ranges,
+     * date ranges (unless they have a $ amount), phone numbers, and standard
+     * customer-service/agreement boilerplate. Returns true when the line should be skipped before
+     * any transaction-parsing logic runs.
+     */
+    @SuppressWarnings("PMD.CyclomaticComplexity")
+    private boolean isInformationalLineToSkip(final String line, final String lineLower) {
+        return lineLower.matches(".*\\bp\\.?\\s*\\d+\\s*/\\s*\\d+.*")
                 || lineLower.matches(".*\\bpage\\s+\\d+\\s+of\\s+\\d+.*")
-                ||
-                // Skip informational headers like "Pay Over Time", "Cash Advances"
-                // Note: We don't filter "%" at line level to avoid false negatives (e.g., "1%
-                // Cashback Bonus")
-                lineLower.contains("pay over time")
+                || lineLower.contains("pay over time")
                 || lineLower.contains("cash advances")
                 || lineLower.contains("interest rate")
-                ||
-                // Only reject APR if it's clearly informational (e.g., "annual percentage rate"),
-                // not transaction descriptions
-                (lineLower.contains(APR)
+                || (lineLower.contains(APR)
                         && (lineLower.contains("annual percentage rate")
                                 || lineLower.contains("interest rate")))
                 || lineLower.contains("annual percentage rate")
-                ||
-                // Skip payment due date and related informational text (only if clearly
-                // informational, not transactions)
-                // Check for longer informational phrases that are clearly not transactions
-                (lineLower.contains("this date may not be")
+                || (lineLower.contains("this date may not be")
                         || lineLower.contains("your bank will debit")
                         || lineLower.contains("should be made before")
                         || lineLower.contains("you may have to pay")
@@ -3926,98 +3918,58 @@ public class PDFImportService {
                                 && !lineLower.contains("received")
                                 && !lineLower.contains("credit")
                                 && line.length() > 50)
-                        || (lineLower.contains("available and pending as of")
-                                && line.length() > 50))
-                ||
-                // Filter "Closing Date" and "Statement Date" headers (any length, unless clearly a
-                // transaction)
-                (lineLower.contains("closing date") && !lineLower.contains(TRANSACTION))
+                        || (lineLower.contains("available and pending as of") && line.length() > 50))
+                || (lineLower.contains("closing date") && !lineLower.contains(TRANSACTION))
                 || (lineLower.contains("statement date") && !lineLower.contains(TRANSACTION))
-                ||
-                // Filter "Open to Close Date" headers (false positive - informational line)
-                lineLower.contains("open to close date")
+                || lineLower.contains("open to close date")
                 || lineLower.matches(".*open.*to.*close.*date.*")
-                ||
-                // Filter address/zip code lines (e.g., "IL 60197-6103", "Carol Stream, IL
-                // 60197-6103")
-                lineLower.matches(".*\\b\\d{5}-\\d{4}\\b.*")
-                || // ZIP+4 format: "60197-6103"
-                lineLower.matches(".*\\b[a-z]{2}\\s+\\d{5}-\\d{4}\\b.*")
-                || // State + ZIP: "IL 60197-6103"
-                ((lineLower.contains("carol stream")
+                || lineLower.matches(".*\\b\\d{5}-\\d{4}\\b.*")
+                || lineLower.matches(".*\\b[a-z]{2}\\s+\\d{5}-\\d{4}\\b.*")
+                || ((lineLower.contains("carol stream")
                                 || lineLower.contains("street")
                                 || lineLower.contains("address")
                                 || lineLower.contains("city")
                                 || lineLower.contains("state")
                                 || lineLower.contains("zip"))
                         && lineLower.matches(".*\\d{5}.*"))
-                || // Address context with zip code
-                // Filter number ranges with "days" (e.g., "7-10 days", "7 to 10 days")
-                (lineLower.matches(".*\\d{1,2}\\s*-\\s*\\d{1,2}\\s+days?.*")
-                        || lineLower.matches(".*\\d{1,2}\\s+to\\s+\\d{1,2}\\s+days?.*"))
-                || // "7-10 days" or "7 to 10 days"
-                // Filter date ranges (e.g., "09/17/2025 - 10/16/2025", "10/1/25 through 12/31/25",
-                // "10/1/25 to 12/31/25")
-                (lineLower.matches(
+                || lineLower.matches(".*\\d{1,2}\\s*-\\s*\\d{1,2}\\s+days?.*")
+                || lineLower.matches(".*\\d{1,2}\\s+to\\s+\\d{1,2}\\s+days?.*")
+                || (lineLower.matches(
                                 ".*\\d{1,2}/\\d{1,2}/\\d{2,4}\\s+(through|to|\\-)\\s+\\d{1,2}/\\d{1,2}/\\d{2,4}.*")
                         && !lineLower.matches(".*\\$.*\\d{1,2}/\\d{1,2}/\\d{2,4}.*"))
-                || // Allow if it has $ (could be a valid transaction with date range in
-                // description)
-                // Filter "Account Ending" headers (standalone, not combined with
-                // fees/amount/transaction)
-                (lineLower.contains("account ending")
+                || (lineLower.contains("account ending")
                         && !lineLower.contains("fees")
                         && !lineLower.contains("amount")
                         && !lineLower.contains(TRANSACTION))
-                ||
-                // Filter lines that start with a number (reference/account number) followed by date
-                // and name (no amount)
-                // Pattern: "776 10/10/2025agarwal"
-                lineLower.matches("^\\d{3,}\\s+\\d{1,2}/\\d{1,2}/\\d{2,4}[a-z]+$")
-                ||
-                // Filter repeated numbers (e.g., "776 776")
-                lineLower.matches("^\\d{3,}\\s+\\d{3,}$")
-                ||
-                // Filter informational text about charts/statements
-                lineLower.contains("chart will be shown")
+                || lineLower.matches("^\\d{3,}\\s+\\d{1,2}/\\d{1,2}/\\d{2,4}[a-z]+$")
+                || lineLower.matches("^\\d{3,}\\s+\\d{3,}$")
+                || lineLower.contains("chart will be shown")
                 || (lineLower.contains("every")
                         && lineLower.contains(STATEMENT)
                         && lineLower.contains("months"))
-                ||
-                // Filter phone number lines with informational keywords
-                // Pattern 1: 1-3digits-3digits-4digits (e.g., "1-800-436-7958", "1-302-594-8200")
-                (lineLower.contains("international")
+                || (lineLower.contains("international")
                         && lineLower.matches(".*\\d{1,3}-\\d{3}-\\d{3}-\\d{4}.*"))
-                || // "International 1-800-436-7958" or "International 1-302-594-8200"
-                // Pattern 2: 1-3digits-4digits-4digits (e.g., "1-302-594-8200" - alternative
-                // format)
-                (lineLower.contains("international")
+                || (lineLower.contains("international")
                         && lineLower.matches(".*\\d{1,3}-\\d{3}-\\d{4}-\\d{4}.*"))
-                || // "International 1-302-594-8200" (alternative)
-                // Pattern 3: 3digits-3digits-4digits (e.g., "800-436-7958")
-                (lineLower.contains("international")
+                || (lineLower.contains("international")
                         && lineLower.matches(".*\\d{3}-\\d{3}-\\d{4}.*"))
-                || // "International 800-436-7958"
-                // Filter customer service and relay calls lines
-                lineLower.contains("customer service")
-                || // Customer service lines (e.g., "24-hour customer service: 1-866-229-6633")
-                lineLower.contains("relay calls")
+                || lineLower.contains("customer service")
+                || lineLower.contains("relay calls")
                 || lineLower.contains("relay call")
-                || // Relay calls lines (e.g., "we accept all relay calls, including 711")
-                lineLower.contains("operator relay")
-                || // Operator relay lines
-                lineLower.contains("we accept")
-                || // "We accept" lines (e.g., "we accept all relay calls")
-                // Filter agreement-related informational lines
-                lineLower.contains("agreement for details")
-                || // Agreement reference lines (e.g., "Cardmember Agreement for details")
-                lineLower.contains("cardmember agreement")
-                || // Cardmember agreement lines
-                lineLower.contains("cardholder agreement")) { // Cardholder agreement lines
-            // Skipping informational line
-            return null; // Skip this line
+                || lineLower.contains("operator relay")
+                || lineLower.contains("we accept")
+                || lineLower.contains("agreement for details")
+                || lineLower.contains("cardmember agreement")
+                || lineLower.contains("cardholder agreement");
+    }
+
+    private Map<String, String> extractRowWithSmartColumnDetection(
+            final String line, final List<String> headers, final Integer inferredYear) {
+        final Map<String, String> row = new HashMap<>();
+        final String lineLower = line.toLowerCase(Locale.ROOT).trim();
+        if (isInformationalLineToSkip(line, lineLower)) {
+            return null;
         }
-        // Processing line
 
         // First, try pattern-specific parsers (most accurate for known patterns)
         // Detect locale from line for EnhancedPatternMatcher
