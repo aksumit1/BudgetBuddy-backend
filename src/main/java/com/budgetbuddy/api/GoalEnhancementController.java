@@ -46,6 +46,14 @@ public class GoalEnhancementController {
 
     private static final String ERROR = "error";
 
+    /**
+     * Body string returned when a broad catch fires. The original exception text is logged with
+     * full stack trace via LOGGER but never returned to the client — it can include DynamoDB
+     * schema errors, internal exception subclass names, "Goal does not belong to user" (which
+     * leaks the existence of a foreign goalId), and similar implementation detail.
+     */
+    private static final String INTERNAL_ERROR_MSG = "An internal error occurred";
+
     private static final Logger LOGGER = LoggerFactory.getLogger(GoalEnhancementController.class);
 
     private final GoalService goalService;
@@ -89,7 +97,7 @@ public class GoalEnhancementController {
             return ResponseEntity.ok(response);
         } catch (Exception e) {
             LOGGER.error("Error getting milestones for goal {}: {}", id, e.getMessage(), e);
-            return ResponseEntity.internalServerError().body(Map.of(ERROR, e.getMessage()));
+            return ResponseEntity.internalServerError().body(Map.of(ERROR, INTERNAL_ERROR_MSG));
         }
     }
 
@@ -115,7 +123,7 @@ public class GoalEnhancementController {
             return ResponseEntity.ok(projection);
         } catch (Exception e) {
             LOGGER.error("Error getting projections for goal {}: {}", id, e.getMessage(), e);
-            return ResponseEntity.internalServerError().body(Map.of(ERROR, e.getMessage()));
+            return ResponseEntity.internalServerError().body(Map.of(ERROR, INTERNAL_ERROR_MSG));
         }
     }
 
@@ -136,7 +144,7 @@ public class GoalEnhancementController {
             return ResponseEntity.ok(insights);
         } catch (Exception e) {
             LOGGER.error("Error getting insights for goal {}: {}", id, e.getMessage(), e);
-            return ResponseEntity.internalServerError().body(Map.of(ERROR, e.getMessage()));
+            return ResponseEntity.internalServerError().body(Map.of(ERROR, INTERNAL_ERROR_MSG));
         }
     }
 
@@ -157,7 +165,7 @@ public class GoalEnhancementController {
             return ResponseEntity.ok(Map.of("message", "Round-up enabled for goal", "goalId", id));
         } catch (Exception e) {
             LOGGER.error("Error enabling round-up for goal {}: {}", id, e.getMessage(), e);
-            return ResponseEntity.internalServerError().body(Map.of(ERROR, e.getMessage()));
+            return ResponseEntity.internalServerError().body(Map.of(ERROR, INTERNAL_ERROR_MSG));
         }
     }
 
@@ -178,7 +186,7 @@ public class GoalEnhancementController {
             return ResponseEntity.ok(Map.of("message", "Round-up disabled for goal", "goalId", id));
         } catch (Exception e) {
             LOGGER.error("Error disabling round-up for goal {}: {}", id, e.getMessage(), e);
-            return ResponseEntity.internalServerError().body(Map.of(ERROR, e.getMessage()));
+            return ResponseEntity.internalServerError().body(Map.of(ERROR, INTERNAL_ERROR_MSG));
         }
     }
 
@@ -200,7 +208,7 @@ public class GoalEnhancementController {
             return ResponseEntity.ok(Map.of("total", total, "days", days));
         } catch (Exception e) {
             LOGGER.error("Error getting round-up total for goal {}: {}", id, e.getMessage(), e);
-            return ResponseEntity.internalServerError().body(Map.of(ERROR, e.getMessage()));
+            return ResponseEntity.internalServerError().body(Map.of(ERROR, INTERNAL_ERROR_MSG));
         }
     }
 }
