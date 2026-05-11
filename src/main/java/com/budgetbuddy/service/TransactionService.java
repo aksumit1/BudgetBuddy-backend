@@ -1904,10 +1904,10 @@ public class TransactionService {
             try {
                 final GoalProgressService goalProgressService =
                         applicationContext.getBean(GoalProgressService.class);
-                if (goalProgressService != null) {
-                    goalProgressService.onTransactionGoalAssignmentChanged(
-                            user.getUserId(), transaction.getGoalId());
-                }
+                // ApplicationContext.getBean(Class) is @NonNull — it throws
+                // NoSuchBeanDefinitionException rather than returning null.
+                goalProgressService.onTransactionGoalAssignmentChanged(
+                        user.getUserId(), transaction.getGoalId());
             } catch (Exception e) {
                 LOGGER.debug(
                         "Goal progress service not available or error triggering recalculation: {}",
@@ -2449,17 +2449,16 @@ public class TransactionService {
         if ((oldGoalId == null && newGoalId != null)
                 || (oldGoalId != null && !oldGoalId.equals(newGoalId))) {
             try {
+                // ApplicationContext.getBean(Class) is @NonNull — throws if missing.
                 final GoalProgressService goalProgressService =
                         applicationContext.getBean(GoalProgressService.class);
-                if (goalProgressService != null) {
-                    if (newGoalId != null) {
-                        goalProgressService.onTransactionGoalAssignmentChanged(
-                                user.getUserId(), newGoalId);
-                    }
-                    if (oldGoalId != null && !oldGoalId.equals(newGoalId)) {
-                        goalProgressService.onTransactionGoalAssignmentChanged(
-                                user.getUserId(), oldGoalId);
-                    }
+                if (newGoalId != null) {
+                    goalProgressService.onTransactionGoalAssignmentChanged(
+                            user.getUserId(), newGoalId);
+                }
+                if (oldGoalId != null && !oldGoalId.equals(newGoalId)) {
+                    goalProgressService.onTransactionGoalAssignmentChanged(
+                            user.getUserId(), oldGoalId);
                 }
             } catch (Exception e) {
                 LOGGER.debug(

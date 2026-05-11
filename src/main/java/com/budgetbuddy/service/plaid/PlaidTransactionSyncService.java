@@ -155,8 +155,8 @@ public class PlaidTransactionSyncService {
                             earliestStartDate.format(DATE_FORMATTER),
                             endDate.format(DATE_FORMATTER));
 
-            if (allTransactionsResponse == null
-                    || allTransactionsResponse.getTransactions() == null
+            // Plaid SDK returns @NonNull response — only check the list.
+            if (allTransactionsResponse.getTransactions() == null
                     || allTransactionsResponse.getTransactions().isEmpty()) {
                 LOGGER.warn("No transactions returned from Plaid for user: {}", user.getUserId());
                 updateLastSyncedAtForAccounts(accountsToSync);

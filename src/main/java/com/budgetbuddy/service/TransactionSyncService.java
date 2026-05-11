@@ -99,7 +99,7 @@ public class TransactionSyncService {
                             startDate.format(DATE_FORMATTER),
                             endDate.format(DATE_FORMATTER));
 
-            if (plaidResponse == null || plaidResponse.getTransactions() == null) {
+            if (plaidResponse.getTransactions() == null) {  // Plaid SDK returns @NonNull
                 LOGGER.warn("No transactions returned from Plaid for user: {}", userId);
                 final SyncResult result = new SyncResult();
                 result.setTotalProcessed(0);
@@ -315,7 +315,7 @@ public class TransactionSyncService {
                             sinceDate.format(DATE_FORMATTER),
                             endDate.format(DATE_FORMATTER));
 
-            if (plaidResponse == null || plaidResponse.getTransactions() == null) {
+            if (plaidResponse.getTransactions() == null) {  // Plaid SDK returns @NonNull
                 LOGGER.warn("No transactions returned from Plaid for incremental sync");
                 final SyncResult result = new SyncResult();
                 result.setTotalProcessed(0);
