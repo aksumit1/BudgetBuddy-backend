@@ -39,6 +39,42 @@ public class TransportationCategoryStrategy extends BaseCategoryStrategy {
             return null;
         }
 
+        String result;
+        result =
+                detectTransportAirportExpenses(
+                        normalizedMerchantName, descriptionLower, merchantName);
+        if (result != null) {
+            return result;
+        }
+        result = detectTransportGasStations(normalizedMerchantName, descriptionLower, merchantName);
+        if (result != null) {
+            return result;
+        }
+        result =
+                detectTransportCarDealerships(
+                        normalizedMerchantName, descriptionLower, merchantName);
+        if (result != null) {
+            return result;
+        }
+        result =
+                detectTransportEntertainment(
+                        normalizedMerchantName, descriptionLower, merchantName);
+        if (result != null) {
+            return result;
+        }
+        result =
+                detectTransportEducationSchool(
+                        normalizedMerchantName, descriptionLower, merchantName);
+        if (result != null) {
+            return result;
+        }
+        return null;
+    }
+
+    private String detectTransportAirportExpenses(
+            final String normalizedMerchantName,
+            final String descriptionLower,
+            final String merchantName) {
         // CRITICAL: Airport expenses (carts, chairs, parking, etc.) must come BEFORE utilities
         // check
         // "SEATTLEAP" (Seattle Airport) should not match "Seattle Public Utilities"
@@ -68,7 +104,13 @@ public class TransportationCategoryStrategy extends BaseCategoryStrategy {
                     "🏷️ detectCategoryFromMerchantName: Detected airport cart/chair → 'transportation'");
             return TRANSPORTATION;
         }
+        return null;
+    }
 
+    private String detectTransportGasStations(
+            final String normalizedMerchantName,
+            final String descriptionLower,
+            final String merchantName) {
         // ========== GAS STATIONS ==========
         if (normalizedMerchantName.contains(CHEVRON) || descriptionLower.contains(CHEVRON)) {
             return TRANSPORTATION;
@@ -110,7 +152,13 @@ public class TransportationCategoryStrategy extends BaseCategoryStrategy {
                 || descriptionLower.contains("gas station")) {
             return TRANSPORTATION;
         }
+        return null;
+    }
 
+    private String detectTransportCarDealerships(
+            final String normalizedMerchantName,
+            final String descriptionLower,
+            final String merchantName) {
         // ========== CAR DEALERSHIPS AND SERVICES ==========
         // Honda CTR / Honda dealerships - transportation
         if (normalizedMerchantName.contains("honda ctr")
@@ -128,7 +176,13 @@ public class TransportationCategoryStrategy extends BaseCategoryStrategy {
                     "🏷️ detectCategoryFromMerchantName: Detected Honda (dealership/service) → 'transportation'");
             return TRANSPORTATION;
         }
+        return null;
+    }
 
+    private String detectTransportEntertainment(
+            final String normalizedMerchantName,
+            final String descriptionLower,
+            final String merchantName) {
         // ========== ENTERTAINMENT ==========
         if (normalizedMerchantName.contains("amc") || descriptionLower.contains("amc")) {
             return "entertainment";
@@ -259,7 +313,13 @@ public class TransportationCategoryStrategy extends BaseCategoryStrategy {
                     "🏷️ detectCategoryFromMerchantName: Detected escape room → 'entertainment'");
             return "entertainment";
         }
+        return null;
+    }
 
+    private String detectTransportEducationSchool(
+            final String normalizedMerchantName,
+            final String descriptionLower,
+            final String merchantName) {
         // ========== EDUCATION/SCHOOL PAYMENTS ==========
         // PayPAMS - online school payments for food (dining)
         if (normalizedMerchantName.contains(PAYPAMS)
@@ -565,6 +625,6 @@ public class TransportationCategoryStrategy extends BaseCategoryStrategy {
             }
         }
 
-        return null; // No match found
+        return null;
     }
 }

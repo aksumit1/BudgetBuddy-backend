@@ -1044,90 +1044,7 @@ public class TransactionService {
             throw new AppException(ErrorCode.INVALID_INPUT, "Category primary is required");
         }
 
-        final AccountTable account;
-
-        // CRITICAL FIX: Plaid transactions should NEVER use pseudo account
-        // If plaidAccountId is provided, this is a Plaid transaction and must use a real account
-        if (plaidAccountId != null && !plaidAccountId.isEmpty()) {
-            // This is a Plaid transaction - must find account by Plaid ID or accountId
-            Optional<AccountTable> accountOpt = null;
-
-            // Try to find account by accountId first (if provided)
-            if (accountId != null && !accountId.isEmpty()) {
-                accountOpt = accountRepository.findById(accountId);
-            }
-
-            // If not found by accountId, try lookup by Plaid account ID (required for Plaid
-            // transactions)
-            if (accountOpt == null || accountOpt.isEmpty()) {
-                // Account not found by ID, trying Plaid account ID
-                accountOpt = accountRepository.findByPlaidAccountId(plaidAccountId);
-                if (accountOpt.isPresent()) {
-                    final AccountTable foundAccount = accountOpt.get();
-                    // CRITICAL: Verify the account belongs to the user
-                    if (foundAccount.getUserId() == null
-                            || !foundAccount.getUserId().equals(user.getUserId())) {
-                        LOGGER.warn(
-                                "Account found by Plaid ID {} belongs to different user (found: {}, requested: {})",
-                                plaidAccountId,
-                                foundAccount.getUserId(),
-                                user.getUserId());
-                        accountOpt =
-                                Optional.empty(); // Clear the result - account doesn't belong to
-                        // user
-                    } else {
-                        LOGGER.info(
-                                "Found account by Plaid ID {} (requested accountId: {})",
-                                plaidAccountId,
-                                accountId);
-                    }
-                }
-
-                // FALLBACK: If PlaidAccountIdIndex lookup failed, search user's accounts
-                // This handles cases where the GSI isn't immediately consistent or isn't available
-                if (accountOpt.isEmpty()) {
-                    // Account not found by Plaid ID index, trying fallback
-                    final List<AccountTable> userAccounts =
-                            accountRepository.findByUserId(user.getUserId());
-                    accountOpt =
-                            userAccounts.stream()
-                                    .filter(
-                                            acc ->
-                                                    plaidAccountId != null
-                                                            && plaidAccountId.equals(
-                                                                    acc.getPlaidAccountId()))
-                                    .findFirst();
-                    if (accountOpt.isPresent()) {
-                        LOGGER.info(
-                                "Found account by Plaid ID {} using fallback method (searching user's accounts)",
-                                plaidAccountId);
-                    }
-                }
-            }
-
-            // CRITICAL: Plaid transactions must have a real account - never use pseudo account
-            account =
-                    accountOpt.orElseThrow(
-                            () ->
-                                    new AppException(
-                                            ErrorCode.ACCOUNT_NOT_FOUND,
-                                            "Plaid transaction requires a valid account. Account not found for Plaid account ID: "
-                                                    + plaidAccountId));
-        } else if (accountId == null || accountId.isEmpty()) {
-            // Manual transaction without account - use pseudo account
-            LOGGER.info(
-                    "No account ID provided for manual transaction - using pseudo account for user {}",
-                    user.getUserId());
-            account = accountRepository.getOrCreatePseudoAccount(user.getUserId());
-        } else {
-            // Manual transaction with accountId - find account by ID
-            final Optional<AccountTable> accountOpt = accountRepository.findById(accountId);
-            account =
-                    accountOpt.orElseThrow(
-                            () ->
-                                    new AppException(
-                                            ErrorCode.ACCOUNT_NOT_FOUND, "Account not found"));
-        }
+        final AccountTable account = resolveAccountForCreate(user, accountId, plaidAccountId);
 
         // CRITICAL: Verify account belongs to user (already checked for Plaid accounts above, but
         // double-check for safety)
@@ -1142,297 +1059,24 @@ public class TransactionService {
 
         final TransactionTable transaction = new TransactionTable();
 
-        // CRITICAL: Use provided transactionId if valid, otherwise use deterministic UUID from
-        // Plaid ID if available
-        // This ensures app and backend use the same transaction ID for consistency
-        if (transactionId != null && !transactionId.isBlank()) {
-            // Validate UUID format
-            try {
-                UUID.fromString(transactionId); // Validates UUID format
-                // CRITICAL FIX: Normalize ID to lowercase before checking for existing
-                // This ensures we check with the normalized ID that will be saved
-                final String normalizedId =
-                        com.budgetbuddy.util.IdGenerator.normalizeUUID(transactionId);
-                // Check if transaction with this ID already exists (using normalized ID)
-                final Optional<TransactionTable> existingOpt =
-                        transactionRepository.findById(normalizedId);
-                if (existingOpt.isPresent()) {
-                    final TransactionTable existing = existingOpt.get();
-
-                    // CRITICAL FIX: Verify the existing transaction belongs to the same user
-                    // This prevents unauthorized access and ensures idempotent behavior
-                    if (!existing.getUserId().equals(user.getUserId())) {
-                        // Transaction exists but belongs to a different user - security issue
-                        LOGGER.warn(
-                                "Transaction with ID {} already exists but belongs to different user. Generating new UUID for security.",
-                                normalizedId);
-                        // Fall through to generate new UUID
-                    } else {
-                        // Transaction exists and belongs to the same user - check Plaid ID matching
-                        final String existingPlaidId = existing.getPlaidTransactionId();
-                        final boolean existingHasPlaidId =
-                                existingPlaidId != null && !existingPlaidId.isEmpty();
-                        final boolean requestHasPlaidId =
-                                plaidTransactionId != null && !plaidTransactionId.isEmpty();
-
-                        if (requestHasPlaidId && plaidTransactionId != null) {
-                            // Request provides Plaid ID - must match for idempotency
-                            final String providedPlaidId =
-                                    plaidTransactionId; // Non-null due to check above
-                            if (existingHasPlaidId && providedPlaidId.equals(existingPlaidId)) {
-                                // Same transaction (matched by Plaid ID) - update transactionType
-                                // if user provided one
-                                if (transactionType != null && !transactionType.isBlank()) {
-                                    try {
-                                        final com.budgetbuddy.model.TransactionType
-                                                userTransactionType =
-                                                        com.budgetbuddy.model.TransactionType
-                                                                .valueOf(
-                                                                        transactionType
-                                                                                .trim()
-                                                                                .toUpperCase(
-                                                                                        Locale
-                                                                                                .ROOT));
-                                        final String existingType = existing.getTransactionType();
-                                        if (!userTransactionType.name().equals(existingType)) {
-                                            // User provided different transactionType - update it
-                                            // and mark as overridden
-                                            existing.setTransactionType(userTransactionType.name());
-                                            // Only mark as overridden if new type differs from
-                                            // existing type
-                                            existing.setTransactionTypeOverridden(true);
-                                            transactionRepository.save(existing);
-                                            LOGGER.info(
-                                                    "Updated transactionType to {} for existing transaction {} (user override)",
-                                                    userTransactionType,
-                                                    normalizedId);
-                                        }
-                                    } catch (IllegalArgumentException e) {
-                                        LOGGER.warn(
-                                                "Invalid transaction type '{}' provided for existing transaction, keeping existing type: {}",
-                                                transactionType,
-                                                existing.getTransactionType());
-                                    }
-                                }
-                                LOGGER.info(
-                                        "Transaction with ID {} already exists and matches Plaid ID {}, returning existing",
-                                        normalizedId,
-                                        providedPlaidId);
-                                return existing;
-                            } else if (existingHasPlaidId
-                                    && !providedPlaidId.equals(existingPlaidId)) {
-                                // CRITICAL: Plaid ID provided but doesn't match existing - this is
-                                // a conflict
-                                // Generate new UUID to prevent data corruption
-                                LOGGER.warn(
-                                        "Transaction with ID {} already exists but Plaid ID doesn't match (existing: {}, provided: {}). "
-                                                + "Generating new UUID to prevent data conflict.",
-                                        normalizedId,
-                                        existingPlaidId,
-                                        providedPlaidId);
-                                // Fall through to generate new UUID
-                            } else {
-                                // Request has Plaid ID but existing doesn't - update existing with
-                                // Plaid ID and transactionType
-                                // This handles the case where a manual transaction is later linked
-                                // to Plaid
-                                LOGGER.info(
-                                        "Transaction with ID {} exists without Plaid ID, but request provides Plaid ID {}. "
-                                                + "Updating existing transaction with Plaid ID and transactionType.",
-                                        normalizedId,
-                                        providedPlaidId);
-                                // Update Plaid ID
-                                existing.setPlaidTransactionId(providedPlaidId);
-                                // Update transactionType if user provided one
-                                final Optional<com.budgetbuddy.model.TransactionType> userTypeOpt =
-                                        parseUserTransactionType(transactionType);
-                                if (userTypeOpt.isPresent()) {
-                                    final com.budgetbuddy.model.TransactionType userType =
-                                            userTypeOpt.get();
-                                    final String existingType = existing.getTransactionType();
-                                    existing.setTransactionType(userType.name());
-                                    // Only mark as overridden if new type differs from existing
-                                    // type
-                                    if (existingType == null
-                                            || !userType.name().equals(existingType)) {
-                                        existing.setTransactionTypeOverridden(true);
-                                    }
-                                    // Updated transactionType (user override)
-                                }
-                                transactionRepository.save(existing);
-                                return existing;
-                            }
-                        } else {
-                            // No Plaid ID provided in request - update transactionType if user
-                            // provided one
-                            // This handles both manual transactions and Plaid transactions without
-                            // ID in request
-                            final Optional<com.budgetbuddy.model.TransactionType> userTypeOpt =
-                                    parseUserTransactionType(transactionType);
-                            if (userTypeOpt.isPresent()) {
-                                final com.budgetbuddy.model.TransactionType userType =
-                                        userTypeOpt.get();
-                                final String existingType = existing.getTransactionType();
-                                existing.setTransactionType(userType.name());
-
-                                // Determine if this is an import (CSV, PDF, etc.)
-                                final boolean isImport =
-                                        importSource != null
-                                                && !importSource.isBlank()
-                                                && ("CSV".equalsIgnoreCase(importSource)
-                                                        || "PDF".equalsIgnoreCase(importSource)
-                                                        || "EXCEL".equalsIgnoreCase(importSource));
-
-                                if (isImport) {
-                                    // For imports: Only mark as overridden if transaction was
-                                    // already overridden and new type differs
-                                    final boolean wasOverridden =
-                                            Boolean.TRUE.equals(
-                                                    existing.getTransactionTypeOverridden());
-                                    if (wasOverridden
-                                            && existingType != null
-                                            && !userType.name().equals(existingType)) {
-                                        // Transaction was already overridden and new type differs -
-                                        // keep override flag
-                                        existing.setTransactionTypeOverridden(true);
-                                    } else {
-                                        // First time setting value from import - don't mark as
-                                        // overridden
-                                        // Only set to false if currently null (preserve existing
-                                        // state)
-                                        if (existing.getTransactionTypeOverridden() == null) {
-                                            existing.setTransactionTypeOverridden(false);
-                                        }
-                                    }
-                                } else {
-                                    // For non-imports (user API calls): Only mark as overridden if
-                                    // new type differs from existing
-                                    if (existingType == null
-                                            || !userType.name().equals(existingType)) {
-                                        existing.setTransactionTypeOverridden(true);
-                                    }
-                                }
-
-                                transactionRepository.save(existing);
-                                LOGGER.info(
-                                        "Updated transactionType to {} for existing transaction {} (user override)",
-                                        userType,
-                                        normalizedId);
-                            }
-                            LOGGER.info(
-                                    "Transaction with ID {} already exists (no Plaid ID in request). Returning existing for idempotency.",
-                                    normalizedId);
-                            return existing;
-                        }
-                    }
-                } else {
-                    // Transaction doesn't exist - set normalized ID
-                    transaction.setTransactionId(normalizedId);
-                    LOGGER.info(
-                            "Using provided transaction ID (normalized): {} -> {}",
-                            transactionId,
-                            normalizedId);
-                }
-            } catch (IllegalArgumentException e) {
-                // Invalid UUID format, fall through to generate deterministic UUID from Plaid ID if
-                // available
-                LOGGER.warn(
-                        "Invalid transaction ID format '{}', will use deterministic UUID from Plaid ID if available",
-                        transactionId);
-            }
-        }
-
-        // If transactionId is not set yet, try to generate deterministic UUID
-        if (transaction.getTransactionId() == null || transaction.getTransactionId().isEmpty()) {
-            if (plaidTransactionId != null && !plaidTransactionId.isEmpty()) {
-                // Generate deterministic UUID from Plaid transaction ID (matches iOS app fallback)
-                // This ensures both app and backend use the same ID when institution/account info
-                // is missing
-                final UUID namespaceUUID =
-                        UUID.fromString(
-                                "6ba7b811-9dad-11d1-80b4-00c04fd430c8"); // TRANSACTION_NAMESPACE
-                final String generatedId =
-                        com.budgetbuddy.util.IdGenerator.generateDeterministicUUID(
-                                namespaceUUID, plaidTransactionId);
-                // CRITICAL FIX: Normalize generated UUID to lowercase for consistency
-                final String normalizedId =
-                        com.budgetbuddy.util.IdGenerator.normalizeUUID(generatedId);
-                transaction.setTransactionId(normalizedId);
-                LOGGER.info(
-                        "Generated deterministic transaction ID (normalized): {} from Plaid ID: {} (matches iOS app fallback)",
-                        normalizedId,
-                        plaidTransactionId);
-            } else if (importSource != null
-                    && !importSource.isBlank()
-                    && importFileName != null
-                    && !importFileName.isBlank()
-                    && account != null) {
-                // CRITICAL FIX: Generate deterministic UUID for imported transactions to prevent
-                // duplicates
-                // This ensures reimporting the same file creates the same transaction IDs
-                // Use: importSource + normalized filename + accountId + amount + date + description
-                final String normalizedFileName =
-                        importFileName
-                                .trim()
-                                .toLowerCase(Locale.ROOT)
-                                .replaceAll("[^a-z0-9._-]", "");
-                // CRITICAL FIX: Use the transactionDate parameter (LocalDate) and format it
-                // consistently
-                // Don't use transaction.getTransactionDate() as it hasn't been set yet
-                final String transactionDateStr = transactionDate.format(DATE_FORMATTER);
-                String cleanedDescriptionForKey = removeNamesFromText(description, userName);
-                if (cleanedDescriptionForKey == null || cleanedDescriptionForKey.isEmpty()) {
-                    cleanedDescriptionForKey = description != null ? description : "";
-                }
-                final String descriptionStr = cleanedDescriptionForKey;
-                final String transactionKey =
-                        String.format(
-                                "%s|%s|%s|%s|%s|%s",
-                                importSource.trim().toUpperCase(Locale.ROOT),
-                                normalizedFileName,
-                                account.getAccountId(),
-                                amount.toString(),
-                                transactionDateStr,
-                                descriptionStr.trim().toLowerCase(Locale.ROOT));
-
-                final UUID importNamespaceUUID =
-                        UUID.fromString("7ba7b811-9dad-11d1-80b4-00c04fd430c8"); // IMPORT_NAMESPACE
-                final String generatedId =
-                        com.budgetbuddy.util.IdGenerator.generateDeterministicUUID(
-                                importNamespaceUUID, transactionKey);
-                final String normalizedId =
-                        com.budgetbuddy.util.IdGenerator.normalizeUUID(generatedId);
-
-                // CRITICAL: Check if transaction with this deterministic ID already exists
-                final Optional<TransactionTable> existingByIdOpt =
-                        transactionRepository.findById(normalizedId);
-                if (existingByIdOpt.isPresent()) {
-                    final TransactionTable existing = existingByIdOpt.get();
-                    // Verify it belongs to the same user
-                    if (existing.getUserId().equals(user.getUserId())) {
-                        LOGGER.info(
-                                "Duplicate imported transaction detected by deterministic ID (source: {}, file: {}). "
-                                        + "Returning existing transaction {} instead of creating new one.",
-                                importSource,
-                                importFileName,
-                                normalizedId);
-                        return existing;
-                    }
-                }
-
-                transaction.setTransactionId(normalizedId);
-                LOGGER.info(
-                        "Generated deterministic transaction ID for import (source: {}, file: {}): {}",
+        // Resolve transaction ID (provided UUID, deterministic from Plaid/import, or random)
+        // and check for idempotency hits. Returns the existing transaction if one matches.
+        final TransactionTable idempotencyHit =
+                resolveTransactionIdOrFindExisting(
+                        transaction,
+                        user,
+                        account,
+                        transactionId,
+                        plaidTransactionId,
+                        transactionType,
+                        description,
+                        userName,
+                        amount,
+                        transactionDate,
                         importSource,
-                        importFileName,
-                        normalizedId);
-            } else {
-                // No Plaid ID or import metadata available, generate random UUID
-                // CRITICAL FIX: Normalize generated UUID to lowercase for consistency
-                final String generatedId = UUID.randomUUID().toString().toLowerCase(Locale.ROOT);
-                transaction.setTransactionId(generatedId);
-                // Generated random UUID for transaction ID
-            }
+                        importFileName);
+        if (idempotencyHit != null) {
+            return idempotencyHit;
         }
 
         transaction.setUserId(user.getUserId());
@@ -1490,146 +1134,19 @@ public class TransactionService {
             transaction.setImporterCategoryDetailed(importerCategoryDetailed);
         }
 
-        // CRITICAL: For imports, re-apply unified service with account information for better
-        // accuracy
-        // Account is now available, so we can get more accurate categories and types
-        // EXCEPTION: If categoryPrimary differs from importerCategoryPrimary, it means the user
-        // edited it
-        // in the preview, so we should respect the edited category and NOT re-run
-        // determineCategory()
-        final boolean isUserEditedCategory =
-                categoryPrimary != null
-                        && !categoryPrimary.isEmpty()
-                        && importerCategoryPrimary != null
-                        && !importerCategoryPrimary.isEmpty()
-                        && !categoryPrimary.equalsIgnoreCase(importerCategoryPrimary);
-
-        if (importSource != null
-                && !importSource.isBlank()
-                && account != null
-                && account.getAccountId() != null
-                && !account.getAccountId().startsWith("pseudo-")
-                && !isUserEditedCategory) {
-            // This is an import with a real account - re-apply unified service for better accuracy
-            // But skip if user edited the category in preview (categoryPrimary !=
-            // importerCategoryPrimary)
-            try {
-                final TransactionTypeCategoryService.TypeResult preTypeResult =
-                        transactionTypeCategoryService.determineTransactionType(
-                                account,
-                                null,
-                                null,
-                                amount,
-                                null,
-                                cleanedDescription,
-                                paymentChannel);
-                final TransactionTypeCategoryService.CategoryResult categoryResult =
-                        transactionTypeCategoryService.determineCategory(
-                                importerCategoryPrimary != null
-                                        ? importerCategoryPrimary
-                                        : categoryPrimary,
-                                importerCategoryDetailed != null
-                                        ? importerCategoryDetailed
-                                        : categoryDetailed,
-                                account,
-                                cleanedMerchantName != null
-                                        ? cleanedMerchantName
-                                        : merchantName, // Prefer cleaned merchant name
-                                cleanedDescription,
-                                amount,
-                                paymentChannel, // Use paymentChannel from parameter
-                                null, // transactionTypeIndicator not available
-                                importSource,
-                                preTypeResult != null ? preTypeResult.getTransactionType() : null);
-
-                if (categoryResult != null) {
-                    final String determinedPrimary = categoryResult.getCategoryPrimary();
-                    final String determinedDetailed = categoryResult.getCategoryDetailed();
-
-                    // CRITICAL: Check if determined category differs from importer's parsed
-                    // category
-                    // If it does, this is an internal override (parser/rules/ML overrode importer)
-                    // Set categoryOverridden=true to prevent re-import from overriding it
-                    boolean isInternalOverride = false;
-
-                    // Check if source indicates override (not "IMPORTER")
-                    final String source = categoryResult.getSource();
-                    if (source != null && !"IMPORTER".equals(source) && !"IMPORT".equals(source)) {
-                        // Source indicates internal logic overrode importer category
-                        // This means parser/rules/ML determined a different category than the
-                        // importer
-                        isInternalOverride = true;
-                        // Internal override detected for import
-                    } else if (importerCategoryPrimary != null
-                            && !importerCategoryPrimary.isEmpty()) {
-                        // Compare determined category with importer category
-                        // If they differ, it's an override
-                        if (!importerCategoryPrimary.equalsIgnoreCase(determinedPrimary)) {
-                            isInternalOverride = true;
-                            // Internal override detected
-                        }
-                    }
-
-                    transaction.setCategoryPrimary(determinedPrimary);
-                    transaction.setCategoryDetailed(determinedDetailed);
-
-                    // CRITICAL: Set override flag if internal logic overrode importer category
-                    // This prevents re-import from overriding the internally determined category
-                    transaction.setCategoryOverridden(isInternalOverride);
-
-                    if (isInternalOverride) {
-                        LOGGER.info(
-                                "✅ Internal category override applied for import: Importer='{}' → Determined='{}' (source: {}, confidence: {}). "
-                                        + "This override will be preserved during re-import.",
-                                importerCategoryPrimary != null
-                                        ? importerCategoryPrimary
-                                        : categoryPrimary,
-                                determinedPrimary,
-                                source,
-                                categoryResult.getConfidence());
-                    }
-                } else {
-                    // Fallback to provided categories
-                    transaction.setCategoryPrimary(categoryPrimary);
-                    transaction.setCategoryDetailed(
-                            categoryDetailed != null && !categoryDetailed.isEmpty()
-                                    ? categoryDetailed
-                                    : categoryPrimary);
-                    transaction.setCategoryOverridden(false);
-                }
-            } catch (Exception e) {
-                LOGGER.warn(
-                        "Failed to re-apply unified service for import, using provided categories: {}",
-                        e.getMessage());
-                // Fallback to provided categories
-                transaction.setCategoryPrimary(categoryPrimary);
-                transaction.setCategoryDetailed(
-                        categoryDetailed != null && !categoryDetailed.isEmpty()
-                                ? categoryDetailed
-                                : categoryPrimary);
-                transaction.setCategoryOverridden(false);
-            }
-        } else if (isUserEditedCategory) {
-            // User edited category in preview - respect the edited category
-            transaction.setCategoryPrimary(categoryPrimary);
-            transaction.setCategoryDetailed(
-                    categoryDetailed != null && !categoryDetailed.isEmpty()
-                            ? categoryDetailed
-                            : categoryPrimary);
-            transaction.setCategoryOverridden(true); // Mark as overridden since user edited it
-            LOGGER.info(
-                    "✅ Preserving user-edited category from preview: categoryPrimary='{}' (importerCategoryPrimary='{}')",
-                    categoryPrimary,
-                    importerCategoryPrimary);
-        } else {
-            // Not an import, or no account, or pseudo account - use provided categories
-            transaction.setCategoryPrimary(categoryPrimary);
-            transaction.setCategoryDetailed(
-                    categoryDetailed != null && !categoryDetailed.isEmpty()
-                            ? categoryDetailed
-                            : categoryPrimary);
-            transaction.setCategoryOverridden(false);
-        }
+        applyImportCategorization(
+                transaction,
+                account,
+                categoryPrimary,
+                categoryDetailed,
+                importerCategoryPrimary,
+                importerCategoryDetailed,
+                cleanedDescription,
+                cleanedMerchantName,
+                merchantName,
+                amount,
+                paymentChannel,
+                importSource);
 
         // Set currency code: use provided currencyCode if available, otherwise user preference,
         // otherwise USD
@@ -1800,96 +1317,19 @@ public class TransactionService {
             }
         }
 
-        // CRITICAL: Check for duplicate transactions before saving
-        // Enhanced duplicate detection for imported transactions (CSV/Excel/PDF)
-        final String transactionDateStr = transaction.getTransactionDate();
-        if (transactionDateStr != null && !transactionDateStr.isEmpty()) {
-            // Query transactions for this user on the same date
-            final List<TransactionTable> sameDateTransactions =
-                    transactionRepository.findByUserIdAndDateRange(
-                            user.getUserId(), transactionDateStr, transactionDateStr);
-
-            // For imported transactions, check for duplicates using import metadata
-            if (importSource != null
-                    && !importSource.isBlank()
-                    && importFileName != null
-                    && !importFileName.isBlank()) {
-                // This is an imported transaction - check for duplicates by import source +
-                // filename + transaction details
-                for (final TransactionTable existing : sameDateTransactions) {
-                    final boolean accountMatch =
-                            account != null
-                                    && account.getAccountId().equals(existing.getAccountId());
-                    final boolean amountMatch = amount.compareTo(existing.getAmount()) == 0;
-                    final boolean dateMatch =
-                            transactionDateStr.equals(existing.getTransactionDate());
-                    final boolean importSourceMatch =
-                            importSource
-                                    .trim()
-                                    .equalsIgnoreCase(
-                                            existing.getImportSource() != null
-                                                    ? existing.getImportSource()
-                                                    : "");
-                    final boolean fileNameMatch =
-                            importFileName
-                                    .trim()
-                                    .equalsIgnoreCase(
-                                            existing.getImportFileName() != null
-                                                    ? existing.getImportFileName()
-                                                    : "");
-                    // Also check description for better matching (handles cases where same
-                    // amount/date but different transactions)
-                    final boolean descriptionMatch =
-                            (description != null ? description.trim() : "")
-                                    .equalsIgnoreCase(
-                                            existing.getDescription() != null
-                                                    ? existing.getDescription()
-                                                    : "");
-
-                    if (accountMatch
-                            && amountMatch
-                            && dateMatch
-                            && importSourceMatch
-                            && fileNameMatch
-                            && descriptionMatch) {
-                        // Duplicate imported transaction found - return existing for idempotency
-                        LOGGER.info(
-                                "Duplicate imported transaction detected (source: {}, file: {}, account: {}, amount: {}, date: {}). "
-                                        + "Returning existing transaction {} instead of creating new one.",
-                                importSource,
-                                importFileName,
-                                account != null ? account.getAccountId() : NULL,
-                                amount,
-                                transactionDateStr,
-                                existing.getTransactionId());
-                        return existing;
-                    }
-                }
-            } else if ((plaidTransactionId == null || plaidTransactionId.isBlank())
-                    && (transactionId == null || transactionId.isBlank())) {
-                // This is a manual transaction without explicit ID - check for duplicates by
-                // account, amount, and date
-                for (final TransactionTable existing : sameDateTransactions) {
-                    final boolean accountMatch =
-                            account != null
-                                    && account.getAccountId().equals(existing.getAccountId());
-                    final boolean amountMatch = amount.compareTo(existing.getAmount()) == 0;
-                    final boolean dateMatch =
-                            transactionDateStr.equals(existing.getTransactionDate());
-
-                    if (accountMatch && amountMatch && dateMatch) {
-                        // Duplicate found - return existing transaction for idempotency
-                        LOGGER.info(
-                                "Duplicate transaction detected (account: {}, amount: {}, date: {}). "
-                                        + "Returning existing transaction {} instead of creating new one.",
-                                account != null ? account.getAccountId() : NULL,
-                                amount,
-                                transactionDateStr,
-                                existing.getTransactionId());
-                        return existing;
-                    }
-                }
-            }
+        final TransactionTable duplicate =
+                findDuplicateForCreate(
+                        user,
+                        account,
+                        transaction,
+                        amount,
+                        description,
+                        transactionId,
+                        plaidTransactionId,
+                        importSource,
+                        importFileName);
+        if (duplicate != null) {
+            return duplicate;
         }
 
         // CRITICAL: Set timestamps for data freshness and incremental sync
@@ -2734,5 +2174,656 @@ public class TransactionService {
         // Cache eviction is handled by @CacheEvict annotation
         // This method exists to trigger cache invalidation
         // Invalidated category determination cache
+    }
+
+    /**
+     * Resolve the AccountTable to attach to a new transaction.
+     *
+     * <ul>
+     *   <li>Plaid transactions ({@code plaidAccountId} present) must find a real account by
+     *       accountId, by PlaidAccountIdIndex, or by user-account fallback scan. They never fall
+     *       back to the pseudo account — that would lose Plaid linkage.
+     *   <li>Manual transactions without {@code accountId} get the user's pseudo account.
+     *   <li>Manual transactions with {@code accountId} look it up directly.
+     * </ul>
+     */
+    private AccountTable resolveAccountForCreate(
+            final UserTable user, final String accountId, final String plaidAccountId) {
+        if (plaidAccountId != null && !plaidAccountId.isEmpty()) {
+            return resolvePlaidAccount(user, accountId, plaidAccountId);
+        }
+        if (accountId == null || accountId.isEmpty()) {
+            LOGGER.info(
+                    "No account ID provided for manual transaction - using pseudo account for user {}",
+                    user.getUserId());
+            return accountRepository.getOrCreatePseudoAccount(user.getUserId());
+        }
+        return accountRepository
+                .findById(accountId)
+                .orElseThrow(
+                        () -> new AppException(ErrorCode.ACCOUNT_NOT_FOUND, "Account not found"));
+    }
+
+    private AccountTable resolvePlaidAccount(
+            final UserTable user, final String accountId, final String plaidAccountId) {
+        Optional<AccountTable> accountOpt = Optional.empty();
+        if (accountId != null && !accountId.isEmpty()) {
+            accountOpt = accountRepository.findById(accountId);
+        }
+        if (accountOpt.isEmpty()) {
+            accountOpt = lookupByPlaidIndex(user, plaidAccountId, accountId);
+        }
+        if (accountOpt.isEmpty()) {
+            accountOpt = scanUserAccountsForPlaidId(user, plaidAccountId);
+        }
+        return accountOpt.orElseThrow(
+                () ->
+                        new AppException(
+                                ErrorCode.ACCOUNT_NOT_FOUND,
+                                "Plaid transaction requires a valid account. Account not found for Plaid account ID: "
+                                        + plaidAccountId));
+    }
+
+    /** GSI lookup by plaidAccountId; rejects matches that belong to a different user. */
+    private Optional<AccountTable> lookupByPlaidIndex(
+            final UserTable user, final String plaidAccountId, final String accountId) {
+        final Optional<AccountTable> accountOpt =
+                accountRepository.findByPlaidAccountId(plaidAccountId);
+        if (accountOpt.isEmpty()) {
+            return Optional.empty();
+        }
+        final AccountTable foundAccount = accountOpt.get();
+        if (foundAccount.getUserId() == null
+                || !foundAccount.getUserId().equals(user.getUserId())) {
+            LOGGER.warn(
+                    "Account found by Plaid ID {} belongs to different user (found: {}, requested: {})",
+                    plaidAccountId,
+                    foundAccount.getUserId(),
+                    user.getUserId());
+            return Optional.empty();
+        }
+        LOGGER.info(
+                "Found account by Plaid ID {} (requested accountId: {})",
+                plaidAccountId,
+                accountId);
+        return accountOpt;
+    }
+
+    /**
+     * Re-apply unified category determination for imports with a real account. For non-imports,
+     * pseudo accounts, or when the user edited the category in preview, the provided category is
+     * used verbatim. Mutates {@code transaction}.
+     */
+    @SuppressWarnings("PMD.CyclomaticComplexity")
+    private void applyImportCategorization(
+            final TransactionTable transaction,
+            final AccountTable account,
+            final String categoryPrimary,
+            final String categoryDetailed,
+            final String importerCategoryPrimary,
+            final String importerCategoryDetailed,
+            final String cleanedDescription,
+            final String cleanedMerchantName,
+            final String merchantName,
+            final BigDecimal amount,
+            final String paymentChannel,
+            final String importSource) {
+        final boolean isUserEditedCategory =
+                categoryPrimary != null
+                        && !categoryPrimary.isEmpty()
+                        && importerCategoryPrimary != null
+                        && !importerCategoryPrimary.isEmpty()
+                        && !categoryPrimary.equalsIgnoreCase(importerCategoryPrimary);
+
+        if (isImportWithRealAccount(importSource, account) && !isUserEditedCategory) {
+            // Real-account import: re-run unified service for better accuracy. Failure of the
+            // unified service falls back to the importer-provided categories.
+            try {
+                final TransactionTypeCategoryService.TypeResult preTypeResult =
+                        transactionTypeCategoryService.determineTransactionType(
+                                account,
+                                null,
+                                null,
+                                amount,
+                                null,
+                                cleanedDescription,
+                                paymentChannel);
+                final TransactionTypeCategoryService.CategoryResult categoryResult =
+                        transactionTypeCategoryService.determineCategory(
+                                importerCategoryPrimary != null
+                                        ? importerCategoryPrimary
+                                        : categoryPrimary,
+                                importerCategoryDetailed != null
+                                        ? importerCategoryDetailed
+                                        : categoryDetailed,
+                                account,
+                                cleanedMerchantName != null ? cleanedMerchantName : merchantName,
+                                cleanedDescription,
+                                amount,
+                                paymentChannel,
+                                null,
+                                importSource,
+                                preTypeResult != null ? preTypeResult.getTransactionType() : null);
+                if (categoryResult != null) {
+                    applyDeterminedCategory(
+                            transaction, categoryResult, importerCategoryPrimary, categoryPrimary);
+                } else {
+                    applyFallbackCategories(transaction, categoryPrimary, categoryDetailed, false);
+                }
+            } catch (Exception e) {
+                LOGGER.warn(
+                        "Failed to re-apply unified service for import, using provided categories: {}",
+                        e.getMessage());
+                applyFallbackCategories(transaction, categoryPrimary, categoryDetailed, false);
+            }
+            return;
+        }
+
+        if (isUserEditedCategory) {
+            applyFallbackCategories(transaction, categoryPrimary, categoryDetailed, true);
+            LOGGER.info(
+                    "✅ Preserving user-edited category from preview: categoryPrimary='{}' (importerCategoryPrimary='{}')",
+                    categoryPrimary,
+                    importerCategoryPrimary);
+            return;
+        }
+        applyFallbackCategories(transaction, categoryPrimary, categoryDetailed, false);
+    }
+
+    private static boolean isImportWithRealAccount(
+            final String importSource, final AccountTable account) {
+        return importSource != null
+                && !importSource.isBlank()
+                && account != null
+                && account.getAccountId() != null
+                && !account.getAccountId().startsWith("pseudo-");
+    }
+
+    /**
+     * Write the determined category into the transaction. If the determined category differs from
+     * the importer's parsed category (or the source is internal), mark it as overridden so that
+     * re-import won't clobber the override.
+     */
+    private static void applyDeterminedCategory(
+            final TransactionTable transaction,
+            final TransactionTypeCategoryService.CategoryResult categoryResult,
+            final String importerCategoryPrimary,
+            final String categoryPrimary) {
+        final String determinedPrimary = categoryResult.getCategoryPrimary();
+        final String determinedDetailed = categoryResult.getCategoryDetailed();
+        final String source = categoryResult.getSource();
+
+        final boolean isInternalOverride =
+                (source != null && !"IMPORTER".equals(source) && !"IMPORT".equals(source))
+                        || (importerCategoryPrimary != null
+                                && !importerCategoryPrimary.isEmpty()
+                                && !importerCategoryPrimary.equalsIgnoreCase(determinedPrimary));
+
+        transaction.setCategoryPrimary(determinedPrimary);
+        transaction.setCategoryDetailed(determinedDetailed);
+        transaction.setCategoryOverridden(isInternalOverride);
+
+        if (isInternalOverride) {
+            LOGGER.info(
+                    "✅ Internal category override applied for import: Importer='{}' → Determined='{}' (source: {}, confidence: {}). "
+                            + "This override will be preserved during re-import.",
+                    importerCategoryPrimary != null ? importerCategoryPrimary : categoryPrimary,
+                    determinedPrimary,
+                    source,
+                    categoryResult.getConfidence());
+        }
+    }
+
+    private static void applyFallbackCategories(
+            final TransactionTable transaction,
+            final String categoryPrimary,
+            final String categoryDetailed,
+            final boolean overridden) {
+        transaction.setCategoryPrimary(categoryPrimary);
+        transaction.setCategoryDetailed(
+                categoryDetailed != null && !categoryDetailed.isEmpty()
+                        ? categoryDetailed
+                        : categoryPrimary);
+        transaction.setCategoryOverridden(overridden);
+    }
+
+    /**
+     * Look for an existing same-date transaction that matches the new one closely enough to be
+     * treated as a duplicate. Returns the existing transaction (idempotency hit) or null.
+     *
+     * <ul>
+     *   <li>Imports: match on account + amount + date + import-source + file-name + description.
+     *   <li>Manual w/o explicit ID: match on account + amount + date only.
+     *   <li>Anything with an explicit transactionId or plaidTransactionId: skip — that path is
+     *       already idempotent via the ID lookup above.
+     * </ul>
+     */
+    private TransactionTable findDuplicateForCreate(
+            final UserTable user,
+            final AccountTable account,
+            final TransactionTable transaction,
+            final BigDecimal amount,
+            final String description,
+            final String transactionId,
+            final String plaidTransactionId,
+            final String importSource,
+            final String importFileName) {
+        final String transactionDateStr = transaction.getTransactionDate();
+        if (transactionDateStr == null || transactionDateStr.isEmpty()) {
+            return null;
+        }
+        final List<TransactionTable> sameDate =
+                transactionRepository.findByUserIdAndDateRange(
+                        user.getUserId(), transactionDateStr, transactionDateStr);
+        if (importSource != null
+                && !importSource.isBlank()
+                && importFileName != null
+                && !importFileName.isBlank()) {
+            return findImportedDuplicate(
+                    sameDate,
+                    account,
+                    amount,
+                    transactionDateStr,
+                    description,
+                    importSource,
+                    importFileName);
+        }
+        if ((plaidTransactionId == null || plaidTransactionId.isBlank())
+                && (transactionId == null || transactionId.isBlank())) {
+            return findManualDuplicate(sameDate, account, amount, transactionDateStr);
+        }
+        return null;
+    }
+
+    private static TransactionTable findImportedDuplicate(
+            final List<TransactionTable> candidates,
+            final AccountTable account,
+            final BigDecimal amount,
+            final String transactionDateStr,
+            final String description,
+            final String importSource,
+            final String importFileName) {
+        for (final TransactionTable existing : candidates) {
+            if (matchesAccountAmountDate(existing, account, amount, transactionDateStr)
+                    && safeEqualsIgnoreCase(importSource.trim(), existing.getImportSource())
+                    && safeEqualsIgnoreCase(importFileName.trim(), existing.getImportFileName())
+                    && safeEqualsIgnoreCase(
+                            description != null ? description.trim() : "",
+                            existing.getDescription())) {
+                LOGGER.info(
+                        "Duplicate imported transaction detected (source: {}, file: {}, account: {}, amount: {}, date: {}). "
+                                + "Returning existing transaction {} instead of creating new one.",
+                        importSource,
+                        importFileName,
+                        account != null ? account.getAccountId() : NULL,
+                        amount,
+                        transactionDateStr,
+                        existing.getTransactionId());
+                return existing;
+            }
+        }
+        return null;
+    }
+
+    private static TransactionTable findManualDuplicate(
+            final List<TransactionTable> candidates,
+            final AccountTable account,
+            final BigDecimal amount,
+            final String transactionDateStr) {
+        for (final TransactionTable existing : candidates) {
+            if (matchesAccountAmountDate(existing, account, amount, transactionDateStr)) {
+                LOGGER.info(
+                        "Duplicate transaction detected (account: {}, amount: {}, date: {}). "
+                                + "Returning existing transaction {} instead of creating new one.",
+                        account != null ? account.getAccountId() : NULL,
+                        amount,
+                        transactionDateStr,
+                        existing.getTransactionId());
+                return existing;
+            }
+        }
+        return null;
+    }
+
+    private static boolean matchesAccountAmountDate(
+            final TransactionTable existing,
+            final AccountTable account,
+            final BigDecimal amount,
+            final String transactionDateStr) {
+        return account != null
+                && account.getAccountId().equals(existing.getAccountId())
+                && amount.compareTo(existing.getAmount()) == 0
+                && transactionDateStr.equals(existing.getTransactionDate());
+    }
+
+    private static boolean safeEqualsIgnoreCase(final String a, final String b) {
+        return a.equalsIgnoreCase(b != null ? b : "");
+    }
+
+    /**
+     * Either set {@code transaction.transactionId} (deterministic or random) or return an existing
+     * transaction when idempotency rules dictate. Three paths:
+     *
+     * <ol>
+     *   <li>Caller provided a valid UUID → check repository; if a hit exists and belongs to the
+     *       same user, possibly update Plaid linkage / transactionType, then return existing.
+     *   <li>No (or invalid) UUID + Plaid txn ID → derive deterministic UUID from Plaid ID.
+     *   <li>Otherwise + import metadata → derive deterministic UUID from (source, file, account,
+     *       amount, date, description); if a transaction with that ID already exists for this user,
+     *       return it.
+     *   <li>Otherwise → random UUID.
+     * </ol>
+     */
+    @SuppressWarnings("PMD.CyclomaticComplexity")
+    private TransactionTable resolveTransactionIdOrFindExisting(
+            final TransactionTable transaction,
+            final UserTable user,
+            final AccountTable account,
+            final String transactionId,
+            final String plaidTransactionId,
+            final String transactionType,
+            final String description,
+            final String userName,
+            final BigDecimal amount,
+            final LocalDate transactionDate,
+            final String importSource,
+            final String importFileName) {
+        if (transactionId != null && !transactionId.isBlank()) {
+            final TransactionTable hit =
+                    handleProvidedTransactionId(
+                            transaction,
+                            user,
+                            transactionId,
+                            plaidTransactionId,
+                            transactionType,
+                            importSource);
+            if (hit != null) {
+                return hit;
+            }
+        }
+        if (transaction.getTransactionId() == null || transaction.getTransactionId().isEmpty()) {
+            return generateAndAssignTransactionId(
+                    transaction,
+                    user,
+                    account,
+                    plaidTransactionId,
+                    description,
+                    userName,
+                    amount,
+                    transactionDate,
+                    importSource,
+                    importFileName);
+        }
+        return null;
+    }
+
+    /**
+     * Caller provided a transactionId. Validate UUID, normalize, look up in repo. If existing,
+     * apply the Plaid-vs-existing logic to decide whether to return it, update it, or fall through
+     * to generate a fresh UUID.
+     */
+    @SuppressWarnings("PMD.CyclomaticComplexity")
+    private TransactionTable handleProvidedTransactionId(
+            final TransactionTable transaction,
+            final UserTable user,
+            final String transactionId,
+            final String plaidTransactionId,
+            final String transactionType,
+            final String importSource) {
+        try {
+            UUID.fromString(transactionId);
+        } catch (IllegalArgumentException e) {
+            LOGGER.warn(
+                    "Invalid transaction ID format '{}', will use deterministic UUID from Plaid ID if available",
+                    transactionId);
+            return null;
+        }
+        final String normalizedId = com.budgetbuddy.util.IdGenerator.normalizeUUID(transactionId);
+        final Optional<TransactionTable> existingOpt = transactionRepository.findById(normalizedId);
+        if (existingOpt.isEmpty()) {
+            transaction.setTransactionId(normalizedId);
+            LOGGER.info(
+                    "Using provided transaction ID (normalized): {} -> {}",
+                    transactionId,
+                    normalizedId);
+            return null;
+        }
+        final TransactionTable existing = existingOpt.get();
+        if (!existing.getUserId().equals(user.getUserId())) {
+            LOGGER.warn(
+                    "Transaction with ID {} already exists but belongs to different user. Generating new UUID for security.",
+                    normalizedId);
+            return null;
+        }
+        return reconcileExistingWithRequest(
+                existing, normalizedId, plaidTransactionId, transactionType, importSource);
+    }
+
+    private TransactionTable reconcileExistingWithRequest(
+            final TransactionTable existing,
+            final String normalizedId,
+            final String plaidTransactionId,
+            final String transactionType,
+            final String importSource) {
+        final String existingPlaidId = existing.getPlaidTransactionId();
+        final boolean existingHasPlaidId = existingPlaidId != null && !existingPlaidId.isEmpty();
+        final boolean requestHasPlaidId =
+                plaidTransactionId != null && !plaidTransactionId.isEmpty();
+        if (requestHasPlaidId) {
+            if (existingHasPlaidId && plaidTransactionId.equals(existingPlaidId)) {
+                applyTransactionTypeOverrideIfChanged(existing, transactionType, normalizedId);
+                LOGGER.info(
+                        "Transaction with ID {} already exists and matches Plaid ID {}, returning existing",
+                        normalizedId,
+                        plaidTransactionId);
+                return existing;
+            }
+            if (existingHasPlaidId) {
+                LOGGER.warn(
+                        "Transaction with ID {} already exists but Plaid ID doesn't match (existing: {}, provided: {}). "
+                                + "Generating new UUID to prevent data conflict.",
+                        normalizedId,
+                        existingPlaidId,
+                        plaidTransactionId);
+                return null;
+            }
+            LOGGER.info(
+                    "Transaction with ID {} exists without Plaid ID, but request provides Plaid ID {}. "
+                            + "Updating existing transaction with Plaid ID and transactionType.",
+                    normalizedId,
+                    plaidTransactionId);
+            existing.setPlaidTransactionId(plaidTransactionId);
+            applyTransactionTypeOverrideIfChanged(existing, transactionType, normalizedId);
+            transactionRepository.save(existing);
+            return existing;
+        }
+        applyTransactionTypeOverrideForImportAware(
+                existing, transactionType, importSource, normalizedId);
+        LOGGER.info(
+                "Transaction with ID {} already exists (no Plaid ID in request). Returning existing for idempotency.",
+                normalizedId);
+        return existing;
+    }
+
+    /** Apply a user-provided transactionType to {@code existing}, marking overridden if changed. */
+    private void applyTransactionTypeOverrideIfChanged(
+            final TransactionTable existing,
+            final String transactionType,
+            final String normalizedId) {
+        final Optional<com.budgetbuddy.model.TransactionType> userTypeOpt =
+                parseUserTransactionType(transactionType);
+        if (userTypeOpt.isEmpty()) {
+            return;
+        }
+        final com.budgetbuddy.model.TransactionType userType = userTypeOpt.get();
+        final String existingType = existing.getTransactionType();
+        if (userType.name().equals(existingType)) {
+            return;
+        }
+        existing.setTransactionType(userType.name());
+        existing.setTransactionTypeOverridden(true);
+        transactionRepository.save(existing);
+        LOGGER.info(
+                "Updated transactionType to {} for existing transaction {} (user override)",
+                userType,
+                normalizedId);
+    }
+
+    /**
+     * Variant of above that's aware of import sources — preserves override state across re-imports.
+     */
+    private void applyTransactionTypeOverrideForImportAware(
+            final TransactionTable existing,
+            final String transactionType,
+            final String importSource,
+            final String normalizedId) {
+        final Optional<com.budgetbuddy.model.TransactionType> userTypeOpt =
+                parseUserTransactionType(transactionType);
+        if (userTypeOpt.isEmpty()) {
+            return;
+        }
+        final com.budgetbuddy.model.TransactionType userType = userTypeOpt.get();
+        final String existingType = existing.getTransactionType();
+        existing.setTransactionType(userType.name());
+        final boolean isImport =
+                importSource != null
+                        && !importSource.isBlank()
+                        && ("CSV".equalsIgnoreCase(importSource)
+                                || "PDF".equalsIgnoreCase(importSource)
+                                || "EXCEL".equalsIgnoreCase(importSource));
+        if (isImport) {
+            final boolean wasOverridden =
+                    Boolean.TRUE.equals(existing.getTransactionTypeOverridden());
+            if (wasOverridden && existingType != null && !userType.name().equals(existingType)) {
+                existing.setTransactionTypeOverridden(true);
+            } else if (existing.getTransactionTypeOverridden() == null) {
+                existing.setTransactionTypeOverridden(false);
+            }
+        } else if (existingType == null || !userType.name().equals(existingType)) {
+            existing.setTransactionTypeOverridden(true);
+        }
+        transactionRepository.save(existing);
+        LOGGER.info(
+                "Updated transactionType to {} for existing transaction {} (user override)",
+                userType,
+                normalizedId);
+    }
+
+    /**
+     * Generate and set the transaction ID when no valid one was provided. May return an existing
+     * transaction if the deterministic-import-key path detects a duplicate.
+     */
+    private TransactionTable generateAndAssignTransactionId(
+            final TransactionTable transaction,
+            final UserTable user,
+            final AccountTable account,
+            final String plaidTransactionId,
+            final String description,
+            final String userName,
+            final BigDecimal amount,
+            final LocalDate transactionDate,
+            final String importSource,
+            final String importFileName) {
+        if (plaidTransactionId != null && !plaidTransactionId.isEmpty()) {
+            final UUID namespaceUUID =
+                    UUID.fromString(
+                            "6ba7b811-9dad-11d1-80b4-00c04fd430c8"); // TRANSACTION_NAMESPACE
+            final String generatedId =
+                    com.budgetbuddy.util.IdGenerator.generateDeterministicUUID(
+                            namespaceUUID, plaidTransactionId);
+            final String normalizedId = com.budgetbuddy.util.IdGenerator.normalizeUUID(generatedId);
+            transaction.setTransactionId(normalizedId);
+            LOGGER.info(
+                    "Generated deterministic transaction ID (normalized): {} from Plaid ID: {} (matches iOS app fallback)",
+                    normalizedId,
+                    plaidTransactionId);
+            return null;
+        }
+        if (importSource != null
+                && !importSource.isBlank()
+                && importFileName != null
+                && !importFileName.isBlank()
+                && account != null) {
+            return generateImportDeterministicIdOrFindExisting(
+                    transaction,
+                    user,
+                    account,
+                    description,
+                    userName,
+                    amount,
+                    transactionDate,
+                    importSource,
+                    importFileName);
+        }
+        transaction.setTransactionId(UUID.randomUUID().toString().toLowerCase(Locale.ROOT));
+        return null;
+    }
+
+    private TransactionTable generateImportDeterministicIdOrFindExisting(
+            final TransactionTable transaction,
+            final UserTable user,
+            final AccountTable account,
+            final String description,
+            final String userName,
+            final BigDecimal amount,
+            final LocalDate transactionDate,
+            final String importSource,
+            final String importFileName) {
+        final String normalizedFileName =
+                importFileName.trim().toLowerCase(Locale.ROOT).replaceAll("[^a-z0-9._-]", "");
+        final String transactionDateStr = transactionDate.format(DATE_FORMATTER);
+        String cleanedDescriptionForKey = removeNamesFromText(description, userName);
+        if (cleanedDescriptionForKey == null || cleanedDescriptionForKey.isEmpty()) {
+            cleanedDescriptionForKey = description != null ? description : "";
+        }
+        final String transactionKey =
+                String.format(
+                        "%s|%s|%s|%s|%s|%s",
+                        importSource.trim().toUpperCase(Locale.ROOT),
+                        normalizedFileName,
+                        account.getAccountId(),
+                        amount.toString(),
+                        transactionDateStr,
+                        cleanedDescriptionForKey.trim().toLowerCase(Locale.ROOT));
+        final UUID importNamespaceUUID =
+                UUID.fromString("7ba7b811-9dad-11d1-80b4-00c04fd430c8"); // IMPORT_NAMESPACE
+        final String generatedId =
+                com.budgetbuddy.util.IdGenerator.generateDeterministicUUID(
+                        importNamespaceUUID, transactionKey);
+        final String normalizedId = com.budgetbuddy.util.IdGenerator.normalizeUUID(generatedId);
+        final Optional<TransactionTable> existingByIdOpt =
+                transactionRepository.findById(normalizedId);
+        if (existingByIdOpt.isPresent()
+                && existingByIdOpt.get().getUserId().equals(user.getUserId())) {
+            LOGGER.info(
+                    "Duplicate imported transaction detected by deterministic ID (source: {}, file: {}). "
+                            + "Returning existing transaction {} instead of creating new one.",
+                    importSource,
+                    importFileName,
+                    normalizedId);
+            return existingByIdOpt.get();
+        }
+        transaction.setTransactionId(normalizedId);
+        LOGGER.info(
+                "Generated deterministic transaction ID for import (source: {}, file: {}): {}",
+                importSource,
+                importFileName,
+                normalizedId);
+        return null;
+    }
+
+    /** Fallback for when the PlaidAccountIdIndex GSI isn't consistent yet. */
+    private Optional<AccountTable> scanUserAccountsForPlaidId(
+            final UserTable user, final String plaidAccountId) {
+        final Optional<AccountTable> result =
+                accountRepository.findByUserId(user.getUserId()).stream()
+                        .filter(acc -> plaidAccountId.equals(acc.getPlaidAccountId()))
+                        .findFirst();
+        if (result.isPresent()) {
+            LOGGER.info(
+                    "Found account by Plaid ID {} using fallback method (searching user's accounts)",
+                    plaidAccountId);
+        }
+        return result;
     }
 }

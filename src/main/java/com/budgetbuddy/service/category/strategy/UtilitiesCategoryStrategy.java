@@ -33,6 +33,46 @@ public class UtilitiesCategoryStrategy extends BaseCategoryStrategy {
             return null;
         }
 
+        String result;
+        result = detectUtilitiesMunicipal(normalizedMerchantName, descriptionLower, merchantName);
+        if (result != null) {
+            return result;
+        }
+        result = detectUtilitiesCommon(normalizedMerchantName, descriptionLower, merchantName);
+        if (result != null) {
+            return result;
+        }
+        result = detectUtilitiesPatterns(normalizedMerchantName, descriptionLower, merchantName);
+        if (result != null) {
+            return result;
+        }
+        result = detectUtilitiesBillPayment(normalizedMerchantName, descriptionLower, merchantName);
+        if (result != null) {
+            return result;
+        }
+        result =
+                detectUtilitiesCableInternet(
+                        normalizedMerchantName, descriptionLower, merchantName);
+        if (result != null) {
+            return result;
+        }
+        result = detectUtilitiesPhoneMobile(normalizedMerchantName, descriptionLower, merchantName);
+        if (result != null) {
+            return result;
+        }
+        result =
+                detectUtilitiesTransportation(
+                        normalizedMerchantName, descriptionLower, merchantName);
+        if (result != null) {
+            return result;
+        }
+        return null;
+    }
+
+    private String detectUtilitiesMunicipal(
+            final String normalizedMerchantName,
+            final String descriptionLower,
+            final String merchantName) {
         // CRITICAL: Check for utility companies and energy providers BEFORE transportation
         // CRITICAL: Check for municipal utilities FIRST (e.g., "CITY OF BELLEVUE UTILITY")
         // This prevents "CITY" from matching transportation patterns
@@ -45,7 +85,13 @@ public class UtilitiesCategoryStrategy extends BaseCategoryStrategy {
                     "🏷️ detectCategoryFromMerchantName: Detected municipal utility (city of ... utility) → 'utilities'");
             return "utilities";
         }
+        return null;
+    }
 
+    private String detectUtilitiesCommon(
+            final String normalizedMerchantName,
+            final String descriptionLower,
+            final String merchantName) {
         // Common utility company patterns
         final String[] utilityCompanies = {
             "puget sound energy",
@@ -95,7 +141,13 @@ public class UtilitiesCategoryStrategy extends BaseCategoryStrategy {
                 return "utilities";
             }
         }
+        return null;
+    }
 
+    private String detectUtilitiesPatterns(
+            final String normalizedMerchantName,
+            final String descriptionLower,
+            final String merchantName) {
         // Utility patterns (energy, electric, gas, water, etc.)
         // CRITICAL: Check for "utility" keyword BEFORE transportation to prevent false matches
         if (normalizedMerchantName.contains(ENERGY)
@@ -125,7 +177,13 @@ public class UtilitiesCategoryStrategy extends BaseCategoryStrategy {
                     "🏷️ detectCategoryFromMerchantName: Detected utility pattern → 'utilities'");
             return "utilities";
         }
+        return null;
+    }
 
+    private String detectUtilitiesBillPayment(
+            final String normalizedMerchantName,
+            final String descriptionLower,
+            final String merchantName) {
         // Bill payment patterns (often utilities)
         if ((normalizedMerchantName.contains("billpay")
                         || normalizedMerchantName.contains("bill pay")
@@ -147,7 +205,13 @@ public class UtilitiesCategoryStrategy extends BaseCategoryStrategy {
                     "🏷️ detectCategoryFromMerchantName: Detected utility bill payment → 'utilities'");
             return "utilities";
         }
+        return null;
+    }
 
+    private String detectUtilitiesCableInternet(
+            final String normalizedMerchantName,
+            final String descriptionLower,
+            final String merchantName) {
         // CRITICAL: Cable/Internet Providers - Must come BEFORE transportation
         // Comcast, Xfinity, Spectrum, Charter, Cox, etc.
         final String[] cableInternetProviders = {
@@ -186,7 +250,13 @@ public class UtilitiesCategoryStrategy extends BaseCategoryStrategy {
                 return "utilities";
             }
         }
+        return null;
+    }
 
+    private String detectUtilitiesPhoneMobile(
+            final String normalizedMerchantName,
+            final String descriptionLower,
+            final String merchantName) {
         // CRITICAL: Phone/Mobile providers - Must come BEFORE transportation to prevent "mobile"
         // matching transportation
         // Verizon Wireless, AT&T, T-Mobile, etc. (excluding Xfinity Mobile which is already covered
@@ -229,7 +299,13 @@ public class UtilitiesCategoryStrategy extends BaseCategoryStrategy {
                 return "utilities";
             }
         }
+        return null;
+    }
 
+    private String detectUtilitiesTransportation(
+            final String normalizedMerchantName,
+            final String descriptionLower,
+            final String merchantName) {
         // ========== TRANSPORTATION ==========
         // CRITICAL: Parking services must be checked BEFORE general utility patterns
         // Pay by Phone is a parking payment service, not a utility
@@ -495,6 +571,6 @@ public class UtilitiesCategoryStrategy extends BaseCategoryStrategy {
             return "transportation";
         }
 
-        return null; // No match found
+        return null;
     }
 }

@@ -23,6 +23,70 @@ public class DiningCategoryStrategy extends BaseCategoryStrategy {
             return null;
         }
 
+        String result;
+        result = detectDiningFastFood(normalizedMerchantName, descriptionLower, merchantName);
+        if (result != null) {
+            return result;
+        }
+        result =
+                detectDiningAdditionalChains(
+                        normalizedMerchantName, descriptionLower, merchantName);
+        if (result != null) {
+            return result;
+        }
+        result = detectDiningCafePatterns(normalizedMerchantName, descriptionLower, merchantName);
+        if (result != null) {
+            return result;
+        }
+        result = detectDiningTiffins(normalizedMerchantName, descriptionLower, merchantName);
+        if (result != null) {
+            return result;
+        }
+        result = detectDiningSpecificRest(normalizedMerchantName, descriptionLower, merchantName);
+        if (result != null) {
+            return result;
+        }
+        result = detectDiningTstToastPos(normalizedMerchantName, descriptionLower, merchantName);
+        if (result != null) {
+            return result;
+        }
+        result = detectDiningToastPos(normalizedMerchantName, descriptionLower, merchantName);
+        if (result != null) {
+            return result;
+        }
+        result = detectDiningSqSquarePos(normalizedMerchantName, descriptionLower, merchantName);
+        if (result != null) {
+            return result;
+        }
+        result = detectDiningRblPos(normalizedMerchantName, descriptionLower, merchantName);
+        if (result != null) {
+            return result;
+        }
+        result = detectDiningHmsHost(normalizedMerchantName, descriptionLower, merchantName);
+        if (result != null) {
+            return result;
+        }
+        result = detectDiningSandwichHouse(normalizedMerchantName, descriptionLower, merchantName);
+        if (result != null) {
+            return result;
+        }
+        result = detectDiningFoodKeywords(normalizedMerchantName, descriptionLower, merchantName);
+        if (result != null) {
+            return result;
+        }
+        result =
+                detectDiningRestaurantPatterns(
+                        normalizedMerchantName, descriptionLower, merchantName);
+        if (result != null) {
+            return result;
+        }
+        return null;
+    }
+
+    private String detectDiningFastFood(
+            final String normalizedMerchantName,
+            final String descriptionLower,
+            final String merchantName) {
         // Fast Food Chains
         if (normalizedMerchantName.contains("subway") || descriptionLower.contains("subway")) {
             return DINING;
@@ -39,7 +103,13 @@ public class DiningCategoryStrategy extends BaseCategoryStrategy {
         if (normalizedMerchantName.contains("chipotle") || descriptionLower.contains("chipotle")) {
             return DINING;
         }
+        return null;
+    }
 
+    private String detectDiningAdditionalChains(
+            final String normalizedMerchantName,
+            final String descriptionLower,
+            final String merchantName) {
         // Additional Fast Food Chains
         final String[] fastFoodChains = {
             "mcdonald",
@@ -84,7 +154,13 @@ public class DiningCategoryStrategy extends BaseCategoryStrategy {
                 return DINING;
             }
         }
+        return null;
+    }
 
+    private String detectDiningCafePatterns(
+            final String normalizedMerchantName,
+            final String descriptionLower,
+            final String merchantName) {
         // Cafe & Cafeteria Patterns
         // CRITICAL: Include "caffe" (Italian spelling, e.g., CAFFE Nero) in addition to "cafe"
         if (normalizedMerchantName.contains("cafe")
@@ -100,7 +176,13 @@ public class DiningCategoryStrategy extends BaseCategoryStrategy {
                 || descriptionLower.contains("cafeteria")) {
             return DINING;
         }
+        return null;
+    }
 
+    private String detectDiningTiffins(
+            final String normalizedMerchantName,
+            final String descriptionLower,
+            final String merchantName) {
         // Tiffins (Indian meal delivery)
         if (normalizedMerchantName.contains("tiffin")
                 || descriptionLower.contains("tiffin")
@@ -108,7 +190,13 @@ public class DiningCategoryStrategy extends BaseCategoryStrategy {
                 || descriptionLower.contains("tiffins")) {
             return DINING;
         }
+        return null;
+    }
 
+    private String detectDiningSpecificRest(
+            final String normalizedMerchantName,
+            final String descriptionLower,
+            final String merchantName) {
         // Specific Restaurants - Must come before general restaurant patterns
         final String[] specificRestaurants = {
             "daeho",
@@ -188,7 +276,13 @@ public class DiningCategoryStrategy extends BaseCategoryStrategy {
                 return DINING;
             }
         }
+        return null;
+    }
 
+    private String detectDiningTstToastPos(
+            final String normalizedMerchantName,
+            final String descriptionLower,
+            final String merchantName) {
         // TST* pattern - Transaction Service Terminal (restaurant pattern, Toast POS system)
         // CRITICAL: Check both normalized and original merchant name, and description
         // TST* can appear anywhere in the merchant name, not just at the start
@@ -202,7 +296,13 @@ public class DiningCategoryStrategy extends BaseCategoryStrategy {
             LOGGER.debug("🏷️ detectCategoryFromMerchantName: Detected TST* pattern → 'dining'");
             return DINING;
         }
+        return null;
+    }
 
+    private String detectDiningToastPos(
+            final String normalizedMerchantName,
+            final String descriptionLower,
+            final String merchantName) {
         // TOAST pattern - Toast POS system (restaurant pattern)
         // TOAST is the company name, TST* is their POS terminal code
         if (normalizedMerchantName.contains("toast")
@@ -212,7 +312,13 @@ public class DiningCategoryStrategy extends BaseCategoryStrategy {
             LOGGER.debug("🏷️ detectCategoryFromMerchantName: Detected TOAST pattern → 'dining'");
             return DINING;
         }
+        return null;
+    }
 
+    private String detectDiningSqSquarePos(
+            final String normalizedMerchantName,
+            final String descriptionLower,
+            final String merchantName) {
         // SQ* pattern - Square POS system (often used by restaurants)
         // CRITICAL: Check both normalized and original merchant name, and description
         // SQ* can appear anywhere in the merchant name
@@ -227,7 +333,13 @@ public class DiningCategoryStrategy extends BaseCategoryStrategy {
                     "🏷️ detectCategoryFromMerchantName: Detected SQ* pattern (Square POS) → 'dining'");
             return DINING;
         }
+        return null;
+    }
 
+    private String detectDiningRblPos(
+            final String normalizedMerchantName,
+            final String descriptionLower,
+            final String merchantName) {
         // RBL* pattern - Restaurant POS system in India (similar to TST* and SQ*)
         // CRITICAL: Check both normalized and original merchant name, and description
         if (normalizedMerchantName.contains("rbl*")
@@ -241,7 +353,13 @@ public class DiningCategoryStrategy extends BaseCategoryStrategy {
                     "🏷️ detectCategoryFromMerchantName: Detected RBL* pattern (Indian restaurant POS) → 'dining'");
             return DINING;
         }
+        return null;
+    }
 
+    private String detectDiningHmsHost(
+            final String normalizedMerchantName,
+            final String descriptionLower,
+            final String merchantName) {
         // HMS Host services - airport/restaurant dining services
         if (normalizedMerchantName.contains("hms host")
                 || normalizedMerchantName.contains("hmshost")
@@ -253,7 +371,13 @@ public class DiningCategoryStrategy extends BaseCategoryStrategy {
                     "🏷️ detectCategoryFromMerchantName: Detected HMS Host services → 'dining'");
             return DINING;
         }
+        return null;
+    }
 
+    private String detectDiningSandwichHouse(
+            final String normalizedMerchantName,
+            final String descriptionLower,
+            final String merchantName) {
         // Sandwich House - restaurant name
         if (normalizedMerchantName.contains("sandwich house")
                 || normalizedMerchantName.contains("sandwichhouse")
@@ -264,7 +388,13 @@ public class DiningCategoryStrategy extends BaseCategoryStrategy {
             LOGGER.debug("🏷️ detectCategoryFromMerchantName: Detected Sandwich House → 'dining'");
             return DINING;
         }
+        return null;
+    }
 
+    private String detectDiningFoodKeywords(
+            final String normalizedMerchantName,
+            final String descriptionLower,
+            final String merchantName) {
         // Food-related keywords that indicate restaurants (dumplings, burger, fast food, grill,
         // thai, dhaba, brewing, pizza, kitchen)
         if (normalizedMerchantName.contains("dumplings")
@@ -307,7 +437,13 @@ public class DiningCategoryStrategy extends BaseCategoryStrategy {
                     "🏷️ detectCategoryFromMerchantName: Detected food/restaurant keyword → 'dining'");
             return DINING;
         }
+        return null;
+    }
 
+    private String detectDiningRestaurantPatterns(
+            final String normalizedMerchantName,
+            final String descriptionLower,
+            final String merchantName) {
         // Restaurant Patterns (Global) - Includes "restaur" as keyword for restaurant
         if (normalizedMerchantName.contains("restaurant")
                 || normalizedMerchantName.contains("rest ")
@@ -326,6 +462,6 @@ public class DiningCategoryStrategy extends BaseCategoryStrategy {
             return DINING;
         }
 
-        return null; // No match found
+        return null;
     }
 }

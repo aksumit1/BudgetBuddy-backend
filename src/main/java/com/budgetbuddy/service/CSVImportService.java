@@ -102,6 +102,7 @@ public class CSVImportService {
         "tyee middle school",
         "tyeemiddleschool"
     };
+
     private static final String E_PAYMENT = "e-payment";
     private static final String DIVIDEND = "dividend";
     private static final String IRA = "ira";
@@ -3824,6 +3825,414 @@ public class CSVImportService {
             }
         }
 
+        String result;
+        result =
+                parseCatLegacyStep01AchCreditDeposit(
+                        safeCategoryString,
+                        safeDescription,
+                        safeMerchantName,
+                        safeAmount,
+                        safePaymentChannel,
+                        safeTransactionTypeIndicator,
+                        safeTransactionType,
+                        safeAccountType,
+                        safeAccountSubtype);
+        if (result != null) {
+            return result;
+        }
+        result =
+                parseCatLegacyStep02FeesAndCashWithdrawal(
+                        safeCategoryString,
+                        safeDescription,
+                        safeMerchantName,
+                        safeAmount,
+                        safePaymentChannel,
+                        safeTransactionTypeIndicator,
+                        safeTransactionType,
+                        safeAccountType,
+                        safeAccountSubtype);
+        if (result != null) {
+            return result;
+        }
+        result =
+                parseCatLegacyStep03CheckPayment(
+                        safeCategoryString,
+                        safeDescription,
+                        safeMerchantName,
+                        safeAmount,
+                        safePaymentChannel,
+                        safeTransactionTypeIndicator,
+                        safeTransactionType,
+                        safeAccountType,
+                        safeAccountSubtype);
+        if (result != null) {
+            return result;
+        }
+        result =
+                parseCatLegacyStep04CableInternetPhone(
+                        safeCategoryString,
+                        safeDescription,
+                        safeMerchantName,
+                        safeAmount,
+                        safePaymentChannel,
+                        safeTransactionTypeIndicator,
+                        safeTransactionType,
+                        safeAccountType,
+                        safeAccountSubtype);
+        if (result != null) {
+            return result;
+        }
+        result =
+                parseCatLegacyStep05UtilityBillPayment(
+                        safeCategoryString,
+                        safeDescription,
+                        safeMerchantName,
+                        safeAmount,
+                        safePaymentChannel,
+                        safeTransactionTypeIndicator,
+                        safeTransactionType,
+                        safeAccountType,
+                        safeAccountSubtype);
+        if (result != null) {
+            return result;
+        }
+        result =
+                parseCatLegacyStep06InterestIncome(
+                        safeCategoryString,
+                        safeDescription,
+                        safeMerchantName,
+                        safeAmount,
+                        safePaymentChannel,
+                        safeTransactionTypeIndicator,
+                        safeTransactionType,
+                        safeAccountType,
+                        safeAccountSubtype);
+        if (result != null) {
+            return result;
+        }
+        result =
+                parseCatLegacyStep07DividendIncome(
+                        safeCategoryString,
+                        safeDescription,
+                        safeMerchantName,
+                        safeAmount,
+                        safePaymentChannel,
+                        safeTransactionTypeIndicator,
+                        safeTransactionType,
+                        safeAccountType,
+                        safeAccountSubtype);
+        if (result != null) {
+            return result;
+        }
+        result =
+                parseCatLegacyStep08CreditCardPayment(
+                        safeCategoryString,
+                        safeDescription,
+                        safeMerchantName,
+                        safeAmount,
+                        safePaymentChannel,
+                        safeTransactionTypeIndicator,
+                        safeTransactionType,
+                        safeAccountType,
+                        safeAccountSubtype);
+        if (result != null) {
+            return result;
+        }
+        result =
+                parseCatLegacyStep09LoanPaymentEscrow(
+                        safeCategoryString,
+                        safeDescription,
+                        safeMerchantName,
+                        safeAmount,
+                        safePaymentChannel,
+                        safeTransactionTypeIndicator,
+                        safeTransactionType,
+                        safeAccountType,
+                        safeAccountSubtype);
+        if (result != null) {
+            return result;
+        }
+        result =
+                parseCatLegacyStep10InvestmentTransfer(
+                        safeCategoryString,
+                        safeDescription,
+                        safeMerchantName,
+                        safeAmount,
+                        safePaymentChannel,
+                        safeTransactionTypeIndicator,
+                        safeTransactionType,
+                        safeAccountType,
+                        safeAccountSubtype);
+        if (result != null) {
+            return result;
+        }
+        result =
+                parseCatLegacyStep11InvestmentFees(
+                        safeCategoryString,
+                        safeDescription,
+                        safeMerchantName,
+                        safeAmount,
+                        safePaymentChannel,
+                        safeTransactionTypeIndicator,
+                        safeTransactionType,
+                        safeAccountType,
+                        safeAccountSubtype);
+        if (result != null) {
+            return result;
+        }
+        result =
+                parseCatLegacyStep12InvestmentPurchase(
+                        safeCategoryString,
+                        safeDescription,
+                        safeMerchantName,
+                        safeAmount,
+                        safePaymentChannel,
+                        safeTransactionTypeIndicator,
+                        safeTransactionType,
+                        safeAccountType,
+                        safeAccountSubtype);
+        if (result != null) {
+            return result;
+        }
+        result =
+                parseCatLegacyStep13InvestmentSold(
+                        safeCategoryString,
+                        safeDescription,
+                        safeMerchantName,
+                        safeAmount,
+                        safePaymentChannel,
+                        safeTransactionTypeIndicator,
+                        safeTransactionType,
+                        safeAccountType,
+                        safeAccountSubtype);
+        if (result != null) {
+            return result;
+        }
+        result =
+                parseCatLegacyStep14DepositFromInvestment(
+                        safeCategoryString,
+                        safeDescription,
+                        safeMerchantName,
+                        safeAmount,
+                        safePaymentChannel,
+                        safeTransactionTypeIndicator,
+                        safeTransactionType,
+                        safeAccountType,
+                        safeAccountSubtype);
+        if (result != null) {
+            return result;
+        }
+        result =
+                parseCatLegacyStep15AccountTransfer(
+                        safeCategoryString,
+                        safeDescription,
+                        safeMerchantName,
+                        safeAmount,
+                        safePaymentChannel,
+                        safeTransactionTypeIndicator,
+                        safeTransactionType,
+                        safeAccountType,
+                        safeAccountSubtype);
+        if (result != null) {
+            return result;
+        }
+        result =
+                parseCatLegacyStep16SalaryPayrollInterest(
+                        safeCategoryString,
+                        safeDescription,
+                        safeMerchantName,
+                        safeAmount,
+                        safePaymentChannel,
+                        safeTransactionTypeIndicator,
+                        safeTransactionType,
+                        safeAccountType,
+                        safeAccountSubtype);
+        if (result != null) {
+            return result;
+        }
+        result =
+                parseCatLegacyStep17DividendIncomeAgain(
+                        safeCategoryString,
+                        safeDescription,
+                        safeMerchantName,
+                        safeAmount,
+                        safePaymentChannel,
+                        safeTransactionTypeIndicator,
+                        safeTransactionType,
+                        safeAccountType,
+                        safeAccountSubtype);
+        if (result != null) {
+            return result;
+        }
+        result =
+                parseCatLegacyStep18ContextAwareIncome(
+                        safeCategoryString,
+                        safeDescription,
+                        safeMerchantName,
+                        safeAmount,
+                        safePaymentChannel,
+                        safeTransactionTypeIndicator,
+                        safeTransactionType,
+                        safeAccountType,
+                        safeAccountSubtype);
+        if (result != null) {
+            return result;
+        }
+        result =
+                parseCatLegacyStep19SalaryPayroll(
+                        safeCategoryString,
+                        safeDescription,
+                        safeMerchantName,
+                        safeAmount,
+                        safePaymentChannel,
+                        safeTransactionTypeIndicator,
+                        safeTransactionType,
+                        safeAccountType,
+                        safeAccountSubtype);
+        if (result != null) {
+            return result;
+        }
+        result =
+                parseCatLegacyStep20PropertyTax(
+                        safeCategoryString,
+                        safeDescription,
+                        safeMerchantName,
+                        safeAmount,
+                        safePaymentChannel,
+                        safeTransactionTypeIndicator,
+                        safeTransactionType,
+                        safeAccountType,
+                        safeAccountSubtype);
+        if (result != null) {
+            return result;
+        }
+        result =
+                parseCatLegacyStep21Rsu(
+                        safeCategoryString,
+                        safeDescription,
+                        safeMerchantName,
+                        safeAmount,
+                        safePaymentChannel,
+                        safeTransactionTypeIndicator,
+                        safeTransactionType,
+                        safeAccountType,
+                        safeAccountSubtype);
+        if (result != null) {
+            return result;
+        }
+        result =
+                parseCatLegacyStep22MerchantBasedDetection(
+                        safeCategoryString,
+                        safeDescription,
+                        safeMerchantName,
+                        safeAmount,
+                        safePaymentChannel,
+                        safeTransactionTypeIndicator,
+                        safeTransactionType,
+                        safeAccountType,
+                        safeAccountSubtype);
+        if (result != null) {
+            return result;
+        }
+        result =
+                parseCatLegacyStep23DescriptionBased(
+                        safeCategoryString,
+                        safeDescription,
+                        safeMerchantName,
+                        safeAmount,
+                        safePaymentChannel,
+                        safeTransactionTypeIndicator,
+                        safeTransactionType,
+                        safeAccountType,
+                        safeAccountSubtype);
+        if (result != null) {
+            return result;
+        }
+        result =
+                parseCatLegacyStep24EnhancedDetection(
+                        safeCategoryString,
+                        safeDescription,
+                        safeMerchantName,
+                        safeAmount,
+                        safePaymentChannel,
+                        safeTransactionTypeIndicator,
+                        safeTransactionType,
+                        safeAccountType,
+                        safeAccountSubtype);
+        if (result != null) {
+            return result;
+        }
+        result =
+                parseCatLegacyStep25ZeroAmount(
+                        safeCategoryString,
+                        safeDescription,
+                        safeMerchantName,
+                        safeAmount,
+                        safePaymentChannel,
+                        safeTransactionTypeIndicator,
+                        safeTransactionType,
+                        safeAccountType,
+                        safeAccountSubtype);
+        if (result != null) {
+            return result;
+        }
+        result =
+                parseCatLegacyStep26AchTransactions(
+                        safeCategoryString,
+                        safeDescription,
+                        safeMerchantName,
+                        safeAmount,
+                        safePaymentChannel,
+                        safeTransactionTypeIndicator,
+                        safeTransactionType,
+                        safeAccountType,
+                        safeAccountSubtype);
+        if (result != null) {
+            return result;
+        }
+        result =
+                parseCatLegacyStep27AchCreditSpecific(
+                        safeCategoryString,
+                        safeDescription,
+                        safeMerchantName,
+                        safeAmount,
+                        safePaymentChannel,
+                        safeTransactionTypeIndicator,
+                        safeTransactionType,
+                        safeAccountType,
+                        safeAccountSubtype);
+        if (result != null) {
+            return result;
+        }
+        result =
+                parseCatLegacyStep28StandardCategoryParse(
+                        safeCategoryString,
+                        safeDescription,
+                        safeMerchantName,
+                        safeAmount,
+                        safePaymentChannel,
+                        safeTransactionTypeIndicator,
+                        safeTransactionType,
+                        safeAccountType,
+                        safeAccountSubtype);
+        if (result != null) {
+            return result;
+        }
+
+        LOGGER.debug("parseCategoryLegacy: No match — falling back to OTHER");
+        return OTHER;
+    }
+
+    private String parseCatLegacyStep01AchCreditDeposit(
+            final String safeCategoryString,
+            final String safeDescription,
+            final String safeMerchantName,
+            final BigDecimal safeAmount,
+            final String safePaymentChannel,
+            final String safeTransactionTypeIndicator,
+            final String safeTransactionType,
+            final String safeAccountType,
+            final String safeAccountSubtype) {
         // STEP 1a: Check for ACH_CREDIT deposits FIRST (before payment detection)
         // CRITICAL: Must come before payment checks to prevent ACH_CREDIT from being categorized as
         // payment
@@ -3839,7 +4248,19 @@ public class CSVImportService {
                 return DEPOSIT;
             }
         }
+        return null;
+    }
 
+    private String parseCatLegacyStep02FeesAndCashWithdrawal(
+            final String safeCategoryString,
+            final String safeDescription,
+            final String safeMerchantName,
+            final BigDecimal safeAmount,
+            final String safePaymentChannel,
+            final String safeTransactionTypeIndicator,
+            final String safeTransactionType,
+            final String safeAccountType,
+            final String safeAccountSubtype) {
         // STEP 1b: Check for fees (FEE_TRANSACTION, safe deposit box, etc.)
         if (safeCategoryString != null) {
             final String categoryLower = safeCategoryString.toLowerCase(Locale.ROOT);
@@ -3909,11 +4330,24 @@ public class CSVImportService {
                     && !descLower.contains("investment")
                     && !descLower.contains(TRANSFER)
                     && !descLower.contains("payment")) {
-                LOGGER.debug("🏷️ parseCategory: Detected withdrawal (negative amount) → 'cash'");
+                LOGGER.debug(
+                        "🏷️ parseCategory: Detected withdrawal (negative safeAmount) → 'cash'");
                 return "cash";
             }
         }
+        return null;
+    }
 
+    private String parseCatLegacyStep03CheckPayment(
+            final String safeCategoryString,
+            final String safeDescription,
+            final String safeMerchantName,
+            final BigDecimal safeAmount,
+            final String safePaymentChannel,
+            final String safeTransactionTypeIndicator,
+            final String safeTransactionType,
+            final String safeAccountType,
+            final String safeAccountSubtype) {
         // STEP 1b: Check for Check Payment - CRITICAL FIX: Must come before merchant name detection
         // Check payments should be "payment", not transportation (e.g., "CHECK 176" was matching
         // gas station "76")
@@ -3925,7 +4359,19 @@ public class CSVImportService {
             LOGGER.debug("🏷️ parseCategory: Detected check payment → 'payment'");
             return "payment";
         }
+        return null;
+    }
 
+    private String parseCatLegacyStep04CableInternetPhone(
+            final String safeCategoryString,
+            final String safeDescription,
+            final String safeMerchantName,
+            final BigDecimal safeAmount,
+            final String safePaymentChannel,
+            final String safeTransactionTypeIndicator,
+            final String safeTransactionType,
+            final String safeAccountType,
+            final String safeAccountSubtype) {
         // STEP 1a: Check for Cable/Internet/Phone Providers - CRITICAL: Must come BEFORE credit
         // card payment
         // Cable/internet/phone bills (e.g., "Comcast Payment", "Xfinity Mobile Payment") should be
@@ -4016,7 +4462,19 @@ public class CSVImportService {
                 }
             }
         }
+        return null;
+    }
 
+    private String parseCatLegacyStep05UtilityBillPayment(
+            final String safeCategoryString,
+            final String safeDescription,
+            final String safeMerchantName,
+            final BigDecimal safeAmount,
+            final String safePaymentChannel,
+            final String safeTransactionTypeIndicator,
+            final String safeTransactionType,
+            final String safeAccountType,
+            final String safeAccountSubtype) {
         // STEP 1b: Check for Utility Bill Payment - CRITICAL FIX: Must come BEFORE credit card
         // payment
         // Direct payments to utility companies (e.g., "PUGET SOUND ENER BILLPAY") should be
@@ -4027,7 +4485,19 @@ public class CSVImportService {
             LOGGER.debug("🏷️ parseCategory: Detected utility bill payment → 'utilities'");
             return UTILITIES;
         }
+        return null;
+    }
 
+    private String parseCatLegacyStep06InterestIncome(
+            final String safeCategoryString,
+            final String safeDescription,
+            final String safeMerchantName,
+            final BigDecimal safeAmount,
+            final String safePaymentChannel,
+            final String safeTransactionTypeIndicator,
+            final String safeTransactionType,
+            final String safeAccountType,
+            final String safeAccountSubtype) {
         // STEP 1c: Check for Interest Income - CRITICAL: Must come BEFORE credit card payment to
         // avoid false matches
         // Interest payments should be INTEREST (income) or "investmentInterest" (investment), not
@@ -4050,7 +4520,19 @@ public class CSVImportService {
             LOGGER.debug("parseCategory: Detected interest transaction → 'interest'");
             return INTEREST;
         }
+        return null;
+    }
 
+    private String parseCatLegacyStep07DividendIncome(
+            final String safeCategoryString,
+            final String safeDescription,
+            final String safeMerchantName,
+            final BigDecimal safeAmount,
+            final String safePaymentChannel,
+            final String safeTransactionTypeIndicator,
+            final String safeTransactionType,
+            final String safeAccountType,
+            final String safeAccountSubtype) {
         // STEP 1c: Check for Dividend Income - CRITICAL: Must come BEFORE credit card payment to
         // avoid false matches
         // Dividend payments should be DIVIDEND (income) or "investmentDividend" (investment), not
@@ -4073,7 +4555,19 @@ public class CSVImportService {
             LOGGER.debug("parseCategory: Detected dividend transaction → 'dividend'");
             return DIVIDEND;
         }
+        return null;
+    }
 
+    private String parseCatLegacyStep08CreditCardPayment(
+            final String safeCategoryString,
+            final String safeDescription,
+            final String safeMerchantName,
+            final BigDecimal safeAmount,
+            final String safePaymentChannel,
+            final String safeTransactionTypeIndicator,
+            final String safeTransactionType,
+            final String safeAccountType,
+            final String safeAccountSubtype) {
         // STEP 1d: Check for Credit Card Payment - CRITICAL FIX: Must come early, not just for ACH
         // Credit card payments should be "payment" (expense), not OTHER or DEPOSIT (income)
         // This includes ACH autopay, online payments, etc.
@@ -4087,12 +4581,24 @@ public class CSVImportService {
         } else {
             // Log why it wasn't detected for debugging
             LOGGER.debug(
-                    "🏷️ parseCategory: Credit card payment check returned false for description='{}', merchant='{}', category='{}'",
+                    "🏷️ parseCategory: Credit card payment check returned false for safeDescription='{}', merchant='{}', category='{}'",
                     safeDescription,
                     safeMerchantName,
                     safeCategoryString);
         }
+        return null;
+    }
 
+    private String parseCatLegacyStep09LoanPaymentEscrow(
+            final String safeCategoryString,
+            final String safeDescription,
+            final String safeMerchantName,
+            final BigDecimal safeAmount,
+            final String safePaymentChannel,
+            final String safeTransactionTypeIndicator,
+            final String safeTransactionType,
+            final String safeAccountType,
+            final String safeAccountSubtype) {
         // STEP 1e: Check for Loan Payment/Escrow/Bills - CRITICAL FIX: Must come early
         // Loan payments (mortgage, auto loan, student loan) should be "payment", "loanEscrow", or
         // "loanBills"
@@ -4129,21 +4635,45 @@ public class CSVImportService {
             LOGGER.debug("🏷️ parseCategory: Detected loan payment → 'payment'");
             return "payment";
         }
+        return null;
+    }
 
+    private String parseCatLegacyStep10InvestmentTransfer(
+            final String safeCategoryString,
+            final String safeDescription,
+            final String safeMerchantName,
+            final BigDecimal safeAmount,
+            final String safePaymentChannel,
+            final String safeTransactionTypeIndicator,
+            final String safeTransactionType,
+            final String safeAccountType,
+            final String safeAccountSubtype) {
         // STEP 1f: Check for Investment Transfer - CRITICAL FIX: Must come before regular account
         // transfer
         // Investment transfers (from/to investment firms like Morgan Stanley, Fidelity, etc.)
         // should be "investmentTransfer"
         // CRITICAL: Only for DEBITS (money going out). Credits should be DEPOSIT
         if (safeAmount != null && safeAmount.compareTo(BigDecimal.ZERO) < 0) {
-            // Only check for investment transfer if amount is negative (debit)
+            // Only check for investment transfer if safeAmount is negative (debit)
             if (isInvestmentTransfer(safeDescription, safeMerchantName, safeCategoryString)) {
                 LOGGER.debug(
                         "🏷️ parseCategory: Detected investment transfer (debit) → 'investmentTransfer'");
                 return "investmentTransfer";
             }
         }
+        return null;
+    }
 
+    private String parseCatLegacyStep11InvestmentFees(
+            final String safeCategoryString,
+            final String safeDescription,
+            final String safeMerchantName,
+            final BigDecimal safeAmount,
+            final String safePaymentChannel,
+            final String safeTransactionTypeIndicator,
+            final String safeTransactionType,
+            final String safeAccountType,
+            final String safeAccountSubtype) {
         // STEP 1f0: Check for Investment Fees - CRITICAL: Must come before other investment checks
         // Investment fees (negative amounts on investment accounts) should be "investmentFees"
         if (safeAmount != null
@@ -4175,7 +4705,19 @@ public class CSVImportService {
                 return "investmentFees";
             }
         }
+        return null;
+    }
 
+    private String parseCatLegacyStep12InvestmentPurchase(
+            final String safeCategoryString,
+            final String safeDescription,
+            final String safeMerchantName,
+            final BigDecimal safeAmount,
+            final String safePaymentChannel,
+            final String safeTransactionTypeIndicator,
+            final String safeTransactionType,
+            final String safeAccountType,
+            final String safeAccountSubtype) {
         // STEP 1f1: Check for Investment Purchase - CRITICAL: Negative amounts on investment
         // accounts
         // Investment purchases (negative amounts on investment accounts) should be
@@ -4207,7 +4749,19 @@ public class CSVImportService {
                 return "investmentPurchase";
             }
         }
+        return null;
+    }
 
+    private String parseCatLegacyStep13InvestmentSold(
+            final String safeCategoryString,
+            final String safeDescription,
+            final String safeMerchantName,
+            final BigDecimal safeAmount,
+            final String safePaymentChannel,
+            final String safeTransactionTypeIndicator,
+            final String safeTransactionType,
+            final String safeAccountType,
+            final String safeAccountSubtype) {
         // STEP 1f2: Check for Investment Sold - CRITICAL: Positive amounts on investment accounts
         // Investment sales (positive amounts on investment accounts) should be "investmentSold"
         if (safeAmount != null
@@ -4236,10 +4790,22 @@ public class CSVImportService {
                 return "investmentSold";
             }
         }
+        return null;
+    }
 
+    private String parseCatLegacyStep14DepositFromInvestment(
+            final String safeCategoryString,
+            final String safeDescription,
+            final String safeMerchantName,
+            final BigDecimal safeAmount,
+            final String safePaymentChannel,
+            final String safeTransactionTypeIndicator,
+            final String safeTransactionType,
+            final String safeAccountType,
+            final String safeAccountSubtype) {
         // STEP 1f1: Check for Deposit from Investment Firm - CRITICAL FIX
         // Credits from investment firms (e.g., "Online transfer from Morgan Stanley" with positive
-        // amount) should be DEPOSIT
+        // safeAmount) should be DEPOSIT
         if (safeAmount != null && safeAmount.compareTo(BigDecimal.ZERO) > 0) {
             final String descLower =
                     safeDescription != null ? safeDescription.toLowerCase(Locale.ROOT) : "";
@@ -4270,7 +4836,19 @@ public class CSVImportService {
                 }
             }
         }
+        return null;
+    }
 
+    private String parseCatLegacyStep15AccountTransfer(
+            final String safeCategoryString,
+            final String safeDescription,
+            final String safeMerchantName,
+            final BigDecimal safeAmount,
+            final String safePaymentChannel,
+            final String safeTransactionTypeIndicator,
+            final String safeTransactionType,
+            final String safeAccountType,
+            final String safeAccountSubtype) {
         // STEP 1g: Check for Account Transfer - CRITICAL FIX: Must come early
         // Account transfers (ACCT_XFER, Online Transfer to CHK, etc.) should be TRANSFER, not
         // OTHER
@@ -4289,14 +4867,38 @@ public class CSVImportService {
                 return TRANSFER;
             }
         }
+        return null;
+    }
 
+    private String parseCatLegacyStep16SalaryPayrollInterest(
+            final String safeCategoryString,
+            final String safeDescription,
+            final String safeMerchantName,
+            final BigDecimal safeAmount,
+            final String safePaymentChannel,
+            final String safeTransactionTypeIndicator,
+            final String safeTransactionType,
+            final String safeAccountType,
+            final String safeAccountSubtype) {
         // STEP 2: Check for Salary/Payroll (highest priority for income)
         if (isInterestTransaction(
                 safeCategoryString, safeDescription, safeMerchantName, safeAmount)) {
             LOGGER.debug("parseCategory: Detected interest transaction → 'interest'");
             return INTEREST;
         }
+        return null;
+    }
 
+    private String parseCatLegacyStep17DividendIncomeAgain(
+            final String safeCategoryString,
+            final String safeDescription,
+            final String safeMerchantName,
+            final BigDecimal safeAmount,
+            final String safePaymentChannel,
+            final String safeTransactionTypeIndicator,
+            final String safeTransactionType,
+            final String safeAccountType,
+            final String safeAccountSubtype) {
         // STEP 3: Check for Dividend Income - CRITICAL: Must come before salary to catch dividend
         // payments
         if (isDividendTransaction(
@@ -4304,7 +4906,19 @@ public class CSVImportService {
             LOGGER.debug("parseCategory: Detected dividend transaction → 'dividend'");
             return DIVIDEND;
         }
+        return null;
+    }
 
+    private String parseCatLegacyStep18ContextAwareIncome(
+            final String safeCategoryString,
+            final String safeDescription,
+            final String safeMerchantName,
+            final BigDecimal safeAmount,
+            final String safePaymentChannel,
+            final String safeTransactionTypeIndicator,
+            final String safeTransactionType,
+            final String safeAccountType,
+            final String safeAccountSubtype) {
         // STEP 3: Context-aware Income Category Detection
         // For INCOME type transactions, determine specific income category (salary, deposit,
         // dividend, interest)
@@ -4326,7 +4940,19 @@ public class CSVImportService {
                 return incomeCategory;
             }
         }
+        return null;
+    }
 
+    private String parseCatLegacyStep19SalaryPayroll(
+            final String safeCategoryString,
+            final String safeDescription,
+            final String safeMerchantName,
+            final BigDecimal safeAmount,
+            final String safePaymentChannel,
+            final String safeTransactionTypeIndicator,
+            final String safeTransactionType,
+            final String safeAccountType,
+            final String safeAccountSubtype) {
         // STEP 3a: Check for Salary/Payroll (highest priority for income)
         // CRITICAL FIX: Include Amazon.com SVCS Payroll and other payroll patterns
         if (isSalaryTransaction(safeDescription, safeAmount, safePaymentChannel)) {
@@ -4352,7 +4978,19 @@ public class CSVImportService {
                 return SALARY;
             }
         }
+        return null;
+    }
 
+    private String parseCatLegacyStep20PropertyTax(
+            final String safeCategoryString,
+            final String safeDescription,
+            final String safeMerchantName,
+            final BigDecimal safeAmount,
+            final String safePaymentChannel,
+            final String safeTransactionTypeIndicator,
+            final String safeTransactionType,
+            final String safeAccountType,
+            final String safeAccountSubtype) {
         // STEP 3.5: Check for Property Tax - CRITICAL FIX
         // Property tax (e.g., Santa Clara DTAC) should be OTHER (no specific property tax
         // category)
@@ -4371,16 +5009,40 @@ public class CSVImportService {
                 return OTHER; // Property tax category - user can override if needed
             }
         }
+        return null;
+    }
 
+    private String parseCatLegacyStep21Rsu(
+            final String safeCategoryString,
+            final String safeDescription,
+            final String safeMerchantName,
+            final BigDecimal safeAmount,
+            final String safePaymentChannel,
+            final String safeTransactionTypeIndicator,
+            final String safeTransactionType,
+            final String safeAccountType,
+            final String safeAccountSubtype) {
         // STEP 4: Check for RSU transactions
         if (isRSUTransaction(safeCategoryString, safeDescription, safeMerchantName, safeAmount)) {
             LOGGER.debug("parseCategory: Detected RSU transaction → 'rsu'");
             return "rsu";
         }
+        return null;
+    }
 
+    private String parseCatLegacyStep22MerchantBasedDetection(
+            final String safeCategoryString,
+            final String safeDescription,
+            final String safeMerchantName,
+            final BigDecimal safeAmount,
+            final String safePaymentChannel,
+            final String safeTransactionTypeIndicator,
+            final String safeTransactionType,
+            final String safeAccountType,
+            final String safeAccountSubtype) {
         // STEP 4: Sophisticated Merchant Name-Based Detection (NEW - Global Scale)
         // This is the key enhancement - merchant names are more reliable than category strings
-        // CRITICAL FIX: Skip merchant name detection when merchantName is null/empty to save
+        // CRITICAL FIX: Skip merchant name detection when safeMerchantName is null/empty to save
         // resources
         String merchantCategory = null;
         if (safeMerchantName != null && !safeMerchantName.isBlank()) {
@@ -4394,29 +5056,53 @@ public class CSVImportService {
             }
         } else {
             LOGGER.debug(
-                    "🏷️ parseCategory: Skipping merchant name detection - merchantName is null/empty");
+                    "🏷️ parseCategory: Skipping merchant name detection - safeMerchantName is null/empty");
         }
+        return null;
+    }
 
+    private String parseCatLegacyStep23DescriptionBased(
+            final String safeCategoryString,
+            final String safeDescription,
+            final String safeMerchantName,
+            final BigDecimal safeAmount,
+            final String safePaymentChannel,
+            final String safeTransactionTypeIndicator,
+            final String safeTransactionType,
+            final String safeAccountType,
+            final String safeAccountSubtype) {
         // STEP 5: Description-Based Category Detection (NEW - Fallback when merchant name fails)
         final String descriptionCategory =
                 detectCategoryFromDescription(safeDescription, safeMerchantName, safeAmount);
         if (descriptionCategory != null) {
             LOGGER.debug(
-                    "🏷️ parseCategory: Detected category from description '{}' → '{}'",
+                    "🏷️ parseCategory: Detected category from safeDescription '{}' → '{}'",
                     safeDescription,
                     descriptionCategory);
             return descriptionCategory;
         }
+        return null;
+    }
 
+    private String parseCatLegacyStep24EnhancedDetection(
+            final String safeCategoryString,
+            final String safeDescription,
+            final String safeMerchantName,
+            final BigDecimal safeAmount,
+            final String safePaymentChannel,
+            final String safeTransactionTypeIndicator,
+            final String safeTransactionType,
+            final String safeAccountType,
+            final String safeAccountSubtype) {
         // STEP 6: Enhanced Category Detection (ML + Fuzzy Matching) - CRITICAL FIX: This was
         // missing!
-        // Only use if we have merchant name or description (ML needs some input)
+        // Only use if we have merchant name or safeDescription (ML needs some input)
         // NOTE: safeAmount is already validated at the beginning of the method
         if ((safeMerchantName != null && !safeMerchantName.isEmpty())
                 || (safeDescription != null && !safeDescription.isEmpty())) {
             try {
                 LOGGER.debug(
-                        "🏷️ parseCategory: Attempting enhanced detection - merchant='{}', description='{}', amount={}, channel='{}', category='{}'",
+                        "🏷️ parseCategory: Attempting enhanced detection - merchant='{}', safeDescription='{}', safeAmount={}, channel='{}', category='{}'",
                         safeMerchantName,
                         safeDescription,
                         safeAmount,
@@ -4489,49 +5175,73 @@ public class CSVImportService {
             }
         } else {
             LOGGER.debug(
-                    "🏷️ parseCategory: Skipping enhanced detection - both merchantName and description are null/empty");
+                    "🏷️ parseCategory: Skipping enhanced detection - both safeMerchantName and safeDescription are null/empty");
         }
+        return null;
+    }
 
-        // STEP 7: Check for zero amount transactions (boundary condition)
-        // Zero amounts are ambiguous - use category/description to determine type
-        if (amount != null && amount.compareTo(BigDecimal.ZERO) == 0) {
+    private String parseCatLegacyStep25ZeroAmount(
+            final String safeCategoryString,
+            final String safeDescription,
+            final String safeMerchantName,
+            final BigDecimal safeAmount,
+            final String safePaymentChannel,
+            final String safeTransactionTypeIndicator,
+            final String safeTransactionType,
+            final String safeAccountType,
+            final String safeAccountSubtype) {
+        // STEP 7: Check for zero safeAmount transactions (boundary condition)
+        // Zero amounts are ambiguous - use category/safeDescription to determine type
+        if (safeAmount != null && safeAmount.compareTo(BigDecimal.ZERO) == 0) {
             LOGGER.debug(
-                    "parseCategory: Zero amount transaction detected, using category/description inference");
+                    "parseCategory: Zero safeAmount transaction detected, using category/safeDescription inference");
             // Zero amounts are typically fees, adjustments, or transfers
             // If we have a category hint, use it; otherwise default to OTHER
-            if (categoryString != null && !categoryString.isBlank()) {
-                final String lower = categoryString.toLowerCase(Locale.ROOT);
+            if (safeCategoryString != null && !safeCategoryString.isBlank()) {
+                final String lower = safeCategoryString.toLowerCase(Locale.ROOT);
                 final String mapped = CATEGORY_MAP.get(lower);
                 if (mapped != null) {
                     LOGGER.debug(
-                            "parseCategory: Zero amount with category hint '{}' → '{}'",
-                            categoryString,
+                            "parseCategory: Zero safeAmount with category hint '{}' → '{}'",
+                            safeCategoryString,
                             mapped);
                     return mapped;
                 }
             }
-            // For zero amounts without clear category, check description for hints
-            if (description != null && !description.isBlank()) {
-                final String descLower = description.toLowerCase(Locale.ROOT);
+            // For zero amounts without clear category, check safeDescription for hints
+            if (safeDescription != null && !safeDescription.isBlank()) {
+                final String descLower = safeDescription.toLowerCase(Locale.ROOT);
                 if (descLower.contains(FEE)
                         || descLower.contains("adjustment")
                         || descLower.contains("correction")) {
                     LOGGER.debug(
-                            "parseCategory: Zero amount with fee/adjustment description → 'other'");
+                            "parseCategory: Zero safeAmount with fee/adjustment safeDescription → 'other'");
                     return OTHER;
                 }
                 if (descLower.contains(TRANSFER)) {
                     LOGGER.debug(
-                            "parseCategory: Zero amount with transfer description → 'payment'");
+                            "parseCategory: Zero safeAmount with transfer safeDescription → 'payment'");
                     return "payment";
                 }
             }
             // Default for zero amounts
-            LOGGER.debug("parseCategory: Zero amount without clear category → 'other'");
+            LOGGER.debug("parseCategory: Zero safeAmount without clear category → 'other'");
             return OTHER;
         }
+        return null;
+    }
 
-        // STEP 8: Check for ACH transactions (after merchant/description checks)
+    private String parseCatLegacyStep26AchTransactions(
+            final String safeCategoryString,
+            final String safeDescription,
+            final String safeMerchantName,
+            final BigDecimal safeAmount,
+            final String safePaymentChannel,
+            final String safeTransactionTypeIndicator,
+            final String safeTransactionType,
+            final String safeAccountType,
+            final String safeAccountSubtype) {
+        // STEP 8: Check for ACH transactions (after merchant/safeDescription checks)
         if (isACHTransaction(safeDescription, safePaymentChannel)) {
             // If ACH is positive and looks like salary, categorize as salary
             if (safeAmount != null
@@ -4547,9 +5257,21 @@ public class CSVImportService {
                 return DEPOSIT;
             }
         }
+        return null;
+    }
 
+    private String parseCatLegacyStep27AchCreditSpecific(
+            final String safeCategoryString,
+            final String safeDescription,
+            final String safeMerchantName,
+            final BigDecimal safeAmount,
+            final String safePaymentChannel,
+            final String safeTransactionTypeIndicator,
+            final String safeTransactionType,
+            final String safeAccountType,
+            final String safeAccountSubtype) {
         // STEP 9: Check for ACH_CREDIT specifically (before category map lookup)
-        // CRITICAL: ACH_CREDIT with positive amount should be DEPOSIT, not "income" (unless
+        // CRITICAL: ACH_CREDIT with positive safeAmount should be DEPOSIT, not "income" (unless
         // specifically identified as salary, interest, etc.)
         // This prevents "ACH_CREDIT" from matching "credit" → "income" in the category map
         if (safeCategoryString != null && safeAmount != null) {
@@ -4558,11 +5280,23 @@ public class CSVImportService {
                     && safeAmount.compareTo(BigDecimal.ZERO) > 0) {
                 // Already checked for salary in STEP 8, so this is a generic deposit
                 LOGGER.debug(
-                        "🏷️ parseCategory: Detected ACH_CREDIT with positive amount → 'deposit'");
+                        "🏷️ parseCategory: Detected ACH_CREDIT with positive safeAmount → 'deposit'");
                 return DEPOSIT;
             }
         }
+        return null;
+    }
 
+    private String parseCatLegacyStep28StandardCategoryParse(
+            final String safeCategoryString,
+            final String safeDescription,
+            final String safeMerchantName,
+            final BigDecimal safeAmount,
+            final String safePaymentChannel,
+            final String safeTransactionTypeIndicator,
+            final String safeTransactionType,
+            final String safeAccountType,
+            final String safeAccountSubtype) {
         // STEP 10: Fall back to standard category string parsing (using static map for performance)
         if (safeCategoryString != null && !safeCategoryString.isEmpty()) {
             final String lower = safeCategoryString.toLowerCase(Locale.ROOT);
@@ -4572,7 +5306,7 @@ public class CSVImportService {
             if (exactMatch != null) {
                 LOGGER.debug(
                         "parseCategory: Exact category string match '{}' → '{}'",
-                        categoryString,
+                        safeCategoryString,
                         exactMatch);
                 return exactMatch;
             }
@@ -4592,7 +5326,7 @@ public class CSVImportService {
 
             for (final Map.Entry<String, String> entry : sortedEntries) {
                 final String key = entry.getKey();
-                // CRITICAL: Skip "credit" keyword if categoryString contains "ACH_CREDIT" to
+                // CRITICAL: Skip "credit" keyword if safeCategoryString contains "ACH_CREDIT" to
                 // prevent false "income" match
                 if (lower.contains("ach_credit") || lower.contains("ach credit")) {
                     if ("credit".equals(key)) {
@@ -4612,7 +5346,7 @@ public class CSVImportService {
         // STEP 10: Final fallback - no category detected
         // CRITICAL: Always return a valid category (never null)
         LOGGER.debug(
-                "🏷️ parseCategory: No category detected for merchant='{}', description='{}', falling back to 'other'",
+                "🏷️ parseCategory: No category detected for merchant='{}', safeDescription='{}', falling back to 'other'",
                 safeMerchantName,
                 safeDescription);
         return OTHER;
@@ -6354,90 +7088,129 @@ public class CSVImportService {
         // travel, NOT utilities
         // Check for Centurion Lounge first (most specific pattern)
         String result;
-        result = detectCategoryStep01Travel(descLower, normalizedDesc, description, merchantName, amount);
+        result =
+                detectCategoryStep01Travel(
+                        descLower, normalizedDesc, description, merchantName, amount);
         if (result != null) {
             return result;
         }
-        result = detectCategoryStep02Rideshare(descLower, normalizedDesc, description, merchantName, amount);
+        result =
+                detectCategoryStep02Rideshare(
+                        descLower, normalizedDesc, description, merchantName, amount);
         if (result != null) {
             return result;
         }
-        result = detectCategoryStep03GasStation(descLower, normalizedDesc, description, merchantName, amount);
+        result =
+                detectCategoryStep03GasStation(
+                        descLower, normalizedDesc, description, merchantName, amount);
         if (result != null) {
             return result;
         }
-        result = detectCategoryStep04PosDining(descLower, normalizedDesc, description, merchantName, amount);
+        result =
+                detectCategoryStep04PosDining(
+                        descLower, normalizedDesc, description, merchantName, amount);
         if (result != null) {
             return result;
         }
-        result = detectCategoryStep05Parking(descLower, normalizedDesc, description, merchantName, amount);
+        result =
+                detectCategoryStep05Parking(
+                        descLower, normalizedDesc, description, merchantName, amount);
         if (result != null) {
             return result;
         }
-        result = detectCategoryStep06SportsFitnessClubs(descLower, normalizedDesc, description, merchantName, amount);
+        result =
+                detectCategoryStep06SportsFitnessClubs(
+                        descLower, normalizedDesc, description, merchantName, amount);
         if (result != null) {
             return result;
         }
-        result = detectCategoryStep07BookStores(descLower, normalizedDesc, description, merchantName, amount);
+        result =
+                detectCategoryStep07BookStores(
+                        descLower, normalizedDesc, description, merchantName, amount);
         if (result != null) {
             return result;
         }
-        result = detectCategoryStep08Utilities(descLower, normalizedDesc, description, merchantName, amount);
+        result =
+                detectCategoryStep08Utilities(
+                        descLower, normalizedDesc, description, merchantName, amount);
         if (result != null) {
             return result;
         }
-        result = detectCategoryStep09SpecificGroceries(descLower, normalizedDesc, description, merchantName, amount);
+        result =
+                detectCategoryStep09SpecificGroceries(
+                        descLower, normalizedDesc, description, merchantName, amount);
         if (result != null) {
             return result;
         }
-        result = detectCategoryStep10SpecificRestaurants(descLower, normalizedDesc, description, merchantName, amount);
+        result =
+                detectCategoryStep10SpecificRestaurants(
+                        descLower, normalizedDesc, description, merchantName, amount);
         if (result != null) {
             return result;
         }
-        result = detectCategoryStep11PetTech(descLower, normalizedDesc, description, merchantName, amount);
+        result =
+                detectCategoryStep11PetTech(
+                        descLower, normalizedDesc, description, merchantName, amount);
         if (result != null) {
             return result;
         }
-        result = detectCategoryStep12GymBeautySports(descLower, normalizedDesc, description, merchantName, amount);
+        result =
+                detectCategoryStep12GymBeautySports(
+                        descLower, normalizedDesc, description, merchantName, amount);
         if (result != null) {
             return result;
         }
-        result = detectCategoryStep13MoreTransportAndQfc(descLower, normalizedDesc, description, merchantName, amount);
+        result =
+                detectCategoryStep13MoreTransportAndQfc(
+                        descLower, normalizedDesc, description, merchantName, amount);
         if (result != null) {
             return result;
         }
-        result = detectCategoryStep14SchoolPaymentsAndTypes(descLower, normalizedDesc, description, merchantName, amount);
+        result =
+                detectCategoryStep14SchoolPaymentsAndTypes(
+                        descLower, normalizedDesc, description, merchantName, amount);
         if (result != null) {
             return result;
         }
-        result = detectCategoryStep15SubscriptionsAndCharity(descLower, normalizedDesc, description, merchantName, amount);
+        result =
+                detectCategoryStep15SubscriptionsAndCharity(
+                        descLower, normalizedDesc, description, merchantName, amount);
         if (result != null) {
             return result;
         }
-        result = detectCategoryStep16PetClinicHealth(descLower, normalizedDesc, description, merchantName, amount);
+        result =
+                detectCategoryStep16PetClinicHealth(
+                        descLower, normalizedDesc, description, merchantName, amount);
         if (result != null) {
             return result;
         }
-        result = detectCategoryStep17TransportTicketsTolls(descLower, normalizedDesc, description, merchantName, amount);
+        result =
+                detectCategoryStep17TransportTicketsTolls(
+                        descLower, normalizedDesc, description, merchantName, amount);
         if (result != null) {
             return result;
         }
-        result = detectCategoryStep18MoreRestaurants(descLower, normalizedDesc, description, merchantName, amount);
+        result =
+                detectCategoryStep18MoreRestaurants(
+                        descLower, normalizedDesc, description, merchantName, amount);
         if (result != null) {
             return result;
         }
-        result = detectCategoryStep19ExamsAndRegional(descLower, normalizedDesc, description, merchantName, amount);
+        result =
+                detectCategoryStep19ExamsAndRegional(
+                        descLower, normalizedDesc, description, merchantName, amount);
         if (result != null) {
             return result;
         }
-        result = detectCategoryStep20Entertainment(descLower, normalizedDesc, description, merchantName, amount);
+        result =
+                detectCategoryStep20Entertainment(
+                        descLower, normalizedDesc, description, merchantName, amount);
         if (result != null) {
             return result;
         }
 
         LOGGER.debug(
-                "detectCategoryFromDescription: No match found for description '{}'",
-                description);
+                "detectCategoryFromDescription: No match found for description '{}'", description);
         return null;
     }
 
