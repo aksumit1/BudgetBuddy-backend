@@ -187,10 +187,10 @@ public class BudgetRolloverService {
     }
 
     /**
-     * Plaid (and most CSV imports) mark a transaction {@code pending=true} until it posts.
-     * Pending transactions can have their amount adjusted (restaurant tip, fuel pump final),
-     * or be reversed entirely if the merchant cancels the auth. Counting them toward budget
-     * threshold alerts causes two bugs:
+     * Plaid (and most CSV imports) mark a transaction {@code pending=true} until it posts. Pending
+     * transactions can have their amount adjusted (restaurant tip, fuel pump final), or be reversed
+     * entirely if the merchant cancels the auth. Counting them toward budget threshold alerts
+     * causes two bugs:
      *
      * <ol>
      *   <li>An alert fires at 50% based on the pending amount, then the post comes in at a
@@ -198,9 +198,9 @@ public class BudgetRolloverService {
      *   <li>A canceled pending auth permanently inflates carry-forward at month-end.
      * </ol>
      *
-     * <p>So every budget aggregator filters {@code pending == true} out — posted-only is the
-     * source of truth for budget arithmetic. Returns true when the transaction is posted or
-     * its pending flag is unset (null = pre-Plaid era data, assume posted).
+     * <p>So every budget aggregator filters {@code pending == true} out — posted-only is the source
+     * of truth for budget arithmetic. Returns true when the transaction is posted or its pending
+     * flag is unset (null = pre-Plaid era data, assume posted).
      */
     static boolean isPosted(final TransactionTable t) {
         return !Boolean.TRUE.equals(t.getPending());

@@ -194,11 +194,20 @@ public class NotificationService {
         }
     }
 
-    /** Send push notification */
+    /**
+     * Send push notification. Fans out to every device the user has registered, not just the first
+     * one — the deprecated {@code sendPushNotification} single-device call was leaving tablets /
+     * second phones silent. Returns true when at least one device was reached.
+     */
     private boolean sendPush(final NotificationRequest request) {
         try {
-            return pushService.sendPushNotification(
-                    request.getUserId(), request.getTitle(), request.getBody(), request.getData());
+            final int delivered =
+                    pushService.sendPushNotificationToAllDevices(
+                            request.getUserId(),
+                            request.getTitle(),
+                            request.getBody(),
+                            request.getData());
+            return delivered > 0;
         } catch (Exception e) {
             LOGGER.error("Failed to send push notification: {}", e.getMessage(), e);
             return false;

@@ -124,16 +124,48 @@ public class WeeklyDigestService {
                 income = income.add(t.getAmount());
             }
         }
+        // Over-budget count: a budget is over-budget when month-to-date spend in its category
+        // already exceeds the proportional slice of monthlyLimit (e.g. on day 21 of a 30-day
+        // month, expecting <= 70% of the limit). The previous version had `overBudget += 0`
+        // as a placeholder which made the digest always report zero regardless of state.
         int overBudget = 0;
+        final LocalDate today = LocalDate.now(java.time.ZoneOffset.UTC);
+        final LocalDate monthStart = today.withDayOfMonth(1);
+        final int daysElapsed = today.getDayOfMonth();
+        final int daysInMonth = today.lengthOfMonth();
+        final BigDecimal proportionalShare =
+                BigDecimal.valueOf(daysElapsed)
+                        .divide(BigDecimal.valueOf(daysInMonth), 4, java.math.RoundingMode.HALF_UP);
+        final List<TransactionTable> mtd =
+                transactionRepository.findByUserIdAndDateRange(
+                        user.getUserId(), monthStart.format(DATE), today.format(DATE));
         for (final BudgetTable b : budgetRepository.findByUserId(user.getUserId())) {
-            if (b.getMonthlyLimit() == null) {
+            if (b.getMonthlyLimit() == null || b.getCategory() == null) {
                 continue;
             }
-            // Heuristic: flag as over-budget if a proportional slice of the month's
-            // limit is already exceeded.
-            // Skipping the full math to keep the digest service small; the link takes
-            // them into the app where the real numbers live.
-            overBudget += 0;
+            BigDecimal categorySpend = BigDecimal.ZERO;
+            for (final TransactionTable t : mtd) {
+                if (t == null || t.getAmount() == null || t.getDeletedAt() != null) {
+                    continue;
+                }
+                if (!(b.getCategory().equals(t.getCategoryPrimary())
+                        || b.getCategory().equals(t.getCategoryDetailed()))) {
+                    continue;
+                }
+                // Reuse the shared currency + posted rule — keeps the digest count in step
+                // with what BudgetThresholdEvaluator alerts on, so the user can't see "1 over
+                // budget" in the digest without a matching alert.
+                if (!BudgetRolloverService.countsTowardBudget(b, t)) {
+                    continue;
+                }
+                if (t.getAmount().signum() < 0) {
+                    categorySpend = categorySpend.add(t.getAmount().abs());
+                }
+            }
+            final BigDecimal expectedCeiling = b.getMonthlyLimit().multiply(proportionalShare);
+            if (categorySpend.compareTo(expectedCeiling) > 0) {
+                overBudget++;
+            }
         }
         int goalsOnTrack = 0;
         for (final GoalTable g : goalRepository.findByUserId(user.getUserId())) {

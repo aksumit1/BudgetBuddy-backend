@@ -129,6 +129,18 @@ public class SecurityConfig {
                                                 "/actuator/info")
                                         .permitAll()
                                         .requestMatchers(
+                                                "/actuator/metrics",
+                                                "/actuator/metrics/**",
+                                                "/actuator/prometheus",
+                                                "/actuator/prometheus/**",
+                                                "/actuator/**")
+                                        .hasRole("ADMIN") // Metrics / Prometheus / any other
+                                        // actuator surface enumerates table names,
+                                        // AWS region, error counters, and Plaid
+                                        // failure histograms. Restrict to ADMIN even
+                                        // though they're already behind authenticated()
+                                        // — a low-priv user account shouldn't see them.
+                                        .requestMatchers(
                                                 "/swagger-ui/**",
                                                 "/v3/api-docs/**",
                                                 "/swagger-ui.html",
@@ -157,8 +169,7 @@ public class SecurityConfig {
                                         .hasRole(
                                                 "ADMIN") // System management endpoints - admin only
                                         .requestMatchers("/api/admin/**")
-                                        .hasRole(
-                                                "ADMIN") // Admin endpoints (PDF parse health,
+                                        .hasRole("ADMIN") // Admin endpoints (PDF parse health,
                                         // ops dashboards) — any non-admin auth user
                                         // previously inherited .authenticated() and got
                                         // bank-level telemetry by accident.
