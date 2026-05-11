@@ -367,6 +367,26 @@ public class TransactionTypeCategoryService {
             final String paymentChannel) {
 
         final String descLower = description != null ? description.toLowerCase(Locale.ROOT) : "";
+        TypeResult result0 = determineTypePriority0AccountType(account, categoryPrimary, categoryDetailed, amount, transactionTypeIndicator, description, paymentChannel, descLower);
+        if (result0 != null) {
+            return result0;
+        }
+        TypeResult result1 = determineTypePriority1Category(account, categoryPrimary, categoryDetailed, amount, transactionTypeIndicator, description, paymentChannel, descLower);
+        if (result1 != null) {
+            return result1;
+        }
+        return determineTypePriority2PaymentsAndIndicators(account, categoryPrimary, categoryDetailed, amount, transactionTypeIndicator, description, paymentChannel, descLower);
+    }
+
+    private TypeResult determineTypePriority0AccountType(
+            final AccountTable account,
+            final String categoryPrimary,
+            final String categoryDetailed,
+            final BigDecimal amount,
+            final String transactionTypeIndicator,
+            final String description,
+            final String paymentChannel,
+            final String descLower) {
         // Priority 0: Account type-based intelligent inference (highest priority for
         // account-specific logic)
         if (account != null && account.getAccountType() != null) {
@@ -637,7 +657,18 @@ public class TransactionTypeCategoryService {
                 }
             }
         }
+        return null;
+    }
 
+    private TypeResult determineTypePriority1Category(
+            final AccountTable account,
+            final String categoryPrimary,
+            final String categoryDetailed,
+            final BigDecimal amount,
+            final String transactionTypeIndicator,
+            final String description,
+            final String paymentChannel,
+            final String descLower) {
         // Priority 1: Category-based type determination
         if (categoryPrimary != null) {
             final String categoryLower = categoryPrimary.toLowerCase(Locale.ROOT);
@@ -808,7 +839,18 @@ public class TransactionTypeCategoryService {
                 return new TypeResult(TransactionType.EXPENSE, "CATEGORY", 0.95);
             }
         }
+        return null;
+    }
 
+    private TypeResult determineTypePriority2PaymentsAndIndicators(
+            final AccountTable account,
+            final String categoryPrimary,
+            final String categoryDetailed,
+            final BigDecimal amount,
+            final String transactionTypeIndicator,
+            final String description,
+            final String paymentChannel,
+            final String descLower) {
         // Priority 2: Check for actual payments (AUTOPAY/PAYMENT RECEIVED patterns)
         // CRITICAL: For credit card accounts, only actual payment patterns should be PAYMENT
         // All other positive amounts on credit cards are EXPENSE (charges)
