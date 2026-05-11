@@ -36,8 +36,7 @@ class RewardPatternDetectionTest {
         final String[] lines = {"Cash Back Rewards Balance: $488.97"};
 
         // When: Extract reward points (this should detect cash back balance)
-        final Long rewardPoints =
-                rewardExtractor.extractRewardPoints(lines);
+        final Long rewardPoints = rewardExtractor.extractRewardPoints(lines);
 
         // Note: extractRewardPoints looks for "points", not "cash back balance"
         // So this might return null. We need to check if cash back balance is handled separately.
@@ -89,8 +88,7 @@ class RewardPatternDetectionTest {
         final String[] lines = {"Total points transferred to Marriott 8,733"};
 
         // When: Extract reward points
-        final Long rewardPoints =
-                rewardExtractor.extractRewardPoints(lines);
+        final Long rewardPoints = rewardExtractor.extractRewardPoints(lines);
 
         // Then: Should detect the points (8,733)
         if (rewardPoints != null) {

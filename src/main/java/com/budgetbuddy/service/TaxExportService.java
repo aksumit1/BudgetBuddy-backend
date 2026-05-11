@@ -600,7 +600,10 @@ public class TaxExportService {
         return taxTx;
     }
 
-    /** Lower-cased fields a transaction is classified against. {@link #amount} stays in original form. */
+    /**
+     * Lower-cased fields a transaction is classified against. {@link #amount} stays in original
+     * form.
+     */
     private record TaxContext(
             String description,
             String merchantName,

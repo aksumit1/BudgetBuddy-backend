@@ -374,8 +374,8 @@ public class RewardExtractor {
     }
 
     /**
-     * Pull the first comma-grouped number out of {@code line} as long as the line doesn't look
-     * like a date or a 4-digit account number suffix.
+     * Pull the first comma-grouped number out of {@code line} as long as the line doesn't look like
+     * a date or a 4-digit account number suffix.
      */
     private Long parsePointsIfNotDateOrAccount(final String line, final String origin) {
         if (DATE_IN_LINE.matcher(line).matches() || ACCOUNT_NUMBER_TAIL.matcher(line).matches()) {

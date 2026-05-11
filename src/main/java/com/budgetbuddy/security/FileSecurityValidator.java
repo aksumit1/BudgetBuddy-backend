@@ -189,8 +189,7 @@ public class FileSecurityValidator {
             return;
         }
         LOGGER.warn("Absolute path detected (not in trusted directory): {}", filePath);
-        throw new AppException(
-                ErrorCode.INVALID_INPUT, INVALID_FILE_PATH_ABSOLUTE_PATHS_ARE_NOT);
+        throw new AppException(ErrorCode.INVALID_INPUT, INVALID_FILE_PATH_ABSOLUTE_PATHS_ARE_NOT);
     }
 
     /** Reject Windows-style absolute paths ("C:\..."). */
@@ -247,15 +246,13 @@ public class FileSecurityValidator {
 
     private void rejectUntrustedNormalizedAbsolutePath(final Path normalized) {
         final String normalizedStr = normalized.toString();
-        if (isInTrustedSystemDirectory(normalizedStr)
-                || isPathWithinSystemTempDir(normalized)) {
+        if (isInTrustedSystemDirectory(normalizedStr) || isPathWithinSystemTempDir(normalized)) {
             return;
         }
         LOGGER.warn(
                 "Absolute path detected after normalization (not in trusted directory): {}",
                 normalized);
-        throw new AppException(
-                ErrorCode.INVALID_INPUT, INVALID_FILE_PATH_ABSOLUTE_PATHS_ARE_NOT);
+        throw new AppException(ErrorCode.INVALID_INPUT, INVALID_FILE_PATH_ABSOLUTE_PATHS_ARE_NOT);
     }
 
     /** True if {@code filePath} starts with any TRUSTED_SYSTEM_DIRECTORIES entry. */
@@ -271,7 +268,9 @@ public class FileSecurityValidator {
     /** True if the raw {@code filePath} normalizes to a location inside the system temp dir. */
     private static boolean isWithinSystemTempDir(final String filePath) {
         try {
-            return Paths.get(filePath).normalize().startsWith(Paths.get(SYSTEM_TEMP_DIR).normalize());
+            return Paths.get(filePath)
+                    .normalize()
+                    .startsWith(Paths.get(SYSTEM_TEMP_DIR).normalize());
         } catch (Exception e) {
             LOGGER.debug("Error comparing paths: {}", e.getMessage());
             return false;
