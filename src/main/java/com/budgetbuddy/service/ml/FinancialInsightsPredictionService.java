@@ -752,8 +752,6 @@ public class FinancialInsightsPredictionService {
     /** Calculate savings consistency (how consistent savings are month-to-month) */
     private double calculateSavingsConsistency(final List<TransactionTable> transactions) {
         final BigDecimal monthlyIncome = calculateMonthlyIncome(transactions);
-        final BigDecimal monthlyExpenses = calculateMonthlyExpenses(transactions);
-
         if (monthlyIncome.compareTo(BigDecimal.ZERO) <= 0) {
             return 0.0;
         }

@@ -3863,11 +3863,10 @@ public class CSVImportService {
             final String transactionType,
             final String accountType,
             final String accountSubtype) {
-        // Input validation and normalization
-        final String safeCategoryString = categoryString != null ? categoryString.trim() : null;
+        // Input validation and normalization (only the values used in the early-out branch
+        // below; the rest are passed unchanged to parseCategoryLegacy which does its own
+        // normalization).
         final String safeDescription = description != null ? description.trim() : null;
-        final String safeMerchantName = merchantName != null ? merchantName.trim() : null;
-        final String safePaymentChannel = paymentChannel != null ? paymentChannel.trim() : null;
         final String safeAccountType =
                 accountType != null ? accountType.trim().toLowerCase(Locale.ROOT) : null;
 
