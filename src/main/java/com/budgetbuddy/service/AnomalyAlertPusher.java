@@ -89,7 +89,9 @@ public class AnomalyAlertPusher {
                         false);
             }
         } catch (Exception e) {
-            LOGGER.warn("Anomaly push pass failed for user {}: {}", userId, e.getMessage());
+            if (LOGGER.isWarnEnabled()) {
+                LOGGER.warn("Anomaly push pass failed for user {}: {}", userId, e.getMessage());
+            }
         }
     }
 

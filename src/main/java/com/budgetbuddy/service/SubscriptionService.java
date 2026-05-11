@@ -283,10 +283,12 @@ public class SubscriptionService {
                                 })
                         .collect(Collectors.toList());
 
-        LOGGER.debug(
-                "Pre-filtered {} subscription candidates from {} total expenses",
-                subscriptionCandidates.size(),
-                allExpenses.size());
+        if (LOGGER.isDebugEnabled()) {
+            LOGGER.debug(
+                    "Pre-filtered {} subscription candidates from {} total expenses",
+                    subscriptionCandidates.size(),
+                    allExpenses.size());
+        }
 
         // Group transactions by similar merchant (using fuzzy matching) and amount
         final Map<String, List<TransactionTable>> transactionsByMerchant =
@@ -303,10 +305,12 @@ public class SubscriptionService {
             // This allows detection of newer subscriptions, but frequency validation ensures
             // quality
             if (merchantTransactions.size() < 2) {
-                LOGGER.debug(
-                        "Skipping merchant '{}': only {} transactions (need at least 2)",
-                        merchant,
-                        merchantTransactions.size());
+                if (LOGGER.isDebugEnabled()) {
+                    LOGGER.debug(
+                            "Skipping merchant '{}': only {} transactions (need at least 2)",
+                            merchant,
+                            merchantTransactions.size());
+                }
                 continue;
             }
 
@@ -323,11 +327,13 @@ public class SubscriptionService {
                 // 3)
                 // Frequency validation will ensure it's truly recurring
                 if (sameAmountTransactions.size() < 2) {
-                    LOGGER.debug(
-                            "Skipping amount group {} for merchant '{}': only {} transactions",
-                            amount,
-                            merchant,
-                            sameAmountTransactions.size());
+                    if (LOGGER.isDebugEnabled()) {
+                        LOGGER.debug(
+                                "Skipping amount group {} for merchant '{}': only {} transactions",
+                                amount,
+                                merchant,
+                                sameAmountTransactions.size());
+                    }
                     continue;
                 }
 
@@ -477,20 +483,25 @@ public class SubscriptionService {
                                 firstTransaction.getPlaidTransactionId());
 
                         detectedSubscriptions.add(subscription);
-                        LOGGER.info(
-                                "Detected subscription: {} - {} - {} ({}) - Type: {} - NextPayment: {}",
-                                merchant,
-                                amount,
-                                frequency,
-                                startDate,
-                                subscriptionType,
-                                subscription.getNextPaymentDate());
+                        if (LOGGER.isInfoEnabled()) {
+                            LOGGER.info(
+                                    "Detected subscription: {} - {} - {} ({}) - Type: {} - NextPayment: {}",
+                                    merchant,
+                                    amount,
+                                    frequency,
+                                    startDate,
+                                    subscriptionType,
+                                    subscription.getNextPaymentDate());
+                        }
                     }
                 }
             }
         }
 
-        LOGGER.info("Detected {} subscriptions for user: {}", detectedSubscriptions.size(), userId);
+        if (LOGGER.isInfoEnabled()) {
+            LOGGER.info(
+                    "Detected {} subscriptions for user: {}", detectedSubscriptions.size(), userId);
+        }
         return detectedSubscriptions;
     }
 
@@ -738,7 +749,9 @@ public class SubscriptionService {
             final SubscriptionTable table = toSubscriptionTable(subscription);
             subscriptionRepository.save(table);
         }
-        LOGGER.info("Saved {} subscriptions for user: {}", subscriptions.size(), userId);
+        if (LOGGER.isInfoEnabled()) {
+            LOGGER.info("Saved {} subscriptions for user: {}", subscriptions.size(), userId);
+        }
 
         // Flow 5 / O9 — if a user has detected subscriptions but no Subscriptions budget,
         // seed one from the sum of detected monthly-equivalent amounts (with a 10% cushion
@@ -749,8 +762,12 @@ public class SubscriptionService {
                 subscriptionSeeder.seedSubscriptionsBudgetIfMissing(userId, subscriptions);
             }
         } catch (Exception e) {
-            LOGGER.warn(
-                    "Failed to seed Subscriptions budget for user {}: {}", userId, e.getMessage());
+            if (LOGGER.isWarnEnabled()) {
+                LOGGER.warn(
+                        "Failed to seed Subscriptions budget for user {}: {}",
+                        userId,
+                        e.getMessage());
+            }
         }
     }
 
@@ -1424,16 +1441,20 @@ public class SubscriptionService {
         }
 
         if (table.getStartDate() == null || table.getStartDate().isBlank()) {
-            LOGGER.warn(
-                    "SubscriptionTable {} has null or empty startDate, skipping conversion",
-                    table.getSubscriptionId());
+            if (LOGGER.isWarnEnabled()) {
+                LOGGER.warn(
+                        "SubscriptionTable {} has null or empty startDate, skipping conversion",
+                        table.getSubscriptionId());
+            }
             return null;
         }
 
         if (table.getNextPaymentDate() == null || table.getNextPaymentDate().isBlank()) {
-            LOGGER.warn(
-                    "SubscriptionTable {} has null or empty nextPaymentDate, skipping conversion",
-                    table.getSubscriptionId());
+            if (LOGGER.isWarnEnabled()) {
+                LOGGER.warn(
+                        "SubscriptionTable {} has null or empty nextPaymentDate, skipping conversion",
+                        table.getSubscriptionId());
+            }
             return null;
         }
 
@@ -1441,18 +1462,22 @@ public class SubscriptionService {
         final LocalDate nextPaymentDate = parseDate(table.getNextPaymentDate());
 
         if (startDate == null) {
-            LOGGER.warn(
-                    "SubscriptionTable {} has invalid startDate format: {}, skipping conversion",
-                    table.getSubscriptionId(),
-                    table.getStartDate());
+            if (LOGGER.isWarnEnabled()) {
+                LOGGER.warn(
+                        "SubscriptionTable {} has invalid startDate format: {}, skipping conversion",
+                        table.getSubscriptionId(),
+                        table.getStartDate());
+            }
             return null;
         }
 
         if (nextPaymentDate == null) {
-            LOGGER.warn(
-                    "SubscriptionTable {} has invalid nextPaymentDate format: {}, skipping conversion",
-                    table.getSubscriptionId(),
-                    table.getNextPaymentDate());
+            if (LOGGER.isWarnEnabled()) {
+                LOGGER.warn(
+                        "SubscriptionTable {} has invalid nextPaymentDate format: {}, skipping conversion",
+                        table.getSubscriptionId(),
+                        table.getNextPaymentDate());
+            }
             return null;
         }
 
@@ -1462,16 +1487,20 @@ public class SubscriptionService {
             try {
                 frequency = Subscription.SubscriptionFrequency.valueOf(table.getFrequency());
             } catch (IllegalArgumentException e) {
-                LOGGER.warn(
-                        "SubscriptionTable {} has invalid frequency: {}, skipping conversion",
-                        table.getSubscriptionId(),
-                        table.getFrequency());
+                if (LOGGER.isWarnEnabled()) {
+                    LOGGER.warn(
+                            "SubscriptionTable {} has invalid frequency: {}, skipping conversion",
+                            table.getSubscriptionId(),
+                            table.getFrequency());
+                }
                 return null;
             }
         } else {
-            LOGGER.warn(
-                    "SubscriptionTable {} has null or empty frequency, skipping conversion",
-                    table.getSubscriptionId());
+            if (LOGGER.isWarnEnabled()) {
+                LOGGER.warn(
+                        "SubscriptionTable {} has null or empty frequency, skipping conversion",
+                        table.getSubscriptionId());
+            }
             return null;
         }
 
@@ -1514,11 +1543,13 @@ public class SubscriptionService {
 
             return subscription;
         } catch (Exception e) {
-            LOGGER.error(
-                    "Error converting SubscriptionTable {} to Subscription: {}",
-                    table.getSubscriptionId(),
-                    e.getMessage(),
-                    e);
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error(
+                        "Error converting SubscriptionTable {} to Subscription: {}",
+                        table.getSubscriptionId(),
+                        e.getMessage(),
+                        e);
+            }
             return null;
         }
     }

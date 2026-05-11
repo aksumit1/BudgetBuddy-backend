@@ -184,9 +184,13 @@ public class DynamoDBTableManager {
                             .build());
             LOGGER.info(CREATED_TABLE, tableName);
         } catch (ResourceInUseException e) {
-            LOGGER.debug(TABLE_ALREADY_EXISTS, tableName);
+            if (LOGGER.isDebugEnabled()) {
+                LOGGER.debug(TABLE_ALREADY_EXISTS, tableName);
+            }
         } catch (Exception e) {
-            LOGGER.warn(FAILED_TO_CREATE_TABLE_THIS_MAY_BE, tableName, e.getMessage());
+            if (LOGGER.isWarnEnabled()) {
+                LOGGER.warn(FAILED_TO_CREATE_TABLE_THIS_MAY_BE, tableName, e.getMessage());
+            }
         }
     }
 
@@ -279,9 +283,13 @@ public class DynamoDBTableManager {
                             .build());
             LOGGER.info(CREATED_TABLE, tableName);
         } catch (ResourceInUseException e) {
-            LOGGER.debug(TABLE_ALREADY_EXISTS, tableName);
+            if (LOGGER.isDebugEnabled()) {
+                LOGGER.debug(TABLE_ALREADY_EXISTS, tableName);
+            }
         } catch (Exception e) {
-            LOGGER.warn(FAILED_TO_CREATE_TABLE_THIS_MAY_BE, tableName, e.getMessage());
+            if (LOGGER.isWarnEnabled()) {
+                LOGGER.warn(FAILED_TO_CREATE_TABLE_THIS_MAY_BE, tableName, e.getMessage());
+            }
         }
     }
 
@@ -406,9 +414,13 @@ public class DynamoDBTableManager {
                             .build());
             LOGGER.info(CREATED_TABLE, tableName);
         } catch (ResourceInUseException e) {
-            LOGGER.debug(TABLE_ALREADY_EXISTS, tableName);
+            if (LOGGER.isDebugEnabled()) {
+                LOGGER.debug(TABLE_ALREADY_EXISTS, tableName);
+            }
         } catch (Exception e) {
-            LOGGER.warn(FAILED_TO_CREATE_TABLE_THIS_MAY_BE, tableName, e.getMessage());
+            if (LOGGER.isWarnEnabled()) {
+                LOGGER.warn(FAILED_TO_CREATE_TABLE_THIS_MAY_BE, tableName, e.getMessage());
+            }
         }
     }
 
@@ -469,9 +481,13 @@ public class DynamoDBTableManager {
                             .build());
             LOGGER.info(CREATED_TABLE, tableName);
         } catch (ResourceInUseException e) {
-            LOGGER.debug(TABLE_ALREADY_EXISTS, tableName);
+            if (LOGGER.isDebugEnabled()) {
+                LOGGER.debug(TABLE_ALREADY_EXISTS, tableName);
+            }
         } catch (Exception e) {
-            LOGGER.warn(FAILED_TO_CREATE_TABLE_THIS_MAY_BE, tableName, e.getMessage());
+            if (LOGGER.isWarnEnabled()) {
+                LOGGER.warn(FAILED_TO_CREATE_TABLE_THIS_MAY_BE, tableName, e.getMessage());
+            }
         }
     }
 
@@ -532,9 +548,13 @@ public class DynamoDBTableManager {
                             .build());
             LOGGER.info(CREATED_TABLE, tableName);
         } catch (ResourceInUseException e) {
-            LOGGER.debug(TABLE_ALREADY_EXISTS, tableName);
+            if (LOGGER.isDebugEnabled()) {
+                LOGGER.debug(TABLE_ALREADY_EXISTS, tableName);
+            }
         } catch (Exception e) {
-            LOGGER.warn(FAILED_TO_CREATE_TABLE_THIS_MAY_BE, tableName, e.getMessage());
+            if (LOGGER.isWarnEnabled()) {
+                LOGGER.warn(FAILED_TO_CREATE_TABLE_THIS_MAY_BE, tableName, e.getMessage());
+            }
         }
     }
 
@@ -635,9 +655,13 @@ public class DynamoDBTableManager {
                             .build());
             LOGGER.info(CREATED_TABLE, tableName);
         } catch (ResourceInUseException e) {
-            LOGGER.debug(TABLE_ALREADY_EXISTS, tableName);
+            if (LOGGER.isDebugEnabled()) {
+                LOGGER.debug(TABLE_ALREADY_EXISTS, tableName);
+            }
         } catch (Exception e) {
-            LOGGER.error(FAILED_TO_CREATE_TABLE, tableName, e.getMessage());
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error(FAILED_TO_CREATE_TABLE, tableName, e.getMessage());
+            }
         }
     }
 
@@ -678,9 +702,13 @@ public class DynamoDBTableManager {
                             .build());
             LOGGER.info(CREATED_TABLE, tableName);
         } catch (ResourceInUseException e) {
-            LOGGER.debug(TABLE_ALREADY_EXISTS, tableName);
+            if (LOGGER.isDebugEnabled()) {
+                LOGGER.debug(TABLE_ALREADY_EXISTS, tableName);
+            }
         } catch (Exception e) {
-            LOGGER.error(FAILED_TO_CREATE_TABLE, tableName, e.getMessage());
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error(FAILED_TO_CREATE_TABLE, tableName, e.getMessage());
+            }
         }
     }
 
@@ -749,9 +777,13 @@ public class DynamoDBTableManager {
                             .build());
             LOGGER.info(CREATED_TABLE, tableName);
         } catch (ResourceInUseException e) {
-            LOGGER.debug(TABLE_ALREADY_EXISTS, tableName);
+            if (LOGGER.isDebugEnabled()) {
+                LOGGER.debug(TABLE_ALREADY_EXISTS, tableName);
+            }
         } catch (Exception e) {
-            LOGGER.warn(FAILED_TO_CREATE_TABLE_THIS_MAY_BE, tableName, e.getMessage());
+            if (LOGGER.isWarnEnabled()) {
+                LOGGER.warn(FAILED_TO_CREATE_TABLE_THIS_MAY_BE, tableName, e.getMessage());
+            }
         }
     }
 
@@ -786,13 +818,20 @@ public class DynamoDBTableManager {
                                                 .build())
                                 .build());
             } catch (Exception e) {
-                LOGGER.warn("Failed to configure TTL for 404 tracking table: {}", e.getMessage());
+                if (LOGGER.isWarnEnabled()) {
+                    LOGGER.warn(
+                            "Failed to configure TTL for 404 tracking table: {}", e.getMessage());
+                }
             }
             LOGGER.info(CREATED_TABLE, tableName);
         } catch (ResourceInUseException e) {
-            LOGGER.debug(TABLE_ALREADY_EXISTS, tableName);
+            if (LOGGER.isDebugEnabled()) {
+                LOGGER.debug(TABLE_ALREADY_EXISTS, tableName);
+            }
         } catch (Exception e) {
-            LOGGER.error(FAILED_TO_CREATE_TABLE, tableName, e.getMessage());
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error(FAILED_TO_CREATE_TABLE, tableName, e.getMessage());
+            }
         }
     }
 
@@ -827,14 +866,20 @@ public class DynamoDBTableManager {
                                                 .build())
                                 .build());
             } catch (Exception e) {
-                LOGGER.warn("Failed to configure TTL for RateLimits table: {}", e.getMessage());
+                if (LOGGER.isWarnEnabled()) {
+                    LOGGER.warn("Failed to configure TTL for RateLimits table: {}", e.getMessage());
+                }
             }
 
             LOGGER.info(CREATED_TABLE, tableName);
         } catch (ResourceInUseException e) {
-            LOGGER.debug(TABLE_ALREADY_EXISTS, tableName);
+            if (LOGGER.isDebugEnabled()) {
+                LOGGER.debug(TABLE_ALREADY_EXISTS, tableName);
+            }
         } catch (Exception e) {
-            LOGGER.error(FAILED_TO_CREATE_TABLE, tableName, e.getMessage());
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error(FAILED_TO_CREATE_TABLE, tableName, e.getMessage());
+            }
         }
     }
 
@@ -869,14 +914,21 @@ public class DynamoDBTableManager {
                                                 .build())
                                 .build());
             } catch (Exception e) {
-                LOGGER.warn("Failed to configure TTL for DDoSProtection table: {}", e.getMessage());
+                if (LOGGER.isWarnEnabled()) {
+                    LOGGER.warn(
+                            "Failed to configure TTL for DDoSProtection table: {}", e.getMessage());
+                }
             }
 
             LOGGER.info(CREATED_TABLE, tableName);
         } catch (ResourceInUseException e) {
-            LOGGER.debug(TABLE_ALREADY_EXISTS, tableName);
+            if (LOGGER.isDebugEnabled()) {
+                LOGGER.debug(TABLE_ALREADY_EXISTS, tableName);
+            }
         } catch (Exception e) {
-            LOGGER.error(FAILED_TO_CREATE_TABLE, tableName, e.getMessage());
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error(FAILED_TO_CREATE_TABLE, tableName, e.getMessage());
+            }
         }
     }
 
@@ -919,15 +971,22 @@ public class DynamoDBTableManager {
                                                 .build())
                                 .build());
             } catch (Exception e) {
-                LOGGER.warn(
-                        "Failed to configure TTL for DeviceAttestation table: {}", e.getMessage());
+                if (LOGGER.isWarnEnabled()) {
+                    LOGGER.warn(
+                            "Failed to configure TTL for DeviceAttestation table: {}",
+                            e.getMessage());
+                }
             }
 
             LOGGER.info(CREATED_TABLE, tableName);
         } catch (ResourceInUseException e) {
-            LOGGER.debug(TABLE_ALREADY_EXISTS, tableName);
+            if (LOGGER.isDebugEnabled()) {
+                LOGGER.debug(TABLE_ALREADY_EXISTS, tableName);
+            }
         } catch (Exception e) {
-            LOGGER.error(FAILED_TO_CREATE_TABLE, tableName, e.getMessage());
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error(FAILED_TO_CREATE_TABLE, tableName, e.getMessage());
+            }
         }
     }
 
@@ -973,9 +1032,13 @@ public class DynamoDBTableManager {
                             .build());
             LOGGER.info(CREATED_TABLE, tableName);
         } catch (ResourceInUseException e) {
-            LOGGER.debug(TABLE_ALREADY_EXISTS, tableName);
+            if (LOGGER.isDebugEnabled()) {
+                LOGGER.debug(TABLE_ALREADY_EXISTS, tableName);
+            }
         } catch (Exception e) {
-            LOGGER.error(FAILED_TO_CREATE_TABLE, tableName, e.getMessage());
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error(FAILED_TO_CREATE_TABLE, tableName, e.getMessage());
+            }
         }
     }
 
@@ -1010,15 +1073,22 @@ public class DynamoDBTableManager {
                                                 .build())
                                 .build());
             } catch (Exception e) {
-                LOGGER.warn(
-                        "Failed to configure TTL for FIDO2Challenges table: {}", e.getMessage());
+                if (LOGGER.isWarnEnabled()) {
+                    LOGGER.warn(
+                            "Failed to configure TTL for FIDO2Challenges table: {}",
+                            e.getMessage());
+                }
             }
 
             LOGGER.info(CREATED_TABLE, tableName);
         } catch (ResourceInUseException e) {
-            LOGGER.debug(TABLE_ALREADY_EXISTS, tableName);
+            if (LOGGER.isDebugEnabled()) {
+                LOGGER.debug(TABLE_ALREADY_EXISTS, tableName);
+            }
         } catch (Exception e) {
-            LOGGER.error(FAILED_TO_CREATE_TABLE, tableName, e.getMessage());
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error(FAILED_TO_CREATE_TABLE, tableName, e.getMessage());
+            }
         }
     }
 
@@ -1055,9 +1125,13 @@ public class DynamoDBTableManager {
                             .build());
             LOGGER.info(CREATED_TABLE, tableName);
         } catch (ResourceInUseException e) {
-            LOGGER.debug(TABLE_ALREADY_EXISTS, tableName);
+            if (LOGGER.isDebugEnabled()) {
+                LOGGER.debug(TABLE_ALREADY_EXISTS, tableName);
+            }
         } catch (Exception e) {
-            LOGGER.error(FAILED_TO_CREATE_TABLE, tableName, e.getMessage());
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error(FAILED_TO_CREATE_TABLE, tableName, e.getMessage());
+            }
         }
     }
 
@@ -1094,9 +1168,13 @@ public class DynamoDBTableManager {
                             .build());
             LOGGER.info(CREATED_TABLE, tableName);
         } catch (ResourceInUseException e) {
-            LOGGER.debug(TABLE_ALREADY_EXISTS, tableName);
+            if (LOGGER.isDebugEnabled()) {
+                LOGGER.debug(TABLE_ALREADY_EXISTS, tableName);
+            }
         } catch (Exception e) {
-            LOGGER.error(FAILED_TO_CREATE_TABLE, tableName, e.getMessage());
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error(FAILED_TO_CREATE_TABLE, tableName, e.getMessage());
+            }
         }
     }
 
@@ -1131,14 +1209,21 @@ public class DynamoDBTableManager {
                                                 .build())
                                 .build());
             } catch (Exception e) {
-                LOGGER.warn("Failed to configure TTL for MFAOTPCodes table: {}", e.getMessage());
+                if (LOGGER.isWarnEnabled()) {
+                    LOGGER.warn(
+                            "Failed to configure TTL for MFAOTPCodes table: {}", e.getMessage());
+                }
             }
 
             LOGGER.info(CREATED_TABLE, tableName);
         } catch (ResourceInUseException e) {
-            LOGGER.debug(TABLE_ALREADY_EXISTS, tableName);
+            if (LOGGER.isDebugEnabled()) {
+                LOGGER.debug(TABLE_ALREADY_EXISTS, tableName);
+            }
         } catch (Exception e) {
-            LOGGER.error(FAILED_TO_CREATE_TABLE, tableName, e.getMessage());
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error(FAILED_TO_CREATE_TABLE, tableName, e.getMessage());
+            }
         }
     }
 
@@ -1199,9 +1284,13 @@ public class DynamoDBTableManager {
                             .build());
             LOGGER.info(CREATED_TABLE, tableName);
         } catch (ResourceInUseException e) {
-            LOGGER.debug(TABLE_ALREADY_EXISTS, tableName);
+            if (LOGGER.isDebugEnabled()) {
+                LOGGER.debug(TABLE_ALREADY_EXISTS, tableName);
+            }
         } catch (Exception e) {
-            LOGGER.warn(FAILED_TO_CREATE_TABLE_THIS_MAY_BE, tableName, e.getMessage());
+            if (LOGGER.isWarnEnabled()) {
+                LOGGER.warn(FAILED_TO_CREATE_TABLE_THIS_MAY_BE, tableName, e.getMessage());
+            }
         }
     }
 
@@ -1242,9 +1331,13 @@ public class DynamoDBTableManager {
                             .build());
             LOGGER.info(CREATED_TABLE, tableName);
         } catch (ResourceInUseException e) {
-            LOGGER.debug(TABLE_ALREADY_EXISTS, tableName);
+            if (LOGGER.isDebugEnabled()) {
+                LOGGER.debug(TABLE_ALREADY_EXISTS, tableName);
+            }
         } catch (Exception e) {
-            LOGGER.warn(FAILED_TO_CREATE_TABLE_THIS_MAY_BE, tableName, e.getMessage());
+            if (LOGGER.isWarnEnabled()) {
+                LOGGER.warn(FAILED_TO_CREATE_TABLE_THIS_MAY_BE, tableName, e.getMessage());
+            }
         }
     }
 }

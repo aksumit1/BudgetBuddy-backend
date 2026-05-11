@@ -39,7 +39,8 @@ import software.amazon.awssdk.services.dynamodb.model.UpdateTimeToLiveRequest;
 // callers — defensive-copying it would break dependency injection.
 @SuppressFBWarnings(
         value = {"EI_EXPOSE_REP2", "CT_CONSTRUCTOR_THROW"},
-        justification = "Spring constructor injection — beans are shared by design; CT_CONSTRUCTOR_THROW: Java 25 deprecates Object.finalize() for removal, so the finalizer-attack vector this rule guards against is not exploitable")
+        justification =
+                "Spring constructor injection — beans are shared by design; CT_CONSTRUCTOR_THROW: Java 25 deprecates Object.finalize() for removal, so the finalizer-attack vector this rule guards against is not exploitable")
 @SuppressWarnings({"PMD.AvoidCatchingGenericException", "PMD.OnlyOneReturn"})
 @Service
 public class DeviceAttestationService {
@@ -139,10 +140,14 @@ public class DeviceAttestationService {
             }
 
             // New device - requires additional verification
-            LOGGER.info("New device detected: {} for user: {}", deviceId, userId);
+            if (LOGGER.isInfoEnabled()) {
+                LOGGER.info("New device detected: {} for user: {}", deviceId, userId);
+            }
             return registerNewDevice(deviceId, userId, attestationToken, platform);
         } catch (Exception e) {
-            LOGGER.error("Failed to verify device: {}", e.getMessage());
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error("Failed to verify device: {}", e.getMessage());
+            }
             return false;
         }
     }
@@ -179,7 +184,9 @@ public class DeviceAttestationService {
                 return false;
             }
         } catch (Exception e) {
-            LOGGER.error("Failed to verify attestation token: {}", e.getMessage(), e);
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error("Failed to verify attestation token: {}", e.getMessage(), e);
+            }
             return false;
         }
     }
@@ -200,7 +207,10 @@ public class DeviceAttestationService {
             // Check reasonable length (CBOR tokens are typically larger than JWT)
             return token.length() > 100 && token.length() < 50_000;
         } catch (IllegalArgumentException e) {
-            LOGGER.debug("Invalid base64 encoding in Apple attestation token: {}", e.getMessage());
+            if (LOGGER.isDebugEnabled()) {
+                LOGGER.debug(
+                        "Invalid base64 encoding in Apple attestation token: {}", e.getMessage());
+            }
             return false;
         }
     }
@@ -283,7 +293,9 @@ public class DeviceAttestationService {
                 return false; // Require verification before allowing access
             }
         } catch (Exception e) {
-            LOGGER.error("Failed to register device: {}", e.getMessage());
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error("Failed to register device: {}", e.getMessage());
+            }
             return false;
         }
     }
@@ -321,7 +333,9 @@ public class DeviceAttestationService {
                                                     .build()))
                             .build());
         } catch (Exception e) {
-            LOGGER.error("Failed to update last verified: {}", e.getMessage());
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error("Failed to update last verified: {}", e.getMessage());
+            }
         }
     }
 
@@ -336,12 +350,17 @@ public class DeviceAttestationService {
             // Table doesn't exist, proceed with creation
         } catch (Exception e) {
             if (isCredentialsError(e)) {
-                LOGGER.warn(
-                        "⚠️ AWS credentials not configured for LocalStack or environment. Skipping device attestation table check. Error: {}",
-                        e.getMessage());
+                if (LOGGER.isWarnEnabled()) {
+                    LOGGER.warn(
+                            "⚠️ AWS credentials not configured for LocalStack or environment. Skipping device attestation table check. Error: {}",
+                            e.getMessage());
+                }
                 return; // Exit gracefully
             }
-            LOGGER.warn("Failed to check if device attestation table exists: {}", e.getMessage());
+            if (LOGGER.isWarnEnabled()) {
+                LOGGER.warn(
+                        "Failed to check if device attestation table exists: {}", e.getMessage());
+            }
             // Continue with creation attempt
         }
 
@@ -383,27 +402,37 @@ public class DeviceAttestationService {
                                 .build());
             } catch (Exception e) {
                 if (isCredentialsError(e)) {
-                    LOGGER.warn(
-                            "⚠️ AWS credentials not configured. Skipping TTL configuration for device attestation table. Error: {}",
-                            e.getMessage());
+                    if (LOGGER.isWarnEnabled()) {
+                        LOGGER.warn(
+                                "⚠️ AWS credentials not configured. Skipping TTL configuration for device attestation table. Error: {}",
+                                e.getMessage());
+                    }
                 } else {
-                    LOGGER.warn(
-                            "Failed to configure TTL for device attestation table: {}",
-                            e.getMessage());
+                    if (LOGGER.isWarnEnabled()) {
+                        LOGGER.warn(
+                                "Failed to configure TTL for device attestation table: {}",
+                                e.getMessage());
+                    }
                 }
             }
             LOGGER.info("Device attestation table created");
         } catch (ResourceInUseException e) {
             // Table was created by another instance between check and create - this is fine
-            LOGGER.debug("Device attestation table already exists (race condition)");
+            if (LOGGER.isDebugEnabled()) {
+                LOGGER.debug("Device attestation table already exists (race condition)");
+            }
         } catch (Exception e) {
             if (isCredentialsError(e)) {
-                LOGGER.warn(
-                        "⚠️ AWS credentials not configured for LocalStack or environment. Skipping device attestation table creation. Error: {}",
-                        e.getMessage());
+                if (LOGGER.isWarnEnabled()) {
+                    LOGGER.warn(
+                            "⚠️ AWS credentials not configured for LocalStack or environment. Skipping device attestation table creation. Error: {}",
+                            e.getMessage());
+                }
                 return; // Exit gracefully
             }
-            LOGGER.error("Failed to create device attestation table: {}", e.getMessage());
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error("Failed to create device attestation table: {}", e.getMessage());
+            }
         }
     }
 

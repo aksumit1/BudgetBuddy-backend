@@ -177,7 +177,9 @@ public class AuthController {
 
         // Validate and rotate tokens (same as refresh, but explicit for Zero Trust flow)
         final AuthResponse response = authService.refreshToken(request.getRefreshToken());
-        LOGGER.info("Token validated and rotated for user: {}", response.getUser().getEmail());
+        if (LOGGER.isInfoEnabled()) {
+            LOGGER.info("Token validated and rotated for user: {}", response.getUser().getEmail());
+        }
         return ResponseEntity.ok(response);
     }
 
@@ -240,7 +242,9 @@ public class AuthController {
         // BREAKING CHANGE: No longer requires salt
         userService.resetPasswordByEmail(request.getEmail(), request.getPasswordHash());
 
-        LOGGER.info("Password reset successful for email: {}", request.getEmail());
+        if (LOGGER.isInfoEnabled()) {
+            LOGGER.info("Password reset successful for email: {}", request.getEmail());
+        }
         return ResponseEntity.ok(new PasswordResetResponse(true, "Password reset successful"));
     }
 
@@ -312,7 +316,9 @@ public class AuthController {
         // Change password
         userService.changePasswordSecure(user.getUserId(), request.getNewPasswordHash());
 
-        LOGGER.info("Password changed successfully for user: {}", user.getEmail());
+        if (LOGGER.isInfoEnabled()) {
+            LOGGER.info("Password changed successfully for user: {}", user.getEmail());
+        }
         return ResponseEntity.ok(new PasswordChangeResponse(true, "Password changed successfully"));
     }
 

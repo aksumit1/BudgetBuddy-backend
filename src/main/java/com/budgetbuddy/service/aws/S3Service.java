@@ -80,8 +80,10 @@ public class S3Service {
         } else if (hasEndpoint) {
             LOGGER.debug("S3 enabled with LocalStack endpoint: {}", s3Endpoint);
         } else {
-            LOGGER.debug(
-                    "S3 enabled with production AWS (region: {})", System.getenv("AWS_REGION"));
+            if (LOGGER.isDebugEnabled()) {
+                LOGGER.debug(
+                        "S3 enabled with production AWS (region: {})", System.getenv("AWS_REGION"));
+            }
         }
     }
 
@@ -155,26 +157,34 @@ public class S3Service {
 
             s3Client.putObject(
                     putObjectRequest, RequestBody.fromInputStream(inputStream, contentLength));
-            LOGGER.info("File uploaded to S3: {}", key);
+            if (LOGGER.isInfoEnabled()) {
+                LOGGER.info("File uploaded to S3: {}", key);
+            }
             return key;
         } catch (Exception e) {
             if (isConnectivityError(e)) {
-                LOGGER.warn(
-                        "S3 not available - skipping file upload for key {}: {}",
-                        key,
-                        e.getMessage());
+                if (LOGGER.isWarnEnabled()) {
+                    LOGGER.warn(
+                            "S3 not available - skipping file upload for key {}: {}",
+                            key,
+                            e.getMessage());
+                }
                 return key; // Return key anyway for compatibility
             }
             if (isBucketNotFoundError(e)) {
-                LOGGER.warn(
-                        "S3 bucket '{}' does not exist - skipping file upload for key {}: {}. "
-                                + "Bucket will be created automatically on first upload if permissions allow.",
-                        bucketName,
-                        key,
-                        e.getMessage());
+                if (LOGGER.isWarnEnabled()) {
+                    LOGGER.warn(
+                            "S3 bucket '{}' does not exist - skipping file upload for key {}: {}. "
+                                    + "Bucket will be created automatically on first upload if permissions allow.",
+                            bucketName,
+                            key,
+                            e.getMessage());
+                }
                 return key; // Return key anyway for compatibility
             }
-            LOGGER.error("Error uploading file to S3: {}", e.getMessage(), e);
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error("Error uploading file to S3: {}", e.getMessage(), e);
+            }
             throw new AppException(
                     ErrorCode.INTERNAL_SERVER_ERROR, "Failed to upload file to S3", e);
         }
@@ -205,26 +215,34 @@ public class S3Service {
 
             s3Client.putObject(
                     putObjectRequest, RequestBody.fromInputStream(inputStream, contentLength));
-            LOGGER.info("File uploaded to S3 (IA): {}", key);
+            if (LOGGER.isInfoEnabled()) {
+                LOGGER.info("File uploaded to S3 (IA): {}", key);
+            }
             return key;
         } catch (Exception e) {
             if (isConnectivityError(e)) {
-                LOGGER.warn(
-                        "S3 not available - skipping file upload for key {}: {}",
-                        key,
-                        e.getMessage());
+                if (LOGGER.isWarnEnabled()) {
+                    LOGGER.warn(
+                            "S3 not available - skipping file upload for key {}: {}",
+                            key,
+                            e.getMessage());
+                }
                 return key; // Return key anyway for compatibility
             }
             if (isBucketNotFoundError(e)) {
-                LOGGER.warn(
-                        "S3 bucket '{}' does not exist - skipping file upload for key {}: {}. "
-                                + "Bucket will be created automatically on first upload if permissions allow.",
-                        bucketName,
-                        key,
-                        e.getMessage());
+                if (LOGGER.isWarnEnabled()) {
+                    LOGGER.warn(
+                            "S3 bucket '{}' does not exist - skipping file upload for key {}: {}. "
+                                    + "Bucket will be created automatically on first upload if permissions allow.",
+                            bucketName,
+                            key,
+                            e.getMessage());
+                }
                 return key; // Return key anyway for compatibility
             }
-            LOGGER.error("Error uploading file to S3: {}", e.getMessage(), e);
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error("Error uploading file to S3: {}", e.getMessage(), e);
+            }
             throw new AppException(
                     ErrorCode.INTERNAL_SERVER_ERROR, "Failed to upload file to S3", e);
         }
@@ -257,24 +275,32 @@ public class S3Service {
                     DeleteObjectRequest.builder().bucket(bucketName).key(key).build();
             s3Client.deleteObject(deleteRequest);
 
-            LOGGER.info("File archived to Glacier: {}", key);
+            if (LOGGER.isInfoEnabled()) {
+                LOGGER.info("File archived to Glacier: {}", key);
+            }
         } catch (Exception e) {
             if (isConnectivityError(e)) {
-                LOGGER.warn(
-                        "S3 not available - skipping file archival for key {}: {}",
-                        key,
-                        e.getMessage());
+                if (LOGGER.isWarnEnabled()) {
+                    LOGGER.warn(
+                            "S3 not available - skipping file archival for key {}: {}",
+                            key,
+                            e.getMessage());
+                }
                 return;
             }
             if (isBucketNotFoundError(e) || isKeyNotFoundError(e)) {
-                LOGGER.warn(
-                        "S3 bucket '{}' or key '{}' does not exist - skipping file archival: {}",
-                        bucketName,
-                        key,
-                        e.getMessage());
+                if (LOGGER.isWarnEnabled()) {
+                    LOGGER.warn(
+                            "S3 bucket '{}' or key '{}' does not exist - skipping file archival: {}",
+                            bucketName,
+                            key,
+                            e.getMessage());
+                }
                 return;
             }
-            LOGGER.error("Error archiving file: {}", e.getMessage(), e);
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error("Error archiving file: {}", e.getMessage(), e);
+            }
             throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to archive file", e);
         }
     }
@@ -293,24 +319,32 @@ public class S3Service {
             final DeleteObjectRequest deleteRequest =
                     DeleteObjectRequest.builder().bucket(bucketName).key(key).build();
             s3Client.deleteObject(deleteRequest);
-            LOGGER.info("File deleted from S3: {}", key);
+            if (LOGGER.isInfoEnabled()) {
+                LOGGER.info("File deleted from S3: {}", key);
+            }
         } catch (Exception e) {
             if (isConnectivityError(e)) {
-                LOGGER.warn(
-                        "S3 not available - skipping file deletion for key {}: {}",
-                        key,
-                        e.getMessage());
+                if (LOGGER.isWarnEnabled()) {
+                    LOGGER.warn(
+                            "S3 not available - skipping file deletion for key {}: {}",
+                            key,
+                            e.getMessage());
+                }
                 return;
             }
             if (isBucketNotFoundError(e) || isKeyNotFoundError(e)) {
-                LOGGER.debug(
-                        "S3 bucket '{}' or key '{}' does not exist - skipping file deletion (non-fatal): {}",
-                        bucketName,
-                        key,
-                        e.getMessage());
+                if (LOGGER.isDebugEnabled()) {
+                    LOGGER.debug(
+                            "S3 bucket '{}' or key '{}' does not exist - skipping file deletion (non-fatal): {}",
+                            bucketName,
+                            key,
+                            e.getMessage());
+                }
                 return; // Non-fatal - file/bucket doesn't exist, nothing to delete
             }
-            LOGGER.error("Error deleting file from S3: {}", e.getMessage(), e);
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error("Error deleting file from S3: {}", e.getMessage(), e);
+            }
             throw new AppException(
                     ErrorCode.INTERNAL_SERVER_ERROR, "Failed to delete file from S3", e);
         }
@@ -394,22 +428,31 @@ public class S3Service {
             return deletedCount;
         } catch (Exception e) {
             if (isConnectivityError(e)) {
-                LOGGER.warn(
-                        "S3 not available - skipping file deletion for prefix {}: {}",
-                        prefix,
-                        e.getMessage());
+                if (LOGGER.isWarnEnabled()) {
+                    LOGGER.warn(
+                            "S3 not available - skipping file deletion for prefix {}: {}",
+                            prefix,
+                            e.getMessage());
+                }
                 return 0;
             }
             if (isBucketNotFoundError(e)) {
-                LOGGER.debug(
-                        "S3 bucket '{}' does not exist - no files to delete for prefix {} (non-fatal): {}",
-                        bucketName,
-                        prefix,
-                        e.getMessage());
+                if (LOGGER.isDebugEnabled()) {
+                    LOGGER.debug(
+                            "S3 bucket '{}' does not exist - no files to delete for prefix {} (non-fatal): {}",
+                            bucketName,
+                            prefix,
+                            e.getMessage());
+                }
                 return 0; // Non-fatal - bucket doesn't exist, nothing to delete
             }
-            LOGGER.error(
-                    "Error deleting files from S3 with prefix {}: {}", prefix, e.getMessage(), e);
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error(
+                        "Error deleting files from S3 with prefix {}: {}",
+                        prefix,
+                        e.getMessage(),
+                        e);
+            }
             throw new AppException(
                     ErrorCode.INTERNAL_SERVER_ERROR, "Failed to delete files from S3", e);
         }
@@ -441,27 +484,33 @@ public class S3Service {
             return presignedRequest.url().toString();
         } catch (Exception e) {
             if (isConnectivityError(e)) {
-                LOGGER.warn(
-                        "S3 not available - cannot generate presigned URL for key {}: {}",
-                        key,
-                        e.getMessage());
+                if (LOGGER.isWarnEnabled()) {
+                    LOGGER.warn(
+                            "S3 not available - cannot generate presigned URL for key {}: {}",
+                            key,
+                            e.getMessage());
+                }
                 throw new AppException(
                         ErrorCode.INTERNAL_SERVER_ERROR,
                         "S3 is not available - cannot generate presigned URL",
                         e);
             }
             if (isBucketNotFoundError(e)) {
-                LOGGER.warn(
-                        "S3 bucket '{}' does not exist - cannot generate presigned URL for key {}: {}",
-                        bucketName,
-                        key,
-                        e.getMessage());
+                if (LOGGER.isWarnEnabled()) {
+                    LOGGER.warn(
+                            "S3 bucket '{}' does not exist - cannot generate presigned URL for key {}: {}",
+                            bucketName,
+                            key,
+                            e.getMessage());
+                }
                 throw new AppException(
                         ErrorCode.INTERNAL_SERVER_ERROR,
                         "S3 bucket does not exist - cannot generate presigned URL",
                         e);
             }
-            LOGGER.error("Error generating presigned URL: {}", e.getMessage(), e);
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error("Error generating presigned URL: {}", e.getMessage(), e);
+            }
             throw new AppException(
                     ErrorCode.INTERNAL_SERVER_ERROR, "Failed to generate presigned URL", e);
         }

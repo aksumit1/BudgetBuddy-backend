@@ -48,7 +48,8 @@ import software.amazon.awssdk.services.dynamodb.model.UpdateTimeToLiveRequest;
 // callers — defensive-copying it would break dependency injection.
 @SuppressFBWarnings(
         value = {"EI_EXPOSE_REP2", "CT_CONSTRUCTOR_THROW"},
-        justification = "Spring constructor injection — beans are shared by design; CT_CONSTRUCTOR_THROW: Java 25 deprecates Object.finalize() for removal, so the finalizer-attack vector this rule guards against is not exploitable")
+        justification =
+                "Spring constructor injection — beans are shared by design; CT_CONSTRUCTOR_THROW: Java 25 deprecates Object.finalize() for removal, so the finalizer-attack vector this rule guards against is not exploitable")
 @SuppressWarnings({"PMD.AvoidCatchingGenericException", "PMD.OnlyOneReturn"})
 @Service
 public class NotFoundErrorTrackingService {
@@ -109,15 +110,19 @@ public class NotFoundErrorTrackingService {
         try {
             final boolean initialized = initializeTable();
             if (!initialized) {
-                LOGGER.debug(
-                        "404 tracking table initialization deferred (DynamoDB may be unavailable). "
-                                + "Will use in-memory only mode if table creation fails.");
+                if (LOGGER.isDebugEnabled()) {
+                    LOGGER.debug(
+                            "404 tracking table initialization deferred (DynamoDB may be unavailable). "
+                                    + "Will use in-memory only mode if table creation fails.");
+                }
             }
         } catch (Exception e) {
-            LOGGER.debug(
-                    "404 tracking table initialization failed: {}. "
-                            + "Will use in-memory only mode. This is acceptable in test environments.",
-                    e.getMessage());
+            if (LOGGER.isDebugEnabled()) {
+                LOGGER.debug(
+                        "404 tracking table initialization failed: {}. "
+                                + "Will use in-memory only mode. This is acceptable in test environments.",
+                        e.getMessage());
+            }
             dynamoDbAvailable = false;
         }
     }
@@ -157,11 +162,13 @@ public class NotFoundErrorTrackingService {
                     || counter.getCountPerHour() > max404PerHour) {
                 counter.setBlocked(true);
                 blockSourceInDynamoDBAsync(sourceId);
-                LOGGER.warn(
-                        "404 tracking: Blocked source {} after {} 404s in minute, {} in hour",
-                        sourceId,
-                        counter.getCountPerMinute(),
-                        counter.getCountPerHour());
+                if (LOGGER.isWarnEnabled()) {
+                    LOGGER.warn(
+                            "404 tracking: Blocked source {} after {} 404s in minute, {} in hour",
+                            sourceId,
+                            counter.getCountPerMinute(),
+                            counter.getCountPerHour());
+                }
                 return true;
             }
             return false;
@@ -248,13 +255,17 @@ public class NotFoundErrorTrackingService {
             // Table doesn't exist, proceed with creation
         } catch (Exception e) {
             if (isCredentialsError(e)) {
-                LOGGER.warn(
-                        "⚠️ AWS credentials not configured for LocalStack or environment. Skipping 404 tracking table check. Error: {}",
-                        e.getMessage());
+                if (LOGGER.isWarnEnabled()) {
+                    LOGGER.warn(
+                            "⚠️ AWS credentials not configured for LocalStack or environment. Skipping 404 tracking table check. Error: {}",
+                            e.getMessage());
+                }
                 dynamoDbAvailable = false;
                 return false;
             }
-            LOGGER.debug("Failed to check if 404 tracking table exists: {}", e.getMessage());
+            if (LOGGER.isDebugEnabled()) {
+                LOGGER.debug("Failed to check if 404 tracking table exists: {}", e.getMessage());
+            }
             // Continue with creation attempt
         }
 
@@ -287,31 +298,40 @@ public class NotFoundErrorTrackingService {
                                                 .build())
                                 .build());
             } catch (Exception e) {
-                LOGGER.debug("Failed to configure TTL for 404 tracking table: {}", e.getMessage());
+                if (LOGGER.isDebugEnabled()) {
+                    LOGGER.debug(
+                            "Failed to configure TTL for 404 tracking table: {}", e.getMessage());
+                }
             }
             LOGGER.debug("404 tracking table created successfully");
             dynamoDbAvailable = true;
             return true;
         } catch (ResourceInUseException e) {
             // Table was created by another instance between check and create - this is fine
-            LOGGER.debug("404 tracking table already exists (race condition)");
+            if (LOGGER.isDebugEnabled()) {
+                LOGGER.debug("404 tracking table already exists (race condition)");
+            }
             dynamoDbAvailable = true;
             return true;
         } catch (Exception e) {
             if (isCredentialsError(e)) {
-                LOGGER.warn(
-                        "⚠️ AWS credentials not configured for LocalStack or environment. 404 tracking will work in in-memory only mode. Error: {}",
-                        e.getMessage());
+                if (LOGGER.isWarnEnabled()) {
+                    LOGGER.warn(
+                            "⚠️ AWS credentials not configured for LocalStack or environment. 404 tracking will work in in-memory only mode. Error: {}",
+                            e.getMessage());
+                }
                 dynamoDbAvailable = false;
                 return false;
             }
             // Log at WARN level - table creation failure indicates configuration issue
             // In test environments, ensure LocalStack is running and auto-create-tables is enabled
-            LOGGER.warn(
-                    "Failed to create 404 tracking table: {}. "
-                            + "404 tracking will work in in-memory only mode. "
-                            + "Ensure LocalStack is running and auto-create-tables is enabled.",
-                    e.getMessage());
+            if (LOGGER.isWarnEnabled()) {
+                LOGGER.warn(
+                        "Failed to create 404 tracking table: {}. "
+                                + "404 tracking will work in in-memory only mode. "
+                                + "Ensure LocalStack is running and auto-create-tables is enabled.",
+                        e.getMessage());
+            }
             dynamoDbAvailable = false;
             return false;
         }
@@ -344,11 +364,15 @@ public class NotFoundErrorTrackingService {
             }
         } catch (Exception e) {
             if (isCredentialsError(e)) {
-                LOGGER.debug("AWS credentials not configured. Using in-memory cache only.");
+                if (LOGGER.isDebugEnabled()) {
+                    LOGGER.debug("AWS credentials not configured. Using in-memory cache only.");
+                }
             } else {
-                LOGGER.debug(
-                        "Failed to check blocked source in DynamoDB: {}. Using in-memory cache only.",
-                        e.getMessage());
+                if (LOGGER.isDebugEnabled()) {
+                    LOGGER.debug(
+                            "Failed to check blocked source in DynamoDB: {}. Using in-memory cache only.",
+                            e.getMessage());
+                }
             }
             dynamoDbAvailable = false;
         }
@@ -384,14 +408,18 @@ public class NotFoundErrorTrackingService {
                                                     .n(String.valueOf(blockedUntil + 86_400))
                                                     .build()))
                             .build());
-            LOGGER.warn(
-                    "404 tracking: Blocked source {} until {}",
-                    sourceId,
-                    Instant.ofEpochSecond(blockedUntil));
+            if (LOGGER.isWarnEnabled()) {
+                LOGGER.warn(
+                        "404 tracking: Blocked source {} until {}",
+                        sourceId,
+                        Instant.ofEpochSecond(blockedUntil));
+            }
         } catch (Exception e) {
-            LOGGER.debug(
-                    "Failed to block source in DynamoDB: {}. Source blocked in-memory only.",
-                    e.getMessage());
+            if (LOGGER.isDebugEnabled()) {
+                LOGGER.debug(
+                        "Failed to block source in DynamoDB: {}. Source blocked in-memory only.",
+                        e.getMessage());
+            }
             dynamoDbAvailable = false;
         }
     }
@@ -407,11 +435,13 @@ public class NotFoundErrorTrackingService {
                     try {
                         blockSourceInDynamoDB(sourceId);
                     } catch (Exception e) {
-                        LOGGER.error(
-                                "Error in async source blocking for {}: {}",
-                                sourceId,
-                                e.getMessage(),
-                                e);
+                        if (LOGGER.isErrorEnabled()) {
+                            LOGGER.error(
+                                    "Error in async source blocking for {}: {}",
+                                    sourceId,
+                                    e.getMessage(),
+                                    e);
+                        }
                     }
                 });
     }

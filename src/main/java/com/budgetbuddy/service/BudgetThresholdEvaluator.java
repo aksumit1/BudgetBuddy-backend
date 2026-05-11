@@ -94,7 +94,9 @@ public class BudgetThresholdEvaluator {
                 evaluateSingle(budget);
             }
         } catch (Exception e) {
-            LOGGER.warn("Threshold evaluation failed for user {}: {}", userId, e.getMessage());
+            if (LOGGER.isWarnEnabled()) {
+                LOGGER.warn("Threshold evaluation failed for user {}: {}", userId, e.getMessage());
+            }
         }
     }
 
@@ -175,18 +177,22 @@ public class BudgetThresholdEvaluator {
             } catch (
                     com.budgetbuddy.repository.dynamodb.OptimisticLockHelper.OptimisticLockException
                             conflict) {
-                LOGGER.info(
-                        "Budget {} was edited concurrently — skipping this threshold notification; next ingest will re-evaluate",
-                        budget.getBudgetId());
+                if (LOGGER.isInfoEnabled()) {
+                    LOGGER.info(
+                            "Budget {} was edited concurrently — skipping this threshold notification; next ingest will re-evaluate",
+                            budget.getBudgetId());
+                }
                 return;
             }
-            LOGGER.info(
-                    "Pushed {}% threshold alert to user {} for budget {} (category={}, percent={})",
-                    highestCrossed,
-                    budget.getUserId(),
-                    budget.getBudgetId(),
-                    budget.getCategory(),
-                    percent);
+            if (LOGGER.isInfoEnabled()) {
+                LOGGER.info(
+                        "Pushed {}% threshold alert to user {} for budget {} (category={}, percent={})",
+                        highestCrossed,
+                        budget.getUserId(),
+                        budget.getBudgetId(),
+                        budget.getCategory(),
+                        percent);
+            }
         }
     }
 }

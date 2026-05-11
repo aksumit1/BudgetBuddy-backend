@@ -54,12 +54,14 @@ public class SyncHealthService {
         response.setLastError(status.getLastError());
         response.setMessage(getStatusMessage(status));
 
-        LOGGER.debug(
-                "Sync health for user {}: status={}, health={}, stale={}",
-                userId,
-                status.getStatus(),
-                healthStatus,
-                isStale);
+        if (LOGGER.isDebugEnabled()) {
+            LOGGER.debug(
+                    "Sync health for user {}: status={}, health={}, stale={}",
+                    userId,
+                    status.getStatus(),
+                    healthStatus,
+                    isStale);
+        }
 
         return response;
     }

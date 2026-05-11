@@ -446,22 +446,26 @@ public class TaxExportService {
                         && !transaction.getTransactionDate().isEmpty()) {
                     final LocalDate txDate = LocalDate.parse(transaction.getTransactionDate());
                     if (txDate.isBefore(startDateObj) || txDate.isAfter(endDateObj)) {
-                        LOGGER.debug(
-                                "Skipping transaction {}: date {} is outside year range {} to {}",
-                                transaction.getTransactionId(),
-                                txDate,
-                                startDateObj,
-                                endDateObj);
+                        if (LOGGER.isDebugEnabled()) {
+                            LOGGER.debug(
+                                    "Skipping transaction {}: date {} is outside year range {} to {}",
+                                    transaction.getTransactionId(),
+                                    txDate,
+                                    startDateObj,
+                                    endDateObj);
+                        }
                         skippedCount++;
                         continue;
                     }
                 }
             } catch (Exception e) {
-                LOGGER.warn(
-                        "Skipping transaction {}: invalid date format '{}': {}",
-                        transaction.getTransactionId(),
-                        transaction.getTransactionDate(),
-                        e.getMessage());
+                if (LOGGER.isWarnEnabled()) {
+                    LOGGER.warn(
+                            "Skipping transaction {}: invalid date format '{}': {}",
+                            transaction.getTransactionId(),
+                            transaction.getTransactionDate(),
+                            e.getMessage());
+                }
                 skippedCount++;
                 continue;
             }
@@ -498,9 +502,11 @@ public class TaxExportService {
             // Update summary totals (with null-safe amount)
             final BigDecimal amount = transaction.getAmount();
             if (amount == null) {
-                LOGGER.warn(
-                        "Transaction {} has null amount, skipping summary update",
-                        transaction.getTransactionId());
+                if (LOGGER.isWarnEnabled()) {
+                    LOGGER.warn(
+                            "Transaction {} has null amount, skipping summary update",
+                            transaction.getTransactionId());
+                }
                 continue;
             }
             updateSummary(result.getSummary(), taxCategory, amount);
@@ -517,18 +523,22 @@ public class TaxExportService {
             final BigDecimal yearEndBalance = calculateYearEndBalance(userId, year);
             result.getSummary().setYearEndBalance(yearEndBalance);
         } catch (Exception e) {
-            LOGGER.warn(
-                    "Failed to calculate year-end balance for user {} year {}: {}",
-                    userId,
-                    year,
-                    e.getMessage());
+            if (LOGGER.isWarnEnabled()) {
+                LOGGER.warn(
+                        "Failed to calculate year-end balance for user {} year {}: {}",
+                        userId,
+                        year,
+                        e.getMessage());
+            }
             // Continue without year-end balance rather than failing entire export
         }
 
-        LOGGER.info(
-                "Tax export generated: {} transactions across {} categories",
-                transactions.size(),
-                result.getTransactionsByCategory().size());
+        if (LOGGER.isInfoEnabled()) {
+            LOGGER.info(
+                    "Tax export generated: {} transactions across {} categories",
+                    transactions.size(),
+                    result.getTransactionsByCategory().size());
+        }
 
         return result;
     }
@@ -567,12 +577,14 @@ public class TaxExportService {
                     totalBalance);
             return totalBalance;
         } catch (Exception e) {
-            LOGGER.error(
-                    "Error calculating year-end balance for user {} year {}: {}",
-                    userId,
-                    year,
-                    e.getMessage(),
-                    e);
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error(
+                        "Error calculating year-end balance for user {} year {}: {}",
+                        userId,
+                        year,
+                        e.getMessage(),
+                        e);
+            }
             throw e;
         }
     }
@@ -1165,10 +1177,12 @@ public class TaxExportService {
             }
         }
 
-        LOGGER.info(
-                "Generating multi-year tax export for user {} for years {}",
-                userId,
-                Arrays.toString(years));
+        if (LOGGER.isInfoEnabled()) {
+            LOGGER.info(
+                    "Generating multi-year tax export for user {} for years {}",
+                    userId,
+                    Arrays.toString(years));
+        }
 
         final TaxExportResult combinedResult = new TaxExportResult();
 
@@ -1234,13 +1248,15 @@ public class TaxExportService {
             }
         }
 
-        LOGGER.info(
-                "Multi-year tax export generated: {} transactions across {} categories for {} years",
-                combinedResult.getTransactionsByCategory().values().stream()
-                        .mapToInt(List::size)
-                        .sum(),
-                combinedResult.getTransactionsByCategory().size(),
-                years.length);
+        if (LOGGER.isInfoEnabled()) {
+            LOGGER.info(
+                    "Multi-year tax export generated: {} transactions across {} categories for {} years",
+                    combinedResult.getTransactionsByCategory().values().stream()
+                            .mapToInt(List::size)
+                            .sum(),
+                    combinedResult.getTransactionsByCategory().size(),
+                    years.length);
+        }
 
         return combinedResult;
     }

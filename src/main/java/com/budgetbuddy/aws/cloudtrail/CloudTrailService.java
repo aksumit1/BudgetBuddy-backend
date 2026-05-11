@@ -76,7 +76,9 @@ public class CloudTrailService {
 
             return response.events();
         } catch (Exception e) {
-            LOGGER.error("Failed to lookup CloudTrail events: {}", e.getMessage());
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error("Failed to lookup CloudTrail events: {}", e.getMessage());
+            }
             return List.of();
         }
     }
@@ -87,7 +89,9 @@ public class CloudTrailService {
             return cloudTrailClient.getTrailStatus(
                     GetTrailStatusRequest.builder().name(trailName).build());
         } catch (Exception e) {
-            LOGGER.error("Failed to get trail status: {}", e.getMessage());
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error("Failed to get trail status: {}", e.getMessage());
+            }
             return null;
         }
     }

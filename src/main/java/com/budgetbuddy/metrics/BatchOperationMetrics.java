@@ -50,14 +50,16 @@ public class BatchOperationMetrics {
         LOGGER.info("=== Batch Operation Statistics ===");
         for (final Map.Entry<String, OperationStats> entry : operationStats.entrySet()) {
             final OperationStats stats = entry.getValue();
-            LOGGER.info(
-                    "Operation: {} | Count: {} | Success: {} | Failure: {} | Avg Items: {} | Avg Duration: {}ms",
-                    entry.getKey(),
-                    stats.getCount(),
-                    stats.getSuccessCount(),
-                    stats.getFailureCount(),
-                    stats.getAverageItems(),
-                    stats.getAverageDuration());
+            if (LOGGER.isInfoEnabled()) {
+                LOGGER.info(
+                        "Operation: {} | Count: {} | Success: {} | Failure: {} | Avg Items: {} | Avg Duration: {}ms",
+                        entry.getKey(),
+                        stats.getCount(),
+                        stats.getSuccessCount(),
+                        stats.getFailureCount(),
+                        stats.getAverageItems(),
+                        stats.getAverageDuration());
+            }
         }
         LOGGER.info("==================================");
     }

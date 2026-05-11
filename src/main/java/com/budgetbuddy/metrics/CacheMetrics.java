@@ -35,13 +35,15 @@ public class CacheMetrics {
         LOGGER.info("=== Cache Statistics ===");
         for (final Map.Entry<String, CacheStatsInfo> entry : stats.entrySet()) {
             final CacheStatsInfo info = entry.getValue();
-            LOGGER.info(
-                    "Cache: {} | Hit Rate: {:.2f}% | Hits: {} | Misses: {} | Size: {}",
-                    entry.getKey(),
-                    info.getHitRate() * 100,
-                    info.getHits(),
-                    info.getMisses(),
-                    info.getSize());
+            if (LOGGER.isInfoEnabled()) {
+                LOGGER.info(
+                        "Cache: {} | Hit Rate: {:.2f}% | Hits: {} | Misses: {} | Size: {}",
+                        entry.getKey(),
+                        info.getHitRate() * 100,
+                        info.getHits(),
+                        info.getMisses(),
+                        info.getSize());
+            }
         }
         LOGGER.info("=======================");
     }

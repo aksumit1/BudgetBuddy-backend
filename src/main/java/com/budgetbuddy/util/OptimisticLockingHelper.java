@@ -77,11 +77,13 @@ public final class OptimisticLockingHelper {
             final String operation,
             final String recordId) {
 
-        LOGGER.warn(
-                "Optimistic lock failure - Operation: {}, Record: {}, Message: {}",
-                operation,
-                recordId,
-                exception.getMessage());
+        if (LOGGER.isWarnEnabled()) {
+            LOGGER.warn(
+                    "Optimistic lock failure - Operation: {}, Record: {}, Message: {}",
+                    operation,
+                    recordId,
+                    exception.getMessage());
+        }
 
         // Record in monitoring (if available)
         // Note: Monitoring integration should be done at the service/repository layer

@@ -110,15 +110,19 @@ public class UserDeletionController {
 
         try {
             userDeletionService.deleteAllUserData(user.getUserId());
-            LOGGER.info("User {} deleted all their data", user.getUserId());
+            if (LOGGER.isInfoEnabled()) {
+                LOGGER.info("User {} deleted all their data", user.getUserId());
+            }
             return ResponseEntity.ok(
                     Map.of(STATUS, SUCCESS, MESSAGE, "All user data deleted successfully"));
         } catch (Exception e) {
-            LOGGER.error(
-                    "Failed to delete user data for user {}: {}",
-                    user.getUserId(),
-                    e.getMessage(),
-                    e);
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error(
+                        "Failed to delete user data for user {}: {}",
+                        user.getUserId(),
+                        e.getMessage(),
+                        e);
+            }
             throw new AppException(
                     ErrorCode.INTERNAL_SERVER_ERROR, "Failed to delete user data", null, null, e);
         }
@@ -166,15 +170,19 @@ public class UserDeletionController {
 
         try {
             userDeletionService.deletePlaidIntegration(user.getUserId());
-            LOGGER.info("User {} deleted Plaid integration", user.getUserId());
+            if (LOGGER.isInfoEnabled()) {
+                LOGGER.info("User {} deleted Plaid integration", user.getUserId());
+            }
             return ResponseEntity.ok(
                     Map.of(STATUS, SUCCESS, MESSAGE, "Plaid integration deleted successfully"));
         } catch (Exception e) {
-            LOGGER.error(
-                    "Failed to delete Plaid integration for user {}: {}",
-                    user.getUserId(),
-                    e.getMessage(),
-                    e);
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error(
+                        "Failed to delete Plaid integration for user {}: {}",
+                        user.getUserId(),
+                        e.getMessage(),
+                        e);
+            }
             throw new AppException(
                     ErrorCode.INTERNAL_SERVER_ERROR,
                     "Failed to delete Plaid integration",
@@ -227,15 +235,19 @@ public class UserDeletionController {
 
         try {
             userDeletionService.deleteAccountCompletely(user.getUserId());
-            LOGGER.info("User {} deleted their account completely", user.getUserId());
+            if (LOGGER.isInfoEnabled()) {
+                LOGGER.info("User {} deleted their account completely", user.getUserId());
+            }
             return ResponseEntity.ok(
                     Map.of(STATUS, SUCCESS, MESSAGE, "Account deleted successfully"));
         } catch (Exception e) {
-            LOGGER.error(
-                    "Failed to delete account for user {}: {}",
-                    user.getUserId(),
-                    e.getMessage(),
-                    e);
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error(
+                        "Failed to delete account for user {}: {}",
+                        user.getUserId(),
+                        e.getMessage(),
+                        e);
+            }
             throw new AppException(
                     ErrorCode.INTERNAL_SERVER_ERROR, "Failed to delete account", null, null, e);
         }

@@ -87,10 +87,12 @@ public class PdfTemplateRegistry {
         try {
             resources = resolver.getResources(resourcePattern);
         } catch (IOException e) {
-            LOGGER.warn(
-                    "PdfTemplateRegistry: couldn't resolve \"{}\" — no templates loaded. Cause: {}",
-                    resourcePattern,
-                    e.getMessage());
+            if (LOGGER.isWarnEnabled()) {
+                LOGGER.warn(
+                        "PdfTemplateRegistry: couldn't resolve \"{}\" — no templates loaded. Cause: {}",
+                        resourcePattern,
+                        e.getMessage());
+            }
             return;
         }
 
@@ -108,27 +110,33 @@ public class PdfTemplateRegistry {
                 final PdfTemplate template = yamlMapper.readValue(in, PdfTemplate.class);
                 if (template.validate()) {
                     loaded.add(template);
-                    LOGGER.info(
-                            "PdfTemplateRegistry: loaded template \"{}\" (institution={}, layouts={}, status={})",
-                            template.getId(),
-                            template.getInstitution(),
-                            template.getLayouts().size(),
-                            template.getStatus());
+                    if (LOGGER.isInfoEnabled()) {
+                        LOGGER.info(
+                                "PdfTemplateRegistry: loaded template \"{}\" (institution={}, layouts={}, status={})",
+                                template.getId(),
+                                template.getInstitution(),
+                                template.getLayouts().size(),
+                                template.getStatus());
+                    }
                 } else {
                     LOGGER.warn(
                             "PdfTemplateRegistry: template \"{}\" failed validation — skipped",
                             name);
                 }
             } catch (Exception e) {
-                LOGGER.warn(
-                        "PdfTemplateRegistry: failed to load \"{}\" — skipped. Cause: {}",
-                        name,
-                        e.getMessage());
+                if (LOGGER.isWarnEnabled()) {
+                    LOGGER.warn(
+                            "PdfTemplateRegistry: failed to load \"{}\" — skipped. Cause: {}",
+                            name,
+                            e.getMessage());
+                }
             }
         }
 
         this.templates = Collections.unmodifiableList(loaded);
-        LOGGER.info("PdfTemplateRegistry: {} template(s) ready", templates.size());
+        if (LOGGER.isInfoEnabled()) {
+            LOGGER.info("PdfTemplateRegistry: {} template(s) ready", templates.size());
+        }
     }
 
     public List<PdfTemplate> all() {

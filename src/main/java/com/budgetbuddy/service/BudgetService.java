@@ -214,19 +214,23 @@ public class BudgetService {
                             budgetRepository.saveWithLock(fresh);
                             existingByIdTable = fresh;
                         }
-                        LOGGER.info(
-                                "Budget with ID {} already exists for user {} and category {}. Updated and returning for idempotency.",
-                                normalizedId,
-                                user.getUserId(),
-                                category);
+                        if (LOGGER.isInfoEnabled()) {
+                            LOGGER.info(
+                                    "Budget with ID {} already exists for user {} and category {}. Updated and returning for idempotency.",
+                                    normalizedId,
+                                    user.getUserId(),
+                                    category);
+                        }
                         return existingByIdTable;
                     } else {
                         // Budget exists but belongs to different user or category - throw exception
-                        LOGGER.error(
-                                "Budget with ID {} already exists but belongs to different user or category. User: {}, Category: {}",
-                                normalizedId,
-                                existingByIdTable.getUserId(),
-                                existingByIdTable.getCategory());
+                        if (LOGGER.isErrorEnabled()) {
+                            LOGGER.error(
+                                    "Budget with ID {} already exists but belongs to different user or category. User: {}, Category: {}",
+                                    normalizedId,
+                                    existingByIdTable.getUserId(),
+                                    existingByIdTable.getCategory());
+                        }
                         throw new AppException(
                                 ErrorCode.RECORD_ALREADY_EXISTS,
                                 "Budget with ID already exists for different user or category");
@@ -245,11 +249,13 @@ public class BudgetService {
                 final String normalizedId =
                         com.budgetbuddy.util.IdGenerator.normalizeUUID(generatedId);
                 budget.setBudgetId(normalizedId);
-                LOGGER.debug(
-                        "Generated budget ID (normalized): {} from user: {} and category: {}",
-                        normalizedId,
-                        user.getUserId(),
-                        category);
+                if (LOGGER.isDebugEnabled()) {
+                    LOGGER.debug(
+                            "Generated budget ID (normalized): {} from user: {} and category: {}",
+                            normalizedId,
+                            user.getUserId(),
+                            category);
+                }
             }
 
             budget.setUserId(user.getUserId());
@@ -293,7 +299,9 @@ public class BudgetService {
 
             budget.setCurrentSpent(currentSpent);
         } catch (Exception e) {
-            LOGGER.warn("Failed to calculate current spent for budget: {}", e.getMessage());
+            if (LOGGER.isWarnEnabled()) {
+                LOGGER.warn("Failed to calculate current spent for budget: {}", e.getMessage());
+            }
             // Continue with existing currentSpent value
         }
 

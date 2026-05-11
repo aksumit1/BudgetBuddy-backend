@@ -64,7 +64,9 @@ public class CacheMonitoringService {
                 }
             }
         } catch (Exception e) {
-            LOGGER.warn("Error getting cache statistics: {}", e.getMessage());
+            if (LOGGER.isWarnEnabled()) {
+                LOGGER.warn("Error getting cache statistics: {}", e.getMessage());
+            }
         }
 
         return stats;
@@ -93,7 +95,9 @@ public class CacheMonitoringService {
                         calculateMissRate(cacheStats));
             }
         } catch (Exception e) {
-            LOGGER.warn("Error getting cache statistics for {}: {}", cacheName, e.getMessage());
+            if (LOGGER.isWarnEnabled()) {
+                LOGGER.warn("Error getting cache statistics for {}: {}", cacheName, e.getMessage());
+            }
         }
         return null;
     }
@@ -104,14 +108,16 @@ public class CacheMonitoringService {
         LOGGER.info("=== Cache Statistics ===");
         for (final Map.Entry<String, CacheStatistics> entry : stats.entrySet()) {
             final CacheStatistics stat = entry.getValue();
-            LOGGER.info(
-                    "Cache: {} | Hits: {} | Misses: {} | Hit Rate: {:.2f}% | Size: {} | Evictions: {}",
-                    entry.getKey(),
-                    stat.getHitCount(),
-                    stat.getMissCount(),
-                    String.format("%.2f", stat.getHitRate() * 100),
-                    stat.getSize(),
-                    stat.getEvictionCount());
+            if (LOGGER.isInfoEnabled()) {
+                LOGGER.info(
+                        "Cache: {} | Hits: {} | Misses: {} | Hit Rate: {:.2f}% | Size: {} | Evictions: {}",
+                        entry.getKey(),
+                        stat.getHitCount(),
+                        stat.getMissCount(),
+                        String.format("%.2f", stat.getHitRate() * 100),
+                        stat.getSize(),
+                        stat.getEvictionCount());
+            }
         }
         LOGGER.info("========================");
     }

@@ -35,7 +35,8 @@ import software.amazon.awssdk.services.cloudformation.model.StackSummary;
 // callers — defensive-copying it would break dependency injection.
 @SuppressFBWarnings(
         value = {"EI_EXPOSE_REP2", "CT_CONSTRUCTOR_THROW"},
-        justification = "Spring constructor injection — beans are shared by design; CT_CONSTRUCTOR_THROW: Java 25 deprecates Object.finalize() for removal, so the finalizer-attack vector this rule guards against is not exploitable")
+        justification =
+                "Spring constructor injection — beans are shared by design; CT_CONSTRUCTOR_THROW: Java 25 deprecates Object.finalize() for removal, so the finalizer-attack vector this rule guards against is not exploitable")
 @SuppressWarnings({"PMD.AvoidCatchingGenericException", "PMD.OnlyOneReturn"})
 @Service
 public class CloudFormationService {
@@ -74,7 +75,9 @@ public class CloudFormationService {
             }
             return "NOT_FOUND";
         } catch (Exception e) {
-            LOGGER.error("Failed to get stack status for {}: {}", stackName, e.getMessage(), e);
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error("Failed to get stack status for {}: {}", stackName, e.getMessage(), e);
+            }
             return "ERROR";
         }
     }
@@ -93,7 +96,9 @@ public class CloudFormationService {
         } catch (Exception e) {
             // Log at WARN level - this is a handled failure (returns empty list gracefully)
             // ERROR would be more appropriate for unhandled errors that cause service failure
-            LOGGER.warn("Failed to list stacks: {}", e.getMessage(), e);
+            if (LOGGER.isWarnEnabled()) {
+                LOGGER.warn("Failed to list stacks: {}", e.getMessage(), e);
+            }
             return Collections.emptyList();
         }
     }
@@ -113,7 +118,10 @@ public class CloudFormationService {
             final List<StackResource> resources = response.stackResources();
             return resources != null ? resources : Collections.emptyList();
         } catch (Exception e) {
-            LOGGER.error("Failed to get stack resources for {}: {}", stackName, e.getMessage(), e);
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error(
+                        "Failed to get stack resources for {}: {}", stackName, e.getMessage(), e);
+            }
             return Collections.emptyList();
         }
     }
@@ -133,7 +141,9 @@ public class CloudFormationService {
             final List<StackEvent> events = response.stackEvents();
             return events != null ? events : Collections.emptyList();
         } catch (Exception e) {
-            LOGGER.error("Failed to get stack events for {}: {}", stackName, e.getMessage(), e);
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error("Failed to get stack events for {}: {}", stackName, e.getMessage(), e);
+            }
             return Collections.emptyList();
         }
     }

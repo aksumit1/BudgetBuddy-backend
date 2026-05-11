@@ -434,13 +434,15 @@ public class TransactionTypeCategoryService {
                                             + ":"
                                             + stackTrace[2].getLineNumber()
                                     : "unknown";
-                    LOGGER.debug(
-                            "🔍 [TransactionType] Credit card EXPENSE decision | Line: {} | Amount: {} | Description: '{}' | Category: {} | Account: {} | Decision: Positive amount on credit card → EXPENSE",
-                            callerInfo,
-                            amount,
-                            description != null ? description : NULL,
-                            categoryPrimary != null ? categoryPrimary : NULL,
-                            account.getAccountName());
+                    if (LOGGER.isDebugEnabled()) {
+                        LOGGER.debug(
+                                "🔍 [TransactionType] Credit card EXPENSE decision | Line: {} | Amount: {} | Description: '{}' | Category: {} | Account: {} | Decision: Positive amount on credit card → EXPENSE",
+                                callerInfo,
+                                amount,
+                                description != null ? description : NULL,
+                                categoryPrimary != null ? categoryPrimary : NULL,
+                                account.getAccountName());
+                    }
                     return new TypeResult(TransactionType.EXPENSE, "ACCOUNT_TYPE", 0.95);
                 } else if (amount != null && amount.compareTo(BigDecimal.ZERO) < 0) {
                     // CRITICAL FIX: Check if category is an expense category (dining, shopping,
@@ -485,62 +487,72 @@ public class TransactionTypeCategoryService {
                                 "payment".equalsIgnoreCase(categoryPrimary);
 
                         if (isPaymentKeyword || isPaymentCategory) {
-                            LOGGER.debug(
-                                    "🔍 [TransactionType] Credit card PAYMENT decision | Line: {} | Amount: {} | Description: '{}' | Category: {} | Account: {} | Decision: Payment keyword/category detected → PAYMENT | isPaymentKeyword: {} | isPaymentCategory: {}",
-                                    callerInfo,
-                                    amount,
-                                    description != null ? description : NULL,
-                                    categoryPrimary,
-                                    account.getAccountName(),
-                                    isPaymentKeyword,
-                                    isPaymentCategory);
+                            if (LOGGER.isDebugEnabled()) {
+                                LOGGER.debug(
+                                        "🔍 [TransactionType] Credit card PAYMENT decision | Line: {} | Amount: {} | Description: '{}' | Category: {} | Account: {} | Decision: Payment keyword/category detected → PAYMENT | isPaymentKeyword: {} | isPaymentCategory: {}",
+                                        callerInfo,
+                                        amount,
+                                        description != null ? description : NULL,
+                                        categoryPrimary,
+                                        account.getAccountName(),
+                                        isPaymentKeyword,
+                                        isPaymentCategory);
+                            }
                             return new TypeResult(
                                     TransactionType.PAYMENT, "CATEGORY_OVERRIDE", 0.95);
                         }
 
                         if (isExpenseCategory) {
+                            if (LOGGER.isDebugEnabled()) {
+                                LOGGER.debug(
+                                        "🔍 [TransactionType] Credit card EXPENSE decision | Line: {} | Amount: {} | Description: '{}' | Category: {} | Account: {} | Decision: Expense category on credit card (negative amount) → EXPENSE (overriding default PAYMENT)",
+                                        callerInfo,
+                                        amount,
+                                        description != null ? description : NULL,
+                                        categoryPrimary,
+                                        account.getAccountName());
+                            }
+                            return new TypeResult(
+                                    TransactionType.EXPENSE, "CATEGORY_OVERRIDE", 0.95);
+                        }
+
+                        if (LOGGER.isDebugEnabled()) {
                             LOGGER.debug(
-                                    "🔍 [TransactionType] Credit card EXPENSE decision | Line: {} | Amount: {} | Description: '{}' | Category: {} | Account: {} | Decision: Expense category on credit card (negative amount) → EXPENSE (overriding default PAYMENT)",
+                                    "🔍 [TransactionType] Credit card PAYMENT decision | Line: {} | Amount: {} | Description: '{}' | Category: {} | Account: {} | Decision: Negative amount, non-expense category → PAYMENT",
                                     callerInfo,
                                     amount,
                                     description != null ? description : NULL,
                                     categoryPrimary,
                                     account.getAccountName());
-                            return new TypeResult(
-                                    TransactionType.EXPENSE, "CATEGORY_OVERRIDE", 0.95);
                         }
-
-                        LOGGER.debug(
-                                "🔍 [TransactionType] Credit card PAYMENT decision | Line: {} | Amount: {} | Description: '{}' | Category: {} | Account: {} | Decision: Negative amount, non-expense category → PAYMENT",
-                                callerInfo,
-                                amount,
-                                description != null ? description : NULL,
-                                categoryPrimary,
-                                account.getAccountName());
                         return new TypeResult(TransactionType.PAYMENT, "CATEGORY_OVERRIDE", 0.95);
                     }
 
                     final boolean isPaymentKeyword = isPaymentReceived(descLower);
                     if (isPaymentKeyword) {
-                        LOGGER.debug(
-                                "🔍 [TransactionType] Credit card PAYMENT decision | Line: {} | Amount: {} | Description: '{}' | Category: {} | Account: {} | Decision: Payment keyword in description → PAYMENT",
-                                callerInfo,
-                                amount,
-                                description != null ? description : NULL,
-                                categoryPrimary != null ? categoryPrimary : NULL,
-                                account.getAccountName());
+                        if (LOGGER.isDebugEnabled()) {
+                            LOGGER.debug(
+                                    "🔍 [TransactionType] Credit card PAYMENT decision | Line: {} | Amount: {} | Description: '{}' | Category: {} | Account: {} | Decision: Payment keyword in description → PAYMENT",
+                                    callerInfo,
+                                    amount,
+                                    description != null ? description : NULL,
+                                    categoryPrimary != null ? categoryPrimary : NULL,
+                                    account.getAccountName());
+                        }
                         return new TypeResult(TransactionType.PAYMENT, "CATEGORY_OVERRIDE", 0.95);
                     }
 
                     // Default: negative amount on credit card without payment keywords = EXPENSE
                     // (likely a charge)
-                    LOGGER.debug(
-                            "🔍 [TransactionType] Credit card EXPENSE decision | Line: {} | Amount: {} | Description: '{}' | Category: {} | Account: {} | Decision: Negative amount, no payment keywords, no category → EXPENSE (default for credit card charges)",
-                            callerInfo,
-                            amount,
-                            description != null ? description : NULL,
-                            categoryPrimary != null ? categoryPrimary : NULL,
-                            account.getAccountName());
+                    if (LOGGER.isDebugEnabled()) {
+                        LOGGER.debug(
+                                "🔍 [TransactionType] Credit card EXPENSE decision | Line: {} | Amount: {} | Description: '{}' | Category: {} | Account: {} | Decision: Negative amount, no payment keywords, no category → EXPENSE (default for credit card charges)",
+                                callerInfo,
+                                amount,
+                                description != null ? description : NULL,
+                                categoryPrimary != null ? categoryPrimary : NULL,
+                                account.getAccountName());
+                    }
                     return new TypeResult(TransactionType.EXPENSE, "ACCOUNT_TYPE", 0.90);
                 }
             }
@@ -926,10 +938,12 @@ public class TransactionTypeCategoryService {
 
             if (isCheckingAccount && amount != null && amount.compareTo(BigDecimal.ZERO) > 0) {
                 // Positive amount (credit) on checking account should always be INCOME, not PAYMENT
-                LOGGER.info(
-                        "🏷️ Overriding PAYMENT type to INCOME for credit on checking account: amount={}, accountType={}",
-                        amount,
-                        account.getAccountType());
+                if (LOGGER.isInfoEnabled()) {
+                    LOGGER.info(
+                            "🏷️ Overriding PAYMENT type to INCOME for credit on checking account: amount={}, accountType={}",
+                            amount,
+                            account.getAccountType());
+                }
                 baseType = TransactionType.INCOME;
             }
         }
@@ -1034,32 +1048,38 @@ public class TransactionTypeCategoryService {
             final String importSource,
             final TransactionType transactionTypeHint) {
 
-        LOGGER.debug(
-                "determineCategory: merchant='{}' description='{}' amount={} channel='{}' importSource='{}' accountType='{}'",
-                merchantName,
-                description,
-                amount,
-                paymentChannel,
-                importSource,
-                account != null ? account.getAccountType() : null);
+        if (LOGGER.isDebugEnabled()) {
+            LOGGER.debug(
+                    "determineCategory: merchant='{}' description='{}' amount={} channel='{}' importSource='{}' accountType='{}'",
+                    merchantName,
+                    description,
+                    amount,
+                    paymentChannel,
+                    importSource,
+                    account != null ? account.getAccountType() : null);
+        }
         // Step 0: Check custom user mappings first (highest priority, user-defined)
         if (account != null && account.getUserId() != null && merchantName != null) {
             try {
                 final com.budgetbuddy.model.dynamodb.CustomMerchantMappingTable customMapping =
                         learningService.getCustomMapping(account.getUserId(), merchantName);
                 if (customMapping != null) {
-                    LOGGER.debug(
-                            "Using custom mapping for merchant '{}': {} / {}",
-                            merchantName,
-                            customMapping.getCategoryPrimary(),
-                            customMapping.getCategoryDetailed());
+                    if (LOGGER.isDebugEnabled()) {
+                        LOGGER.debug(
+                                "Using custom mapping for merchant '{}': {} / {}",
+                                merchantName,
+                                customMapping.getCategoryPrimary(),
+                                customMapping.getCategoryDetailed());
+                    }
                     // Update usage count (async, best effort)
                     try {
                         customMapping.setUsageCount(customMapping.getUsageCount() + 1);
                         customMapping.setLastUsedAt(java.time.Instant.now());
                         // Note: This would require async update to avoid blocking
                     } catch (Exception e) {
-                        LOGGER.debug("Failed to update usage count: {}", e.getMessage());
+                        if (LOGGER.isDebugEnabled()) {
+                            LOGGER.debug("Failed to update usage count: {}", e.getMessage());
+                        }
                     }
                     return new CategoryResult(
                             customMapping.getCategoryPrimary(),
@@ -1069,7 +1089,9 @@ public class TransactionTypeCategoryService {
                             );
                 }
             } catch (Exception e) {
-                LOGGER.debug("Error checking custom mapping: {}", e.getMessage());
+                if (LOGGER.isDebugEnabled()) {
+                    LOGGER.debug("Error checking custom mapping: {}", e.getMessage());
+                }
                 // Continue with other detection methods
             }
         }
@@ -1170,7 +1192,9 @@ public class TransactionTypeCategoryService {
                             mappedImporterDetailed);
                 }
             } catch (Exception e) {
-                LOGGER.warn("Failed to map Plaid categories: {}", e.getMessage());
+                if (LOGGER.isWarnEnabled()) {
+                    LOGGER.warn("Failed to map Plaid categories: {}", e.getMessage());
+                }
                 // Continue with raw categories
             }
         }
@@ -1239,7 +1263,9 @@ public class TransactionTypeCategoryService {
                 mlReason = mlResult.reason;
             }
         } catch (Exception e) {
-            LOGGER.debug("ML category detection failed: {}", e.getMessage());
+            if (LOGGER.isDebugEnabled()) {
+                LOGGER.debug("ML category detection failed: {}", e.getMessage());
+            }
         }
         /*
         // Step 4: Get account-based hints
@@ -1324,12 +1350,14 @@ public class TransactionTypeCategoryService {
             resolved = new CategoryResult(fallbackPrimary, fallbackDetailed, "PAYMENT_GUARD", 0.40);
         }
 
-        LOGGER.info(
-                "Category resolved: merchant='{}' → category='{}' source='{}' confidence={}",
-                merchantName,
-                resolved.getCategoryPrimary(),
-                resolved.getSource(),
-                String.format("%.3f", resolved.getConfidence()));
+        if (LOGGER.isInfoEnabled()) {
+            LOGGER.info(
+                    "Category resolved: merchant='{}' → category='{}' source='{}' confidence={}",
+                    merchantName,
+                    resolved.getCategoryPrimary(),
+                    resolved.getSource(),
+                    String.format("%.3f", resolved.getConfidence()));
+        }
 
         return alignCategoryToType(resolved, transactionTypeHint, account, amount, description);
     }
@@ -1938,9 +1966,11 @@ public class TransactionTypeCategoryService {
             }
         }
 
-        // Fallback to default region keywords if region-specific didn't match. globalFinancialConfig
+        // Fallback to default region keywords if region-specific didn't match.
+        // globalFinancialConfig
         // is Spring-injected so non-null at runtime; the earlier call (line above) would have NPE'd
-        // if it were null, so the previous defensive ternary here was a SpotBugs RCN false positive.
+        // if it were null, so the previous defensive ternary here was a SpotBugs RCN false
+        // positive.
         final String defaultRegion = globalFinancialConfig.getDefaultRegion();
         if (region != null && !region.equals(defaultRegion)) {
             for (final String keyword : importCategoryConfig.getCreditCardKeywords()) {

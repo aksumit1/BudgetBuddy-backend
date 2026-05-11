@@ -112,7 +112,10 @@ public class TransactionImportOrchestrator {
                     batchCreated++;
                     created++;
                 } catch (Exception e) {
-                    LOGGER.error("Failed to create transaction from import: {}", e.getMessage(), e);
+                    if (LOGGER.isErrorEnabled()) {
+                        LOGGER.error(
+                                "Failed to create transaction from import: {}", e.getMessage(), e);
+                    }
                     batchFailed++;
                     failed++;
                 }
@@ -200,20 +203,24 @@ public class TransactionImportOrchestrator {
             final CSVImportService.ParsedTransaction parsed,
             final List<DuplicateDetectionService.DuplicateMatch> matches) {
         if (matches == null || matches.isEmpty()) {
-            LOGGER.info(
-                    "⏭️ Skipping exact duplicate (index {}): merchant='{}', amount={}, date={}",
-                    index,
-                    parsed.getMerchantName(),
-                    parsed.getAmount(),
-                    parsed.getDate());
+            if (LOGGER.isInfoEnabled()) {
+                LOGGER.info(
+                        "⏭️ Skipping exact duplicate (index {}): merchant='{}', amount={}, date={}",
+                        index,
+                        parsed.getMerchantName(),
+                        parsed.getAmount(),
+                        parsed.getDate());
+            }
         } else {
-            LOGGER.info(
-                    "⏭️ Skipping fuzzy duplicate (index {}): merchant='{}', amount={}, date={} (similarity: {})",
-                    index,
-                    parsed.getMerchantName(),
-                    parsed.getAmount(),
-                    parsed.getDate(),
-                    matches.get(0).getSimilarity());
+            if (LOGGER.isInfoEnabled()) {
+                LOGGER.info(
+                        "⏭️ Skipping fuzzy duplicate (index {}): merchant='{}', amount={}, date={} (similarity: {})",
+                        index,
+                        parsed.getMerchantName(),
+                        parsed.getAmount(),
+                        parsed.getDate(),
+                        matches.get(0).getSimilarity());
+            }
         }
     }
 
@@ -227,24 +234,30 @@ public class TransactionImportOrchestrator {
                                     subscriptionService.detectSubscriptions(userId);
                             if (!detected.isEmpty()) {
                                 subscriptionService.saveSubscriptions(userId, detected);
-                                LOGGER.info(
-                                        "Detected {} subscriptions after {} import ({} transactions created)",
-                                        detected.size(),
-                                        importSource,
-                                        createdCount);
+                                if (LOGGER.isInfoEnabled()) {
+                                    LOGGER.info(
+                                            "Detected {} subscriptions after {} import ({} transactions created)",
+                                            detected.size(),
+                                            importSource,
+                                            createdCount);
+                                }
                             }
                         } catch (Exception e) {
-                            LOGGER.warn(
-                                    "Subscription detection after {} import failed: {}",
-                                    importSource,
-                                    e.getMessage());
+                            if (LOGGER.isWarnEnabled()) {
+                                LOGGER.warn(
+                                        "Subscription detection after {} import failed: {}",
+                                        importSource,
+                                        e.getMessage());
+                            }
                         }
                     });
         } catch (Exception e) {
-            LOGGER.warn(
-                    "Could not schedule subscription detection after {} import: {}",
-                    importSource,
-                    e.getMessage());
+            if (LOGGER.isWarnEnabled()) {
+                LOGGER.warn(
+                        "Could not schedule subscription detection after {} import: {}",
+                        importSource,
+                        e.getMessage());
+            }
         }
     }
 

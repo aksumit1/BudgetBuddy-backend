@@ -135,11 +135,13 @@ public class GoalProgressService {
                         .map(TransactionTable::getAmount)
                         .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        LOGGER.debug(
-                "Goal {} has {} assigned transactions contributing {}",
-                goal.getGoalId(),
-                goalTransactions.size(),
-                transactionContributions);
+        if (LOGGER.isDebugEnabled()) {
+            LOGGER.debug(
+                    "Goal {} has {} assigned transactions contributing {}",
+                    goal.getGoalId(),
+                    goalTransactions.size(),
+                    transactionContributions);
+        }
 
         // Flow 6 / O13 — the pre-change code fabricated progress when a goal had no
         // tagged transactions ("10% of total income") and no linked accounts
@@ -171,10 +173,12 @@ public class GoalProgressService {
                                                             > 0)
                             .map(AccountTable::getBalance)
                             .reduce(BigDecimal.ZERO, BigDecimal::add);
-            LOGGER.debug(
-                    "Goal {} linked-account contribution: {}",
-                    goal.getGoalId(),
-                    accountContribution);
+            if (LOGGER.isDebugEnabled()) {
+                LOGGER.debug(
+                        "Goal {} linked-account contribution: {}",
+                        goal.getGoalId(),
+                        accountContribution);
+            }
         }
 
         progress = progress.add(accountContribution);
@@ -184,12 +188,14 @@ public class GoalProgressService {
             progress = goal.getTargetAmount();
         }
 
-        LOGGER.debug(
-                "Goal {} calculated progress: {} (transactions: {}, accounts: {})",
-                goal.getGoalId(),
-                progress,
-                transactionContributions,
-                accountContribution);
+        if (LOGGER.isDebugEnabled()) {
+            LOGGER.debug(
+                    "Goal {} calculated progress: {} (transactions: {}, accounts: {})",
+                    goal.getGoalId(),
+                    progress,
+                    transactionContributions,
+                    accountContribution);
+        }
 
         return progress.setScale(2, RoundingMode.HALF_UP);
     }
@@ -211,30 +217,38 @@ public class GoalProgressService {
                             .filter(goal -> goal.getActive() != null && goal.getActive())
                             .collect(Collectors.toList());
 
-            LOGGER.info(
-                    "Recalculating progress for {} active goals for user {}",
-                    activeGoals.size(),
-                    user.getUserId());
+            if (LOGGER.isInfoEnabled()) {
+                LOGGER.info(
+                        "Recalculating progress for {} active goals for user {}",
+                        activeGoals.size(),
+                        user.getUserId());
+            }
 
             for (final GoalTable goal : activeGoals) {
                 try {
                     calculateAndUpdateProgress(user, goal.getGoalId());
                 } catch (Exception e) {
-                    LOGGER.error(
-                            "Error recalculating progress for goal {}: {}",
-                            goal.getGoalId(),
-                            e.getMessage(),
-                            e);
+                    if (LOGGER.isErrorEnabled()) {
+                        LOGGER.error(
+                                "Error recalculating progress for goal {}: {}",
+                                goal.getGoalId(),
+                                e.getMessage(),
+                                e);
+                    }
                 }
             }
 
-            LOGGER.info("Completed recalculating progress for {} goals", activeGoals.size());
+            if (LOGGER.isInfoEnabled()) {
+                LOGGER.info("Completed recalculating progress for {} goals", activeGoals.size());
+            }
         } catch (Exception e) {
-            LOGGER.error(
-                    "Error recalculating goals for user {}: {}",
-                    user.getUserId(),
-                    e.getMessage(),
-                    e);
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error(
+                        "Error recalculating goals for user {}: {}",
+                        user.getUserId(),
+                        e.getMessage(),
+                        e);
+            }
         }
     }
 
@@ -251,11 +265,13 @@ public class GoalProgressService {
 
             calculateAndUpdateProgress(user, goalId);
         } catch (Exception e) {
-            LOGGER.error(
-                    "Error recalculating goal {} after transaction assignment change: {}",
-                    goalId,
-                    e.getMessage(),
-                    e);
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error(
+                        "Error recalculating goal {} after transaction assignment change: {}",
+                        goalId,
+                        e.getMessage(),
+                        e);
+            }
         }
     }
 }

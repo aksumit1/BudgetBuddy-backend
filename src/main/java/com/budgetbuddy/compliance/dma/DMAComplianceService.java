@@ -249,7 +249,9 @@ public class DMAComplianceService {
 
             return csv.toString();
         } catch (Exception e) {
-            LOGGER.error("Failed to export data as CSV: {}", e.getMessage());
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error("Failed to export data as CSV: {}", e.getMessage());
+            }
             throw new AppException(
                     ErrorCode.INTERNAL_SERVER_ERROR, "Failed to export data as CSV", e);
         }
@@ -344,7 +346,9 @@ public class DMAComplianceService {
 
             return xml.toString();
         } catch (Exception e) {
-            LOGGER.error("Failed to export data as XML: {}", e.getMessage());
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error("Failed to export data as XML: {}", e.getMessage());
+            }
             throw new AppException(
                     ErrorCode.INTERNAL_SERVER_ERROR, "Failed to export data as XML", e);
         }

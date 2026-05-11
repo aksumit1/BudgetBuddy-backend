@@ -221,12 +221,14 @@ public class FinancialComplianceService {
             return;
         }
         if (isSuspiciousTransaction(amount, userId)) {
-            LOGGER.warn(
-                    "Financial Compliance: Suspicious transaction detected:"
-                            + " ID={}, Amount={}, User={}",
-                    transactionId,
-                    amount.toPlainString(),
-                    userId);
+            if (LOGGER.isWarnEnabled()) {
+                LOGGER.warn(
+                        "Financial Compliance: Suspicious transaction detected:"
+                                + " ID={}, Amount={}, User={}",
+                        transactionId,
+                        amount.toPlainString(),
+                        userId);
+            }
             putMetric("SuspiciousTransaction", 1.0, Map.of());
             auditLogService.logSuspiciousTransaction(transactionId, amount.doubleValue(), userId);
         } else {
@@ -283,7 +285,9 @@ public class FinancialComplianceService {
                                             .build())
                             .build());
         } catch (Exception e) {
-            LOGGER.error("Failed to put metric to CloudWatch: {}", e.getMessage());
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error("Failed to put metric to CloudWatch: {}", e.getMessage());
+            }
         }
     }
 }

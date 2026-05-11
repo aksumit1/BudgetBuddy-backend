@@ -121,10 +121,12 @@ public class MerchantCategoryDataService {
 
         } catch (Exception e) {
             // CRITICAL: Error handling - log but don't throw (allow service to start)
-            LOGGER.error(
-                    "Critical error initializing MerchantCategoryDataService: {}",
-                    e.getMessage(),
-                    e);
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error(
+                        "Critical error initializing MerchantCategoryDataService: {}",
+                        e.getMessage(),
+                        e);
+            }
             // CRITICAL: Clear partial state
             merchantToCategory.clear();
             categoryToKeywords.clear();
@@ -3400,7 +3402,9 @@ public class MerchantCategoryDataService {
                 categoryToKeywords.clear();
             } catch (Exception e) {
                 // CRITICAL: Error handling - log but don't throw
-                LOGGER.error("Error loading merchant category data: {}", e.getMessage(), e);
+                if (LOGGER.isErrorEnabled()) {
+                    LOGGER.error("Error loading merchant category data: {}", e.getMessage(), e);
+                }
                 // CRITICAL: Clear partial data on error to prevent inconsistent state
                 merchantToCategory.clear();
                 categoryToKeywords.clear();
@@ -3448,9 +3452,11 @@ public class MerchantCategoryDataService {
                             .add(merchant);
                 }
 
-                LOGGER.debug(
-                        "Built category-to-keywords mapping for {} categories",
-                        categoryToKeywords.size());
+                if (LOGGER.isDebugEnabled()) {
+                    LOGGER.debug(
+                            "Built category-to-keywords mapping for {} categories",
+                            categoryToKeywords.size());
+                }
 
             } catch (OutOfMemoryError e) {
                 // CRITICAL: Handle memory errors specifically
@@ -3459,7 +3465,10 @@ public class MerchantCategoryDataService {
                 categoryToKeywords.clear();
             } catch (Exception e) {
                 // CRITICAL: Error handling - log but don't throw
-                LOGGER.error("Error building category-to-keywords mapping: {}", e.getMessage(), e);
+                if (LOGGER.isErrorEnabled()) {
+                    LOGGER.error(
+                            "Error building category-to-keywords mapping: {}", e.getMessage(), e);
+                }
                 // CRITICAL: Clear partial data on error
                 categoryToKeywords.clear();
             }
@@ -3476,9 +3485,11 @@ public class MerchantCategoryDataService {
             synchronized (merchantToCategory) {
                 // CRITICAL: Boundary check - prevent memory issues
                 if (merchantToCategory.size() > 100_000) {
-                    LOGGER.warn(
-                            "Merchant map size ({}) exceeds safety limit. Returning empty map.",
-                            merchantToCategory.size());
+                    if (LOGGER.isWarnEnabled()) {
+                        LOGGER.warn(
+                                "Merchant map size ({}) exceeds safety limit. Returning empty map.",
+                                merchantToCategory.size());
+                    }
                     return new HashMap<>();
                 }
 
@@ -3489,7 +3500,9 @@ public class MerchantCategoryDataService {
             LOGGER.error("Out of memory creating defensive copy of merchant-to-category map", e);
             return new HashMap<>();
         } catch (Exception e) {
-            LOGGER.error("Error getting merchant-to-category map: {}", e.getMessage(), e);
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error("Error getting merchant-to-category map: {}", e.getMessage(), e);
+            }
             return new HashMap<>();
         }
     }
@@ -3504,9 +3517,11 @@ public class MerchantCategoryDataService {
             synchronized (categoryToKeywords) {
                 // CRITICAL: Boundary check - prevent memory issues
                 if (categoryToKeywords.size() > 1000) {
-                    LOGGER.warn(
-                            "Category map size ({}) exceeds safety limit. Returning empty map.",
-                            categoryToKeywords.size());
+                    if (LOGGER.isWarnEnabled()) {
+                        LOGGER.warn(
+                                "Category map size ({}) exceeds safety limit. Returning empty map.",
+                                categoryToKeywords.size());
+                    }
                     return new HashMap<>();
                 }
 
@@ -3527,7 +3542,9 @@ public class MerchantCategoryDataService {
             LOGGER.error("Out of memory creating defensive copy of category-to-keywords map", e);
             return new HashMap<>();
         } catch (Exception e) {
-            LOGGER.error("Error getting category-to-keywords map: {}", e.getMessage(), e);
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error("Error getting category-to-keywords map: {}", e.getMessage(), e);
+            }
             return new HashMap<>();
         }
     }
@@ -3549,24 +3566,30 @@ public class MerchantCategoryDataService {
             String normalizedCategory = category.toLowerCase(Locale.ROOT).trim();
 
             if (normalizedMerchant.length() > 1000) {
-                LOGGER.warn(
-                        "Merchant name too long ({} chars), truncating",
-                        normalizedMerchant.length());
+                if (LOGGER.isWarnEnabled()) {
+                    LOGGER.warn(
+                            "Merchant name too long ({} chars), truncating",
+                            normalizedMerchant.length());
+                }
                 normalizedMerchant = normalizedMerchant.substring(0, 1000);
             }
 
             if (normalizedCategory.length() > 100) {
-                LOGGER.warn(
-                        "Category name too long ({} chars), truncating",
-                        normalizedCategory.length());
+                if (LOGGER.isWarnEnabled()) {
+                    LOGGER.warn(
+                            "Category name too long ({} chars), truncating",
+                            normalizedCategory.length());
+                }
                 normalizedCategory = normalizedCategory.substring(0, 100);
             }
 
             // CRITICAL: Boundary check - prevent memory exhaustion
             if (merchantToCategory.size() >= 100_000) {
-                LOGGER.error(
-                        "Merchant count ({}) exceeded safety limit. Cannot add more merchants.",
-                        merchantToCategory.size());
+                if (LOGGER.isErrorEnabled()) {
+                    LOGGER.error(
+                            "Merchant count ({}) exceeded safety limit. Cannot add more merchants.",
+                            merchantToCategory.size());
+                }
                 return;
             }
 
@@ -3587,12 +3610,14 @@ public class MerchantCategoryDataService {
             LOGGER.error(
                     "Out of memory adding merchant category '{}' -> '{}'", merchant, category, e);
         } catch (Exception e) {
-            LOGGER.error(
-                    "Error adding merchant category '{}' -> '{}': {}",
-                    merchant,
-                    category,
-                    e.getMessage(),
-                    e);
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error(
+                        "Error adding merchant category '{}' -> '{}': {}",
+                        merchant,
+                        category,
+                        e.getMessage(),
+                        e);
+            }
         }
     }
 
@@ -3607,7 +3632,10 @@ public class MerchantCategoryDataService {
             // CRITICAL: Boundary check - prevent very long strings
             String normalized = merchant.toLowerCase(Locale.ROOT).trim();
             if (normalized.length() > 1000) {
-                LOGGER.warn("Merchant name too long ({} chars), truncating", normalized.length());
+                if (LOGGER.isWarnEnabled()) {
+                    LOGGER.warn(
+                            "Merchant name too long ({} chars), truncating", normalized.length());
+                }
                 normalized = normalized.substring(0, 1000);
             }
 
@@ -3616,8 +3644,13 @@ public class MerchantCategoryDataService {
                 return merchantToCategory.get(normalized);
             }
         } catch (Exception e) {
-            LOGGER.error(
-                    "Error getting category for merchant '{}': {}", merchant, e.getMessage(), e);
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error(
+                        "Error getting category for merchant '{}': {}",
+                        merchant,
+                        e.getMessage(),
+                        e);
+            }
             return null;
         }
     }
@@ -3641,10 +3674,12 @@ public class MerchantCategoryDataService {
 
                 // CRITICAL: Boundary check - prevent very large sets
                 if (keywords.size() > 50_000) {
-                    LOGGER.warn(
-                            "Category '{}' has too many keywords ({}). Returning empty set.",
-                            category,
-                            keywords.size());
+                    if (LOGGER.isWarnEnabled()) {
+                        LOGGER.warn(
+                                "Category '{}' has too many keywords ({}). Returning empty set.",
+                                category,
+                                keywords.size());
+                    }
                     return Collections.emptySet();
                 }
 
@@ -3655,8 +3690,13 @@ public class MerchantCategoryDataService {
             LOGGER.error("Out of memory getting keywords for category '{}'", category, e);
             return Collections.emptySet();
         } catch (Exception e) {
-            LOGGER.error(
-                    "Error getting keywords for category '{}': {}", category, e.getMessage(), e);
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error(
+                        "Error getting keywords for category '{}': {}",
+                        category,
+                        e.getMessage(),
+                        e);
+            }
             return Collections.emptySet();
         }
     }
@@ -3668,16 +3708,20 @@ public class MerchantCategoryDataService {
             synchronized (categoryToKeywords) {
                 // CRITICAL: Boundary check
                 if (categoryToKeywords.size() > 1000) {
-                    LOGGER.warn(
-                            "Category count ({}) exceeds safety limit. Returning empty set.",
-                            categoryToKeywords.size());
+                    if (LOGGER.isWarnEnabled()) {
+                        LOGGER.warn(
+                                "Category count ({}) exceeds safety limit. Returning empty set.",
+                                categoryToKeywords.size());
+                    }
                     return Collections.emptySet();
                 }
 
                 return new HashSet<>(categoryToKeywords.keySet());
             }
         } catch (Exception e) {
-            LOGGER.error("Error getting all categories: {}", e.getMessage(), e);
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error("Error getting all categories: {}", e.getMessage(), e);
+            }
             return Collections.emptySet();
         }
     }
@@ -3895,7 +3939,9 @@ public class MerchantCategoryDataService {
                 return merchantToCategory.size();
             }
         } catch (Exception e) {
-            LOGGER.error("Error getting merchant count: {}", e.getMessage(), e);
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error("Error getting merchant count: {}", e.getMessage(), e);
+            }
             return 0;
         }
     }
@@ -3907,7 +3953,9 @@ public class MerchantCategoryDataService {
                 return categoryToKeywords.size();
             }
         } catch (Exception e) {
-            LOGGER.error("Error getting category count: {}", e.getMessage(), e);
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error("Error getting category count: {}", e.getMessage(), e);
+            }
             return 0;
         }
     }

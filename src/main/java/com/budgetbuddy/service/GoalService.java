@@ -116,11 +116,13 @@ public class GoalService {
                 // CRITICAL FIX: Verify the existing goal belongs to the same user
                 if (!existing.getUserId().equals(user.getUserId())) {
                     // Goal exists but belongs to different user - throw exception
-                    LOGGER.error(
-                            "Goal with ID {} already exists but belongs to different user. User: {}, Existing User: {}",
-                            normalizedId,
-                            user.getUserId(),
-                            existing.getUserId());
+                    if (LOGGER.isErrorEnabled()) {
+                        LOGGER.error(
+                                "Goal with ID {} already exists but belongs to different user. User: {}, Existing User: {}",
+                                normalizedId,
+                                user.getUserId(),
+                                existing.getUserId());
+                    }
                     throw new AppException(
                             ErrorCode.RECORD_ALREADY_EXISTS,
                             "Goal with ID already exists for different user");
@@ -163,11 +165,13 @@ public class GoalService {
                     // currentAmount) doesn't clobber the user's target-amount
                     // edit. One retry covers the common race; deeper conflict
                     // storms are rare and resolved on the next save attempt.
-                    LOGGER.info(
-                            "Goal with ID {} already exists. Updating fields for user {} with name {}.",
-                            normalizedId,
-                            user.getUserId(),
-                            name);
+                    if (LOGGER.isInfoEnabled()) {
+                        LOGGER.info(
+                                "Goal with ID {} already exists. Updating fields for user {} with name {}.",
+                                normalizedId,
+                                user.getUserId(),
+                                name);
+                    }
                     existing.setName(name.trim());
                     existing.setDescription(description != null ? description.trim() : "");
                     existing.setTargetAmount(targetAmount);
@@ -209,11 +213,13 @@ public class GoalService {
                     return existing;
                 } else {
                     // No changes - return existing (idempotent)
-                    LOGGER.debug(
-                            "Goal with ID {} already exists with same values for user {} with name {}. Returning existing for idempotency.",
-                            normalizedId,
-                            user.getUserId(),
-                            name);
+                    if (LOGGER.isDebugEnabled()) {
+                        LOGGER.debug(
+                                "Goal with ID {} already exists with same values for user {} with name {}. Returning existing for idempotency.",
+                                normalizedId,
+                                user.getUserId(),
+                                name);
+                    }
                     return existing;
                 }
             }
@@ -227,11 +233,13 @@ public class GoalService {
             // CRITICAL FIX: Normalize generated ID to lowercase for consistency
             final String normalizedId = com.budgetbuddy.util.IdGenerator.normalizeUUID(generatedId);
             goal.setGoalId(normalizedId);
-            LOGGER.debug(
-                    "Generated goal ID (normalized): {} from user: {} and name: {}",
-                    normalizedId,
-                    user.getUserId(),
-                    name);
+            if (LOGGER.isDebugEnabled()) {
+                LOGGER.debug(
+                        "Generated goal ID (normalized): {} from user: {} and name: {}",
+                        normalizedId,
+                        user.getUserId(),
+                        name);
+            }
         }
 
         goal.setUserId(user.getUserId());
@@ -274,7 +282,9 @@ public class GoalService {
                 com.budgetbuddy.repository.dynamodb.OptimisticLockHelper.OptimisticLockException
                         e) {
             final GoalTable winner = goalRepository.findById(goal.getGoalId()).orElse(goal);
-            LOGGER.info("Goal {} create race — returning existing row", winner.getGoalId());
+            if (LOGGER.isInfoEnabled()) {
+                LOGGER.info("Goal {} create race — returning existing row", winner.getGoalId());
+            }
             return winner;
         }
         return goal;
@@ -403,20 +413,24 @@ public class GoalService {
             goal.setUpdatedAt(Instant.now());
             try {
                 goalRepository.saveWithLock(goal);
-                LOGGER.info(
-                        "Goal {} marked as {} (current={}, target={})",
-                        goal.getGoalId(),
-                        isCompleted ? "completed" : "not completed",
-                        goal.getCurrentAmount(),
-                        goal.getTargetAmount());
+                if (LOGGER.isInfoEnabled()) {
+                    LOGGER.info(
+                            "Goal {} marked as {} (current={}, target={})",
+                            goal.getGoalId(),
+                            isCompleted ? "completed" : "not completed",
+                            goal.getCurrentAmount(),
+                            goal.getTargetAmount());
+                }
                 return;
             } catch (
                     com.budgetbuddy.repository.dynamodb.OptimisticLockHelper.OptimisticLockException
                             e) {
                 if (attempt == 1) {
-                    LOGGER.warn(
-                            "Goal {} completion flag update lost to concurrent writer after retry",
-                            goal.getGoalId());
+                    if (LOGGER.isWarnEnabled()) {
+                        LOGGER.warn(
+                                "Goal {} completion flag update lost to concurrent writer after retry",
+                                goal.getGoalId());
+                    }
                     return;
                 }
                 // Re-read the latest row, re-evaluate, retry.
@@ -712,7 +726,9 @@ public class GoalService {
             // The retry succeeds on the freshly-read row; `goal` isn't read
             // after this block, so no need to re-assign it.
         }
-        LOGGER.info("Soft-deleted goal {} for user {}", goalId, user.getUserId());
+        if (LOGGER.isInfoEnabled()) {
+            LOGGER.info("Soft-deleted goal {} for user {}", goalId, user.getUserId());
+        }
 
         // 2. Cascade to transactions: null the goalId pointer on every row that tagged
         //    this goal. Uses findByUserIdAndGoalId which is the same GSI path the
@@ -730,15 +746,19 @@ public class GoalService {
                     transactionRepository.save(tx);
                 }
                 if (!tagged.isEmpty()) {
-                    LOGGER.info(
-                            "Cascaded goal delete: cleared goalId on {} transactions",
-                            tagged.size());
+                    if (LOGGER.isInfoEnabled()) {
+                        LOGGER.info(
+                                "Cascaded goal delete: cleared goalId on {} transactions",
+                                tagged.size());
+                    }
                 }
             } catch (Exception e) {
-                LOGGER.warn(
-                        "Transaction cascade for goal {} partially failed: {}",
-                        goalId,
-                        e.getMessage());
+                if (LOGGER.isWarnEnabled()) {
+                    LOGGER.warn(
+                            "Transaction cascade for goal {} partially failed: {}",
+                            goalId,
+                            e.getMessage());
+                }
             }
         }
 
@@ -761,11 +781,17 @@ public class GoalService {
                     cleared++;
                 }
                 if (cleared > 0) {
-                    LOGGER.info("Cascaded goal delete: cleared goalId on {} budgets", cleared);
+                    if (LOGGER.isInfoEnabled()) {
+                        LOGGER.info("Cascaded goal delete: cleared goalId on {} budgets", cleared);
+                    }
                 }
             } catch (Exception e) {
-                LOGGER.warn(
-                        "Budget cascade for goal {} partially failed: {}", goalId, e.getMessage());
+                if (LOGGER.isWarnEnabled()) {
+                    LOGGER.warn(
+                            "Budget cascade for goal {} partially failed: {}",
+                            goalId,
+                            e.getMessage());
+                }
             }
         }
     }

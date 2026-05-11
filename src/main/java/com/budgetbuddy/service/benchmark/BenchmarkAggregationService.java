@@ -120,7 +120,9 @@ public class BenchmarkAggregationService {
         try {
             seedDefaultBucketIfEmpty();
         } catch (Exception e) {
-            LOGGER.warn("Benchmark seed on startup skipped: {}", e.getMessage());
+            if (LOGGER.isWarnEnabled()) {
+                LOGGER.warn("Benchmark seed on startup skipped: {}", e.getMessage());
+            }
         }
     }
 
@@ -208,18 +210,22 @@ public class BenchmarkAggregationService {
                     repository.save(row);
                     emitted++;
                 } catch (Exception e) {
-                    LOGGER.warn(
-                            "Persist failed for ({}, {}): {}",
-                            bucketId,
-                            categoryEntry.getKey(),
-                            e.getMessage());
+                    if (LOGGER.isWarnEnabled()) {
+                        LOGGER.warn(
+                                "Persist failed for ({}, {}): {}",
+                                bucketId,
+                                categoryEntry.getKey(),
+                                e.getMessage());
+                    }
                 }
             }
         }
-        LOGGER.info(
-                "Benchmark aggregation complete — {} opt-ins, {} rows emitted.",
-                optIns.size(),
-                emitted);
+        if (LOGGER.isInfoEnabled()) {
+            LOGGER.info(
+                    "Benchmark aggregation complete — {} opt-ins, {} rows emitted.",
+                    optIns.size(),
+                    emitted);
+        }
     }
 
     public List<BenchmarkRow> benchmarksFor(final String incomeTier, final Integer householdSize) {
@@ -329,7 +335,10 @@ public class BenchmarkAggregationService {
                         Double::sum);
             }
         } catch (Exception e) {
-            LOGGER.debug("Skipping user {} — transaction fetch failed: {}", userId, e.getMessage());
+            if (LOGGER.isDebugEnabled()) {
+                LOGGER.debug(
+                        "Skipping user {} — transaction fetch failed: {}", userId, e.getMessage());
+            }
             return Map.of();
         }
         final Map<String, Double> monthly = new HashMap<>(sum.size());
@@ -384,7 +393,9 @@ public class BenchmarkAggregationService {
                 repository.save(t);
             }
         } catch (Exception e) {
-            LOGGER.debug("Seed skipped: {}", e.getMessage());
+            if (LOGGER.isDebugEnabled()) {
+                LOGGER.debug("Seed skipped: {}", e.getMessage());
+            }
         }
     }
 

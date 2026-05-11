@@ -42,6 +42,9 @@ import software.amazon.awssdk.services.dynamodb.model.UpdateItemRequest;
 @Repository
 public class GoalRepository {
 
+    private static final org.slf4j.Logger LOGGER =
+            org.slf4j.LoggerFactory.getLogger(GoalRepository.class);
+
     private final DynamoDbTable<GoalTable> goalTable;
     private final DynamoDbIndex<GoalTable> userIdIndex;
     private final DynamoDbIndex<GoalTable> userIdUpdatedAtIndex;
@@ -168,10 +171,9 @@ public class GoalRepository {
             results.sort((g1, g2) -> g1.getTargetDate().compareTo(g2.getTargetDate()));
         } catch (ResourceNotFoundException e) {
             // GSI not available - fallback to findByUserId and filter in memory
-            org.slf4j.LoggerFactory.getLogger(GoalRepository.class)
-                    .warn(
-                            "UserIdUpdatedAtIndex GSI not found for userId {}. Falling back to findByUserId and filtering in memory.",
-                            userId);
+            LOGGER.warn(
+                    "UserIdUpdatedAtIndex GSI not found for userId {}. Falling back to findByUserId and filtering in memory.",
+                    userId);
             try {
                 final List<GoalTable> allGoals = findByUserId(userId);
                 for (final GoalTable goal : allGoals) {
@@ -184,20 +186,22 @@ public class GoalRepository {
                 }
                 results.sort((g1, g2) -> g1.getTargetDate().compareTo(g2.getTargetDate()));
             } catch (Exception fallbackException) {
-                org.slf4j.LoggerFactory.getLogger(GoalRepository.class)
-                        .error(
-                                "Error in fallback query for userId {}: {}",
-                                userId,
-                                fallbackException.getMessage(),
-                                fallbackException);
+                if (LOGGER.isErrorEnabled()) {
+                    LOGGER.error(
+                            "Error in fallback query for userId {}: {}",
+                            userId,
+                            fallbackException.getMessage(),
+                            fallbackException);
+                }
             }
         } catch (Exception e) {
-            org.slf4j.LoggerFactory.getLogger(GoalRepository.class)
-                    .error(
-                            "Error finding goals by userId and updatedAfter {}: {}",
-                            userId,
-                            e.getMessage(),
-                            e);
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error(
+                        "Error finding goals by userId and updatedAfter {}: {}",
+                        userId,
+                        e.getMessage(),
+                        e);
+            }
         }
 
         return results;

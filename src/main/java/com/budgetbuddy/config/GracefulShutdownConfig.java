@@ -122,14 +122,18 @@ public class GracefulShutdownConfig {
                 // Check for remaining AWS SDK threads
                 final Set<Thread> awsThreads = findAwsSdkThreads();
                 if (!awsThreads.isEmpty()) {
-                    LOG.warn(
-                            "Found {} AWS SDK threads still running after shutdown. They should terminate automatically.",
-                            awsThreads.size());
+                    if (LOG.isWarnEnabled()) {
+                        LOG.warn(
+                                "Found {} AWS SDK threads still running after shutdown. They should terminate automatically.",
+                                awsThreads.size());
+                    }
                     for (final Thread thread : awsThreads) {
-                        LOG.debug(
-                                "AWS SDK thread still running: {} (state: {})",
-                                thread.getName(),
-                                thread.getState());
+                        if (LOG.isDebugEnabled()) {
+                            LOG.debug(
+                                    "AWS SDK thread still running: {} (state: {})",
+                                    thread.getName(),
+                                    thread.getState());
+                        }
                     }
                 } else {
                     LOG.info("All AWS SDK threads terminated successfully");

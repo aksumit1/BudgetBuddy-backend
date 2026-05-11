@@ -126,12 +126,14 @@ public class NotificationService {
         result.setSuccess(overallSuccess);
         result.setChannelResults(channelResults);
 
-        LOGGER.info(
-                "Notification sent - User: {}, Type: {}, Channels: {}, Success: {}",
-                request.getUserId(),
-                request.getType(),
-                channels,
-                overallSuccess);
+        if (LOGGER.isInfoEnabled()) {
+            LOGGER.info(
+                    "Notification sent - User: {}, Type: {}, Channels: {}, Success: {}",
+                    request.getUserId(),
+                    request.getType(),
+                    channels,
+                    overallSuccess);
+        }
 
         return result;
     }
@@ -152,7 +154,9 @@ public class NotificationService {
                     request.getTemplateId(),
                     request.getTemplateData());
         } catch (Exception e) {
-            LOGGER.error("Failed to send email notification: {}", e.getMessage(), e);
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error("Failed to send email notification: {}", e.getMessage(), e);
+            }
             return false;
         }
     }
@@ -183,13 +187,17 @@ public class NotificationService {
 
             final PublishResponse response = snsClient.publish(snsRequest);
 
-            LOGGER.info(
-                    "SMS notification sent - MessageId: {}, Phone: {}",
-                    response.messageId(),
-                    maskPhoneNumber(request.getRecipientPhone()));
+            if (LOGGER.isInfoEnabled()) {
+                LOGGER.info(
+                        "SMS notification sent - MessageId: {}, Phone: {}",
+                        response.messageId(),
+                        maskPhoneNumber(request.getRecipientPhone()));
+            }
             return true;
         } catch (Exception e) {
-            LOGGER.error("Failed to send SMS notification: {}", e.getMessage(), e);
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error("Failed to send SMS notification: {}", e.getMessage(), e);
+            }
             return false;
         }
     }
@@ -209,7 +217,9 @@ public class NotificationService {
                             request.getData());
             return delivered > 0;
         } catch (Exception e) {
-            LOGGER.error("Failed to send push notification: {}", e.getMessage(), e);
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error("Failed to send push notification: {}", e.getMessage(), e);
+            }
             return false;
         }
     }
@@ -219,10 +229,14 @@ public class NotificationService {
         try {
             // Store in-app notification in database
             // In production, this would use a notification repository
-            LOGGER.debug("In-app notification stored for user: {}", request.getUserId());
+            if (LOGGER.isDebugEnabled()) {
+                LOGGER.debug("In-app notification stored for user: {}", request.getUserId());
+            }
             return true;
         } catch (Exception e) {
-            LOGGER.error("Failed to send in-app notification: {}", e.getMessage(), e);
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error("Failed to send in-app notification: {}", e.getMessage(), e);
+            }
             return false;
         }
     }
@@ -270,11 +284,16 @@ public class NotificationService {
 
             final PublishResponse response = snsClient.publish(snsRequest);
 
-            LOGGER.info(
-                    "Notification published to SNS topic - MessageId: {}", response.messageId());
+            if (LOGGER.isInfoEnabled()) {
+                LOGGER.info(
+                        "Notification published to SNS topic - MessageId: {}",
+                        response.messageId());
+            }
             return true;
         } catch (Exception e) {
-            LOGGER.error("Failed to publish notification to SNS topic: {}", e.getMessage(), e);
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error("Failed to publish notification to SNS topic: {}", e.getMessage(), e);
+            }
             return false;
         }
     }

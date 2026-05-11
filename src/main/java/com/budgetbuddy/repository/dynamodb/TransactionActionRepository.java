@@ -30,6 +30,9 @@ import software.amazon.awssdk.services.dynamodb.model.ResourceNotFoundException;
 @Repository
 public class TransactionActionRepository {
 
+    private static final org.slf4j.Logger LOGGER =
+            org.slf4j.LoggerFactory.getLogger(TransactionActionRepository.class);
+
     private final DynamoDbTable<TransactionActionTable> actionTable;
     private final DynamoDbIndex<TransactionActionTable> transactionIdIndex;
     private final DynamoDbIndex<TransactionActionTable> userIdIndex;
@@ -151,10 +154,9 @@ public class TransactionActionRepository {
             }
         } catch (ResourceNotFoundException e) {
             // GSI not available - fallback to findByUserId and filter in memory
-            org.slf4j.LoggerFactory.getLogger(TransactionActionRepository.class)
-                    .warn(
-                            "UserIdUpdatedAtIndex GSI not found for userId {}. Falling back to findByUserId and filtering in memory.",
-                            userId);
+            LOGGER.warn(
+                    "UserIdUpdatedAtIndex GSI not found for userId {}. Falling back to findByUserId and filtering in memory.",
+                    userId);
             try {
                 final List<TransactionActionTable> allActions = findByUserId(userId);
                 for (final TransactionActionTable action : allActions) {
@@ -164,20 +166,22 @@ public class TransactionActionRepository {
                     }
                 }
             } catch (Exception fallbackException) {
-                org.slf4j.LoggerFactory.getLogger(TransactionActionRepository.class)
-                        .error(
-                                "Error in fallback query for userId {}: {}",
-                                userId,
-                                fallbackException.getMessage(),
-                                fallbackException);
+                if (LOGGER.isErrorEnabled()) {
+                    LOGGER.error(
+                            "Error in fallback query for userId {}: {}",
+                            userId,
+                            fallbackException.getMessage(),
+                            fallbackException);
+                }
             }
         } catch (Exception e) {
-            org.slf4j.LoggerFactory.getLogger(TransactionActionRepository.class)
-                    .error(
-                            "Error finding transaction actions by userId and updatedAfter {}: {}",
-                            userId,
-                            e.getMessage(),
-                            e);
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error(
+                        "Error finding transaction actions by userId and updatedAfter {}: {}",
+                        userId,
+                        e.getMessage(),
+                        e);
+            }
         }
 
         return results;
@@ -241,8 +245,9 @@ public class TransactionActionRepository {
             }
         } catch (Exception e) {
             // Log error but return empty list
-            org.slf4j.LoggerFactory.getLogger(TransactionActionRepository.class)
-                    .warn("Error querying reminder date range: {}", e.getMessage());
+            if (LOGGER.isWarnEnabled()) {
+                LOGGER.warn("Error querying reminder date range: {}", e.getMessage());
+            }
         }
 
         return results;

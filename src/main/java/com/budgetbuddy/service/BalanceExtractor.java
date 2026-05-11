@@ -234,13 +234,17 @@ public class BalanceExtractor {
         }
 
         final String headersText = String.join(" ", headers);
-        LOGGER.debug(
-                "extractBalanceFromHeaders: Searching for balance in headers (accountType: {}, text length: {})",
-                accountType,
-                headersText.length());
-        LOGGER.debug(
-                "extractBalanceFromHeaders: First 500 chars of headers: {}",
-                headersText.length() > 500 ? headersText.substring(0, 500) : headersText);
+        if (LOGGER.isDebugEnabled()) {
+            LOGGER.debug(
+                    "extractBalanceFromHeaders: Searching for balance in headers (accountType: {}, text length: {})",
+                    accountType,
+                    headersText.length());
+        }
+        if (LOGGER.isDebugEnabled()) {
+            LOGGER.debug(
+                    "extractBalanceFromHeaders: First 500 chars of headers: {}",
+                    headersText.length() > 500 ? headersText.substring(0, 500) : headersText);
+        }
 
         // For credit cards: Look for credit card balance patterns
         if (accountType != null && isCreditCardType(accountType)) {

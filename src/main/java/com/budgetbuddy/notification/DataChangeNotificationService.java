@@ -92,11 +92,13 @@ public class DataChangeNotificationService {
                                     changeType);
                         }
                     } catch (Exception e) {
-                        LOGGER.error(
-                                "Failed to send data change notification for user {}: {}",
-                                userId,
-                                e.getMessage(),
-                                e);
+                        if (LOGGER.isErrorEnabled()) {
+                            LOGGER.error(
+                                    "Failed to send data change notification for user {}: {}",
+                                    userId,
+                                    e.getMessage(),
+                                    e);
+                        }
                     }
                 });
     }

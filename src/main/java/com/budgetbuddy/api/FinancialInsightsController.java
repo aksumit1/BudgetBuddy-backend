@@ -68,6 +68,9 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/insights")
 public class FinancialInsightsController {
 
+    private static final org.slf4j.Logger LOGGER =
+            org.slf4j.LoggerFactory.getLogger(FinancialInsightsController.class);
+
     private static final String UNKNOWN = "Unknown";
 
     private static final String USER_NOT_AUTHENTICATED = "User not authenticated";
@@ -644,8 +647,9 @@ public class FinancialInsightsController {
                                         : g.getTargetAmount()));
             }
         } catch (Exception e) {
-            org.slf4j.LoggerFactory.getLogger(FinancialInsightsController.class)
-                    .warn("Goal fetch for predictions failed: {}", e.getMessage());
+            if (LOGGER.isWarnEnabled()) {
+                LOGGER.warn("Goal fetch for predictions failed: {}", e.getMessage());
+            }
         }
 
         final List<FinancialInsightsPredictionService.PredictedGoalAchievement> predictions =

@@ -353,10 +353,12 @@ public class EnhancedPatternMatcher {
                         .orElse(new MatchResult(false, null, 0.0, "none"));
 
         if (bestMatch.isMatched()) {
-            LOGGER.info(
-                    "Matched line with pattern '{}' (confidence: {})",
-                    bestMatch.getPatternUsed(),
-                    bestMatch.getConfidence());
+            if (LOGGER.isInfoEnabled()) {
+                LOGGER.info(
+                        "Matched line with pattern '{}' (confidence: {})",
+                        bestMatch.getPatternUsed(),
+                        bestMatch.getConfidence());
+            }
         }
 
         return bestMatch;

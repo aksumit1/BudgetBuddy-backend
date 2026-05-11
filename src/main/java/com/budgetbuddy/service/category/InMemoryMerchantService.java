@@ -83,11 +83,13 @@ public class InMemoryMerchantService {
                     }
                 }
 
-                LOGGER.info(
-                        "✅ Loaded {} merchants into memory ({} canonical, {} aliases)",
-                        data.getMerchants().size(),
-                        merchantMap.size(),
-                        aliasMap.size());
+                if (LOGGER.isInfoEnabled()) {
+                    LOGGER.info(
+                            "✅ Loaded {} merchants into memory ({} canonical, {} aliases)",
+                            data.getMerchants().size(),
+                            merchantMap.size(),
+                            aliasMap.size());
+                }
             } else {
                 LOGGER.warn("⚠️ merchants.json not found, merchant database will be empty");
             }
@@ -113,11 +115,13 @@ public class InMemoryMerchantService {
         if (mccCode != null && !mccCode.isBlank()) {
             final MCCCodeMapper.CategoryMapping mccMapping = mccMapper.getCategoryFromMCC(mccCode);
             if (mccMapping != null && mccMapping.getConfidence() > 0.80) {
-                LOGGER.debug(
-                        "Category detected from MCC code {}: {} (confidence: {})",
-                        mccCode,
-                        mccMapping.getPrimaryCategory(),
-                        mccMapping.getConfidence());
+                if (LOGGER.isDebugEnabled()) {
+                    LOGGER.debug(
+                            "Category detected from MCC code {}: {} (confidence: {})",
+                            mccCode,
+                            mccMapping.getPrimaryCategory(),
+                            mccMapping.getConfidence());
+                }
                 return new TransactionTypeCategoryService.CategoryResult(
                         mccMapping.getPrimaryCategory(),
                         mccMapping.getDetailedCategory(),
@@ -183,12 +187,14 @@ public class InMemoryMerchantService {
 
             // If exact match found, return immediately
             if (merchant != null) {
-                LOGGER.debug(
-                        "Category detected from merchant database ({}): {} → {} (confidence: {})",
-                        matchSource,
-                        merchantName,
-                        merchant.getPrimaryCategory(),
-                        confidence);
+                if (LOGGER.isDebugEnabled()) {
+                    LOGGER.debug(
+                            "Category detected from merchant database ({}): {} → {} (confidence: {})",
+                            matchSource,
+                            merchantName,
+                            merchant.getPrimaryCategory(),
+                            confidence);
+                }
                 return new TransactionTypeCategoryService.CategoryResult(
                         merchant.getPrimaryCategory(),
                         merchant.getDetailedCategory(),
@@ -218,13 +224,15 @@ public class InMemoryMerchantService {
 
                     // Only return if confidence meets threshold
                     if (fuzzyConfidence >= MEDIUM_CONFIDENCE_THRESHOLD) {
-                        LOGGER.debug(
-                                "Category detected from merchant database (fuzzy {}): {} → {} (similarity: {:.2f}, confidence: {:.2f})",
-                                fuzzyMatch.getMatchType(),
-                                merchantName,
-                                merchant.getPrimaryCategory(),
-                                fuzzyMatch.getSimilarity(),
-                                fuzzyConfidence);
+                        if (LOGGER.isDebugEnabled()) {
+                            LOGGER.debug(
+                                    "Category detected from merchant database (fuzzy {}): {} → {} (similarity: {:.2f}, confidence: {:.2f})",
+                                    fuzzyMatch.getMatchType(),
+                                    merchantName,
+                                    merchant.getPrimaryCategory(),
+                                    fuzzyMatch.getSimilarity(),
+                                    fuzzyConfidence);
+                        }
                         return new TransactionTypeCategoryService.CategoryResult(
                                 merchant.getPrimaryCategory(),
                                 merchant.getDetailedCategory(),

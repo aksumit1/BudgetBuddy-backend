@@ -26,6 +26,9 @@ import software.amazon.awssdk.services.dynamodb.model.ResourceNotFoundException;
 @Repository
 public class BudgetRepository {
 
+    private static final org.slf4j.Logger LOGGER =
+            org.slf4j.LoggerFactory.getLogger(BudgetRepository.class);
+
     private final DynamoDbTable<BudgetTable> budgetTable;
     private final DynamoDbIndex<BudgetTable> userIdIndex;
     private final DynamoDbIndex<BudgetTable> userIdUpdatedAtIndex;
@@ -141,10 +144,9 @@ public class BudgetRepository {
             }
         } catch (ResourceNotFoundException e) {
             // GSI not available - fallback to findByUserId and filter in memory
-            org.slf4j.LoggerFactory.getLogger(BudgetRepository.class)
-                    .warn(
-                            "UserIdUpdatedAtIndex GSI not found for userId {}. Falling back to findByUserId and filtering in memory.",
-                            userId);
+            LOGGER.warn(
+                    "UserIdUpdatedAtIndex GSI not found for userId {}. Falling back to findByUserId and filtering in memory.",
+                    userId);
             try {
                 final List<BudgetTable> allBudgets = findByUserId(userId);
                 for (final BudgetTable budget : allBudgets) {
@@ -154,20 +156,22 @@ public class BudgetRepository {
                     }
                 }
             } catch (Exception fallbackException) {
-                org.slf4j.LoggerFactory.getLogger(BudgetRepository.class)
-                        .error(
-                                "Error in fallback query for userId {}: {}",
-                                userId,
-                                fallbackException.getMessage(),
-                                fallbackException);
+                if (LOGGER.isErrorEnabled()) {
+                    LOGGER.error(
+                            "Error in fallback query for userId {}: {}",
+                            userId,
+                            fallbackException.getMessage(),
+                            fallbackException);
+                }
             }
         } catch (Exception e) {
-            org.slf4j.LoggerFactory.getLogger(BudgetRepository.class)
-                    .error(
-                            "Error finding budgets by userId and updatedAfter {}: {}",
-                            userId,
-                            e.getMessage(),
-                            e);
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error(
+                        "Error finding budgets by userId and updatedAfter {}: {}",
+                        userId,
+                        e.getMessage(),
+                        e);
+            }
         }
 
         return results;

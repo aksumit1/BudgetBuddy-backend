@@ -22,6 +22,9 @@ import software.amazon.awssdk.enhanced.dynamodb.model.QueryConditional;
 @Repository
 public class SubscriptionRepository {
 
+    private static final org.slf4j.Logger LOGGER =
+            org.slf4j.LoggerFactory.getLogger(SubscriptionRepository.class);
+
     private final DynamoDbTable<SubscriptionTable> subscriptionTable;
     private final DynamoDbIndex<SubscriptionTable> userIdIndex;
     private final String tableName;
@@ -77,8 +80,7 @@ public class SubscriptionRepository {
                     .collect(Collectors.toList());
         } catch (software.amazon.awssdk.services.dynamodb.model.ResourceNotFoundException e) {
             // GSI not available - return empty list (fallback logic can be added if needed)
-            org.slf4j.LoggerFactory.getLogger(SubscriptionRepository.class)
-                    .warn("UserIdIndex GSI not found for userId {}. Returning empty list.", userId);
+            LOGGER.warn("UserIdIndex GSI not found for userId {}. Returning empty list.", userId);
             return List.of();
         }
     }

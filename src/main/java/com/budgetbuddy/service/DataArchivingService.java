@@ -92,7 +92,10 @@ public class DataArchivingService {
             // Note: For very large user bases, consider batching or using pagination
             // Using 365 days (1 year) to get users active in the last year, with a high limit
             final List<String> activeUserIds = userRepository.findActiveUserIds(365, 10_000);
-            LOGGER.info("Found {} active users for transaction archiving", activeUserIds.size());
+            if (LOGGER.isInfoEnabled()) {
+                LOGGER.info(
+                        "Found {} active users for transaction archiving", activeUserIds.size());
+            }
 
             int totalArchived = 0;
             int usersProcessed = 0;
@@ -111,10 +114,12 @@ public class DataArchivingService {
                                     userId, startDate, endDateStr);
 
                     if (!oldTransactions.isEmpty()) {
-                        LOGGER.info(
-                                "Found {} transactions to archive for user {}",
-                                oldTransactions.size(),
-                                userId);
+                        if (LOGGER.isInfoEnabled()) {
+                            LOGGER.info(
+                                    "Found {} transactions to archive for user {}",
+                                    oldTransactions.size(),
+                                    userId);
+                        }
                         archiveTransactions(oldTransactions);
                         totalArchived += oldTransactions.size();
                     }
@@ -129,11 +134,13 @@ public class DataArchivingService {
                                 totalArchived);
                     }
                 } catch (Exception e) {
-                    LOGGER.error(
-                            "Error archiving transactions for user {}: {}",
-                            userId,
-                            e.getMessage(),
-                            e);
+                    if (LOGGER.isErrorEnabled()) {
+                        LOGGER.error(
+                                "Error archiving transactions for user {}: {}",
+                                userId,
+                                e.getMessage(),
+                                e);
+                    }
                     usersWithErrors++;
                 }
             }
@@ -148,7 +155,9 @@ public class DataArchivingService {
             // automatic archiving
             // This would be more efficient than per-user queries for very large datasets
         } catch (Exception e) {
-            LOGGER.error("Error during transaction archiving: {}", e.getMessage(), e);
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error("Error during transaction archiving: {}", e.getMessage(), e);
+            }
         }
     }
 
@@ -171,9 +180,13 @@ public class DataArchivingService {
                     compressedData.length,
                     "application/gzip");
 
-            LOGGER.info("Archived {} transactions to S3", transactions.size());
+            if (LOGGER.isInfoEnabled()) {
+                LOGGER.info("Archived {} transactions to S3", transactions.size());
+            }
         } catch (Exception e) {
-            LOGGER.error("Error archiving transactions: {}", e.getMessage());
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error("Error archiving transactions: {}", e.getMessage());
+            }
             throw new AppException(
                     ErrorCode.INTERNAL_SERVER_ERROR, "Failed to archive transactions", e);
         }
@@ -194,7 +207,9 @@ public class DataArchivingService {
             }
             return baos.toByteArray();
         } catch (Exception e) {
-            LOGGER.error("Error compressing transactions: {}", e.getMessage(), e);
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error("Error compressing transactions: {}", e.getMessage(), e);
+            }
             throw new AppException(
                     ErrorCode.INTERNAL_SERVER_ERROR, "Failed to compress transactions", e);
         }

@@ -86,17 +86,21 @@ public class GoalIngestEvaluator {
                             goalProgressService.calculateAndUpdateProgress(user, goal.getGoalId());
                     emitMilestoneIfCrossed(updated);
                 } catch (Exception e) {
-                    LOGGER.warn(
-                            "Goal evaluate failed for goal {}: {}",
-                            goal.getGoalId(),
-                            e.getMessage());
+                    if (LOGGER.isWarnEnabled()) {
+                        LOGGER.warn(
+                                "Goal evaluate failed for goal {}: {}",
+                                goal.getGoalId(),
+                                e.getMessage());
+                    }
                 }
             }
         } catch (Exception e) {
-            LOGGER.warn(
-                    "Goal ingest evaluation failed for user {}: {}",
-                    user.getUserId(),
-                    e.getMessage());
+            if (LOGGER.isWarnEnabled()) {
+                LOGGER.warn(
+                        "Goal ingest evaluation failed for user {}: {}",
+                        user.getUserId(),
+                        e.getMessage());
+            }
         }
     }
 
@@ -127,10 +131,12 @@ public class GoalIngestEvaluator {
         goal.setLastMilestoneReached(highestCrossed);
         goal.setUpdatedAt(Instant.now());
         goalRepository.save(goal);
-        LOGGER.info(
-                "Pushed milestone {} for goal {} (user {})",
-                highestCrossed,
-                goal.getGoalId(),
-                goal.getUserId());
+        if (LOGGER.isInfoEnabled()) {
+            LOGGER.info(
+                    "Pushed milestone {} for goal {} (user {})",
+                    highestCrossed,
+                    goal.getGoalId(),
+                    goal.getUserId());
+        }
     }
 }

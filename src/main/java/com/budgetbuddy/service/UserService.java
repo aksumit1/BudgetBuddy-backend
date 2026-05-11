@@ -137,18 +137,23 @@ public class UserService {
                             if (originalUser != null) {
                                 // Log the duplicate but don't delete - let the authentication step
                                 // handle it
-                                LOGGER.warn(
-                                        "Duplicate user detected (async check): User with email {} already exists (userId: {}). New user (userId: {}) was also created due to race condition.",
-                                        email,
-                                        originalUser.getUserId(),
-                                        userId);
+                                if (LOGGER.isWarnEnabled()) {
+                                    LOGGER.warn(
+                                            "Duplicate user detected (async check): User with email {} already exists (userId: {}). New user (userId: {}) was also created due to race condition.",
+                                            email,
+                                            originalUser.getUserId(),
+                                            userId);
+                                }
                                 // Note: We don't delete here because authentication will use
                                 // findByEmail which returns the first user
                             }
                         }
                     } catch (Exception e) {
-                        LOGGER.debug(
-                                "Async duplicate check failed (non-critical): {}", e.getMessage());
+                        if (LOGGER.isDebugEnabled()) {
+                            LOGGER.debug(
+                                    "Async duplicate check failed (non-critical): {}",
+                                    e.getMessage());
+                        }
                     }
                 });
 
@@ -160,14 +165,18 @@ public class UserService {
                 () -> {
                     try {
                         accountRepository.getOrCreatePseudoAccount(userId);
-                        LOGGER.debug("Created pseudo account for new user: {}", userId);
+                        if (LOGGER.isDebugEnabled()) {
+                            LOGGER.debug("Created pseudo account for new user: {}", userId);
+                        }
                     } catch (Exception e) {
                         // Log error but don't fail registration - pseudo account can be created
                         // lazily later
-                        LOGGER.warn(
-                                "Failed to create pseudo account for user {} during registration: {}",
-                                userId,
-                                e.getMessage());
+                        if (LOGGER.isWarnEnabled()) {
+                            LOGGER.warn(
+                                    "Failed to create pseudo account for user {} during registration: {}",
+                                    userId,
+                                    e.getMessage());
+                        }
                     }
                 });
 
@@ -212,9 +221,13 @@ public class UserService {
         }
         try {
             dynamoDBUserRepository.updateLastLogin(userId, Instant.now());
-            LOGGER.debug("Updated last login for user: {}", userId);
+            if (LOGGER.isDebugEnabled()) {
+                LOGGER.debug("Updated last login for user: {}", userId);
+            }
         } catch (IllegalArgumentException e) {
-            LOGGER.warn("Failed to update last login for user {}: {}", userId, e.getMessage());
+            if (LOGGER.isWarnEnabled()) {
+                LOGGER.warn("Failed to update last login for user {}: {}", userId, e.getMessage());
+            }
         }
     }
 
@@ -247,13 +260,17 @@ public class UserService {
         if (user.getServerSalt() != null && !user.getServerSalt().isEmpty()) {
             try {
                 existingServerSalt = java.util.Base64.getDecoder().decode(user.getServerSalt());
-                LOGGER.debug(
-                        "Reusing existing server salt for password change for user: {}",
-                        user.getEmail());
+                if (LOGGER.isDebugEnabled()) {
+                    LOGGER.debug(
+                            "Reusing existing server salt for password change for user: {}",
+                            user.getEmail());
+                }
             } catch (IllegalArgumentException e) {
-                LOGGER.warn(
-                        "Existing server salt is invalid Base64 for user: {}, generating new one",
-                        user.getEmail());
+                if (LOGGER.isWarnEnabled()) {
+                    LOGGER.warn(
+                            "Existing server salt is invalid Base64 for user: {}, generating new one",
+                            user.getEmail());
+                }
                 existingServerSalt = null;
             }
         }
@@ -272,7 +289,9 @@ public class UserService {
         user.setUpdatedAt(Instant.now());
 
         dynamoDBUserRepository.save(user);
-        LOGGER.info("Password changed for user: {}", user.getEmail());
+        if (LOGGER.isInfoEnabled()) {
+            LOGGER.info("Password changed for user: {}", user.getEmail());
+        }
     }
 
     /**
@@ -343,7 +362,10 @@ public class UserService {
             // Find user by ID
             return dynamoDBUserRepository.findById(userId);
         } catch (Exception e) {
-            LOGGER.error("Error finding user by Plaid item ID {}: {}", itemId, e.getMessage(), e);
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error(
+                        "Error finding user by Plaid item ID {}: {}", itemId, e.getMessage(), e);
+            }
             return Optional.empty();
         }
     }
@@ -367,15 +389,21 @@ public class UserService {
             // For now, we just update the timestamp to indicate the token was refreshed
             // Uses updateTimestamp() to preserve all other user fields
             dynamoDBUserRepository.updateTimestamp(userId);
-            LOGGER.info("Updated Plaid access token for user: {}", userId);
+            if (LOGGER.isInfoEnabled()) {
+                LOGGER.info("Updated Plaid access token for user: {}", userId);
+            }
         } catch (IllegalArgumentException e) {
-            LOGGER.warn("Failed to update Plaid token for user {}: {}", userId, e.getMessage());
+            if (LOGGER.isWarnEnabled()) {
+                LOGGER.warn("Failed to update Plaid token for user {}: {}", userId, e.getMessage());
+            }
         } catch (Exception e) {
-            LOGGER.error(
-                    "Unexpected error updating Plaid token for user {}: {}",
-                    userId,
-                    e.getMessage(),
-                    e);
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error(
+                        "Unexpected error updating Plaid token for user {}: {}",
+                        userId,
+                        e.getMessage(),
+                        e);
+            }
         }
     }
 }

@@ -50,9 +50,13 @@ public class SecurityCleanupScheduler {
         try {
             LOGGER.info("Starting scheduled cleanup of quarantined files");
             fileQuarantineService.cleanupOldQuarantinedFiles();
-            LOGGER.info("Completed cleanup of quarantined files");
+            if (LOGGER.isInfoEnabled()) {
+                LOGGER.info("Completed cleanup of quarantined files");
+            }
         } catch (Exception e) {
-            LOGGER.error("Failed to cleanup quarantined files: {}", e.getMessage(), e);
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error("Failed to cleanup quarantined files: {}", e.getMessage(), e);
+            }
         }
     }
 
@@ -63,9 +67,13 @@ public class SecurityCleanupScheduler {
             LOGGER.debug("Starting scheduled cleanup of rate limit entries");
             // Rate limiter automatically cleans up old entries during checkRateLimit calls
             // This scheduled task ensures cleanup happens even if no uploads occur
-            LOGGER.debug("Rate limit cleanup is handled automatically during uploads");
+            if (LOGGER.isDebugEnabled()) {
+                LOGGER.debug("Rate limit cleanup is handled automatically during uploads");
+            }
         } catch (Exception e) {
-            LOGGER.error("Failed to cleanup rate limit entries: {}", e.getMessage(), e);
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error("Failed to cleanup rate limit entries: {}", e.getMessage(), e);
+            }
         }
     }
 
@@ -77,16 +85,24 @@ public class SecurityCleanupScheduler {
 
             // Get quarantine statistics
             final var quarantinedFiles = fileQuarantineService.getAllQuarantineRecords();
-            LOGGER.info("Security Report - Quarantined Files: {}", quarantinedFiles.size());
+            if (LOGGER.isInfoEnabled()) {
+                LOGGER.info("Security Report - Quarantined Files: {}", quarantinedFiles.size());
+            }
 
             // Log summary
             LOGGER.info("=== Weekly Security Report ===");
-            LOGGER.info("Quarantined Files: {}", quarantinedFiles.size());
-            LOGGER.info("==============================");
+            if (LOGGER.isInfoEnabled()) {
+                LOGGER.info("Quarantined Files: {}", quarantinedFiles.size());
+            }
+            if (LOGGER.isInfoEnabled()) {
+                LOGGER.info("==============================");
+            }
 
             // TODO: Send report to administrators via email/notification
         } catch (Exception e) {
-            LOGGER.error("Failed to generate security report: {}", e.getMessage(), e);
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error("Failed to generate security report: {}", e.getMessage(), e);
+            }
         }
     }
 }

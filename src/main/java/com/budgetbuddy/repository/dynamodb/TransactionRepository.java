@@ -59,6 +59,9 @@ import software.amazon.awssdk.services.dynamodb.model.WriteRequest;
 @Repository
 public class TransactionRepository {
 
+    private static final org.slf4j.Logger LOGGER =
+            org.slf4j.LoggerFactory.getLogger(TransactionRepository.class);
+
     private static final String TRANSACTIONS = "transactions";
     private static final String TRANSACTIONID = "transactionId";
 
@@ -162,13 +165,12 @@ public class TransactionRepository {
                     pages) {
                 for (final TransactionTable item : page.items()) {
                     if (out.size() >= MAX_FALLBACK_FETCH) {
-                        org.slf4j.LoggerFactory.getLogger(TransactionRepository.class)
-                                .warn(
-                                        "findByUserIdCapped hit ceiling of {} rows for userId {} —"
-                                                + " result is truncated. Provision the missing GSI"
-                                                + " or call a paginating method instead.",
-                                        MAX_FALLBACK_FETCH,
-                                        userId);
+                        LOGGER.warn(
+                                "findByUserIdCapped hit ceiling of {} rows for userId {} —"
+                                        + " result is truncated. Provision the missing GSI"
+                                        + " or call a paginating method instead.",
+                                MAX_FALLBACK_FETCH,
+                                userId);
                         return out;
                     }
                     out.add(item);
@@ -186,8 +188,10 @@ public class TransactionRepository {
                     || msg.contains("resource not found")) {
                 return fallbackScanForUserCapped(userId);
             }
-            org.slf4j.LoggerFactory.getLogger(TransactionRepository.class)
-                    .warn("findByUserIdCapped failed for userId {}: {}", userId, e.getMessage(), e);
+            if (LOGGER.isWarnEnabled()) {
+                LOGGER.warn(
+                        "findByUserIdCapped failed for userId {}: {}", userId, e.getMessage(), e);
+            }
             return out;
         }
     }
@@ -198,11 +202,10 @@ public class TransactionRepository {
      * path. WARN-logged so the GSI gap is visible in CloudWatch.
      */
     private List<TransactionTable> fallbackScanForUserCapped(final String userId) {
-        org.slf4j.LoggerFactory.getLogger(TransactionRepository.class)
-                .warn(
-                        "UserIdDateIndex GSI not found for userId {}; falling back to base-table"
-                                + " scan in findByUserIdCapped.",
-                        userId);
+        LOGGER.warn(
+                "UserIdDateIndex GSI not found for userId {}; falling back to base-table"
+                        + " scan in findByUserIdCapped.",
+                userId);
         final List<TransactionTable> out = new ArrayList<>();
         try {
             final SdkIterable<software.amazon.awssdk.enhanced.dynamodb.model.Page<TransactionTable>>
@@ -220,8 +223,9 @@ public class TransactionRepository {
                 }
             }
         } catch (Exception e) {
-            org.slf4j.LoggerFactory.getLogger(TransactionRepository.class)
-                    .error("Fallback scan failed for userId {}: {}", userId, e.getMessage(), e);
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error("Fallback scan failed for userId {}: {}", userId, e.getMessage(), e);
+            }
         }
         return out;
     }
@@ -277,12 +281,13 @@ public class TransactionRepository {
                     // Check for duplicates by transactionId
                     if (transactionId != null && seenTransactionIds.contains(transactionId)) {
                         duplicateCount++;
-                        org.slf4j.LoggerFactory.getLogger(TransactionRepository.class)
-                                .warn(
-                                        "Duplicate transaction detected by transactionId and filtered: transactionId={}, plaidTransactionId={}, description={}",
-                                        transactionId,
-                                        plaidTransactionId,
-                                        item.getDescription());
+                        if (LOGGER.isWarnEnabled()) {
+                            LOGGER.warn(
+                                    "Duplicate transaction detected by transactionId and filtered: transactionId={}, plaidTransactionId={}, description={}",
+                                    transactionId,
+                                    plaidTransactionId,
+                                    item.getDescription());
+                        }
                         isDuplicate = true;
                     }
 
@@ -292,12 +297,13 @@ public class TransactionRepository {
                             && !plaidTransactionId.isEmpty()) {
                         if (seenPlaidTransactionIds.contains(plaidTransactionId)) {
                             duplicateCount++;
-                            org.slf4j.LoggerFactory.getLogger(TransactionRepository.class)
-                                    .warn(
-                                            "Duplicate transaction detected by plaidTransactionId and filtered: transactionId={}, plaidTransactionId={}, description={}",
-                                            transactionId,
-                                            plaidTransactionId,
-                                            item.getDescription());
+                            if (LOGGER.isWarnEnabled()) {
+                                LOGGER.warn(
+                                        "Duplicate transaction detected by plaidTransactionId and filtered: transactionId={}, plaidTransactionId={}, description={}",
+                                        transactionId,
+                                        plaidTransactionId,
+                                        item.getDescription());
+                            }
                             isDuplicate = true;
                         }
                     }
@@ -322,12 +328,13 @@ public class TransactionRepository {
                         results.add(item);
                         if (results.size() >= adjustedLimit) {
                             if (duplicateCount > 0) {
-                                org.slf4j.LoggerFactory.getLogger(TransactionRepository.class)
-                                        .info(
-                                                "findByUserId({}): Filtered {} duplicate transactions, returning {} unique transactions",
-                                                userId,
-                                                duplicateCount,
-                                                results.size());
+                                if (LOGGER.isInfoEnabled()) {
+                                    LOGGER.info(
+                                            "findByUserId({}): Filtered {} duplicate transactions, returning {} unique transactions",
+                                            userId,
+                                            duplicateCount,
+                                            results.size());
+                                }
                             }
                             return results;
                         }
@@ -337,10 +344,9 @@ public class TransactionRepository {
             }
         } catch (ResourceNotFoundException e) {
             // GSI not available - fallback to scan and filter in memory
-            org.slf4j.LoggerFactory.getLogger(TransactionRepository.class)
-                    .warn(
-                            "UserIdDateIndex GSI not found for userId {}. Falling back to scan and filtering in memory.",
-                            userId);
+            LOGGER.warn(
+                    "UserIdDateIndex GSI not found for userId {}. Falling back to scan and filtering in memory.",
+                    userId);
             try {
                 // Fallback: scan table and filter by userId
                 final SdkIterable<
@@ -384,13 +390,13 @@ public class TransactionRepository {
                                 results.add(item);
                                 if (results.size() >= adjustedLimit) {
                                     if (duplicateCount > 0) {
-                                        org.slf4j.LoggerFactory.getLogger(
-                                                        TransactionRepository.class)
-                                                .info(
-                                                        "findByUserId({}): Filtered {} duplicate transactions, returning {} unique transactions (fallback scan)",
-                                                        userId,
-                                                        duplicateCount,
-                                                        results.size());
+                                        if (LOGGER.isInfoEnabled()) {
+                                            LOGGER.info(
+                                                    "findByUserId({}): Filtered {} duplicate transactions, returning {} unique transactions (fallback scan)",
+                                                    userId,
+                                                    duplicateCount,
+                                                    results.size());
+                                        }
                                     }
                                     return results;
                                 }
@@ -400,12 +406,13 @@ public class TransactionRepository {
                     }
                 }
             } catch (Exception fallbackException) {
-                org.slf4j.LoggerFactory.getLogger(TransactionRepository.class)
-                        .error(
-                                "Error in fallback scan for userId {}: {}",
-                                userId,
-                                fallbackException.getMessage(),
-                                fallbackException);
+                if (LOGGER.isErrorEnabled()) {
+                    LOGGER.error(
+                            "Error in fallback scan for userId {}: {}",
+                            userId,
+                            fallbackException.getMessage(),
+                            fallbackException);
+                }
                 // Return empty list if fallback also fails
                 return List.of();
             }
@@ -418,10 +425,9 @@ public class TransactionRepository {
                     || errorMessage.contains("index not found")
                     || errorMessage.contains("resource not found")) {
                 // GSI not available - fallback to scan and filter in memory
-                org.slf4j.LoggerFactory.getLogger(TransactionRepository.class)
-                        .warn(
-                                "UserIdDateIndex GSI not found for userId {} (wrapped exception). Falling back to scan and filtering in memory.",
-                                userId);
+                LOGGER.warn(
+                        "UserIdDateIndex GSI not found for userId {} (wrapped exception). Falling back to scan and filtering in memory.",
+                        userId);
                 try {
                     // Fallback: scan table and filter by userId
                     final SdkIterable<
@@ -466,13 +472,13 @@ public class TransactionRepository {
                                     results.add(item);
                                     if (results.size() >= adjustedLimit) {
                                         if (duplicateCount > 0) {
-                                            org.slf4j.LoggerFactory.getLogger(
-                                                            TransactionRepository.class)
-                                                    .info(
-                                                            "findByUserId({}): Filtered {} duplicate transactions, returning {} unique transactions (fallback scan)",
-                                                            userId,
-                                                            duplicateCount,
-                                                            results.size());
+                                            if (LOGGER.isInfoEnabled()) {
+                                                LOGGER.info(
+                                                        "findByUserId({}): Filtered {} duplicate transactions, returning {} unique transactions (fallback scan)",
+                                                        userId,
+                                                        duplicateCount,
+                                                        results.size());
+                                            }
                                         }
                                         return results;
                                     }
@@ -482,12 +488,13 @@ public class TransactionRepository {
                         }
                     }
                 } catch (Exception fallbackException) {
-                    org.slf4j.LoggerFactory.getLogger(TransactionRepository.class)
-                            .error(
-                                    "Error in fallback scan for userId {}: {}",
-                                    userId,
-                                    fallbackException.getMessage(),
-                                    fallbackException);
+                    if (LOGGER.isErrorEnabled()) {
+                        LOGGER.error(
+                                "Error in fallback scan for userId {}: {}",
+                                userId,
+                                fallbackException.getMessage(),
+                                fallbackException);
+                    }
                     // Return empty list if fallback also fails
                     return List.of();
                 }
@@ -498,12 +505,13 @@ public class TransactionRepository {
         }
 
         if (duplicateCount > 0) {
-            org.slf4j.LoggerFactory.getLogger(TransactionRepository.class)
-                    .info(
-                            "findByUserId({}): Filtered {} duplicate transactions, returning {} unique transactions",
-                            userId,
-                            duplicateCount,
-                            results.size());
+            if (LOGGER.isInfoEnabled()) {
+                LOGGER.info(
+                        "findByUserId({}): Filtered {} duplicate transactions, returning {} unique transactions",
+                        userId,
+                        duplicateCount,
+                        results.size());
+            }
         }
         return results;
     }
@@ -535,17 +543,15 @@ public class TransactionRepository {
             return results;
         } catch (ResourceNotFoundException e) {
             // GSI not available - fallback to filtering in memory
-            org.slf4j.LoggerFactory.getLogger(TransactionRepository.class)
-                    .warn("UserIdGoalIdIndex GSI not found. Falling back to filtering in memory.");
+            LOGGER.warn("UserIdGoalIdIndex GSI not found. Falling back to filtering in memory.");
             return findByUserIdCapped(userId).stream()
                     .filter(tx -> goalId.equals(tx.getGoalId()))
                     .collect(Collectors.toList());
         } catch (Exception e) {
-            org.slf4j.LoggerFactory.getLogger(TransactionRepository.class)
-                    .error(
-                            "Error querying transactions by userId and goalId: {}",
-                            e.getMessage(),
-                            e);
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error(
+                        "Error querying transactions by userId and goalId: {}", e.getMessage(), e);
+            }
             // Fallback to filtering in memory
             return findByUserIdCapped(userId).stream()
                     .filter(tx -> goalId.equals(tx.getGoalId()))
@@ -613,25 +619,29 @@ public class TransactionRepository {
                 }
                 results.add(t);
                 if (results.size() >= DATE_RANGE_SAFETY_LIMIT) {
-                    LOG.warn(
-                            "Reached safety limit of {} transactions for user {} in {}..{} ({} duplicates filtered)",
-                            DATE_RANGE_SAFETY_LIMIT,
-                            userId,
-                            startDate,
-                            endDate,
-                            deduper.duplicateCount());
+                    if (LOG.isWarnEnabled()) {
+                        LOG.warn(
+                                "Reached safety limit of {} transactions for user {} in {}..{} ({} duplicates filtered)",
+                                DATE_RANGE_SAFETY_LIMIT,
+                                userId,
+                                startDate,
+                                endDate,
+                                deduper.duplicateCount());
+                    }
                     return results;
                 }
             }
         }
         if (deduper.duplicateCount() > 0) {
-            LOG.info(
-                    "findByUserIdAndDateRange({}, {}..{}): filtered {} duplicates, returning {}",
-                    userId,
-                    startDate,
-                    endDate,
-                    deduper.duplicateCount(),
-                    results.size());
+            if (LOG.isInfoEnabled()) {
+                LOG.info(
+                        "findByUserIdAndDateRange({}, {}..{}): filtered {} duplicates, returning {}",
+                        userId,
+                        startDate,
+                        endDate,
+                        deduper.duplicateCount(),
+                        results.size());
+            }
         }
         return results;
     }
@@ -657,11 +667,13 @@ public class TransactionRepository {
             }
             return results;
         } catch (Exception fallbackException) {
-            LOG.error(
-                    "Error in fallback query for userId {}: {}",
-                    userId,
-                    fallbackException.getMessage(),
-                    fallbackException);
+            if (LOG.isErrorEnabled()) {
+                LOG.error(
+                        "Error in fallback query for userId {}: {}",
+                        userId,
+                        fallbackException.getMessage(),
+                        fallbackException);
+            }
             return List.of();
         }
     }
@@ -694,20 +706,24 @@ public class TransactionRepository {
             final String plaidId = t.getPlaidTransactionId();
             if (txId != null && !seenTxIds.add(txId)) {
                 duplicates++;
-                LOG.warn(
-                        "Duplicate transaction by transactionId={} (plaidTxId={}, date={})",
-                        txId,
-                        plaidId,
-                        t.getTransactionDate());
+                if (LOG.isWarnEnabled()) {
+                    LOG.warn(
+                            "Duplicate transaction by transactionId={} (plaidTxId={}, date={})",
+                            txId,
+                            plaidId,
+                            t.getTransactionDate());
+                }
                 return false;
             }
             if (plaidId != null && !plaidId.isEmpty() && !seenPlaidIds.add(plaidId)) {
                 duplicates++;
-                LOG.warn(
-                        "Duplicate transaction by plaidTransactionId={} (txId={}, date={})",
-                        plaidId,
-                        txId,
-                        t.getTransactionDate());
+                if (LOG.isWarnEnabled()) {
+                    LOG.warn(
+                            "Duplicate transaction by plaidTransactionId={} (txId={}, date={})",
+                            plaidId,
+                            txId,
+                            t.getTransactionDate());
+                }
                 return false;
             }
             return true;
@@ -774,10 +790,9 @@ public class TransactionRepository {
             }
         } catch (ResourceNotFoundException e) {
             // GSI not available - fallback to findByUserId and filter in memory
-            org.slf4j.LoggerFactory.getLogger(TransactionRepository.class)
-                    .warn(
-                            "UserIdUpdatedAtIndex GSI not found for userId {}. Falling back to findByUserId and filtering in memory.",
-                            userId);
+            LOGGER.warn(
+                    "UserIdUpdatedAtIndex GSI not found for userId {}. Falling back to findByUserId and filtering in memory.",
+                    userId);
             try {
                 final List<TransactionTable> allTransactions = findByUserIdCapped(userId);
                 int count = 0;
@@ -792,12 +807,13 @@ public class TransactionRepository {
                     }
                 }
             } catch (Exception fallbackException) {
-                org.slf4j.LoggerFactory.getLogger(TransactionRepository.class)
-                        .error(
-                                "Error in fallback query for userId {}: {}",
-                                userId,
-                                fallbackException.getMessage(),
-                                fallbackException);
+                if (LOGGER.isErrorEnabled()) {
+                    LOGGER.error(
+                            "Error in fallback query for userId {}: {}",
+                            userId,
+                            fallbackException.getMessage(),
+                            fallbackException);
+                }
             }
         } catch (RuntimeException e) {
             // Check if the RuntimeException wraps a ResourceNotFoundException or indicates missing
@@ -809,10 +825,9 @@ public class TransactionRepository {
                     || errorMessage.contains("index not found")
                     || errorMessage.contains("resource not found")) {
                 // GSI not available - fallback to findByUserId and filter in memory
-                org.slf4j.LoggerFactory.getLogger(TransactionRepository.class)
-                        .warn(
-                                "UserIdUpdatedAtIndex GSI not found for userId {} (wrapped exception). Falling back to findByUserId and filtering in memory.",
-                                userId);
+                LOGGER.warn(
+                        "UserIdUpdatedAtIndex GSI not found for userId {} (wrapped exception). Falling back to findByUserId and filtering in memory.",
+                        userId);
                 try {
                     final List<TransactionTable> allTransactions = findByUserIdCapped(userId);
                     int count = 0;
@@ -827,23 +842,25 @@ public class TransactionRepository {
                         }
                     }
                 } catch (Exception fallbackException) {
-                    org.slf4j.LoggerFactory.getLogger(TransactionRepository.class)
-                            .error(
-                                    "Error in fallback query for userId {}: {}",
-                                    userId,
-                                    fallbackException.getMessage(),
-                                    fallbackException);
+                    if (LOGGER.isErrorEnabled()) {
+                        LOGGER.error(
+                                "Error in fallback query for userId {}: {}",
+                                userId,
+                                fallbackException.getMessage(),
+                                fallbackException);
+                    }
                     // Return empty list if fallback fails
                     return results;
                 }
             } else {
                 // Not a ResourceNotFoundException - log as error
-                org.slf4j.LoggerFactory.getLogger(TransactionRepository.class)
-                        .error(
-                                "Error finding transactions by userId and updatedAfter {}: {}",
-                                userId,
-                                e.getMessage(),
-                                e);
+                if (LOGGER.isErrorEnabled()) {
+                    LOGGER.error(
+                            "Error finding transactions by userId and updatedAfter {}: {}",
+                            userId,
+                            e.getMessage(),
+                            e);
+                }
             }
         } catch (Exception e) {
             // Check if the exception message indicates missing index
@@ -852,10 +869,9 @@ public class TransactionRepository {
             if (errorMessage.contains("index not found")
                     || errorMessage.contains("resource not found")) {
                 // GSI not available - fallback to findByUserId and filter in memory
-                org.slf4j.LoggerFactory.getLogger(TransactionRepository.class)
-                        .warn(
-                                "UserIdUpdatedAtIndex GSI not found for userId {} (detected from error message). Falling back to findByUserId and filtering in memory.",
-                                userId);
+                LOGGER.warn(
+                        "UserIdUpdatedAtIndex GSI not found for userId {} (detected from error message). Falling back to findByUserId and filtering in memory.",
+                        userId);
                 try {
                     final List<TransactionTable> allTransactions = findByUserIdCapped(userId);
                     int count = 0;
@@ -870,22 +886,24 @@ public class TransactionRepository {
                         }
                     }
                 } catch (Exception fallbackException) {
-                    org.slf4j.LoggerFactory.getLogger(TransactionRepository.class)
-                            .error(
-                                    "Error in fallback query for userId {}: {}",
-                                    userId,
-                                    fallbackException.getMessage(),
-                                    fallbackException);
+                    if (LOGGER.isErrorEnabled()) {
+                        LOGGER.error(
+                                "Error in fallback query for userId {}: {}",
+                                userId,
+                                fallbackException.getMessage(),
+                                fallbackException);
+                    }
                     // Return empty list if fallback fails
                     return results;
                 }
             } else {
-                org.slf4j.LoggerFactory.getLogger(TransactionRepository.class)
-                        .error(
-                                "Error finding transactions by userId and updatedAfter {}: {}",
-                                userId,
-                                e.getMessage(),
-                                e);
+                if (LOGGER.isErrorEnabled()) {
+                    LOGGER.error(
+                            "Error finding transactions by userId and updatedAfter {}: {}",
+                            userId,
+                            e.getMessage(),
+                            e);
+                }
             }
         }
 
@@ -1016,10 +1034,11 @@ public class TransactionRepository {
                     .findFirst();
         } catch (Exception e) {
             // Fallback to original method if date parsing fails
-            org.slf4j.LoggerFactory.getLogger(TransactionRepository.class)
-                    .warn(
-                            "Failed to parse date for composite key search, falling back to full user query: {}",
-                            e.getMessage());
+            if (LOGGER.isWarnEnabled()) {
+                LOGGER.warn(
+                        "Failed to parse date for composite key search, falling back to full user query: {}",
+                        e.getMessage());
+            }
 
             // Get all transactions for this user and account (fallback)
             final List<TransactionTable> userTransactions = findByUserIdCapped(userId);

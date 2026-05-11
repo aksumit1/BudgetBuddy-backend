@@ -41,7 +41,8 @@ import software.amazon.awssdk.services.dynamodb.model.ResourceNotFoundException;
 // callers — defensive-copying it would break dependency injection.
 @SuppressFBWarnings(
         value = {"EI_EXPOSE_REP2", "CT_CONSTRUCTOR_THROW"},
-        justification = "Spring constructor injection — beans are shared by design; CT_CONSTRUCTOR_THROW: Java 25 deprecates Object.finalize() for removal, so the finalizer-attack vector this rule guards against is not exploitable")
+        justification =
+                "Spring constructor injection — beans are shared by design; CT_CONSTRUCTOR_THROW: Java 25 deprecates Object.finalize() for removal, so the finalizer-attack vector this rule guards against is not exploitable")
 @SuppressWarnings({"PMD.AvoidCatchingGenericException", "PMD.OnlyOneReturn"})
 @Repository
 @org.springframework.context.annotation.DependsOn({
@@ -50,6 +51,9 @@ import software.amazon.awssdk.services.dynamodb.model.ResourceNotFoundException;
     "dynamoDbClient"
 })
 public class UserRepository {
+
+    private static final org.slf4j.Logger LOGGER =
+            org.slf4j.LoggerFactory.getLogger(UserRepository.class);
 
     private static final String USERS = "users";
 
@@ -144,17 +148,19 @@ public class UserRepository {
             return Optional.empty();
         } catch (ResourceNotFoundException e) {
             // GSI doesn't exist yet - this can happen during startup before tables are created
-            org.slf4j.LoggerFactory.getLogger(UserRepository.class)
-                    .warn(
-                            "GSI EmailIndex not found for table {}. This may happen during startup. Error: {}",
-                            tableName,
-                            e.getMessage());
+            if (LOGGER.isWarnEnabled()) {
+                LOGGER.warn(
+                        "GSI EmailIndex not found for table {}. This may happen during startup. Error: {}",
+                        tableName,
+                        e.getMessage());
+            }
             return Optional.empty();
         } catch (Exception e) {
             // Log error but don't fail - return empty to allow registration to proceed
             // The conditional write will catch duplicates anyway
-            org.slf4j.LoggerFactory.getLogger(UserRepository.class)
-                    .warn("Error querying user by email: {} - {}", email, e.getMessage());
+            if (LOGGER.isWarnEnabled()) {
+                LOGGER.warn("Error querying user by email: {} - {}", email, e.getMessage());
+            }
             return Optional.empty();
         }
     }
@@ -180,34 +186,38 @@ public class UserRepository {
                     pages) {
                 for (final UserTable item : page.items()) {
                     // Log when user is found for debugging
-                    org.slf4j.LoggerFactory.getLogger(UserRepository.class)
-                            .debug(
-                                    "Found user by email (bypass cache): {} -> userId: {}",
-                                    email,
-                                    item.getUserId());
+                    if (LOGGER.isDebugEnabled()) {
+                        LOGGER.debug(
+                                "Found user by email (bypass cache): {} -> userId: {}",
+                                email,
+                                item.getUserId());
+                    }
                     return Optional.of(item);
                 }
             }
             // Log when no user is found for debugging
-            org.slf4j.LoggerFactory.getLogger(UserRepository.class)
-                    .debug("No user found by email (bypass cache): {}", email);
+            if (LOGGER.isDebugEnabled()) {
+                LOGGER.debug("No user found by email (bypass cache): {}", email);
+            }
             return Optional.empty();
         } catch (ResourceNotFoundException e) {
             // GSI doesn't exist yet - this can happen during startup before tables are created
-            org.slf4j.LoggerFactory.getLogger(UserRepository.class)
-                    .warn(
-                            "GSI EmailIndex not found for table {} (bypass cache). This may happen during startup. Error: {}",
-                            tableName,
-                            e.getMessage());
+            if (LOGGER.isWarnEnabled()) {
+                LOGGER.warn(
+                        "GSI EmailIndex not found for table {} (bypass cache). This may happen during startup. Error: {}",
+                        tableName,
+                        e.getMessage());
+            }
             return Optional.empty();
         } catch (Exception e) {
             // Log error but don't fail - return empty to allow registration to proceed
             // The conditional write will catch duplicates anyway
-            org.slf4j.LoggerFactory.getLogger(UserRepository.class)
-                    .warn(
-                            "Error querying user by email (bypass cache): {} - {}",
-                            email,
-                            e.getMessage());
+            if (LOGGER.isWarnEnabled()) {
+                LOGGER.warn(
+                        "Error querying user by email (bypass cache): {} - {}",
+                        email,
+                        e.getMessage());
+            }
             return Optional.empty();
         }
     }
@@ -236,15 +246,17 @@ public class UserRepository {
             return users;
         } catch (ResourceNotFoundException e) {
             // GSI doesn't exist yet - this can happen during startup before tables are created
-            org.slf4j.LoggerFactory.getLogger(UserRepository.class)
-                    .warn(
-                            "GSI EmailIndex not found for table {} (findAllByEmail). This may happen during startup. Error: {}",
-                            tableName,
-                            e.getMessage());
+            if (LOGGER.isWarnEnabled()) {
+                LOGGER.warn(
+                        "GSI EmailIndex not found for table {} (findAllByEmail). This may happen during startup. Error: {}",
+                        tableName,
+                        e.getMessage());
+            }
             return List.of();
         } catch (Exception e) {
-            org.slf4j.LoggerFactory.getLogger(UserRepository.class)
-                    .warn("Error querying all users by email: {} - {}", email, e.getMessage());
+            if (LOGGER.isWarnEnabled()) {
+                LOGGER.warn("Error querying all users by email: {} - {}", email, e.getMessage());
+            }
             return List.of();
         }
     }
@@ -534,14 +546,16 @@ public class UserRepository {
             }
         } catch (ResourceNotFoundException e) {
             // GSI doesn't exist yet - this can happen during startup before tables are created
-            org.slf4j.LoggerFactory.getLogger(UserRepository.class)
-                    .warn(
-                            "GSI ActiveUsersIndex not found for table {}. This may happen during startup. Error: {}",
-                            tableName,
-                            e.getMessage());
+            if (LOGGER.isWarnEnabled()) {
+                LOGGER.warn(
+                        "GSI ActiveUsersIndex not found for table {}. This may happen during startup. Error: {}",
+                        tableName,
+                        e.getMessage());
+            }
         } catch (Exception e) {
-            org.slf4j.LoggerFactory.getLogger(UserRepository.class)
-                    .error("Error finding active users: {}", e.getMessage(), e);
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error("Error finding active users: {}", e.getMessage(), e);
+            }
         }
 
         return activeUserIds;

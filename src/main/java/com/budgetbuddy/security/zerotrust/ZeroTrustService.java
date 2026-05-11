@@ -82,10 +82,12 @@ public class ZeroTrustService {
             result.setAllowed(false);
             result.setReason("Risk score too high: " + riskScore.getScore());
             result.setRiskScore(riskScore);
-            LOGGER.warn(
-                    "Zero Trust: Access denied due to high risk score: {} for user: {}",
-                    riskScore.getScore(),
-                    userId);
+            if (LOGGER.isWarnEnabled()) {
+                LOGGER.warn(
+                        "Zero Trust: Access denied due to high risk score: {} for user: {}",
+                        riskScore.getScore(),
+                        userId);
+            }
             return result;
         }
 

@@ -140,20 +140,27 @@ public class PdfOcrService {
                     }
                 }
             } catch (TesseractException e) {
-                LOGGER.warn("PdfOcrService: OCR failed on page {} — {}", i + 1, e.getMessage());
+                if (LOGGER.isWarnEnabled()) {
+                    LOGGER.warn("PdfOcrService: OCR failed on page {} — {}", i + 1, e.getMessage());
+                }
             } catch (Exception e) {
                 // Rendering failures (corrupt PDF page, out-of-memory) — don't
                 // let one bad page kill the whole pass.
-                LOGGER.warn("PdfOcrService: render failed on page {} — {}", i + 1, e.getMessage());
+                if (LOGGER.isWarnEnabled()) {
+                    LOGGER.warn(
+                            "PdfOcrService: render failed on page {} — {}", i + 1, e.getMessage());
+                }
             }
         }
 
         final long elapsedMs = System.currentTimeMillis() - startedAt;
-        LOGGER.info(
-                "PdfOcrService: OCR produced {} chars across {} page(s) in {} ms",
-                out.length(),
-                pagesToScan,
-                elapsedMs);
+        if (LOGGER.isInfoEnabled()) {
+            LOGGER.info(
+                    "PdfOcrService: OCR produced {} chars across {} page(s) in {} ms",
+                    out.length(),
+                    pagesToScan,
+                    elapsedMs);
+        }
         return out.toString();
     }
 

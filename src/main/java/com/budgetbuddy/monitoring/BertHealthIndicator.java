@@ -66,7 +66,9 @@ public class BertHealthIndicator implements HealthIndicator {
                         .build();
             }
         } catch (Exception e) {
-            LOGGER.warn("Error checking BERT health: {}", e.getMessage());
+            if (LOGGER.isWarnEnabled()) {
+                LOGGER.warn("Error checking BERT health: {}", e.getMessage());
+            }
             return Health.up()
                     .withDetail(SERVICE, DISTIL_BERT)
                     .withDetail(STATUS, "error-checked")
@@ -119,7 +121,9 @@ public class BertHealthIndicator implements HealthIndicator {
                 return false;
             }
         } catch (Exception e) {
-            LOGGER.debug("BERT model not available: {}", e.getMessage());
+            if (LOGGER.isDebugEnabled()) {
+                LOGGER.debug("BERT model not available: {}", e.getMessage());
+            }
             return false;
         }
     }

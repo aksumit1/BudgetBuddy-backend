@@ -128,11 +128,15 @@ public class TaxExportController {
             return new ResponseEntity<>(csv, headers, HttpStatus.OK);
 
         } catch (IllegalArgumentException e) {
-            LOGGER.warn(INVALID_REQUEST_PARAMETERS, e.getMessage());
+            if (LOGGER.isWarnEnabled()) {
+                LOGGER.warn(INVALID_REQUEST_PARAMETERS, e.getMessage());
+            }
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                     .body("Invalid request: " + e.getMessage());
         } catch (Exception e) {
-            LOGGER.error("Error exporting tax data as CSV: {}", e.getMessage(), e);
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error("Error exporting tax data as CSV: {}", e.getMessage(), e);
+            }
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body("Error generating tax export: " + e.getMessage());
         }
@@ -177,10 +181,12 @@ public class TaxExportController {
                 }
             }
 
-            LOGGER.info(
-                    "Exporting multi-year tax data as CSV for user {} for years {}",
-                    userId,
-                    Arrays.toString(yearArray));
+            if (LOGGER.isInfoEnabled()) {
+                LOGGER.info(
+                        "Exporting multi-year tax data as CSV for user {} for years {}",
+                        userId,
+                        Arrays.toString(yearArray));
+            }
 
             final TaxExportService.TaxExportResult result =
                     taxExportService.generateMultiYearTaxExport(
@@ -199,7 +205,9 @@ public class TaxExportController {
                     .body(
                             "Invalid year format. Expected comma-separated years (e.g., 2022,2023,2024)");
         } catch (Exception e) {
-            LOGGER.error("Error exporting multi-year tax data as CSV: {}", e.getMessage(), e);
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error("Error exporting multi-year tax data as CSV: {}", e.getMessage(), e);
+            }
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body("Error generating multi-year tax export: " + e.getMessage());
         }
@@ -252,7 +260,9 @@ public class TaxExportController {
             return new ResponseEntity<>(csv, headers, HttpStatus.OK);
 
         } catch (Exception e) {
-            LOGGER.error("Error exporting Schedule A: {}", e.getMessage(), e);
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error("Error exporting Schedule A: {}", e.getMessage(), e);
+            }
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body("Error generating Schedule A export: " + e.getMessage());
         }
@@ -295,7 +305,9 @@ public class TaxExportController {
             return new ResponseEntity<>(csv, headers, HttpStatus.OK);
 
         } catch (Exception e) {
-            LOGGER.error("Error exporting Schedule B: {}", e.getMessage(), e);
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error("Error exporting Schedule B: {}", e.getMessage(), e);
+            }
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body("Error generating Schedule B export: " + e.getMessage());
         }
@@ -338,7 +350,9 @@ public class TaxExportController {
             return new ResponseEntity<>(csv, headers, HttpStatus.OK);
 
         } catch (Exception e) {
-            LOGGER.error("Error exporting Schedule D: {}", e.getMessage(), e);
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error("Error exporting Schedule D: {}", e.getMessage(), e);
+            }
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body("Error generating Schedule D export: " + e.getMessage());
         }
@@ -404,11 +418,15 @@ public class TaxExportController {
             return new ResponseEntity<>(json, headers, HttpStatus.OK);
 
         } catch (IllegalArgumentException e) {
-            LOGGER.warn(INVALID_REQUEST_PARAMETERS, e.getMessage());
+            if (LOGGER.isWarnEnabled()) {
+                LOGGER.warn(INVALID_REQUEST_PARAMETERS, e.getMessage());
+            }
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                     .body("{\"error\": \"" + e.getMessage() + "\"}");
         } catch (Exception e) {
-            LOGGER.error("Error exporting tax data as JSON: {}", e.getMessage(), e);
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error("Error exporting tax data as JSON: {}", e.getMessage(), e);
+            }
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body("{\"error\": \"Error generating tax export: " + e.getMessage() + "\"}");
         }
@@ -467,10 +485,14 @@ public class TaxExportController {
             return ResponseEntity.ok(result.getSummary());
 
         } catch (IllegalArgumentException e) {
-            LOGGER.warn(INVALID_REQUEST_PARAMETERS, e.getMessage());
+            if (LOGGER.isWarnEnabled()) {
+                LOGGER.warn(INVALID_REQUEST_PARAMETERS, e.getMessage());
+            }
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
         } catch (Exception e) {
-            LOGGER.error("Error getting tax summary: {}", e.getMessage(), e);
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error("Error getting tax summary: {}", e.getMessage(), e);
+            }
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }

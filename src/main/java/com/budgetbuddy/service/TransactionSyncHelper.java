@@ -96,18 +96,22 @@ public class TransactionSyncHelper {
             }
         } catch (IllegalArgumentException e) {
             // Invalid input - log as WARN since this is a data validation issue
-            LOGGER.warn(
-                    "Invalid transaction data for Plaid ID {}: {}",
-                    plaidTransactionId,
-                    e.getMessage());
+            if (LOGGER.isWarnEnabled()) {
+                LOGGER.warn(
+                        "Invalid transaction data for Plaid ID {}: {}",
+                        plaidTransactionId,
+                        e.getMessage());
+            }
             result.setErrorCount(1);
         } catch (Exception e) {
             // Real database errors, network issues, etc. - log as ERROR
-            LOGGER.error(
-                    "Failed to sync transaction with Plaid ID {}: {}",
-                    plaidTransactionId,
-                    e.getMessage(),
-                    e);
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error(
+                        "Failed to sync transaction with Plaid ID {}: {}",
+                        plaidTransactionId,
+                        e.getMessage(),
+                        e);
+            }
             result.setErrorCount(1);
         }
 

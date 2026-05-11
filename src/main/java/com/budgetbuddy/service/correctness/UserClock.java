@@ -86,7 +86,9 @@ public class UserClock {
                     .map(u -> resolveZone(u.getTimezone()))
                     .orElse(DEFAULT_ZONE);
         } catch (Exception e) {
-            LOG.debug("UserClock lookup failed for {}: {}", userId, e.getMessage());
+            if (LOG.isDebugEnabled()) {
+                LOG.debug("UserClock lookup failed for {}: {}", userId, e.getMessage());
+            }
             return DEFAULT_ZONE;
         }
     }

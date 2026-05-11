@@ -47,6 +47,9 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/accounts")
 public class AccountController {
 
+    private static final org.slf4j.Logger LOGGER =
+            org.slf4j.LoggerFactory.getLogger(AccountController.class);
+
     private static final String ACCOUNT_ID_IS_REQUIRED = "Account ID is required";
 
     private static final String ACCOUNT_NOT_FOUND_1 = "Account not found";
@@ -204,18 +207,18 @@ public class AccountController {
                 // duplicate
                 if (existing.getUserId().equals(user.getUserId())) {
                     // Same account (same user) - return existing (idempotent)
-                    org.slf4j.LoggerFactory.getLogger(AccountController.class)
-                            .info(
-                                    "Account with ID {} already exists for user {}. Returning existing for idempotency.",
-                                    accountId,
-                                    user.getUserId());
+                    if (LOGGER.isInfoEnabled()) {
+                        LOGGER.info(
+                                "Account with ID {} already exists for user {}. Returning existing for idempotency.",
+                                accountId,
+                                user.getUserId());
+                    }
                     return ResponseEntity.status(HttpStatus.OK).body(existing);
                 } else {
                     // Account exists but belongs to different user - security issue
-                    org.slf4j.LoggerFactory.getLogger(AccountController.class)
-                            .warn(
-                                    "Account with ID {} already exists but belongs to different user. Generating new UUID for security.",
-                                    accountId);
+                    LOGGER.warn(
+                            "Account with ID {} already exists but belongs to different user. Generating new UUID for security.",
+                            accountId);
                     // Generate new UUID for security
                     accountId = UUID.randomUUID().toString().toLowerCase(Locale.ROOT);
                 }
@@ -256,10 +259,11 @@ public class AccountController {
             dataChangeNotificationService.notifyAccountChanged(
                     user.getUserId(), account.getAccountId());
         } catch (Exception e) {
-            org.slf4j.LoggerFactory.getLogger(AccountController.class)
-                    .warn(
-                            "Failed to send data change notification for account creation: {}",
-                            e.getMessage());
+            if (LOGGER.isWarnEnabled()) {
+                LOGGER.warn(
+                        "Failed to send data change notification for account creation: {}",
+                        e.getMessage());
+            }
             // Don't fail the request if notification fails
         }
 
@@ -371,10 +375,11 @@ public class AccountController {
             dataChangeNotificationService.notifyAccountChanged(
                     user.getUserId(), account.getAccountId());
         } catch (Exception e) {
-            org.slf4j.LoggerFactory.getLogger(AccountController.class)
-                    .warn(
-                            "Failed to send data change notification for account update: {}",
-                            e.getMessage());
+            if (LOGGER.isWarnEnabled()) {
+                LOGGER.warn(
+                        "Failed to send data change notification for account update: {}",
+                        e.getMessage());
+            }
             // Don't fail the request if notification fails
         }
 
@@ -445,11 +450,12 @@ public class AccountController {
                             .collect(java.util.stream.Collectors.toList());
             if (!txIdsToDelete.isEmpty()) {
                 transactionService.batchDeleteTransactions(txIdsToDelete);
-                org.slf4j.LoggerFactory.getLogger(AccountController.class)
-                        .info(
-                                "Cascade-deleted {} transactions for account {}",
-                                txIdsToDelete.size(),
-                                id);
+                if (LOGGER.isInfoEnabled()) {
+                    LOGGER.info(
+                            "Cascade-deleted {} transactions for account {}",
+                            txIdsToDelete.size(),
+                            id);
+                }
             }
         } catch (Exception e) {
             // Don't block the account delete on a partial transaction
@@ -457,11 +463,12 @@ public class AccountController {
             // truth for "is this account live", so once it's gone the
             // orphaned transactions stop being referenced even if a few
             // remain in the table.
-            org.slf4j.LoggerFactory.getLogger(AccountController.class)
-                    .warn(
-                            "Cascade-delete of transactions failed for account {}: {}",
-                            id,
-                            e.getMessage());
+            if (LOGGER.isWarnEnabled()) {
+                LOGGER.warn(
+                        "Cascade-delete of transactions failed for account {}: {}",
+                        id,
+                        e.getMessage());
+            }
         }
 
         // Delete account
@@ -471,10 +478,11 @@ public class AccountController {
         try {
             dataChangeNotificationService.notifyAccountChanged(user.getUserId(), id);
         } catch (Exception e) {
-            org.slf4j.LoggerFactory.getLogger(AccountController.class)
-                    .warn(
-                            "Failed to send data change notification for account deletion: {}",
-                            e.getMessage());
+            if (LOGGER.isWarnEnabled()) {
+                LOGGER.warn(
+                        "Failed to send data change notification for account deletion: {}",
+                        e.getMessage());
+            }
             // Don't fail the request if notification fails
         }
 

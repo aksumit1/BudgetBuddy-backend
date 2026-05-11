@@ -150,12 +150,14 @@ public class GoalRoundUpService {
         contribution.setUpdatedAt(java.time.Instant.now());
         transactionRepository.save(contribution);
 
-        LOGGER.info(
-                "Created round-up contribution {} (${}) for source {} → goal {}",
-                contributionId,
-                roundUpAmount,
-                transaction.getTransactionId(),
-                goalId);
+        if (LOGGER.isInfoEnabled()) {
+            LOGGER.info(
+                    "Created round-up contribution {} (${}) for source {} → goal {}",
+                    contributionId,
+                    roundUpAmount,
+                    transaction.getTransactionId(),
+                    goalId);
+        }
     }
 
     /** Get total round-up contributions for a goal in a time period */

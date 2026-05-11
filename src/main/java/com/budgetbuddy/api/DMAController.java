@@ -172,11 +172,13 @@ public class DMAController {
                 MESSAGE,
                 authorized ? "Third-party access authorized" : "Third-party access denied");
 
-        LOGGER.info(
-                "DMA: Third-party access authorized - User: {}, ThirdParty: {}, Scope: {}",
-                user.getUserId(),
-                request.getThirdPartyId(),
-                request.getScope());
+        if (LOGGER.isInfoEnabled()) {
+            LOGGER.info(
+                    "DMA: Third-party access authorized - User: {}, ThirdParty: {}, Scope: {}",
+                    user.getUserId(),
+                    request.getThirdPartyId(),
+                    request.getScope());
+        }
 
         return ResponseEntity.ok(response);
     }
@@ -218,11 +220,13 @@ public class DMAController {
         response.put("dataType", request.getDataType());
         response.put(MESSAGE, "Data shared successfully with authorized third party");
 
-        LOGGER.info(
-                "DMA: Data shared with third party - User: {}, ThirdParty: {}, DataType: {}",
-                user.getUserId(),
-                request.getThirdPartyId(),
-                request.getDataType());
+        if (LOGGER.isInfoEnabled()) {
+            LOGGER.info(
+                    "DMA: Data shared with third party - User: {}, ThirdParty: {}, DataType: {}",
+                    user.getUserId(),
+                    request.getThirdPartyId(),
+                    request.getDataType());
+        }
 
         return ResponseEntity.ok(response);
     }

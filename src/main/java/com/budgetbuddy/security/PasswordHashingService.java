@@ -134,11 +134,13 @@ public class PasswordHashingService {
                 || serverHash.isEmpty()
                 || serverSalt == null
                 || serverSalt.isEmpty()) {
-            LOGGER.warn(
-                    "Password verification failed: missing required parameters (clientHash={}, serverHash={}, serverSalt={})",
-                    clientHash != null && !clientHash.isEmpty(),
-                    serverHash != null && !serverHash.isEmpty(),
-                    serverSalt != null && !serverSalt.isEmpty());
+            if (LOGGER.isWarnEnabled()) {
+                LOGGER.warn(
+                        "Password verification failed: missing required parameters (clientHash={}, serverHash={}, serverSalt={})",
+                        clientHash != null && !clientHash.isEmpty(),
+                        serverHash != null && !serverHash.isEmpty(),
+                        serverSalt != null && !serverSalt.isEmpty());
+            }
             return false;
         }
 
@@ -149,8 +151,10 @@ public class PasswordHashingService {
                 Base64.getDecoder().decode(serverHash);
                 Base64.getDecoder().decode(serverSalt);
             } catch (IllegalArgumentException e) {
-                LOGGER.error(
-                        "Invalid Base64 encoding in password verification: {}", e.getMessage());
+                if (LOGGER.isErrorEnabled()) {
+                    LOGGER.error(
+                            "Invalid Base64 encoding in password verification: {}", e.getMessage());
+                }
                 return false;
             }
 
@@ -170,10 +174,15 @@ public class PasswordHashingService {
 
             return matches;
         } catch (IllegalArgumentException e) {
-            LOGGER.error("Base64 decoding error during password verification: {}", e.getMessage());
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error(
+                        "Base64 decoding error during password verification: {}", e.getMessage());
+            }
             return false;
         } catch (Exception e) {
-            LOGGER.error("Failed to verify password: {}", e.getMessage(), e);
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error("Failed to verify password: {}", e.getMessage(), e);
+            }
             return false;
         }
     }

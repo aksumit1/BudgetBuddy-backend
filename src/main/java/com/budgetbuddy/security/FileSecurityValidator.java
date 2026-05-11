@@ -116,7 +116,9 @@ public class FileSecurityValidator {
         try {
             validateMagicBytes(file, extension);
         } catch (IOException e) {
-            LOGGER.error("Error reading file for magic byte validation: {}", e.getMessage());
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error("Error reading file for magic byte validation: {}", e.getMessage());
+            }
             throw new AppException(ErrorCode.INVALID_INPUT, "Unable to validate file content");
         }
     }
@@ -222,7 +224,9 @@ public class FileSecurityValidator {
         } catch (AppException e) {
             throw e;
         } catch (Exception e) {
-            LOGGER.error("Error validating file path: {}", e.getMessage());
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error("Error validating file path: {}", e.getMessage());
+            }
             throw new AppException(ErrorCode.INVALID_INPUT, "Invalid file path: " + e.getMessage());
         }
     }
@@ -272,7 +276,9 @@ public class FileSecurityValidator {
                     .normalize()
                     .startsWith(Paths.get(SYSTEM_TEMP_DIR).normalize());
         } catch (Exception e) {
-            LOGGER.debug("Error comparing paths: {}", e.getMessage());
+            if (LOGGER.isDebugEnabled()) {
+                LOGGER.debug("Error comparing paths: {}", e.getMessage());
+            }
             return false;
         }
     }
@@ -282,7 +288,9 @@ public class FileSecurityValidator {
         try {
             return normalized.startsWith(Paths.get(SYSTEM_TEMP_DIR).normalize());
         } catch (Exception e) {
-            LOGGER.debug("Error comparing normalized paths: {}", e.getMessage());
+            if (LOGGER.isDebugEnabled()) {
+                LOGGER.debug("Error comparing normalized paths: {}", e.getMessage());
+            }
             return false;
         }
     }
@@ -346,7 +354,9 @@ public class FileSecurityValidator {
         final String contentType = file.getContentType();
         if (contentType == null) {
             // Content type is optional, but log warning
-            LOGGER.warn("File has no content type: {}", file.getOriginalFilename());
+            if (LOGGER.isWarnEnabled()) {
+                LOGGER.warn("File has no content type: {}", file.getOriginalFilename());
+            }
             return;
         }
 
@@ -421,10 +431,12 @@ public class FileSecurityValidator {
             }
 
             if (!valid) {
-                LOGGER.warn(
-                        "Magic byte validation failed for file: {} (extension: {})",
-                        file.getOriginalFilename(),
-                        extension);
+                if (LOGGER.isWarnEnabled()) {
+                    LOGGER.warn(
+                            "Magic byte validation failed for file: {} (extension: {})",
+                            file.getOriginalFilename(),
+                            extension);
+                }
                 throw new AppException(
                         ErrorCode.INVALID_INPUT,
                         String.format(

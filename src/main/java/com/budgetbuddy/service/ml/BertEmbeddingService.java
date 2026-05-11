@@ -91,12 +91,14 @@ public class BertEmbeddingService {
         final File modelFile = new File(modelPath);
         final File tokenizerFile = new File(tokenizerPath);
         if (!modelFile.isFile() || !tokenizerFile.isFile()) {
-            LOGGER.warn(
-                    "BertEmbeddingService: model or tokenizer file not found (model='{}' exists={}, tokenizer='{}' exists={}) — BERT disabled.",
-                    modelPath,
-                    modelFile.isFile(),
-                    tokenizerPath,
-                    tokenizerFile.isFile());
+            if (LOGGER.isWarnEnabled()) {
+                LOGGER.warn(
+                        "BertEmbeddingService: model or tokenizer file not found (model='{}' exists={}, tokenizer='{}' exists={}) — BERT disabled.",
+                        modelPath,
+                        modelFile.isFile(),
+                        tokenizerPath,
+                        tokenizerFile.isFile());
+            }
             return;
         }
 
@@ -125,17 +127,21 @@ public class BertEmbeddingService {
             }
             this.embeddingDim = probe.length;
             this.available = true;
-            LOGGER.info(
-                    "BertEmbeddingService: initialized (model='{}', embeddingDim={}, maxTokens={})",
-                    modelFile.getName(),
-                    embeddingDim,
-                    maxTokens);
+            if (LOGGER.isInfoEnabled()) {
+                LOGGER.info(
+                        "BertEmbeddingService: initialized (model='{}', embeddingDim={}, maxTokens={})",
+                        modelFile.getName(),
+                        embeddingDim,
+                        maxTokens);
+            }
 
         } catch (Exception e) {
-            LOGGER.error(
-                    "BertEmbeddingService: failed to initialize — BERT disabled. Cause: {}",
-                    e.getMessage(),
-                    e);
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error(
+                        "BertEmbeddingService: failed to initialize — BERT disabled. Cause: {}",
+                        e.getMessage(),
+                        e);
+            }
             closeQuietly();
             available = false;
         }
@@ -173,10 +179,12 @@ public class BertEmbeddingService {
         try {
             return embedInternal(trimmed);
         } catch (Exception e) {
-            LOGGER.warn(
-                    "BertEmbeddingService: embedding failed for text (len={}): {}",
-                    trimmed.length(),
-                    e.getMessage());
+            if (LOGGER.isWarnEnabled()) {
+                LOGGER.warn(
+                        "BertEmbeddingService: embedding failed for text (len={}): {}",
+                        trimmed.length(),
+                        e.getMessage());
+            }
             return null;
         }
     }

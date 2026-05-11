@@ -76,10 +76,14 @@ public class SubscriptionScanner implements CommandLineRunner {
             // analyzeSubscriptionsForUser(testUserId);
 
             LOGGER.info("✅ Subscription scanner ready");
-            LOGGER.info("To scan specific user, modify the script with a user ID");
+            if (LOGGER.isInfoEnabled()) {
+                LOGGER.info("To scan specific user, modify the script with a user ID");
+            }
 
         } catch (Exception e) {
-            LOGGER.error("Error scanning subscriptions: {}", e.getMessage(), e);
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error("Error scanning subscriptions: {}", e.getMessage(), e);
+            }
         }
     }
 }

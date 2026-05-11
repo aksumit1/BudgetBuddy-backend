@@ -141,9 +141,11 @@ public class AppConfigIntegration {
             this.appConfigClient = client; // Store for use in initialize()
             return client;
         } catch (Exception e) {
-            LOGGER.warn(
-                    "Failed to create AppConfigClient (this is expected in tests without AWS credentials): {}",
-                    e.getMessage());
+            if (LOGGER.isWarnEnabled()) {
+                LOGGER.warn(
+                        "Failed to create AppConfigClient (this is expected in tests without AWS credentials): {}",
+                        e.getMessage());
+            }
             return null;
         }
     }
@@ -211,13 +213,17 @@ public class AppConfigIntegration {
                                         || e.getMessage()
                                                 .contains(
                                                         "Failed to load credentials from IMDS"))) {
-                    LOGGER.info(
-                            "AWS credentials not available (local development) - using fallback configuration from application.yml");
+                    if (LOGGER.isInfoEnabled()) {
+                        LOGGER.info(
+                                "AWS credentials not available (local development) - using fallback configuration from application.yml");
+                    }
                     initializeFallbackConfiguration();
                 } else {
-                    LOGGER.warn(
-                            "Failed to initialize AppConfigData API, falling back to AppConfig API: {}",
-                            e.getMessage());
+                    if (LOGGER.isWarnEnabled()) {
+                        LOGGER.warn(
+                                "Failed to initialize AppConfigData API, falling back to AppConfig API: {}",
+                                e.getMessage());
+                    }
                     LOGGER.debug("AppConfigData initialization error details", e);
                     useAppConfigDataApi = false;
                     initializeAppConfigApi();
@@ -246,13 +252,17 @@ public class AppConfigIntegration {
         } catch (Exception e) {
             // LocalStack Community Edition doesn't support AppConfig API - this is expected
             if (isLocalStackNotImplemented(e)) {
-                LOGGER.info(
-                        "AppConfig API not supported by LocalStack (expected for Community Edition), "
-                                + "using fallback configuration that matches production structure");
+                if (LOGGER.isInfoEnabled()) {
+                    LOGGER.info(
+                            "AppConfig API not supported by LocalStack (expected for Community Edition), "
+                                    + "using fallback configuration that matches production structure");
+                }
             } else {
-                LOGGER.warn(
-                        "Failed to initialize AppConfig API, using fallback configuration: {}",
-                        e.getMessage());
+                if (LOGGER.isWarnEnabled()) {
+                    LOGGER.warn(
+                            "Failed to initialize AppConfig API, using fallback configuration: {}",
+                            e.getMessage());
+                }
             }
             initializeFallbackConfiguration();
         }
@@ -366,9 +376,13 @@ public class AppConfigIntegration {
                 try {
                     final JsonNode jsonNode = objectMapper.readTree(config);
                     parsedConfiguration.set(jsonNode);
-                    LOGGER.debug("Configuration loaded from AppConfig API");
+                    if (LOGGER.isDebugEnabled()) {
+                        LOGGER.debug("Configuration loaded from AppConfig API");
+                    }
                 } catch (IOException e) {
-                    LOGGER.warn("Failed to parse configuration JSON: {}", e.getMessage());
+                    if (LOGGER.isWarnEnabled()) {
+                        LOGGER.warn("Failed to parse configuration JSON: {}", e.getMessage());
+                    }
                 }
             }
         } catch (Exception e) {
@@ -398,14 +412,18 @@ public class AppConfigIntegration {
             try {
                 appConfigDataClient.close();
             } catch (Exception e) {
-                LOGGER.warn("Error closing AppConfigData client: {}", e.getMessage());
+                if (LOGGER.isWarnEnabled()) {
+                    LOGGER.warn("Error closing AppConfigData client: {}", e.getMessage());
+                }
             }
         }
         if (appConfigClient != null) {
             try {
                 appConfigClient.close();
             } catch (Exception e) {
-                LOGGER.warn("Error closing AppConfig client: {}", e.getMessage());
+                if (LOGGER.isWarnEnabled()) {
+                    LOGGER.warn("Error closing AppConfig client: {}", e.getMessage());
+                }
             }
         }
     }
@@ -475,17 +493,23 @@ public class AppConfigIntegration {
                 // LocalStack doesn't support AppConfigData API (returns 501)
                 // Log at appropriate level based on environment
                 if (isLocalStack() || isLocalStackNotImplemented(e)) {
-                    LOGGER.debug(
-                            "AppConfigData API not supported by LocalStack (this is expected). "
-                                    + "AppConfig integration will use cached/default configuration. Error: {}",
-                            e.getMessage());
+                    if (LOGGER.isDebugEnabled()) {
+                        LOGGER.debug(
+                                "AppConfigData API not supported by LocalStack (this is expected). "
+                                        + "AppConfig integration will use cached/default configuration. Error: {}",
+                                e.getMessage());
+                    }
                 } else if (isLocalDevelopment()) {
                     // In local development, use DEBUG level to avoid noise
-                    LOGGER.debug(
-                            "Failed to start configuration session (this is expected in local development without AWS credentials): {}",
-                            e.getMessage());
+                    if (LOGGER.isDebugEnabled()) {
+                        LOGGER.debug(
+                                "Failed to start configuration session (this is expected in local development without AWS credentials): {}",
+                                e.getMessage());
+                    }
                 } else {
-                    LOGGER.warn("Failed to start configuration session: {}", e.getMessage());
+                    if (LOGGER.isWarnEnabled()) {
+                        LOGGER.warn("Failed to start configuration session: {}", e.getMessage());
+                    }
                     LOGGER.debug("AppConfig session error details", e);
                 }
                 // Don't throw exception - allow application to continue without AppConfig
@@ -510,8 +534,11 @@ public class AppConfigIntegration {
                 getConfigurationFromAppConfigApi();
                 return latestConfiguration.get();
             } catch (Exception e) {
-                LOGGER.debug(
-                        "Failed to refresh configuration from AppConfig API: {}", e.getMessage());
+                if (LOGGER.isDebugEnabled()) {
+                    LOGGER.debug(
+                            "Failed to refresh configuration from AppConfig API: {}",
+                            e.getMessage());
+                }
                 return latestConfiguration.get(); // Return cached
             }
         }
@@ -561,10 +588,14 @@ public class AppConfigIntegration {
                             response.getClass().getMethod("nextConfigurationToken");
                     nextToken = (String) method.invoke(response);
                 } catch (Exception e2) {
-                    LOGGER.debug("Could not get next configuration token: {}", e2.getMessage());
+                    if (LOGGER.isDebugEnabled()) {
+                        LOGGER.debug("Could not get next configuration token: {}", e2.getMessage());
+                    }
                 }
             } catch (Exception e) {
-                LOGGER.debug("Could not get next polling token: {}", e.getMessage());
+                if (LOGGER.isDebugEnabled()) {
+                    LOGGER.debug("Could not get next polling token: {}", e.getMessage());
+                }
             }
             if (nextToken != null && !nextToken.isEmpty()) {
                 configurationToken.set(nextToken);
@@ -580,9 +611,13 @@ public class AppConfigIntegration {
                 try {
                     final JsonNode jsonNode = objectMapper.readTree(config);
                     parsedConfiguration.set(jsonNode);
-                    LOGGER.debug("Configuration updated and parsed from AppConfig");
+                    if (LOGGER.isDebugEnabled()) {
+                        LOGGER.debug("Configuration updated and parsed from AppConfig");
+                    }
                 } catch (IOException e) {
-                    LOGGER.warn("Failed to parse configuration JSON: {}", e.getMessage());
+                    if (LOGGER.isWarnEnabled()) {
+                        LOGGER.warn("Failed to parse configuration JSON: {}", e.getMessage());
+                    }
                 }
             }
 
@@ -591,10 +626,12 @@ public class AppConfigIntegration {
             // LocalStack doesn't support AppConfigData API (returns 501)
             // Log at appropriate level based on whether it's LocalStack
             if (isLocalStack() || isLocalStackNotImplemented(e)) {
-                LOGGER.debug(
-                        "AppConfigData API not supported by LocalStack (this is expected). "
-                                + "Using cached/default configuration. Error: {}",
-                        e.getMessage());
+                if (LOGGER.isDebugEnabled()) {
+                    LOGGER.debug(
+                            "AppConfigData API not supported by LocalStack (this is expected). "
+                                    + "Using cached/default configuration. Error: {}",
+                            e.getMessage());
+                }
             } else {
                 LOGGER.error("Failed to get latest configuration from AppConfig", e);
             }

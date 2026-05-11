@@ -430,9 +430,11 @@ public class TransactionController {
             dataChangeNotificationService.notifyTransactionCreated(
                     user.getUserId(), transaction.getTransactionId());
         } catch (Exception e) {
-            LOGGER.warn(
-                    "Failed to send data change notification for transaction creation: {}",
-                    e.getMessage());
+            if (LOGGER.isWarnEnabled()) {
+                LOGGER.warn(
+                        "Failed to send data change notification for transaction creation: {}",
+                        e.getMessage());
+            }
             // Don't fail the request if notification fails
         }
 
@@ -446,21 +448,27 @@ public class TransactionController {
                                     subscriptionService.detectSubscriptions(user.getUserId());
                             if (!detected.isEmpty()) {
                                 subscriptionService.saveSubscriptions(user.getUserId(), detected);
-                                LOGGER.info(
-                                        "Detected {} subscriptions after transaction creation",
-                                        detected.size());
+                                if (LOGGER.isInfoEnabled()) {
+                                    LOGGER.info(
+                                            "Detected {} subscriptions after transaction creation",
+                                            detected.size());
+                                }
                             }
                         } catch (Exception e) {
-                            LOGGER.warn(
-                                    "Failed to detect subscriptions after transaction creation: {}",
-                                    e.getMessage());
+                            if (LOGGER.isWarnEnabled()) {
+                                LOGGER.warn(
+                                        "Failed to detect subscriptions after transaction creation: {}",
+                                        e.getMessage());
+                            }
                             // Don't fail the request if subscription detection fails
                         }
                     });
         } catch (Exception e) {
-            LOGGER.warn(
-                    "Failed to trigger subscription detection after transaction creation: {}",
-                    e.getMessage());
+            if (LOGGER.isWarnEnabled()) {
+                LOGGER.warn(
+                        "Failed to trigger subscription detection after transaction creation: {}",
+                        e.getMessage());
+            }
             // Don't fail the request if subscription detection fails
         }
 
@@ -565,9 +573,11 @@ public class TransactionController {
             dataChangeNotificationService.notifyTransactionUpdated(
                     user.getUserId(), transaction.getTransactionId());
         } catch (Exception e) {
-            LOGGER.warn(
-                    "Failed to send data change notification for transaction update: {}",
-                    e.getMessage());
+            if (LOGGER.isWarnEnabled()) {
+                LOGGER.warn(
+                        "Failed to send data change notification for transaction update: {}",
+                        e.getMessage());
+            }
             // Don't fail the request if notification fails
         }
 
@@ -584,7 +594,9 @@ public class TransactionController {
             }
             budgetThresholdEvaluator.evaluate(user.getUserId(), touched);
         } catch (Exception e) {
-            LOGGER.warn("Budget threshold evaluation failed: {}", e.getMessage());
+            if (LOGGER.isWarnEnabled()) {
+                LOGGER.warn("Budget threshold evaluation failed: {}", e.getMessage());
+            }
         }
 
         // Flow 6 / O3: after the edit lands, recompute goal progress and emit any
@@ -596,7 +608,9 @@ public class TransactionController {
             budgetToGoalFlowService.flowForUser(user);
             goalIngestEvaluator.evaluate(user);
         } catch (Exception e) {
-            LOGGER.warn("Goal ingest evaluation failed: {}", e.getMessage());
+            if (LOGGER.isWarnEnabled()) {
+                LOGGER.warn("Goal ingest evaluation failed: {}", e.getMessage());
+            }
         }
 
         if (auditInterceptor != null) {
@@ -614,7 +628,9 @@ public class TransactionController {
             try {
                 anomalyAlertPusher.pushHighSeverityIfAny(user.getUserId());
             } catch (Exception e) {
-                LOGGER.warn("Anomaly push failed: {}", e.getMessage());
+                if (LOGGER.isWarnEnabled()) {
+                    LOGGER.warn("Anomaly push failed: {}", e.getMessage());
+                }
             }
         }
 
@@ -638,22 +654,28 @@ public class TransactionController {
                                     subscriptionService.detectSubscriptions(user.getUserId());
                             if (!detected.isEmpty()) {
                                 subscriptionService.saveSubscriptions(user.getUserId(), detected);
-                                LOGGER.info(
-                                        "Detected {} subscriptions after transaction update (category changed to subscription: {})",
-                                        detected.size(),
-                                        isSubscriptionCategory);
+                                if (LOGGER.isInfoEnabled()) {
+                                    LOGGER.info(
+                                            "Detected {} subscriptions after transaction update (category changed to subscription: {})",
+                                            detected.size(),
+                                            isSubscriptionCategory);
+                                }
                             }
                         } catch (Exception e) {
-                            LOGGER.warn(
-                                    "Failed to detect subscriptions after transaction update: {}",
-                                    e.getMessage());
+                            if (LOGGER.isWarnEnabled()) {
+                                LOGGER.warn(
+                                        "Failed to detect subscriptions after transaction update: {}",
+                                        e.getMessage());
+                            }
                             // Don't fail the request if subscription detection fails
                         }
                     });
         } catch (Exception e) {
-            LOGGER.warn(
-                    "Failed to trigger subscription detection after transaction update: {}",
-                    e.getMessage());
+            if (LOGGER.isWarnEnabled()) {
+                LOGGER.warn(
+                        "Failed to trigger subscription detection after transaction update: {}",
+                        e.getMessage());
+            }
             // Don't fail the request if subscription detection fails
         }
 
@@ -715,15 +737,19 @@ public class TransactionController {
                         if (account.getUserId() != null
                                 && account.getUserId().equals(user.getUserId())) {
                             accountIdToUse = matchedAccountId;
-                            LOGGER.info(
-                                    "🔗 Using matched account ID from detectedAccount: {}",
-                                    accountIdToUse);
+                            if (LOGGER.isInfoEnabled()) {
+                                LOGGER.info(
+                                        "🔗 Using matched account ID from detectedAccount: {}",
+                                        accountIdToUse);
+                            }
                         } else {
-                            LOGGER.warn(
-                                    "⚠️ Matched account ID '{}' belongs to different user (account userId: '{}', request userId: '{}') - ignoring",
-                                    matchedAccountId,
-                                    account.getUserId(),
-                                    user.getUserId());
+                            if (LOGGER.isWarnEnabled()) {
+                                LOGGER.warn(
+                                        "⚠️ Matched account ID '{}' belongs to different user (account userId: '{}', request userId: '{}') - ignoring",
+                                        matchedAccountId,
+                                        account.getUserId(),
+                                        user.getUserId());
+                            }
                         }
                     } else {
                         LOGGER.warn(
@@ -731,11 +757,13 @@ public class TransactionController {
                                 matchedAccountId);
                     }
                 } catch (Exception e) {
-                    LOGGER.error(
-                            "❌ Error verifying matched account ID '{}': {}",
-                            matchedAccountId,
-                            e.getMessage(),
-                            e);
+                    if (LOGGER.isErrorEnabled()) {
+                        LOGGER.error(
+                                "❌ Error verifying matched account ID '{}': {}",
+                                matchedAccountId,
+                                e.getMessage(),
+                                e);
+                    }
                     // Don't fail the entire import - continue without matched account
                 }
             }
@@ -745,10 +773,12 @@ public class TransactionController {
         // This ensures transactions are tagged to the correct account instead of wrong/pseudo
         // account
         if (accountIdToUse != null && !accountIdToUse.isBlank()) {
-            LOGGER.info(
-                    "🔗 Updating {} transactions to use account: {}",
-                    request.getTransactions().size(),
-                    accountIdToUse);
+            if (LOGGER.isInfoEnabled()) {
+                LOGGER.info(
+                        "🔗 Updating {} transactions to use account: {}",
+                        request.getTransactions().size(),
+                        accountIdToUse);
+            }
             int updatedCount = 0;
             for (final CreateTransactionRequest txRequest : request.getTransactions()) {
                 if (txRequest == null) {
@@ -763,13 +793,15 @@ public class TransactionController {
                 txRequest.setAccountId(accountIdToUse);
                 updatedCount++;
                 if (oldAccountId != null && !oldAccountId.equals(accountIdToUse)) {
-                    LOGGER.debug(
-                            "Updated transaction '{}' accountId from '{}' to '{}'",
-                            txRequest.getDescription() != null
-                                    ? txRequest.getDescription()
-                                    : "unknown",
-                            oldAccountId,
-                            accountIdToUse);
+                    if (LOGGER.isDebugEnabled()) {
+                        LOGGER.debug(
+                                "Updated transaction '{}' accountId from '{}' to '{}'",
+                                txRequest.getDescription() != null
+                                        ? txRequest.getDescription()
+                                        : "unknown",
+                                oldAccountId,
+                                accountIdToUse);
+                    }
                 }
             }
             LOGGER.info(
@@ -789,8 +821,11 @@ public class TransactionController {
                         user.getUserId(), totalCount);
             }
         } catch (Exception e) {
-            LOGGER.warn(
-                    "Failed to send data change notification for batch import: {}", e.getMessage());
+            if (LOGGER.isWarnEnabled()) {
+                LOGGER.warn(
+                        "Failed to send data change notification for batch import: {}",
+                        e.getMessage());
+            }
             // Don't fail the request if notification fails
         }
 
@@ -807,22 +842,28 @@ public class TransactionController {
                                 if (!detected.isEmpty()) {
                                     subscriptionService.saveSubscriptions(
                                             user.getUserId(), detected);
-                                    LOGGER.info(
-                                            "Detected {} subscriptions after batch import ({} transactions created)",
-                                            detected.size(),
-                                            finalCreated);
+                                    if (LOGGER.isInfoEnabled()) {
+                                        LOGGER.info(
+                                                "Detected {} subscriptions after batch import ({} transactions created)",
+                                                detected.size(),
+                                                finalCreated);
+                                    }
                                 }
                             } catch (Exception e) {
-                                LOGGER.warn(
-                                        "Failed to detect subscriptions after batch import: {}",
-                                        e.getMessage());
+                                if (LOGGER.isWarnEnabled()) {
+                                    LOGGER.warn(
+                                            "Failed to detect subscriptions after batch import: {}",
+                                            e.getMessage());
+                                }
                                 // Don't fail the request if subscription detection fails
                             }
                         });
             } catch (Exception e) {
-                LOGGER.warn(
-                        "Failed to trigger subscription detection after batch import: {}",
-                        e.getMessage());
+                if (LOGGER.isWarnEnabled()) {
+                    LOGGER.warn(
+                            "Failed to trigger subscription detection after batch import: {}",
+                            e.getMessage());
+                }
                 // Don't fail the request if subscription detection fails
             }
         }
@@ -834,14 +875,18 @@ public class TransactionController {
                 // Validate UUID format to prevent invalid IDs from being sent to iOS
                 UUID.fromString(accountIdToUse);
                 response.setCreatedAccountId(accountIdToUse);
-                LOGGER.info(
-                        "📤 Including createdAccountId '{}' in batch import response",
-                        accountIdToUse);
+                if (LOGGER.isInfoEnabled()) {
+                    LOGGER.info(
+                            "📤 Including createdAccountId '{}' in batch import response",
+                            accountIdToUse);
+                }
             } catch (IllegalArgumentException e) {
-                LOGGER.error(
-                        "❌ Invalid UUID format for createdAccountId '{}': {}",
-                        accountIdToUse,
-                        e.getMessage());
+                if (LOGGER.isErrorEnabled()) {
+                    LOGGER.error(
+                            "❌ Invalid UUID format for createdAccountId '{}': {}",
+                            accountIdToUse,
+                            e.getMessage());
+                }
                 // Don't include invalid UUID in response - iOS will handle gracefully
                 // Account was still created/used, but we won't return the ID if it's invalid
             }
@@ -902,21 +947,27 @@ public class TransactionController {
                                     subscriptionService.detectSubscriptions(user.getUserId());
                             if (!detected.isEmpty()) {
                                 subscriptionService.saveSubscriptions(user.getUserId(), detected);
-                                LOGGER.info(
-                                        "Detected {} subscriptions after transaction deletion",
-                                        detected.size());
+                                if (LOGGER.isInfoEnabled()) {
+                                    LOGGER.info(
+                                            "Detected {} subscriptions after transaction deletion",
+                                            detected.size());
+                                }
                             }
                         } catch (Exception e) {
-                            LOGGER.warn(
-                                    "Failed to detect subscriptions after transaction deletion: {}",
-                                    e.getMessage());
+                            if (LOGGER.isWarnEnabled()) {
+                                LOGGER.warn(
+                                        "Failed to detect subscriptions after transaction deletion: {}",
+                                        e.getMessage());
+                            }
                             // Don't fail the request if subscription detection fails
                         }
                     });
         } catch (Exception e) {
-            LOGGER.warn(
-                    "Failed to trigger subscription detection after transaction deletion: {}",
-                    e.getMessage());
+            if (LOGGER.isWarnEnabled()) {
+                LOGGER.warn(
+                        "Failed to trigger subscription detection after transaction deletion: {}",
+                        e.getMessage());
+            }
             // Don't fail the request if subscription detection fails
         }
 
@@ -1022,7 +1073,10 @@ public class TransactionController {
         } catch (AppException e) {
             throw e;
         } catch (Exception e) {
-            LOGGER.error("Security processing failed for file: {}", file.getOriginalFilename(), e);
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error(
+                        "Security processing failed for file: {}", file.getOriginalFilename(), e);
+            }
             throw new AppException(
                     ErrorCode.INTERNAL_SERVER_ERROR,
                     "File security processing failed: " + e.getMessage());
@@ -1049,10 +1103,12 @@ public class TransactionController {
 
         // Validate filename length (RFC 2183 recommends max 255 bytes, we use 200 for safety)
         if (filename.length() > 200) {
-            LOGGER.warn(
-                    "⚠️ Filename too long ({} chars), truncating: '{}'",
-                    filename.length(),
-                    filename);
+            if (LOGGER.isWarnEnabled()) {
+                LOGGER.warn(
+                        "⚠️ Filename too long ({} chars), truncating: '{}'",
+                        filename.length(),
+                        filename);
+            }
             // Preserve extension while truncating
             final int lastDot = filename.lastIndexOf('.');
             if (lastDot > 0 && lastDot < filename.length() - 1) {
@@ -1165,21 +1221,25 @@ public class TransactionController {
                         originalFilename);
             }
 
-            LOGGER.info(
-                    "📁 CSV Preview - Using filename for account detection: '{}' (from parameter: {}, from MultipartFile: '{}', isUUID: {})",
-                    originalFilename,
-                    fromParameter,
-                    file.getOriginalFilename(),
-                    isUUIDFilename);
+            if (LOGGER.isInfoEnabled()) {
+                LOGGER.info(
+                        "📁 CSV Preview - Using filename for account detection: '{}' (from parameter: {}, from MultipartFile: '{}', isUUID: {})",
+                        originalFilename,
+                        fromParameter,
+                        file.getOriginalFilename(),
+                        isUUIDFilename);
+            }
 
             // Log multipart request details for debugging
-            LOGGER.info(
-                    "📤 CSV Preview Request Details - Filename param: '{}', MultipartFile name: '{}', Size: {} bytes, ContentType: '{}', Has password: {}",
-                    filename,
-                    file.getOriginalFilename(),
-                    file.getSize(),
-                    file.getContentType(),
-                    password != null && !password.isEmpty());
+            if (LOGGER.isInfoEnabled()) {
+                LOGGER.info(
+                        "📤 CSV Preview Request Details - Filename param: '{}', MultipartFile name: '{}', Size: {} bytes, ContentType: '{}', Has password: {}",
+                        filename,
+                        file.getOriginalFilename(),
+                        file.getSize(),
+                        file.getContentType(),
+                        password != null && !password.isEmpty());
+            }
 
             // Apply security processing
             final byte[] fileContent =
@@ -1233,13 +1293,15 @@ public class TransactionController {
                     final CSVImportService.ParsedTransaction parsed =
                             importResult.getTransactions().get(i);
                     // Log category assignment for preview
-                    LOGGER.info(
-                            "📋 CSV Preview Transaction[{}]: merchant='{}', description='{}', amount={}, category='{}'",
-                            i,
-                            parsed.getMerchantName(),
-                            parsed.getDescription(),
-                            parsed.getAmount(),
-                            parsed.getCategoryPrimary());
+                    if (LOGGER.isInfoEnabled()) {
+                        LOGGER.info(
+                                "📋 CSV Preview Transaction[{}]: merchant='{}', description='{}', amount={}, category='{}'",
+                                i,
+                                parsed.getMerchantName(),
+                                parsed.getDescription(),
+                                parsed.getAmount(),
+                                parsed.getCategoryPrimary());
+                    }
                     final Map<String, Object> txMap =
                             buildTransactionMap(parsed, duplicates.get(i));
                     paginatedTransactions.add(txMap);
@@ -1288,10 +1350,12 @@ public class TransactionController {
                             accountInfo.setMinimumPaymentDue(account.getMinimumPaymentDue());
                             accountInfo.setRewardPoints(account.getRewardPoints());
 
-                            LOGGER.info(
-                                    "✅ Matched detected account to existing account: {} (accountId: {})",
-                                    account.getAccountName(),
-                                    matchedAccountId);
+                            if (LOGGER.isInfoEnabled()) {
+                                LOGGER.info(
+                                        "✅ Matched detected account to existing account: {} (accountId: {})",
+                                        account.getAccountName(),
+                                        matchedAccountId);
+                            }
                         } else {
                             // Matched account not found or doesn't belong to user - use detected
                             // account
@@ -1351,22 +1415,28 @@ public class TransactionController {
                 }
 
                 // Log response details
-                LOGGER.info(
-                        "📥 CSV Preview Response - Total parsed: {}, Transactions: {}, Errors: {}, Detected account: {} (institution: {}, type: {}, number: {})",
-                        response.getTotalParsed(),
-                        response.getTransactions() != null ? response.getTransactions().size() : 0,
-                        importResult.getErrors() != null ? importResult.getErrors().size() : 0,
-                        accountInfo != null ? accountInfo.getAccountName() : NONE,
-                        accountInfo != null ? accountInfo.getInstitutionName() : NONE,
-                        accountInfo != null ? accountInfo.getAccountType() : NONE,
-                        accountInfo != null ? accountInfo.getAccountNumber() : NONE);
+                if (LOGGER.isInfoEnabled()) {
+                    LOGGER.info(
+                            "📥 CSV Preview Response - Total parsed: {}, Transactions: {}, Errors: {}, Detected account: {} (institution: {}, type: {}, number: {})",
+                            response.getTotalParsed(),
+                            response.getTransactions() != null
+                                    ? response.getTransactions().size()
+                                    : 0,
+                            importResult.getErrors() != null ? importResult.getErrors().size() : 0,
+                            accountInfo != null ? accountInfo.getAccountName() : NONE,
+                            accountInfo != null ? accountInfo.getInstitutionName() : NONE,
+                            accountInfo != null ? accountInfo.getAccountType() : NONE,
+                            accountInfo != null ? accountInfo.getAccountNumber() : NONE);
+                }
 
                 return ResponseEntity.ok(response);
             }
         } catch (AppException e) {
             throw e;
         } catch (Exception e) {
-            LOGGER.error("CSV preview failed: {}", e.getMessage(), e);
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error("CSV preview failed: {}", e.getMessage(), e);
+            }
             throw new AppException(
                     ErrorCode.INVALID_INPUT, "Failed to preview CSV: " + e.getMessage());
         }
@@ -1421,22 +1491,26 @@ public class TransactionController {
                         originalFilename);
             }
 
-            LOGGER.info(
-                    "📁 CSV Import - Using filename for account detection: '{}' (from parameter: {}, from MultipartFile: '{}', isUUID: {})",
-                    originalFilename,
-                    fromParameter,
-                    file.getOriginalFilename(),
-                    isUUIDFilename);
+            if (LOGGER.isInfoEnabled()) {
+                LOGGER.info(
+                        "📁 CSV Import - Using filename for account detection: '{}' (from parameter: {}, from MultipartFile: '{}', isUUID: {})",
+                        originalFilename,
+                        fromParameter,
+                        file.getOriginalFilename(),
+                        isUUIDFilename);
+            }
 
             // Log multipart request details for debugging
-            LOGGER.info(
-                    "📤 CSV Import Request Details - Filename param: '{}', MultipartFile name: '{}', Size: {} bytes, ContentType: '{}', AccountId: '{}', Has password: {}",
-                    filename,
-                    file.getOriginalFilename(),
-                    file.getSize(),
-                    file.getContentType(),
-                    accountId,
-                    password != null && !password.isEmpty());
+            if (LOGGER.isInfoEnabled()) {
+                LOGGER.info(
+                        "📤 CSV Import Request Details - Filename param: '{}', MultipartFile name: '{}', Size: {} bytes, ContentType: '{}', AccountId: '{}', Has password: {}",
+                        filename,
+                        file.getOriginalFilename(),
+                        file.getSize(),
+                        file.getContentType(),
+                        accountId,
+                        password != null && !password.isEmpty());
+            }
 
             // Apply security processing
             final byte[] fileContent =
@@ -1450,11 +1524,13 @@ public class TransactionController {
 
                 // CRITICAL: Auto-create account if detected but not matched
                 String accountIdToUse = accountId; // Use provided accountId if available
-                LOGGER.info(
-                        "🔍 [Non-paginated Import] Account creation check - provided accountId: '{}', detectedAccount: {}, matchedAccountId: '{}'",
-                        accountId,
-                        importResult.getDetectedAccount() != null ? "present" : NULL,
-                        importResult.getMatchedAccountId());
+                if (LOGGER.isInfoEnabled()) {
+                    LOGGER.info(
+                            "🔍 [Non-paginated Import] Account creation check - provided accountId: '{}', detectedAccount: {}, matchedAccountId: '{}'",
+                            accountId,
+                            importResult.getDetectedAccount() != null ? "present" : NULL,
+                            importResult.getMatchedAccountId());
+                }
 
                 if (accountIdToUse == null || accountIdToUse.isBlank()) {
                     if (importResult.getMatchedAccountId() != null
@@ -1465,13 +1541,17 @@ public class TransactionController {
                         if (matchedAccount.isPresent()
                                 && matchedAccount.get().getUserId().equals(user.getUserId())) {
                             accountIdToUse = importResult.getMatchedAccountId();
-                            LOGGER.info(
-                                    "✅ [Non-paginated Import] Using matched account ID from preview: '{}'",
-                                    accountIdToUse);
+                            if (LOGGER.isInfoEnabled()) {
+                                LOGGER.info(
+                                        "✅ [Non-paginated Import] Using matched account ID from preview: '{}'",
+                                        accountIdToUse);
+                            }
                         } else {
-                            LOGGER.warn(
-                                    "⚠️ [Non-paginated Import] Matched account ID '{}' from preview not found or doesn't belong to user - will auto-create instead",
-                                    importResult.getMatchedAccountId());
+                            if (LOGGER.isWarnEnabled()) {
+                                LOGGER.warn(
+                                        "⚠️ [Non-paginated Import] Matched account ID '{}' from preview not found or doesn't belong to user - will auto-create instead",
+                                        importResult.getMatchedAccountId());
+                            }
                             // Fall through to auto-create logic
                         }
                     }
@@ -1501,19 +1581,23 @@ public class TransactionController {
                                                         .isEmpty());
 
                         if (hasAccountInfo) {
-                            LOGGER.info(
-                                    "📝 [Non-paginated Import] Attempting to auto-create account for detected account: name='{}', institution='{}', type='{}'",
-                                    detected.getAccountName(),
-                                    detected.getInstitutionName(),
-                                    detected.getAccountType());
-                            accountIdToUse = autoCreateAccountIfDetected(user, detected);
-                            if (accountIdToUse != null && !accountIdToUse.isBlank()) {
+                            if (LOGGER.isInfoEnabled()) {
                                 LOGGER.info(
-                                        "✅ [Non-paginated Import] Auto-created account '{}' for detected account: {} (institution: {}, type: {})",
-                                        accountIdToUse,
+                                        "📝 [Non-paginated Import] Attempting to auto-create account for detected account: name='{}', institution='{}', type='{}'",
                                         detected.getAccountName(),
                                         detected.getInstitutionName(),
                                         detected.getAccountType());
+                            }
+                            accountIdToUse = autoCreateAccountIfDetected(user, detected);
+                            if (accountIdToUse != null && !accountIdToUse.isBlank()) {
+                                if (LOGGER.isInfoEnabled()) {
+                                    LOGGER.info(
+                                            "✅ [Non-paginated Import] Auto-created account '{}' for detected account: {} (institution: {}, type: {})",
+                                            accountIdToUse,
+                                            detected.getAccountName(),
+                                            detected.getInstitutionName(),
+                                            detected.getAccountType());
+                                }
                             } else {
                                 LOGGER.info(
                                         "ℹ️ [Non-paginated Import] Auto-creation skipped - detected account has no meaningful information. Transactions will use pseudo account.");
@@ -1540,7 +1624,9 @@ public class TransactionController {
         } catch (AppException e) {
             throw e;
         } catch (Exception e) {
-            LOGGER.error("CSV import failed: {}", e.getMessage(), e);
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error("CSV import failed: {}", e.getMessage(), e);
+            }
             throw new AppException(
                     ErrorCode.INVALID_INPUT, "Failed to import CSV: " + e.getMessage());
         }
@@ -1634,10 +1720,12 @@ public class TransactionController {
                         if (accountsMatch) {
                             previewCategories = categoryPreservation.getPreviewCategories();
                             previewAccountId = previewAcctId;
-                            LOGGER.info(
-                                    "📋 Using preview categories for import (account matches: '{}', {} categories provided)",
-                                    previewAccountId,
-                                    previewCategories.size());
+                            if (LOGGER.isInfoEnabled()) {
+                                LOGGER.info(
+                                        "📋 Using preview categories for import (account matches: '{}', {} categories provided)",
+                                        previewAccountId,
+                                        previewCategories.size());
+                            }
                         } else {
                             LOGGER.info(
                                     "📋 Preview categories provided but account changed (preview: '{}', import: '{}') - will re-categorize",
@@ -1646,9 +1734,11 @@ public class TransactionController {
                         }
                     }
                 } catch (Exception e) {
-                    LOGGER.warn(
-                            "Failed to parse preview categories JSON: {}. Will re-categorize transactions.",
-                            e.getMessage());
+                    if (LOGGER.isWarnEnabled()) {
+                        LOGGER.warn(
+                                "Failed to parse preview categories JSON: {}. Will re-categorize transactions.",
+                                e.getMessage());
+                    }
                 }
             }
 
@@ -1682,47 +1772,55 @@ public class TransactionController {
                 final List<CSVImportService.ParsedTransaction> chunk =
                         allTransactions.subList(startIndex, endIndex);
 
-                LOGGER.info(
-                        "📦 Importing CSV chunk: page {} (transactions {} to {} of {})",
-                        page,
-                        startIndex + 1,
-                        endIndex,
-                        totalTransactions);
+                if (LOGGER.isInfoEnabled()) {
+                    LOGGER.info(
+                            "📦 Importing CSV chunk: page {} (transactions {} to {} of {})",
+                            page,
+                            startIndex + 1,
+                            endIndex,
+                            totalTransactions);
+                }
 
                 // CRITICAL: Auto-create detected account if user hasn't manually created it
                 // Only create on first page (page 0) to avoid creating multiple accounts
                 // Reuse the same account across all pages for paginated imports
                 String accountIdToUse = accountId;
-                LOGGER.info(
-                        "🔍 [Paginated Import Page {}] Account creation check - provided accountId: '{}', detectedAccount: {}, matchedAccountId: '{}'",
-                        page,
-                        accountId,
-                        importResult.getDetectedAccount() != null
-                                ? "present (name: '"
-                                        + importResult.getDetectedAccount().getAccountName()
-                                        + "', institution: '"
-                                        + importResult.getDetectedAccount().getInstitutionName()
-                                        + "')"
-                                : NULL,
-                        importResult.getMatchedAccountId());
+                if (LOGGER.isInfoEnabled()) {
+                    LOGGER.info(
+                            "🔍 [Paginated Import Page {}] Account creation check - provided accountId: '{}', detectedAccount: {}, matchedAccountId: '{}'",
+                            page,
+                            accountId,
+                            importResult.getDetectedAccount() != null
+                                    ? "present (name: '"
+                                            + importResult.getDetectedAccount().getAccountName()
+                                            + "', institution: '"
+                                            + importResult.getDetectedAccount().getInstitutionName()
+                                            + "')"
+                                    : NULL,
+                            importResult.getMatchedAccountId());
+                }
 
                 if (accountIdToUse == null || accountIdToUse.isBlank()) {
                     final List<AccountTable> existingAccounts =
                             accountRepository.findByUserId(user.getUserId());
-                    LOGGER.info(
-                            "🔍 [Paginated Import Page {}] STEP 1: Checking existing accounts - Found {} accounts for user {}",
-                            page,
-                            existingAccounts != null ? existingAccounts.size() : 0,
-                            user.getUserId());
+                    if (LOGGER.isInfoEnabled()) {
+                        LOGGER.info(
+                                "🔍 [Paginated Import Page {}] STEP 1: Checking existing accounts - Found {} accounts for user {}",
+                                page,
+                                existingAccounts != null ? existingAccounts.size() : 0,
+                                user.getUserId());
+                    }
                     if (existingAccounts != null && !existingAccounts.isEmpty()) {
                         for (final AccountTable acc : existingAccounts) {
-                            LOGGER.info(
-                                    "   📋 Existing account: ID='{}', name='{}', institution='{}', type='{}', createdAt='{}'",
-                                    acc.getAccountId(),
-                                    acc.getAccountName(),
-                                    acc.getInstitutionName(),
-                                    acc.getAccountType(),
-                                    acc.getCreatedAt());
+                            if (LOGGER.isInfoEnabled()) {
+                                LOGGER.info(
+                                        "   📋 Existing account: ID='{}', name='{}', institution='{}', type='{}', createdAt='{}'",
+                                        acc.getAccountId(),
+                                        acc.getAccountName(),
+                                        acc.getInstitutionName(),
+                                        acc.getAccountType(),
+                                        acc.getCreatedAt());
+                            }
                         }
                     }
 
@@ -1776,12 +1874,14 @@ public class TransactionController {
                         // User has already created (or we previously auto-created) a matching
                         // account - use it
                         accountIdToUse = matchingAccount.getAccountId();
-                        LOGGER.info(
-                                "📝 Using existing account '{}' (name: '{}', institution: '{}') for import (page {})",
-                                accountIdToUse,
-                                matchingAccount.getAccountName(),
-                                matchingAccount.getInstitutionName(),
-                                page);
+                        if (LOGGER.isInfoEnabled()) {
+                            LOGGER.info(
+                                    "📝 Using existing account '{}' (name: '{}', institution: '{}') for import (page {})",
+                                    accountIdToUse,
+                                    matchingAccount.getAccountName(),
+                                    matchingAccount.getInstitutionName(),
+                                    page);
+                        }
                     } else if (importResult.getMatchedAccountId() != null
                             && !importResult.getMatchedAccountId().isBlank()) {
                         // Account was matched during preview - verify it exists and use it
@@ -1790,15 +1890,19 @@ public class TransactionController {
                         if (matchedAccount.isPresent()
                                 && matchedAccount.get().getUserId().equals(user.getUserId())) {
                             accountIdToUse = importResult.getMatchedAccountId();
-                            LOGGER.info(
-                                    "📝 Using matched account ID from preview: '{}' (page {})",
-                                    accountIdToUse,
-                                    page);
+                            if (LOGGER.isInfoEnabled()) {
+                                LOGGER.info(
+                                        "📝 Using matched account ID from preview: '{}' (page {})",
+                                        accountIdToUse,
+                                        page);
+                            }
                         } else {
-                            LOGGER.warn(
-                                    "⚠️ Matched account ID '{}' from preview not found or doesn't belong to user - will auto-create instead (page {})",
-                                    importResult.getMatchedAccountId(),
-                                    page);
+                            if (LOGGER.isWarnEnabled()) {
+                                LOGGER.warn(
+                                        "⚠️ Matched account ID '{}' from preview not found or doesn't belong to user - will auto-create instead (page {})",
+                                        importResult.getMatchedAccountId(),
+                                        page);
+                            }
                             // Fall through to auto-create logic
                         }
                     }
@@ -1847,11 +1951,13 @@ public class TransactionController {
                                 if (page == 0) {
                                     // First page: Always try to auto-create if account is detected
                                     // with meaningful info
-                                    LOGGER.info(
-                                            "📝 [Page 0] Attempting to auto-create account for detected account: name='{}', institution='{}', type='{}'",
-                                            detectedAccount.getAccountName(),
-                                            detectedAccount.getInstitutionName(),
-                                            detectedAccount.getAccountType());
+                                    if (LOGGER.isInfoEnabled()) {
+                                        LOGGER.info(
+                                                "📝 [Page 0] Attempting to auto-create account for detected account: name='{}', institution='{}', type='{}'",
+                                                detectedAccount.getAccountName(),
+                                                detectedAccount.getInstitutionName(),
+                                                detectedAccount.getAccountType());
+                                    }
                                     LOGGER.info(
                                             "🔨 [Page 0] STEP 2: Calling autoCreateAccountIfDetected...");
                                     accountIdToUse =
@@ -1865,13 +1971,15 @@ public class TransactionController {
                                                 accountRepository.findById(accountIdToUse);
                                         if (createdAccount.isPresent()) {
                                             final AccountTable acc = createdAccount.get();
-                                            LOGGER.info(
-                                                    "✅ [Page 0] STEP 4: Account verification - ID='{}', name='{}', institution='{}', type='{}', createdAt='{}'",
-                                                    acc.getAccountId(),
-                                                    acc.getAccountName(),
-                                                    acc.getInstitutionName(),
-                                                    acc.getAccountType(),
-                                                    acc.getCreatedAt());
+                                            if (LOGGER.isInfoEnabled()) {
+                                                LOGGER.info(
+                                                        "✅ [Page 0] STEP 4: Account verification - ID='{}', name='{}', institution='{}', type='{}', createdAt='{}'",
+                                                        acc.getAccountId(),
+                                                        acc.getAccountName(),
+                                                        acc.getInstitutionName(),
+                                                        acc.getAccountType(),
+                                                        acc.getCreatedAt());
+                                            }
                                         } else {
                                             LOGGER.error(
                                                     "❌ [Page 0] STEP 4: Account verification FAILED - Account '{}' not found in repository!",
@@ -1904,15 +2012,19 @@ public class TransactionController {
                                                     .getUserId()
                                                     .equals(user.getUserId())) {
                                         accountIdToUse = importResult.getMatchedAccountId();
-                                        LOGGER.info(
-                                                "✅ [Page {}] STEP 2a: Using matched account ID from preview: '{}'",
-                                                page,
-                                                accountIdToUse);
+                                        if (LOGGER.isInfoEnabled()) {
+                                            LOGGER.info(
+                                                    "✅ [Page {}] STEP 2a: Using matched account ID from preview: '{}'",
+                                                    page,
+                                                    accountIdToUse);
+                                        }
                                     } else {
-                                        LOGGER.warn(
-                                                "⚠️ [Page {}] STEP 2a: Matched account ID '{}' from preview not found or doesn't belong to user",
-                                                page,
-                                                importResult.getMatchedAccountId());
+                                        if (LOGGER.isWarnEnabled()) {
+                                            LOGGER.warn(
+                                                    "⚠️ [Page {}] STEP 2a: Matched account ID '{}' from preview not found or doesn't belong to user",
+                                                    page,
+                                                    importResult.getMatchedAccountId());
+                                        }
                                     }
                                 }
 
@@ -1921,40 +2033,45 @@ public class TransactionController {
                                 if ((accountIdToUse == null || accountIdToUse.isBlank())
                                         && existingAccounts != null
                                         && !existingAccounts.isEmpty()) {
-                                    LOGGER.info(
-                                            "🔍 [Page {}] STEP 2b: Found {} existing accounts, checking for match by detected account",
-                                            page,
-                                            existingAccounts.size());
+                                    if (LOGGER.isInfoEnabled()) {
+                                        LOGGER.info(
+                                                "🔍 [Page {}] STEP 2b: Found {} existing accounts, checking for match by detected account",
+                                                page,
+                                                existingAccounts.size());
+                                    }
                                     final AccountDetectionService.DetectedAccount
                                             detectedAccountForPage =
                                                     importResult.getDetectedAccount();
-                                    LOGGER.info(
-                                            "🔍 [Page {}] STEP 2c: Detected account info - name='{}', institution='{}', type='{}', number='{}'",
-                                            page,
-                                            detectedAccountForPage != null
-                                                    ? detectedAccountForPage.getAccountName()
-                                                    : NULL,
-                                            detectedAccountForPage != null
-                                                    ? detectedAccountForPage.getInstitutionName()
-                                                    : NULL,
-                                            detectedAccountForPage != null
-                                                    ? detectedAccountForPage.getAccountType()
-                                                    : NULL,
-                                            detectedAccountForPage != null
-                                                            && detectedAccountForPage
-                                                                            .getAccountNumber()
-                                                                    != null
-                                                    ? "***"
-                                                            + detectedAccountForPage
-                                                                    .getAccountNumber()
-                                                                    .substring(
-                                                                            Math.max(
-                                                                                    0,
-                                                                                    detectedAccountForPage
-                                                                                                    .getAccountNumber()
-                                                                                                    .length()
-                                                                                            - 4))
-                                                    : NULL);
+                                    if (LOGGER.isInfoEnabled()) {
+                                        LOGGER.info(
+                                                "🔍 [Page {}] STEP 2c: Detected account info - name='{}', institution='{}', type='{}', number='{}'",
+                                                page,
+                                                detectedAccountForPage != null
+                                                        ? detectedAccountForPage.getAccountName()
+                                                        : NULL,
+                                                detectedAccountForPage != null
+                                                        ? detectedAccountForPage
+                                                                .getInstitutionName()
+                                                        : NULL,
+                                                detectedAccountForPage != null
+                                                        ? detectedAccountForPage.getAccountType()
+                                                        : NULL,
+                                                detectedAccountForPage != null
+                                                                && detectedAccountForPage
+                                                                                .getAccountNumber()
+                                                                        != null
+                                                        ? "***"
+                                                                + detectedAccountForPage
+                                                                        .getAccountNumber()
+                                                                        .substring(
+                                                                                Math.max(
+                                                                                        0,
+                                                                                        detectedAccountForPage
+                                                                                                        .getAccountNumber()
+                                                                                                        .length()
+                                                                                                - 4))
+                                                        : NULL);
+                                    }
 
                                     if (detectedAccountForPage != null) {
                                         LOGGER.info(
@@ -2006,10 +2123,12 @@ public class TransactionController {
                                                                                                             0)))
                                                             .orElse(null);
                                             if (matchingAccount != null) {
-                                                LOGGER.info(
-                                                        "✅ [Page {}] STEP 2d-1: Found match by account number - ID='{}'",
-                                                        page,
-                                                        matchingAccount.getAccountId());
+                                                if (LOGGER.isInfoEnabled()) {
+                                                    LOGGER.info(
+                                                            "✅ [Page {}] STEP 2d-1: Found match by account number - ID='{}'",
+                                                            page,
+                                                            matchingAccount.getAccountId());
+                                                }
                                             }
                                         }
 
@@ -2020,11 +2139,13 @@ public class TransactionController {
                                                         != null
                                                 && detectedAccountForPage.getAccountType()
                                                         != null) {
-                                            LOGGER.info(
-                                                    "🔍 [Page {}] STEP 2d-2: Trying to match by institution '{}' and type '{}'",
-                                                    page,
-                                                    detectedAccountForPage.getInstitutionName(),
-                                                    detectedAccountForPage.getAccountType());
+                                            if (LOGGER.isInfoEnabled()) {
+                                                LOGGER.info(
+                                                        "🔍 [Page {}] STEP 2d-2: Trying to match by institution '{}' and type '{}'",
+                                                        page,
+                                                        detectedAccountForPage.getInstitutionName(),
+                                                        detectedAccountForPage.getAccountType());
+                                            }
                                             matchingAccount =
                                                     existingAccounts.stream()
                                                             .filter(
@@ -2064,21 +2185,26 @@ public class TransactionController {
                                                                                                             0)))
                                                             .orElse(null);
                                             if (matchingAccount != null) {
-                                                LOGGER.info(
-                                                        "✅ [Page {}] STEP 2d-2: Found match by institution/type - ID='{}'",
-                                                        page,
-                                                        matchingAccount.getAccountId());
+                                                if (LOGGER.isInfoEnabled()) {
+                                                    LOGGER.info(
+                                                            "✅ [Page {}] STEP 2d-2: Found match by institution/type - ID='{}'",
+                                                            page,
+                                                            matchingAccount.getAccountId());
+                                                }
                                             }
                                         }
 
                                         // 3. Fallback: Try by account name and institution
                                         // (original logic)
                                         if (matchingAccount == null) {
-                                            LOGGER.info(
-                                                    "🔍 [Page {}] STEP 2d-3: Trying to match by account name '{}' and institution '{}'",
-                                                    page,
-                                                    detectedAccountForPage.getAccountName(),
-                                                    detectedAccountForPage.getInstitutionName());
+                                            if (LOGGER.isInfoEnabled()) {
+                                                LOGGER.info(
+                                                        "🔍 [Page {}] STEP 2d-3: Trying to match by account name '{}' and institution '{}'",
+                                                        page,
+                                                        detectedAccountForPage.getAccountName(),
+                                                        detectedAccountForPage
+                                                                .getInstitutionName());
+                                            }
                                             matchingAccount =
                                                     existingAccounts.stream()
                                                             .filter(
@@ -2120,21 +2246,25 @@ public class TransactionController {
                                                                                                             0)))
                                                             .orElse(null);
                                             if (matchingAccount != null) {
-                                                LOGGER.info(
-                                                        "✅ [Page {}] STEP 2d-3: Found match by name/institution - ID='{}'",
-                                                        page,
-                                                        matchingAccount.getAccountId());
+                                                if (LOGGER.isInfoEnabled()) {
+                                                    LOGGER.info(
+                                                            "✅ [Page {}] STEP 2d-3: Found match by name/institution - ID='{}'",
+                                                            page,
+                                                            matchingAccount.getAccountId());
+                                                }
                                             }
                                         }
 
                                         if (matchingAccount != null) {
                                             accountIdToUse = matchingAccount.getAccountId();
-                                            LOGGER.info(
-                                                    "✅ [Page {}] STEP 2e: Using matched account - ID='{}', name='{}', institution='{}'",
-                                                    page,
-                                                    accountIdToUse,
-                                                    matchingAccount.getAccountName(),
-                                                    matchingAccount.getInstitutionName());
+                                            if (LOGGER.isInfoEnabled()) {
+                                                LOGGER.info(
+                                                        "✅ [Page {}] STEP 2e: Using matched account - ID='{}', name='{}', institution='{}'",
+                                                        page,
+                                                        accountIdToUse,
+                                                        matchingAccount.getAccountName(),
+                                                        matchingAccount.getInstitutionName());
+                                            }
                                         } else {
                                             LOGGER.warn(
                                                     "⚠️ [Page {}] STEP 2e: No account matched by detected attributes",
@@ -2157,10 +2287,12 @@ public class TransactionController {
                                 if (page > 0
                                         && existingAccounts != null
                                         && !existingAccounts.isEmpty()) {
-                                    LOGGER.info(
-                                            "🔍 [Page {}] STEP 3a: Final fallback - trying to reuse most recent account from {} existing accounts",
-                                            page,
-                                            existingAccounts.size());
+                                    if (LOGGER.isInfoEnabled()) {
+                                        LOGGER.info(
+                                                "🔍 [Page {}] STEP 3a: Final fallback - trying to reuse most recent account from {} existing accounts",
+                                                page,
+                                                existingAccounts.size());
+                                    }
                                     // CRITICAL: On page > 0, ALWAYS reuse the most recently created
                                     // account
                                     // Never create a new account on subsequent pages
@@ -2182,23 +2314,29 @@ public class TransactionController {
 
                                     if (mostRecentAccount != null) {
                                         accountIdToUse = mostRecentAccount.getAccountId();
-                                        LOGGER.info(
-                                                "✅ [Page {}] STEP 3b: Final fallback SUCCESS - Reusing most recent account - ID='{}', name='{}', createdAt='{}'",
-                                                page,
-                                                accountIdToUse,
-                                                mostRecentAccount.getAccountName(),
-                                                mostRecentAccount.getCreatedAt());
+                                        if (LOGGER.isInfoEnabled()) {
+                                            LOGGER.info(
+                                                    "✅ [Page {}] STEP 3b: Final fallback SUCCESS - Reusing most recent account - ID='{}', name='{}', createdAt='{}'",
+                                                    page,
+                                                    accountIdToUse,
+                                                    mostRecentAccount.getAccountName(),
+                                                    mostRecentAccount.getCreatedAt());
+                                        }
                                     } else {
-                                        LOGGER.error(
-                                                "❌ [Page {}] STEP 3b: Final fallback FAILED - No account with createdAt found in {} accounts",
-                                                page,
-                                                existingAccounts.size());
-                                        for (final AccountTable acc : existingAccounts) {
+                                        if (LOGGER.isErrorEnabled()) {
                                             LOGGER.error(
-                                                    "   Account: ID='{}', name='{}', createdAt='{}'",
-                                                    acc.getAccountId(),
-                                                    acc.getAccountName(),
-                                                    acc.getCreatedAt());
+                                                    "❌ [Page {}] STEP 3b: Final fallback FAILED - No account with createdAt found in {} accounts",
+                                                    page,
+                                                    existingAccounts.size());
+                                        }
+                                        for (final AccountTable acc : existingAccounts) {
+                                            if (LOGGER.isErrorEnabled()) {
+                                                LOGGER.error(
+                                                        "   Account: ID='{}', name='{}', createdAt='{}'",
+                                                        acc.getAccountId(),
+                                                        acc.getAccountName(),
+                                                        acc.getCreatedAt());
+                                            }
                                         }
                                     }
                                 } else if (page == 0) {
@@ -2245,7 +2383,9 @@ public class TransactionController {
         } catch (AppException e) {
             throw e;
         } catch (Exception e) {
-            LOGGER.error("CSV chunk import failed: {}", e.getMessage(), e);
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error("CSV chunk import failed: {}", e.getMessage(), e);
+            }
             throw new AppException(
                     ErrorCode.INVALID_INPUT, "Failed to import CSV chunk: " + e.getMessage());
         }
@@ -2303,20 +2443,24 @@ public class TransactionController {
                         originalFilename);
             }
 
-            LOGGER.info(
-                    "📁 Excel Preview - Using filename for account detection: '{}' (from parameter: {}, from MultipartFile: '{}', isUUID: {})",
-                    originalFilename,
-                    fromParameter,
-                    file.getOriginalFilename(),
-                    isUUIDFilename);
+            if (LOGGER.isInfoEnabled()) {
+                LOGGER.info(
+                        "📁 Excel Preview - Using filename for account detection: '{}' (from parameter: {}, from MultipartFile: '{}', isUUID: {})",
+                        originalFilename,
+                        fromParameter,
+                        file.getOriginalFilename(),
+                        isUUIDFilename);
+            }
 
             // Log multipart request details for debugging
-            LOGGER.info(
-                    "📤 Excel Preview Request Details - Filename param: '{}', MultipartFile name: '{}', Size: {} bytes, ContentType: '{}'",
-                    filename,
-                    file.getOriginalFilename(),
-                    file.getSize(),
-                    file.getContentType());
+            if (LOGGER.isInfoEnabled()) {
+                LOGGER.info(
+                        "📤 Excel Preview Request Details - Filename param: '{}', MultipartFile name: '{}', Size: {} bytes, ContentType: '{}'",
+                        filename,
+                        file.getOriginalFilename(),
+                        file.getSize(),
+                        file.getContentType());
+            }
 
             // Apply security processing
             final byte[] fileContent =
@@ -2415,10 +2559,12 @@ public class TransactionController {
                             accountInfo.setMinimumPaymentDue(account.getMinimumPaymentDue());
                             accountInfo.setRewardPoints(account.getRewardPoints());
 
-                            LOGGER.info(
-                                    "✅ [Excel] Matched detected account to existing account: {} (accountId: {})",
-                                    account.getAccountName(),
-                                    matchedAccountId);
+                            if (LOGGER.isInfoEnabled()) {
+                                LOGGER.info(
+                                        "✅ [Excel] Matched detected account to existing account: {} (accountId: {})",
+                                        account.getAccountName(),
+                                        matchedAccountId);
+                            }
                         } else {
                             // Matched account not found or doesn't belong to user - use detected
                             // account
@@ -2478,21 +2624,27 @@ public class TransactionController {
                 }
 
                 // Log response details
-                LOGGER.info(
-                        "📥 Excel Preview Response - Total parsed: {}, Transactions: {}, Detected account: {} (institution: {}, type: {}, number: {})",
-                        response.getTotalParsed(),
-                        response.getTransactions() != null ? response.getTransactions().size() : 0,
-                        accountInfo != null ? accountInfo.getAccountName() : NONE,
-                        accountInfo != null ? accountInfo.getInstitutionName() : NONE,
-                        accountInfo != null ? accountInfo.getAccountType() : NONE,
-                        accountInfo != null ? accountInfo.getAccountNumber() : NONE);
+                if (LOGGER.isInfoEnabled()) {
+                    LOGGER.info(
+                            "📥 Excel Preview Response - Total parsed: {}, Transactions: {}, Detected account: {} (institution: {}, type: {}, number: {})",
+                            response.getTotalParsed(),
+                            response.getTransactions() != null
+                                    ? response.getTransactions().size()
+                                    : 0,
+                            accountInfo != null ? accountInfo.getAccountName() : NONE,
+                            accountInfo != null ? accountInfo.getInstitutionName() : NONE,
+                            accountInfo != null ? accountInfo.getAccountType() : NONE,
+                            accountInfo != null ? accountInfo.getAccountNumber() : NONE);
+                }
 
                 return ResponseEntity.ok(response);
             }
         } catch (AppException e) {
             throw e;
         } catch (Exception e) {
-            LOGGER.error("Excel preview failed: {}", e.getMessage(), e);
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error("Excel preview failed: {}", e.getMessage(), e);
+            }
             throw new AppException(
                     ErrorCode.INVALID_INPUT, "Failed to preview Excel: " + e.getMessage());
         }
@@ -2546,21 +2698,25 @@ public class TransactionController {
                         originalFilename);
             }
 
-            LOGGER.info(
-                    "📁 Excel Import - Using filename for account detection: '{}' (from parameter: {}, from MultipartFile: '{}', isUUID: {})",
-                    originalFilename,
-                    fromParameter,
-                    file.getOriginalFilename(),
-                    isUUIDFilename);
+            if (LOGGER.isInfoEnabled()) {
+                LOGGER.info(
+                        "📁 Excel Import - Using filename for account detection: '{}' (from parameter: {}, from MultipartFile: '{}', isUUID: {})",
+                        originalFilename,
+                        fromParameter,
+                        file.getOriginalFilename(),
+                        isUUIDFilename);
+            }
 
             // Log multipart request details for debugging
-            LOGGER.info(
-                    "📤 Excel Import Request Details - Filename param: '{}', MultipartFile name: '{}', Size: {} bytes, ContentType: '{}', AccountId: '{}'",
-                    filename,
-                    file.getOriginalFilename(),
-                    file.getSize(),
-                    file.getContentType(),
-                    accountId);
+            if (LOGGER.isInfoEnabled()) {
+                LOGGER.info(
+                        "📤 Excel Import Request Details - Filename param: '{}', MultipartFile name: '{}', Size: {} bytes, ContentType: '{}', AccountId: '{}'",
+                        filename,
+                        file.getOriginalFilename(),
+                        file.getSize(),
+                        file.getContentType(),
+                        accountId);
+            }
 
             // Apply security processing
             final byte[] fileContent =
@@ -2578,7 +2734,9 @@ public class TransactionController {
         } catch (AppException e) {
             throw e;
         } catch (Exception e) {
-            LOGGER.error("Excel import failed: {}", e.getMessage(), e);
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error("Excel import failed: {}", e.getMessage(), e);
+            }
             throw new AppException(
                     ErrorCode.INVALID_INPUT, "Failed to import Excel: " + e.getMessage());
         }
@@ -2655,12 +2813,14 @@ public class TransactionController {
                 final List<CSVImportService.ParsedTransaction> chunk =
                         allTransactions.subList(startIndex, endIndex);
 
-                LOGGER.info(
-                        "📦 Importing Excel chunk: page {} (transactions {} to {} of {})",
-                        page,
-                        startIndex + 1,
-                        endIndex,
-                        totalTransactions);
+                if (LOGGER.isInfoEnabled()) {
+                    LOGGER.info(
+                            "📦 Importing Excel chunk: page {} (transactions {} to {} of {})",
+                            page,
+                            startIndex + 1,
+                            endIndex,
+                            totalTransactions);
+                }
 
                 // CRITICAL: Auto-create detected account if user hasn't manually created it
                 // Only create on first page (page 0) to avoid creating multiple accounts
@@ -2718,12 +2878,14 @@ public class TransactionController {
                         // User has already created (or we previously auto-created) a matching
                         // account - use it
                         accountIdToUse = matchingAccount.getAccountId();
-                        LOGGER.info(
-                                "📝 [Excel] Using existing account '{}' (name: '{}', institution: '{}') for import (page {})",
-                                accountIdToUse,
-                                matchingAccount.getAccountName(),
-                                matchingAccount.getInstitutionName(),
-                                page);
+                        if (LOGGER.isInfoEnabled()) {
+                            LOGGER.info(
+                                    "📝 [Excel] Using existing account '{}' (name: '{}', institution: '{}') for import (page {})",
+                                    accountIdToUse,
+                                    matchingAccount.getAccountName(),
+                                    matchingAccount.getInstitutionName(),
+                                    page);
+                        }
                     } else if (importResult.getMatchedAccountId() != null
                             && !importResult.getMatchedAccountId().isBlank()) {
                         // Account was matched during preview - use it
@@ -2739,11 +2901,13 @@ public class TransactionController {
                         accountIdToUse =
                                 autoCreateAccountIfDetected(
                                         user, importResult.getDetectedAccount());
-                        LOGGER.info(
-                                "📝 [Excel] Auto-created account '{}' for detected account '{}' from '{}' (first page only)",
-                                accountIdToUse,
-                                importResult.getDetectedAccount().getAccountName(),
-                                importResult.getDetectedAccount().getInstitutionName());
+                        if (LOGGER.isInfoEnabled()) {
+                            LOGGER.info(
+                                    "📝 [Excel] Auto-created account '{}' for detected account '{}' from '{}' (first page only)",
+                                    accountIdToUse,
+                                    importResult.getDetectedAccount().getAccountName(),
+                                    importResult.getDetectedAccount().getInstitutionName());
+                        }
                     } else if (importResult.getDetectedAccount() != null && page > 0) {
                         // Subsequent pages: Try to find the account that was auto-created on first
                         // page
@@ -2823,7 +2987,9 @@ public class TransactionController {
         } catch (AppException e) {
             throw e;
         } catch (Exception e) {
-            LOGGER.error("Excel chunk import failed: {}", e.getMessage(), e);
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error("Excel chunk import failed: {}", e.getMessage(), e);
+            }
             throw new AppException(
                     ErrorCode.INVALID_INPUT, "Failed to import Excel chunk: " + e.getMessage());
         }
@@ -2881,20 +3047,24 @@ public class TransactionController {
                         originalFilename);
             }
 
-            LOGGER.info(
-                    "📁 PDF Preview - Using filename for account detection: '{}' (from parameter: {}, from MultipartFile: '{}', isUUID: {})",
-                    originalFilename,
-                    fromParameter,
-                    file.getOriginalFilename(),
-                    isUUIDFilename);
+            if (LOGGER.isInfoEnabled()) {
+                LOGGER.info(
+                        "📁 PDF Preview - Using filename for account detection: '{}' (from parameter: {}, from MultipartFile: '{}', isUUID: {})",
+                        originalFilename,
+                        fromParameter,
+                        file.getOriginalFilename(),
+                        isUUIDFilename);
+            }
 
             // Log multipart request details for debugging
-            LOGGER.info(
-                    "📤 PDF Preview Request Details - Filename param: '{}', MultipartFile name: '{}', Size: {} bytes, ContentType: '{}'",
-                    filename,
-                    file.getOriginalFilename(),
-                    file.getSize(),
-                    file.getContentType());
+            if (LOGGER.isInfoEnabled()) {
+                LOGGER.info(
+                        "📤 PDF Preview Request Details - Filename param: '{}', MultipartFile name: '{}', Size: {} bytes, ContentType: '{}'",
+                        filename,
+                        file.getOriginalFilename(),
+                        file.getSize(),
+                        file.getContentType());
+            }
 
             // Apply security processing
             final byte[] fileContent =
@@ -2928,28 +3098,32 @@ public class TransactionController {
 
                 // Log duplicate detection results
                 final int duplicateCount = duplicates.size();
-                LOGGER.info(
-                        "🔍 PDF Preview - Duplicate detection: {} transactions with duplicates out of {} total",
-                        duplicateCount,
-                        parsedForDuplicateCheck.size());
+                if (LOGGER.isInfoEnabled()) {
+                    LOGGER.info(
+                            "🔍 PDF Preview - Duplicate detection: {} transactions with duplicates out of {} total",
+                            duplicateCount,
+                            parsedForDuplicateCheck.size());
+                }
                 if (duplicateCount > 0) {
                     for (final Map.Entry<Integer, List<DuplicateDetectionService.DuplicateMatch>>
                             entry : duplicates.entrySet()) {
-                        LOGGER.info(
-                                "🔍 PDF Preview - Transaction index {} has {} duplicate(s): {}",
-                                entry.getKey(),
-                                entry.getValue().size(),
-                                entry.getValue().stream()
-                                        .map(
-                                                m ->
-                                                        String.format(
-                                                                "similarity=%.2f, reason=%s",
-                                                                m
-                                                                        .getSimilarity(), // getSimilarity() returns primitive double, not Double
-                                                                m.getMatchReason() != null
-                                                                        ? m.getMatchReason()
-                                                                        : "unknown"))
-                                        .collect(java.util.stream.Collectors.joining(", ")));
+                        if (LOGGER.isInfoEnabled()) {
+                            LOGGER.info(
+                                    "🔍 PDF Preview - Transaction index {} has {} duplicate(s): {}",
+                                    entry.getKey(),
+                                    entry.getValue().size(),
+                                    entry.getValue().stream()
+                                            .map(
+                                                    m ->
+                                                            String.format(
+                                                                    "similarity=%.2f, reason=%s",
+                                                                    m
+                                                                            .getSimilarity(), // getSimilarity() returns primitive double, not Double
+                                                                    m.getMatchReason() != null
+                                                                            ? m.getMatchReason()
+                                                                            : "unknown"))
+                                            .collect(java.util.stream.Collectors.joining(", ")));
+                        }
                     }
                 }
 
@@ -2986,10 +3160,12 @@ public class TransactionController {
                                     "PDF Preview - Transaction index {} has exact match (empty list in duplicates map)",
                                     i);
                         } else {
-                            LOGGER.info(
-                                    "✅ PDF Preview - Transaction index {} has {} fuzzy duplicate(s) in response",
-                                    i,
-                                    txDuplicates.size());
+                            if (LOGGER.isInfoEnabled()) {
+                                LOGGER.info(
+                                        "✅ PDF Preview - Transaction index {} has {} fuzzy duplicate(s) in response",
+                                        i,
+                                        txDuplicates.size());
+                            }
                         }
                     } else {
                         LOGGER.debug(
@@ -3071,10 +3247,12 @@ public class TransactionController {
                                 accountInfo.setRewardPoints(account.getRewardPoints());
                             }
 
-                            LOGGER.info(
-                                    "✅ [PDF] Matched detected account to existing account: {} (accountId: {})",
-                                    account.getAccountName(),
-                                    matchedAccountId);
+                            if (LOGGER.isInfoEnabled()) {
+                                LOGGER.info(
+                                        "✅ [PDF] Matched detected account to existing account: {} (accountId: {})",
+                                        account.getAccountName(),
+                                        matchedAccountId);
+                            }
                         } else {
                             // Matched account not found or doesn't belong to user - use detected
                             // account
@@ -3134,9 +3312,11 @@ public class TransactionController {
 
                     // Log balance in detected account for debugging
                     if (accountInfo.getBalance() != null) {
-                        LOGGER.info(
-                                "✅ [PDF Preview] Detected account balance included in response: {}",
-                                accountInfo.getBalance());
+                        if (LOGGER.isInfoEnabled()) {
+                            LOGGER.info(
+                                    "✅ [PDF Preview] Detected account balance included in response: {}",
+                                    accountInfo.getBalance());
+                        }
                     } else if (accountInfo != null) {
                         LOGGER.debug(
                                 "⚠️ [PDF Preview] Detected account balance is null in response");
@@ -3144,24 +3324,30 @@ public class TransactionController {
                 }
 
                 // Log response details
-                LOGGER.info(
-                        "📥 PDF Preview Response - Total parsed: {}, Transactions: {}, Detected account: {} (institution: {}, type: {}, number: {}, balance: {})",
-                        response.getTotalParsed(),
-                        response.getTransactions() != null ? response.getTransactions().size() : 0,
-                        accountInfo != null ? accountInfo.getAccountName() : NONE,
-                        accountInfo != null ? accountInfo.getInstitutionName() : NONE,
-                        accountInfo != null ? accountInfo.getAccountType() : NONE,
-                        accountInfo != null ? accountInfo.getAccountNumber() : NONE,
-                        accountInfo != null && accountInfo.getBalance() != null
-                                ? accountInfo.getBalance()
-                                : NONE);
+                if (LOGGER.isInfoEnabled()) {
+                    LOGGER.info(
+                            "📥 PDF Preview Response - Total parsed: {}, Transactions: {}, Detected account: {} (institution: {}, type: {}, number: {}, balance: {})",
+                            response.getTotalParsed(),
+                            response.getTransactions() != null
+                                    ? response.getTransactions().size()
+                                    : 0,
+                            accountInfo != null ? accountInfo.getAccountName() : NONE,
+                            accountInfo != null ? accountInfo.getInstitutionName() : NONE,
+                            accountInfo != null ? accountInfo.getAccountType() : NONE,
+                            accountInfo != null ? accountInfo.getAccountNumber() : NONE,
+                            accountInfo != null && accountInfo.getBalance() != null
+                                    ? accountInfo.getBalance()
+                                    : NONE);
+                }
 
                 return ResponseEntity.ok(response);
             }
         } catch (AppException e) {
             throw e;
         } catch (Exception e) {
-            LOGGER.error("PDF preview failed: {}", e.getMessage(), e);
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error("PDF preview failed: {}", e.getMessage(), e);
+            }
             throw new AppException(
                     ErrorCode.INVALID_INPUT, "Failed to preview PDF: " + e.getMessage());
         }
@@ -3215,21 +3401,25 @@ public class TransactionController {
                         originalFilename);
             }
 
-            LOGGER.info(
-                    "📁 PDF Import - Using filename for account detection: '{}' (from parameter: {}, from MultipartFile: '{}', isUUID: {})",
-                    originalFilename,
-                    fromParameter,
-                    file.getOriginalFilename(),
-                    isUUIDFilename);
+            if (LOGGER.isInfoEnabled()) {
+                LOGGER.info(
+                        "📁 PDF Import - Using filename for account detection: '{}' (from parameter: {}, from MultipartFile: '{}', isUUID: {})",
+                        originalFilename,
+                        fromParameter,
+                        file.getOriginalFilename(),
+                        isUUIDFilename);
+            }
 
             // Log multipart request details for debugging
-            LOGGER.info(
-                    "📤 PDF Import Request Details - Filename param: '{}', MultipartFile name: '{}', Size: {} bytes, ContentType: '{}', AccountId: '{}'",
-                    filename,
-                    file.getOriginalFilename(),
-                    file.getSize(),
-                    file.getContentType(),
-                    accountId);
+            if (LOGGER.isInfoEnabled()) {
+                LOGGER.info(
+                        "📤 PDF Import Request Details - Filename param: '{}', MultipartFile name: '{}', Size: {} bytes, ContentType: '{}', AccountId: '{}'",
+                        filename,
+                        file.getOriginalFilename(),
+                        file.getSize(),
+                        file.getContentType(),
+                        accountId);
+            }
 
             // Apply security processing
             final byte[] fileContent =
@@ -3242,11 +3432,13 @@ public class TransactionController {
                                 inputStream, originalFilename, user.getUserId(), null);
 
                 // CRITICAL: Log metadata extraction immediately after parsing
-                LOGGER.info(
-                        "📋 [PDF Import] After parsing PDF - importResult metadata: paymentDueDate={}, minimumPaymentDue={}, rewardPoints={}",
-                        importResult.getPaymentDueDate(),
-                        importResult.getMinimumPaymentDue(),
-                        importResult.getRewardPoints());
+                if (LOGGER.isInfoEnabled()) {
+                    LOGGER.info(
+                            "📋 [PDF Import] After parsing PDF - importResult metadata: paymentDueDate={}, minimumPaymentDue={}, rewardPoints={}",
+                            importResult.getPaymentDueDate(),
+                            importResult.getMinimumPaymentDue(),
+                            importResult.getRewardPoints());
+                }
 
                 // CRITICAL: Auto-create detected account if user hasn't manually created it
                 // This ensures transactions are associated with the correct account
@@ -3303,11 +3495,13 @@ public class TransactionController {
                         // User has already created (or we previously auto-created) a matching
                         // account - use it
                         accountIdToUse = matchingAccount.getAccountId();
-                        LOGGER.info(
-                                "📝 [PDF] Using existing account '{}' (name: '{}', institution: '{}') for import",
-                                accountIdToUse,
-                                matchingAccount.getAccountName(),
-                                matchingAccount.getInstitutionName());
+                        if (LOGGER.isInfoEnabled()) {
+                            LOGGER.info(
+                                    "📝 [PDF] Using existing account '{}' (name: '{}', institution: '{}') for import",
+                                    accountIdToUse,
+                                    matchingAccount.getAccountName(),
+                                    matchingAccount.getInstitutionName());
+                        }
                     } else if (importResult.getMatchedAccountId() != null
                             && !importResult.getMatchedAccountId().isBlank()) {
                         // Account was matched during preview - use it
@@ -3322,11 +3516,13 @@ public class TransactionController {
                         accountIdToUse =
                                 autoCreateAccountIfDetected(
                                         user, importResult.getDetectedAccount(), importResult);
-                        LOGGER.info(
-                                "📝 [PDF] Auto-created account '{}' for detected account '{}' from '{}'",
-                                accountIdToUse,
-                                importResult.getDetectedAccount().getAccountName(),
-                                importResult.getDetectedAccount().getInstitutionName());
+                        if (LOGGER.isInfoEnabled()) {
+                            LOGGER.info(
+                                    "📝 [PDF] Auto-created account '{}' for detected account '{}' from '{}'",
+                                    accountIdToUse,
+                                    importResult.getDetectedAccount().getAccountName(),
+                                    importResult.getDetectedAccount().getInstitutionName());
+                        }
                     }
                 }
 
@@ -3346,19 +3542,23 @@ public class TransactionController {
                 // The accountIdToUse might be null if no account was found/created, but if it's not
                 // null, we should update
                 if (accountIdToUse != null && !accountIdToUse.isBlank()) {
-                    LOGGER.info(
-                            "📋 [PDF Import] About to update account metadata for accountId: '{}' - importResult metadata: paymentDueDate={}, minimumPaymentDue={}, rewardPoints={}",
-                            accountIdToUse,
-                            importResult.getPaymentDueDate(),
-                            importResult.getMinimumPaymentDue(),
-                            importResult.getRewardPoints());
+                    if (LOGGER.isInfoEnabled()) {
+                        LOGGER.info(
+                                "📋 [PDF Import] About to update account metadata for accountId: '{}' - importResult metadata: paymentDueDate={}, minimumPaymentDue={}, rewardPoints={}",
+                                accountIdToUse,
+                                importResult.getPaymentDueDate(),
+                                importResult.getMinimumPaymentDue(),
+                                importResult.getRewardPoints());
+                    }
                     updateAccountMetadataFromPDFImport(accountIdToUse, importResult);
                 } else {
-                    LOGGER.warn(
-                            "⚠️ [PDF Import] Cannot update account metadata: accountIdToUse is null or empty. Metadata extracted: paymentDueDate={}, minimumPaymentDue={}, rewardPoints={}",
-                            importResult.getPaymentDueDate(),
-                            importResult.getMinimumPaymentDue(),
-                            importResult.getRewardPoints());
+                    if (LOGGER.isWarnEnabled()) {
+                        LOGGER.warn(
+                                "⚠️ [PDF Import] Cannot update account metadata: accountIdToUse is null or empty. Metadata extracted: paymentDueDate={}, minimumPaymentDue={}, rewardPoints={}",
+                                importResult.getPaymentDueDate(),
+                                importResult.getMinimumPaymentDue(),
+                                importResult.getRewardPoints());
+                    }
                 }
 
                 return processPDFBatchImport(
@@ -3367,7 +3567,9 @@ public class TransactionController {
         } catch (AppException e) {
             throw e;
         } catch (Exception e) {
-            LOGGER.error("PDF import failed: {}", e.getMessage(), e);
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error("PDF import failed: {}", e.getMessage(), e);
+            }
             throw new AppException(
                     ErrorCode.INVALID_INPUT, "Failed to import PDF: " + e.getMessage());
         }
@@ -3444,12 +3646,14 @@ public class TransactionController {
                 final List<PDFImportService.ParsedTransaction> chunk =
                         allTransactions.subList(startIndex, endIndex);
 
-                LOGGER.info(
-                        "📦 Importing PDF chunk: page {} (transactions {} to {} of {})",
-                        page,
-                        startIndex + 1,
-                        endIndex,
-                        totalTransactions);
+                if (LOGGER.isInfoEnabled()) {
+                    LOGGER.info(
+                            "📦 Importing PDF chunk: page {} (transactions {} to {} of {})",
+                            page,
+                            startIndex + 1,
+                            endIndex,
+                            totalTransactions);
+                }
 
                 // CRITICAL: Auto-create detected account if user hasn't manually created it
                 // Only create on first page (page 0) to avoid creating multiple accounts
@@ -3507,12 +3711,14 @@ public class TransactionController {
                         // User has already created (or we previously auto-created) a matching
                         // account - use it
                         accountIdToUse = matchingAccount.getAccountId();
-                        LOGGER.info(
-                                "📝 [PDF] Using existing account '{}' (name: '{}', institution: '{}') for import (page {})",
-                                accountIdToUse,
-                                matchingAccount.getAccountName(),
-                                matchingAccount.getInstitutionName(),
-                                page);
+                        if (LOGGER.isInfoEnabled()) {
+                            LOGGER.info(
+                                    "📝 [PDF] Using existing account '{}' (name: '{}', institution: '{}') for import (page {})",
+                                    accountIdToUse,
+                                    matchingAccount.getAccountName(),
+                                    matchingAccount.getInstitutionName(),
+                                    page);
+                        }
                     } else if (importResult.getMatchedAccountId() != null
                             && !importResult.getMatchedAccountId().isBlank()) {
                         // Account was matched during preview - use it
@@ -3528,11 +3734,13 @@ public class TransactionController {
                         accountIdToUse =
                                 autoCreateAccountIfDetected(
                                         user, importResult.getDetectedAccount(), importResult);
-                        LOGGER.info(
-                                "📝 [PDF] Auto-created account '{}' for detected account '{}' from '{}' (first page only)",
-                                accountIdToUse,
-                                importResult.getDetectedAccount().getAccountName(),
-                                importResult.getDetectedAccount().getInstitutionName());
+                        if (LOGGER.isInfoEnabled()) {
+                            LOGGER.info(
+                                    "📝 [PDF] Auto-created account '{}' for detected account '{}' from '{}' (first page only)",
+                                    accountIdToUse,
+                                    importResult.getDetectedAccount().getAccountName(),
+                                    importResult.getDetectedAccount().getInstitutionName());
+                        }
                     } else if (importResult.getDetectedAccount() != null && page > 0) {
                         // Subsequent pages: Try to find the account that was auto-created on first
                         // page
@@ -3619,7 +3827,9 @@ public class TransactionController {
         } catch (AppException e) {
             throw e;
         } catch (Exception e) {
-            LOGGER.error("PDF chunk import failed: {}", e.getMessage(), e);
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error("PDF chunk import failed: {}", e.getMessage(), e);
+            }
             throw new AppException(
                     ErrorCode.INVALID_INPUT, "Failed to import PDF chunk: " + e.getMessage());
         }
@@ -3656,7 +3866,9 @@ public class TransactionController {
                         .findByEmail(userDetails.getUsername())
                         .orElseThrow(
                                 () -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
-        LOGGER.debug("Recalculating preview for user: {}", user.getUserId());
+        if (LOGGER.isDebugEnabled()) {
+            LOGGER.debug("Recalculating preview for user: {}", user.getUserId());
+        }
 
         // RATE LIMITING: Check if user has exceeded rate limit
         final String userId = user.getUserId();
@@ -3668,10 +3880,12 @@ public class TransactionController {
         requestTimes.removeIf(time -> currentTime - time > 60_000);
 
         if (requestTimes.size() >= MAX_RECALCULATE_REQUESTS_PER_MINUTE) {
-            LOGGER.warn(
-                    "Rate limit exceeded for user {}: {} requests in last minute",
-                    userId,
-                    requestTimes.size());
+            if (LOGGER.isWarnEnabled()) {
+                LOGGER.warn(
+                        "Rate limit exceeded for user {}: {} requests in last minute",
+                        userId,
+                        requestTimes.size());
+            }
             throw new AppException(
                     ErrorCode.RATE_LIMIT_EXCEEDED,
                     "Too many recalculation requests. Please wait before trying again.");
@@ -3736,17 +3950,21 @@ public class TransactionController {
                     final int MAX_DESCRIPTION_LENGTH = 500;
                     final int MAX_MERCHANT_NAME_LENGTH = 200;
                     if (description != null && description.length() > MAX_DESCRIPTION_LENGTH) {
-                        LOGGER.warn(
-                                "Description too long ({} chars), truncating to {}",
-                                description.length(),
-                                MAX_DESCRIPTION_LENGTH);
+                        if (LOGGER.isWarnEnabled()) {
+                            LOGGER.warn(
+                                    "Description too long ({} chars), truncating to {}",
+                                    description.length(),
+                                    MAX_DESCRIPTION_LENGTH);
+                        }
                         description = description.substring(0, MAX_DESCRIPTION_LENGTH);
                     }
                     if (merchantName != null && merchantName.length() > MAX_MERCHANT_NAME_LENGTH) {
-                        LOGGER.warn(
-                                "Merchant name too long ({} chars), truncating to {}",
-                                merchantName.length(),
-                                MAX_MERCHANT_NAME_LENGTH);
+                        if (LOGGER.isWarnEnabled()) {
+                            LOGGER.warn(
+                                    "Merchant name too long ({} chars), truncating to {}",
+                                    merchantName.length(),
+                                    MAX_MERCHANT_NAME_LENGTH);
+                        }
                         merchantName = merchantName.substring(0, MAX_MERCHANT_NAME_LENGTH);
                     }
 
@@ -3758,7 +3976,9 @@ public class TransactionController {
                             try {
                                 amount = new BigDecimal(txMap.get(AMOUNT).toString());
                             } catch (NumberFormatException e) {
-                                LOGGER.warn("Invalid amount format: {}", txMap.get(AMOUNT));
+                                if (LOGGER.isWarnEnabled()) {
+                                    LOGGER.warn("Invalid amount format: {}", txMap.get(AMOUNT));
+                                }
                             }
                         }
                     }
@@ -3800,9 +4020,11 @@ public class TransactionController {
                     }
                     recalculatedTransactions.add(updatedTx);
                 } catch (Exception e) {
-                    LOGGER.warn(
-                            "Failed to recalculate transaction, keeping original: {}",
-                            e.getMessage());
+                    if (LOGGER.isWarnEnabled()) {
+                        LOGGER.warn(
+                                "Failed to recalculate transaction, keeping original: {}",
+                                e.getMessage());
+                    }
                     recalculatedTransactions.add(txMap); // Keep original on error
                 }
             }
@@ -3812,16 +4034,20 @@ public class TransactionController {
             response.put("accountType", request.getAccountType());
             response.put("accountSubtype", request.getAccountSubtype());
 
-            LOGGER.info(
-                    "Recalculated {} transactions with account type: {}",
-                    recalculatedTransactions.size(),
-                    request.getAccountType());
+            if (LOGGER.isInfoEnabled()) {
+                LOGGER.info(
+                        "Recalculated {} transactions with account type: {}",
+                        recalculatedTransactions.size(),
+                        request.getAccountType());
+            }
 
             return ResponseEntity.ok(response);
         } catch (AppException e) {
             throw e;
         } catch (Exception e) {
-            LOGGER.error("Preview recalculation failed: {}", e.getMessage(), e);
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error("Preview recalculation failed: {}", e.getMessage(), e);
+            }
             throw new AppException(
                     ErrorCode.INTERNAL_SERVER_ERROR,
                     "Failed to recalculate preview: " + e.getMessage());
@@ -4068,13 +4294,15 @@ public class TransactionController {
             final int batchNumber = (i / BATCH_SIZE) + 1;
             final int totalBatches = (int) Math.ceil((double) totalTransactions / BATCH_SIZE);
 
-            LOGGER.info(
-                    "📦 Processing batch {}/{}: transactions {} to {} ({} transactions)",
-                    batchNumber,
-                    totalBatches,
-                    i + 1,
-                    endIndex,
-                    batch.size());
+            if (LOGGER.isInfoEnabled()) {
+                LOGGER.info(
+                        "📦 Processing batch {}/{}: transactions {} to {} ({} transactions)",
+                        batchNumber,
+                        totalBatches,
+                        i + 1,
+                        endIndex,
+                        batch.size());
+            }
 
             int batchCreated = 0;
             int batchFailed = 0;
@@ -4083,12 +4311,14 @@ public class TransactionController {
                 try {
 
                     // CRITICAL: Log amount before creating transaction to track sign preservation
-                    LOGGER.info(
-                            "📥 [PDF Import] Creating transaction: description='{}', parsedAmount={}, transactionType='{}', category='{}'",
-                            parsed.getDescription(),
-                            parsed.getAmount(),
-                            parsed.getTransactionType(),
-                            parsed.getCategoryPrimary());
+                    if (LOGGER.isInfoEnabled()) {
+                        LOGGER.info(
+                                "📥 [PDF Import] Creating transaction: description='{}', parsedAmount={}, transactionType='{}', category='{}'",
+                                parsed.getDescription(),
+                                parsed.getAmount(),
+                                parsed.getTransactionType(),
+                                parsed.getCategoryPrimary());
+                    }
 
                     final TransactionTable createdTx =
                             transactionService.createTransaction(
@@ -4125,19 +4355,24 @@ public class TransactionController {
                                     );
 
                     // CRITICAL: Log amount after creation to verify sign preservation
-                    LOGGER.info(
-                            "✅ [PDF Import] Transaction created: transactionId='{}', storedAmount={}, parsedAmount={}, match={}",
-                            createdTx.getTransactionId(),
-                            createdTx.getAmount(),
-                            parsed.getAmount(),
-                            createdTx.getAmount().compareTo(parsed.getAmount()) == 0
-                                    ? "✅"
-                                    : "❌ MISMATCH");
+                    if (LOGGER.isInfoEnabled()) {
+                        LOGGER.info(
+                                "✅ [PDF Import] Transaction created: transactionId='{}', storedAmount={}, parsedAmount={}, match={}",
+                                createdTx.getTransactionId(),
+                                createdTx.getAmount(),
+                                parsed.getAmount(),
+                                createdTx.getAmount().compareTo(parsed.getAmount()) == 0
+                                        ? "✅"
+                                        : "❌ MISMATCH");
+                    }
 
                     batchCreated++;
                     created++;
                 } catch (Exception e) {
-                    LOGGER.error("Failed to create transaction from import: {}", e.getMessage(), e);
+                    if (LOGGER.isErrorEnabled()) {
+                        LOGGER.error(
+                                "Failed to create transaction from import: {}", e.getMessage(), e);
+                    }
                     batchFailed++;
                     failed++;
                 }
@@ -4177,22 +4412,28 @@ public class TransactionController {
                                 if (!detected.isEmpty()) {
                                     subscriptionService.saveSubscriptions(
                                             user.getUserId(), detected);
-                                    LOGGER.info(
-                                            "Detected {} subscriptions after PDF import ({} transactions created)",
-                                            detected.size(),
-                                            finalCreated);
+                                    if (LOGGER.isInfoEnabled()) {
+                                        LOGGER.info(
+                                                "Detected {} subscriptions after PDF import ({} transactions created)",
+                                                detected.size(),
+                                                finalCreated);
+                                    }
                                 }
                             } catch (Exception e) {
-                                LOGGER.warn(
-                                        "Failed to detect subscriptions after PDF import: {}",
-                                        e.getMessage());
+                                if (LOGGER.isWarnEnabled()) {
+                                    LOGGER.warn(
+                                            "Failed to detect subscriptions after PDF import: {}",
+                                            e.getMessage());
+                                }
                                 // Don't fail the request if subscription detection fails
                             }
                         });
             } catch (Exception e) {
-                LOGGER.warn(
-                        "Failed to trigger subscription detection after PDF import: {}",
-                        e.getMessage());
+                if (LOGGER.isWarnEnabled()) {
+                    LOGGER.warn(
+                            "Failed to trigger subscription detection after PDF import: {}",
+                            e.getMessage());
+                }
                 // Don't fail the request if subscription detection fails
             }
         }
@@ -5152,22 +5393,26 @@ public class TransactionController {
             // Continue to create account with defaults instead of returning null
         }
 
-        LOGGER.info(
-                "🔍 autoCreateAccountIfDetected: Starting account creation check - name='{}', institution='{}', type='{}', accountNumber='{}', matchedAccountId='{}'",
-                detectedAccount.getAccountName(),
-                detectedAccount.getInstitutionName(),
-                detectedAccount.getAccountType(),
-                detectedAccount.getAccountNumber() != null
-                        ? "***"
-                                + detectedAccount
-                                        .getAccountNumber()
-                                        .substring(
-                                                Math.max(
-                                                        0,
-                                                        detectedAccount.getAccountNumber().length()
-                                                                - 4))
-                        : NULL,
-                detectedAccount.getMatchedAccountId());
+        if (LOGGER.isInfoEnabled()) {
+            LOGGER.info(
+                    "🔍 autoCreateAccountIfDetected: Starting account creation check - name='{}', institution='{}', type='{}', accountNumber='{}', matchedAccountId='{}'",
+                    detectedAccount.getAccountName(),
+                    detectedAccount.getInstitutionName(),
+                    detectedAccount.getAccountType(),
+                    detectedAccount.getAccountNumber() != null
+                            ? "***"
+                                    + detectedAccount
+                                            .getAccountNumber()
+                                            .substring(
+                                                    Math.max(
+                                                            0,
+                                                            detectedAccount
+                                                                            .getAccountNumber()
+                                                                            .length()
+                                                                    - 4))
+                            : NULL,
+                    detectedAccount.getMatchedAccountId());
+        }
 
         // CRITICAL: If matchedAccountId is provided, verify it exists and return it
         // This handles the case where account was already matched during import preview
@@ -5178,14 +5423,18 @@ public class TransactionController {
                     accountRepository.findById(detectedAccount.getMatchedAccountId());
             if (matchedAccount.isPresent()
                     && matchedAccount.get().getUserId().equals(user.getUserId())) {
-                LOGGER.info(
-                        "✅ autoCreateAccountIfDetected: Using matched account ID: {}",
-                        detectedAccount.getMatchedAccountId());
+                if (LOGGER.isInfoEnabled()) {
+                    LOGGER.info(
+                            "✅ autoCreateAccountIfDetected: Using matched account ID: {}",
+                            detectedAccount.getMatchedAccountId());
+                }
                 return detectedAccount.getMatchedAccountId();
             } else {
-                LOGGER.warn(
-                        "⚠️ autoCreateAccountIfDetected: Matched account ID '{}' not found or doesn't belong to user - will create new account",
-                        detectedAccount.getMatchedAccountId());
+                if (LOGGER.isWarnEnabled()) {
+                    LOGGER.warn(
+                            "⚠️ autoCreateAccountIfDetected: Matched account ID '{}' not found or doesn't belong to user - will create new account",
+                            detectedAccount.getMatchedAccountId());
+                }
                 // Continue to create new account
             }
         }
@@ -5197,9 +5446,11 @@ public class TransactionController {
             // We use account number as a natural unique key to prevent duplicates
             final List<AccountTable> existingAccounts =
                     accountRepository.findByUserId(user.getUserId());
-            LOGGER.info(
-                    "🔍 autoCreateAccountIfDetected: Checking {} existing accounts for user",
-                    existingAccounts != null ? existingAccounts.size() : 0);
+            if (LOGGER.isInfoEnabled()) {
+                LOGGER.info(
+                        "🔍 autoCreateAccountIfDetected: Checking {} existing accounts for user",
+                        existingAccounts != null ? existingAccounts.size() : 0);
+            }
 
             if (existingAccounts != null && !existingAccounts.isEmpty()) {
                 for (final AccountTable existing : existingAccounts) {
@@ -5211,10 +5462,12 @@ public class TransactionController {
                             && existing.getAccountNumber() != null
                             && normalizeAccountNumber(detectedAccount.getAccountNumber())
                                     .equals(normalizeAccountNumber(existing.getAccountNumber()))) {
-                        LOGGER.info(
-                                "✅ autoCreateAccountIfDetected: Found existing account by account number: {} (name: '{}')",
-                                existing.getAccountId(),
-                                existing.getAccountName());
+                        if (LOGGER.isInfoEnabled()) {
+                            LOGGER.info(
+                                    "✅ autoCreateAccountIfDetected: Found existing account by account number: {} (name: '{}')",
+                                    existing.getAccountId(),
+                                    existing.getAccountName());
+                        }
                         // Update balance with date comparison if balance and date are available
                         if (detectedAccount.getBalance() != null
                                 && detectedAccount.getBalanceDate() != null) {
@@ -5226,10 +5479,12 @@ public class TransactionController {
                             if (balanceUpdated) {
                                 existing.setUpdatedAt(Instant.now());
                                 accountRepository.save(existing);
-                                LOGGER.info(
-                                        "✅ Updated existing account balance with date comparison: {} (date: {})",
-                                        detectedAccount.getBalance(),
-                                        detectedAccount.getBalanceDate());
+                                if (LOGGER.isInfoEnabled()) {
+                                    LOGGER.info(
+                                            "✅ Updated existing account balance with date comparison: {} (date: {})",
+                                            detectedAccount.getBalance(),
+                                            detectedAccount.getBalanceDate());
+                                }
                             }
                         }
                         return existing.getAccountId();
@@ -5242,11 +5497,13 @@ public class TransactionController {
                             && existing.getAccountName().equals(detectedAccount.getAccountName())
                             && existing.getInstitutionName()
                                     .equals(detectedAccount.getInstitutionName())) {
-                        LOGGER.info(
-                                "✅ autoCreateAccountIfDetected: Found existing account by name and institution: {} (name: '{}', institution: '{}')",
-                                existing.getAccountId(),
-                                existing.getAccountName(),
-                                existing.getInstitutionName());
+                        if (LOGGER.isInfoEnabled()) {
+                            LOGGER.info(
+                                    "✅ autoCreateAccountIfDetected: Found existing account by name and institution: {} (name: '{}', institution: '{}')",
+                                    existing.getAccountId(),
+                                    existing.getAccountName(),
+                                    existing.getInstitutionName());
+                        }
                         // Update balance with date comparison if balance and date are available
                         if (detectedAccount.getBalance() != null
                                 && detectedAccount.getBalanceDate() != null) {
@@ -5258,18 +5515,22 @@ public class TransactionController {
                             if (balanceUpdated) {
                                 existing.setUpdatedAt(Instant.now());
                                 accountRepository.save(existing);
-                                LOGGER.info(
-                                        "✅ Updated existing account balance with date comparison: {} (date: {})",
-                                        detectedAccount.getBalance(),
-                                        detectedAccount.getBalanceDate());
+                                if (LOGGER.isInfoEnabled()) {
+                                    LOGGER.info(
+                                            "✅ Updated existing account balance with date comparison: {} (date: {})",
+                                            detectedAccount.getBalance(),
+                                            detectedAccount.getBalanceDate());
+                                }
                             }
                         }
                         return existing.getAccountId();
                     }
                 }
-                LOGGER.info(
-                        "🔍 autoCreateAccountIfDetected: No matching account found in {} existing accounts - will create new account",
-                        existingAccounts.size());
+                if (LOGGER.isInfoEnabled()) {
+                    LOGGER.info(
+                            "🔍 autoCreateAccountIfDetected: No matching account found in {} existing accounts - will create new account",
+                            existingAccounts.size());
+                }
             } else {
                 LOGGER.info(
                         "🔍 autoCreateAccountIfDetected: No existing accounts found for user - will create new account");
@@ -5291,9 +5552,11 @@ public class TransactionController {
                                         .equals(
                                                 normalizeAccountNumber(
                                                         detectedAccount.getAccountNumber()))) {
-                            LOGGER.info(
-                                    "📝 Account created by another thread, using existing: {}",
-                                    existing.getAccountId());
+                            if (LOGGER.isInfoEnabled()) {
+                                LOGGER.info(
+                                        "📝 Account created by another thread, using existing: {}",
+                                        existing.getAccountId());
+                            }
                             return existing.getAccountId();
                         }
                     }
@@ -5301,11 +5564,13 @@ public class TransactionController {
             }
 
             // Create new account
-            LOGGER.info(
-                    "🔨 autoCreateAccountIfDetected: Creating new account - name='{}', institution='{}', type='{}'",
-                    detectedAccount.getAccountName(),
-                    detectedAccount.getInstitutionName(),
-                    detectedAccount.getAccountType());
+            if (LOGGER.isInfoEnabled()) {
+                LOGGER.info(
+                        "🔨 autoCreateAccountIfDetected: Creating new account - name='{}', institution='{}', type='{}'",
+                        detectedAccount.getAccountName(),
+                        detectedAccount.getInstitutionName(),
+                        detectedAccount.getAccountType());
+            }
 
             final AccountTable newAccount = new AccountTable();
             newAccount.setAccountId(UUID.randomUUID().toString().toLowerCase(Locale.ROOT));
@@ -5317,14 +5582,18 @@ public class TransactionController {
                 // Set balance date if available
                 if (detectedAccount.getBalanceDate() != null) {
                     newAccount.setBalanceDate(detectedAccount.getBalanceDate());
-                    LOGGER.info(
-                            "✅ Set account balance from detected account: {} (date: {})",
-                            detectedAccount.getBalance(),
-                            detectedAccount.getBalanceDate());
+                    if (LOGGER.isInfoEnabled()) {
+                        LOGGER.info(
+                                "✅ Set account balance from detected account: {} (date: {})",
+                                detectedAccount.getBalance(),
+                                detectedAccount.getBalanceDate());
+                    }
                 } else {
-                    LOGGER.info(
-                            "✅ Set account balance from detected account: {} (no balance date)",
-                            detectedAccount.getBalance());
+                    if (LOGGER.isInfoEnabled()) {
+                        LOGGER.info(
+                                "✅ Set account balance from detected account: {} (no balance date)",
+                                detectedAccount.getBalance());
+                    }
                 }
             } else {
                 LOGGER.debug(
@@ -5438,24 +5707,28 @@ public class TransactionController {
 
             try {
                 accountRepository.save(newAccount);
-                LOGGER.info(
-                        "✅✅✅ autoCreateAccountIfDetected: Successfully created account - ID: '{}', name: '{}', institution: '{}', type: '{}', accountNumber: '{}', paymentDueDate: '{}', minimumPaymentDue: '{}', rewardPoints: '{}'",
-                        newAccount.getAccountId(),
-                        newAccount.getAccountName(),
-                        newAccount.getInstitutionName(),
-                        newAccount.getAccountType(),
-                        newAccount.getAccountNumber() != null
-                                ? "***" + newAccount.getAccountNumber()
-                                : NULL,
-                        newAccount.getPaymentDueDate(),
-                        newAccount.getMinimumPaymentDue(),
-                        newAccount.getRewardPoints());
+                if (LOGGER.isInfoEnabled()) {
+                    LOGGER.info(
+                            "✅✅✅ autoCreateAccountIfDetected: Successfully created account - ID: '{}', name: '{}', institution: '{}', type: '{}', accountNumber: '{}', paymentDueDate: '{}', minimumPaymentDue: '{}', rewardPoints: '{}'",
+                            newAccount.getAccountId(),
+                            newAccount.getAccountName(),
+                            newAccount.getInstitutionName(),
+                            newAccount.getAccountType(),
+                            newAccount.getAccountNumber() != null
+                                    ? "***" + newAccount.getAccountNumber()
+                                    : NULL,
+                            newAccount.getPaymentDueDate(),
+                            newAccount.getMinimumPaymentDue(),
+                            newAccount.getRewardPoints());
+                }
                 return newAccount.getAccountId();
             } catch (Exception saveException) {
                 // If save fails due to duplicate (race condition), try to find existing account
-                LOGGER.warn(
-                        "Account save failed (possibly duplicate), attempting to find existing: {}",
-                        saveException.getMessage());
+                if (LOGGER.isWarnEnabled()) {
+                    LOGGER.warn(
+                            "Account save failed (possibly duplicate), attempting to find existing: {}",
+                            saveException.getMessage());
+                }
                 final List<AccountTable> finalCheck =
                         accountRepository.findByUserId(user.getUserId());
                 if (finalCheck != null) {
@@ -5467,9 +5740,11 @@ public class TransactionController {
                                         .equals(
                                                 normalizeAccountNumber(
                                                         detectedAccount.getAccountNumber()))) {
-                            LOGGER.info(
-                                    "📝 Found account after save failure: {}",
-                                    existing.getAccountId());
+                            if (LOGGER.isInfoEnabled()) {
+                                LOGGER.info(
+                                        "📝 Found account after save failure: {}",
+                                        existing.getAccountId());
+                            }
                             return existing.getAccountId();
                         }
                     }
@@ -5477,7 +5752,9 @@ public class TransactionController {
                 throw saveException; // Re-throw if we can't find existing account
             }
         } catch (Exception e) {
-            LOGGER.error("Failed to auto-create account: {}", e.getMessage(), e);
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error("Failed to auto-create account: {}", e.getMessage(), e);
+            }
             // Don't fail the import if account creation fails - transactions will use pseudo
             // account
             return null;
@@ -5855,12 +6132,14 @@ public class TransactionController {
                 chunkedUploadService.uploadChunk(
                         uploadId, chunkIndex, totalChunks, chunkData, filename, contentType);
 
-        LOGGER.info(
-                "Chunk {}/{} uploaded for uploadId: {} (complete: {})",
-                chunkIndex + 1,
-                totalChunks,
-                uploadId,
-                isComplete);
+        if (LOGGER.isInfoEnabled()) {
+            LOGGER.info(
+                    "Chunk {}/{} uploaded for uploadId: {} (complete: {})",
+                    chunkIndex + 1,
+                    totalChunks,
+                    uploadId,
+                    isComplete);
+        }
 
         return ResponseEntity.ok(new ChunkUploadResponse(uploadId, chunkIndex, isComplete));
     }
@@ -5940,7 +6219,9 @@ public class TransactionController {
             return importCSV(userDetails, file, accountId, password, assembledFile.getFilename());
 
         } catch (IOException e) {
-            LOGGER.error("Error finalizing chunked upload: {}", e.getMessage(), e);
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error("Error finalizing chunked upload: {}", e.getMessage(), e);
+            }
             throw new AppException(
                     ErrorCode.INTERNAL_SERVER_ERROR,
                     "Failed to finalize upload: " + e.getMessage());
@@ -6012,11 +6293,13 @@ public class TransactionController {
             return;
         }
 
-        LOGGER.info(
-                "🔄 [Account Metadata Update] Import result metadata - paymentDueDate: {}, minimumPaymentDue: {}, rewardPoints: {}",
-                importResult.getPaymentDueDate(),
-                importResult.getMinimumPaymentDue(),
-                importResult.getRewardPoints());
+        if (LOGGER.isInfoEnabled()) {
+            LOGGER.info(
+                    "🔄 [Account Metadata Update] Import result metadata - paymentDueDate: {}, minimumPaymentDue: {}, rewardPoints: {}",
+                    importResult.getPaymentDueDate(),
+                    importResult.getMinimumPaymentDue(),
+                    importResult.getRewardPoints());
+        }
 
         try {
             final Optional<AccountTable> accountOpt = accountRepository.findById(accountId);
@@ -6152,32 +6435,40 @@ public class TransactionController {
             // Update account if changes were made
             if (needsUpdate) {
                 account.setUpdatedAt(Instant.now());
-                LOGGER.info(
-                        "💾 [Account Metadata Update] Saving account '{}' to DynamoDB with metadata - paymentDueDate: {}, minimumPaymentDue: {}, rewardPoints: {}, balance: {}",
-                        accountId,
-                        account.getPaymentDueDate(),
-                        account.getMinimumPaymentDue(),
-                        account.getRewardPoints(),
-                        account.getBalance());
+                if (LOGGER.isInfoEnabled()) {
+                    LOGGER.info(
+                            "💾 [Account Metadata Update] Saving account '{}' to DynamoDB with metadata - paymentDueDate: {}, minimumPaymentDue: {}, rewardPoints: {}, balance: {}",
+                            accountId,
+                            account.getPaymentDueDate(),
+                            account.getMinimumPaymentDue(),
+                            account.getRewardPoints(),
+                            account.getBalance());
+                }
                 accountRepository.save(account);
-                LOGGER.info(
-                        "✅ [Account Metadata Update] Successfully saved account '{}' metadata to DynamoDB - paymentDueDate: {}, minimumPaymentDue: {}, rewardPoints: {}, balance: {}",
-                        accountId,
-                        account.getPaymentDueDate(),
-                        account.getMinimumPaymentDue(),
-                        account.getRewardPoints(),
-                        account.getBalance());
+                if (LOGGER.isInfoEnabled()) {
+                    LOGGER.info(
+                            "✅ [Account Metadata Update] Successfully saved account '{}' metadata to DynamoDB - paymentDueDate: {}, minimumPaymentDue: {}, rewardPoints: {}, balance: {}",
+                            accountId,
+                            account.getPaymentDueDate(),
+                            account.getMinimumPaymentDue(),
+                            account.getRewardPoints(),
+                            account.getBalance());
+                }
             } else {
-                LOGGER.info(
-                        "ℹ️ [Account Metadata Update] No update needed for account '{}' - existing metadata is already up-to-date",
-                        accountId);
+                if (LOGGER.isInfoEnabled()) {
+                    LOGGER.info(
+                            "ℹ️ [Account Metadata Update] No update needed for account '{}' - existing metadata is already up-to-date",
+                            accountId);
+                }
             }
         } catch (Exception e) {
-            LOGGER.error(
-                    "❌ Error updating account metadata for account '{}': {}",
-                    accountId,
-                    e.getMessage(),
-                    e);
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error(
+                        "❌ Error updating account metadata for account '{}': {}",
+                        accountId,
+                        e.getMessage(),
+                        e);
+            }
             // Don't fail the import if metadata update fails
         }
     }

@@ -122,7 +122,9 @@ public class SubscriptionController {
                 userLocks.computeIfAbsent(user.getUserId(), k -> new ReentrantLock());
         userLock.lock();
         try {
-            LOGGER.info("Detecting subscriptions for user: {}", user.getUserId());
+            if (LOGGER.isInfoEnabled()) {
+                LOGGER.info("Detecting subscriptions for user: {}", user.getUserId());
+            }
 
             // Validate user has transactions before detection
             final List<Subscription> subscriptions =
@@ -131,21 +133,27 @@ public class SubscriptionController {
             // Save detected subscriptions
             if (!subscriptions.isEmpty()) {
                 subscriptionService.saveSubscriptions(user.getUserId(), subscriptions);
-                LOGGER.info(
-                        "Detected and saved {} subscriptions for user: {}",
-                        subscriptions.size(),
-                        user.getUserId());
+                if (LOGGER.isInfoEnabled()) {
+                    LOGGER.info(
+                            "Detected and saved {} subscriptions for user: {}",
+                            subscriptions.size(),
+                            user.getUserId());
+                }
             } else {
-                LOGGER.info("No subscriptions detected for user: {}", user.getUserId());
+                if (LOGGER.isInfoEnabled()) {
+                    LOGGER.info("No subscriptions detected for user: {}", user.getUserId());
+                }
             }
 
             return ResponseEntity.ok(subscriptions);
         } catch (Exception e) {
-            LOGGER.error(
-                    "Error detecting subscriptions for user {}: {}",
-                    user.getUserId(),
-                    e.getMessage(),
-                    e);
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error(
+                        "Error detecting subscriptions for user {}: {}",
+                        user.getUserId(),
+                        e.getMessage(),
+                        e);
+            }
             throw new AppException(
                     ErrorCode.DATABASE_QUERY_FAILED,
                     "Failed to detect subscriptions: " + e.getMessage(),
@@ -190,11 +198,13 @@ public class SubscriptionController {
                     subscriptionService.getSubscriptions(user.getUserId());
             return ResponseEntity.ok(subscriptions);
         } catch (Exception e) {
-            LOGGER.error(
-                    "Error retrieving subscriptions for user {}: {}",
-                    user.getUserId(),
-                    e.getMessage(),
-                    e);
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error(
+                        "Error retrieving subscriptions for user {}: {}",
+                        user.getUserId(),
+                        e.getMessage(),
+                        e);
+            }
             throw new AppException(
                     ErrorCode.DATABASE_QUERY_FAILED,
                     "Failed to retrieve subscriptions: " + e.getMessage(),
@@ -234,11 +244,13 @@ public class SubscriptionController {
                     subscriptionService.getActiveSubscriptions(user.getUserId());
             return ResponseEntity.ok(subscriptions);
         } catch (Exception e) {
-            LOGGER.error(
-                    "Error retrieving active subscriptions for user {}: {}",
-                    user.getUserId(),
-                    e.getMessage(),
-                    e);
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error(
+                        "Error retrieving active subscriptions for user {}: {}",
+                        user.getUserId(),
+                        e.getMessage(),
+                        e);
+            }
             throw new AppException(
                     ErrorCode.DATABASE_QUERY_FAILED,
                     "Failed to retrieve active subscriptions: " + e.getMessage(),
@@ -302,25 +314,31 @@ public class SubscriptionController {
                         .anyMatch(sub -> sub.getSubscriptionId().equals(subscriptionId));
 
         if (!belongsToUser) {
-            LOGGER.warn(
-                    "User {} attempted to delete subscription {} that doesn't belong to them",
-                    user.getUserId(),
-                    subscriptionId);
+            if (LOGGER.isWarnEnabled()) {
+                LOGGER.warn(
+                        "User {} attempted to delete subscription {} that doesn't belong to them",
+                        user.getUserId(),
+                        subscriptionId);
+            }
             throw new AppException(
                     ErrorCode.UNAUTHORIZED_ACCESS, "Subscription not found or access denied");
         }
 
         try {
             subscriptionService.deleteSubscription(subscriptionId);
-            LOGGER.info("Subscription {} deleted by user {}", subscriptionId, user.getUserId());
+            if (LOGGER.isInfoEnabled()) {
+                LOGGER.info("Subscription {} deleted by user {}", subscriptionId, user.getUserId());
+            }
             return ResponseEntity.noContent().build();
         } catch (Exception e) {
-            LOGGER.error(
-                    "Error deleting subscription {} for user {}: {}",
-                    subscriptionId,
-                    user.getUserId(),
-                    e.getMessage(),
-                    e);
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error(
+                        "Error deleting subscription {} for user {}: {}",
+                        subscriptionId,
+                        user.getUserId(),
+                        e.getMessage(),
+                        e);
+            }
             throw new AppException(
                     ErrorCode.DATABASE_QUERY_FAILED,
                     "Failed to delete subscription: " + e.getMessage(),
@@ -362,11 +380,13 @@ public class SubscriptionController {
 
             return ResponseEntity.ok(response);
         } catch (Exception e) {
-            LOGGER.error(
-                    "Error retrieving unused subscription insights for user {}: {}",
-                    user.getUserId(),
-                    e.getMessage(),
-                    e);
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error(
+                        "Error retrieving unused subscription insights for user {}: {}",
+                        user.getUserId(),
+                        e.getMessage(),
+                        e);
+            }
             throw new AppException(
                     ErrorCode.DATABASE_QUERY_FAILED,
                     "Failed to retrieve insights: " + e.getMessage(),
@@ -409,11 +429,13 @@ public class SubscriptionController {
 
             return ResponseEntity.ok(response);
         } catch (Exception e) {
-            LOGGER.error(
-                    "Error retrieving price change alerts for user {}: {}",
-                    user.getUserId(),
-                    e.getMessage(),
-                    e);
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error(
+                        "Error retrieving price change alerts for user {}: {}",
+                        user.getUserId(),
+                        e.getMessage(),
+                        e);
+            }
             throw new AppException(
                     ErrorCode.DATABASE_QUERY_FAILED,
                     "Failed to retrieve price change alerts: " + e.getMessage(),
@@ -508,11 +530,13 @@ public class SubscriptionController {
 
             return ResponseEntity.ok(response);
         } catch (Exception e) {
-            LOGGER.error(
-                    "Error retrieving cancellation recommendations for user {}: {}",
-                    user.getUserId(),
-                    e.getMessage(),
-                    e);
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error(
+                        "Error retrieving cancellation recommendations for user {}: {}",
+                        user.getUserId(),
+                        e.getMessage(),
+                        e);
+            }
             throw new AppException(
                     ErrorCode.DATABASE_QUERY_FAILED,
                     "Failed to retrieve recommendations: " + e.getMessage(),
@@ -582,11 +606,13 @@ public class SubscriptionController {
 
             return ResponseEntity.ok(response);
         } catch (Exception e) {
-            LOGGER.error(
-                    "Error calculating health score for subscription {}: {}",
-                    subscriptionId,
-                    e.getMessage(),
-                    e);
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error(
+                        "Error calculating health score for subscription {}: {}",
+                        subscriptionId,
+                        e.getMessage(),
+                        e);
+            }
             throw new AppException(
                     ErrorCode.DATABASE_QUERY_FAILED,
                     "Failed to calculate health score: " + e.getMessage(),
@@ -641,11 +667,13 @@ public class SubscriptionController {
 
             return ResponseEntity.ok(response);
         } catch (Exception e) {
-            LOGGER.error(
-                    "Error retrieving trial expiration alerts for user {}: {}",
-                    user.getUserId(),
-                    e.getMessage(),
-                    e);
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error(
+                        "Error retrieving trial expiration alerts for user {}: {}",
+                        user.getUserId(),
+                        e.getMessage(),
+                        e);
+            }
             throw new AppException(
                     ErrorCode.DATABASE_QUERY_FAILED,
                     "Failed to retrieve trial expiration alerts: " + e.getMessage(),
@@ -704,11 +732,13 @@ public class SubscriptionController {
 
             return ResponseEntity.ok(response);
         } catch (Exception e) {
-            LOGGER.error(
-                    "Error retrieving bundling recommendations for user {}: {}",
-                    user.getUserId(),
-                    e.getMessage(),
-                    e);
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error(
+                        "Error retrieving bundling recommendations for user {}: {}",
+                        user.getUserId(),
+                        e.getMessage(),
+                        e);
+            }
             throw new AppException(
                     ErrorCode.DATABASE_QUERY_FAILED,
                     "Failed to retrieve bundling recommendations: " + e.getMessage(),
@@ -765,11 +795,13 @@ public class SubscriptionController {
 
             return ResponseEntity.ok(response);
         } catch (Exception e) {
-            LOGGER.error(
-                    "Error retrieving alternative recommendations for user {}: {}",
-                    user.getUserId(),
-                    e.getMessage(),
-                    e);
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error(
+                        "Error retrieving alternative recommendations for user {}: {}",
+                        user.getUserId(),
+                        e.getMessage(),
+                        e);
+            }
             throw new AppException(
                     ErrorCode.DATABASE_QUERY_FAILED,
                     "Failed to retrieve alternative recommendations: " + e.getMessage(),
@@ -825,11 +857,13 @@ public class SubscriptionController {
 
             return ResponseEntity.ok(response);
         } catch (Exception e) {
-            LOGGER.error(
-                    "Error retrieving predictive cancellations for user {}: {}",
-                    user.getUserId(),
-                    e.getMessage(),
-                    e);
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error(
+                        "Error retrieving predictive cancellations for user {}: {}",
+                        user.getUserId(),
+                        e.getMessage(),
+                        e);
+            }
             throw new AppException(
                     ErrorCode.DATABASE_QUERY_FAILED,
                     "Failed to retrieve predictive cancellations: " + e.getMessage(),
@@ -925,11 +959,13 @@ public class SubscriptionController {
 
             return ResponseEntity.ok(response);
         } catch (Exception e) {
-            LOGGER.error(
-                    "Error retrieving optimization recommendations for user {}: {}",
-                    user.getUserId(),
-                    e.getMessage(),
-                    e);
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error(
+                        "Error retrieving optimization recommendations for user {}: {}",
+                        user.getUserId(),
+                        e.getMessage(),
+                        e);
+            }
             throw new AppException(
                     ErrorCode.DATABASE_QUERY_FAILED,
                     "Failed to retrieve optimization recommendations: " + e.getMessage(),

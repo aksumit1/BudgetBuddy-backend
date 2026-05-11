@@ -83,10 +83,12 @@ public class FileQuarantineService {
             initializeQuarantineDirectory();
         } catch (Exception e) {
             // Catch any exception during construction to prevent bean creation failure
-            LOGGER.error(
-                    "Failed to initialize FileQuarantineService. Quarantine functionality will be disabled. Error: {}",
-                    e.getMessage(),
-                    e);
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error(
+                        "Failed to initialize FileQuarantineService. Quarantine functionality will be disabled. Error: {}",
+                        e.getMessage(),
+                        e);
+            }
             // Set safe defaults for quarantine directory
             try {
                 String tempDir = System.getProperty(JAVA_IO_TMPDIR);
@@ -166,7 +168,9 @@ public class FileQuarantineService {
 
             return quarantineId;
         } catch (IOException e) {
-            LOGGER.error("Failed to quarantine file: {}", e.getMessage(), e);
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error("Failed to quarantine file: {}", e.getMessage(), e);
+            }
             throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to quarantine file");
         } finally {
             quarantineLock.unlock();
@@ -190,10 +194,12 @@ public class FileQuarantineService {
             throw new AppException(ErrorCode.RECORD_NOT_FOUND, "Quarantined file not found");
         }
 
-        LOGGER.info(
-                "File released from quarantine: {} (ID: {})",
-                record.getOriginalFileName(),
-                quarantineId);
+        if (LOGGER.isInfoEnabled()) {
+            LOGGER.info(
+                    "File released from quarantine: {} (ID: {})",
+                    record.getOriginalFileName(),
+                    quarantineId);
+        }
         return quarantinedFile;
     }
 
@@ -212,13 +218,17 @@ public class FileQuarantineService {
             final Path quarantinedFile = Paths.get(record.getQuarantinedPath());
             if (Files.exists(quarantinedFile)) {
                 Files.delete(quarantinedFile);
-                LOGGER.info(
-                        "Quarantined file deleted: {} (ID: {})",
-                        record.getOriginalFileName(),
-                        quarantineId);
+                if (LOGGER.isInfoEnabled()) {
+                    LOGGER.info(
+                            "Quarantined file deleted: {} (ID: {})",
+                            record.getOriginalFileName(),
+                            quarantineId);
+                }
             }
         } catch (IOException e) {
-            LOGGER.error("Failed to delete quarantined file: {}", e.getMessage(), e);
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error("Failed to delete quarantined file: {}", e.getMessage(), e);
+            }
         }
     }
 
@@ -243,8 +253,10 @@ public class FileQuarantineService {
                         iterator.remove();
                         deletedCount++;
                     } catch (IOException e) {
-                        LOGGER.error(
-                                "Failed to delete old quarantined file: {}", e.getMessage(), e);
+                        if (LOGGER.isErrorEnabled()) {
+                            LOGGER.error(
+                                    "Failed to delete old quarantined file: {}", e.getMessage(), e);
+                        }
                     }
                 }
             }
@@ -304,10 +316,12 @@ public class FileQuarantineService {
                         iterator.remove();
                         cleaned++;
                     } catch (Exception e) {
-                        LOGGER.error(
-                                "Failed to delete old quarantined file: {}",
-                                record.getQuarantinedPath(),
-                                e);
+                        if (LOGGER.isErrorEnabled()) {
+                            LOGGER.error(
+                                    "Failed to delete old quarantined file: {}",
+                                    record.getQuarantinedPath(),
+                                    e);
+                        }
                     }
                 }
             }
@@ -342,13 +356,17 @@ public class FileQuarantineService {
                     quarantineEnabled = false;
                     return;
                 }
-                LOGGER.info("Quarantine directory initialized: {}", quarantineDirectory);
+                if (LOGGER.isInfoEnabled()) {
+                    LOGGER.info("Quarantine directory initialized: {}", quarantineDirectory);
+                }
                 return; // Success - exit early
             } catch (IOException | SecurityException e) {
-                LOGGER.warn(
-                        "Failed to create quarantine directory at {}: {}. Attempting fallback to system temp directory.",
-                        quarantineDirectory,
-                        e.getMessage());
+                if (LOGGER.isWarnEnabled()) {
+                    LOGGER.warn(
+                            "Failed to create quarantine directory at {}: {}. Attempting fallback to system temp directory.",
+                            quarantineDirectory,
+                            e.getMessage());
+                }
             }
 
             // Fallback to system temp directory (should always be writable)
@@ -387,18 +405,24 @@ public class FileQuarantineService {
                 }
                 // Update the directory path to use fallback
                 this.quarantineDirectory = fallbackDir;
-                LOGGER.info("Using fallback quarantine directory: {}", fallbackDir);
+                if (LOGGER.isInfoEnabled()) {
+                    LOGGER.info("Using fallback quarantine directory: {}", fallbackDir);
+                }
             } catch (IOException | SecurityException fallbackException) {
-                LOGGER.warn(
-                        "Failed to create fallback quarantine directory. Quarantine functionality will be disabled. Error: {}",
-                        fallbackException.getMessage());
+                if (LOGGER.isWarnEnabled()) {
+                    LOGGER.warn(
+                            "Failed to create fallback quarantine directory. Quarantine functionality will be disabled. Error: {}",
+                            fallbackException.getMessage());
+                }
                 quarantineEnabled = false;
             }
         } catch (Exception e) {
             // Catch-all to prevent any exception from propagating during initialization
-            LOGGER.warn(
-                    "Unexpected error during quarantine directory initialization. Quarantine functionality will be disabled. Error: {}",
-                    e.getMessage());
+            if (LOGGER.isWarnEnabled()) {
+                LOGGER.warn(
+                        "Unexpected error during quarantine directory initialization. Quarantine functionality will be disabled. Error: {}",
+                        e.getMessage());
+            }
             quarantineEnabled = false;
         }
     }

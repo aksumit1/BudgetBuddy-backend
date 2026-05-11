@@ -45,7 +45,8 @@ import software.amazon.awssdk.services.dynamodb.model.UpdateTimeToLiveRequest;
 @SuppressWarnings({"PMD.AvoidCatchingGenericException", "PMD.OnlyOneReturn"})
 @SuppressFBWarnings(
         value = {"EI_EXPOSE_REP2", "CT_CONSTRUCTOR_THROW"},
-        justification = "Spring constructor injection — beans are shared by design; CT_CONSTRUCTOR_THROW: Java 25 deprecates Object.finalize() for removal, so the finalizer-attack vector this rule guards against is not exploitable")
+        justification =
+                "Spring constructor injection — beans are shared by design; CT_CONSTRUCTOR_THROW: Java 25 deprecates Object.finalize() for removal, so the finalizer-attack vector this rule guards against is not exploitable")
 @Service
 public class RateLimitService {
 
@@ -272,7 +273,9 @@ public class RateLimitService {
                 }
             }
         } catch (Exception e) {
-            LOGGER.error("Failed to load rate limit from DynamoDB: {}", e.getMessage());
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error("Failed to load rate limit from DynamoDB: {}", e.getMessage());
+            }
         }
 
         return new TokenBucket(config);
@@ -308,7 +311,9 @@ public class RateLimitService {
                                                     .build()))
                             .build());
         } catch (Exception e) {
-            LOGGER.error("Failed to update rate limit in DynamoDB: {}", e.getMessage());
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error("Failed to update rate limit in DynamoDB: {}", e.getMessage());
+            }
         }
     }
 
@@ -323,11 +328,13 @@ public class RateLimitService {
                     try {
                         updateDynamoDB(key, bucket);
                     } catch (Exception e) {
-                        LOGGER.error(
-                                "Error in async rate limit update for {}: {}",
-                                key,
-                                e.getMessage(),
-                                e);
+                        if (LOGGER.isErrorEnabled()) {
+                            LOGGER.error(
+                                    "Error in async rate limit update for {}: {}",
+                                    key,
+                                    e.getMessage(),
+                                    e);
+                        }
                     }
                 });
     }
@@ -347,7 +354,9 @@ public class RateLimitService {
                 LOGGER.warn(DYNAMO_DB_CREDENTIALS_NOT_AVAILABLE);
                 return;
             }
-            LOGGER.warn("Failed to check if rate limit table exists: {}", e.getMessage());
+            if (LOGGER.isWarnEnabled()) {
+                LOGGER.warn("Failed to check if rate limit table exists: {}", e.getMessage());
+            }
             // Continue with creation attempt
         }
 
@@ -380,7 +389,9 @@ public class RateLimitService {
                                                 .build())
                                 .build());
             } catch (Exception e) {
-                LOGGER.warn("Failed to configure TTL for rate limit table: {}", e.getMessage());
+                if (LOGGER.isWarnEnabled()) {
+                    LOGGER.warn("Failed to configure TTL for rate limit table: {}", e.getMessage());
+                }
             }
             LOGGER.info("Rate limit table created");
         } catch (ResourceInUseException e) {
@@ -392,14 +403,18 @@ public class RateLimitService {
                 LOGGER.warn(DYNAMO_DB_CREDENTIALS_NOT_AVAILABLE);
                 return;
             }
-            LOGGER.error("Failed to create rate limit table: {}", e.getMessage());
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error("Failed to create rate limit table: {}", e.getMessage());
+            }
         } catch (Exception e) {
             // CRITICAL: Handle credentials errors gracefully
             if (isCredentialsError(e)) {
                 LOGGER.warn(DYNAMO_DB_CREDENTIALS_NOT_AVAILABLE);
                 return;
             }
-            LOGGER.error("Failed to create rate limit table: {}", e.getMessage());
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error("Failed to create rate limit table: {}", e.getMessage());
+            }
         }
     }
 

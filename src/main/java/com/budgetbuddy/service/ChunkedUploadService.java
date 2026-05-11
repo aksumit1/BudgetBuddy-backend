@@ -128,8 +128,13 @@ public class ChunkedUploadService {
             // Store chunk
             session.chunks.put(chunkIndex, chunkData);
 
-            LOGGER.debug(
-                    "Uploaded chunk {}/{} for uploadId: {}", chunkIndex + 1, totalChunks, uploadId);
+            if (LOGGER.isDebugEnabled()) {
+                LOGGER.debug(
+                        "Uploaded chunk {}/{} for uploadId: {}",
+                        chunkIndex + 1,
+                        totalChunks,
+                        uploadId);
+            }
 
             // Check if all chunks received
             return session.isComplete();
@@ -218,8 +223,11 @@ public class ChunkedUploadService {
                         entry -> {
                             final UploadSession session = entry.getValue();
                             if (now - session.createdAt > SESSION_TIMEOUT_MS) {
-                                LOGGER.debug(
-                                        "Cleaning up expired upload session: {}", entry.getKey());
+                                if (LOGGER.isDebugEnabled()) {
+                                    LOGGER.debug(
+                                            "Cleaning up expired upload session: {}",
+                                            entry.getKey());
+                                }
                                 sessionLocks.remove(entry.getKey());
                                 return true;
                             }

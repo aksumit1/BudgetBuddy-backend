@@ -94,7 +94,9 @@ public class SyncHealthController {
             throw new AppException(ErrorCode.INVALID_INPUT, "User ID is invalid");
         }
 
-        LOGGER.debug("Sync health request for user: {}", user.getUserId());
+        if (LOGGER.isDebugEnabled()) {
+            LOGGER.debug("Sync health request for user: {}", user.getUserId());
+        }
 
         // Thread-safe read
         statusLock.readLock().lock();
@@ -150,8 +152,12 @@ public class SyncHealthController {
                         .orElseThrow(
                                 () -> new AppException(ErrorCode.USER_NOT_FOUND, USER_NOT_FOUND_1));
 
-        LOGGER.info(
-                "Updating sync status for user: {} to: {}", user.getUserId(), request.getStatus());
+        if (LOGGER.isInfoEnabled()) {
+            LOGGER.info(
+                    "Updating sync status for user: {} to: {}",
+                    user.getUserId(),
+                    request.getStatus());
+        }
 
         // Thread-safe write
         statusLock.writeLock().lock();
@@ -204,7 +210,9 @@ public class SyncHealthController {
                         .orElseThrow(
                                 () -> new AppException(ErrorCode.USER_NOT_FOUND, USER_NOT_FOUND_1));
 
-        LOGGER.info("Clearing sync errors for user: {}", user.getUserId());
+        if (LOGGER.isInfoEnabled()) {
+            LOGGER.info("Clearing sync errors for user: {}", user.getUserId());
+        }
 
         // Thread-safe write
         statusLock.writeLock().lock();

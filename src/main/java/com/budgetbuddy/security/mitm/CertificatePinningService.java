@@ -39,8 +39,11 @@ public class CertificatePinningService {
             @Value("${app.security.certificate-pinning.certificates:}") final String certificates) {
         if (enabled && certificates != null && !certificates.isEmpty()) {
             this.pinnedCertificates = Set.of(certificates.split(","));
-            LOGGER.info(
-                    "Certificate pinning enabled with {} certificates", pinnedCertificates.size());
+            if (LOGGER.isInfoEnabled()) {
+                LOGGER.info(
+                        "Certificate pinning enabled with {} certificates",
+                        pinnedCertificates.size());
+            }
         } else {
             this.pinnedCertificates = Set.of();
             if (enabled) {
@@ -77,7 +80,9 @@ public class CertificatePinningService {
                     certHash);
             return false;
         } catch (Exception e) {
-            LOGGER.error("Failed to validate certificate: {}", e.getMessage());
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error("Failed to validate certificate: {}", e.getMessage());
+            }
             return false;
         }
     }

@@ -67,7 +67,9 @@ public class PlaidTransactionSyncService {
         }
 
         try {
-            LOGGER.info("Starting batched transaction sync for user: {}", user.getUserId());
+            if (LOGGER.isInfoEnabled()) {
+                LOGGER.info("Starting batched transaction sync for user: {}", user.getUserId());
+            }
 
             final LocalDate endDate = LocalDate.now();
 
@@ -75,7 +77,9 @@ public class PlaidTransactionSyncService {
             final var userAccounts = accountRepository.findByUserId(user.getUserId());
 
             if (userAccounts.isEmpty()) {
-                LOGGER.warn("No accounts found for user: {}", user.getUserId());
+                if (LOGGER.isWarnEnabled()) {
+                    LOGGER.warn("No accounts found for user: {}", user.getUserId());
+                }
                 return;
             }
 
@@ -100,19 +104,23 @@ public class PlaidTransactionSyncService {
                     final java.time.Duration timeSinceLastSync =
                             java.time.Duration.between(account.getLastSyncedAt(), now);
                     if (timeSinceLastSync.toMinutes() < 5) {
-                        LOGGER.info(
-                                "Skipping transaction sync for account {} - last synced {} minutes ago",
-                                account.getAccountId(),
-                                timeSinceLastSync.toMinutes());
+                        if (LOGGER.isInfoEnabled()) {
+                            LOGGER.info(
+                                    "Skipping transaction sync for account {} - last synced {} minutes ago",
+                                    account.getAccountId(),
+                                    timeSinceLastSync.toMinutes());
+                        }
                         continue;
                     }
                 }
                 accountsToSync.add(account);
             }
             if (userHasNoTransactions) {
-                LOGGER.info(
-                        "Bypassing 5-minute cooldown for user {} - no transactions yet (post-link recovery)",
-                        user.getUserId());
+                if (LOGGER.isInfoEnabled()) {
+                    LOGGER.info(
+                            "Bypassing 5-minute cooldown for user {} - no transactions yet (post-link recovery)",
+                            user.getUserId());
+                }
             }
 
             if (accountsToSync.isEmpty()) {
@@ -120,7 +128,9 @@ public class PlaidTransactionSyncService {
                 return;
             }
 
-            LOGGER.info("Syncing transactions for {} accounts", accountsToSync.size());
+            if (LOGGER.isInfoEnabled()) {
+                LOGGER.info("Syncing transactions for {} accounts", accountsToSync.size());
+            }
 
             // Find the earliest lastSyncedAt across all accounts
             LocalDate earliestStartDate = null;
@@ -142,11 +152,13 @@ public class PlaidTransactionSyncService {
                 earliestStartDate = endDate.minusYears(2);
             }
 
-            LOGGER.info(
-                    "Batched transaction sync: fetching transactions from {} to {} for {} accounts",
-                    earliestStartDate,
-                    endDate,
-                    accountsToSync.size());
+            if (LOGGER.isInfoEnabled()) {
+                LOGGER.info(
+                        "Batched transaction sync: fetching transactions from {} to {} for {} accounts",
+                        earliestStartDate,
+                        endDate,
+                        accountsToSync.size());
+            }
 
             // Make ONE API call for all accounts
             final var allTransactionsResponse =
@@ -158,16 +170,21 @@ public class PlaidTransactionSyncService {
             // Plaid SDK returns @NonNull response — only check the list.
             if (allTransactionsResponse.getTransactions() == null
                     || allTransactionsResponse.getTransactions().isEmpty()) {
-                LOGGER.warn("No transactions returned from Plaid for user: {}", user.getUserId());
+                if (LOGGER.isWarnEnabled()) {
+                    LOGGER.warn(
+                            "No transactions returned from Plaid for user: {}", user.getUserId());
+                }
                 updateLastSyncedAtForAccounts(accountsToSync);
                 return;
             }
 
             final int totalTransactions = allTransactionsResponse.getTransactions().size();
-            LOGGER.info(
-                    "Plaid returned {} total transactions (batched for {} accounts)",
-                    totalTransactions,
-                    accountsToSync.size());
+            if (LOGGER.isInfoEnabled()) {
+                LOGGER.info(
+                        "Plaid returned {} total transactions (batched for {} accounts)",
+                        totalTransactions,
+                        accountsToSync.size());
+            }
 
             // Group transactions by account ID
             final Map<String, List<Object>> transactionsByAccount = new HashMap<>();
@@ -185,10 +202,12 @@ public class PlaidTransactionSyncService {
                 }
             }
 
-            LOGGER.info(
-                    "Grouped transactions: {} accounts have transactions, {} unassigned",
-                    transactionsByAccount.size(),
-                    unassignedTransactions.size());
+            if (LOGGER.isInfoEnabled()) {
+                LOGGER.info(
+                        "Grouped transactions: {} accounts have transactions, {} unassigned",
+                        transactionsByAccount.size(),
+                        unassignedTransactions.size());
+            }
 
             // Process transactions per account
             int totalSyncedCount = 0;
@@ -207,10 +226,12 @@ public class PlaidTransactionSyncService {
                     }
 
                     if (accountTransactions.isEmpty()) {
-                        LOGGER.debug(
-                                "No transactions found for account {} (Plaid account ID: {})",
-                                account.getAccountId(),
-                                account.getPlaidAccountId());
+                        if (LOGGER.isDebugEnabled()) {
+                            LOGGER.debug(
+                                    "No transactions found for account {} (Plaid account ID: {})",
+                                    account.getAccountId(),
+                                    account.getPlaidAccountId());
+                        }
                         continue;
                     }
 
@@ -220,17 +241,21 @@ public class PlaidTransactionSyncService {
                                     accountTransactions, account.getLastSyncedAt(), endDate);
 
                     if (filteredTransactions.isEmpty()) {
-                        LOGGER.debug(
-                                "No new transactions for account {} after filtering",
-                                account.getAccountId());
+                        if (LOGGER.isDebugEnabled()) {
+                            LOGGER.debug(
+                                    "No new transactions for account {} after filtering",
+                                    account.getAccountId());
+                        }
                         continue;
                     }
 
-                    LOGGER.info(
-                            "Processing {} transactions for account {} (filtered from {} total)",
-                            filteredTransactions.size(),
-                            account.getAccountId(),
-                            accountTransactions.size());
+                    if (LOGGER.isInfoEnabled()) {
+                        LOGGER.info(
+                                "Processing {} transactions for account {} (filtered from {} total)",
+                                filteredTransactions.size(),
+                                account.getAccountId(),
+                                accountTransactions.size());
+                    }
 
                     // Process transactions for this account
                     final var result =
@@ -244,11 +269,13 @@ public class PlaidTransactionSyncService {
                     totalDuplicateCount += result.duplicateCount;
 
                 } catch (Exception e) {
-                    LOGGER.error(
-                            "Failed to process transactions for account {}: {}",
-                            account.getAccountId(),
-                            e.getMessage(),
-                            e);
+                    if (LOGGER.isErrorEnabled()) {
+                        LOGGER.error(
+                                "Failed to process transactions for account {}: {}",
+                                account.getAccountId(),
+                                e.getMessage(),
+                                e);
+                    }
                     totalErrorCount++;
                 }
             }
@@ -256,21 +283,25 @@ public class PlaidTransactionSyncService {
             // Update lastSyncedAt for all successfully synced accounts
             updateLastSyncedAtForAccounts(accountsToSync);
 
-            LOGGER.info(
-                    "Batched transaction sync completed: {} synced, {} duplicates, {} errors across {} accounts",
-                    totalSyncedCount,
-                    totalDuplicateCount,
-                    totalErrorCount,
-                    accountsToSync.size());
+            if (LOGGER.isInfoEnabled()) {
+                LOGGER.info(
+                        "Batched transaction sync completed: {} synced, {} duplicates, {} errors across {} accounts",
+                        totalSyncedCount,
+                        totalDuplicateCount,
+                        totalErrorCount,
+                        accountsToSync.size());
+            }
 
         } catch (AppException e) {
             throw e;
         } catch (Exception e) {
-            LOGGER.error(
-                    "Error syncing transactions for user {}: {}",
-                    user.getUserId(),
-                    e.getMessage(),
-                    e);
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error(
+                        "Error syncing transactions for user {}: {}",
+                        user.getUserId(),
+                        e.getMessage(),
+                        e);
+            }
             throw new AppException(
                     ErrorCode.PLAID_CONNECTION_FAILED,
                     "Failed to sync transactions",
@@ -337,10 +368,14 @@ public class PlaidTransactionSyncService {
                     return ((LocalDate) date).format(DATE_FORMATTER);
                 }
             } catch (Exception e) {
-                LOGGER.debug("Could not extract date via reflection: {}", e.getMessage());
+                if (LOGGER.isDebugEnabled()) {
+                    LOGGER.debug("Could not extract date via reflection: {}", e.getMessage());
+                }
             }
         } catch (Exception e) {
-            LOGGER.debug("Error extracting transaction date: {}", e.getMessage());
+            if (LOGGER.isDebugEnabled()) {
+                LOGGER.debug("Error extracting transaction date: {}", e.getMessage());
+            }
         }
         return null;
     }
@@ -402,13 +437,15 @@ public class PlaidTransactionSyncService {
                         // drift, and auth-reversal cases that otherwise look
                         // like silent balance corrections.
                         final java.math.BigDecimal priorAmount = existing.getAmount();
-                        LOGGER.info(
-                                "Reconciling pending→posted: pending plaidId={} → posted plaidId={} (user={}, account={}, priorAmount={})",
-                                pendingPlaidId,
-                                plaidTransactionId,
-                                user.getUserId(),
-                                account.getAccountId(),
-                                priorAmount);
+                        if (LOGGER.isInfoEnabled()) {
+                            LOGGER.info(
+                                    "Reconciling pending→posted: pending plaidId={} → posted plaidId={} (user={}, account={}, priorAmount={})",
+                                    pendingPlaidId,
+                                    plaidTransactionId,
+                                    user.getUserId(),
+                                    account.getAccountId(),
+                                    priorAmount);
+                        }
                         existing.setPlaidTransactionId(plaidTransactionId);
                         dataExtractor.updateTransactionFromPlaid(existing, plaidTransaction);
                         existing.setPending(Boolean.FALSE);
@@ -456,14 +493,16 @@ public class PlaidTransactionSyncService {
                         // This prevents overwriting Plaid transactions with different Plaid IDs
                         if (existing.getPlaidTransactionId() == null
                                 || existing.getPlaidTransactionId().isEmpty()) {
-                            LOGGER.info(
-                                    "🔄 Found matching imported transaction (no Plaid ID) - updating with Plaid ID: accountId={}, amount={}, date={}, description={}...",
-                                    account.getAccountId(),
-                                    amount,
-                                    transactionDate,
-                                    description.length() > 50
-                                            ? description.substring(0, 50) + "..."
-                                            : description);
+                            if (LOGGER.isInfoEnabled()) {
+                                LOGGER.info(
+                                        "🔄 Found matching imported transaction (no Plaid ID) - updating with Plaid ID: accountId={}, amount={}, date={}, description={}...",
+                                        account.getAccountId(),
+                                        amount,
+                                        transactionDate,
+                                        description.length() > 50
+                                                ? description.substring(0, 50) + "..."
+                                                : description);
+                            }
 
                             // Update existing transaction with Plaid data and ID
                             existing.setPlaidTransactionId(plaidTransactionId);
@@ -472,10 +511,12 @@ public class PlaidTransactionSyncService {
                             duplicateCount++; // Count as duplicate (matched existing)
                             continue;
                         } else {
-                            LOGGER.debug(
-                                    "Matching transaction found but already has Plaid ID: {} (different from new: {}), creating new transaction",
-                                    existing.getPlaidTransactionId(),
-                                    plaidTransactionId);
+                            if (LOGGER.isDebugEnabled()) {
+                                LOGGER.debug(
+                                        "Matching transaction found but already has Plaid ID: {} (different from new: {}), creating new transaction",
+                                        existing.getPlaidTransactionId(),
+                                        plaidTransactionId);
+                            }
                         }
                     }
                 }
@@ -501,7 +542,9 @@ public class PlaidTransactionSyncService {
                     duplicateCount++;
                 }
             } catch (Exception e) {
-                LOGGER.error("Error processing transaction: {}", e.getMessage(), e);
+                if (LOGGER.isErrorEnabled()) {
+                    LOGGER.error("Error processing transaction: {}", e.getMessage(), e);
+                }
                 errorCount++;
             }
         }
@@ -566,7 +609,9 @@ public class PlaidTransactionSyncService {
             account.setUpdatedAt(now);
             accountRepository.save(account);
         }
-        LOGGER.info("Updated lastSyncedAt for {} accounts", accounts.size());
+        if (LOGGER.isInfoEnabled()) {
+            LOGGER.info("Updated lastSyncedAt for {} accounts", accounts.size());
+        }
     }
 
     /**
@@ -596,7 +641,9 @@ public class PlaidTransactionSyncService {
                 }
             }
         } catch (Exception e) {
-            LOGGER.warn("Could not extract amount from Plaid transaction: {}", e.getMessage());
+            if (LOGGER.isWarnEnabled()) {
+                LOGGER.warn("Could not extract amount from Plaid transaction: {}", e.getMessage());
+            }
             return null;
         }
         if (raw == null || raw.isNaN() || raw.isInfinite()) {
@@ -629,7 +676,9 @@ public class PlaidTransactionSyncService {
                 }
             }
         } catch (Exception e) {
-            LOGGER.warn("Could not extract date from Plaid transaction: {}", e.getMessage());
+            if (LOGGER.isWarnEnabled()) {
+                LOGGER.warn("Could not extract date from Plaid transaction: {}", e.getMessage());
+            }
         }
         return null;
     }
@@ -673,7 +722,10 @@ public class PlaidTransactionSyncService {
                 // Ignore
             }
         } catch (Exception e) {
-            LOGGER.warn("Could not extract description from Plaid transaction: {}", e.getMessage());
+            if (LOGGER.isWarnEnabled()) {
+                LOGGER.warn(
+                        "Could not extract description from Plaid transaction: {}", e.getMessage());
+            }
         }
         return null;
     }

@@ -49,6 +49,9 @@ import software.amazon.awssdk.services.dynamodb.model.WriteRequest;
 @Repository
 public class AccountRepository {
 
+    private static final org.slf4j.Logger LOGGER =
+            org.slf4j.LoggerFactory.getLogger(AccountRepository.class);
+
     private static final String ACCOUNTS = "accounts";
 
     private final DynamoDbTable<AccountTable> accountTable;
@@ -170,14 +173,12 @@ public class AccountRepository {
                             .conditionExpression(conditionExpression)
                             .build());
 
-            org.slf4j.LoggerFactory.getLogger(AccountRepository.class)
-                    .info("Created pseudo account for user {}: {}", userId, pseudoAccountId);
+            LOGGER.info("Created pseudo account for user {}: {}", userId, pseudoAccountId);
         } catch (ConditionalCheckFailedException e) {
             // Account was created by another request - fetch and return it
-            org.slf4j.LoggerFactory.getLogger(AccountRepository.class)
-                    .debug(
-                            "Pseudo account already exists (created by another request), fetching existing: {}",
-                            pseudoAccountId);
+            LOGGER.debug(
+                    "Pseudo account already exists (created by another request), fetching existing: {}",
+                    pseudoAccountId);
             final Optional<AccountTable> existingAccount = findById(pseudoAccountId);
             if (existingAccount.isPresent()) {
                 return existingAccount.get();
@@ -239,12 +240,13 @@ public class AccountRepository {
                 final String accountId = account.getAccountId();
                 if (accountId != null && seenAccountIds.contains(accountId)) {
                     duplicateCount++;
-                    org.slf4j.LoggerFactory.getLogger(AccountRepository.class)
-                            .warn(
-                                    "Duplicate account detected by accountId and filtered: accountId={}, plaidAccountId={}, name={}",
-                                    accountId,
-                                    account.getPlaidAccountId(),
-                                    account.getAccountName());
+                    if (LOGGER.isWarnEnabled()) {
+                        LOGGER.warn(
+                                "Duplicate account detected by accountId and filtered: accountId={}, plaidAccountId={}, name={}",
+                                accountId,
+                                account.getPlaidAccountId(),
+                                account.getAccountName());
+                    }
                     continue;
                 }
 
@@ -253,12 +255,13 @@ public class AccountRepository {
                 if (plaidAccountId != null && !plaidAccountId.isEmpty()) {
                     if (seenPlaidAccountIds.contains(plaidAccountId)) {
                         duplicateCount++;
-                        org.slf4j.LoggerFactory.getLogger(AccountRepository.class)
-                                .warn(
-                                        "Duplicate account detected by plaidAccountId and filtered: accountId={}, plaidAccountId={}, name={}",
-                                        accountId,
-                                        plaidAccountId,
-                                        account.getAccountName());
+                        if (LOGGER.isWarnEnabled()) {
+                            LOGGER.warn(
+                                    "Duplicate account detected by plaidAccountId and filtered: accountId={}, plaidAccountId={}, name={}",
+                                    accountId,
+                                    plaidAccountId,
+                                    account.getAccountName());
+                        }
                         continue;
                     }
                     seenPlaidAccountIds.add(plaidAccountId);
@@ -284,17 +287,18 @@ public class AccountRepository {
 
         // Log for debugging
         if (totalFound > 0) {
-            org.slf4j.LoggerFactory.getLogger(AccountRepository.class)
-                    .info(
-                            "findByUserId({}): Found {} total accounts ({} active, {} inactive, {} null active, {} duplicates filtered, {} pseudo accounts filtered). Returning {} unique accounts.",
-                            userId,
-                            totalFound,
-                            activeCount,
-                            inactiveCount,
-                            nullActiveCount,
-                            duplicateCount,
-                            pseudoAccountCount,
-                            results.size());
+            if (LOGGER.isInfoEnabled()) {
+                LOGGER.info(
+                        "findByUserId({}): Found {} total accounts ({} active, {} inactive, {} null active, {} duplicates filtered, {} pseudo accounts filtered). Returning {} unique accounts.",
+                        userId,
+                        totalFound,
+                        activeCount,
+                        inactiveCount,
+                        nullActiveCount,
+                        duplicateCount,
+                        pseudoAccountCount,
+                        results.size());
+            }
         }
 
         return results;
@@ -360,13 +364,14 @@ public class AccountRepository {
                         .findFirst();
             }
         } catch (Exception e) {
-            org.slf4j.LoggerFactory.getLogger(AccountRepository.class)
-                    .error(
-                            "Error finding account by account number {} and institution {}: {}",
-                            accountNumber,
-                            institutionName,
-                            e.getMessage(),
-                            e);
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error(
+                        "Error finding account by account number {} and institution {}: {}",
+                        accountNumber,
+                        institutionName,
+                        e.getMessage(),
+                        e);
+            }
             return Optional.empty();
         }
     }
@@ -395,12 +400,13 @@ public class AccountRepository {
                                                             account.getAccountNumber())))
                     .findFirst();
         } catch (Exception e) {
-            org.slf4j.LoggerFactory.getLogger(AccountRepository.class)
-                    .error(
-                            "Error finding account by account number {}: {}",
-                            accountNumber,
-                            e.getMessage(),
-                            e);
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error(
+                        "Error finding account by account number {}: {}",
+                        accountNumber,
+                        e.getMessage(),
+                        e);
+            }
             return Optional.empty();
         }
     }
@@ -438,10 +444,9 @@ public class AccountRepository {
                 // Fallback to scan if index is not available (e.g., in test environments)
                 // This is less efficient but ensures the method works even if the index isn't
                 // initialized
-                org.slf4j.LoggerFactory.getLogger(AccountRepository.class)
-                        .warn(
-                                "PlaidItemIdIndex is not available, falling back to scan for plaidItemId: {}",
-                                plaidItemId);
+                LOGGER.warn(
+                        "PlaidItemIdIndex is not available, falling back to scan for plaidItemId: {}",
+                        plaidItemId);
 
                 final SdkIterable<software.amazon.awssdk.enhanced.dynamodb.model.Page<AccountTable>>
                         pages = accountTable.scan();
@@ -456,12 +461,13 @@ public class AccountRepository {
                 }
             }
         } catch (Exception e) {
-            org.slf4j.LoggerFactory.getLogger(AccountRepository.class)
-                    .error(
-                            "Error finding accounts by Plaid item ID {}: {}",
-                            plaidItemId,
-                            e.getMessage(),
-                            e);
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error(
+                        "Error finding accounts by Plaid item ID {}: {}",
+                        plaidItemId,
+                        e.getMessage(),
+                        e);
+            }
         }
 
         return results;
@@ -511,11 +517,10 @@ public class AccountRepository {
         } catch (ResourceNotFoundException e) {
             // GSI not available - fallback to findByUserId and filter in memory
             // This can happen in test environments where the index hasn't been created
-            org.slf4j.LoggerFactory.getLogger(AccountRepository.class)
-                    .warn(
-                            "UserIdUpdatedAtIndex GSI not found for userId {}. Falling back to findByUserId and filtering in memory. "
-                                    + "This is less efficient but ensures functionality when the index is not available.",
-                            userId);
+            LOGGER.warn(
+                    "UserIdUpdatedAtIndex GSI not found for userId {}. Falling back to findByUserId and filtering in memory. "
+                            + "This is less efficient but ensures functionality when the index is not available.",
+                    userId);
             try {
                 final List<AccountTable> allAccounts = findByUserId(userId);
                 for (final AccountTable account : allAccounts) {
@@ -525,12 +530,13 @@ public class AccountRepository {
                     }
                 }
             } catch (Exception fallbackException) {
-                org.slf4j.LoggerFactory.getLogger(AccountRepository.class)
-                        .error(
-                                "Error in fallback query for userId {}: {}",
-                                userId,
-                                fallbackException.getMessage(),
-                                fallbackException);
+                if (LOGGER.isErrorEnabled()) {
+                    LOGGER.error(
+                            "Error in fallback query for userId {}: {}",
+                            userId,
+                            fallbackException.getMessage(),
+                            fallbackException);
+                }
             }
         } catch (Exception e) {
             // Log at WARN level since this is a graceful fallback (returns empty list)
@@ -538,11 +544,12 @@ public class AccountRepository {
             // contract
             // Here, we gracefully handle the error by returning an empty list, so WARN is
             // appropriate
-            org.slf4j.LoggerFactory.getLogger(AccountRepository.class)
-                    .warn(
-                            "Error finding accounts by userId and updatedAfter {}: {}. Returning empty list.",
-                            userId,
-                            e.getMessage());
+            if (LOGGER.isWarnEnabled()) {
+                LOGGER.warn(
+                        "Error finding accounts by userId and updatedAfter {}: {}. Returning empty list.",
+                        userId,
+                        e.getMessage());
+            }
         }
 
         return results;

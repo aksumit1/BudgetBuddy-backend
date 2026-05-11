@@ -72,8 +72,11 @@ public class DnsCacheConfig {
                     dnsCacheTtlSeconds,
                     dnsCacheNegativeTtlSeconds);
         } catch (Exception e) {
-            LOGGER.warn(
-                    "Failed to configure DNS cache TTL: {}. Using Java defaults.", e.getMessage());
+            if (LOGGER.isWarnEnabled()) {
+                LOGGER.warn(
+                        "Failed to configure DNS cache TTL: {}. Using Java defaults.",
+                        e.getMessage());
+            }
         }
     }
 
@@ -98,9 +101,13 @@ public class DnsCacheConfig {
                             ? originalNegativeTtl
                             : String.valueOf(dnsCacheNegativeTtlSeconds));
 
-            LOGGER.info("DNS cache cleared successfully");
+            if (LOGGER.isInfoEnabled()) {
+                LOGGER.info("DNS cache cleared successfully");
+            }
         } catch (Exception e) {
-            LOGGER.error("Failed to clear DNS cache: {}", e.getMessage(), e);
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error("Failed to clear DNS cache: {}", e.getMessage(), e);
+            }
             throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to clear DNS cache", e);
         }
     }

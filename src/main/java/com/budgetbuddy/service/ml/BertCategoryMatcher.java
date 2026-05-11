@@ -117,11 +117,13 @@ public class BertCategoryMatcher {
         }
 
         this.categoryPrototypes = Collections.unmodifiableMap(built);
-        LOGGER.info(
-                "BertCategoryMatcher: built {} category prototypes (skipped={}, embeddingDim={})",
-                built.size(),
-                skipped,
-                embeddingService.getEmbeddingDim());
+        if (LOGGER.isInfoEnabled()) {
+            LOGGER.info(
+                    "BertCategoryMatcher: built {} category prototypes (skipped={}, embeddingDim={})",
+                    built.size(),
+                    skipped,
+                    embeddingService.getEmbeddingDim());
+        }
     }
 
     public boolean isAvailable() {

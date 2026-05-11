@@ -154,10 +154,12 @@ public class MissedPaymentDetectionService {
                     }
                 }
             } catch (Exception e) {
-                LOGGER.warn(
-                        "Error parsing due date for action {}: {}",
-                        action.getActionId(),
-                        e.getMessage());
+                if (LOGGER.isWarnEnabled()) {
+                    LOGGER.warn(
+                            "Error parsing due date for action {}: {}",
+                            action.getActionId(),
+                            e.getMessage());
+                }
             }
         }
 

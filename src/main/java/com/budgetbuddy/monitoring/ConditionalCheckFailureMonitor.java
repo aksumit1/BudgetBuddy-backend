@@ -47,11 +47,13 @@ public class ConditionalCheckFailureMonitor {
         lastFailureTime.put(operationKey, System.currentTimeMillis());
 
         // Log with context
-        LOGGER.warn(
-                "Conditional check failed - Operation: {}, Table: {}, Message: {}",
-                operationKey,
-                tableKey,
-                exception.getMessage());
+        if (LOGGER.isWarnEnabled()) {
+            LOGGER.warn(
+                    "Conditional check failed - Operation: {}, Table: {}, Message: {}",
+                    operationKey,
+                    tableKey,
+                    exception.getMessage());
+        }
 
         // Alert if failures are frequent (more than 10 in last minute)
         final long count = failureCounts.get(operationKey).get();

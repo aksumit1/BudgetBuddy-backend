@@ -156,34 +156,40 @@ public class BalanceReconciliationService {
             recordMetric(account, absDrift);
 
             if (absDrift.compareTo(WARN_THRESHOLD) >= 0) {
-                LOG.warn(
-                        "Balance drift WARN: userId={} accountId={} type={} plaidDelta={} derivedDelta={} drift={} txCount={}",
-                        account.getUserId(),
-                        account.getAccountId(),
-                        account.getAccountType(),
-                        plaidDelta,
-                        derivedDelta,
-                        drift,
-                        counted);
+                if (LOG.isWarnEnabled()) {
+                    LOG.warn(
+                            "Balance drift WARN: userId={} accountId={} type={} plaidDelta={} derivedDelta={} drift={} txCount={}",
+                            account.getUserId(),
+                            account.getAccountId(),
+                            account.getAccountType(),
+                            plaidDelta,
+                            derivedDelta,
+                            drift,
+                            counted);
+                }
             } else if (absDrift.compareTo(NOISE_THRESHOLD) >= 0) {
-                LOG.info(
-                        "Balance drift INFO: userId={} accountId={} type={} plaidDelta={} derivedDelta={} drift={} txCount={}",
-                        account.getUserId(),
-                        account.getAccountId(),
-                        account.getAccountType(),
-                        plaidDelta,
-                        derivedDelta,
-                        drift,
-                        counted);
+                if (LOG.isInfoEnabled()) {
+                    LOG.info(
+                            "Balance drift INFO: userId={} accountId={} type={} plaidDelta={} derivedDelta={} drift={} txCount={}",
+                            account.getUserId(),
+                            account.getAccountId(),
+                            account.getAccountType(),
+                            plaidDelta,
+                            derivedDelta,
+                            drift,
+                            counted);
+                }
             }
             return drift;
         } catch (Exception e) {
             // Never let reconciliation throw into the sync path.
-            LOG.warn(
-                    "Balance reconciliation failed for user={} account={}: {}",
-                    account.getUserId(),
-                    account.getAccountId(),
-                    e.getMessage());
+            if (LOG.isWarnEnabled()) {
+                LOG.warn(
+                        "Balance reconciliation failed for user={} account={}: {}",
+                        account.getUserId(),
+                        account.getAccountId(),
+                        e.getMessage());
+            }
             return null;
         }
     }
@@ -205,7 +211,9 @@ public class BalanceReconciliationService {
                     account.getAccountType() == null ? "unknown" : account.getAccountType());
             cloudWatchService.putMetric("balance.drift.abs", absDrift.doubleValue(), dims);
         } catch (Exception e) {
-            LOG.debug("Could not publish balance drift metric: {}", e.getMessage());
+            if (LOG.isDebugEnabled()) {
+                LOG.debug("Could not publish balance drift metric: {}", e.getMessage());
+            }
         }
     }
 }

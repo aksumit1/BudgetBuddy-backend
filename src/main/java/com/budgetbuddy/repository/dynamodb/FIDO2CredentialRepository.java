@@ -25,6 +25,9 @@ import software.amazon.awssdk.enhanced.dynamodb.model.QueryConditional;
 @Repository
 public class FIDO2CredentialRepository {
 
+    private static final org.slf4j.Logger LOGGER =
+            org.slf4j.LoggerFactory.getLogger(FIDO2CredentialRepository.class);
+
     private final DynamoDbTable<FIDO2CredentialTable> credentialTable;
     private final DynamoDbIndex<FIDO2CredentialTable> userIdIndex;
     private final String tableName;
@@ -80,8 +83,10 @@ public class FIDO2CredentialRepository {
                 credentials.addAll(page.items());
             }
         } catch (Exception e) {
-            org.slf4j.LoggerFactory.getLogger(FIDO2CredentialRepository.class)
-                    .error("Error querying credentials by userId: {} - {}", userId, e.getMessage());
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error(
+                        "Error querying credentials by userId: {} - {}", userId, e.getMessage());
+            }
         }
         return credentials;
     }

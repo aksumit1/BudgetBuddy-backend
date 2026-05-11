@@ -90,12 +90,14 @@ public class DuplicateDetectionService {
                 transactionRepository.findByUserIdAndDateRange(
                         userId, queryStartDate.toString(), queryEndDate.toString());
 
-        LOGGER.info(
-                "Checking {} new transactions against {} existing transactions (date range: {} to {})",
-                newTransactions.size(),
-                existingTransactions.size(),
-                queryStartDate,
-                queryEndDate);
+        if (LOGGER.isInfoEnabled()) {
+            LOGGER.info(
+                    "Checking {} new transactions against {} existing transactions (date range: {} to {})",
+                    newTransactions.size(),
+                    existingTransactions.size(),
+                    queryStartDate,
+                    queryEndDate);
+        }
 
         if (existingTransactions.isEmpty()) {
             LOGGER.info("No existing transactions found - skipping duplicate detection");
@@ -119,10 +121,12 @@ public class DuplicateDetectionService {
                                 .getTransactionId()
                                 .equalsIgnoreCase(existingTransaction.getTransactionId())) {
                     // Same transaction ID = definite duplicate, skip (don't report to user)
-                    LOGGER.debug(
-                            "Same transaction ID found for transaction {}: {} - skipping (auto-filtered)",
-                            i + 1,
-                            newTransaction.getTransactionId());
+                    if (LOGGER.isDebugEnabled()) {
+                        LOGGER.debug(
+                                "Same transaction ID found for transaction {}: {} - skipping (auto-filtered)",
+                                i + 1,
+                                newTransaction.getTransactionId());
+                    }
                     // Mark this transaction to be skipped
                     shouldSkip = true;
                     matches.clear(); // Clear any matches we might have added
@@ -137,10 +141,12 @@ public class DuplicateDetectionService {
                                 .getPlaidTransactionId()
                                 .equals(existingTransaction.getPlaidTransactionId())) {
                     // Same Plaid transaction ID = definite duplicate, skip (don't report to user)
-                    LOGGER.debug(
-                            "Same Plaid transaction ID found for transaction {}: {} - skipping (auto-filtered)",
-                            i + 1,
-                            newTransaction.getPlaidTransactionId());
+                    if (LOGGER.isDebugEnabled()) {
+                        LOGGER.debug(
+                                "Same Plaid transaction ID found for transaction {}: {} - skipping (auto-filtered)",
+                                i + 1,
+                                newTransaction.getPlaidTransactionId());
+                    }
                     // Mark this transaction to be skipped
                     shouldSkip = true;
                     matches.clear(); // Clear any matches we might have added
@@ -152,15 +158,17 @@ public class DuplicateDetectionService {
                 // reported
                 // The user doesn't need to review exact matches - they're definitely duplicates
                 if (isExactMatch(newTransaction, existingTransaction)) {
-                    LOGGER.debug(
-                            "Exact match found for transaction {}: new='{}' (date={}, amount={}) matches existing='{}' (date={}, amount={}) - skipping (auto-filtered)",
-                            i + 1,
-                            newTransaction.getDescription(),
-                            newTransaction.getDate(),
-                            newTransaction.getAmount(),
-                            existingTransaction.getDescription(),
-                            existingTransaction.getTransactionDate(),
-                            existingTransaction.getAmount());
+                    if (LOGGER.isDebugEnabled()) {
+                        LOGGER.debug(
+                                "Exact match found for transaction {}: new='{}' (date={}, amount={}) matches existing='{}' (date={}, amount={}) - skipping (auto-filtered)",
+                                i + 1,
+                                newTransaction.getDescription(),
+                                newTransaction.getDate(),
+                                newTransaction.getAmount(),
+                                existingTransaction.getDescription(),
+                                existingTransaction.getTransactionDate(),
+                                existingTransaction.getAmount());
+                    }
                     // Mark this transaction to be skipped
                     shouldSkip = true;
                     matches.clear(); // Clear any matches we might have added
@@ -170,15 +178,17 @@ public class DuplicateDetectionService {
                 final double similarity = calculateSimilarity(newTransaction, existingTransaction);
 
                 if (similarity >= SIMILARITY_THRESHOLD) {
-                    LOGGER.debug(
-                            "Found potential duplicate with similarity {}: new='{}' (date={}, amount={}) vs existing='{}' (date={}, amount={})",
-                            similarity,
-                            newTransaction.getDescription(),
-                            newTransaction.getDate(),
-                            newTransaction.getAmount(),
-                            existingTransaction.getDescription(),
-                            existingTransaction.getTransactionDate(),
-                            existingTransaction.getAmount());
+                    if (LOGGER.isDebugEnabled()) {
+                        LOGGER.debug(
+                                "Found potential duplicate with similarity {}: new='{}' (date={}, amount={}) vs existing='{}' (date={}, amount={})",
+                                similarity,
+                                newTransaction.getDescription(),
+                                newTransaction.getDate(),
+                                newTransaction.getAmount(),
+                                existingTransaction.getDescription(),
+                                existingTransaction.getTransactionDate(),
+                                existingTransaction.getAmount());
+                    }
                     matches.add(
                             new DuplicateMatch(
                                     existingTransaction,
@@ -196,24 +206,30 @@ public class DuplicateDetectionService {
             if (shouldSkip) {
                 // Add empty list as marker for skipped transactions (exact matches, same ID, etc.)
                 duplicates.put(i, new ArrayList<>());
-                LOGGER.debug(
-                        "Transaction {} was marked as skipped (exact match, same ID, or same Plaid ID)",
-                        i + 1);
+                if (LOGGER.isDebugEnabled()) {
+                    LOGGER.debug(
+                            "Transaction {} was marked as skipped (exact match, same ID, or same Plaid ID)",
+                            i + 1);
+                }
             } else if (!matches.isEmpty()) {
                 // Sort by similarity (highest first)
                 matches.sort((a, b) -> Double.compare(b.getSimilarity(), a.getSimilarity()));
                 duplicates.put(i, matches);
-                LOGGER.info(
-                        "Found {} potential duplicate(s) for transaction {}",
-                        matches.size(),
-                        i + 1);
+                if (LOGGER.isInfoEnabled()) {
+                    LOGGER.info(
+                            "Found {} potential duplicate(s) for transaction {}",
+                            matches.size(),
+                            i + 1);
+                }
             }
         }
 
-        LOGGER.info(
-                "Detected duplicates for {} out of {} transactions",
-                duplicates.size(),
-                newTransactions.size());
+        if (LOGGER.isInfoEnabled()) {
+            LOGGER.info(
+                    "Detected duplicates for {} out of {} transactions",
+                    duplicates.size(),
+                    newTransactions.size());
+        }
         return duplicates;
     }
 
@@ -237,32 +253,38 @@ public class DuplicateDetectionService {
             dateMatch = t1.getDate().equals(t2Date);
             if (!dateMatch) {
                 // Log date mismatch for debugging
-                LOGGER.debug(
-                        "isExactMatch: Date mismatch - t1.getDate()={}, t2.getTransactionDate()={}, parsed t2Date={}",
-                        t1.getDate(),
-                        t2.getTransactionDate(),
-                        t2Date);
+                if (LOGGER.isDebugEnabled()) {
+                    LOGGER.debug(
+                            "isExactMatch: Date mismatch - t1.getDate()={}, t2.getTransactionDate()={}, parsed t2Date={}",
+                            t1.getDate(),
+                            t2.getTransactionDate(),
+                            t2Date);
+                }
             }
         } else if (t1.getDate() == null && t2Date == null) {
             dateMatch = true; // Both null = match
         } else {
-            LOGGER.debug(
-                    "isExactMatch: One date is null - t1.getDate()={}, t2Date={}",
-                    t1.getDate(),
-                    t2Date);
+            if (LOGGER.isDebugEnabled()) {
+                LOGGER.debug(
+                        "isExactMatch: One date is null - t1.getDate()={}, t2Date={}",
+                        t1.getDate(),
+                        t2Date);
+            }
         }
 
         final String desc1 = normalizeDescription(t1.getDescription());
         final String desc2 = normalizeDescription(t2.getDescription());
         final boolean descriptionMatch = desc1.equals(desc2);
 
-        LOGGER.debug(
-                "isExactMatch: amountMatch={}, dateMatch={} (t1: {}, t2: {}), descriptionMatch={}",
-                amountMatch,
-                dateMatch,
-                t1.getDate(),
-                t2Date,
-                descriptionMatch);
+        if (LOGGER.isDebugEnabled()) {
+            LOGGER.debug(
+                    "isExactMatch: amountMatch={}, dateMatch={} (t1: {}, t2: {}), descriptionMatch={}",
+                    amountMatch,
+                    dateMatch,
+                    t1.getDate(),
+                    t2Date,
+                    descriptionMatch);
+        }
 
         return amountMatch && dateMatch && descriptionMatch;
     }

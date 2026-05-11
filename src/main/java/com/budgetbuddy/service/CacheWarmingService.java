@@ -78,10 +78,12 @@ public class CacheWarmingService {
                                 try {
                                     return accountRepository.findByUserId(userId);
                                 } catch (Exception e) {
-                                    LOGGER.error(
-                                            "Error warming accounts cache for user {}: {}",
-                                            userId,
-                                            e.getMessage());
+                                    if (LOGGER.isErrorEnabled()) {
+                                        LOGGER.error(
+                                                "Error warming accounts cache for user {}: {}",
+                                                userId,
+                                                e.getMessage());
+                                    }
                                     return List.of();
                                 }
                             });
@@ -93,10 +95,12 @@ public class CacheWarmingService {
                                     return transactionRepository.findByUserId(
                                             userId, 0, 50); // Load first 50 transactions
                                 } catch (Exception e) {
-                                    LOGGER.error(
-                                            "Error warming transactions cache for user {}: {}",
-                                            userId,
-                                            e.getMessage());
+                                    if (LOGGER.isErrorEnabled()) {
+                                        LOGGER.error(
+                                                "Error warming transactions cache for user {}: {}",
+                                                userId,
+                                                e.getMessage());
+                                    }
                                     return List.of();
                                 }
                             });
@@ -107,10 +111,12 @@ public class CacheWarmingService {
                                 try {
                                     return budgetRepository.findByUserId(userId);
                                 } catch (Exception e) {
-                                    LOGGER.error(
-                                            "Error warming budgets cache for user {}: {}",
-                                            userId,
-                                            e.getMessage());
+                                    if (LOGGER.isErrorEnabled()) {
+                                        LOGGER.error(
+                                                "Error warming budgets cache for user {}: {}",
+                                                userId,
+                                                e.getMessage());
+                                    }
                                     return List.of();
                                 }
                             });
@@ -121,10 +127,12 @@ public class CacheWarmingService {
                                 try {
                                     return goalRepository.findByUserId(userId);
                                 } catch (Exception e) {
-                                    LOGGER.error(
-                                            "Error warming goals cache for user {}: {}",
-                                            userId,
-                                            e.getMessage());
+                                    if (LOGGER.isErrorEnabled()) {
+                                        LOGGER.error(
+                                                "Error warming goals cache for user {}: {}",
+                                                userId,
+                                                e.getMessage());
+                                    }
                                     return List.of();
                                 }
                             });
@@ -135,10 +143,12 @@ public class CacheWarmingService {
                                 try {
                                     return transactionActionRepository.findByUserId(userId);
                                 } catch (Exception e) {
-                                    LOGGER.error(
-                                            "Error warming transaction actions cache for user {}: {}",
-                                            userId,
-                                            e.getMessage());
+                                    if (LOGGER.isErrorEnabled()) {
+                                        LOGGER.error(
+                                                "Error warming transaction actions cache for user {}: {}",
+                                                userId,
+                                                e.getMessage());
+                                    }
                                     return List.of();
                                 }
                             });
@@ -153,11 +163,16 @@ public class CacheWarmingService {
                     .join();
 
             final long duration = System.currentTimeMillis() - startTime;
-            LOGGER.info("Cache warm-up completed for user {} in {}ms", userId, duration);
+            if (LOGGER.isInfoEnabled()) {
+                LOGGER.info("Cache warm-up completed for user {} in {}ms", userId, duration);
+            }
 
             return CompletableFuture.completedFuture(null);
         } catch (Exception e) {
-            LOGGER.error("Error during cache warm-up for user {}: {}", userId, e.getMessage(), e);
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error(
+                        "Error during cache warm-up for user {}: {}", userId, e.getMessage(), e);
+            }
             return CompletableFuture.completedFuture(null);
         }
     }
@@ -174,7 +189,9 @@ public class CacheWarmingService {
             return;
         }
 
-        LOGGER.info("Starting cache warm-up for {} users", userIds.size());
+        if (LOGGER.isInfoEnabled()) {
+            LOGGER.info("Starting cache warm-up for {} users", userIds.size());
+        }
         final long startTime = System.currentTimeMillis();
 
         // Warm cache for all users in parallel
@@ -185,6 +202,8 @@ public class CacheWarmingService {
         CompletableFuture.allOf(futures.toArray(new CompletableFuture<?>[0])).join();
 
         final long duration = System.currentTimeMillis() - startTime;
-        LOGGER.info("Cache warm-up completed for {} users in {}ms", userIds.size(), duration);
+        if (LOGGER.isInfoEnabled()) {
+            LOGGER.info("Cache warm-up completed for {} users in {}ms", userIds.size(), duration);
+        }
     }
 }

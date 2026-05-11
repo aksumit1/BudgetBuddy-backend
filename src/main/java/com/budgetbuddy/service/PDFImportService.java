@@ -570,10 +570,12 @@ public class PDFImportService {
                         pdfDiagnosticMessage(null, 0, document.getNumberOfPages()));
             }
 
-            LOGGER.info(
-                    "Extracted {} characters from {}-page PDF",
-                    fullText.length(),
-                    document.getNumberOfPages());
+            if (LOGGER.isInfoEnabled()) {
+                LOGGER.info(
+                        "Extracted {} characters from {}-page PDF",
+                        fullText.length(),
+                        document.getNumberOfPages());
+            }
             if (LOGGER.isDebugEnabled()) {
                 // Full text at DEBUG so we can reproduce parse failures without
                 // leaking statement content into production logs.
@@ -601,13 +603,15 @@ public class PDFImportService {
                                 accountDetectionService.matchToExistingAccount(userId, fromContent);
                         if (matchedAccountId != null) {
                             detectedAccount = fromContent;
-                            LOGGER.info(
-                                    "Matched PDF import to existing account: {} (accountId: {}, accountNumber: {})",
-                                    detectedAccount.getAccountName(),
-                                    matchedAccountId,
-                                    detectedAccount.getAccountNumber() != null
-                                            ? detectedAccount.getAccountNumber()
-                                            : "N/A");
+                            if (LOGGER.isInfoEnabled()) {
+                                LOGGER.info(
+                                        "Matched PDF import to existing account: {} (accountId: {}, accountNumber: {})",
+                                        detectedAccount.getAccountName(),
+                                        matchedAccountId,
+                                        detectedAccount.getAccountNumber() != null
+                                                ? detectedAccount.getAccountNumber()
+                                                : "N/A");
+                            }
                         } else {
                             // Enhanced logging with account number and other details
                             final String accountName =
@@ -622,19 +626,24 @@ public class PDFImportService {
                                     fromContent.getInstitutionName() != null
                                             ? fromContent.getInstitutionName()
                                             : "N/A";
-                            LOGGER.info(
-                                    "Detected account from PDF but no match found - Name: {}, AccountNumber: {}, Institution: {}, Type: {}",
-                                    accountName,
-                                    accountNumber,
-                                    institution,
-                                    fromContent.getAccountType() != null
-                                            ? fromContent.getAccountType()
-                                            : "N/A");
+                            if (LOGGER.isInfoEnabled()) {
+                                LOGGER.info(
+                                        "Detected account from PDF but no match found - Name: {}, AccountNumber: {}, Institution: {}, Type: {}",
+                                        accountName,
+                                        accountNumber,
+                                        institution,
+                                        fromContent.getAccountType() != null
+                                                ? fromContent.getAccountType()
+                                                : "N/A");
+                            }
                             detectedAccount = fromContent;
                         }
                     } catch (Exception e) {
-                        LOGGER.warn(
-                                "Error during account matching for PDF import: {}", e.getMessage());
+                        if (LOGGER.isWarnEnabled()) {
+                            LOGGER.warn(
+                                    "Error during account matching for PDF import: {}",
+                                    e.getMessage());
+                        }
                         // Continue without account matching - user can select account in UI
                         detectedAccount = fromContent;
                     }
@@ -678,7 +687,9 @@ public class PDFImportService {
             // the layout of a specific bank/card issuer.
             List<Map<String, String>> rows =
                     parsePDFText(fullText, inferredYear, isUSLocale, detectedAccount);
-            LOGGER.info("PDF structured parse produced {} rows", rows.size());
+            if (LOGGER.isInfoEnabled()) {
+                LOGGER.info("PDF structured parse produced {} rows", rows.size());
+            }
 
             // Data-driven templates from the YAML registry run as a second
             // structured pass. They complement (not replace) the legacy
@@ -693,9 +704,11 @@ public class PDFImportService {
                                 inferredYear,
                                 pdfTemplateRegistry.orderedFor(institutionHint));
                 if (!fromRegistry.isEmpty()) {
-                    LOGGER.info(
-                            "PDF registry templates produced {} additional rows",
-                            fromRegistry.size());
+                    if (LOGGER.isInfoEnabled()) {
+                        LOGGER.info(
+                                "PDF registry templates produced {} additional rows",
+                                fromRegistry.size());
+                    }
                     // Registry rows supplement structured-parse rows — dedupe by
                     // (date, description, amount) so we don't double-count when
                     // a row matches both a legacy pattern and a YAML template.
@@ -726,14 +739,16 @@ public class PDFImportService {
                             detectedAccount != null && detectedAccount.getAccountType() != null
                                     ? detectedAccount.getAccountType()
                                     : "unknown";
-                    LOGGER.warn(
-                            "PDF_TEMPLATE_MISS | institution=\"{}\" | accountType=\"{}\" | pages={} | textLen={} | fallbackRows={} | file=\"{}\"",
-                            institutionTag,
-                            accountTypeTag,
-                            document.getNumberOfPages(),
-                            fullText.length(),
-                            fallback.size(),
-                            fileName);
+                    if (LOGGER.isWarnEnabled()) {
+                        LOGGER.warn(
+                                "PDF_TEMPLATE_MISS | institution=\"{}\" | accountType=\"{}\" | pages={} | textLen={} | fallbackRows={} | file=\"{}\"",
+                                institutionTag,
+                                accountTypeTag,
+                                document.getNumberOfPages(),
+                                fullText.length(),
+                                fallback.size(),
+                                fileName);
+                    }
                     // Feed the ranked-miss tracker so /api/admin/pdf-parse-health
                     // can surface this institution in the prioritisation queue.
                     if (pdfTemplateMissTracker != null) {
@@ -765,12 +780,14 @@ public class PDFImportService {
 
             // Log detected account info for debugging
             if (detectedAccount != null) {
-                LOGGER.info(
-                        "📋 [PDF Import] Detected account: type='{}', subtype='{}', name='{}', institution='{}'",
-                        detectedAccount.getAccountType(),
-                        detectedAccount.getAccountSubtype(),
-                        detectedAccount.getAccountName(),
-                        detectedAccount.getInstitutionName());
+                if (LOGGER.isInfoEnabled()) {
+                    LOGGER.info(
+                            "📋 [PDF Import] Detected account: type='{}', subtype='{}', name='{}', institution='{}'",
+                            detectedAccount.getAccountType(),
+                            detectedAccount.getAccountSubtype(),
+                            detectedAccount.getAccountName(),
+                            detectedAccount.getInstitutionName());
+                }
             } else {
                 LOGGER.warn(
                         "⚠️ [PDF Import] No account detected - sign reversal will not be applied");
@@ -786,10 +803,12 @@ public class PDFImportService {
                             String.format(
                                     "Transaction limit exceeded. Maximum %d transactions per file. Stopping at row %d.",
                                     MAX_TRANSACTIONS_PER_FILE, i + 1));
-                    LOGGER.warn(
-                            "Transaction limit reached: {} transactions. Stopping PDF parsing at row {}",
-                            MAX_TRANSACTIONS_PER_FILE,
-                            i + 1);
+                    if (LOGGER.isWarnEnabled()) {
+                        LOGGER.warn(
+                                "Transaction limit reached: {} transactions. Stopping PDF parsing at row {}",
+                                MAX_TRANSACTIONS_PER_FILE,
+                                i + 1);
+                    }
                     break;
                 }
 
@@ -835,16 +854,20 @@ public class PDFImportService {
                     inferredYear,
                     isUSLocale);
             extractCreditCardMetadata(fullText, result, inferredYear, isUSLocale);
-            LOGGER.info(
-                    "🔍 [PDF Parse] Completed credit card metadata extraction - paymentDueDate: {}, minimumPaymentDue: {}, rewardPoints: {}",
-                    result.getPaymentDueDate(),
-                    result.getMinimumPaymentDue(),
-                    result.getRewardPoints());
+            if (LOGGER.isInfoEnabled()) {
+                LOGGER.info(
+                        "🔍 [PDF Parse] Completed credit card metadata extraction - paymentDueDate: {}, minimumPaymentDue: {}, rewardPoints: {}",
+                        result.getPaymentDueDate(),
+                        result.getMinimumPaymentDue(),
+                        result.getRewardPoints());
+            }
 
-            LOGGER.info(
-                    "Parsed PDF: {} successful, {} failed",
-                    result.getSuccessCount(),
-                    result.getFailureCount());
+            if (LOGGER.isInfoEnabled()) {
+                LOGGER.info(
+                        "Parsed PDF: {} successful, {} failed",
+                        result.getSuccessCount(),
+                        result.getFailureCount());
+            }
 
         } catch (AppException e) {
             throw e;
@@ -864,7 +887,9 @@ public class PDFImportService {
             throw new AppException(
                     ErrorCode.INVALID_INPUT, "Failed to read PDF file: " + errorMessage);
         } catch (Exception e) {
-            LOGGER.error("Error parsing PDF file: {}", e.getMessage(), e);
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error("Error parsing PDF file: {}", e.getMessage(), e);
+            }
             throw new AppException(
                     ErrorCode.INVALID_INPUT, "Failed to parse PDF file: " + e.getMessage());
         }
@@ -1913,10 +1938,12 @@ public class PDFImportService {
                     return true;
                 }
             } catch (PatternSyntaxException e) {
-                LOGGER.warn(
-                        "Failed to compile pattern for bank name '{}': {}",
-                        bankName,
-                        e.getMessage());
+                if (LOGGER.isWarnEnabled()) {
+                    LOGGER.warn(
+                            "Failed to compile pattern for bank name '{}': {}",
+                            bankName,
+                            e.getMessage());
+                }
             }
         }
         return false;
@@ -2615,8 +2642,10 @@ public class PDFImportService {
         // Get account holder name for validation (if available)
         String accountHolderName = null;
         if (detectedAccount != null) {
-            LOGGER.trace(
-                    "Reusing account holder name = {}", detectedAccount.getAccountHolderName());
+            if (LOGGER.isTraceEnabled()) {
+                LOGGER.trace(
+                        "Reusing account holder name = {}", detectedAccount.getAccountHolderName());
+            }
             accountHolderName = detectedAccount.getAccountHolderName();
         }
         // LOGGER.trace("SUM detectUsernamBeforeHeader lines= {}", Arrays.toString(lines));
@@ -2664,27 +2693,33 @@ public class PDFImportService {
 
             // Prefer all-caps matches with account holder name
             if (!matchingAllCaps.isEmpty()) {
-                LOGGER.info(
-                        "Detected username (all-caps, validated against account holder name): '{}'",
-                        matchingAllCaps.get(0));
+                if (LOGGER.isInfoEnabled()) {
+                    LOGGER.info(
+                            "Detected username (all-caps, validated against account holder name): '{}'",
+                            matchingAllCaps.get(0));
+                }
                 return matchingAllCaps.get(0);
             }
 
             // No match found, but still return first all-caps candidate if available
             // This handles multi-user statements where different users appear in the same PDF
             if (!allCapsCandidates.isEmpty()) {
-                LOGGER.info(
-                        "Detected username (all-caps, no account holder name match): '{}'",
-                        allCapsCandidates.get(0));
+                if (LOGGER.isInfoEnabled()) {
+                    LOGGER.info(
+                            "Detected username (all-caps, no account holder name match): '{}'",
+                            allCapsCandidates.get(0));
+                }
                 return allCapsCandidates.get(0);
             }
             // No all-caps candidates found - return null (don't fall back to mixed-case)
         } else {
             // No account holder name available - only return all-caps names
             if (!allCapsCandidates.isEmpty()) {
-                LOGGER.info(
-                        "Detected username (all-caps, no account holder name): '{}'",
-                        allCapsCandidates.get(0));
+                if (LOGGER.isInfoEnabled()) {
+                    LOGGER.info(
+                            "Detected username (all-caps, no account holder name): '{}'",
+                            allCapsCandidates.get(0));
+                }
                 return allCapsCandidates.get(0);
             }
             // No all-caps candidates found - return null (don't fall back to mixed-case)
@@ -3083,10 +3118,12 @@ public class PDFImportService {
                         detectUsernameBeforeHeader(lines, headerIndex, detectedAccount);
                 if (usernameBeforeHeader != null) {
                     currentUsername = usernameBeforeHeader;
-                    LOGGER.info(
-                            "Setting current username to '{}' for transactions starting at line {}",
-                            currentUsername,
-                            headerIndex + 2);
+                    if (LOGGER.isInfoEnabled()) {
+                        LOGGER.info(
+                                "Setting current username to '{}' for transactions starting at line {}",
+                                currentUsername,
+                                headerIndex + 2);
+                    }
                 } else if (detectedAccount != null
                         && detectedAccount.getAccountHolderName() != null) {
                     // Fallback: if no username detected, use account holder name (but validate it's
@@ -3094,10 +3131,12 @@ public class PDFImportService {
                     final String accountHolderName = detectedAccount.getAccountHolderName();
                     if (isValidNameFormat(accountHolderName)) {
                         currentUsername = accountHolderName;
-                        LOGGER.info(
-                                "No username detected, using account holder name '{}' for transactions starting at line {}",
-                                currentUsername,
-                                headerIndex + 2);
+                        if (LOGGER.isInfoEnabled()) {
+                            LOGGER.info(
+                                    "No username detected, using account holder name '{}' for transactions starting at line {}",
+                                    currentUsername,
+                                    headerIndex + 2);
+                        }
                     }
                 }
 
@@ -3260,10 +3299,12 @@ public class PDFImportService {
                         // Apply detected username (either from before header or before this
                         // transaction)
                         row.put(USER, currentUsername);
-                        LOGGER.info(
-                                "Applied detected username '{}' to transaction at line {}",
-                                currentUsername,
-                                i + 1);
+                        if (LOGGER.isInfoEnabled()) {
+                            LOGGER.info(
+                                    "Applied detected username '{}' to transaction at line {}",
+                                    currentUsername,
+                                    i + 1);
+                        }
                     }
 
                     rows.add(row);

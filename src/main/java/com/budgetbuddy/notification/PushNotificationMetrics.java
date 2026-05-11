@@ -31,7 +31,9 @@ public class PushNotificationMetrics {
     /** Record notification sent */
     public void recordNotificationSent(final int count) {
         totalNotificationsSent.addAndGet(count);
-        LOGGER.debug("Notification sent: {} (total: {})", count, totalNotificationsSent.get());
+        if (LOGGER.isDebugEnabled()) {
+            LOGGER.debug("Notification sent: {} (total: {})", count, totalNotificationsSent.get());
+        }
     }
 
     /** Record notification delivered */
@@ -52,20 +54,29 @@ public class PushNotificationMetrics {
             currentMax = maxDeliveryTime.get();
         }
 
-        LOGGER.debug(
-                "Notification delivered: {} (total: {})", count, totalNotificationsDelivered.get());
+        if (LOGGER.isDebugEnabled()) {
+            LOGGER.debug(
+                    "Notification delivered: {} (total: {})",
+                    count,
+                    totalNotificationsDelivered.get());
+        }
     }
 
     /** Record notification failure */
     public void recordNotificationFailed(final int count) {
         totalNotificationsFailed.addAndGet(count);
-        LOGGER.warn("Notification failed: {} (total: {})", count, totalNotificationsFailed.get());
+        if (LOGGER.isWarnEnabled()) {
+            LOGGER.warn(
+                    "Notification failed: {} (total: {})", count, totalNotificationsFailed.get());
+        }
     }
 
     /** Record invalid endpoint */
     public void recordInvalidEndpoint() {
         totalInvalidEndpoints.incrementAndGet();
-        LOGGER.warn("Invalid endpoint detected (total: {})", totalInvalidEndpoints.get());
+        if (LOGGER.isWarnEnabled()) {
+            LOGGER.warn("Invalid endpoint detected (total: {})", totalInvalidEndpoints.get());
+        }
     }
 
     /** Update active devices count */
@@ -76,7 +87,9 @@ public class PushNotificationMetrics {
     /** Record device disabled */
     public void recordDeviceDisabled() {
         disabledDevices.incrementAndGet();
-        LOGGER.info("Device disabled (total: {})", disabledDevices.get());
+        if (LOGGER.isInfoEnabled()) {
+            LOGGER.info("Device disabled (total: {})", disabledDevices.get());
+        }
     }
 
     /** Get delivery success rate */

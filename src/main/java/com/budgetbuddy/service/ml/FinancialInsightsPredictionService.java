@@ -54,9 +54,11 @@ public class FinancialInsightsPredictionService {
         final List<PredictedAnomaly> predictions = new ArrayList<>();
 
         if (historicalTransactions.size() < MIN_DATA_POINTS) {
-            LOGGER.debug(
-                    "Insufficient data for anomaly prediction: {} transactions",
-                    historicalTransactions.size());
+            if (LOGGER.isDebugEnabled()) {
+                LOGGER.debug(
+                        "Insufficient data for anomaly prediction: {} transactions",
+                        historicalTransactions.size());
+            }
             return predictions;
         }
 
@@ -264,7 +266,9 @@ public class FinancialInsightsPredictionService {
             final Map<String, GoalData> goals,
             final List<TransactionTable> historicalTransactions) {
 
-        LOGGER.info("Predicting goal achievement for {} goals", goals.size());
+        if (LOGGER.isInfoEnabled()) {
+            LOGGER.info("Predicting goal achievement for {} goals", goals.size());
+        }
 
         final List<PredictedGoalAchievement> predictions = new ArrayList<>();
 

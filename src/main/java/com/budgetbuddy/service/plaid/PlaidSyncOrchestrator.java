@@ -49,20 +49,26 @@ public class PlaidSyncOrchestrator {
      * @param itemId Optional Plaid item ID
      */
     public void syncAll(final UserTable user, final String accessToken, final String itemId) {
-        LOGGER.info("Starting full sync for user: {} (itemId: {})", user.getUserId(), itemId);
+        if (LOGGER.isInfoEnabled()) {
+            LOGGER.info("Starting full sync for user: {} (itemId: {})", user.getUserId(), itemId);
+        }
         final long t0 = System.currentTimeMillis();
         try {
             accountSyncService.syncAccounts(user, accessToken, itemId);
             transactionSyncService.syncTransactions(user, accessToken);
             emit("plaid.sync.success", 1.0);
             emit("plaid.sync.durationMs", (double) (System.currentTimeMillis() - t0));
-            LOGGER.info(
-                    "Full sync completed for user: {} in {}ms",
-                    user.getUserId(),
-                    System.currentTimeMillis() - t0);
+            if (LOGGER.isInfoEnabled()) {
+                LOGGER.info(
+                        "Full sync completed for user: {} in {}ms",
+                        user.getUserId(),
+                        System.currentTimeMillis() - t0);
+            }
         } catch (RuntimeException e) {
             emit("plaid.sync.failure", 1.0);
-            LOGGER.error("Full sync failed for user {}: {}", user.getUserId(), e.getMessage());
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error("Full sync failed for user {}: {}", user.getUserId(), e.getMessage());
+            }
             throw e;
         }
     }
@@ -76,7 +82,9 @@ public class PlaidSyncOrchestrator {
         } catch (Exception e) {
             // CloudWatch failures (network, auth, throttling) must not fail the
             // sync; metrics are observability, not control flow.
-            LOGGER.debug("CloudWatch metric '{}' emission failed: {}", metric, e.getMessage());
+            if (LOGGER.isDebugEnabled()) {
+                LOGGER.debug("CloudWatch metric '{}' emission failed: {}", metric, e.getMessage());
+            }
         }
     }
 
@@ -89,10 +97,16 @@ public class PlaidSyncOrchestrator {
      */
     public void syncAccountsOnly(
             final UserTable user, final String accessToken, final String itemId) {
-        LOGGER.info(
-                "Starting account-only sync for user: {} (itemId: {})", user.getUserId(), itemId);
+        if (LOGGER.isInfoEnabled()) {
+            LOGGER.info(
+                    "Starting account-only sync for user: {} (itemId: {})",
+                    user.getUserId(),
+                    itemId);
+        }
         accountSyncService.syncAccounts(user, accessToken, itemId);
-        LOGGER.info("Account-only sync completed for user: {}", user.getUserId());
+        if (LOGGER.isInfoEnabled()) {
+            LOGGER.info("Account-only sync completed for user: {}", user.getUserId());
+        }
     }
 
     /**
@@ -102,9 +116,13 @@ public class PlaidSyncOrchestrator {
      * @param accessToken The Plaid access token
      */
     public void syncTransactionsOnly(final UserTable user, final String accessToken) {
-        LOGGER.info("Starting transaction-only sync for user: {}", user.getUserId());
+        if (LOGGER.isInfoEnabled()) {
+            LOGGER.info("Starting transaction-only sync for user: {}", user.getUserId());
+        }
         transactionSyncService.syncTransactions(user, accessToken);
-        LOGGER.info("Transaction-only sync completed for user: {}", user.getUserId());
+        if (LOGGER.isInfoEnabled()) {
+            LOGGER.info("Transaction-only sync completed for user: {}", user.getUserId());
+        }
     }
 
     /**

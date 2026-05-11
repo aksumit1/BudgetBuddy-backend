@@ -95,13 +95,17 @@ public class PushNotificationService {
 
             final PublishResponse response = snsClient.publish(request);
 
-            LOGGER.info(
-                    "Push notification sent - MessageId: {}, User: {}",
-                    response.messageId(),
-                    userId);
+            if (LOGGER.isInfoEnabled()) {
+                LOGGER.info(
+                        "Push notification sent - MessageId: {}, User: {}",
+                        response.messageId(),
+                        userId);
+            }
             return true;
         } catch (Exception e) {
-            LOGGER.error("Failed to send push notification: {}", e.getMessage());
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error("Failed to send push notification: {}", e.getMessage());
+            }
             return false;
         }
     }
@@ -128,8 +132,11 @@ public class PushNotificationService {
             for (final DeviceTokenTable device : devices) {
                 try {
                     if (device.getEndpointArn() == null || device.getEndpointArn().isEmpty()) {
-                        LOGGER.warn(
-                                "Device {} has no endpoint ARN, skipping", device.getDeviceToken());
+                        if (LOGGER.isWarnEnabled()) {
+                            LOGGER.warn(
+                                    "Device {} has no endpoint ARN, skipping",
+                                    device.getDeviceToken());
+                        }
                         continue;
                     }
 
@@ -152,28 +159,37 @@ public class PushNotificationService {
                     final long deliveryTime = System.currentTimeMillis() - startTime;
                     metrics.recordNotificationDelivered(1, deliveryTime);
 
-                    LOGGER.debug(
-                            "Push notification sent to device {} - MessageId: {}",
-                            device.getDeviceToken()
-                                    .substring(0, Math.min(8, device.getDeviceToken().length())),
-                            response.messageId());
+                    if (LOGGER.isDebugEnabled()) {
+                        LOGGER.debug(
+                                "Push notification sent to device {} - MessageId: {}",
+                                device.getDeviceToken()
+                                        .substring(
+                                                0, Math.min(8, device.getDeviceToken().length())),
+                                response.messageId());
+                    }
                 } catch (InvalidParameterException e) {
                     // Invalid endpoint - likely device uninstalled app or token expired
-                    LOGGER.warn(
-                            "Invalid endpoint ARN for device {}, disabling: {}",
-                            device.getDeviceToken()
-                                    .substring(0, Math.min(8, device.getDeviceToken().length())),
-                            e.getMessage());
+                    if (LOGGER.isWarnEnabled()) {
+                        LOGGER.warn(
+                                "Invalid endpoint ARN for device {}, disabling: {}",
+                                device.getDeviceToken()
+                                        .substring(
+                                                0, Math.min(8, device.getDeviceToken().length())),
+                                e.getMessage());
+                    }
                     deviceTokenRepository.disable(userId, device.getDeviceToken());
                     metrics.recordInvalidEndpoint();
                     metrics.recordDeviceDisabled();
                     failureCount++;
                 } catch (Exception e) {
-                    LOGGER.error(
-                            "Failed to send push notification to device {}: {}",
-                            device.getDeviceToken()
-                                    .substring(0, Math.min(8, device.getDeviceToken().length())),
-                            e.getMessage());
+                    if (LOGGER.isErrorEnabled()) {
+                        LOGGER.error(
+                                "Failed to send push notification to device {}: {}",
+                                device.getDeviceToken()
+                                        .substring(
+                                                0, Math.min(8, device.getDeviceToken().length())),
+                                e.getMessage());
+                    }
                     failureCount++;
                 }
             }
@@ -185,17 +201,21 @@ public class PushNotificationService {
             }
             metrics.updateActiveDevices(devices.size() - failureCount);
 
-            LOGGER.info(
-                    "Sent push notifications to {}/{} devices for user: {}",
-                    successCount,
-                    devices.size(),
-                    userId);
+            if (LOGGER.isInfoEnabled()) {
+                LOGGER.info(
+                        "Sent push notifications to {}/{} devices for user: {}",
+                        successCount,
+                        devices.size(),
+                        userId);
+            }
             return successCount;
         } catch (Exception e) {
-            LOGGER.error(
-                    "Failed to send push notifications to all devices for user {}: {}",
-                    userId,
-                    e.getMessage());
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error(
+                        "Failed to send push notifications to all devices for user {}: {}",
+                        userId,
+                        e.getMessage());
+            }
             return 0;
         }
     }
@@ -260,7 +280,9 @@ public class PushNotificationService {
                     platform);
             return endpointArn;
         } catch (Exception e) {
-            LOGGER.error("Failed to register device: {}", e.getMessage(), e);
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error("Failed to register device: {}", e.getMessage(), e);
+            }
             return null;
         }
     }
@@ -283,7 +305,9 @@ public class PushNotificationService {
                     snsClient.createPlatformEndpoint(request);
             return response.endpointArn();
         } catch (Exception e) {
-            LOGGER.error("Failed to create SNS endpoint: {}", e.getMessage());
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error("Failed to create SNS endpoint: {}", e.getMessage());
+            }
             throw new AppException(
                     ErrorCode.INTERNAL_SERVER_ERROR, "Failed to create SNS endpoint", e);
         }
@@ -377,7 +401,9 @@ public class PushNotificationService {
             // Return multi-platform message
             return objectMapper.writeValueAsString(platforms);
         } catch (Exception e) {
-            LOGGER.error("Failed to create platform message: {}", e.getMessage());
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error("Failed to create platform message: {}", e.getMessage());
+            }
             return body;
         }
     }

@@ -110,7 +110,9 @@ public class FIDO2Service {
                                 .origins(Collections.singleton(origin))
                                 .build();
             } catch (Exception e) {
-                LOGGER.error("Failed to initialize RelyingParty: {}", e.getMessage(), e);
+                if (LOGGER.isErrorEnabled()) {
+                    LOGGER.error("Failed to initialize RelyingParty: {}", e.getMessage(), e);
+                }
                 throw new AppException(
                         ErrorCode.INTERNAL_SERVER_ERROR, "Failed to initialize FIDO2 service");
             }
@@ -158,14 +160,20 @@ public class FIDO2Service {
             challenge.setExpiresAt(Instant.now().plusSeconds(challengeExpirationSeconds));
             challengeRepository.save(challenge);
 
-            LOGGER.info("Registration challenge generated for user: {}", userId);
+            if (LOGGER.isInfoEnabled()) {
+                LOGGER.info("Registration challenge generated for user: {}", userId);
+            }
 
             return new RegistrationChallengeResult(creationOptions);
         } catch (Base64UrlException e) {
-            LOGGER.error("Invalid user ID format: {}", e.getMessage());
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error("Invalid user ID format: {}", e.getMessage());
+            }
             throw new AppException(ErrorCode.INVALID_INPUT, "Invalid user ID format");
         } catch (Exception e) {
-            LOGGER.error("Failed to generate registration challenge: {}", e.getMessage(), e);
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error("Failed to generate registration challenge: {}", e.getMessage(), e);
+            }
             throw new AppException(
                     ErrorCode.INTERNAL_SERVER_ERROR, "Failed to generate registration challenge");
         }
@@ -277,19 +285,27 @@ public class FIDO2Service {
             // Remove used challenge
             challengeRepository.delete(challengeKey);
 
-            LOGGER.info("Passkey registration verified and stored for user: {}", userId);
+            if (LOGGER.isInfoEnabled()) {
+                LOGGER.info("Passkey registration verified and stored for user: {}", userId);
+            }
             return true;
         } catch (RegistrationFailedException e) {
-            LOGGER.warn(
-                    "Passkey registration verification failed for user {}: {}",
-                    userId,
-                    e.getMessage());
+            if (LOGGER.isWarnEnabled()) {
+                LOGGER.warn(
+                        "Passkey registration verification failed for user {}: {}",
+                        userId,
+                        e.getMessage());
+            }
             return false;
         } catch (Base64UrlException e) {
-            LOGGER.error("Invalid base64 URL format: {}", e.getMessage());
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error("Invalid base64 URL format: {}", e.getMessage());
+            }
             throw new AppException(ErrorCode.INVALID_INPUT, "Invalid credential format");
         } catch (Exception e) {
-            LOGGER.error("Failed to verify passkey registration: {}", e.getMessage(), e);
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error("Failed to verify passkey registration: {}", e.getMessage(), e);
+            }
             throw new AppException(
                     ErrorCode.INTERNAL_SERVER_ERROR, "Failed to verify passkey registration");
         }
@@ -334,12 +350,16 @@ public class FIDO2Service {
             challenge.setExpiresAt(Instant.now().plusSeconds(challengeExpirationSeconds));
             challengeRepository.save(challenge);
 
-            LOGGER.info("Authentication challenge generated for user: {}", userId);
+            if (LOGGER.isInfoEnabled()) {
+                LOGGER.info("Authentication challenge generated for user: {}", userId);
+            }
 
             return new AuthenticationChallengeResult(
                     requestOptions.getPublicKeyCredentialRequestOptions());
         } catch (Exception e) {
-            LOGGER.error("Failed to generate authentication challenge: {}", e.getMessage(), e);
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error("Failed to generate authentication challenge: {}", e.getMessage(), e);
+            }
             throw new AppException(
                     ErrorCode.INTERNAL_SERVER_ERROR, "Failed to generate authentication challenge");
         }
@@ -478,13 +498,17 @@ public class FIDO2Service {
                 return false;
             }
         } catch (AssertionFailedException e) {
-            LOGGER.warn(
-                    "Passkey authentication verification failed for user {}: {}",
-                    userId,
-                    e.getMessage());
+            if (LOGGER.isWarnEnabled()) {
+                LOGGER.warn(
+                        "Passkey authentication verification failed for user {}: {}",
+                        userId,
+                        e.getMessage());
+            }
             return false;
         } catch (Exception e) {
-            LOGGER.error("Failed to verify passkey authentication: {}", e.getMessage(), e);
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error("Failed to verify passkey authentication: {}", e.getMessage(), e);
+            }
             throw new AppException(
                     ErrorCode.INTERNAL_SERVER_ERROR, "Failed to verify passkey authentication");
         }
@@ -678,7 +702,9 @@ public class FIDO2Service {
                     }
                 }
             } catch (Exception e) {
-                LOGGER.debug("Error looking up credential: {}", e.getMessage());
+                if (LOGGER.isDebugEnabled()) {
+                    LOGGER.debug("Error looking up credential: {}", e.getMessage());
+                }
             }
             return Optional.empty();
         }
@@ -712,12 +738,16 @@ public class FIDO2Service {
                                             .build();
                             results.add(credential);
                         } catch (Exception e) {
-                            LOGGER.debug("Error converting credential: {}", e.getMessage());
+                            if (LOGGER.isDebugEnabled()) {
+                                LOGGER.debug("Error converting credential: {}", e.getMessage());
+                            }
                         }
                     }
                 }
             } catch (Exception e) {
-                LOGGER.debug("Error looking up all credentials: {}", e.getMessage());
+                if (LOGGER.isDebugEnabled()) {
+                    LOGGER.debug("Error looking up all credentials: {}", e.getMessage());
+                }
             }
             return results;
         }

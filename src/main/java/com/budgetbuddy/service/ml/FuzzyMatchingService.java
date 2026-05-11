@@ -53,17 +53,21 @@ public class FuzzyMatchingService {
 
         // CRITICAL: Handle very large candidate lists (performance protection)
         if (candidates.size() > 10_000) {
-            LOGGER.warn(
-                    "Candidate list is very large ({}), limiting to first 10000",
-                    candidates.size());
+            if (LOGGER.isWarnEnabled()) {
+                LOGGER.warn(
+                        "Candidate list is very large ({}), limiting to first 10000",
+                        candidates.size());
+            }
             candidates = candidates.subList(0, 10_000);
         }
 
         final String normalizedQuery = normalizeForMatching(query);
-        LOGGER.debug(
-                "FuzzyMatchingService.findBestMatch normalizedQuery='{}' candidateCount={}",
-                normalizedQuery,
-                candidates.size());
+        if (LOGGER.isDebugEnabled()) {
+            LOGGER.debug(
+                    "FuzzyMatchingService.findBestMatch normalizedQuery='{}' candidateCount={}",
+                    normalizedQuery,
+                    candidates.size());
+        }
 
         // CRITICAL: If normalization resulted in empty string, can't match
         if (normalizedQuery.isEmpty()) {
@@ -116,11 +120,13 @@ public class FuzzyMatchingService {
                             tokenJaccardScore);
                 }
             } catch (Exception e) {
-                LOGGER.warn(
-                        "Error calculating similarity scores for '{}' vs '{}': {}",
-                        normalizedQuery,
-                        normalizedCandidate,
-                        e.getMessage());
+                if (LOGGER.isWarnEnabled()) {
+                    LOGGER.warn(
+                            "Error calculating similarity scores for '{}' vs '{}': {}",
+                            normalizedQuery,
+                            normalizedCandidate,
+                            e.getMessage());
+                }
                 continue; // Skip this candidate
             }
 
@@ -466,8 +472,11 @@ public class FuzzyMatchingService {
 
         // CRITICAL: Handle very long strings (performance protection)
         if (input.length() > 10_000) {
-            LOGGER.warn(
-                    "Input string is very long ({} chars), truncating to 10000", input.length());
+            if (LOGGER.isWarnEnabled()) {
+                LOGGER.warn(
+                        "Input string is very long ({} chars), truncating to 10000",
+                        input.length());
+            }
             input = input.substring(0, 10_000);
         }
 

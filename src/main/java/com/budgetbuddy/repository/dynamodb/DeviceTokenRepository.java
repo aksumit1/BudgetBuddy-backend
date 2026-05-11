@@ -34,7 +34,8 @@ import software.amazon.awssdk.services.dynamodb.model.ScalarAttributeType;
 // here would mean catch (RuntimeException) which PMD flags identically.
 @edu.umd.cs.findbugs.annotations.SuppressFBWarnings(
         value = "CT_CONSTRUCTOR_THROW",
-        justification = "Java 25: Object.finalize() is deprecated-for-removal, so the finalizer-attack vector this rule guards against is not exploitable. Constructors throw to signal a startup misconfiguration (missing credentials, AWS client init failure, etc.).")
+        justification =
+                "Java 25: Object.finalize() is deprecated-for-removal, so the finalizer-attack vector this rule guards against is not exploitable. Constructors throw to signal a startup misconfiguration (missing credentials, AWS client init failure, etc.).")
 @SuppressWarnings({"PMD.AvoidCatchingGenericException", "PMD.OnlyOneReturn"})
 @Repository
 public class DeviceTokenRepository {
@@ -87,24 +88,34 @@ public class DeviceTokenRepository {
                                 .build();
 
                 dynamoDbClient.createTable(createTableRequest);
-                LOGGER.info("Created DeviceTokens table: {}", tableName);
+                if (LOGGER.isInfoEnabled()) {
+                    LOGGER.info("Created DeviceTokens table: {}", tableName);
+                }
             } catch (Exception ex) {
                 if (isCredentialsError(ex)) {
-                    LOGGER.warn(
-                            "⚠️ AWS credentials not configured for LocalStack or environment. Skipping DeviceTokens table creation. Error: {}",
-                            ex.getMessage());
+                    if (LOGGER.isWarnEnabled()) {
+                        LOGGER.warn(
+                                "⚠️ AWS credentials not configured for LocalStack or environment. Skipping DeviceTokens table creation. Error: {}",
+                                ex.getMessage());
+                    }
                     return; // Exit gracefully
                 }
-                LOGGER.error("Failed to create DeviceTokens table: {}", ex.getMessage());
+                if (LOGGER.isErrorEnabled()) {
+                    LOGGER.error("Failed to create DeviceTokens table: {}", ex.getMessage());
+                }
             }
         } catch (Exception e) {
             if (isCredentialsError(e)) {
-                LOGGER.warn(
-                        "⚠️ AWS credentials not configured for LocalStack or environment. Skipping DeviceTokens table check. Error: {}",
-                        e.getMessage());
+                if (LOGGER.isWarnEnabled()) {
+                    LOGGER.warn(
+                            "⚠️ AWS credentials not configured for LocalStack or environment. Skipping DeviceTokens table check. Error: {}",
+                            e.getMessage());
+                }
                 return; // Exit gracefully
             }
-            LOGGER.error("Error checking DeviceTokens table: {}", e.getMessage());
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error("Error checking DeviceTokens table: {}", e.getMessage());
+            }
         }
     }
 
@@ -134,12 +145,16 @@ public class DeviceTokenRepository {
                 deviceToken.setEnabled(true);
             }
             table.putItem(deviceToken);
-            LOGGER.debug(
-                    "Saved device token for user: {}, platform: {}",
-                    deviceToken.getUserId(),
-                    deviceToken.getPlatform());
+            if (LOGGER.isDebugEnabled()) {
+                LOGGER.debug(
+                        "Saved device token for user: {}, platform: {}",
+                        deviceToken.getUserId(),
+                        deviceToken.getPlatform());
+            }
         } catch (Exception e) {
-            LOGGER.error("Failed to save device token: {}", e.getMessage());
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error("Failed to save device token: {}", e.getMessage());
+            }
             throw new AppException(
                     ErrorCode.INTERNAL_SERVER_ERROR, "Failed to save device token", e);
         }
@@ -154,7 +169,9 @@ public class DeviceTokenRepository {
             final DeviceTokenTable result = table.getItem(key);
             return Optional.ofNullable(result);
         } catch (Exception e) {
-            LOGGER.error("Failed to find device token: {}", e.getMessage());
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error("Failed to find device token: {}", e.getMessage());
+            }
             return Optional.empty();
         }
     }
@@ -168,10 +185,14 @@ public class DeviceTokenRepository {
             final List<DeviceTokenTable> results = new ArrayList<>();
             table.query(queryConditional).items().forEach(results::add);
 
-            LOGGER.debug("Found {} device tokens for user: {}", results.size(), userId);
+            if (LOGGER.isDebugEnabled()) {
+                LOGGER.debug("Found {} device tokens for user: {}", results.size(), userId);
+            }
             return results;
         } catch (Exception e) {
-            LOGGER.error("Failed to find device tokens for user: {}", e.getMessage());
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error("Failed to find device tokens for user: {}", e.getMessage());
+            }
             return new ArrayList<>();
         }
     }
@@ -190,9 +211,13 @@ public class DeviceTokenRepository {
             final Key key = Key.builder().partitionValue(userId).sortValue(deviceToken).build();
 
             table.deleteItem(key);
-            LOGGER.debug("Deleted device token for user: {}", userId);
+            if (LOGGER.isDebugEnabled()) {
+                LOGGER.debug("Deleted device token for user: {}", userId);
+            }
         } catch (Exception e) {
-            LOGGER.error("Failed to delete device token: {}", e.getMessage());
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error("Failed to delete device token: {}", e.getMessage());
+            }
         }
     }
 

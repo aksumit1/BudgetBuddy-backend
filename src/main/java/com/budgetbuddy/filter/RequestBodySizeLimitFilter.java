@@ -48,11 +48,13 @@ public class RequestBodySizeLimitFilter extends OncePerRequestFilter {
                         && contentType.toLowerCase(java.util.Locale.ROOT).contains("multipart/");
 
         if (!isMultipart && declaredLength > MAX_JSON_BODY_BYTES) {
-            LOGGER.warn(
-                    "Rejecting oversize request body: uri={} declaredLength={} cap={}",
-                    request.getRequestURI(),
-                    declaredLength,
-                    MAX_JSON_BODY_BYTES);
+            if (LOGGER.isWarnEnabled()) {
+                LOGGER.warn(
+                        "Rejecting oversize request body: uri={} declaredLength={} cap={}",
+                        request.getRequestURI(),
+                        declaredLength,
+                        MAX_JSON_BODY_BYTES);
+            }
             response.setStatus(HttpServletResponse.SC_REQUEST_ENTITY_TOO_LARGE);
             response.setContentType("application/json");
             response.getWriter().write("{\"error\":\"Request body exceeds the allowed size\"}");

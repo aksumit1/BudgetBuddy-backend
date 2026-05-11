@@ -24,15 +24,17 @@ public class AuditService {
             final String newCategory,
             final String source,
             final String reason) {
-        AUDIT_LOGGER.info(
-                "CATEGORY_CHANGE|transactionId={}|userId={}|oldCategory={}|newCategory={}|source={}|reason={}|timestamp={}",
-                transactionId,
-                userId,
-                oldCategory,
-                newCategory,
-                source,
-                reason,
-                Instant.now());
+        if (AUDIT_LOGGER.isInfoEnabled()) {
+            AUDIT_LOGGER.info(
+                    "CATEGORY_CHANGE|transactionId={}|userId={}|oldCategory={}|newCategory={}|source={}|reason={}|timestamp={}",
+                    transactionId,
+                    userId,
+                    oldCategory,
+                    newCategory,
+                    source,
+                    reason,
+                    Instant.now());
+        }
 
         LOGGER.debug(
                 "Category change logged: transactionId={}, old={}, new={}, source={}",
@@ -50,15 +52,17 @@ public class AuditService {
             final String newType,
             final String source,
             final String reason) {
-        AUDIT_LOGGER.info(
-                "TYPE_CHANGE|transactionId={}|userId={}|oldType={}|newType={}|source={}|reason={}|timestamp={}",
-                transactionId,
-                userId,
-                oldType,
-                newType,
-                source,
-                reason,
-                Instant.now());
+        if (AUDIT_LOGGER.isInfoEnabled()) {
+            AUDIT_LOGGER.info(
+                    "TYPE_CHANGE|transactionId={}|userId={}|oldType={}|newType={}|source={}|reason={}|timestamp={}",
+                    transactionId,
+                    userId,
+                    oldType,
+                    newType,
+                    source,
+                    reason,
+                    Instant.now());
+        }
 
         LOGGER.debug(
                 "Type change logged: transactionId={}, old={}, new={}, source={}",
@@ -70,16 +74,18 @@ public class AuditService {
 
     /** Logs a transaction creation */
     public void logTransactionCreation(final TransactionTable transaction, final String source) {
-        AUDIT_LOGGER.info(
-                "TRANSACTION_CREATED|transactionId={}|userId={}|accountId={}|amount={}|category={}|type={}|source={}|timestamp={}",
-                transaction.getTransactionId(),
-                transaction.getUserId(),
-                transaction.getAccountId(),
-                transaction.getAmount(),
-                transaction.getCategoryPrimary(),
-                transaction.getTransactionType(),
-                source,
-                Instant.now());
+        if (AUDIT_LOGGER.isInfoEnabled()) {
+            AUDIT_LOGGER.info(
+                    "TRANSACTION_CREATED|transactionId={}|userId={}|accountId={}|amount={}|category={}|type={}|source={}|timestamp={}",
+                    transaction.getTransactionId(),
+                    transaction.getUserId(),
+                    transaction.getAccountId(),
+                    transaction.getAmount(),
+                    transaction.getCategoryPrimary(),
+                    transaction.getTransactionType(),
+                    source,
+                    Instant.now());
+        }
     }
 
     /** Logs a transaction update */
@@ -88,13 +94,15 @@ public class AuditService {
             final String userId,
             final String changes,
             final String source) {
-        AUDIT_LOGGER.info(
-                "TRANSACTION_UPDATED|transactionId={}|userId={}|changes={}|source={}|timestamp={}",
-                transactionId,
-                userId,
-                changes,
-                source,
-                Instant.now());
+        if (AUDIT_LOGGER.isInfoEnabled()) {
+            AUDIT_LOGGER.info(
+                    "TRANSACTION_UPDATED|transactionId={}|userId={}|changes={}|source={}|timestamp={}",
+                    transactionId,
+                    userId,
+                    changes,
+                    source,
+                    Instant.now());
+        }
     }
 
     /** Logs an import operation */
@@ -103,12 +111,14 @@ public class AuditService {
             final String importSource,
             final int transactionCount,
             final String fileName) {
-        AUDIT_LOGGER.info(
-                "IMPORT|userId={}|source={}|transactionCount={}|fileName={}|timestamp={}",
-                userId,
-                importSource,
-                transactionCount,
-                fileName,
-                Instant.now());
+        if (AUDIT_LOGGER.isInfoEnabled()) {
+            AUDIT_LOGGER.info(
+                    "IMPORT|userId={}|source={}|transactionCount={}|fileName={}|timestamp={}",
+                    userId,
+                    importSource,
+                    transactionCount,
+                    fileName,
+                    Instant.now());
+        }
     }
 }

@@ -131,21 +131,27 @@ public class CategoryClassificationModel {
             return validatedPath;
         } catch (com.budgetbuddy.exception.AppException e) {
             // AppException from FileSecurityValidator - log and handle gracefully
-            LOGGER.warn(
-                    "File path validation failed for model directory {}: {}. Attempting fallback to system temp directory.",
-                    modelDirectory,
-                    e.getMessage());
+            if (LOGGER.isWarnEnabled()) {
+                LOGGER.warn(
+                        "File path validation failed for model directory {}: {}. Attempting fallback to system temp directory.",
+                        modelDirectory,
+                        e.getMessage());
+            }
             // Continue to fallback logic below
         } catch (IOException | SecurityException e) {
-            LOGGER.warn(
-                    "Failed to create model directory at {}: {}. Attempting fallback to system temp directory.",
-                    modelDirectory,
-                    e.getMessage());
+            if (LOGGER.isWarnEnabled()) {
+                LOGGER.warn(
+                        "Failed to create model directory at {}: {}. Attempting fallback to system temp directory.",
+                        modelDirectory,
+                        e.getMessage());
+            }
         } catch (Exception e) {
-            LOGGER.warn(
-                    "Unexpected error with model directory {}: {}. Attempting fallback to system temp directory.",
-                    modelDirectory,
-                    e.getMessage());
+            if (LOGGER.isWarnEnabled()) {
+                LOGGER.warn(
+                        "Unexpected error with model directory {}: {}. Attempting fallback to system temp directory.",
+                        modelDirectory,
+                        e.getMessage());
+            }
         }
 
         // Fallback to system temp directory (for all exception cases above)
@@ -161,14 +167,18 @@ public class CategoryClassificationModel {
                 fileSecurityValidator.validateFilePath(fallbackParentStr);
                 Files.createDirectories(fallbackParent);
             }
-            LOGGER.info("Using fallback model directory: {}", fallbackDir);
+            if (LOGGER.isInfoEnabled()) {
+                LOGGER.info("Using fallback model directory: {}", fallbackDir);
+            }
             return validatedFallback;
         } catch (com.budgetbuddy.exception.AppException
                 | IOException
                 | SecurityException fallbackException) {
-            LOGGER.error(
-                    "Failed to create fallback model directory. Model persistence will be disabled. Error: {}",
-                    fallbackException.getMessage());
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error(
+                        "Failed to create fallback model directory. Model persistence will be disabled. Error: {}",
+                        fallbackException.getMessage());
+            }
             modelPersistenceEnabled = false;
             throw new AppException(
                     ErrorCode.INTERNAL_SERVER_ERROR,
@@ -479,11 +489,13 @@ public class CategoryClassificationModel {
                 // Atomic rename
                 Files.move(tempFile, modelFile, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
 
-                LOGGER.info(
-                        "ML Model saved: {} samples, {} merchants, {} keywords",
-                        totalTrainingSamples.get(),
-                        merchantCategoryCounts.size(),
-                        keywordCategoryCounts.size());
+                if (LOGGER.isInfoEnabled()) {
+                    LOGGER.info(
+                            "ML Model saved: {} samples, {} merchants, {} keywords",
+                            totalTrainingSamples.get(),
+                            merchantCategoryCounts.size(),
+                            keywordCategoryCounts.size());
+                }
             } catch (IOException e) {
                 LOGGER.error("Failed to save ML model", e);
                 // CRITICAL: Clean up temp file on error
@@ -560,24 +572,31 @@ public class CategoryClassificationModel {
                                 (Map<String, Map<String, Integer>>) channelObj);
                         totalTrainingSamples.set(samples);
 
-                        LOGGER.info(
-                                "ML Model loaded: {} samples, {} merchants, {} keywords",
-                                totalTrainingSamples.get(),
-                                merchantCategoryCounts.size(),
-                                keywordCategoryCounts.size());
+                        if (LOGGER.isInfoEnabled()) {
+                            LOGGER.info(
+                                    "ML Model loaded: {} samples, {} merchants, {} keywords",
+                                    totalTrainingSamples.get(),
+                                    merchantCategoryCounts.size(),
+                                    keywordCategoryCounts.size());
+                        }
                     } else {
                         LOGGER.error(
                                 "Invalid model file format: expected Maps, got different types");
                     }
                 }
             } catch (java.io.InvalidClassException e) {
-                LOGGER.error(
-                        "Model file format incompatible (class version mismatch): {}",
-                        e.getMessage());
+                if (LOGGER.isErrorEnabled()) {
+                    LOGGER.error(
+                            "Model file format incompatible (class version mismatch): {}",
+                            e.getMessage());
+                }
                 // Don't clear existing model, keep using it
             } catch (ClassNotFoundException e) {
-                LOGGER.error(
-                        "Failed to deserialize model file (class not found): {}", e.getMessage());
+                if (LOGGER.isErrorEnabled()) {
+                    LOGGER.error(
+                            "Failed to deserialize model file (class not found): {}",
+                            e.getMessage());
+                }
             } catch (IOException e) {
                 LOGGER.error("Failed to load ML model", e);
             } catch (Exception e) {

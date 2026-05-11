@@ -93,7 +93,9 @@ public class ProviderController {
                         .orElseThrow(
                                 () -> new AppException(ErrorCode.USER_NOT_FOUND, USER_NOT_FOUND_1));
 
-        LOGGER.debug("Get providers request for user: {}", user.getUserId());
+        if (LOGGER.isDebugEnabled()) {
+            LOGGER.debug("Get providers request for user: {}", user.getUserId());
+        }
 
         lock.readLock().lock();
         try {
@@ -141,10 +143,12 @@ public class ProviderController {
                         .orElseThrow(
                                 () -> new AppException(ErrorCode.USER_NOT_FOUND, USER_NOT_FOUND_1));
 
-        LOGGER.debug(
-                "Get provider health request for user: {}, provider: {}",
-                user.getUserId(),
-                providerId);
+        if (LOGGER.isDebugEnabled()) {
+            LOGGER.debug(
+                    "Get provider health request for user: {}, provider: {}",
+                    user.getUserId(),
+                    providerId);
+        }
 
         lock.readLock().lock();
         try {
@@ -204,11 +208,13 @@ public class ProviderController {
                         .orElseThrow(
                                 () -> new AppException(ErrorCode.USER_NOT_FOUND, USER_NOT_FOUND_1));
 
-        LOGGER.info(
-                "Updating provider health for user: {}, provider: {}, healthy: {}",
-                user.getUserId(),
-                providerId,
-                request.getIsHealthy());
+        if (LOGGER.isInfoEnabled()) {
+            LOGGER.info(
+                    "Updating provider health for user: {}, provider: {}, healthy: {}",
+                    user.getUserId(),
+                    providerId,
+                    request.getIsHealthy());
+        }
 
         lock.writeLock().lock();
         try {
@@ -258,10 +264,12 @@ public class ProviderController {
                         .orElseThrow(
                                 () -> new AppException(ErrorCode.USER_NOT_FOUND, USER_NOT_FOUND_1));
 
-        LOGGER.info(
-                "Marking provider as stale for user: {}, provider: {}",
-                user.getUserId(),
-                providerId);
+        if (LOGGER.isInfoEnabled()) {
+            LOGGER.info(
+                    "Marking provider as stale for user: {}, provider: {}",
+                    user.getUserId(),
+                    providerId);
+        }
 
         lock.writeLock().lock();
         try {
@@ -304,8 +312,12 @@ public class ProviderController {
                         .orElseThrow(
                                 () -> new AppException(ErrorCode.USER_NOT_FOUND, USER_NOT_FOUND_1));
 
-        LOGGER.info(
-                "Clearing stale status for user: {}, provider: {}", user.getUserId(), providerId);
+        if (LOGGER.isInfoEnabled()) {
+            LOGGER.info(
+                    "Clearing stale status for user: {}, provider: {}",
+                    user.getUserId(),
+                    providerId);
+        }
 
         lock.writeLock().lock();
         try {

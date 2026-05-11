@@ -109,13 +109,15 @@ public class RequestResponseLoggingFilter extends OncePerRequestFilter {
             filterChain.doFilter(wrappedRequest, wrappedResponse);
         } catch (Exception e) {
             // Log exception but don't fail the request
-            LOGGER.error(
-                    "Exception in filter chain for request [{}] {} {}: {}",
-                    correlationId,
-                    method,
-                    uri,
-                    e.getMessage(),
-                    e);
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error(
+                        "Exception in filter chain for request [{}] {} {}: {}",
+                        correlationId,
+                        method,
+                        uri,
+                        e.getMessage(),
+                        e);
+            }
             throw e;
         } finally {
             final long duration = System.currentTimeMillis() - startTime;
@@ -128,38 +130,46 @@ public class RequestResponseLoggingFilter extends OncePerRequestFilter {
                 // Log error but don't fail the request. The LOGGER call above already includes the
                 // exception (last arg) so the stack trace is captured through the configured
                 // appender — never use printStackTrace which bypasses the logging pipeline.
-                LOGGER.error(
-                        "❌ Error logging request [{}] {} {}: {}",
-                        correlationId,
-                        method,
-                        uri,
-                        e.getMessage(),
-                        e);
+                if (LOGGER.isErrorEnabled()) {
+                    LOGGER.error(
+                            "❌ Error logging request [{}] {} {}: {}",
+                            correlationId,
+                            method,
+                            uri,
+                            e.getMessage(),
+                            e);
+                }
                 // Still try to log basic info - this ensures we ALWAYS log something
                 try {
                     final String queryString = request.getQueryString();
                     final String fullUri = queryString != null ? uri + "?" + queryString : uri;
                     final String reqContentType = request.getContentType();
-                    REQUEST_LOGGER.info(
-                            "REQUEST [{}] {} {} | ContentType: {} | [ERROR IN DETAILED LOGGING: {}]",
-                            correlationId,
-                            method,
-                            fullUri,
-                            reqContentType,
-                            e.getMessage());
-                    LOGGER.info(
-                            "REQUEST [{}] {} {} | ContentType: {} | [ERROR IN DETAILED LOGGING: {}]",
-                            correlationId,
-                            method,
-                            fullUri,
-                            reqContentType,
-                            e.getMessage());
+                    if (REQUEST_LOGGER.isInfoEnabled()) {
+                        REQUEST_LOGGER.info(
+                                "REQUEST [{}] {} {} | ContentType: {} | [ERROR IN DETAILED LOGGING: {}]",
+                                correlationId,
+                                method,
+                                fullUri,
+                                reqContentType,
+                                e.getMessage());
+                    }
+                    if (LOGGER.isInfoEnabled()) {
+                        LOGGER.info(
+                                "REQUEST [{}] {} {} | ContentType: {} | [ERROR IN DETAILED LOGGING: {}]",
+                                correlationId,
+                                method,
+                                fullUri,
+                                reqContentType,
+                                e.getMessage());
+                    }
                 } catch (Exception e2) {
-                    LOGGER.error(
-                            "❌ Failed to log even basic request info [{}]: {}",
-                            correlationId,
-                            e2.getMessage(),
-                            e2);
+                    if (LOGGER.isErrorEnabled()) {
+                        LOGGER.error(
+                                "❌ Failed to log even basic request info [{}]: {}",
+                                correlationId,
+                                e2.getMessage(),
+                                e2);
+                    }
                 }
             }
 
@@ -168,7 +178,10 @@ public class RequestResponseLoggingFilter extends OncePerRequestFilter {
                 logResponse(wrappedResponse, correlationId, duration);
             } catch (Exception e) {
                 // Log error but don't fail the request
-                LOGGER.error("Error logging response [{}]: {}", correlationId, e.getMessage(), e);
+                if (LOGGER.isErrorEnabled()) {
+                    LOGGER.error(
+                            "Error logging response [{}]: {}", correlationId, e.getMessage(), e);
+                }
             }
 
             try {
@@ -179,17 +192,21 @@ public class RequestResponseLoggingFilter extends OncePerRequestFilter {
                 // when clients navigate away, timeout, or cancel requests
                 if (isClientAbortException(e)) {
                     // Log at debug level since this is expected behavior
-                    LOGGER.debug(
-                            "Client disconnected before response could be copied [{}]: {}",
-                            correlationId,
-                            e.getMessage());
+                    if (LOGGER.isDebugEnabled()) {
+                        LOGGER.debug(
+                                "Client disconnected before response could be copied [{}]: {}",
+                                correlationId,
+                                e.getMessage());
+                    }
                 } else {
                     // Log other errors at error level
-                    LOGGER.error(
-                            "Error copying response body [{}]: {}",
-                            correlationId,
-                            e.getMessage(),
-                            e);
+                    if (LOGGER.isErrorEnabled()) {
+                        LOGGER.error(
+                                "Error copying response body [{}]: {}",
+                                correlationId,
+                                e.getMessage(),
+                                e);
+                    }
                 }
             }
         }
@@ -338,33 +355,47 @@ public class RequestResponseLoggingFilter extends OncePerRequestFilter {
             try {
                 REQUEST_LOGGER.info(logMsg);
             } catch (Exception e) {
-                LOGGER.error("❌ Failed to log to REQUEST_LOGGER: {}", e.getMessage(), e);
+                if (LOGGER.isErrorEnabled()) {
+                    LOGGER.error("❌ Failed to log to REQUEST_LOGGER: {}", e.getMessage(), e);
+                }
             }
 
             // Also log to main LOGGER for multipart requests and import endpoints to ensure
             // visibility
             if (contentType != null && contentType.startsWith(MULTIPART_FORM_DATA)) {
                 try {
-                    LOGGER.info("📤 MULTIPART REQUEST: {}", logMsg);
+                    if (LOGGER.isInfoEnabled()) {
+                        LOGGER.info("📤 MULTIPART REQUEST: {}", logMsg);
+                    }
                 } catch (Exception e) {
-                    LOGGER.error(
-                            "❌ Failed to log multipart request to main LOGGER: {}",
-                            e.getMessage(),
-                            e);
+                    if (LOGGER.isErrorEnabled()) {
+                        LOGGER.error(
+                                "❌ Failed to log multipart request to main LOGGER: {}",
+                                e.getMessage(),
+                                e);
+                    }
                 }
             }
 
             // Also log import endpoints to main LOGGER
             if (uri != null && (uri.contains("/import") || uri.contains("/batch-import"))) {
                 try {
-                    LOGGER.info("📤 IMPORT REQUEST: {}", logMsg);
+                    if (LOGGER.isInfoEnabled()) {
+                        LOGGER.info("📤 IMPORT REQUEST: {}", logMsg);
+                    }
                 } catch (Exception e) {
-                    LOGGER.error(
-                            "❌ Failed to log import request to main LOGGER: {}", e.getMessage(), e);
+                    if (LOGGER.isErrorEnabled()) {
+                        LOGGER.error(
+                                "❌ Failed to log import request to main LOGGER: {}",
+                                e.getMessage(),
+                                e);
+                    }
                 }
             }
         } catch (Exception e) {
-            LOGGER.warn("Error logging request: {}", e.getMessage(), e);
+            if (LOGGER.isWarnEnabled()) {
+                LOGGER.warn("Error logging request: {}", e.getMessage(), e);
+            }
         }
     }
 
@@ -498,15 +529,19 @@ public class RequestResponseLoggingFilter extends OncePerRequestFilter {
             // Log body (sanitized)
             final String body = getSanitizedBody(response.getContentAsByteArray());
 
-            REQUEST_LOGGER.info(
-                    "RESPONSE [{}] Status: {} | Duration: {}ms | Headers: {} | Body: {}",
-                    correlationId,
-                    status,
-                    duration,
-                    headersLog.toString(),
-                    body);
+            if (REQUEST_LOGGER.isInfoEnabled()) {
+                REQUEST_LOGGER.info(
+                        "RESPONSE [{}] Status: {} | Duration: {}ms | Headers: {} | Body: {}",
+                        correlationId,
+                        status,
+                        duration,
+                        headersLog.toString(),
+                        body);
+            }
         } catch (Exception e) {
-            LOGGER.warn("Error logging response: {}", e.getMessage());
+            if (LOGGER.isWarnEnabled()) {
+                LOGGER.warn("Error logging response: {}", e.getMessage());
+            }
         }
     }
 
@@ -633,8 +668,12 @@ public class RequestResponseLoggingFilter extends OncePerRequestFilter {
 
         // Debug log to verify filter is being called
         if (!shouldSkip && (path.contains("/import") || path.contains("/transactions"))) {
-            LOGGER.debug(
-                    "RequestResponseLoggingFilter processing: {} {}", request.getMethod(), path);
+            if (LOGGER.isDebugEnabled()) {
+                LOGGER.debug(
+                        "RequestResponseLoggingFilter processing: {} {}",
+                        request.getMethod(),
+                        path);
+            }
         }
 
         return shouldSkip;

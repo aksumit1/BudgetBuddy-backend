@@ -193,20 +193,27 @@ public class PlaidWebhookService {
             // Note: In production, you might want to store access token separately
             // For now, we'll need to retrieve it from Plaid or store it with accounts
             // This is a simplified implementation - assumes access token is available
-            LOGGER.info("Found {} accounts for item: {}", accounts.size(), itemId);
+            if (LOGGER.isInfoEnabled()) {
+                LOGGER.info("Found {} accounts for item: {}", accounts.size(), itemId);
+            }
 
             // Sync all transactions for the user
             // Note: This requires access token which should be stored securely
             // For now, log that sync is needed
-            LOGGER.info(
-                    "Transaction sync triggered for user: {} via item: {}",
-                    user.getUserId(),
-                    itemId);
+            if (LOGGER.isInfoEnabled()) {
+                LOGGER.info(
+                        "Transaction sync triggered for user: {} via item: {}",
+                        user.getUserId(),
+                        itemId);
+            }
             // In production, retrieve access token from secure storage and call:
             // plaidSyncService.syncTransactions(user, accessToken);
 
         } catch (Exception e) {
-            LOGGER.error("Error syncing transactions for item {}: {}", itemId, e.getMessage(), e);
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error(
+                        "Error syncing transactions for item {}: {}", itemId, e.getMessage(), e);
+            }
         }
     }
 
@@ -230,17 +237,24 @@ public class PlaidWebhookService {
                 return;
             }
 
-            LOGGER.info(
-                    "Incremental transaction sync triggered for user: {} via item: {}",
-                    user.getUserId(),
-                    itemId);
+            if (LOGGER.isInfoEnabled()) {
+                LOGGER.info(
+                        "Incremental transaction sync triggered for user: {} via item: {}",
+                        user.getUserId(),
+                        itemId);
+            }
             // In production, retrieve access token from secure storage and call:
             // plaidSyncService.syncTransactions(user, accessToken);
             // This will automatically do incremental sync based on lastSyncedAt
 
         } catch (Exception e) {
-            LOGGER.error(
-                    "Error syncing new transactions for item {}: {}", itemId, e.getMessage(), e);
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error(
+                        "Error syncing new transactions for item {}: {}",
+                        itemId,
+                        e.getMessage(),
+                        e);
+            }
         }
     }
 
@@ -253,7 +267,10 @@ public class PlaidWebhookService {
             return;
         }
 
-        LOGGER.info("Removing {} transactions for item: {}", removedTransactionIds.size(), itemId);
+        if (LOGGER.isInfoEnabled()) {
+            LOGGER.info(
+                    "Removing {} transactions for item: {}", removedTransactionIds.size(), itemId);
+        }
 
         try {
             // Find user by item ID
@@ -282,23 +299,29 @@ public class PlaidWebhookService {
                                                         .equals(user.getUserId())) {
                                             transactionRepository.delete(
                                                     transaction.getTransactionId());
-                                            LOGGER.debug(
-                                                    "Deleted transaction {} for user {}",
-                                                    transaction.getTransactionId(),
-                                                    user.getUserId());
+                                            if (LOGGER.isDebugEnabled()) {
+                                                LOGGER.debug(
+                                                        "Deleted transaction {} for user {}",
+                                                        transaction.getTransactionId(),
+                                                        user.getUserId());
+                                            }
                                         } else {
-                                            LOGGER.warn(
-                                                    "Transaction {} does not belong to user {}",
-                                                    transaction.getTransactionId(),
-                                                    user.getUserId());
+                                            if (LOGGER.isWarnEnabled()) {
+                                                LOGGER.warn(
+                                                        "Transaction {} does not belong to user {}",
+                                                        transaction.getTransactionId(),
+                                                        user.getUserId());
+                                            }
                                         }
                                     });
                     deletedCount++;
                 } catch (Exception e) {
-                    LOGGER.error(
-                            "Failed to delete transaction {}: {}",
-                            plaidTransactionId,
-                            e.getMessage());
+                    if (LOGGER.isErrorEnabled()) {
+                        LOGGER.error(
+                                "Failed to delete transaction {}: {}",
+                                plaidTransactionId,
+                                e.getMessage());
+                    }
                     errorCount++;
                 }
             }
@@ -309,7 +332,9 @@ public class PlaidWebhookService {
                     errorCount,
                     itemId);
         } catch (Exception e) {
-            LOGGER.error("Error handling transactions removed: {}", e.getMessage(), e);
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error("Error handling transactions removed: {}", e.getMessage(), e);
+            }
         }
     }
 
@@ -353,12 +378,18 @@ public class PlaidWebhookService {
                     notificationService.sendNotification(notificationRequest);
 
             if (result.isSuccess()) {
-                LOGGER.info("User notified about item error: {}", user.getUserId());
+                if (LOGGER.isInfoEnabled()) {
+                    LOGGER.info("User notified about item error: {}", user.getUserId());
+                }
             } else {
-                LOGGER.warn("Failed to notify user about item error: {}", user.getUserId());
+                if (LOGGER.isWarnEnabled()) {
+                    LOGGER.warn("Failed to notify user about item error: {}", user.getUserId());
+                }
             }
         } catch (Exception e) {
-            LOGGER.error("Error handling item error: {}", e.getMessage(), e);
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error("Error handling item error: {}", e.getMessage(), e);
+            }
         }
     }
 
@@ -397,12 +428,19 @@ public class PlaidWebhookService {
                     notificationService.sendNotification(notificationRequest);
 
             if (result.isSuccess()) {
-                LOGGER.info("User notified about pending expiration: {}", user.getUserId());
+                if (LOGGER.isInfoEnabled()) {
+                    LOGGER.info("User notified about pending expiration: {}", user.getUserId());
+                }
             } else {
-                LOGGER.warn("Failed to notify user about pending expiration: {}", user.getUserId());
+                if (LOGGER.isWarnEnabled()) {
+                    LOGGER.warn(
+                            "Failed to notify user about pending expiration: {}", user.getUserId());
+                }
             }
         } catch (Exception e) {
-            LOGGER.error("Error handling pending expiration: {}", e.getMessage(), e);
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error("Error handling pending expiration: {}", e.getMessage(), e);
+            }
         }
     }
 
@@ -432,13 +470,19 @@ public class PlaidWebhookService {
                     account.setUpdatedAt(java.time.Instant.now());
                     accountRepository.save(account);
                     deactivatedCount++;
-                    LOGGER.debug(
-                            "Deactivated account {} for item {}", account.getAccountId(), itemId);
+                    if (LOGGER.isDebugEnabled()) {
+                        LOGGER.debug(
+                                "Deactivated account {} for item {}",
+                                account.getAccountId(),
+                                itemId);
+                    }
                 } catch (Exception e) {
-                    LOGGER.error(
-                            "Failed to deactivate account {}: {}",
-                            account.getAccountId(),
-                            e.getMessage());
+                    if (LOGGER.isErrorEnabled()) {
+                        LOGGER.error(
+                                "Failed to deactivate account {}: {}",
+                                account.getAccountId(),
+                                e.getMessage());
+                    }
                 }
             }
 
@@ -464,13 +508,20 @@ public class PlaidWebhookService {
                     notificationService.sendNotification(notificationRequest);
 
             if (result.isSuccess()) {
-                LOGGER.info("User notified about account disconnection: {}", user.getUserId());
+                if (LOGGER.isInfoEnabled()) {
+                    LOGGER.info("User notified about account disconnection: {}", user.getUserId());
+                }
             } else {
-                LOGGER.warn(
-                        "Failed to notify user about account disconnection: {}", user.getUserId());
+                if (LOGGER.isWarnEnabled()) {
+                    LOGGER.warn(
+                            "Failed to notify user about account disconnection: {}",
+                            user.getUserId());
+                }
             }
         } catch (Exception e) {
-            LOGGER.error("Error handling permission revoked: {}", e.getMessage(), e);
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error("Error handling permission revoked: {}", e.getMessage(), e);
+            }
         }
     }
 
@@ -502,7 +553,9 @@ public class PlaidWebhookService {
             // Find user
             return userRepository.findById(userId);
         } catch (Exception e) {
-            LOGGER.error("Error finding user by item ID {}: {}", itemId, e.getMessage(), e);
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error("Error finding user by item ID {}: {}", itemId, e.getMessage(), e);
+            }
             return Optional.empty();
         }
     }

@@ -65,16 +65,20 @@ public final class DynamoDbTransactionHelper {
                     try {
                         final TransactWriteItemsResponse response =
                                 dynamoDbClient.transactWriteItems(request);
-                        LOGGER.debug(
-                                "DynamoDB transaction completed successfully with {} items",
-                                items.size());
+                        if (LOGGER.isDebugEnabled()) {
+                            LOGGER.debug(
+                                    "DynamoDB transaction completed successfully with {} items",
+                                    items.size());
+                        }
                         return response;
                     } catch (ConditionalCheckFailedException e) {
                         // Don't retry conditional check failures - they indicate business logic
                         // conflicts
-                        LOGGER.warn(
-                                "DynamoDB transaction failed due to conditional check: {}",
-                                e.getMessage());
+                        if (LOGGER.isWarnEnabled()) {
+                            LOGGER.warn(
+                                    "DynamoDB transaction failed due to conditional check: {}",
+                                    e.getMessage());
+                        }
                         throw e;
                     }
                 });

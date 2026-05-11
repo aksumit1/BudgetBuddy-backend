@@ -72,7 +72,9 @@ public class RateLimitHeaderFilter extends OncePerRequestFilter {
                 setDefaultRateLimitHeaders(response, endpoint);
             }
         } catch (Exception e) {
-            LOGGER.debug("Error adding rate limit headers: {}", e.getMessage());
+            if (LOGGER.isDebugEnabled()) {
+                LOGGER.debug("Error adding rate limit headers: {}", e.getMessage());
+            }
             // Don't fail the request if headers can't be added
         }
     }
@@ -108,7 +110,9 @@ public class RateLimitHeaderFilter extends OncePerRequestFilter {
                 return auth.getName(); // Username (email) - would need to convert to userId
             }
         } catch (Exception e) {
-            LOGGER.debug("Could not extract user ID from SecurityContext: {}", e.getMessage());
+            if (LOGGER.isDebugEnabled()) {
+                LOGGER.debug("Could not extract user ID from SecurityContext: {}", e.getMessage());
+            }
         }
 
         return null;
@@ -152,7 +156,9 @@ public class RateLimitHeaderFilter extends OncePerRequestFilter {
 
             return new RateLimitInfo(limit, remaining, reset);
         } catch (Exception e) {
-            LOGGER.debug("Error getting rate limit info: {}", e.getMessage());
+            if (LOGGER.isDebugEnabled()) {
+                LOGGER.debug("Error getting rate limit info: {}", e.getMessage());
+            }
             return null;
         }
     }

@@ -93,14 +93,18 @@ public class DynamoDBConfig {
             try {
                 final URI endpointUri = URI.create(dynamoDbEndpoint);
                 builder.endpointOverride(endpointUri);
-                LOGGER.info(
-                        "DynamoDB client configured with endpoint: {} (LocalStack)",
-                        dynamoDbEndpoint);
+                if (LOGGER.isInfoEnabled()) {
+                    LOGGER.info(
+                            "DynamoDB client configured with endpoint: {} (LocalStack)",
+                            dynamoDbEndpoint);
+                }
             } catch (IllegalArgumentException e) {
-                LOGGER.error(
-                        "Invalid DynamoDB endpoint URI: {}. Error: {}",
-                        dynamoDbEndpoint,
-                        e.getMessage());
+                if (LOGGER.isErrorEnabled()) {
+                    LOGGER.error(
+                            "Invalid DynamoDB endpoint URI: {}. Error: {}",
+                            dynamoDbEndpoint,
+                            e.getMessage());
+                }
                 throw new IllegalStateException(
                         "Invalid DynamoDB endpoint configuration: " + dynamoDbEndpoint, e);
             }

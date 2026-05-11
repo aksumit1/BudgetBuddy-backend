@@ -163,9 +163,11 @@ public class TransactionAnomalyService {
                         userId, historicalStartStr, analysisStartStr);
 
         if (recentTransactions.size() < MIN_TRANSACTIONS_FOR_ANALYSIS) {
-            LOGGER.debug(
-                    "Insufficient transactions for anomaly detection: {}",
-                    recentTransactions.size());
+            if (LOGGER.isDebugEnabled()) {
+                LOGGER.debug(
+                        "Insufficient transactions for anomaly detection: {}",
+                        recentTransactions.size());
+            }
             return Collections.emptyList();
         }
 
@@ -228,10 +230,12 @@ public class TransactionAnomalyService {
                                                                 a.getCategory(),
                                                                 a.getAmount())))
                                 .collect(Collectors.toList());
-                LOGGER.debug(
-                        "Suppressed {}/{} anomalies via user dismiss list",
-                        before - anomalies.size(),
-                        before);
+                if (LOGGER.isDebugEnabled()) {
+                    LOGGER.debug(
+                            "Suppressed {}/{} anomalies via user dismiss list",
+                            before - anomalies.size(),
+                            before);
+                }
             }
         }
 

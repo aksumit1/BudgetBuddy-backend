@@ -102,10 +102,12 @@ public class ChallengeService {
 
         // Verify email matches (case-insensitive)
         if (!info.getEmail().equalsIgnoreCase(email)) {
-            LOGGER.warn(
-                    "Challenge verification failed: email mismatch (expected: {}, got: {})",
-                    info.getEmail(),
-                    email);
+            if (LOGGER.isWarnEnabled()) {
+                LOGGER.warn(
+                        "Challenge verification failed: email mismatch (expected: {}, got: {})",
+                        info.getEmail(),
+                        email);
+            }
             throw new AppException(ErrorCode.INVALID_INPUT, "Challenge email mismatch");
         }
 

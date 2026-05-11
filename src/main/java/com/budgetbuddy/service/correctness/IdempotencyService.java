@@ -96,11 +96,13 @@ public class IdempotencyService {
         // Fast path — same key already recorded a result; return it.
         final Optional<String> existing = lookup(storageKey);
         if (existing.isPresent()) {
-            LOG.info(
-                    "Idempotency hit for userId={} key={} → reusing result {}",
-                    userId,
-                    idempotencyKey,
-                    existing.get());
+            if (LOG.isInfoEnabled()) {
+                LOG.info(
+                        "Idempotency hit for userId={} key={} → reusing result {}",
+                        userId,
+                        idempotencyKey,
+                        existing.get());
+            }
             return existing.get();
         }
 
@@ -134,7 +136,9 @@ public class IdempotencyService {
                 return Optional.of(resp.item().get(RESULT_ID).s());
             }
         } catch (Exception e) {
-            LOG.debug("Idempotency lookup failed for {}: {}", storageKey, e.getMessage());
+            if (LOG.isDebugEnabled()) {
+                LOG.debug("Idempotency lookup failed for {}: {}", storageKey, e.getMessage());
+            }
         }
         return Optional.empty();
     }
@@ -163,7 +167,9 @@ public class IdempotencyService {
         } catch (ConditionalCheckFailedException ignored) {
             // Race winner already there — nothing to do.
         } catch (Exception e) {
-            LOG.debug("Idempotency record failed for {}: {}", storageKey, e.getMessage());
+            if (LOG.isDebugEnabled()) {
+                LOG.debug("Idempotency record failed for {}: {}", storageKey, e.getMessage());
+            }
         }
     }
 }

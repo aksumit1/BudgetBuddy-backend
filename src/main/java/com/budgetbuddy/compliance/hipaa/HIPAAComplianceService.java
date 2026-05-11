@@ -167,11 +167,13 @@ public class HIPAAComplianceService {
     /** Notify security team immediately */
     private void notifySecurityTeam(final BreachReport report) {
         // In production, send alert via email/SMS/Slack
-        LOGGER.error(
-                "HIPAA BREACH ALERT: Security team notified - User={}, PHI={}, Type={}",
-                report.getUserId(),
-                report.getPhiId(),
-                report.getBreachType());
+        if (LOGGER.isErrorEnabled()) {
+            LOGGER.error(
+                    "HIPAA BREACH ALERT: Security team notified - User={}, PHI={}, Type={}",
+                    report.getUserId(),
+                    report.getPhiId(),
+                    report.getBreachType());
+        }
         putMetric("BreachNotification", 1.0, Map.of("Recipient", "SecurityTeam"));
     }
 
@@ -179,10 +181,12 @@ public class HIPAAComplianceService {
     private void scheduleIndividualNotification(final BreachReport report) {
         // In production, schedule email/letter notification
         // Must be sent within 60 days of breach discovery
-        LOGGER.warn(
-                "HIPAA: Individual notification scheduled - User={}, PHI={}",
-                report.getUserId(),
-                report.getPhiId());
+        if (LOGGER.isWarnEnabled()) {
+            LOGGER.warn(
+                    "HIPAA: Individual notification scheduled - User={}, PHI={}",
+                    report.getUserId(),
+                    report.getPhiId());
+        }
         putMetric("BreachNotification", 1.0, Map.of("Recipient", "AffectedIndividual"));
     }
 
@@ -196,11 +200,13 @@ public class HIPAAComplianceService {
         // If <500 individuals, notify HHS annually
 
         // For now, log assessment
-        LOGGER.info(
-                "HIPAA: Breach impact assessment - User={}, PHI={}, Type={}",
-                report.getUserId(),
-                report.getPhiId(),
-                report.getBreachType());
+        if (LOGGER.isInfoEnabled()) {
+            LOGGER.info(
+                    "HIPAA: Breach impact assessment - User={}, PHI={}, Type={}",
+                    report.getUserId(),
+                    report.getPhiId(),
+                    report.getBreachType());
+        }
         putMetric("BreachImpactAssessment", 1.0, Map.of("BreachType", report.getBreachType()));
     }
 
@@ -288,7 +294,9 @@ public class HIPAAComplianceService {
                                             .build())
                             .build());
         } catch (Exception e) {
-            LOGGER.error("Failed to put metric to CloudWatch: {}", e.getMessage());
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error("Failed to put metric to CloudWatch: {}", e.getMessage());
+            }
         }
     }
 

@@ -48,6 +48,9 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/goals")
 public class GoalController {
 
+    private static final org.slf4j.Logger LOGGER =
+            org.slf4j.LoggerFactory.getLogger(GoalController.class);
+
     private static final String GOAL_ID_IS_REQUIRED = "Goal ID is required";
 
     private static final String USER_NOT_AUTHENTICATED = "User not authenticated";
@@ -153,10 +156,11 @@ public class GoalController {
         } catch (
                 @SuppressWarnings("PMD.AvoidCatchingGenericException")
                 Exception e) {
-            org.slf4j.LoggerFactory.getLogger(GoalController.class)
-                    .debug(
-                            "Goal-milestone notification failed (best-effort, request not aborted): {}",
-                            e.getMessage());
+            if (LOGGER.isDebugEnabled()) {
+                LOGGER.debug(
+                        "Goal-milestone notification failed (best-effort, request not aborted): {}",
+                        e.getMessage());
+            }
         }
         auditInterceptor.goalChanged(user.getUserId(), id, "COMPLETE", "Manual mark complete");
         return ResponseEntity.ok(updated);
@@ -249,10 +253,11 @@ public class GoalController {
         try {
             dataChangeNotificationService.notifyGoalChanged(user.getUserId(), goal.getGoalId());
         } catch (Exception e) {
-            org.slf4j.LoggerFactory.getLogger(GoalController.class)
-                    .warn(
-                            "Failed to send data change notification for goal creation: {}",
-                            e.getMessage());
+            if (LOGGER.isWarnEnabled()) {
+                LOGGER.warn(
+                        "Failed to send data change notification for goal creation: {}",
+                        e.getMessage());
+            }
             // Don't fail the request if notification fails
         }
 
@@ -288,10 +293,11 @@ public class GoalController {
         try {
             dataChangeNotificationService.notifyGoalChanged(user.getUserId(), goal.getGoalId());
         } catch (Exception e) {
-            org.slf4j.LoggerFactory.getLogger(GoalController.class)
-                    .warn(
-                            "Failed to send data change notification for goal progress update: {}",
-                            e.getMessage());
+            if (LOGGER.isWarnEnabled()) {
+                LOGGER.warn(
+                        "Failed to send data change notification for goal progress update: {}",
+                        e.getMessage());
+            }
             // Don't fail the request if notification fails
         }
 
@@ -327,10 +333,11 @@ public class GoalController {
         try {
             dataChangeNotificationService.notifyGoalChanged(user.getUserId(), goal.getGoalId());
         } catch (Exception e) {
-            org.slf4j.LoggerFactory.getLogger(GoalController.class)
-                    .warn(
-                            "Failed to send data change notification for goal account association: {}",
-                            e.getMessage());
+            if (LOGGER.isWarnEnabled()) {
+                LOGGER.warn(
+                        "Failed to send data change notification for goal account association: {}",
+                        e.getMessage());
+            }
             // Don't fail the request if notification fails
         }
 
@@ -360,10 +367,11 @@ public class GoalController {
         try {
             dataChangeNotificationService.notifyGoalChanged(user.getUserId(), goal.getGoalId());
         } catch (Exception e) {
-            org.slf4j.LoggerFactory.getLogger(GoalController.class)
-                    .warn(
-                            "Failed to send data change notification for goal recalculation: {}",
-                            e.getMessage());
+            if (LOGGER.isWarnEnabled()) {
+                LOGGER.warn(
+                        "Failed to send data change notification for goal recalculation: {}",
+                        e.getMessage());
+            }
             // Don't fail the request if notification fails
         }
 
@@ -393,10 +401,11 @@ public class GoalController {
         try {
             dataChangeNotificationService.notifyGoalChanged(user.getUserId(), id);
         } catch (Exception e) {
-            org.slf4j.LoggerFactory.getLogger(GoalController.class)
-                    .warn(
-                            "Failed to send data change notification for goal deletion: {}",
-                            e.getMessage());
+            if (LOGGER.isWarnEnabled()) {
+                LOGGER.warn(
+                        "Failed to send data change notification for goal deletion: {}",
+                        e.getMessage());
+            }
             // Don't fail the request if notification fails
         }
 

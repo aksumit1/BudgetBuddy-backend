@@ -328,10 +328,12 @@ public class RewardExtractor {
             if (result != null
                     && result.getType() == RewardType.POINTS
                     && result.getPoints() != null) {
-                LOGGER.debug(
-                        "✓ Extracted reward points: {} (pattern: '{}')",
-                        result.getPoints(),
-                        result.getLabel());
+                if (LOGGER.isDebugEnabled()) {
+                    LOGGER.debug(
+                            "✓ Extracted reward points: {} (pattern: '{}')",
+                            result.getPoints(),
+                            result.getLabel());
+                }
                 return result.getPoints();
             }
         }
@@ -446,16 +448,20 @@ public class RewardExtractor {
                         }
                     }
                 } catch (NumberFormatException e) {
-                    LOGGER.debug(
-                            "Failed to parse reward value from pattern '{}': {}",
-                            pattern.getName(),
-                            e.getMessage());
+                    if (LOGGER.isDebugEnabled()) {
+                        LOGGER.debug(
+                                "Failed to parse reward value from pattern '{}': {}",
+                                pattern.getName(),
+                                e.getMessage());
+                    }
                     continue; // Try next pattern
                 } catch (Exception e) {
-                    LOGGER.debug(
-                            "Error extracting reward with pattern '{}': {}",
-                            pattern.getName(),
-                            e.getMessage());
+                    if (LOGGER.isDebugEnabled()) {
+                        LOGGER.debug(
+                                "Error extracting reward with pattern '{}': {}",
+                                pattern.getName(),
+                                e.getMessage());
+                    }
                     continue;
                 }
             }
@@ -525,8 +531,12 @@ public class RewardExtractor {
         if (result != null
                 && result.getType() == RewardType.CASH_BACK
                 && result.getCashBack() != null) {
-            LOGGER.debug(
-                    EXTRACTED_CASH_BACK_BALANCE_PATTERN, result.getCashBack(), result.getLabel());
+            if (LOGGER.isDebugEnabled()) {
+                LOGGER.debug(
+                        EXTRACTED_CASH_BACK_BALANCE_PATTERN,
+                        result.getCashBack(),
+                        result.getLabel());
+            }
             return result.getCashBack();
         }
 
@@ -543,10 +553,12 @@ public class RewardExtractor {
             if (result != null
                     && result.getType() == RewardType.CASH_BACK
                     && result.getCashBack() != null) {
-                LOGGER.debug(
-                        EXTRACTED_CASH_BACK_BALANCE_PATTERN,
-                        result.getCashBack(),
-                        result.getLabel());
+                if (LOGGER.isDebugEnabled()) {
+                    LOGGER.debug(
+                            EXTRACTED_CASH_BACK_BALANCE_PATTERN,
+                            result.getCashBack(),
+                            result.getLabel());
+                }
                 return result.getCashBack();
             }
 
@@ -558,10 +570,12 @@ public class RewardExtractor {
                 if (result != null
                         && result.getType() == RewardType.CASH_BACK
                         && result.getCashBack() != null) {
-                    LOGGER.debug(
-                            EXTRACTED_CASH_BACK_BALANCE_PATTERN,
-                            result.getCashBack(),
-                            result.getLabel());
+                    if (LOGGER.isDebugEnabled()) {
+                        LOGGER.debug(
+                                EXTRACTED_CASH_BACK_BALANCE_PATTERN,
+                                result.getCashBack(),
+                                result.getLabel());
+                    }
                     return result.getCashBack();
                 }
             }

@@ -1252,9 +1252,11 @@ public class AccountDetectionService {
             final DetectedAccount fromFilename = detectFromFilename(filename);
             if (fromFilename != null && fromFilename.getInstitutionName() != null) {
                 detected.setInstitutionName(fromFilename.getInstitutionName());
-                LOGGER.info(
-                        "✓ Using institution name from filename: {}",
-                        fromFilename.getInstitutionName());
+                if (LOGGER.isInfoEnabled()) {
+                    LOGGER.info(
+                            "✓ Using institution name from filename: {}",
+                            fromFilename.getInstitutionName());
+                }
             }
         }
 
@@ -1286,7 +1288,9 @@ public class AccountDetectionService {
                     }
                 }
             } catch (Exception e) {
-                LOGGER.warn("Error extracting card number from PDF: {}", e.getMessage());
+                if (LOGGER.isWarnEnabled()) {
+                    LOGGER.warn("Error extracting card number from PDF: {}", e.getMessage());
+                }
             }
         }
 
@@ -1402,7 +1406,9 @@ public class AccountDetectionService {
         final Map<String, String> headerMap = new HashMap<>();
         final Map<String, Integer> headerIndexMap = new HashMap<>();
         LOGGER.info("=== HEADER ANALYSIS START ===");
-        LOGGER.info("Total headers found: {}", headers.size());
+        if (LOGGER.isInfoEnabled()) {
+            LOGGER.info("Total headers found: {}", headers.size());
+        }
         for (int i = 0; i < headers.size(); i++) {
             final String header = headers.get(i);
             if (header == null || header.isBlank()) {
@@ -1413,7 +1419,10 @@ public class AccountDetectionService {
             for (final String part : header.split("\\s{2,}|\\t+")) {
                 final String trimmed = part.trim();
                 if (!trimmed.isEmpty()) {
-                    LOGGER.info("Header [Column {}]: '{}' (full: '{}')", i + 1, trimmed, header);
+                    if (LOGGER.isInfoEnabled()) {
+                        LOGGER.info(
+                                "Header [Column {}]: '{}' (full: '{}')", i + 1, trimmed, header);
+                    }
                 }
             }
             final String lower = header.toLowerCase(Locale.ROOT).trim();
@@ -1438,10 +1447,12 @@ public class AccountDetectionService {
         final Integer columnIndex =
                 findColumnIndex(index.headerMap, index.headerIndexMap, ACCOUNT_NUMBER_KEYWORDS);
         if (columnIndex != null) {
-            LOGGER.info(
-                    "✓ Found account number column at index {}: '{}'",
-                    columnIndex,
-                    headers.get(columnIndex));
+            if (LOGGER.isInfoEnabled()) {
+                LOGGER.info(
+                        "✓ Found account number column at index {}: '{}'",
+                        columnIndex,
+                        headers.get(columnIndex));
+            }
         }
     }
 
@@ -1526,10 +1537,12 @@ public class AccountDetectionService {
         final Integer columnIndex =
                 findColumnIndex(index.headerMap, index.headerIndexMap, ACCOUNT_TYPE_KEYWORDS);
         if (columnIndex != null) {
-            LOGGER.info(
-                    "✓ Found account type column at index {}: '{}'",
-                    columnIndex,
-                    headers.get(columnIndex));
+            if (LOGGER.isInfoEnabled()) {
+                LOGGER.info(
+                        "✓ Found account type column at index {}: '{}'",
+                        columnIndex,
+                        headers.get(columnIndex));
+            }
         }
         final String accountType = extractAccountTypeFromText(String.join(" ", headers));
         if (accountType != null) {
@@ -1548,9 +1561,11 @@ public class AccountDetectionService {
             return;
         }
         if (headers.size() <= 1) {
-            LOGGER.info(
-                    "⚠️ Skipping institution name extraction from header text - only {} header(s)",
-                    headers.size());
+            if (LOGGER.isInfoEnabled()) {
+                LOGGER.info(
+                        "⚠️ Skipping institution name extraction from header text - only {} header(s)",
+                        headers.size());
+            }
             return;
         }
         final String headerText = String.join(" ", headers);
@@ -1601,23 +1616,29 @@ public class AccountDetectionService {
             final DetectedAccount detected, final DetectedAccount fromFilename) {
         if (fromFilename.getInstitutionName() != null) {
             detected.setInstitutionName(fromFilename.getInstitutionName());
-            LOGGER.info(
-                    "✓ Using institution name from filename (transaction table): {}",
-                    fromFilename.getInstitutionName());
+            if (LOGGER.isInfoEnabled()) {
+                LOGGER.info(
+                        "✓ Using institution name from filename (transaction table): {}",
+                        fromFilename.getInstitutionName());
+            }
         }
         if (fromFilename.getAccountType() != null) {
             detected.setAccountType(fromFilename.getAccountType());
             detected.setAccountSubtype(fromFilename.getAccountSubtype());
-            LOGGER.info(
-                    "✓ Using account type from filename (transaction table): {} / {}",
-                    fromFilename.getAccountType(),
-                    fromFilename.getAccountSubtype());
+            if (LOGGER.isInfoEnabled()) {
+                LOGGER.info(
+                        "✓ Using account type from filename (transaction table): {} / {}",
+                        fromFilename.getAccountType(),
+                        fromFilename.getAccountSubtype());
+            }
         }
         if (fromFilename.getAccountNumber() != null) {
             detected.setAccountNumber(fromFilename.getAccountNumber());
-            LOGGER.info(
-                    "✓ Using account number from filename (transaction table): {}",
-                    fromFilename.getAccountNumber());
+            if (LOGGER.isInfoEnabled()) {
+                LOGGER.info(
+                        "✓ Using account number from filename (transaction table): {}",
+                        fromFilename.getAccountNumber());
+            }
         }
     }
 
@@ -1625,22 +1646,29 @@ public class AccountDetectionService {
             final DetectedAccount detected, final DetectedAccount fromFilename) {
         if (detected.getInstitutionName() == null && fromFilename.getInstitutionName() != null) {
             detected.setInstitutionName(fromFilename.getInstitutionName());
-            LOGGER.info(
-                    "✓ Using institution name from filename: {}",
-                    fromFilename.getInstitutionName());
+            if (LOGGER.isInfoEnabled()) {
+                LOGGER.info(
+                        "✓ Using institution name from filename: {}",
+                        fromFilename.getInstitutionName());
+            }
         }
         if (detected.getAccountType() == null && fromFilename.getAccountType() != null) {
             detected.setAccountType(fromFilename.getAccountType());
             detected.setAccountSubtype(fromFilename.getAccountSubtype());
-            LOGGER.info(
-                    "✓ Using account type from filename: {} / {}",
-                    fromFilename.getAccountType(),
-                    fromFilename.getAccountSubtype());
+            if (LOGGER.isInfoEnabled()) {
+                LOGGER.info(
+                        "✓ Using account type from filename: {} / {}",
+                        fromFilename.getAccountType(),
+                        fromFilename.getAccountSubtype());
+            }
         }
         if (detected.getAccountNumber() == null && fromFilename.getAccountNumber() != null) {
             detected.setAccountNumber(fromFilename.getAccountNumber());
-            LOGGER.info(
-                    "✓ Using account number from filename: {}", fromFilename.getAccountNumber());
+            if (LOGGER.isInfoEnabled()) {
+                LOGGER.info(
+                        "✓ Using account number from filename: {}",
+                        fromFilename.getAccountNumber());
+            }
         }
     }
 
@@ -1739,9 +1767,11 @@ public class AccountDetectionService {
 
         // Limit text length to prevent regex DoS attacks on very long strings
         if (text.length() > 10_000) {
-            LOGGER.warn(
-                    "Text too long for account number extraction ({} chars), truncating to 10000",
-                    text.length());
+            if (LOGGER.isWarnEnabled()) {
+                LOGGER.warn(
+                        "Text too long for account number extraction ({} chars), truncating to 10000",
+                        text.length());
+            }
             text = text.substring(0, 10_000);
         }
 
@@ -1770,9 +1800,11 @@ public class AccountDetectionService {
                         }
                     }
                 } catch (IndexOutOfBoundsException | IllegalStateException e) {
-                    LOGGER.warn(
-                            "Error extracting account number from pattern match: {}",
-                            e.getMessage());
+                    if (LOGGER.isWarnEnabled()) {
+                        LOGGER.warn(
+                                "Error extracting account number from pattern match: {}",
+                                e.getMessage());
+                    }
                 }
             }
 
@@ -1796,12 +1828,17 @@ public class AccountDetectionService {
                         }
                     }
                 } catch (IndexOutOfBoundsException | IllegalStateException e) {
-                    LOGGER.warn(
-                            "Error extracting card number from pattern match: {}", e.getMessage());
+                    if (LOGGER.isWarnEnabled()) {
+                        LOGGER.warn(
+                                "Error extracting card number from pattern match: {}",
+                                e.getMessage());
+                    }
                 }
             }
         } catch (Exception e) {
-            LOGGER.warn("Error extracting account number from text: {}", e.getMessage());
+            if (LOGGER.isWarnEnabled()) {
+                LOGGER.warn("Error extracting account number from text: {}", e.getMessage());
+            }
         }
 
         return null;
@@ -1845,9 +1882,11 @@ public class AccountDetectionService {
         if (matched != null) {
             return matched;
         }
-        LOGGER.info(
-                "No existing account match found for detected account: {}",
-                detected.getAccountName() != null ? detected.getAccountName() : "Unknown");
+        if (LOGGER.isInfoEnabled()) {
+            LOGGER.info(
+                    "No existing account match found for detected account: {}",
+                    detected.getAccountName() != null ? detected.getAccountName() : "Unknown");
+        }
         return null;
     }
 
@@ -1862,14 +1901,18 @@ public class AccountDetectionService {
                     accountRepository.findByAccountNumberAndInstitution(
                             detected.getAccountNumber(), detected.getInstitutionName(), userId);
             if (accountOpt.isPresent()) {
-                LOGGER.info(
-                        "Matched detected account to existing account: {} (accountId: {})",
-                        detected.getAccountName(),
-                        accountOpt.get().getAccountId());
+                if (LOGGER.isInfoEnabled()) {
+                    LOGGER.info(
+                            "Matched detected account to existing account: {} (accountId: {})",
+                            detected.getAccountName(),
+                            accountOpt.get().getAccountId());
+                }
                 return accountOpt.get().getAccountId();
             }
         } catch (Exception e) {
-            LOGGER.warn("Error matching account by number and institution: {}", e.getMessage());
+            if (LOGGER.isWarnEnabled()) {
+                LOGGER.warn("Error matching account by number and institution: {}", e.getMessage());
+            }
         }
         return null;
     }
@@ -1886,15 +1929,19 @@ public class AccountDetectionService {
             final Optional<AccountTable> accountOpt =
                     accountRepository.findByAccountNumber(detected.getAccountNumber(), userId);
             if (accountOpt.isPresent()) {
-                LOGGER.info(
-                        "Matched detected account by number only (exact match): {} (accountId: {})",
-                        detected.getAccountName(),
-                        accountOpt.get().getAccountId());
+                if (LOGGER.isInfoEnabled()) {
+                    LOGGER.info(
+                            "Matched detected account by number only (exact match): {} (accountId: {})",
+                            detected.getAccountName(),
+                            accountOpt.get().getAccountId());
+                }
                 return accountOpt.get().getAccountId();
             }
             return findNormalizedAccountNumberMatch(userId, detected);
         } catch (Exception e) {
-            LOGGER.warn("Error matching account by number only: {}", e.getMessage());
+            if (LOGGER.isWarnEnabled()) {
+                LOGGER.warn("Error matching account by number only: {}", e.getMessage());
+            }
             return null;
         }
     }
@@ -1913,10 +1960,12 @@ public class AccountDetectionService {
             final String normalizedExisting =
                     normalizeAccountNumberForMatching(account.getAccountNumber());
             if (normalizedDetected.equals(normalizedExisting)) {
-                LOGGER.info(
-                        "Matched detected account by number only (normalized match): {} (accountId: {})",
-                        detected.getAccountName(),
-                        account.getAccountId());
+                if (LOGGER.isInfoEnabled()) {
+                    LOGGER.info(
+                            "Matched detected account by number only (normalized match): {} (accountId: {})",
+                            detected.getAccountName(),
+                            account.getAccountId());
+                }
                 return account.getAccountId();
             }
         }
@@ -1940,14 +1989,18 @@ public class AccountDetectionService {
                 if (!accountNumbersMatchOrAbsent(detected, account)) {
                     continue;
                 }
-                LOGGER.info(
-                        "Matched detected account by institution and type: {} (accountId: {})",
-                        detected.getAccountName(),
-                        account.getAccountId());
+                if (LOGGER.isInfoEnabled()) {
+                    LOGGER.info(
+                            "Matched detected account by institution and type: {} (accountId: {})",
+                            detected.getAccountName(),
+                            account.getAccountId());
+                }
                 return account.getAccountId();
             }
         } catch (Exception e) {
-            LOGGER.warn("Error matching account by institution and type: {}", e.getMessage());
+            if (LOGGER.isWarnEnabled()) {
+                LOGGER.warn("Error matching account by institution and type: {}", e.getMessage());
+            }
         }
         return null;
     }
@@ -2428,9 +2481,11 @@ public class AccountDetectionService {
 
         // CRITICAL: Limit filename length to prevent performance issues
         if (filename.length() > 1000) {
-            LOGGER.debug(
-                    "Filename too long ({} chars), truncating for account type detection",
-                    filename.length());
+            if (LOGGER.isDebugEnabled()) {
+                LOGGER.debug(
+                        "Filename too long ({} chars), truncating for account type detection",
+                        filename.length());
+            }
             filename = filename.substring(0, 1000);
         }
 
@@ -2650,7 +2705,9 @@ public class AccountDetectionService {
             for (final String keyword : sectionKeywords) {
                 if (line.contains(keyword)) {
                     sectionStartLine = i;
-                    LOGGER.debug("Found section '{}' at line {}", keyword, i + 1);
+                    if (LOGGER.isDebugEnabled()) {
+                        LOGGER.debug("Found section '{}' at line {}", keyword, i + 1);
+                    }
                     break;
                 }
             }
@@ -2688,10 +2745,12 @@ public class AccountDetectionService {
         final String headerText = headerBuilder.toString();
 
         // Log header text extraction summary
-        LOGGER.info(
-                "Extracted header text: {} lines from default section, {} total characters",
-                defaultLines,
-                headerText.length());
+        if (LOGGER.isInfoEnabled()) {
+            LOGGER.info(
+                    "Extracted header text: {} lines from default section, {} total characters",
+                    defaultLines,
+                    headerText.length());
+        }
 
         return headerText;
     }
@@ -4012,7 +4071,9 @@ public class AccountDetectionService {
     private List<NameCandidate> filterNameCandidates(
             final Map<String, NameCandidate> candidateMap) {
         final List<NameCandidate> valid = new ArrayList<>();
-        LOGGER.debug("Filtering {} candidates", candidateMap.size());
+        if (LOGGER.isDebugEnabled()) {
+            LOGGER.debug("Filtering {} candidates", candidateMap.size());
+        }
         for (final NameCandidate candidate : candidateMap.values()) {
             if (containsInstitutionKeyword(candidate)) {
                 continue;
@@ -4080,13 +4141,15 @@ public class AccountDetectionService {
             }
         }
         final NameCandidate best = validCandidates.get(0);
-        LOGGER.debug(
-                "Selected account holder name '{}' from {} candidates (score={}, pattern={}, priority={})",
-                best.name,
-                validCandidates.size(),
-                String.format(Locale.ROOT, "%.2f", best.calculateCompositeScore()),
-                best.patternType,
-                best.priority);
+        if (LOGGER.isDebugEnabled()) {
+            LOGGER.debug(
+                    "Selected account holder name '{}' from {} candidates (score={}, pattern={}, priority={})",
+                    best.name,
+                    validCandidates.size(),
+                    String.format(Locale.ROOT, "%.2f", best.calculateCompositeScore()),
+                    best.patternType,
+                    best.priority);
+        }
         return best;
     }
 
@@ -4165,10 +4228,12 @@ public class AccountDetectionService {
 
         // Check length
         if (name.length() < 2 || name.length() > 100) {
-            LOGGER.debug(
-                    "extractAndValidateName: Rejected '{}' - length {} is out of range (2-100)",
-                    name,
-                    name.length());
+            if (LOGGER.isDebugEnabled()) {
+                LOGGER.debug(
+                        "extractAndValidateName: Rejected '{}' - length {} is out of range (2-100)",
+                        name,
+                        name.length());
+            }
             return null;
         }
 
@@ -4314,11 +4379,13 @@ public class AccountDetectionService {
         if (existingBalanceDate == null) {
             account.setBalance(newBalance);
             account.setBalanceDate(newBalanceDate);
-            LOGGER.debug(
-                    "Updated account balance (no existing balance date): accountId={}, balance={}, balanceDate={}",
-                    account.getAccountId(),
-                    newBalance,
-                    newBalanceDate);
+            if (LOGGER.isDebugEnabled()) {
+                LOGGER.debug(
+                        "Updated account balance (no existing balance date): accountId={}, balance={}, balanceDate={}",
+                        account.getAccountId(),
+                        newBalance,
+                        newBalanceDate);
+            }
             return true;
         }
 
@@ -4326,19 +4393,23 @@ public class AccountDetectionService {
         if (newBalanceDate.isAfter(existingBalanceDate)) {
             account.setBalance(newBalance);
             account.setBalanceDate(newBalanceDate);
-            LOGGER.debug(
-                    "Updated account balance (new date is newer): accountId={}, balance={}, balanceDate={} (previous: {})",
-                    account.getAccountId(),
-                    newBalance,
-                    newBalanceDate,
-                    existingBalanceDate);
+            if (LOGGER.isDebugEnabled()) {
+                LOGGER.debug(
+                        "Updated account balance (new date is newer): accountId={}, balance={}, balanceDate={} (previous: {})",
+                        account.getAccountId(),
+                        newBalance,
+                        newBalanceDate,
+                        existingBalanceDate);
+            }
             return true;
         } else {
-            LOGGER.debug(
-                    "Skipped account balance update (new date is not newer): accountId={}, newBalanceDate={}, existingBalanceDate={}",
-                    account.getAccountId(),
-                    newBalanceDate,
-                    existingBalanceDate);
+            if (LOGGER.isDebugEnabled()) {
+                LOGGER.debug(
+                        "Skipped account balance update (new date is not newer): accountId={}, newBalanceDate={}, existingBalanceDate={}",
+                        account.getAccountId(),
+                        newBalanceDate,
+                        existingBalanceDate);
+            }
             return false;
         }
     }

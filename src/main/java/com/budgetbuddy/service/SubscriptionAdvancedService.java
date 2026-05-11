@@ -200,7 +200,9 @@ public class SubscriptionAdvancedService {
             }
         }
 
-        LOGGER.info("Detected {} trial expirations for user: {}", alerts.size(), userId);
+        if (LOGGER.isInfoEnabled()) {
+            LOGGER.info("Detected {} trial expirations for user: {}", alerts.size(), userId);
+        }
         return alerts;
     }
 
@@ -268,10 +270,12 @@ public class SubscriptionAdvancedService {
             }
         }
 
-        LOGGER.info(
-                "Generated {} bundling recommendations for user: {}",
-                recommendations.size(),
-                userId);
+        if (LOGGER.isInfoEnabled()) {
+            LOGGER.info(
+                    "Generated {} bundling recommendations for user: {}",
+                    recommendations.size(),
+                    userId);
+        }
         return recommendations;
     }
 
@@ -320,10 +324,12 @@ public class SubscriptionAdvancedService {
             }
         }
 
-        LOGGER.info(
-                "Generated {} alternative recommendations for user: {}",
-                recommendations.size(),
-                userId);
+        if (LOGGER.isInfoEnabled()) {
+            LOGGER.info(
+                    "Generated {} alternative recommendations for user: {}",
+                    recommendations.size(),
+                    userId);
+        }
         return recommendations;
     }
 
@@ -365,8 +371,12 @@ public class SubscriptionAdvancedService {
             }
         }
 
-        LOGGER.info(
-                "Predicted {} potential cancellations for user: {}", predictions.size(), userId);
+        if (LOGGER.isInfoEnabled()) {
+            LOGGER.info(
+                    "Predicted {} potential cancellations for user: {}",
+                    predictions.size(),
+                    userId);
+        }
         return predictions;
     }
 

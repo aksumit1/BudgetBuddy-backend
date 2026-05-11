@@ -99,10 +99,12 @@ public class StripeService {
             pciDSSComplianceService.logCardholderDataAccess(
                     userId, "PAYMENT_INTENT", "CREATE", true);
 
-            LOGGER.info(
-                    "Stripe: Payment intent created - ID: {}, Amount: {}",
-                    paymentIntent.getId(),
-                    amount);
+            if (LOGGER.isInfoEnabled()) {
+                LOGGER.info(
+                        "Stripe: Payment intent created - ID: {}, Amount: {}",
+                        paymentIntent.getId(),
+                        amount);
+            }
             return paymentIntent;
         } catch (StripeException e) {
             handleStripeException(e, "createPaymentIntent");
@@ -141,10 +143,12 @@ public class StripeService {
             pciDSSComplianceService.logCardholderDataAccess(
                     userId, "PAYMENT_INTENT", "CONFIRM", true);
 
-            LOGGER.info(
-                    "Stripe: Payment intent confirmed - ID: {}, Status: {}",
-                    paymentIntent.getId(),
-                    paymentIntent.getStatus());
+            if (LOGGER.isInfoEnabled()) {
+                LOGGER.info(
+                        "Stripe: Payment intent confirmed - ID: {}, Status: {}",
+                        paymentIntent.getId(),
+                        paymentIntent.getStatus());
+            }
             return paymentIntent;
         } catch (StripeException e) {
             handleStripeException(e, "confirmPaymentIntent");
@@ -176,7 +180,10 @@ public class StripeService {
 
             final Customer customer = Customer.create(params);
 
-            LOGGER.info("Stripe: Customer created - ID: {}, Email: {}", customer.getId(), email);
+            if (LOGGER.isInfoEnabled()) {
+                LOGGER.info(
+                        "Stripe: Customer created - ID: {}, Email: {}", customer.getId(), email);
+            }
             return customer;
         } catch (StripeException e) {
             handleStripeException(e, "createCustomer");
@@ -225,10 +232,12 @@ public class StripeService {
             pciDSSComplianceService.maskPAN((String) cardDetails.get(NUMBER));
             // Note: logCardDataAccess is on auditLogService, not pciDSSComplianceService
 
-            LOGGER.info(
-                    "Stripe: Payment method created - ID: {}, Type: {}",
-                    paymentMethod.getId(),
-                    type);
+            if (LOGGER.isInfoEnabled()) {
+                LOGGER.info(
+                        "Stripe: Payment method created - ID: {}, Type: {}",
+                        paymentMethod.getId(),
+                        type);
+            }
             return paymentMethod;
         } catch (StripeException e) {
             handleStripeException(e, "createPaymentMethod");
@@ -272,7 +281,9 @@ public class StripeService {
 
             final Refund refund = Refund.create(params);
 
-            LOGGER.info("Stripe: Refund created - ID: {}, Amount: {}", refund.getId(), amount);
+            if (LOGGER.isInfoEnabled()) {
+                LOGGER.info("Stripe: Refund created - ID: {}, Amount: {}", refund.getId(), amount);
+            }
             return refund;
         } catch (StripeException e) {
             handleStripeException(e, "createRefund");
@@ -292,7 +303,9 @@ public class StripeService {
      * @param operation Operation name
      */
     private void handleStripeException(final StripeException e, final String operation) {
-        LOGGER.error("Stripe API error in {}: {} - {}", operation, e.getCode(), e.getMessage());
+        if (LOGGER.isErrorEnabled()) {
+            LOGGER.error("Stripe API error in {}: {} - {}", operation, e.getCode(), e.getMessage());
+        }
 
         // Map Stripe error codes to our error codes
         switch (e.getCode()) {

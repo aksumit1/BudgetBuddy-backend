@@ -98,18 +98,22 @@ public final class RetryHelper {
             } catch (Exception e) {
                 // Only retry if exception is retryable
                 if (!isRetryableException(e)) {
-                    LOGGER.debug(
-                            "Exception is not retryable, throwing immediately: {}",
-                            e.getClass().getSimpleName());
+                    if (LOGGER.isDebugEnabled()) {
+                        LOGGER.debug(
+                                "Exception is not retryable, throwing immediately: {}",
+                                e.getClass().getSimpleName());
+                    }
                     throw e;
                 }
 
                 if (attempt >= maxRetries) {
-                    LOGGER.error(
-                            "Operation failed after {} retries (retryable error): {}",
-                            maxRetries,
-                            e.getMessage(),
-                            e);
+                    if (LOGGER.isErrorEnabled()) {
+                        LOGGER.error(
+                                "Operation failed after {} retries (retryable error): {}",
+                                maxRetries,
+                                e.getMessage(),
+                                e);
+                    }
                     throw new AppException(
                             ErrorCode.INTERNAL_SERVER_ERROR,
                             "Operation failed after " + maxRetries + " retries",
@@ -121,13 +125,15 @@ public final class RetryHelper {
                         RANDOM.nextInt((int) (currentDelay.toMillis() * 0.1)); // 10% jitter
                 final long delayWithJitter = currentDelay.toMillis() + jitter;
 
-                LOGGER.warn(
-                        "Operation failed (attempt {}/{}), retrying in {}ms (retryable error: {}): {}",
-                        attempt + 1,
-                        maxRetries,
-                        delayWithJitter,
-                        e.getClass().getSimpleName(),
-                        e.getMessage());
+                if (LOGGER.isWarnEnabled()) {
+                    LOGGER.warn(
+                            "Operation failed (attempt {}/{}), retrying in {}ms (retryable error: {}): {}",
+                            attempt + 1,
+                            maxRetries,
+                            delayWithJitter,
+                            e.getClass().getSimpleName(),
+                            e.getMessage());
+                }
 
                 try {
                     Thread.sleep(delayWithJitter);

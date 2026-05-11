@@ -27,7 +27,8 @@ import org.springframework.stereotype.Service;
 // callers — defensive-copying it would break dependency injection.
 @SuppressFBWarnings(
         value = {"EI_EXPOSE_REP2", "CT_CONSTRUCTOR_THROW"},
-        justification = "Spring constructor injection — beans are shared by design; CT_CONSTRUCTOR_THROW: Java 25 deprecates Object.finalize() for removal, so the finalizer-attack vector this rule guards against is not exploitable")
+        justification =
+                "Spring constructor injection — beans are shared by design; CT_CONSTRUCTOR_THROW: Java 25 deprecates Object.finalize() for removal, so the finalizer-attack vector this rule guards against is not exploitable")
 @SuppressWarnings({"PMD.AvoidCatchingGenericException", "PMD.OnlyOneReturn"})
 @Service
 public class AuditLogService {
@@ -95,7 +96,9 @@ public class AuditLogService {
 
             auditLogRepository.save(auditLog);
         } catch (Exception e) {
-            LOGGER.error("Failed to save audit log: {}", e.getMessage(), e);
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error("Failed to save audit log: {}", e.getMessage(), e);
+            }
             // Don't throw - audit logging should not break the application
         }
     }
@@ -749,7 +752,9 @@ public class AuditLogService {
             }
             return objectMapper.writeValueAsString(details);
         } catch (Exception e) {
-            LOGGER.error("Failed to serialize audit log details: {}", e.getMessage(), e);
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error("Failed to serialize audit log details: {}", e.getMessage(), e);
+            }
             return "{\"error\": \"Failed to serialize details\"}";
         }
     }

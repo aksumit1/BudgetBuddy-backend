@@ -149,18 +149,22 @@ public class SyncService {
             }
 
             if (batchCount >= maxIterations) {
-                LOGGER.warn(
-                        "Reached maximum iteration limit ({}) for fetching transactions for user: {}. Fetched {} transactions",
-                        maxIterations,
-                        userId,
-                        allTransactions.size());
+                if (LOGGER.isWarnEnabled()) {
+                    LOGGER.warn(
+                            "Reached maximum iteration limit ({}) for fetching transactions for user: {}. Fetched {} transactions",
+                            maxIterations,
+                            userId,
+                            allTransactions.size());
+                }
             }
 
-            LOGGER.info(
-                    "Fetched {} transactions in {} batch(es) for user: {}",
-                    allTransactions.size(),
-                    batchCount,
-                    userId);
+            if (LOGGER.isInfoEnabled()) {
+                LOGGER.info(
+                        "Fetched {} transactions in {} batch(es) for user: {}",
+                        allTransactions.size(),
+                        batchCount,
+                        userId);
+            }
 
             final List<BudgetTable> budgets = budgetRepository.findByUserId(userId);
             final List<GoalTable> goals = goalRepository.findByUserId(userId);
@@ -169,19 +173,23 @@ public class SyncService {
 
             final Long syncTimestamp = Instant.now().getEpochSecond();
 
-            LOGGER.info(
-                    "Fetched all data for user {}: {} accounts, {} transactions, {} budgets, {} goals, {} actions",
-                    userId,
-                    accounts.size(),
-                    allTransactions.size(),
-                    budgets.size(),
-                    goals.size(),
-                    actions.size());
+            if (LOGGER.isInfoEnabled()) {
+                LOGGER.info(
+                        "Fetched all data for user {}: {} accounts, {} transactions, {} budgets, {} goals, {} actions",
+                        userId,
+                        accounts.size(),
+                        allTransactions.size(),
+                        budgets.size(),
+                        goals.size(),
+                        actions.size());
+            }
 
             return new SyncAllResponse(
                     accounts, allTransactions, budgets, goals, actions, syncTimestamp);
         } catch (Exception e) {
-            LOGGER.error("Error fetching all data for user {}: {}", userId, e.getMessage(), e);
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error("Error fetching all data for user {}: {}", userId, e.getMessage(), e);
+            }
             throw new AppException(
                     ErrorCode.INTERNAL_SERVER_ERROR, "Failed to fetch user data", null, null, e);
         }
@@ -234,14 +242,16 @@ public class SyncService {
 
             final Long syncTimestamp = Instant.now().getEpochSecond();
 
-            LOGGER.info(
-                    "Fetched incremental changes for user {}: {} accounts, {} transactions, {} budgets, {} goals, {} actions",
-                    userId,
-                    changedAccounts.size(),
-                    changedTransactions.size(),
-                    changedBudgets.size(),
-                    changedGoals.size(),
-                    changedActions.size());
+            if (LOGGER.isInfoEnabled()) {
+                LOGGER.info(
+                        "Fetched incremental changes for user {}: {} accounts, {} transactions, {} budgets, {} goals, {} actions",
+                        userId,
+                        changedAccounts.size(),
+                        changedTransactions.size(),
+                        changedBudgets.size(),
+                        changedGoals.size(),
+                        changedActions.size());
+            }
 
             // For now, we don't implement pagination, so hasMore is always false
             // In the future, if response is too large, we can implement pagination
@@ -256,11 +266,13 @@ public class SyncService {
                     syncTimestamp,
                     hasMore);
         } catch (Exception e) {
-            LOGGER.error(
-                    "Error fetching incremental changes for user {}: {}",
-                    userId,
-                    e.getMessage(),
-                    e);
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error(
+                        "Error fetching incremental changes for user {}: {}",
+                        userId,
+                        e.getMessage(),
+                        e);
+            }
             throw new AppException(
                     ErrorCode.INTERNAL_SERVER_ERROR,
                     "Failed to fetch incremental changes",
@@ -372,18 +384,23 @@ public class SyncService {
                             Instant.now().getEpochSecond() // serverTime
                             );
 
-            LOGGER.info(
-                    "Sync status for user {}: {} accounts, {} transactions, {} budgets, {} goals, lastSync: {}",
-                    userId,
-                    accounts.size(),
-                    transactionCount,
-                    budgets.size(),
-                    goals.size(),
-                    lastSyncTimestamp);
+            if (LOGGER.isInfoEnabled()) {
+                LOGGER.info(
+                        "Sync status for user {}: {} accounts, {} transactions, {} budgets, {} goals, lastSync: {}",
+                        userId,
+                        accounts.size(),
+                        transactionCount,
+                        budgets.size(),
+                        goals.size(),
+                        lastSyncTimestamp);
+            }
 
             return response;
         } catch (Exception e) {
-            LOGGER.error("Error fetching sync status for user {}: {}", userId, e.getMessage(), e);
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error(
+                        "Error fetching sync status for user {}: {}", userId, e.getMessage(), e);
+            }
             throw new AppException(
                     ErrorCode.INTERNAL_SERVER_ERROR, "Failed to fetch sync status", null, null, e);
         }

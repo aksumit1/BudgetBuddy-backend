@@ -131,12 +131,16 @@ public class DeploymentSafetyService {
                 if (isTestEnvironment
                         && (e.getMessage() != null
                                 && e.getMessage().contains("Connection refused"))) {
-                    LOGGER.debug(
-                            "Health check attempt {} failed (expected in test): {}",
-                            attempt,
-                            e.getMessage());
+                    if (LOGGER.isDebugEnabled()) {
+                        LOGGER.debug(
+                                "Health check attempt {} failed (expected in test): {}",
+                                attempt,
+                                e.getMessage());
+                    }
                 } else {
-                    LOGGER.warn("Health check attempt {} failed: {}", attempt, e.getMessage());
+                    if (LOGGER.isWarnEnabled()) {
+                        LOGGER.warn("Health check attempt {} failed: {}", attempt, e.getMessage());
+                    }
                 }
                 errorMessage = e.getMessage();
             }
@@ -223,20 +227,26 @@ public class DeploymentSafetyService {
 
                 if (response.getStatusCode().is2xxSuccessful()) {
                     passed++;
-                    LOGGER.debug("Smoke test passed: {}", endpoint);
+                    if (LOGGER.isDebugEnabled()) {
+                        LOGGER.debug("Smoke test passed: {}", endpoint);
+                    }
                 } else {
                     failed++;
-                    LOGGER.warn(
-                            "Smoke test failed: {} - Status: {}",
-                            endpoint,
-                            response.getStatusCode());
+                    if (LOGGER.isWarnEnabled()) {
+                        LOGGER.warn(
+                                "Smoke test failed: {} - Status: {}",
+                                endpoint,
+                                response.getStatusCode());
+                    }
                 }
             } catch (RestClientException e) {
                 failed++;
                 // Log at WARN level - this is a handled failure (test continues and reports
                 // failure)
                 // ERROR would be more appropriate for unexpected/unhandled errors
-                LOGGER.warn("Smoke test error for {}: {}", endpoint, e.getMessage());
+                if (LOGGER.isWarnEnabled()) {
+                    LOGGER.warn("Smoke test error for {}: {}", endpoint, e.getMessage());
+                }
             }
         }
 
@@ -266,11 +276,16 @@ public class DeploymentSafetyService {
         if (!healthResult.isHealthy()) {
             // In test environments, health check failures are expected - log at DEBUG
             if (isTestEnvironment) {
-                LOGGER.debug(
-                        "Deployment health check failed (expected in test): {}",
-                        healthResult.getErrorMessage());
+                if (LOGGER.isDebugEnabled()) {
+                    LOGGER.debug(
+                            "Deployment health check failed (expected in test): {}",
+                            healthResult.getErrorMessage());
+                }
             } else {
-                LOGGER.error("Deployment health check failed: {}", healthResult.getErrorMessage());
+                if (LOGGER.isErrorEnabled()) {
+                    LOGGER.error(
+                            "Deployment health check failed: {}", healthResult.getErrorMessage());
+                }
             }
             return false;
         }
@@ -278,10 +293,12 @@ public class DeploymentSafetyService {
         final SmokeTestResult smokeTestResult = runSmokeTests(baseUrl);
 
         if (!smokeTestResult.isPassed()) {
-            LOGGER.error(
-                    "Smoke tests failed: {} passed, {} failed",
-                    smokeTestResult.getPassedTests(),
-                    smokeTestResult.getFailedTests());
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error(
+                        "Smoke tests failed: {} passed, {} failed",
+                        smokeTestResult.getPassedTests(),
+                        smokeTestResult.getFailedTests());
+            }
             return false;
         }
 

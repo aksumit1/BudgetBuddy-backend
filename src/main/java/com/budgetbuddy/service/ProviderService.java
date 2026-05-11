@@ -65,7 +65,9 @@ public class ProviderService {
             }
         }
 
-        LOGGER.debug("Retrieved {} providers for user: {}", response.size(), userId);
+        if (LOGGER.isDebugEnabled()) {
+            LOGGER.debug("Retrieved {} providers for user: {}", response.size(), userId);
+        }
         return response;
     }
 

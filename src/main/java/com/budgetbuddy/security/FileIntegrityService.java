@@ -50,7 +50,9 @@ public class FileIntegrityService {
             final byte[] hashBytes = digest.digest();
             return Base64.getEncoder().encodeToString(hashBytes);
         } catch (Exception e) {
-            LOGGER.error("Failed to calculate checksum: {}", e.getMessage(), e);
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error("Failed to calculate checksum: {}", e.getMessage(), e);
+            }
             throw new AppException(
                     ErrorCode.INTERNAL_SERVER_ERROR, "Failed to calculate file checksum", e);
         }
@@ -91,11 +93,13 @@ public class FileIntegrityService {
         final boolean matches = calculatedChecksum.equals(storedRecord.getChecksum());
 
         if (!matches) {
-            LOGGER.warn(
-                    "Checksum mismatch for file: {} (stored: {}, calculated: {})",
-                    fileId,
-                    storedRecord.getChecksum(),
-                    calculatedChecksum);
+            if (LOGGER.isWarnEnabled()) {
+                LOGGER.warn(
+                        "Checksum mismatch for file: {} (stored: {}, calculated: {})",
+                        fileId,
+                        storedRecord.getChecksum(),
+                        calculatedChecksum);
+            }
         } else {
             LOGGER.debug("Checksum verified for file: {}", fileId);
         }

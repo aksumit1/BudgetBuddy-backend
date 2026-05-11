@@ -358,18 +358,23 @@ public class TransactionService {
                         final BigDecimal originalAmount = transaction.getAmount();
                         final BigDecimal positiveAmount = originalAmount.negate();
                         transaction.setAmount(positiveAmount);
-                        LOGGER.info(
-                                "🏷️ Wells Fargo credit card payment: Converted negative amount {} to positive {} for payment transaction (description: '{}', account: '{}')",
-                                originalAmount,
-                                positiveAmount,
-                                transaction.getDescription(),
-                                accountName);
+                        if (LOGGER.isInfoEnabled()) {
+                            LOGGER.info(
+                                    "🏷️ Wells Fargo credit card payment: Converted negative amount {} to positive {} for payment transaction (description: '{}', account: '{}')",
+                                    originalAmount,
+                                    positiveAmount,
+                                    transaction.getDescription(),
+                                    accountName);
+                        }
                     }
                 }
             } catch (Exception e) {
                 // Non-fatal: if account lookup fails, continue without special case
-                LOGGER.debug(
-                        "Could not check account for Wells Fargo special case: {}", e.getMessage());
+                if (LOGGER.isDebugEnabled()) {
+                    LOGGER.debug(
+                            "Could not check account for Wells Fargo special case: {}",
+                            e.getMessage());
+                }
             }
         }
 
@@ -509,11 +514,13 @@ public class TransactionService {
             }
         }
 
-        LOGGER.info(
-                "Batch import completed: {} total, {} created, {} failed",
-                response.getTotal(),
-                response.getCreated(),
-                response.getFailed());
+        if (LOGGER.isInfoEnabled()) {
+            LOGGER.info(
+                    "Batch import completed: {} total, {} created, {} failed",
+                    response.getTotal(),
+                    response.getCreated(),
+                    response.getFailed());
+        }
         return response;
     }
 
@@ -563,10 +570,12 @@ public class TransactionService {
                     com.budgetbuddy.model.TransactionType.valueOf(
                             transactionType.trim().toUpperCase(Locale.ROOT)));
         } catch (IllegalArgumentException e) {
-            LOGGER.warn(
-                    "Invalid transaction type '{}' provided, will calculate automatically: {}",
-                    transactionType,
-                    e.getMessage());
+            if (LOGGER.isWarnEnabled()) {
+                LOGGER.warn(
+                        "Invalid transaction type '{}' provided, will calculate automatically: {}",
+                        transactionType,
+                        e.getMessage());
+            }
             return Optional.empty();
         }
     }
@@ -593,17 +602,19 @@ public class TransactionService {
                     stackTrace.length > 2
                             ? stackTrace[2].getFileName() + ":" + stackTrace[2].getLineNumber()
                             : UNKNOWN;
-            LOGGER.info(
-                    "🔍 [TransactionType] Set transaction type | Line: {} | TransactionId: {} | Amount: {} | Description: '{}' | Category: {} | Account: {} | Type: {} | Method: ensureTransactionTypeSet",
-                    callerInfo,
-                    transaction.getTransactionId(),
-                    transaction.getAmount(),
-                    transaction.getDescription() != null ? transaction.getDescription() : NULL,
-                    transaction.getCategoryPrimary() != null
-                            ? transaction.getCategoryPrimary()
-                            : NULL,
-                    transaction.getAccountId() != null ? transaction.getAccountId() : NULL,
-                    calculatedType.name());
+            if (LOGGER.isInfoEnabled()) {
+                LOGGER.info(
+                        "🔍 [TransactionType] Set transaction type | Line: {} | TransactionId: {} | Amount: {} | Description: '{}' | Category: {} | Account: {} | Type: {} | Method: ensureTransactionTypeSet",
+                        callerInfo,
+                        transaction.getTransactionId(),
+                        transaction.getAmount(),
+                        transaction.getDescription() != null ? transaction.getDescription() : NULL,
+                        transaction.getCategoryPrimary() != null
+                                ? transaction.getCategoryPrimary()
+                                : NULL,
+                        transaction.getAccountId() != null ? transaction.getAccountId() : NULL,
+                        calculatedType.name());
+            }
             // Calculated and set transactionType
         }
     }
@@ -649,17 +660,21 @@ public class TransactionService {
                         stackTrace.length > 2
                                 ? stackTrace[2].getFileName() + ":" + stackTrace[2].getLineNumber()
                                 : UNKNOWN;
-                LOGGER.info(
-                        "🔍 [TransactionType] Set transaction type (UNIFIED SERVICE) | Line: {} | TransactionId: {} | Amount: {} | Description: '{}' | Category: {} | Account: {} | Type: {} | Source: {} | Confidence: {} | Method: setTransactionTypeFromUnifiedServiceOrCalculate",
-                        callerInfo,
-                        transaction.getTransactionId(),
-                        amount,
-                        transaction.getDescription() != null ? transaction.getDescription() : NULL,
-                        categoryPrimary != null ? categoryPrimary : NULL,
-                        account != null ? account.getAccountId() : NULL,
-                        typeResult.getTransactionType().name(),
-                        typeResult.getSource(),
-                        typeResult.getConfidence());
+                if (LOGGER.isInfoEnabled()) {
+                    LOGGER.info(
+                            "🔍 [TransactionType] Set transaction type (UNIFIED SERVICE) | Line: {} | TransactionId: {} | Amount: {} | Description: '{}' | Category: {} | Account: {} | Type: {} | Source: {} | Confidence: {} | Method: setTransactionTypeFromUnifiedServiceOrCalculate",
+                            callerInfo,
+                            transaction.getTransactionId(),
+                            amount,
+                            transaction.getDescription() != null
+                                    ? transaction.getDescription()
+                                    : NULL,
+                            categoryPrimary != null ? categoryPrimary : NULL,
+                            account != null ? account.getAccountId() : NULL,
+                            typeResult.getTransactionType().name(),
+                            typeResult.getSource(),
+                            typeResult.getConfidence());
+                }
                 // Calculated transaction type using unified service
             } else {
                 final com.budgetbuddy.model.TransactionType calculatedType =
@@ -680,20 +695,26 @@ public class TransactionService {
                         stackTrace.length > 2
                                 ? stackTrace[2].getFileName() + ":" + stackTrace[2].getLineNumber()
                                 : UNKNOWN;
-                LOGGER.info(
-                        "🔍 [TransactionType] Set transaction type (FALLBACK) | Line: {} | TransactionId: {} | Amount: {} | Description: '{}' | Category: {} | Account: {} | Type: {} | Method: setTransactionTypeFromUnifiedServiceOrCalculate (fallback)",
-                        callerInfo,
-                        transaction.getTransactionId(),
-                        amount,
-                        transaction.getDescription() != null ? transaction.getDescription() : NULL,
-                        categoryPrimary != null ? categoryPrimary : NULL,
-                        account != null ? account.getAccountId() : NULL,
-                        calculatedType.name());
+                if (LOGGER.isInfoEnabled()) {
+                    LOGGER.info(
+                            "🔍 [TransactionType] Set transaction type (FALLBACK) | Line: {} | TransactionId: {} | Amount: {} | Description: '{}' | Category: {} | Account: {} | Type: {} | Method: setTransactionTypeFromUnifiedServiceOrCalculate (fallback)",
+                            callerInfo,
+                            transaction.getTransactionId(),
+                            amount,
+                            transaction.getDescription() != null
+                                    ? transaction.getDescription()
+                                    : NULL,
+                            categoryPrimary != null ? categoryPrimary : NULL,
+                            account != null ? account.getAccountId() : NULL,
+                            calculatedType.name());
+                }
             }
         } catch (Exception e) {
-            LOGGER.warn(
-                    "Failed to calculate transaction type using unified service, using fallback: {}",
-                    e.getMessage());
+            if (LOGGER.isWarnEnabled()) {
+                LOGGER.warn(
+                        "Failed to calculate transaction type using unified service, using fallback: {}",
+                        e.getMessage());
+            }
             final com.budgetbuddy.model.TransactionType calculatedType =
                     resolveTransactionType(
                             account,
@@ -712,16 +733,18 @@ public class TransactionService {
                     stackTrace.length > 2
                             ? stackTrace[2].getFileName() + ":" + stackTrace[2].getLineNumber()
                             : UNKNOWN;
-            LOGGER.info(
-                    "🔍 [TransactionType] Set transaction type (EXCEPTION FALLBACK) | Line: {} | TransactionId: {} | Amount: {} | Description: '{}' | Category: {} | Account: {} | Type: {} | Error: {} | Method: setTransactionTypeFromUnifiedServiceOrCalculate (exception fallback)",
-                    callerInfo,
-                    transaction.getTransactionId(),
-                    amount,
-                    transaction.getDescription() != null ? transaction.getDescription() : NULL,
-                    categoryPrimary != null ? categoryPrimary : NULL,
-                    account != null ? account.getAccountId() : NULL,
-                    calculatedType.name(),
-                    e.getMessage());
+            if (LOGGER.isInfoEnabled()) {
+                LOGGER.info(
+                        "🔍 [TransactionType] Set transaction type (EXCEPTION FALLBACK) | Line: {} | TransactionId: {} | Amount: {} | Description: '{}' | Category: {} | Account: {} | Type: {} | Error: {} | Method: setTransactionTypeFromUnifiedServiceOrCalculate (exception fallback)",
+                        callerInfo,
+                        transaction.getTransactionId(),
+                        amount,
+                        transaction.getDescription() != null ? transaction.getDescription() : NULL,
+                        categoryPrimary != null ? categoryPrimary : NULL,
+                        account != null ? account.getAccountId() : NULL,
+                        calculatedType.name(),
+                        e.getMessage());
+            }
         }
     }
 
@@ -749,7 +772,9 @@ public class TransactionService {
                 return typeResult.getTransactionType();
             }
         } catch (Exception e) {
-            LOGGER.debug("resolveTransactionType failed: {}", e.getMessage());
+            if (LOGGER.isDebugEnabled()) {
+                LOGGER.debug("resolveTransactionType failed: {}", e.getMessage());
+            }
         }
         return com.budgetbuddy.model.TransactionType.EXPENSE;
     }
@@ -1316,7 +1341,9 @@ public class TransactionService {
             try {
                 attemptLinkPaymentTransaction(user, transaction, account, amount);
             } catch (Exception e) {
-                LOGGER.debug("Failed to auto-link payment transaction: {}", e.getMessage());
+                if (LOGGER.isDebugEnabled()) {
+                    LOGGER.debug("Failed to auto-link payment transaction: {}", e.getMessage());
+                }
             }
         }
 
@@ -1352,9 +1379,11 @@ public class TransactionService {
                 goalProgressService.onTransactionGoalAssignmentChanged(
                         user.getUserId(), transaction.getGoalId());
             } catch (Exception e) {
-                LOGGER.debug(
-                        "Goal progress service not available or error triggering recalculation: {}",
-                        e.getMessage());
+                if (LOGGER.isDebugEnabled()) {
+                    LOGGER.debug(
+                            "Goal progress service not available or error triggering recalculation: {}",
+                            e.getMessage());
+                }
             }
         }
 
@@ -1368,12 +1397,14 @@ public class TransactionService {
                         : (plaidTransactionId != null ? "PLAID" : "MANUAL");
         auditService.logTransactionCreation(transaction, source);
 
-        LOGGER.info(
-                "Created transaction {} for user {} with notes: {} (Plaid ID: {})",
-                transaction.getTransactionId(),
-                user.getEmail(),
-                notes != null && !notes.isBlank() ? "yes" : "no",
-                plaidTransactionId != null ? plaidTransactionId : "none");
+        if (LOGGER.isInfoEnabled()) {
+            LOGGER.info(
+                    "Created transaction {} for user {} with notes: {} (Plaid ID: {})",
+                    transaction.getTransactionId(),
+                    user.getEmail(),
+                    notes != null && !notes.isBlank() ? "yes" : "no",
+                    plaidTransactionId != null ? plaidTransactionId : "none");
+        }
         return transaction;
     }
 
@@ -1601,7 +1632,9 @@ public class TransactionService {
         // Update Plaid transaction ID if provided
         if (plaidTransactionId != null && !plaidTransactionId.isBlank()) {
             transaction.setPlaidTransactionId(plaidTransactionId.trim());
-            LOGGER.info("Plaid transaction ID updated: {}", plaidTransactionId.trim());
+            if (LOGGER.isInfoEnabled()) {
+                LOGGER.info("Plaid transaction ID updated: {}", plaidTransactionId.trim());
+            }
         }
 
         // CRITICAL FIX: Handle notes update based on clearNotesIfNull flag
@@ -1611,7 +1644,9 @@ public class TransactionService {
             // Notes field was provided in the request - update it
             final String trimmedNotes = notes.trim();
             transaction.setNotes(trimmedNotes.isEmpty() ? null : trimmedNotes);
-            LOGGER.info("Notes updated: {}", trimmedNotes.isEmpty() ? "cleared" : trimmedNotes);
+            if (LOGGER.isInfoEnabled()) {
+                LOGGER.info("Notes updated: {}", trimmedNotes.isEmpty() ? "cleared" : trimmedNotes);
+            }
         } else if (clearNotesIfNull) {
             // Notes is null and clearNotesIfNull is true - clear notes (explicit update)
             transaction.setNotes(null);
@@ -1657,7 +1692,10 @@ public class TransactionService {
                             // changes it)
                             transaction.getDescription());
                 } catch (Exception e) {
-                    LOGGER.debug("Failed to record correction (non-blocking): {}", e.getMessage());
+                    if (LOGGER.isDebugEnabled()) {
+                        LOGGER.debug(
+                                "Failed to record correction (non-blocking): {}", e.getMessage());
+                    }
                     // Don't fail transaction update if correction recording fails
                 }
             }
@@ -1748,9 +1786,11 @@ public class TransactionService {
                         // Recalculated transaction type
                     }
                 } catch (Exception e) {
-                    LOGGER.warn(
-                            "Failed to recalculate transaction type using unified service, using fallback: {}",
-                            e.getMessage());
+                    if (LOGGER.isWarnEnabled()) {
+                        LOGGER.warn(
+                                "Failed to recalculate transaction type using unified service, using fallback: {}",
+                                e.getMessage());
+                    }
                     final com.budgetbuddy.model.TransactionType calculatedType =
                             resolveTransactionType(
                                     account,
@@ -1786,7 +1826,9 @@ public class TransactionService {
         // Update review status if provided
         if (reviewStatus != null && !reviewStatus.isBlank()) {
             transaction.setReviewStatus(reviewStatus.trim());
-            LOGGER.info("Review status updated: reviewStatus={}", reviewStatus.trim());
+            if (LOGGER.isInfoEnabled()) {
+                LOGGER.info("Review status updated: reviewStatus={}", reviewStatus.trim());
+            }
         }
 
         // Update hidden state if provided
@@ -1904,13 +1946,17 @@ public class TransactionService {
                             user.getUserId(), oldGoalId);
                 }
             } catch (Exception e) {
-                LOGGER.debug(
-                        "Goal progress service not available or error triggering recalculation: {}",
-                        e.getMessage());
+                if (LOGGER.isDebugEnabled()) {
+                    LOGGER.debug(
+                            "Goal progress service not available or error triggering recalculation: {}",
+                            e.getMessage());
+                }
             }
         }
 
-        LOGGER.info("Updated transaction {} for user {}", transactionId, user.getEmail());
+        if (LOGGER.isInfoEnabled()) {
+            LOGGER.info("Updated transaction {} for user {}", transactionId, user.getEmail());
+        }
         return transaction;
     }
 
@@ -2023,7 +2069,9 @@ public class TransactionService {
         transaction.setDeletedAt(now);
         transaction.setUpdatedAt(now);
         transactionRepository.save(transaction);
-        LOGGER.info("Soft-deleted transaction {} for user {}", transactionId, user.getEmail());
+        if (LOGGER.isInfoEnabled()) {
+            LOGGER.info("Soft-deleted transaction {} for user {}", transactionId, user.getEmail());
+        }
     }
 
     /**
@@ -2196,9 +2244,11 @@ public class TransactionService {
             return resolvePlaidAccount(user, accountId, plaidAccountId);
         }
         if (accountId == null || accountId.isEmpty()) {
-            LOGGER.info(
-                    "No account ID provided for manual transaction - using pseudo account for user {}",
-                    user.getUserId());
+            if (LOGGER.isInfoEnabled()) {
+                LOGGER.info(
+                        "No account ID provided for manual transaction - using pseudo account for user {}",
+                        user.getUserId());
+            }
             return accountRepository.getOrCreatePseudoAccount(user.getUserId());
         }
         return accountRepository
@@ -2238,11 +2288,13 @@ public class TransactionService {
         final AccountTable foundAccount = accountOpt.get();
         if (foundAccount.getUserId() == null
                 || !foundAccount.getUserId().equals(user.getUserId())) {
-            LOGGER.warn(
-                    "Account found by Plaid ID {} belongs to different user (found: {}, requested: {})",
-                    plaidAccountId,
-                    foundAccount.getUserId(),
-                    user.getUserId());
+            if (LOGGER.isWarnEnabled()) {
+                LOGGER.warn(
+                        "Account found by Plaid ID {} belongs to different user (found: {}, requested: {})",
+                        plaidAccountId,
+                        foundAccount.getUserId(),
+                        user.getUserId());
+            }
             return Optional.empty();
         }
         LOGGER.info(
@@ -2314,9 +2366,11 @@ public class TransactionService {
                     applyFallbackCategories(transaction, categoryPrimary, categoryDetailed, false);
                 }
             } catch (Exception e) {
-                LOGGER.warn(
-                        "Failed to re-apply unified service for import, using provided categories: {}",
-                        e.getMessage());
+                if (LOGGER.isWarnEnabled()) {
+                    LOGGER.warn(
+                            "Failed to re-apply unified service for import, using provided categories: {}",
+                            e.getMessage());
+                }
                 applyFallbackCategories(transaction, categoryPrimary, categoryDetailed, false);
             }
             return;
@@ -2367,13 +2421,15 @@ public class TransactionService {
         transaction.setCategoryOverridden(isInternalOverride);
 
         if (isInternalOverride) {
-            LOGGER.info(
-                    "✅ Internal category override applied for import: Importer='{}' → Determined='{}' (source: {}, confidence: {}). "
-                            + "This override will be preserved during re-import.",
-                    importerCategoryPrimary != null ? importerCategoryPrimary : categoryPrimary,
-                    determinedPrimary,
-                    source,
-                    categoryResult.getConfidence());
+            if (LOGGER.isInfoEnabled()) {
+                LOGGER.info(
+                        "✅ Internal category override applied for import: Importer='{}' → Determined='{}' (source: {}, confidence: {}). "
+                                + "This override will be preserved during re-import.",
+                        importerCategoryPrimary != null ? importerCategoryPrimary : categoryPrimary,
+                        determinedPrimary,
+                        source,
+                        categoryResult.getConfidence());
+            }
         }
     }
 
@@ -2453,15 +2509,17 @@ public class TransactionService {
                     && safeEqualsIgnoreCase(
                             description != null ? description.trim() : "",
                             existing.getDescription())) {
-                LOGGER.info(
-                        "Duplicate imported transaction detected (source: {}, file: {}, account: {}, amount: {}, date: {}). "
-                                + "Returning existing transaction {} instead of creating new one.",
-                        importSource,
-                        importFileName,
-                        account != null ? account.getAccountId() : NULL,
-                        amount,
-                        transactionDateStr,
-                        existing.getTransactionId());
+                if (LOGGER.isInfoEnabled()) {
+                    LOGGER.info(
+                            "Duplicate imported transaction detected (source: {}, file: {}, account: {}, amount: {}, date: {}). "
+                                    + "Returning existing transaction {} instead of creating new one.",
+                            importSource,
+                            importFileName,
+                            account != null ? account.getAccountId() : NULL,
+                            amount,
+                            transactionDateStr,
+                            existing.getTransactionId());
+                }
                 return existing;
             }
         }
@@ -2475,13 +2533,15 @@ public class TransactionService {
             final String transactionDateStr) {
         for (final TransactionTable existing : candidates) {
             if (matchesAccountAmountDate(existing, account, amount, transactionDateStr)) {
-                LOGGER.info(
-                        "Duplicate transaction detected (account: {}, amount: {}, date: {}). "
-                                + "Returning existing transaction {} instead of creating new one.",
-                        account != null ? account.getAccountId() : NULL,
-                        amount,
-                        transactionDateStr,
-                        existing.getTransactionId());
+                if (LOGGER.isInfoEnabled()) {
+                    LOGGER.info(
+                            "Duplicate transaction detected (account: {}, amount: {}, date: {}). "
+                                    + "Returning existing transaction {} instead of creating new one.",
+                            account != null ? account.getAccountId() : NULL,
+                            amount,
+                            transactionDateStr,
+                            existing.getTransactionId());
+                }
                 return existing;
             }
         }

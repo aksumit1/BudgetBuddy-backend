@@ -120,38 +120,51 @@ public class AuthService {
      */
     private void verifySecureFormatCredentials(final AuthRequest request, final UserTable user) {
         if (user.getPasswordHash() == null || user.getPasswordHash().isEmpty()) {
-            LOGGER.warn("User {} has no password hash stored. Legacy account?", request.getEmail());
+            if (LOGGER.isWarnEnabled()) {
+                LOGGER.warn(
+                        "User {} has no password hash stored. Legacy account?", request.getEmail());
+            }
             throw new AppException(ErrorCode.INVALID_CREDENTIALS, INVALID_EMAIL_OR_PASSWORD);
         }
         final String serverSalt = user.getServerSalt();
         if (serverSalt == null || serverSalt.isEmpty()) {
-            LOGGER.warn(
-                    "User {} has no server salt. Account may need password reset.",
-                    request.getEmail());
+            if (LOGGER.isWarnEnabled()) {
+                LOGGER.warn(
+                        "User {} has no server salt. Account may need password reset.",
+                        request.getEmail());
+            }
             throw new AppException(ErrorCode.INVALID_CREDENTIALS, INVALID_EMAIL_OR_PASSWORD);
         }
         if (request.getPasswordHash() == null || request.getPasswordHash().isEmpty()) {
-            LOGGER.warn("Login request for user {} missing password_hash", request.getEmail());
+            if (LOGGER.isWarnEnabled()) {
+                LOGGER.warn("Login request for user {} missing password_hash", request.getEmail());
+            }
             throw new AppException(ErrorCode.INVALID_INPUT, "password_hash is required");
         }
         // Challenge verification happens upstream in AuthController.
-        LOGGER.debug(
-                "Authenticating user {}: clientHash length={}, serverHash length={}, serverSalt length={}",
-                request.getEmail(),
-                request.getPasswordHash().length(),
-                user.getPasswordHash().length(),
-                serverSalt.length());
+        if (LOGGER.isDebugEnabled()) {
+            LOGGER.debug(
+                    "Authenticating user {}: clientHash length={}, serverHash length={}, serverSalt length={}",
+                    request.getEmail(),
+                    request.getPasswordHash().length(),
+                    user.getPasswordHash().length(),
+                    serverSalt.length());
+        }
 
         final boolean ok =
                 passwordHashingService.verifyClientPassword(
                         request.getPasswordHash(), user.getPasswordHash(), serverSalt);
         if (!ok) {
-            LOGGER.warn(
-                    "Password verification failed for user {}: hash/salt mismatch",
-                    request.getEmail());
+            if (LOGGER.isWarnEnabled()) {
+                LOGGER.warn(
+                        "Password verification failed for user {}: hash/salt mismatch",
+                        request.getEmail());
+            }
             throw new AppException(ErrorCode.INVALID_CREDENTIALS, INVALID_EMAIL_OR_PASSWORD);
         }
-        LOGGER.debug("Password verification succeeded for user: {}", request.getEmail());
+        if (LOGGER.isDebugEnabled()) {
+            LOGGER.debug("Password verification succeeded for user: {}", request.getEmail());
+        }
     }
 
     /**
@@ -179,9 +192,11 @@ public class AuthService {
             final Collection<org.springframework.security.core.GrantedAuthority> authorities) {
         final String passwordHash = user.getPasswordHash();
         if (passwordHash == null || passwordHash.isEmpty()) {
-            LOGGER.error(
-                    "User {} has no password hash during authentication. This should not happen.",
-                    user.getEmail());
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error(
+                        "User {} has no password hash during authentication. This should not happen.",
+                        user.getEmail());
+            }
             throw new AppException(
                     ErrorCode.INTERNAL_SERVER_ERROR, "User account configuration error");
         }
@@ -224,7 +239,9 @@ public class AuthService {
                         user.getEmail(),
                         user.getFirstName() != null ? user.getFirstName() : "",
                         user.getLastName() != null ? user.getLastName() : "");
-        LOGGER.info("{}{}", logPrefix, user.getEmail());
+        if (LOGGER.isInfoEnabled()) {
+            LOGGER.info("{}{}", logPrefix, user.getEmail());
+        }
         return new AuthResponse(accessToken, refreshToken, expiresAt, userInfo);
     }
 
@@ -245,9 +262,13 @@ public class AuthService {
     private void warmUserCacheBestEffort(final String userId) {
         try {
             cacheWarmingService.warmCacheForUser(userId);
-            LOGGER.debug("Cache warming initiated for user: {}", userId);
+            if (LOGGER.isDebugEnabled()) {
+                LOGGER.debug("Cache warming initiated for user: {}", userId);
+            }
         } catch (Exception e) {
-            LOGGER.warn("Failed to warm cache for user {}: {}", userId, e.getMessage());
+            if (LOGGER.isWarnEnabled()) {
+                LOGGER.warn("Failed to warm cache for user {}: {}", userId, e.getMessage());
+            }
         }
     }
 
@@ -414,9 +435,11 @@ public class AuthService {
         // Create UserDetails object for token generation
         String passwordHash = user.getPasswordHash();
         if (passwordHash == null || passwordHash.isEmpty()) {
-            LOGGER.warn(
-                    "User {} has no password hash during token generation. Using empty string.",
-                    user.getEmail());
+            if (LOGGER.isWarnEnabled()) {
+                LOGGER.warn(
+                        "User {} has no password hash during token generation. Using empty string.",
+                        user.getEmail());
+            }
             passwordHash = "";
         }
 

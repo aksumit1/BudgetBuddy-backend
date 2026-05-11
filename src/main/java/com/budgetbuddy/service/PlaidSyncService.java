@@ -130,11 +130,15 @@ public class PlaidSyncService {
             }
             */
 
-            LOGGER.info(
-                    "Scheduled Plaid sync completed (access token storage required for full implementation)");
+            if (LOGGER.isInfoEnabled()) {
+                LOGGER.info(
+                        "Scheduled Plaid sync completed (access token storage required for full implementation)");
+            }
 
         } catch (Exception e) {
-            LOGGER.error("Error in scheduled Plaid sync: {}", e.getMessage(), e);
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error("Error in scheduled Plaid sync: {}", e.getMessage(), e);
+            }
         }
     }
 }

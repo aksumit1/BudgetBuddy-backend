@@ -199,7 +199,9 @@ public class ISO27001ComplianceService {
                                             .build())
                             .build());
         } catch (Exception e) {
-            LOGGER.error("Failed to put metric to CloudWatch: {}", e.getMessage());
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error("Failed to put metric to CloudWatch: {}", e.getMessage());
+            }
         }
     }
 

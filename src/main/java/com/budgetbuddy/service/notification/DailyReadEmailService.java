@@ -115,15 +115,21 @@ public class DailyReadEmailService {
                     sent++;
                 }
             } catch (Exception e) {
-                LOGGER.warn(
-                        "Daily-read send failed for user {}: {}", p.getUserId(), e.getMessage());
+                if (LOGGER.isWarnEnabled()) {
+                    LOGGER.warn(
+                            "Daily-read send failed for user {}: {}",
+                            p.getUserId(),
+                            e.getMessage());
+                }
             }
         }
         if (sent > 0) {
-            LOGGER.info(
-                    "Daily-read hourly tick: {} emails sent ({} opt-ins considered).",
-                    sent,
-                    optIns.size());
+            if (LOGGER.isInfoEnabled()) {
+                LOGGER.info(
+                        "Daily-read hourly tick: {} emails sent ({} opt-ins considered).",
+                        sent,
+                        optIns.size());
+            }
         }
     }
 

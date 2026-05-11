@@ -220,9 +220,11 @@ public class SemanticMatchingService {
 
                 // CRITICAL: Boundary check - prevent memory issues
                 if (sharedClusters.size() > 1000) {
-                    LOGGER.error(
-                            "Shared cluster map size ({}) exceeds safety limit. Loading empty clusters.",
-                            sharedClusters.size());
+                    if (LOGGER.isErrorEnabled()) {
+                        LOGGER.error(
+                                "Shared cluster map size ({}) exceeds safety limit. Loading empty clusters.",
+                                sharedClusters.size());
+                    }
                     return;
                 }
 
@@ -242,10 +244,12 @@ public class SemanticMatchingService {
 
                     // CRITICAL: Boundary check per category - prevent very large sets
                     if (keywords.size() > 50_000) {
-                        LOGGER.warn(
-                                "Category '{}' has too many keywords ({}). Limiting to 50000.",
-                                category,
-                                keywords.size());
+                        if (LOGGER.isWarnEnabled()) {
+                            LOGGER.warn(
+                                    "Category '{}' has too many keywords ({}). Limiting to 50000.",
+                                    category,
+                                    keywords.size());
+                        }
                         // Create a limited set
                         final Set<String> limitedKeywords = new HashSet<>();
                         int count = 0;
@@ -291,10 +295,12 @@ public class SemanticMatchingService {
                 categorySemanticClusters.clear();
                 clustersLoaded = false;
             } catch (Exception e) {
-                LOGGER.error(
-                        "Error loading semantic clusters from shared service: {}",
-                        e.getMessage(),
-                        e);
+                if (LOGGER.isErrorEnabled()) {
+                    LOGGER.error(
+                            "Error loading semantic clusters from shared service: {}",
+                            e.getMessage(),
+                            e);
+                }
                 categorySemanticClusters.clear();
                 clustersLoaded = false;
             }
@@ -390,18 +396,22 @@ public class SemanticMatchingService {
             String safeDescription = description != null ? description : "";
 
             if (safeMerchantName.length() > MAX_TEXT_LENGTH) {
-                LOGGER.warn(
-                        "Merchant name too long ({} chars), truncating to {}",
-                        safeMerchantName.length(),
-                        MAX_TEXT_LENGTH);
+                if (LOGGER.isWarnEnabled()) {
+                    LOGGER.warn(
+                            "Merchant name too long ({} chars), truncating to {}",
+                            safeMerchantName.length(),
+                            MAX_TEXT_LENGTH);
+                }
                 safeMerchantName = safeMerchantName.substring(0, MAX_TEXT_LENGTH);
             }
 
             if (safeDescription.length() > MAX_TEXT_LENGTH) {
-                LOGGER.warn(
-                        "Description too long ({} chars), truncating to {}",
-                        safeDescription.length(),
-                        MAX_TEXT_LENGTH);
+                if (LOGGER.isWarnEnabled()) {
+                    LOGGER.warn(
+                            "Description too long ({} chars), truncating to {}",
+                            safeDescription.length(),
+                            MAX_TEXT_LENGTH);
+                }
                 safeDescription = safeDescription.substring(0, MAX_TEXT_LENGTH);
             }
 
@@ -494,11 +504,13 @@ public class SemanticMatchingService {
                 final Set<String> clusterSnapshot = new HashSet<>(cluster);
 
                 // Calculate semantic similarity (Jaccard similarity for now)
-                LOGGER.trace(
-                        "Checking category '{}' with {} keywords against text '{}'",
-                        category,
-                        clusterSnapshot.size(),
-                        combinedText);
+                if (LOGGER.isTraceEnabled()) {
+                    LOGGER.trace(
+                            "Checking category '{}' with {} keywords against text '{}'",
+                            category,
+                            clusterSnapshot.size(),
+                            combinedText);
+                }
                 final double baseSimilarity =
                         calculateSemanticSimilarity(tokens, clusterSnapshot, combinedText);
                 LOGGER.trace("Category '{}' base similarity: {}", category, baseSimilarity);
@@ -535,30 +547,36 @@ public class SemanticMatchingService {
             }
 
             if (bestCategory != null) {
-                LOGGER.info(
-                        "Semantic match: text='{}' category='{}' similarity={} threshold={}",
-                        combinedText.substring(0, Math.min(60, combinedText.length())),
-                        bestCategory,
-                        String.format("%.3f", bestScore),
-                        SEMANTIC_SIMILARITY_THRESHOLD);
+                if (LOGGER.isInfoEnabled()) {
+                    LOGGER.info(
+                            "Semantic match: text='{}' category='{}' similarity={} threshold={}",
+                            combinedText.substring(0, Math.min(60, combinedText.length())),
+                            bestCategory,
+                            String.format("%.3f", bestScore),
+                            SEMANTIC_SIMILARITY_THRESHOLD);
+                }
                 return new SemanticMatchResult(bestCategory, bestScore, "SEMANTIC_CONTEXT_AWARE");
             }
 
-            LOGGER.debug(
-                    "Semantic match: no category above threshold {} (baseFloor={}) for text='{}'",
-                    SEMANTIC_SIMILARITY_THRESHOLD,
-                    SEMANTIC_BASE_SIMILARITY_FLOOR,
-                    combinedText.substring(0, Math.min(60, combinedText.length())));
+            if (LOGGER.isDebugEnabled()) {
+                LOGGER.debug(
+                        "Semantic match: no category above threshold {} (baseFloor={}) for text='{}'",
+                        SEMANTIC_SIMILARITY_THRESHOLD,
+                        SEMANTIC_BASE_SIMILARITY_FLOOR,
+                        combinedText.substring(0, Math.min(60, combinedText.length())));
+            }
             return null;
 
         } catch (Exception e) {
             // CRITICAL: Error handling - never throw, always return null on error
-            LOGGER.error(
-                    "Error in semantic matching for merchant='{}', description='{}': {}",
-                    merchantName,
-                    description,
-                    e.getMessage(),
-                    e);
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error(
+                        "Error in semantic matching for merchant='{}', description='{}': {}",
+                        merchantName,
+                        description,
+                        e.getMessage(),
+                        e);
+            }
             return null;
         }
     }
@@ -736,7 +754,9 @@ public class SemanticMatchingService {
             boost = Math.min(0.5, boost);
 
         } catch (Exception e) {
-            LOGGER.warn("Error calculating context boost: {}", e.getMessage());
+            if (LOGGER.isWarnEnabled()) {
+                LOGGER.warn("Error calculating context boost: {}", e.getMessage());
+            }
             // Return 0.0 on error (no boost)
         }
 
@@ -759,7 +779,10 @@ public class SemanticMatchingService {
 
             // CRITICAL: Boundary condition - very long text
             if (text.length() > MAX_TEXT_LENGTH) {
-                LOGGER.warn("Text too long for tokenization ({} chars), truncating", text.length());
+                if (LOGGER.isWarnEnabled()) {
+                    LOGGER.warn(
+                            "Text too long for tokenization ({} chars), truncating", text.length());
+                }
                 text = text.substring(0, MAX_TEXT_LENGTH);
             }
 
@@ -811,7 +834,9 @@ public class SemanticMatchingService {
 
         } catch (Exception e) {
             // CRITICAL: Error handling - return empty set on error
-            LOGGER.error("Error tokenizing text: {}", e.getMessage(), e);
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error("Error tokenizing text: {}", e.getMessage(), e);
+            }
             return new HashSet<>();
         }
 
@@ -841,10 +866,12 @@ public class SemanticMatchingService {
 
             // CRITICAL: Boundary condition - very large sets (performance protection)
             if (tokens.size() > 10_000 || cluster.size() > 10_000) {
-                LOGGER.warn(
-                        "Very large sets for similarity calculation (tokens: {}, cluster: {}), limiting",
-                        tokens.size(),
-                        cluster.size());
+                if (LOGGER.isWarnEnabled()) {
+                    LOGGER.warn(
+                            "Very large sets for similarity calculation (tokens: {}, cluster: {}), limiting",
+                            tokens.size(),
+                            cluster.size());
+                }
                 // For very large sets, sample instead of processing all
                 if (tokens.size() > 10_000) {
                     tokens = new HashSet<>(new ArrayList<>(tokens).subList(0, 10_000));
@@ -1043,11 +1070,13 @@ public class SemanticMatchingService {
 
             // CRITICAL: Validate result (should be in [0, 1])
             if (Double.isNaN(similarity) || Double.isInfinite(similarity)) {
-                LOGGER.warn(
-                        "Invalid similarity calculated: {} (intersection: {}, union: {})",
-                        similarity,
-                        intersection.size(),
-                        union.size());
+                if (LOGGER.isWarnEnabled()) {
+                    LOGGER.warn(
+                            "Invalid similarity calculated: {} (intersection: {}, union: {})",
+                            similarity,
+                            intersection.size(),
+                            union.size());
+                }
                 return 0.0;
             }
 
@@ -1056,7 +1085,9 @@ public class SemanticMatchingService {
 
         } catch (Exception e) {
             // CRITICAL: Error handling - return 0.0 on error
-            LOGGER.error("Error calculating semantic similarity: {}", e.getMessage(), e);
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error("Error calculating semantic similarity: {}", e.getMessage(), e);
+            }
             return 0.0;
         }
     }
@@ -1093,7 +1124,10 @@ public class SemanticMatchingService {
             // CRITICAL: Boundary condition - very large keyword set
             Set<String> safeKeywords = keywords;
             if (keywords.size() > 10_000) {
-                LOGGER.warn("Keyword set too large ({}), limiting to first 10000", keywords.size());
+                if (LOGGER.isWarnEnabled()) {
+                    LOGGER.warn(
+                            "Keyword set too large ({}), limiting to first 10000", keywords.size());
+                }
                 safeKeywords = new HashSet<>(new ArrayList<>(keywords).subList(0, 10_000));
             }
 
@@ -1116,20 +1150,24 @@ public class SemanticMatchingService {
             // CRITICAL: Update local cache (thread-safe, kept in memory for speed)
             categorySemanticClusters.put(normalizedCategory, keywordsCopy);
 
-            LOGGER.info(
-                    "Added semantic cluster for category: {} with {} keywords (updated shared service and local cache)",
-                    normalizedCategory,
-                    keywordsCopy.size());
+            if (LOGGER.isInfoEnabled()) {
+                LOGGER.info(
+                        "Added semantic cluster for category: {} with {} keywords (updated shared service and local cache)",
+                        normalizedCategory,
+                        keywordsCopy.size());
+            }
 
         } catch (OutOfMemoryError e) {
             LOGGER.error("Out of memory adding semantic cluster for category: {}", category, e);
         } catch (Exception e) {
             // CRITICAL: Error handling - log but don't throw
-            LOGGER.error(
-                    "Error adding semantic cluster for category: {}: {}",
-                    category,
-                    e.getMessage(),
-                    e);
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error(
+                        "Error adding semantic cluster for category: {}: {}",
+                        category,
+                        e.getMessage(),
+                        e);
+            }
         }
     }
 

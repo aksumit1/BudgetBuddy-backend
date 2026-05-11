@@ -75,45 +75,53 @@ public class LocalStackHealthMonitor {
             } else {
                 consecutiveFailures++;
                 if (consecutiveFailures >= WARNING_THRESHOLD) {
-                    LOGGER.error(
-                            "❌ LocalStack health check failed ({} consecutive failures). "
-                                    + "Status: {}. LocalStack may be down or unreachable. "
-                                    + "Backend operations requiring DynamoDB will fail. "
-                                    + "To restart: docker-compose -f docker-compose.yml restart localstack",
-                            consecutiveFailures,
-                            response.statusCode());
+                    if (LOGGER.isErrorEnabled()) {
+                        LOGGER.error(
+                                "❌ LocalStack health check failed ({} consecutive failures). "
+                                        + "Status: {}. LocalStack may be down or unreachable. "
+                                        + "Backend operations requiring DynamoDB will fail. "
+                                        + "To restart: docker-compose -f docker-compose.yml restart localstack",
+                                consecutiveFailures,
+                                response.statusCode());
+                    }
                 }
             }
         } catch (java.net.UnknownHostException e) {
             consecutiveFailures++;
             if (consecutiveFailures >= WARNING_THRESHOLD) {
-                LOGGER.error(
-                        "❌ LocalStack hostname cannot be resolved ({} consecutive failures). "
-                                + "LocalStack container may be stopped. "
-                                + "Error: {}. "
-                                + "To start: docker-compose -f docker-compose.yml up -d localstack",
-                        consecutiveFailures,
-                        e.getMessage());
+                if (LOGGER.isErrorEnabled()) {
+                    LOGGER.error(
+                            "❌ LocalStack hostname cannot be resolved ({} consecutive failures). "
+                                    + "LocalStack container may be stopped. "
+                                    + "Error: {}. "
+                                    + "To start: docker-compose -f docker-compose.yml up -d localstack",
+                            consecutiveFailures,
+                            e.getMessage());
+                }
             }
         } catch (java.net.ConnectException e) {
             consecutiveFailures++;
             if (consecutiveFailures >= WARNING_THRESHOLD) {
-                LOGGER.error(
-                        "❌ Cannot connect to LocalStack ({} consecutive failures). "
-                                + "LocalStack may be down or not accessible. "
-                                + "Error: {}. "
-                                + "To restart: docker-compose -f docker-compose.yml restart localstack",
-                        consecutiveFailures,
-                        e.getMessage());
+                if (LOGGER.isErrorEnabled()) {
+                    LOGGER.error(
+                            "❌ Cannot connect to LocalStack ({} consecutive failures). "
+                                    + "LocalStack may be down or not accessible. "
+                                    + "Error: {}. "
+                                    + "To restart: docker-compose -f docker-compose.yml restart localstack",
+                            consecutiveFailures,
+                            e.getMessage());
+                }
             }
         } catch (Exception e) {
             consecutiveFailures++;
             if (consecutiveFailures >= WARNING_THRESHOLD) {
-                LOGGER.error(
-                        "❌ LocalStack health check error ({} consecutive failures): {}",
-                        consecutiveFailures,
-                        e.getMessage(),
-                        e);
+                if (LOGGER.isErrorEnabled()) {
+                    LOGGER.error(
+                            "❌ LocalStack health check error ({} consecutive failures): {}",
+                            consecutiveFailures,
+                            e.getMessage(),
+                            e);
+                }
             }
         }
     }

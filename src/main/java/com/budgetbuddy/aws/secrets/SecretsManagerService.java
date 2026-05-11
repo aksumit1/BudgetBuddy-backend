@@ -129,14 +129,18 @@ public class SecretsManagerService {
 
             // Cache the value
             secretCache.put(secretName, secretValue);
-            LOGGER.debug("Fetched secret {} from AWS Secrets Manager", secretName);
+            if (LOGGER.isDebugEnabled()) {
+                LOGGER.debug("Fetched secret {} from AWS Secrets Manager", secretName);
+            }
 
             return secretValue;
         } catch (SecretsManagerException e) {
-            LOGGER.error(
-                    "Error fetching secret {} from AWS Secrets Manager: {}",
-                    secretName,
-                    e.getMessage());
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error(
+                        "Error fetching secret {} from AWS Secrets Manager: {}",
+                        secretName,
+                        e.getMessage());
+            }
             // Fallback to environment variable
             final String envValue = System.getenv(envVarFallback);
             if (envValue != null) {
@@ -179,8 +183,13 @@ public class SecretsManagerService {
                 return value;
             }
         } catch (Exception e) {
-            LOGGER.error(
-                    "Error parsing JSON secret {} for key {}: {}", secretName, key, e.getMessage());
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error(
+                        "Error parsing JSON secret {} for key {}: {}",
+                        secretName,
+                        key,
+                        e.getMessage());
+            }
         }
 
         return secretJson; // Return full JSON if parsing fails
@@ -206,7 +215,9 @@ public class SecretsManagerService {
         if (keys.isEmpty()) {
             return;
         }
-        LOGGER.debug("Refreshing {} cached secrets from AWS Secrets Manager", keys.size());
+        if (LOGGER.isDebugEnabled()) {
+            LOGGER.debug("Refreshing {} cached secrets from AWS Secrets Manager", keys.size());
+        }
         for (final String secretName : keys) {
             try {
                 final GetSecretValueRequest request =
@@ -225,10 +236,12 @@ public class SecretsManagerService {
             } catch (SecretsManagerException e) {
                 // Transient — keep the stale value rather than take the app
                 // down. Next scheduled run will try again.
-                LOGGER.warn(
-                        "Transient error refreshing secret {}: {} — keeping stale value",
-                        secretName,
-                        e.getMessage());
+                if (LOGGER.isWarnEnabled()) {
+                    LOGGER.warn(
+                            "Transient error refreshing secret {}: {} — keeping stale value",
+                            secretName,
+                            e.getMessage());
+                }
             }
         }
     }

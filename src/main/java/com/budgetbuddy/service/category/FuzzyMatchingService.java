@@ -164,13 +164,15 @@ public class FuzzyMatchingService {
                 });
 
         final FuzzyMatch bestMatch = matches.get(0);
-        LOGGER.debug(
-                "Fuzzy match found: '{}' → '{}' (similarity: {:.2f}, type: {}, confidence: {:.2f})",
-                query,
-                bestMatch.getMatchedMerchant(),
-                bestMatch.getSimilarity(),
-                bestMatch.getMatchType(),
-                bestMatch.getConfidence());
+        if (LOGGER.isDebugEnabled()) {
+            LOGGER.debug(
+                    "Fuzzy match found: '{}' → '{}' (similarity: {:.2f}, type: {}, confidence: {:.2f})",
+                    query,
+                    bestMatch.getMatchedMerchant(),
+                    bestMatch.getSimilarity(),
+                    bestMatch.getMatchType(),
+                    bestMatch.getConfidence());
+        }
 
         return bestMatch;
     }

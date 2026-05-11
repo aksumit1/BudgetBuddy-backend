@@ -123,9 +123,11 @@ public class CategoryController {
                 && (request.getCategoryDetailed() == null
                         || request.getCategoryDetailed()
                                 .equals(transaction.getCategoryDetailed()))) {
-            LOGGER.debug(
-                    "Skipping correction recording - category unchanged for transaction {}",
-                    request.getTransactionId());
+            if (LOGGER.isDebugEnabled()) {
+                LOGGER.debug(
+                        "Skipping correction recording - category unchanged for transaction {}",
+                        request.getTransactionId());
+            }
             return ResponseEntity.ok(
                     Map.of(SUCCESS, true, MESSAGE, "Category unchanged, no correction recorded"));
         }
@@ -161,11 +163,13 @@ public class CategoryController {
                 transaction.getGoalId(),
                 transaction.getLinkedTransactionId());
 
-        LOGGER.info(
-                "Recorded category correction for transaction {}: {} → {}",
-                request.getTransactionId(),
-                transaction.getCategoryPrimary(),
-                request.getCategoryPrimary());
+        if (LOGGER.isInfoEnabled()) {
+            LOGGER.info(
+                    "Recorded category correction for transaction {}: {} → {}",
+                    request.getTransactionId(),
+                    transaction.getCategoryPrimary(),
+                    request.getCategoryPrimary());
+        }
 
         return ResponseEntity.ok(
                 Map.of(SUCCESS, true, MESSAGE, "Correction recorded successfully"));
@@ -208,11 +212,13 @@ public class CategoryController {
                         request.getCategoryDetailed(),
                         request.getTransactionType());
 
-        LOGGER.info(
-                "Created/updated custom mapping for user {}: merchant '{}' → '{}'",
-                user.getUserId(),
-                request.getMerchantName(),
-                request.getCategoryPrimary());
+        if (LOGGER.isInfoEnabled()) {
+            LOGGER.info(
+                    "Created/updated custom mapping for user {}: merchant '{}' → '{}'",
+                    user.getUserId(),
+                    request.getMerchantName(),
+                    request.getCategoryPrimary());
+        }
 
         return ResponseEntity.ok(mapping);
     }
@@ -268,7 +274,9 @@ public class CategoryController {
             throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, e.getMessage());
         }
 
-        LOGGER.info("Deleted custom mapping {} for user {}", mappingId, user.getUserId());
+        if (LOGGER.isInfoEnabled()) {
+            LOGGER.info("Deleted custom mapping {} for user {}", mappingId, user.getUserId());
+        }
 
         return ResponseEntity.ok(
                 Map.of(SUCCESS, true, MESSAGE, "Custom mapping deleted successfully"));

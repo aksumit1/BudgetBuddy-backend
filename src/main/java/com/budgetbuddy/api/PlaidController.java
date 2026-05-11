@@ -130,14 +130,18 @@ public class PlaidController {
                 linkTokenResponse.setExpiration(response.getExpiration().toString());
             }
 
-            LOGGER.info("Link token created for user: {}", user.getUserId());
+            if (LOGGER.isInfoEnabled()) {
+                LOGGER.info("Link token created for user: {}", user.getUserId());
+            }
             return ResponseEntity.ok(linkTokenResponse);
         } catch (Exception e) {
-            LOGGER.error(
-                    "Failed to create link token for user {}: {}",
-                    user.getUserId(),
-                    e.getMessage(),
-                    e);
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error(
+                        "Failed to create link token for user {}: {}",
+                        user.getUserId(),
+                        e.getMessage(),
+                        e);
+            }
             throw new AppException(
                     ErrorCode.PLAID_CONNECTION_FAILED,
                     "Failed to create link token",
@@ -200,10 +204,12 @@ public class PlaidController {
             tokenResponse.setAccessToken(accessToken);
             tokenResponse.setItemId(itemId);
 
-            LOGGER.info(
-                    "Token exchanged successfully for user: {} (itemId: {}). Starting async sync...",
-                    user.getUserId(),
-                    itemId);
+            if (LOGGER.isInfoEnabled()) {
+                LOGGER.info(
+                        "Token exchanged successfully for user: {} (itemId: {}). Starting async sync...",
+                        user.getUserId(),
+                        itemId);
+            }
 
             // Trigger async sync (fire and forget) - don't block the response
             syncAccountsAndTransactionsAsync(user, accessToken, itemId);
@@ -212,11 +218,13 @@ public class PlaidController {
         } catch (AppException e) {
             throw e;
         } catch (Exception e) {
-            LOGGER.error(
-                    "Failed to exchange token for user {}: {}",
-                    user.getUserId(),
-                    e.getMessage(),
-                    e);
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error(
+                        "Failed to exchange token for user {}: {}",
+                        user.getUserId(),
+                        e.getMessage(),
+                        e);
+            }
             throw new AppException(
                     ErrorCode.PLAID_CONNECTION_FAILED, "Failed to exchange token", null, null, e);
         }
@@ -260,29 +268,37 @@ public class PlaidController {
                                 new java.util.ArrayList<>(response.getAccounts()));
                     }
                     accountsResponse.setItem(response.getItem());
-                    LOGGER.debug(
-                            "Retrieved accounts from Plaid API for user: {}", user.getUserId());
+                    if (LOGGER.isDebugEnabled()) {
+                        LOGGER.debug(
+                                "Retrieved accounts from Plaid API for user: {}", user.getUserId());
+                    }
                 } catch (Exception plaidError) {
                     // CRITICAL: If Plaid fails, fall back to database instead of throwing error
                     // This ensures users can still see their data even if Plaid has issues
-                    LOGGER.warn(
-                            "Plaid API failed for user {}: {} - falling back to database",
-                            user.getUserId(),
-                            plaidError.getMessage());
+                    if (LOGGER.isWarnEnabled()) {
+                        LOGGER.warn(
+                                "Plaid API failed for user {}: {} - falling back to database",
+                                user.getUserId(),
+                                plaidError.getMessage());
+                    }
 
                     // Fall back to database
                     final var accounts = accountRepository.findByUserId(user.getUserId());
                     if (accounts != null && !accounts.isEmpty()) {
                         accountsResponse.setAccounts(new java.util.ArrayList<>(accounts));
-                        LOGGER.info(
-                                "Retrieved {} accounts from database (Plaid fallback) for user: {}",
-                                accounts.size(),
-                                user.getUserId());
+                        if (LOGGER.isInfoEnabled()) {
+                            LOGGER.info(
+                                    "Retrieved {} accounts from database (Plaid fallback) for user: {}",
+                                    accounts.size(),
+                                    user.getUserId());
+                        }
                     } else {
                         accountsResponse.setAccounts(new java.util.ArrayList<>());
-                        LOGGER.warn(
-                                "No accounts found in database for user: {} (Plaid also failed)",
-                                user.getUserId());
+                        if (LOGGER.isWarnEnabled()) {
+                            LOGGER.warn(
+                                    "No accounts found in database for user: {} (Plaid also failed)",
+                                    user.getUserId());
+                        }
                     }
                     accountsResponse.setItem(null); // No item info when fetching from DB
                 }
@@ -293,24 +309,30 @@ public class PlaidController {
                 // Convert AccountTable to response format
                 if (accounts != null && !accounts.isEmpty()) {
                     accountsResponse.setAccounts(new java.util.ArrayList<>(accounts));
-                    LOGGER.info(
-                            "Retrieved {} accounts from database for user: {}",
-                            accounts.size(),
-                            user.getUserId());
+                    if (LOGGER.isInfoEnabled()) {
+                        LOGGER.info(
+                                "Retrieved {} accounts from database for user: {}",
+                                accounts.size(),
+                                user.getUserId());
+                    }
                     // Log account details for debugging
                     for (final var account : accounts) {
-                        LOGGER.debug(
-                                "Account: {} (ID: {}, Active: {}, PlaidID: {})",
-                                account.getAccountName(),
-                                account.getAccountId(),
-                                account.getActive(),
-                                account.getPlaidAccountId());
+                        if (LOGGER.isDebugEnabled()) {
+                            LOGGER.debug(
+                                    "Account: {} (ID: {}, Active: {}, PlaidID: {})",
+                                    account.getAccountName(),
+                                    account.getAccountId(),
+                                    account.getActive(),
+                                    account.getPlaidAccountId());
+                        }
                     }
                 } else {
                     accountsResponse.setAccounts(new java.util.ArrayList<>());
-                    LOGGER.warn(
-                            "No accounts found in database for user: {} (this may indicate accounts weren't saved or active flag is false)",
-                            user.getUserId());
+                    if (LOGGER.isWarnEnabled()) {
+                        LOGGER.warn(
+                                "No accounts found in database for user: {} (this may indicate accounts weren't saved or active flag is false)",
+                                user.getUserId());
+                    }
                 }
                 accountsResponse.setItem(null); // No item info when fetching from DB
             }
@@ -319,8 +341,13 @@ public class PlaidController {
         } catch (AppException e) {
             throw e;
         } catch (Exception e) {
-            LOGGER.error(
-                    "Failed to get accounts for user {}: {}", user.getUserId(), e.getMessage(), e);
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error(
+                        "Failed to get accounts for user {}: {}",
+                        user.getUserId(),
+                        e.getMessage(),
+                        e);
+            }
             // CRITICAL: Even if there's an unexpected error, try to return data from database
             // This ensures users can still see their data
             try {
@@ -328,17 +355,21 @@ public class PlaidController {
                 final AccountsResponse accountsResponse = new AccountsResponse();
                 if (accounts != null && !accounts.isEmpty()) {
                     accountsResponse.setAccounts(new java.util.ArrayList<>(accounts));
-                    LOGGER.info(
-                            "Retrieved {} accounts from database (error fallback) for user: {}",
-                            accounts.size(),
-                            user.getUserId());
+                    if (LOGGER.isInfoEnabled()) {
+                        LOGGER.info(
+                                "Retrieved {} accounts from database (error fallback) for user: {}",
+                                accounts.size(),
+                                user.getUserId());
+                    }
                     return ResponseEntity.ok(accountsResponse);
                 }
             } catch (Exception dbError) {
-                LOGGER.error(
-                        "Failed to fall back to database for user {}: {}",
-                        user.getUserId(),
-                        dbError.getMessage());
+                if (LOGGER.isErrorEnabled()) {
+                    LOGGER.error(
+                            "Failed to fall back to database for user {}: {}",
+                            user.getUserId(),
+                            dbError.getMessage());
+                }
             }
             throw new AppException(
                     ErrorCode.PLAID_CONNECTION_FAILED,
@@ -390,11 +421,13 @@ public class PlaidController {
 
             // Validate date range
             if (startDate.isAfter(endDate)) {
-                LOGGER.warn(
-                        "Invalid date range for user {}: start date {} is after end date {}",
-                        user.getUserId(),
-                        startDate,
-                        endDate);
+                if (LOGGER.isWarnEnabled()) {
+                    LOGGER.warn(
+                            "Invalid date range for user {}: start date {} is after end date {}",
+                            user.getUserId(),
+                            startDate,
+                            endDate);
+                }
                 throw new AppException(
                         ErrorCode.INVALID_INPUT, "Start date must be before or equal to end date");
             }
@@ -405,12 +438,14 @@ public class PlaidController {
             final var dbTransactions =
                     transactionService.getTransactionsInRange(user, startDate, endDate);
 
-            LOGGER.info(
-                    "Retrieved {} transactions from database for user: {} (date range: {} to {})",
-                    dbTransactions != null ? dbTransactions.size() : 0,
-                    user.getUserId(),
-                    startDate,
-                    endDate);
+            if (LOGGER.isInfoEnabled()) {
+                LOGGER.info(
+                        "Retrieved {} transactions from database for user: {} (date range: {} to {})",
+                        dbTransactions != null ? dbTransactions.size() : 0,
+                        user.getUserId(),
+                        startDate,
+                        endDate);
+            }
 
             // CRITICAL: Log breakdown of transactions by account type for debugging
             if (dbTransactions != null && !dbTransactions.isEmpty()) {
@@ -426,13 +461,15 @@ public class PlaidController {
                 final long transactionsWithoutAccountId =
                         dbTransactions.size() - transactionsWithAccountId;
 
-                LOGGER.debug(
-                        "Transaction breakdown for user {}: {} with accountId, {} without accountId (date range: {} to {})",
-                        user.getUserId(),
-                        transactionsWithAccountId,
-                        transactionsWithoutAccountId,
-                        startDate,
-                        endDate);
+                if (LOGGER.isDebugEnabled()) {
+                    LOGGER.debug(
+                            "Transaction breakdown for user {}: {} with accountId, {} without accountId (date range: {} to {})",
+                            user.getUserId(),
+                            transactionsWithAccountId,
+                            transactionsWithoutAccountId,
+                            startDate,
+                            endDate);
+                }
 
                 // Log sample transaction IDs for debugging
                 final List<String> sampleIds =
@@ -444,26 +481,35 @@ public class PlaidController {
                                                         ? t.getTransactionId()
                                                         : "nil")
                                 .collect(java.util.stream.Collectors.toList());
-                LOGGER.debug("Sample transaction IDs: {}", String.join(", ", sampleIds));
+                if (LOGGER.isDebugEnabled()) {
+                    LOGGER.debug("Sample transaction IDs: {}", String.join(", ", sampleIds));
+                }
             } else {
-                LOGGER.warn(
-                        "No transactions found for user {} in date range {} to {}. Check if transactions were synced and have correct transactionDate.",
-                        user.getUserId(),
-                        startDate,
-                        endDate);
+                if (LOGGER.isWarnEnabled()) {
+                    LOGGER.warn(
+                            "No transactions found for user {} in date range {} to {}. Check if transactions were synced and have correct transactionDate.",
+                            user.getUserId(),
+                            startDate,
+                            endDate);
+                }
             }
             return ResponseEntity.ok(dbTransactions);
         } catch (AppException e) {
             throw e;
         } catch (java.time.format.DateTimeParseException e) {
-            LOGGER.error("Invalid date format for user {}: {}", user.getUserId(), e.getMessage());
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error(
+                        "Invalid date format for user {}: {}", user.getUserId(), e.getMessage());
+            }
             throw new AppException(ErrorCode.INVALID_INPUT, "Invalid date format. Use YYYY-MM-DD");
         } catch (Exception e) {
-            LOGGER.error(
-                    "Failed to get transactions for user {}: {}",
-                    user.getUserId(),
-                    e.getMessage(),
-                    e);
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error(
+                        "Failed to get transactions for user {}: {}",
+                        user.getUserId(),
+                        e.getMessage(),
+                        e);
+            }
             throw new AppException(
                     ErrorCode.PLAID_CONNECTION_FAILED,
                     "Failed to retrieve transactions",
@@ -504,12 +550,16 @@ public class PlaidController {
             plaidSyncService.syncAccounts(user, request.getAccessToken(), null);
             plaidSyncService.syncTransactions(user, request.getAccessToken());
 
-            LOGGER.info("Data synchronized for user: {}", user.getUserId());
+            if (LOGGER.isInfoEnabled()) {
+                LOGGER.info("Data synchronized for user: {}", user.getUserId());
+            }
             return ResponseEntity.ok(
                     Map.of(STATUS, SUCCESS, MESSAGE, "Data synchronized successfully"));
         } catch (Exception e) {
-            LOGGER.error(
-                    "Failed to sync data for user {}: {}", user.getUserId(), e.getMessage(), e);
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error(
+                        "Failed to sync data for user {}: {}", user.getUserId(), e.getMessage(), e);
+            }
             throw new AppException(
                     ErrorCode.PLAID_CONNECTION_FAILED, "Failed to sync data", null, null, e);
         }
@@ -607,50 +657,64 @@ public class PlaidController {
         CompletableFuture.runAsync(
                         () -> {
                             try {
-                                LOGGER.info(
-                                        "Starting async account sync for user: {} (itemId: {})",
-                                        user.getUserId(),
-                                        itemId);
+                                if (LOGGER.isInfoEnabled()) {
+                                    LOGGER.info(
+                                            "Starting async account sync for user: {} (itemId: {})",
+                                            user.getUserId(),
+                                            itemId);
+                                }
                                 // CRITICAL: Pass itemId to syncAccounts to enable deduplication
                                 // before API calls
                                 plaidSyncService.syncAccounts(user, accessToken, itemId);
-                                LOGGER.info(
-                                        "Async account sync completed for user: {}",
-                                        user.getUserId());
+                                if (LOGGER.isInfoEnabled()) {
+                                    LOGGER.info(
+                                            "Async account sync completed for user: {}",
+                                            user.getUserId());
+                                }
                             } catch (Exception syncError) {
-                                LOGGER.warn(
-                                        "Async account sync failed for user {} (non-fatal): {}",
-                                        user.getUserId(),
-                                        syncError.getMessage(),
-                                        syncError);
+                                if (LOGGER.isWarnEnabled()) {
+                                    LOGGER.warn(
+                                            "Async account sync failed for user {} (non-fatal): {}",
+                                            user.getUserId(),
+                                            syncError.getMessage(),
+                                            syncError);
+                                }
                                 // Continue - token exchange succeeded even if sync failed
                             }
 
                             try {
-                                LOGGER.info(
-                                        "Starting async transaction sync for user: {}",
-                                        user.getUserId());
+                                if (LOGGER.isInfoEnabled()) {
+                                    LOGGER.info(
+                                            "Starting async transaction sync for user: {}",
+                                            user.getUserId());
+                                }
                                 plaidSyncService.syncTransactions(user, accessToken);
-                                LOGGER.info(
-                                        "Async transaction sync completed for user: {}",
-                                        user.getUserId());
+                                if (LOGGER.isInfoEnabled()) {
+                                    LOGGER.info(
+                                            "Async transaction sync completed for user: {}",
+                                            user.getUserId());
+                                }
                             } catch (Exception syncError) {
-                                LOGGER.warn(
-                                        "Async transaction sync failed for user {} (non-fatal): {}",
-                                        user.getUserId(),
-                                        syncError.getMessage(),
-                                        syncError);
+                                if (LOGGER.isWarnEnabled()) {
+                                    LOGGER.warn(
+                                            "Async transaction sync failed for user {} (non-fatal): {}",
+                                            user.getUserId(),
+                                            syncError.getMessage(),
+                                            syncError);
+                                }
                                 // Continue - token exchange succeeded even if sync failed
                             }
                         },
                         taskExecutor)
                 .exceptionally(
                         ex -> {
-                            LOGGER.error(
-                                    "Unexpected error in async sync for user {}: {}",
-                                    user.getUserId(),
-                                    ex.getMessage(),
-                                    ex);
+                            if (LOGGER.isErrorEnabled()) {
+                                LOGGER.error(
+                                        "Unexpected error in async sync for user {}: {}",
+                                        user.getUserId(),
+                                        ex.getMessage(),
+                                        ex);
+                            }
                             return null;
                         });
     }
@@ -693,19 +757,23 @@ public class PlaidController {
                     final Optional<AccountTable> accountOpt =
                             accountRepository.findById(request.getAccountId());
                     if (accountOpt.isEmpty()) {
-                        LOGGER.warn(
-                                "Account not found for sync setting update: {}",
-                                request.getAccountId());
+                        if (LOGGER.isWarnEnabled()) {
+                            LOGGER.warn(
+                                    "Account not found for sync setting update: {}",
+                                    request.getAccountId());
+                        }
                         continue;
                     }
 
                     final AccountTable account = accountOpt.get();
                     // Verify the account belongs to the user
                     if (!account.getUserId().equals(user.getUserId())) {
-                        LOGGER.warn(
-                                "Account {} does not belong to user {}, skipping sync setting update",
-                                request.getAccountId(),
-                                user.getUserId());
+                        if (LOGGER.isWarnEnabled()) {
+                            LOGGER.warn(
+                                    "Account {} does not belong to user {}, skipping sync setting update",
+                                    request.getAccountId(),
+                                    user.getUserId());
+                        }
                         continue;
                     }
 
@@ -720,10 +788,12 @@ public class PlaidController {
 
                     accountRepository.save(account);
                     updatedCount++;
-                    LOGGER.debug(
-                            "Updated lastSyncedAt for account {}: {}",
-                            account.getAccountId(),
-                            account.getLastSyncedAt());
+                    if (LOGGER.isDebugEnabled()) {
+                        LOGGER.debug(
+                                "Updated lastSyncedAt for account {}: {}",
+                                account.getAccountId(),
+                                account.getLastSyncedAt());
+                    }
                 }
             } else {
                 // Fallback: If no specific requests, update all user accounts with current
@@ -731,7 +801,9 @@ public class PlaidController {
                 final var userAccounts = accountRepository.findByUserId(user.getUserId());
 
                 if (userAccounts.isEmpty()) {
-                    LOGGER.warn("No accounts found for user: {}", user.getUserId());
+                    if (LOGGER.isWarnEnabled()) {
+                        LOGGER.warn("No accounts found for user: {}", user.getUserId());
+                    }
                     return ResponseEntity.ok(
                             Map.of(STATUS, SUCCESS, MESSAGE, "No accounts to update"));
                 }
@@ -744,10 +816,12 @@ public class PlaidController {
                 }
             }
 
-            LOGGER.info(
-                    "Updated lastSyncedAt for {} accounts for user: {}",
-                    updatedCount,
-                    user.getUserId());
+            if (LOGGER.isInfoEnabled()) {
+                LOGGER.info(
+                        "Updated lastSyncedAt for {} accounts for user: {}",
+                        updatedCount,
+                        user.getUserId());
+            }
             return ResponseEntity.ok(
                     Map.of(
                             STATUS,
@@ -757,11 +831,13 @@ public class PlaidController {
                             "accountsUpdated",
                             String.valueOf(updatedCount)));
         } catch (Exception e) {
-            LOGGER.error(
-                    "Failed to update account sync settings for user {}: {}",
-                    user.getUserId(),
-                    e.getMessage(),
-                    e);
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error(
+                        "Failed to update account sync settings for user {}: {}",
+                        user.getUserId(),
+                        e.getMessage(),
+                        e);
+            }
             throw new AppException(
                     ErrorCode.INTERNAL_SERVER_ERROR,
                     "Failed to update sync settings",

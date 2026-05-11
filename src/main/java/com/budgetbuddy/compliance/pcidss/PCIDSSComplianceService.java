@@ -111,7 +111,9 @@ public class PCIDSSComplianceService {
             // Return encrypted value (in production, would be actual encrypted data)
             return "encrypted_" + pan;
         } catch (Exception e) {
-            LOGGER.error("PCI-DSS VIOLATION: Failed to encrypt PAN: {}", e.getMessage());
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error("PCI-DSS VIOLATION: Failed to encrypt PAN: {}", e.getMessage());
+            }
             putMetric("PANEncryptionFailure", 1.0, Map.of());
             throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to encrypt PAN", e);
         }
@@ -388,7 +390,9 @@ public class PCIDSSComplianceService {
                                             .build())
                             .build());
         } catch (Exception e) {
-            LOGGER.error("Failed to put metric to CloudWatch: {}", e.getMessage());
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error("Failed to put metric to CloudWatch: {}", e.getMessage());
+            }
         }
     }
 }

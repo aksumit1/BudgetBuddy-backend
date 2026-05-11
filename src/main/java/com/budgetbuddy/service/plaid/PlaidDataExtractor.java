@@ -73,12 +73,17 @@ public class PlaidDataExtractor {
                     }
                 }
             } catch (Exception e) {
-                LOGGER.warn("Could not extract account ID using reflection: {}", e.getMessage());
+                if (LOGGER.isWarnEnabled()) {
+                    LOGGER.warn(
+                            "Could not extract account ID using reflection: {}", e.getMessage());
+                }
             }
 
-            LOGGER.error(
-                    "Failed to extract account ID from Plaid account. Type: {}",
-                    plaidAccount.getClass().getName());
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error(
+                        "Failed to extract account ID from Plaid account. Type: {}",
+                        plaidAccount.getClass().getName());
+            }
             return null;
         } catch (Exception e) {
             LOGGER.error("Failed to extract account ID", e);
@@ -110,12 +115,17 @@ public class PlaidDataExtractor {
                     }
                 }
             } catch (Exception e) {
-                LOGGER.warn("Could not extract transaction ID via reflection: {}", e.getMessage());
+                if (LOGGER.isWarnEnabled()) {
+                    LOGGER.warn(
+                            "Could not extract transaction ID via reflection: {}", e.getMessage());
+                }
             }
 
-            LOGGER.error(
-                    "Failed to extract transaction ID. Type: {}",
-                    plaidTransaction.getClass().getName());
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error(
+                        "Failed to extract transaction ID. Type: {}",
+                        plaidTransaction.getClass().getName());
+            }
             return null;
         } catch (Exception e) {
             LOGGER.error("Failed to extract transaction ID", e);
@@ -157,7 +167,9 @@ public class PlaidDataExtractor {
         } catch (NoSuchMethodException e) {
             // Older SDK — caller falls back to no-link behaviour.
         } catch (Exception e) {
-            LOGGER.debug("extractPendingTransactionId failed: {}", e.getMessage());
+            if (LOGGER.isDebugEnabled()) {
+                LOGGER.debug("extractPendingTransactionId failed: {}", e.getMessage());
+            }
         }
         return null;
     }
@@ -175,7 +187,9 @@ public class PlaidDataExtractor {
                 return itemIdObj.toString();
             }
         } catch (Exception e) {
-            LOGGER.debug("Could not extract itemId from Item object: {}", e.getMessage());
+            if (LOGGER.isDebugEnabled()) {
+                LOGGER.debug("Could not extract itemId from Item object: {}", e.getMessage());
+            }
         }
         return null;
     }
@@ -197,7 +211,9 @@ public class PlaidDataExtractor {
                         accountBase = (com.plaid.client.model.AccountBase) plaidAccount;
                     }
                 } catch (Exception e) {
-                    LOGGER.warn("Could not cast to AccountBase: {}", e.getMessage());
+                    if (LOGGER.isWarnEnabled()) {
+                        LOGGER.warn("Could not cast to AccountBase: {}", e.getMessage());
+                    }
                 }
             }
 
@@ -300,9 +316,11 @@ public class PlaidDataExtractor {
                         account.setAccountName(name.toString());
                     }
                 } catch (Exception e) {
-                    LOGGER.warn(
-                            "Could not extract account fields using reflection: {}",
-                            e.getMessage());
+                    if (LOGGER.isWarnEnabled()) {
+                        LOGGER.warn(
+                                "Could not extract account fields using reflection: {}",
+                                e.getMessage());
+                    }
                 }
 
                 if (account.getActive() == null) {
@@ -319,7 +337,9 @@ public class PlaidDataExtractor {
                 }
             }
         } catch (Exception e) {
-            LOGGER.error("Error updating account from Plaid data: {}", e.getMessage(), e);
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error("Error updating account from Plaid data: {}", e.getMessage(), e);
+            }
             account.setUpdatedAt(java.time.Instant.now());
             if (account.getActive() == null) {
                 account.setActive(true);
@@ -353,7 +373,10 @@ public class PlaidDataExtractor {
                         plaidTx = (com.plaid.client.model.Transaction) plaidTransaction;
                     }
                 } catch (Exception e) {
-                    LOGGER.warn("Could not cast to Transaction via reflection: {}", e.getMessage());
+                    if (LOGGER.isWarnEnabled()) {
+                        LOGGER.warn(
+                                "Could not cast to Transaction via reflection: {}", e.getMessage());
+                    }
                 }
             }
 
@@ -426,7 +449,10 @@ public class PlaidDataExtractor {
                         }
                     }
                 } catch (Exception e) {
-                    LOGGER.debug("Could not extract personal_finance_category: {}", e.getMessage());
+                    if (LOGGER.isDebugEnabled()) {
+                        LOGGER.debug(
+                                "Could not extract personal_finance_category: {}", e.getMessage());
+                    }
                 }
 
                 // Extract payment channel
@@ -589,20 +615,26 @@ public class PlaidDataExtractor {
                         }
 
                         if (isInternalOverride) {
-                            LOGGER.info(
-                                    "✅ Internal category override applied: Plaid='{}' → Determined='{}' (source: {}, confidence: {:.2f}). "
-                                            + "This override will be preserved during Plaid re-sync.",
-                                    plaidCategoryPrimary != null ? plaidCategoryPrimary : "null",
-                                    determinedPrimary,
-                                    categoryResult.getSource(),
-                                    categoryResult.getConfidence());
+                            if (LOGGER.isInfoEnabled()) {
+                                LOGGER.info(
+                                        "✅ Internal category override applied: Plaid='{}' → Determined='{}' (source: {}, confidence: {:.2f}). "
+                                                + "This override will be preserved during Plaid re-sync.",
+                                        plaidCategoryPrimary != null
+                                                ? plaidCategoryPrimary
+                                                : "null",
+                                        determinedPrimary,
+                                        categoryResult.getSource(),
+                                        categoryResult.getConfidence());
+                            }
                         } else {
-                            LOGGER.debug(
-                                    "Determined category matches Plaid: {} / {} (source: {}, confidence: {:.2f})",
-                                    determinedPrimary,
-                                    determinedDetailed,
-                                    categoryResult.getSource(),
-                                    categoryResult.getConfidence());
+                            if (LOGGER.isDebugEnabled()) {
+                                LOGGER.debug(
+                                        "Determined category matches Plaid: {} / {} (source: {}, confidence: {:.2f})",
+                                        determinedPrimary,
+                                        determinedDetailed,
+                                        categoryResult.getSource(),
+                                        categoryResult.getConfidence());
+                            }
                         }
                     } else {
                         // Fallback
@@ -611,10 +643,12 @@ public class PlaidDataExtractor {
                         transaction.setCategoryOverridden(false);
                     }
                 } else {
-                    LOGGER.debug(
-                            "Category already overridden by user, preserving: {} / {}",
-                            transaction.getCategoryPrimary(),
-                            transaction.getCategoryDetailed());
+                    if (LOGGER.isDebugEnabled()) {
+                        LOGGER.debug(
+                                "Category already overridden by user, preserving: {} / {}",
+                                transaction.getCategoryPrimary(),
+                                transaction.getCategoryDetailed());
+                    }
 
                     // CRITICAL: Credit card and loan payment amount adjustment (even if category
                     // was user-overridden)
@@ -699,18 +733,22 @@ public class PlaidDataExtractor {
                             transaction.setTransactionTypeOverridden(false);
                         }
                         final String plaidTxId = plaidTx.getTransactionId();
-                        LOGGER.debug(
-                                "Set transaction type to {} for Plaid transaction {} (source: {}, confidence: {:.2f})",
-                                typeResult.getTransactionType(),
-                                plaidTxId != null ? plaidTxId : "unknown",
-                                typeResult.getSource(),
-                                typeResult.getConfidence());
+                        if (LOGGER.isDebugEnabled()) {
+                            LOGGER.debug(
+                                    "Set transaction type to {} for Plaid transaction {} (source: {}, confidence: {:.2f})",
+                                    typeResult.getTransactionType(),
+                                    plaidTxId != null ? plaidTxId : "unknown",
+                                    typeResult.getSource(),
+                                    typeResult.getConfidence());
+                        }
                     }
                 } else {
                     final String plaidTxId = plaidTx.getTransactionId();
-                    LOGGER.debug(
-                            "Skipping transaction type recalculation for Plaid transaction {} (user override preserved)",
-                            plaidTxId != null ? plaidTxId : "unknown");
+                    if (LOGGER.isDebugEnabled()) {
+                        LOGGER.debug(
+                                "Skipping transaction type recalculation for Plaid transaction {} (user override preserved)",
+                                plaidTxId != null ? plaidTxId : "unknown");
+                    }
                 }
             } else {
                 // Fallback: use reflection
@@ -756,9 +794,11 @@ public class PlaidDataExtractor {
                         transaction.setDescription(name.toString());
                     }
                 } catch (Exception e) {
-                    LOGGER.error(
-                            "Could not extract transaction fields via reflection: {}",
-                            e.getMessage());
+                    if (LOGGER.isErrorEnabled()) {
+                        LOGGER.error(
+                                "Could not extract transaction fields via reflection: {}",
+                                e.getMessage());
+                    }
                 }
 
                 if (transaction.getDescription() == null
@@ -780,7 +820,9 @@ public class PlaidDataExtractor {
                 }
             }
         } catch (Exception e) {
-            LOGGER.error("Error updating transaction from Plaid data: {}", e.getMessage(), e);
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error("Error updating transaction from Plaid data: {}", e.getMessage(), e);
+            }
             if (transaction.getTransactionDate() == null
                     || transaction.getTransactionDate().isEmpty()) {
                 transaction.setTransactionDate(
@@ -829,17 +871,21 @@ public class PlaidDataExtractor {
                     if (transaction.getTransactionTypeOverridden() == null) {
                         transaction.setTransactionTypeOverridden(false);
                     }
-                    LOGGER.debug(
-                            "Set transaction type to {} for transaction {} (source: {}, confidence: {:.2f})",
-                            typeResult.getTransactionType(),
-                            transaction.getTransactionId(),
-                            typeResult.getSource(),
-                            typeResult.getConfidence());
+                    if (LOGGER.isDebugEnabled()) {
+                        LOGGER.debug(
+                                "Set transaction type to {} for transaction {} (source: {}, confidence: {:.2f})",
+                                typeResult.getTransactionType(),
+                                transaction.getTransactionId(),
+                                typeResult.getSource(),
+                                typeResult.getConfidence());
+                    }
                 }
             } catch (Exception e) {
-                LOGGER.warn(
-                        "Error determining transaction type, defaulting to EXPENSE: {}",
-                        e.getMessage());
+                if (LOGGER.isWarnEnabled()) {
+                    LOGGER.warn(
+                            "Error determining transaction type, defaulting to EXPENSE: {}",
+                            e.getMessage());
+                }
                 transaction.setTransactionType(
                         com.budgetbuddy.model.TransactionType.EXPENSE.name());
                 if (transaction.getTransactionTypeOverridden() == null) {
@@ -847,9 +893,11 @@ public class PlaidDataExtractor {
                 }
             }
         } else {
-            LOGGER.debug(
-                    "Skipping transaction type recalculation for transaction {} (user override preserved)",
-                    transaction.getTransactionId());
+            if (LOGGER.isDebugEnabled()) {
+                LOGGER.debug(
+                        "Skipping transaction type recalculation for transaction {} (user override preserved)",
+                        transaction.getTransactionId());
+            }
         }
     }
 
@@ -898,7 +946,10 @@ public class PlaidDataExtractor {
                 return accountId.toString();
             }
         } catch (Exception e) {
-            LOGGER.warn("Could not extract account ID from Plaid transaction: {}", e.getMessage());
+            if (LOGGER.isWarnEnabled()) {
+                LOGGER.warn(
+                        "Could not extract account ID from Plaid transaction: {}", e.getMessage());
+            }
         }
         return null;
     }

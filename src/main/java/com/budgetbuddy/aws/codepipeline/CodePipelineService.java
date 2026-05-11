@@ -54,7 +54,9 @@ public class CodePipelineService {
                     .map(stage -> stage.latestExecution().statusAsString())
                     .orElse("Succeeded");
         } catch (Exception e) {
-            LOGGER.error("Failed to get pipeline status: {}", e.getMessage());
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error("Failed to get pipeline status: {}", e.getMessage());
+            }
             return "Unknown";
         }
     }
@@ -67,7 +69,9 @@ public class CodePipelineService {
 
             return response.pipelines();
         } catch (Exception e) {
-            LOGGER.error("Failed to list pipelines: {}", e.getMessage());
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error("Failed to list pipelines: {}", e.getMessage());
+            }
             return List.of();
         }
     }
@@ -85,7 +89,9 @@ public class CodePipelineService {
 
             return response.pipelineExecutionSummaries();
         } catch (Exception e) {
-            LOGGER.error("Failed to get pipeline execution history: {}", e.getMessage());
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error("Failed to get pipeline execution history: {}", e.getMessage());
+            }
             return List.of();
         }
     }
@@ -97,13 +103,17 @@ public class CodePipelineService {
                     codePipelineClient.startPipelineExecution(
                             StartPipelineExecutionRequest.builder().name(pipelineName).build());
 
-            LOGGER.info(
-                    "Pipeline execution started: {} - Execution ID: {}",
-                    pipelineName,
-                    response.pipelineExecutionId());
+            if (LOGGER.isInfoEnabled()) {
+                LOGGER.info(
+                        "Pipeline execution started: {} - Execution ID: {}",
+                        pipelineName,
+                        response.pipelineExecutionId());
+            }
             return response.pipelineExecutionId();
         } catch (Exception e) {
-            LOGGER.error("Failed to start pipeline execution: {}", e.getMessage());
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error("Failed to start pipeline execution: {}", e.getMessage());
+            }
             return null;
         }
     }

@@ -96,7 +96,9 @@ public class GoalEnhancementController {
 
             return ResponseEntity.ok(response);
         } catch (Exception e) {
-            LOGGER.error("Error getting milestones for goal {}: {}", id, e.getMessage(), e);
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error("Error getting milestones for goal {}: {}", id, e.getMessage(), e);
+            }
             return ResponseEntity.internalServerError().body(Map.of(ERROR, INTERNAL_ERROR_MSG));
         }
     }
@@ -122,7 +124,9 @@ public class GoalEnhancementController {
 
             return ResponseEntity.ok(projection);
         } catch (Exception e) {
-            LOGGER.error("Error getting projections for goal {}: {}", id, e.getMessage(), e);
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error("Error getting projections for goal {}: {}", id, e.getMessage(), e);
+            }
             return ResponseEntity.internalServerError().body(Map.of(ERROR, INTERNAL_ERROR_MSG));
         }
     }
@@ -143,7 +147,9 @@ public class GoalEnhancementController {
 
             return ResponseEntity.ok(insights);
         } catch (Exception e) {
-            LOGGER.error("Error getting insights for goal {}: {}", id, e.getMessage(), e);
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error("Error getting insights for goal {}: {}", id, e.getMessage(), e);
+            }
             return ResponseEntity.internalServerError().body(Map.of(ERROR, INTERNAL_ERROR_MSG));
         }
     }
@@ -164,7 +170,9 @@ public class GoalEnhancementController {
             roundUpService.enableRoundUp(id);
             return ResponseEntity.ok(Map.of("message", "Round-up enabled for goal", "goalId", id));
         } catch (Exception e) {
-            LOGGER.error("Error enabling round-up for goal {}: {}", id, e.getMessage(), e);
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error("Error enabling round-up for goal {}: {}", id, e.getMessage(), e);
+            }
             return ResponseEntity.internalServerError().body(Map.of(ERROR, INTERNAL_ERROR_MSG));
         }
     }
@@ -185,7 +193,9 @@ public class GoalEnhancementController {
             roundUpService.disableRoundUp(id);
             return ResponseEntity.ok(Map.of("message", "Round-up disabled for goal", "goalId", id));
         } catch (Exception e) {
-            LOGGER.error("Error disabling round-up for goal {}: {}", id, e.getMessage(), e);
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error("Error disabling round-up for goal {}: {}", id, e.getMessage(), e);
+            }
             return ResponseEntity.internalServerError().body(Map.of(ERROR, INTERNAL_ERROR_MSG));
         }
     }
@@ -207,7 +217,9 @@ public class GoalEnhancementController {
 
             return ResponseEntity.ok(Map.of("total", total, "days", days));
         } catch (Exception e) {
-            LOGGER.error("Error getting round-up total for goal {}: {}", id, e.getMessage(), e);
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error("Error getting round-up total for goal {}: {}", id, e.getMessage(), e);
+            }
             return ResponseEntity.internalServerError().body(Map.of(ERROR, INTERNAL_ERROR_MSG));
         }
     }

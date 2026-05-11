@@ -155,11 +155,13 @@ public class ExcelImportService {
         LOGGER.info("Excel file has {} sheet(s)", sheetCount);
         for (int i = 0; i < sheetCount; i++) {
             final Sheet sheet = workbook.getSheetAt(i);
-            LOGGER.info(
-                    "Sheet {}: '{}' ({} rows)",
-                    i + 1,
-                    sheet.getSheetName(),
-                    sheet.getPhysicalNumberOfRows());
+            if (LOGGER.isInfoEnabled()) {
+                LOGGER.info(
+                        "Sheet {}: '{}' ({} rows)",
+                        i + 1,
+                        sheet.getSheetName(),
+                        sheet.getPhysicalNumberOfRows());
+            }
         }
     }
 
@@ -184,8 +186,12 @@ public class ExcelImportService {
             }
             final String sheetName = sheet.getSheetName();
 
-            LOGGER.info(
-                    "Using sheet: '{}' with {} rows", sheetName, sheet.getPhysicalNumberOfRows());
+            if (LOGGER.isInfoEnabled()) {
+                LOGGER.info(
+                        "Using sheet: '{}' with {} rows",
+                        sheetName,
+                        sheet.getPhysicalNumberOfRows());
+            }
 
             // Use sheet name as additional context for account detection
             String detectionContext = filename;
@@ -207,10 +213,12 @@ public class ExcelImportService {
                 throw new AppException(ErrorCode.INVALID_INPUT, "Excel file has no valid headers");
             }
 
-            LOGGER.info(
-                    "Found {} columns in Excel file: {}",
-                    headers.size(),
-                    String.join(", ", headers));
+            if (LOGGER.isInfoEnabled()) {
+                LOGGER.info(
+                        "Found {} columns in Excel file: {}",
+                        headers.size(),
+                        String.join(", ", headers));
+            }
 
             // Detect account information from filename, sheet name, and headers
             AccountDetectionService.DetectedAccount detectedAccount = null;
@@ -242,18 +250,20 @@ public class ExcelImportService {
                         && !"Sheet1".equalsIgnoreCase(sheetName)) {
                     fromSheetName = accountDetectionService.detectFromFilename(sheetName);
                     if (fromSheetName != null) {
-                        LOGGER.info(
-                                "Detected account info from sheet name '{}': institution={}, type={}, number={}",
-                                sheetName,
-                                fromSheetName.getInstitutionName() != null
-                                        ? fromSheetName.getInstitutionName()
-                                        : "N/A",
-                                fromSheetName.getAccountType() != null
-                                        ? fromSheetName.getAccountType()
-                                        : "N/A",
-                                fromSheetName.getAccountNumber() != null
-                                        ? fromSheetName.getAccountNumber()
-                                        : "N/A");
+                        if (LOGGER.isInfoEnabled()) {
+                            LOGGER.info(
+                                    "Detected account info from sheet name '{}': institution={}, type={}, number={}",
+                                    sheetName,
+                                    fromSheetName.getInstitutionName() != null
+                                            ? fromSheetName.getInstitutionName()
+                                            : "N/A",
+                                    fromSheetName.getAccountType() != null
+                                            ? fromSheetName.getAccountType()
+                                            : "N/A",
+                                    fromSheetName.getAccountNumber() != null
+                                            ? fromSheetName.getAccountNumber()
+                                            : "N/A");
+                        }
                     }
                 }
 
@@ -268,13 +278,15 @@ public class ExcelImportService {
                                 accountDetectionService.matchToExistingAccount(userId, fromHeaders);
                         if (matchedAccountId != null) {
                             detectedAccount = fromHeaders;
-                            LOGGER.info(
-                                    "Matched Excel import to existing account: {} (accountId: {}, accountNumber: {})",
-                                    detectedAccount.getAccountName(),
-                                    matchedAccountId,
-                                    detectedAccount.getAccountNumber() != null
-                                            ? detectedAccount.getAccountNumber()
-                                            : "N/A");
+                            if (LOGGER.isInfoEnabled()) {
+                                LOGGER.info(
+                                        "Matched Excel import to existing account: {} (accountId: {}, accountNumber: {})",
+                                        detectedAccount.getAccountName(),
+                                        matchedAccountId,
+                                        detectedAccount.getAccountNumber() != null
+                                                ? detectedAccount.getAccountNumber()
+                                                : "N/A");
+                            }
                         } else {
                             // Enhanced logging with account number and other details
                             final String accountName =
@@ -289,20 +301,24 @@ public class ExcelImportService {
                                     fromHeaders.getInstitutionName() != null
                                             ? fromHeaders.getInstitutionName()
                                             : "N/A";
-                            LOGGER.info(
-                                    "Detected account from Excel but no match found - Name: {}, AccountNumber: {}, Institution: {}, Type: {}",
-                                    accountName,
-                                    accountNumber,
-                                    institution,
-                                    fromHeaders.getAccountType() != null
-                                            ? fromHeaders.getAccountType()
-                                            : "N/A");
+                            if (LOGGER.isInfoEnabled()) {
+                                LOGGER.info(
+                                        "Detected account from Excel but no match found - Name: {}, AccountNumber: {}, Institution: {}, Type: {}",
+                                        accountName,
+                                        accountNumber,
+                                        institution,
+                                        fromHeaders.getAccountType() != null
+                                                ? fromHeaders.getAccountType()
+                                                : "N/A");
+                            }
                             detectedAccount = fromHeaders;
                         }
                     } catch (Exception e) {
-                        LOGGER.warn(
-                                "Error during account matching for Excel import: {}",
-                                e.getMessage());
+                        if (LOGGER.isWarnEnabled()) {
+                            LOGGER.warn(
+                                    "Error during account matching for Excel import: {}",
+                                    e.getMessage());
+                        }
                         // Continue without account matching - user can select account in UI
                         detectedAccount = fromHeaders;
                     }
@@ -416,11 +432,13 @@ public class ExcelImportService {
                                 if (isInstitutionColumn) {
                                     // Use value as institution name
                                     detectedAccount.setInstitutionName(value.trim());
-                                    LOGGER.info(
-                                            "✓ Extracted institution name from Excel row {} column '{}': {}",
-                                            rowNumber,
-                                            header,
-                                            value.trim());
+                                    if (LOGGER.isInfoEnabled()) {
+                                        LOGGER.info(
+                                                "✓ Extracted institution name from Excel row {} column '{}': {}",
+                                                rowNumber,
+                                                header,
+                                                value.trim());
+                                    }
                                 } else {
                                     // Try pattern matching for product names
                                     final String institution = extractInstitutionFromValue(value);
@@ -514,16 +532,18 @@ public class ExcelImportService {
                                 detectedAccount.setAccountSubtype(subtype);
                             }
                         }
-                        LOGGER.info(
-                                "✓ Inferred account type from Excel transaction patterns: {} / {} (debit: {}, credit: {}, check: {}, ACH: {}, ATM: {}, transfer: {})",
-                                inferredType,
-                                detectedAccount.getAccountSubtype(),
-                                debitCount[0],
-                                creditCount[0],
-                                checkCount[0],
-                                achCount[0],
-                                atmCount[0],
-                                transferCount[0]);
+                        if (LOGGER.isInfoEnabled()) {
+                            LOGGER.info(
+                                    "✓ Inferred account type from Excel transaction patterns: {} / {} (debit: {}, credit: {}, check: {}, ACH: {}, ATM: {}, transfer: {})",
+                                    inferredType,
+                                    detectedAccount.getAccountSubtype(),
+                                    debitCount[0],
+                                    creditCount[0],
+                                    checkCount[0],
+                                    achCount[0],
+                                    atmCount[0],
+                                    transferCount[0]);
+                        }
                     }
                 }
 
@@ -533,10 +553,12 @@ public class ExcelImportService {
                             String.format(
                                     "Transaction limit exceeded. Maximum %d transactions per file. Stopping at row %d.",
                                     MAX_TRANSACTIONS_PER_FILE, rowNumber + 1));
-                    LOGGER.warn(
-                            "Transaction limit reached: {} transactions. Stopping Excel parsing at row {}",
-                            MAX_TRANSACTIONS_PER_FILE,
-                            rowNumber + 1);
+                    if (LOGGER.isWarnEnabled()) {
+                        LOGGER.warn(
+                                "Transaction limit reached: {} transactions. Stopping Excel parsing at row {}",
+                                MAX_TRANSACTIONS_PER_FILE,
+                                rowNumber + 1);
+                    }
                     break;
                 }
 
@@ -571,11 +593,13 @@ public class ExcelImportService {
                                         || transaction.getDate().isAfter(latestDateForBalance)) {
                                     latestDateBalanceValue = balanceValue.trim();
                                     latestDateForBalance = transaction.getDate();
-                                    LOGGER.debug(
-                                            "Tracked balance from Excel transaction row {} (date: {}): {}",
-                                            rowNumber + 1,
-                                            latestDateForBalance,
-                                            latestDateBalanceValue);
+                                    if (LOGGER.isDebugEnabled()) {
+                                        LOGGER.debug(
+                                                "Tracked balance from Excel transaction row {} (date: {}): {}",
+                                                rowNumber + 1,
+                                                latestDateForBalance,
+                                                latestDateBalanceValue);
+                                    }
                                 }
                             }
                         }
@@ -635,15 +659,19 @@ public class ExcelImportService {
                 result.setMatchedAccountId(matchedAccountId);
             }
 
-            LOGGER.info(
-                    "Parsed Excel: {} successful, {} failed",
-                    result.getSuccessCount(),
-                    result.getFailureCount());
+            if (LOGGER.isInfoEnabled()) {
+                LOGGER.info(
+                        "Parsed Excel: {} successful, {} failed",
+                        result.getSuccessCount(),
+                        result.getFailureCount());
+            }
 
         } catch (AppException e) {
             throw e;
         } catch (Exception e) {
-            LOGGER.error("Error parsing Excel file: {}", e.getMessage(), e);
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error("Error parsing Excel file: {}", e.getMessage(), e);
+            }
             throw new AppException(
                     ErrorCode.INVALID_INPUT, "Failed to parse Excel file: " + e.getMessage());
         }
@@ -763,7 +791,9 @@ public class ExcelImportService {
                         }
                     }
                 } catch (Exception e) {
-                    LOGGER.debug("Failed to evaluate formula in cell: {}", e.getMessage());
+                    if (LOGGER.isDebugEnabled()) {
+                        LOGGER.debug("Failed to evaluate formula in cell: {}", e.getMessage());
+                    }
                 }
                 return "";
             case BLANK:
@@ -798,10 +828,12 @@ public class ExcelImportService {
                     }
                 }
             } catch (Exception e) {
-                LOGGER.warn(
-                        "Error extracting account number from value '{}': {}",
-                        value,
-                        e.getMessage());
+                if (LOGGER.isWarnEnabled()) {
+                    LOGGER.warn(
+                            "Error extracting account number from value '{}': {}",
+                            value,
+                            e.getMessage());
+                }
             }
         }
 

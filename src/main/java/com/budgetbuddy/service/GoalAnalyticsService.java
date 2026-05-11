@@ -105,10 +105,12 @@ public class GoalAnalyticsService {
         try {
             targetDate = LocalDate.parse(goal.getTargetDate());
         } catch (Exception e) {
-            LOGGER.warn(
-                    "Invalid target date format for goal {}: {}",
-                    goal.getGoalId(),
-                    goal.getTargetDate());
+            if (LOGGER.isWarnEnabled()) {
+                LOGGER.warn(
+                        "Invalid target date format for goal {}: {}",
+                        goal.getGoalId(),
+                        goal.getTargetDate());
+            }
             return null;
         }
 

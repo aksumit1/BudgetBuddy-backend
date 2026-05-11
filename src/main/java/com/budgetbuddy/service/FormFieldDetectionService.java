@@ -152,10 +152,12 @@ public class FormFieldDetectionService {
         // CRITICAL FIX: Limit OCR text size to prevent OOM
         final int MAX_OCR_TEXT_LENGTH = 10 * 1024 * 1024; // 10 MB
         if (ocrText.length() > MAX_OCR_TEXT_LENGTH) {
-            LOGGER.warn(
-                    "OCR text too large: {} characters, truncating to {} characters",
-                    ocrText.length(),
-                    MAX_OCR_TEXT_LENGTH);
+            if (LOGGER.isWarnEnabled()) {
+                LOGGER.warn(
+                        "OCR text too large: {} characters, truncating to {} characters",
+                        ocrText.length(),
+                        MAX_OCR_TEXT_LENGTH);
+            }
             ocrText = ocrText.substring(0, MAX_OCR_TEXT_LENGTH);
         }
 
@@ -181,11 +183,13 @@ public class FormFieldDetectionService {
             // CRITICAL: Limit line length to prevent regex backtracking on very long lines
             final int MAX_LINE_LENGTH = 1000;
             if (line.length() > MAX_LINE_LENGTH) {
-                LOGGER.debug(
-                        "Line {} too long ({} chars), truncating to {} chars",
-                        i + 1,
-                        line.length(),
-                        MAX_LINE_LENGTH);
+                if (LOGGER.isDebugEnabled()) {
+                    LOGGER.debug(
+                            "Line {} too long ({} chars), truncating to {} chars",
+                            i + 1,
+                            line.length(),
+                            MAX_LINE_LENGTH);
+                }
                 line = line.substring(0, MAX_LINE_LENGTH);
             }
 
@@ -214,19 +218,23 @@ public class FormFieldDetectionService {
                                 final double confidence = calculateConfidence(label, value);
                                 if (confidence > 0.5) {
                                     fields.add(new FormField(label, value, confidence, i + 1));
-                                    LOGGER.debug(
-                                            "Detected form field at line {}: {} = {} (confidence: {})",
-                                            i + 1,
-                                            label,
-                                            value,
-                                            confidence);
+                                    if (LOGGER.isDebugEnabled()) {
+                                        LOGGER.debug(
+                                                "Detected form field at line {}: {} = {} (confidence: {})",
+                                                i + 1,
+                                                label,
+                                                value,
+                                                confidence);
+                                    }
                                 }
                             }
                         }
                     }
                 } catch (Exception e) {
                     // CRITICAL: Catch any regex exceptions to prevent test hangs
-                    LOGGER.warn("Error matching pattern on line {}: {}", i + 1, e.getMessage());
+                    if (LOGGER.isWarnEnabled()) {
+                        LOGGER.warn("Error matching pattern on line {}: {}", i + 1, e.getMessage());
+                    }
                     continue; // Skip this pattern and try next
                 }
             }
@@ -250,7 +258,9 @@ public class FormFieldDetectionService {
         // Remove duplicates (keep highest confidence)
         fields = deduplicateFields(fields);
 
-        LOGGER.info("Detected {} form fields from OCR text", fields.size());
+        if (LOGGER.isInfoEnabled()) {
+            LOGGER.info("Detected {} form fields from OCR text", fields.size());
+        }
         return fields;
     }
 

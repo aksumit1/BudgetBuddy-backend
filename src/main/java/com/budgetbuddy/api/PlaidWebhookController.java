@@ -127,14 +127,18 @@ public class PlaidWebhookController {
                         null,
                         null);
             } catch (Exception e) {
-                LOGGER.warn("Failed to log webhook to audit trail: {}", e.getMessage());
+                if (LOGGER.isWarnEnabled()) {
+                    LOGGER.warn("Failed to log webhook to audit trail: {}", e.getMessage());
+                }
             }
 
             return ResponseEntity.ok(Map.of(STATUS, "success"));
         } catch (AppException e) {
             throw e;
         } catch (Exception e) {
-            LOGGER.error("Failed to process Plaid webhook: {}", e.getMessage(), e);
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error("Failed to process Plaid webhook: {}", e.getMessage(), e);
+            }
             throw new AppException(
                     ErrorCode.PLAID_WEBHOOK_ERROR, "Failed to process webhook", null, null, e);
         }

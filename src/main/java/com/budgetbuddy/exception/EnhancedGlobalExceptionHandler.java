@@ -95,19 +95,23 @@ public class EnhancedGlobalExceptionHandler {
         // Log based on error severity - business logic errors (like USER_ALREADY_EXISTS) should be
         // WARN, not ERROR
         if (isBusinessLogicError(ex.getErrorCode())) {
-            LOGGER.warn(
-                    "Business logic error: {} - {} | CorrelationId: {}",
-                    ex.getErrorCode(),
-                    ex.getMessage(),
-                    correlationId);
+            if (LOGGER.isWarnEnabled()) {
+                LOGGER.warn(
+                        "Business logic error: {} - {} | CorrelationId: {}",
+                        ex.getErrorCode(),
+                        ex.getMessage(),
+                        correlationId);
+            }
         } else {
             // System errors, unexpected errors should be logged as ERROR
-            LOGGER.error(
-                    "Application error: {} - {} | CorrelationId: {}",
-                    ex.getErrorCode(),
-                    ex.getMessage(),
-                    correlationId,
-                    ex);
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error(
+                        "Application error: {} - {} | CorrelationId: {}",
+                        ex.getErrorCode(),
+                        ex.getMessage(),
+                        correlationId,
+                        ex);
+            }
         }
 
         return ResponseEntity.status(status).body(errorResponse);
@@ -139,11 +143,13 @@ public class EnhancedGlobalExceptionHandler {
                         .path(request.getDescription(false).replace("uri=", ""))
                         .build();
 
-        LOGGER.warn(
-                "Method not supported: {} for path {} | CorrelationId: {}",
-                ex.getMethod(),
-                request.getDescription(false),
-                correlationId);
+        if (LOGGER.isWarnEnabled()) {
+            LOGGER.warn(
+                    "Method not supported: {} for path {} | CorrelationId: {}",
+                    ex.getMethod(),
+                    request.getDescription(false),
+                    correlationId);
+        }
 
         return ResponseEntity.status(HttpStatus.METHOD_NOT_ALLOWED).body(errorResponse);
     }
@@ -222,10 +228,12 @@ public class EnhancedGlobalExceptionHandler {
                         .path(request.getDescription(false).replace("uri=", ""))
                         .build();
 
-        LOGGER.warn(
-                "Missing request parameter: {} | CorrelationId: {}",
-                ex.getParameterName(),
-                correlationId);
+        if (LOGGER.isWarnEnabled()) {
+            LOGGER.warn(
+                    "Missing request parameter: {} | CorrelationId: {}",
+                    ex.getParameterName(),
+                    correlationId);
+        }
 
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
     }
@@ -347,15 +355,19 @@ public class EnhancedGlobalExceptionHandler {
 
         // Log at WARN level since this is typically a client-side issue, not a server error
         if (isClientAbort) {
-            LOGGER.warn(
-                    "Client aborted file upload request | CorrelationId: {} | Root cause: {}",
-                    correlationId,
-                    rootCause != null ? rootCause.getClass().getSimpleName() : UNKNOWN);
+            if (LOGGER.isWarnEnabled()) {
+                LOGGER.warn(
+                        "Client aborted file upload request | CorrelationId: {} | Root cause: {}",
+                        correlationId,
+                        rootCause != null ? rootCause.getClass().getSimpleName() : UNKNOWN);
+            }
         } else {
-            LOGGER.warn(
-                    "Multipart file upload failed | CorrelationId: {} | Root cause: {}",
-                    correlationId,
-                    rootCause != null ? rootCause.getClass().getSimpleName() : UNKNOWN);
+            if (LOGGER.isWarnEnabled()) {
+                LOGGER.warn(
+                        "Multipart file upload failed | CorrelationId: {} | Root cause: {}",
+                        correlationId,
+                        rootCause != null ? rootCause.getClass().getSimpleName() : UNKNOWN);
+            }
         }
 
         // Return 400 Bad Request for client-side issues (not 500 Internal Server Error)
@@ -382,10 +394,12 @@ public class EnhancedGlobalExceptionHandler {
                         .build();
 
         // Log at WARN level since this is a client-side issue, not a server error
-        LOGGER.warn(
-                "Client aborted request | CorrelationId: {} | Message: {}",
-                correlationId,
-                ex.getMessage());
+        if (LOGGER.isWarnEnabled()) {
+            LOGGER.warn(
+                    "Client aborted request | CorrelationId: {} | Message: {}",
+                    correlationId,
+                    ex.getMessage());
+        }
 
         // Return 400 Bad Request for client-side issues (not 500 Internal Server Error)
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);

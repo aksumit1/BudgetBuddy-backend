@@ -37,8 +37,13 @@ public final class ControllerErrorHandler {
             return appException;
         } else {
             // Wrap unexpected exceptions
-            logger.error(
-                    "Unexpected error during {}: {}", operation, exception.getMessage(), exception);
+            if (logger.isErrorEnabled()) {
+                logger.error(
+                        "Unexpected error during {}: {}",
+                        operation,
+                        exception.getMessage(),
+                        exception);
+            }
             return new AppException(
                     ErrorCode.INTERNAL_SERVER_ERROR,
                     "An unexpected error occurred during "

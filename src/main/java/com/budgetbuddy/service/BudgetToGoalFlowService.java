@@ -86,17 +86,21 @@ public class BudgetToGoalFlowService {
                 try {
                     flowOne(user, b);
                 } catch (Exception e) {
-                    LOGGER.warn(
-                            "Budget→goal flow failed for budget {}: {}",
-                            b.getBudgetId(),
-                            e.getMessage());
+                    if (LOGGER.isWarnEnabled()) {
+                        LOGGER.warn(
+                                "Budget→goal flow failed for budget {}: {}",
+                                b.getBudgetId(),
+                                e.getMessage());
+                    }
                 }
             }
         } catch (Exception e) {
-            LOGGER.warn(
-                    "Budget→goal flow pass failed for user {}: {}",
-                    user.getUserId(),
-                    e.getMessage());
+            if (LOGGER.isWarnEnabled()) {
+                LOGGER.warn(
+                        "Budget→goal flow pass failed for user {}: {}",
+                        user.getUserId(),
+                        e.getMessage());
+            }
         }
     }
 
@@ -187,23 +191,27 @@ public class BudgetToGoalFlowService {
                     current.setUpdatedAt(Instant.now());
                     try {
                         goalRepository.saveWithLock(current);
-                        LOGGER.info(
-                                "Flowed {} from budget {} to goal {} (category={})",
-                                delta,
-                                budget.getBudgetId(),
-                                current.getGoalId(),
-                                budget.getCategory());
+                        if (LOGGER.isInfoEnabled()) {
+                            LOGGER.info(
+                                    "Flowed {} from budget {} to goal {} (category={})",
+                                    delta,
+                                    budget.getBudgetId(),
+                                    current.getGoalId(),
+                                    budget.getCategory());
+                        }
                         break;
                     } catch (
                             com.budgetbuddy.repository.dynamodb.OptimisticLockHelper
                                             .OptimisticLockException
                                     conflict) {
                         if (attempt == 1) {
-                            LOGGER.warn(
-                                    "Goal {} lost auto-credit of {} to a racing writer;"
-                                            + " next ingest will retry",
-                                    current.getGoalId(),
-                                    delta);
+                            if (LOGGER.isWarnEnabled()) {
+                                LOGGER.warn(
+                                        "Goal {} lost auto-credit of {} to a racing writer;"
+                                                + " next ingest will retry",
+                                        current.getGoalId(),
+                                        delta);
+                            }
                             break;
                         }
                         // Full-reload retry — picks up every concurrent edit, not just the
@@ -241,9 +249,11 @@ public class BudgetToGoalFlowService {
                     com.budgetbuddy.repository.dynamodb.OptimisticLockHelper.OptimisticLockException
                             conflict) {
                 if (attempt == 1) {
-                    LOGGER.warn(
-                            "Budget {} lastGoalFunded update lost to concurrent user edit",
-                            working.getBudgetId());
+                    if (LOGGER.isWarnEnabled()) {
+                        LOGGER.warn(
+                                "Budget {} lastGoalFunded update lost to concurrent user edit",
+                                working.getBudgetId());
+                    }
                     return;
                 }
                 final BudgetTable refreshed =

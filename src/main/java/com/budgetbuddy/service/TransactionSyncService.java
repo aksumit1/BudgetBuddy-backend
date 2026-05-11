@@ -77,10 +77,12 @@ public class TransactionSyncService {
     public CompletableFuture<SyncResult> syncTransactions(
             final String userId, final String accessToken) {
         if (userId == null || userId.isEmpty() || accessToken == null || accessToken.isEmpty()) {
-            LOGGER.error(
-                    "Invalid parameters for transaction sync: userId={}, accessToken={}",
-                    userId != null ? "present" : "null",
-                    accessToken != null ? "present" : "null");
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error(
+                        "Invalid parameters for transaction sync: userId={}, accessToken={}",
+                        userId != null ? "present" : "null",
+                        accessToken != null ? "present" : "null");
+            }
             final SyncResult errorResult = new SyncResult();
             errorResult.setErrorCount(1);
             return CompletableFuture.completedFuture(errorResult);
@@ -172,14 +174,16 @@ public class TransactionSyncService {
                                 // IDs
                                 if (existing.getPlaidTransactionId() == null
                                         || existing.getPlaidTransactionId().isEmpty()) {
-                                    LOGGER.info(
-                                            "🔄 Found matching imported transaction (no Plaid ID) - updating with Plaid ID: accountId={}, amount={}, date={}, description={}...",
-                                            backendAccountId,
-                                            amount,
-                                            transactionDate,
-                                            description.length() > 50
-                                                    ? description.substring(0, 50) + "..."
-                                                    : description);
+                                    if (LOGGER.isInfoEnabled()) {
+                                        LOGGER.info(
+                                                "🔄 Found matching imported transaction (no Plaid ID) - updating with Plaid ID: accountId={}, amount={}, date={}, description={}...",
+                                                backendAccountId,
+                                                amount,
+                                                transactionDate,
+                                                description.length() > 50
+                                                        ? description.substring(0, 50) + "..."
+                                                        : description);
+                                    }
 
                                     // Update existing transaction with Plaid data and ID
                                     existing.setPlaidTransactionId(plaidTransactionId);
@@ -188,10 +192,12 @@ public class TransactionSyncService {
                                     updatedCount++;
                                     continue;
                                 } else {
-                                    LOGGER.debug(
-                                            "Matching transaction found but already has Plaid ID: {} (different from new: {}), creating new transaction",
-                                            existing.getPlaidTransactionId(),
-                                            plaidTransactionId);
+                                    if (LOGGER.isDebugEnabled()) {
+                                        LOGGER.debug(
+                                                "Matching transaction found but already has Plaid ID: {} (different from new: {}), creating new transaction",
+                                                existing.getPlaidTransactionId(),
+                                                plaidTransactionId);
+                                    }
                                 }
                             }
                         }
@@ -225,7 +231,9 @@ public class TransactionSyncService {
                         }
                     }
                 } catch (Exception e) {
-                    LOGGER.error("Failed to sync transaction: {}", e.getMessage(), e);
+                    if (LOGGER.isErrorEnabled()) {
+                        LOGGER.error("Failed to sync transaction: {}", e.getMessage(), e);
+                    }
                     errorCount++;
                 }
             }
@@ -256,29 +264,37 @@ public class TransactionSyncService {
                                                     subscriptionService.detectSubscriptions(userId);
                                     if (!detected.isEmpty()) {
                                         subscriptionService.saveSubscriptions(userId, detected);
-                                        LOGGER.info(
-                                                "Detected {} subscriptions after Plaid sync ({} new transactions)",
-                                                detected.size(),
-                                                finalNewCount);
+                                        if (LOGGER.isInfoEnabled()) {
+                                            LOGGER.info(
+                                                    "Detected {} subscriptions after Plaid sync ({} new transactions)",
+                                                    detected.size(),
+                                                    finalNewCount);
+                                        }
                                     }
                                 } catch (Exception e) {
-                                    LOGGER.warn(
-                                            "Failed to detect subscriptions after Plaid sync: {}",
-                                            e.getMessage());
+                                    if (LOGGER.isWarnEnabled()) {
+                                        LOGGER.warn(
+                                                "Failed to detect subscriptions after Plaid sync: {}",
+                                                e.getMessage());
+                                    }
                                     // Don't fail the sync if subscription detection fails
                                 }
                             });
                 } catch (Exception e) {
-                    LOGGER.warn(
-                            "Failed to trigger subscription detection after Plaid sync: {}",
-                            e.getMessage());
+                    if (LOGGER.isWarnEnabled()) {
+                        LOGGER.warn(
+                                "Failed to trigger subscription detection after Plaid sync: {}",
+                                e.getMessage());
+                    }
                     // Don't fail the sync if subscription detection fails
                 }
             }
 
             return CompletableFuture.completedFuture(result);
         } catch (Exception e) {
-            LOGGER.error("Transaction sync failed for user {}: {}", userId, e.getMessage(), e);
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error("Transaction sync failed for user {}: {}", userId, e.getMessage(), e);
+            }
             final SyncResult result = new SyncResult();
             result.setErrorCount(1);
             result.setErrorMessage(e.getMessage());
@@ -381,14 +397,16 @@ public class TransactionSyncService {
                                 // Only update if existing transaction doesn't have a Plaid ID
                                 if (existing.getPlaidTransactionId() == null
                                         || existing.getPlaidTransactionId().isEmpty()) {
-                                    LOGGER.info(
-                                            "🔄 Found matching imported transaction (no Plaid ID) - updating with Plaid ID: accountId={}, amount={}, date={}, description={}...",
-                                            backendAccountId,
-                                            amount,
-                                            transactionDate,
-                                            description.length() > 50
-                                                    ? description.substring(0, 50) + "..."
-                                                    : description);
+                                    if (LOGGER.isInfoEnabled()) {
+                                        LOGGER.info(
+                                                "🔄 Found matching imported transaction (no Plaid ID) - updating with Plaid ID: accountId={}, amount={}, date={}, description={}...",
+                                                backendAccountId,
+                                                amount,
+                                                transactionDate,
+                                                description.length() > 50
+                                                        ? description.substring(0, 50) + "..."
+                                                        : description);
+                                    }
 
                                     // Update existing transaction with Plaid data and ID
                                     existing.setPlaidTransactionId(plaidTransactionId);
@@ -397,10 +415,12 @@ public class TransactionSyncService {
                                     updatedCount++;
                                     continue;
                                 } else {
-                                    LOGGER.debug(
-                                            "Matching transaction found but already has Plaid ID: {} (different from new: {}), creating new transaction",
-                                            existing.getPlaidTransactionId(),
-                                            plaidTransactionId);
+                                    if (LOGGER.isDebugEnabled()) {
+                                        LOGGER.debug(
+                                                "Matching transaction found but already has Plaid ID: {} (different from new: {}), creating new transaction",
+                                                existing.getPlaidTransactionId(),
+                                                plaidTransactionId);
+                                    }
                                 }
                             }
                         }
@@ -429,8 +449,11 @@ public class TransactionSyncService {
                         }
                     }
                 } catch (Exception e) {
-                    LOGGER.error(
-                            "Failed to sync transaction in incremental sync: {}", e.getMessage());
+                    if (LOGGER.isErrorEnabled()) {
+                        LOGGER.error(
+                                "Failed to sync transaction in incremental sync: {}",
+                                e.getMessage());
+                    }
                 }
             }
 
@@ -452,29 +475,37 @@ public class TransactionSyncService {
                                                     subscriptionService.detectSubscriptions(userId);
                                     if (!detected.isEmpty()) {
                                         subscriptionService.saveSubscriptions(userId, detected);
-                                        LOGGER.info(
-                                                "Detected {} subscriptions after incremental Plaid sync ({} new transactions)",
-                                                detected.size(),
-                                                finalNewCount);
+                                        if (LOGGER.isInfoEnabled()) {
+                                            LOGGER.info(
+                                                    "Detected {} subscriptions after incremental Plaid sync ({} new transactions)",
+                                                    detected.size(),
+                                                    finalNewCount);
+                                        }
                                     }
                                 } catch (Exception e) {
-                                    LOGGER.warn(
-                                            "Failed to detect subscriptions after incremental Plaid sync: {}",
-                                            e.getMessage());
+                                    if (LOGGER.isWarnEnabled()) {
+                                        LOGGER.warn(
+                                                "Failed to detect subscriptions after incremental Plaid sync: {}",
+                                                e.getMessage());
+                                    }
                                     // Don't fail the sync if subscription detection fails
                                 }
                             });
                 } catch (Exception e) {
-                    LOGGER.warn(
-                            "Failed to trigger subscription detection after incremental Plaid sync: {}",
-                            e.getMessage());
+                    if (LOGGER.isWarnEnabled()) {
+                        LOGGER.warn(
+                                "Failed to trigger subscription detection after incremental Plaid sync: {}",
+                                e.getMessage());
+                    }
                     // Don't fail the sync if subscription detection fails
                 }
             }
 
             return CompletableFuture.completedFuture(result);
         } catch (Exception e) {
-            LOGGER.error("Incremental sync failed for user {}: {}", userId, e.getMessage(), e);
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error("Incremental sync failed for user {}: {}", userId, e.getMessage(), e);
+            }
             final SyncResult result = new SyncResult();
             result.setErrorCount(1);
             result.setErrorMessage(e.getMessage());
@@ -499,8 +530,11 @@ public class TransactionSyncService {
                 return transactionId.toString();
             }
         } catch (Exception e) {
-            LOGGER.warn(
-                    "Could not extract transaction ID from Plaid transaction: {}", e.getMessage());
+            if (LOGGER.isWarnEnabled()) {
+                LOGGER.warn(
+                        "Could not extract transaction ID from Plaid transaction: {}",
+                        e.getMessage());
+            }
         }
         return null;
     }
@@ -525,7 +559,10 @@ public class TransactionSyncService {
                 return accountId.toString();
             }
         } catch (Exception e) {
-            LOGGER.warn("Could not extract account ID from Plaid transaction: {}", e.getMessage());
+            if (LOGGER.isWarnEnabled()) {
+                LOGGER.warn(
+                        "Could not extract account ID from Plaid transaction: {}", e.getMessage());
+            }
         }
         return null;
     }
@@ -553,7 +590,9 @@ public class TransactionSyncService {
                 }
             }
         } catch (Exception e) {
-            LOGGER.warn("Could not extract amount from Plaid transaction: {}", e.getMessage());
+            if (LOGGER.isWarnEnabled()) {
+                LOGGER.warn("Could not extract amount from Plaid transaction: {}", e.getMessage());
+            }
         }
         return null;
     }
@@ -582,7 +621,9 @@ public class TransactionSyncService {
                 }
             }
         } catch (Exception e) {
-            LOGGER.warn("Could not extract date from Plaid transaction: {}", e.getMessage());
+            if (LOGGER.isWarnEnabled()) {
+                LOGGER.warn("Could not extract date from Plaid transaction: {}", e.getMessage());
+            }
         }
         return null;
     }
@@ -626,7 +667,10 @@ public class TransactionSyncService {
                 // Ignore
             }
         } catch (Exception e) {
-            LOGGER.warn("Could not extract description from Plaid transaction: {}", e.getMessage());
+            if (LOGGER.isWarnEnabled()) {
+                LOGGER.warn(
+                        "Could not extract description from Plaid transaction: {}", e.getMessage());
+            }
         }
         return null;
     }
@@ -685,10 +729,12 @@ public class TransactionSyncService {
                             // logic
                             // This matches iOS app's
                             // generateTransactionIdFallback(plaidTransactionId:) method
-                            LOGGER.warn(
-                                    "⚠️ Failed to generate transaction ID, using deterministic UUID fallback: {}. "
-                                            + THIS_MATCHES_I_OS_APP_FALLBACK_BEHAVIOR,
-                                    e.getMessage());
+                            if (LOGGER.isWarnEnabled()) {
+                                LOGGER.warn(
+                                        "⚠️ Failed to generate transaction ID, using deterministic UUID fallback: {}. "
+                                                + THIS_MATCHES_I_OS_APP_FALLBACK_BEHAVIOR,
+                                        e.getMessage());
+                            }
                             final java.util.UUID namespaceUUID =
                                     java.util.UUID.fromString(
                                             A_6BA7B811_9DAD_11D1_80B4_00C04FD430C8); // TRANSACTION_NAMESPACE
@@ -696,10 +742,12 @@ public class TransactionSyncService {
                                     IdGenerator.generateDeterministicUUID(
                                             namespaceUUID, plaidTransactionId));
                             transaction.setAccountId(accountId);
-                            LOGGER.debug(
-                                    "Generated fallback transaction ID: {} from Plaid ID: {}",
-                                    transaction.getTransactionId(),
-                                    plaidTransactionId);
+                            if (LOGGER.isDebugEnabled()) {
+                                LOGGER.debug(
+                                        "Generated fallback transaction ID: {} from Plaid ID: {}",
+                                        transaction.getTransactionId(),
+                                        plaidTransactionId);
+                            }
                         }
                     } else {
                         // Missing institution name or account ID - use fallback
@@ -721,10 +769,12 @@ public class TransactionSyncService {
                                 accountId != null
                                         ? accountId
                                         : java.util.UUID.randomUUID().toString());
-                        LOGGER.debug(
-                                "Generated fallback transaction ID: {} from Plaid ID: {} (missing institution/account)",
-                                transaction.getTransactionId(),
-                                plaidTransactionId);
+                        if (LOGGER.isDebugEnabled()) {
+                            LOGGER.debug(
+                                    "Generated fallback transaction ID: {} from Plaid ID: {} (missing institution/account)",
+                                    transaction.getTransactionId(),
+                                    plaidTransactionId);
+                        }
                     }
                 } else {
                     // Account not found - use fallback
@@ -746,10 +796,12 @@ public class TransactionSyncService {
                                     namespaceUUID, plaidTransactionId));
                     transaction.setAccountId(
                             java.util.UUID.randomUUID().toString()); // Temporary account ID
-                    LOGGER.debug(
-                            "Generated fallback transaction ID: {} from Plaid ID: {} (account not found)",
-                            transaction.getTransactionId(),
-                            plaidTransactionId);
+                    if (LOGGER.isDebugEnabled()) {
+                        LOGGER.debug(
+                                "Generated fallback transaction ID: {} from Plaid ID: {} (account not found)",
+                                transaction.getTransactionId(),
+                                plaidTransactionId);
+                    }
                 }
             } else {
                 // No account ID in Plaid transaction - use fallback
@@ -765,10 +817,12 @@ public class TransactionSyncService {
                         IdGenerator.generateDeterministicUUID(namespaceUUID, plaidTransactionId));
                 transaction.setAccountId(
                         java.util.UUID.randomUUID().toString()); // Temporary account ID
-                LOGGER.debug(
-                        "Generated fallback transaction ID: {} from Plaid ID: {} (no account ID in transaction)",
-                        transaction.getTransactionId(),
-                        plaidTransactionId);
+                if (LOGGER.isDebugEnabled()) {
+                    LOGGER.debug(
+                            "Generated fallback transaction ID: {} from Plaid ID: {} (no account ID in transaction)",
+                            transaction.getTransactionId(),
+                            plaidTransactionId);
+                }
             }
         } else {
             // Fallback: generate random UUID if Plaid ID is missing
@@ -776,10 +830,12 @@ public class TransactionSyncService {
             // UUID()
             // Both backend and iOS use random UUID when Plaid transaction ID is unavailable
             transaction.setTransactionId(java.util.UUID.randomUUID().toString());
-            LOGGER.warn(
-                    "⚠️ Plaid transaction ID is null or empty, generated random UUID: {}. "
-                            + THIS_MATCHES_I_OS_APP_FALLBACK_BEHAVIOR,
-                    transaction.getTransactionId());
+            if (LOGGER.isWarnEnabled()) {
+                LOGGER.warn(
+                        "⚠️ Plaid transaction ID is null or empty, generated random UUID: {}. "
+                                + THIS_MATCHES_I_OS_APP_FALLBACK_BEHAVIOR,
+                        transaction.getTransactionId());
+            }
             transaction.setAccountId(
                     java.util.UUID.randomUUID().toString()); // Temporary account ID
         }

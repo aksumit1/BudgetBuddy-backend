@@ -132,11 +132,13 @@ public class ImportHistoryService {
         final ImportHistoryTable table = toTable(history);
         importHistoryRepository.save(table);
 
-        LOGGER.info(
-                "Created import history: {} for user: {}, file: {}",
-                history.getImportId(),
-                userId,
-                fileName);
+        if (LOGGER.isInfoEnabled()) {
+            LOGGER.info(
+                    "Created import history: {} for user: {}, file: {}",
+                    history.getImportId(),
+                    userId,
+                    fileName);
+        }
         return history;
     }
 
@@ -149,7 +151,9 @@ public class ImportHistoryService {
         history.setUpdatedAt(Instant.now());
         final ImportHistoryTable table = toTable(history);
         importHistoryRepository.save(table);
-        LOGGER.debug("Updated import history: {}", history.getImportId());
+        if (LOGGER.isDebugEnabled()) {
+            LOGGER.debug("Updated import history: {}", history.getImportId());
+        }
     }
 
     /** Complete import history */

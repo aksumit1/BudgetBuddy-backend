@@ -76,31 +76,37 @@ public class CircuitBreakerConfig {
                         event -> {
                             final org.slf4j.Logger logger =
                                     org.slf4j.LoggerFactory.getLogger(CircuitBreakerConfig.class);
-                            logger.warn(
-                                    "⚠️ Plaid Circuit Breaker state transition: {} -> {} (at {})",
-                                    event.getStateTransition().getFromState(),
-                                    event.getStateTransition().getToState(),
-                                    java.time.Instant.now());
+                            if (logger.isWarnEnabled()) {
+                                logger.warn(
+                                        "⚠️ Plaid Circuit Breaker state transition: {} -> {} (at {})",
+                                        event.getStateTransition().getFromState(),
+                                        event.getStateTransition().getToState(),
+                                        java.time.Instant.now());
+                            }
                         })
                 .onFailureRateExceeded(
                         event -> {
                             final org.slf4j.Logger logger =
                                     org.slf4j.LoggerFactory.getLogger(CircuitBreakerConfig.class);
-                            logger.error(
-                                    "🚨 Plaid Circuit Breaker failure rate exceeded: {}%",
-                                    event.getFailureRate());
+                            if (logger.isErrorEnabled()) {
+                                logger.error(
+                                        "🚨 Plaid Circuit Breaker failure rate exceeded: {}%",
+                                        event.getFailureRate());
+                            }
                         })
                 .onCallNotPermitted(
                         event -> {
                             final org.slf4j.Logger logger =
                                     org.slf4j.LoggerFactory.getLogger(CircuitBreakerConfig.class);
                             final CircuitBreaker.Metrics metrics = circuitBreaker.getMetrics();
-                            logger.warn(
-                                    "🚫 Plaid Circuit Breaker call not permitted - circuit is OPEN. "
-                                            + "Metrics: failureRate={}%, numberOfBufferedCalls={}, numberOfFailedCalls={}",
-                                    metrics.getFailureRate(),
-                                    metrics.getNumberOfBufferedCalls(),
-                                    metrics.getNumberOfFailedCalls());
+                            if (logger.isWarnEnabled()) {
+                                logger.warn(
+                                        "🚫 Plaid Circuit Breaker call not permitted - circuit is OPEN. "
+                                                + "Metrics: failureRate={}%, numberOfBufferedCalls={}, numberOfFailedCalls={}",
+                                        metrics.getFailureRate(),
+                                        metrics.getNumberOfBufferedCalls(),
+                                        metrics.getNumberOfFailedCalls());
+                            }
                         });
 
         return circuitBreaker;

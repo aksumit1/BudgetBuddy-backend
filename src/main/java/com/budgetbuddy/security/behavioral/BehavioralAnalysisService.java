@@ -147,11 +147,13 @@ public class BehavioralAnalysisService {
             riskScore.setRiskLevel(RiskLevel.LOW);
         }
 
-        LOGGER.debug(
-                "Risk score calculated: User={}, Score={}, Level={}",
-                userId,
-                finalScore,
-                riskScore.getRiskLevel());
+        if (LOGGER.isDebugEnabled()) {
+            LOGGER.debug(
+                    "Risk score calculated: User={}, Score={}, Level={}",
+                    userId,
+                    finalScore,
+                    riskScore.getRiskLevel());
+        }
 
         return riskScore;
     }

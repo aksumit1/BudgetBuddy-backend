@@ -22,11 +22,13 @@ public class JwtAuthenticationEntryPoint implements AuthenticationEntryPoint {
             final HttpServletResponse response,
             final AuthenticationException authException)
             throws IOException, ServletException {
-        LOGGER.error(
-                "Unauthorized error: {} | Endpoint: {} | Message: {}",
-                authException.getClass().getSimpleName(),
-                request.getRequestURI(),
-                authException.getMessage());
+        if (LOGGER.isErrorEnabled()) {
+            LOGGER.error(
+                    "Unauthorized error: {} | Endpoint: {} | Message: {}",
+                    authException.getClass().getSimpleName(),
+                    request.getRequestURI(),
+                    authException.getMessage());
+        }
         LOGGER.debug("Full authentication exception details", authException);
         response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Error: Unauthorized");
     }

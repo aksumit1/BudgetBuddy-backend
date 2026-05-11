@@ -36,6 +36,9 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/budgets")
 public class BudgetController {
 
+    private static final org.slf4j.Logger LOGGER =
+            org.slf4j.LoggerFactory.getLogger(BudgetController.class);
+
     private static final String USER_NOT_AUTHENTICATED = "User not authenticated";
 
     private static final String USER_NOT_FOUND_1 = "User not found";
@@ -173,10 +176,11 @@ public class BudgetController {
             dataChangeNotificationService.notifyBudgetChanged(
                     user.getUserId(), budget.getBudgetId());
         } catch (Exception e) {
-            org.slf4j.LoggerFactory.getLogger(BudgetController.class)
-                    .warn(
-                            "Failed to send data change notification for budget creation/update: {}",
-                            e.getMessage());
+            if (LOGGER.isWarnEnabled()) {
+                LOGGER.warn(
+                        "Failed to send data change notification for budget creation/update: {}",
+                        e.getMessage());
+            }
             // Don't fail the request if notification fails
         }
 
@@ -215,10 +219,11 @@ public class BudgetController {
         try {
             dataChangeNotificationService.notifyBudgetChanged(user.getUserId(), id);
         } catch (Exception e) {
-            org.slf4j.LoggerFactory.getLogger(BudgetController.class)
-                    .warn(
-                            "Failed to send data change notification for budget deletion: {}",
-                            e.getMessage());
+            if (LOGGER.isWarnEnabled()) {
+                LOGGER.warn(
+                        "Failed to send data change notification for budget deletion: {}",
+                        e.getMessage());
+            }
         }
         auditInterceptor.budgetChanged(user.getUserId(), id, "DELETE", "Budget deleted");
         return ResponseEntity.noContent().build();

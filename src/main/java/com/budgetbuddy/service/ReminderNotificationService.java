@@ -110,11 +110,13 @@ public class ReminderNotificationService {
             final List<TransactionActionTable> actions =
                     actionRepository.findByReminderDateRange(startDateStr, endDateStr);
 
-            LOGGER.debug(
-                    "Found {} actions with reminder dates in range {} to {}",
-                    actions.size(),
-                    startDateStr,
-                    endDateStr);
+            if (LOGGER.isDebugEnabled()) {
+                LOGGER.debug(
+                        "Found {} actions with reminder dates in range {} to {}",
+                        actions.size(),
+                        startDateStr,
+                        endDateStr);
+            }
 
             for (final TransactionActionTable action : actions) {
                 // Skip if action is completed
@@ -144,10 +146,12 @@ public class ReminderNotificationService {
                 // Parse reminder date
                 final Instant reminderInstant = parseReminderDate(action.getReminderDate());
                 if (reminderInstant == null) {
-                    LOGGER.warn(
-                            "Invalid reminder date format for action {}: {}",
-                            action.getActionId(),
-                            action.getReminderDate());
+                    if (LOGGER.isWarnEnabled()) {
+                        LOGGER.warn(
+                                "Invalid reminder date format for action {}: {}",
+                                action.getActionId(),
+                                action.getReminderDate());
+                    }
                     skippedCount++;
                     continue;
                 }
@@ -162,21 +166,27 @@ public class ReminderNotificationService {
                 } else if (reminderInstant.isBefore(oneHourAgo)) {
                     // Reminder date is more than an hour in the past - mark as sent to avoid spam
                     // This handles cases where the scheduled job was down or delayed
-                    LOGGER.debug(
-                            "Reminder for action {} is more than 1 hour past, marking as sent",
-                            action.getActionId());
+                    if (LOGGER.isDebugEnabled()) {
+                        LOGGER.debug(
+                                "Reminder for action {} is more than 1 hour past, marking as sent",
+                                action.getActionId());
+                    }
                     action.setNotificationId("sent_" + now.toEpochMilli());
                     actionRepository.save(action);
                     sentCount++;
                 }
             }
 
-            LOGGER.info(
-                    "Reminder notification check completed: {} sent, {} skipped",
-                    sentCount,
-                    skippedCount);
+            if (LOGGER.isInfoEnabled()) {
+                LOGGER.info(
+                        "Reminder notification check completed: {} sent, {} skipped",
+                        sentCount,
+                        skippedCount);
+            }
         } catch (Exception e) {
-            LOGGER.error("Error in reminder notification check: {}", e.getMessage(), e);
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error("Error in reminder notification check: {}", e.getMessage(), e);
+            }
         }
     }
 
@@ -186,10 +196,12 @@ public class ReminderNotificationService {
             // Get user for notification
             final Optional<UserTable> userOpt = userRepository.findById(action.getUserId());
             if (userOpt.isEmpty()) {
-                LOGGER.warn(
-                        "User not found for action {}: {}",
-                        action.getActionId(),
-                        action.getUserId());
+                if (LOGGER.isWarnEnabled()) {
+                    LOGGER.warn(
+                            "User not found for action {}: {}",
+                            action.getActionId(),
+                            action.getUserId());
+                }
                 return;
             }
 
@@ -226,22 +238,28 @@ public class ReminderNotificationService {
                 // Mark as sent by setting notificationId
                 action.setNotificationId("sent_" + Instant.now().toEpochMilli());
                 actionRepository.save(action);
-                LOGGER.info(
-                        "Reminder notification sent for action {} to user {}",
-                        action.getActionId(),
-                        user.getEmail());
+                if (LOGGER.isInfoEnabled()) {
+                    LOGGER.info(
+                            "Reminder notification sent for action {} to user {}",
+                            action.getActionId(),
+                            user.getEmail());
+                }
             } else {
-                LOGGER.warn(
-                        "Failed to send reminder notification for action {}: {}",
-                        action.getActionId(),
-                        "Notification failed");
+                if (LOGGER.isWarnEnabled()) {
+                    LOGGER.warn(
+                            "Failed to send reminder notification for action {}: {}",
+                            action.getActionId(),
+                            "Notification failed");
+                }
             }
         } catch (Exception e) {
-            LOGGER.error(
-                    "Error sending reminder for action {}: {}",
-                    action.getActionId(),
-                    e.getMessage(),
-                    e);
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error(
+                        "Error sending reminder for action {}: {}",
+                        action.getActionId(),
+                        e.getMessage(),
+                        e);
+            }
         }
     }
 

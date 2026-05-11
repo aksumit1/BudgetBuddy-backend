@@ -70,9 +70,11 @@ public class UserController {
                             .findByEmail(userDetails.getUsername())
                             .orElseThrow(
                                     () -> {
-                                        LOGGER.error(
-                                                "User not found for email: {}",
-                                                userDetails.getUsername());
+                                        if (LOGGER.isErrorEnabled()) {
+                                            LOGGER.error(
+                                                    "User not found for email: {}",
+                                                    userDetails.getUsername());
+                                        }
                                         return new AppException(
                                                 ErrorCode.USER_NOT_FOUND, "User not found");
                                     });
@@ -87,12 +89,16 @@ public class UserController {
                     user.getEmailVerified() != null ? user.getEmailVerified() : false);
             userInfo.put("enabled", user.getEnabled() != null ? user.getEnabled() : true);
 
-            LOGGER.debug("Returning user info for user: {}", user.getEmail());
+            if (LOGGER.isDebugEnabled()) {
+                LOGGER.debug("Returning user info for user: {}", user.getEmail());
+            }
             return ResponseEntity.ok(userInfo);
         } catch (AppException e) {
             throw e;
         } catch (Exception e) {
-            LOGGER.error("Error getting current user: {}", e.getMessage(), e);
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error("Error getting current user: {}", e.getMessage(), e);
+            }
             throw new AppException(
                     ErrorCode.INTERNAL_SERVER_ERROR,
                     "Failed to retrieve user information",
@@ -156,15 +162,19 @@ public class UserController {
                             ? "Device registered successfully"
                             : "Device registration failed");
 
-            LOGGER.info(
-                    "Device token registered for user: {}, platform: {}",
-                    user.getUserId(),
-                    platform);
+            if (LOGGER.isInfoEnabled()) {
+                LOGGER.info(
+                        "Device token registered for user: {}, platform: {}",
+                        user.getUserId(),
+                        platform);
+            }
             return ResponseEntity.ok(response);
         } catch (AppException e) {
             throw e;
         } catch (Exception e) {
-            LOGGER.error("Error registering device token: {}", e.getMessage(), e);
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error("Error registering device token: {}", e.getMessage(), e);
+            }
             throw new AppException(
                     ErrorCode.INTERNAL_SERVER_ERROR,
                     "Failed to register device token",

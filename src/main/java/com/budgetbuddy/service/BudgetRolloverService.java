@@ -95,7 +95,10 @@ public class BudgetRolloverService {
         int updated = 0;
         int skipped = 0;
         final List<BudgetTable> withRollover = budgetRepository.findAllWithRollover();
-        LOGGER.info("Rollover scan found {} budgets with rollover enabled", withRollover.size());
+        if (LOGGER.isInfoEnabled()) {
+            LOGGER.info(
+                    "Rollover scan found {} budgets with rollover enabled", withRollover.size());
+        }
 
         for (final BudgetTable budget : withRollover) {
             try {
@@ -128,15 +131,21 @@ public class BudgetRolloverService {
                 budget.setUpdatedAt(Instant.now());
                 budgetRepository.save(budget);
                 updated++;
-                LOGGER.debug(
-                        "Rolled budget {} — prior spent {}, new carry {}",
-                        budget.getBudgetId(),
-                        spent,
-                        newCarry);
+                if (LOGGER.isDebugEnabled()) {
+                    LOGGER.debug(
+                            "Rolled budget {} — prior spent {}, new carry {}",
+                            budget.getBudgetId(),
+                            spent,
+                            newCarry);
+                }
             } catch (Exception e) {
                 // Keep going; one bad row shouldn't stop the whole job.
-                LOGGER.warn(
-                        "Rollover failed for budget {}: {}", budget.getBudgetId(), e.getMessage());
+                if (LOGGER.isWarnEnabled()) {
+                    LOGGER.warn(
+                            "Rollover failed for budget {}: {}",
+                            budget.getBudgetId(),
+                            e.getMessage());
+                }
                 skipped++;
             }
         }

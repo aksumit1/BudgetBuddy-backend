@@ -61,7 +61,9 @@ public final class BatchOperationsHelper {
             final int endIndex = Math.min(i + MAX_BATCH_SIZE, items.size());
             final List<Map<String, AttributeValue>> batch = items.subList(i, endIndex);
 
-            LOGGER.debug("Processing batch {}: {} items", batchNumber, batch.size());
+            if (LOGGER.isDebugEnabled()) {
+                LOGGER.debug("Processing batch {}: {} items", batchNumber, batch.size());
+            }
 
             // Build write requests
             final List<WriteRequest> writeRequests = new ArrayList<>();
@@ -123,11 +125,13 @@ public final class BatchOperationsHelper {
                     && response.unprocessedItems().containsKey(tableName)
                     && !response.unprocessedItems().get(tableName).isEmpty()) {
 
-                LOGGER.warn(
-                        "Batch write has {} unprocessed items, retrying (attempt {}/{})",
-                        response.unprocessedItems().get(tableName).size(),
-                        retryCount + 1,
-                        maxRetries);
+                if (LOGGER.isWarnEnabled()) {
+                    LOGGER.warn(
+                            "Batch write has {} unprocessed items, retrying (attempt {}/{})",
+                            response.unprocessedItems().get(tableName).size(),
+                            retryCount + 1,
+                            maxRetries);
+                }
 
                 requestItems = response.unprocessedItems();
                 retryCount++;
@@ -147,10 +151,12 @@ public final class BatchOperationsHelper {
         }
 
         if (!requestItems.isEmpty() && retryCount > maxRetries) {
-            LOGGER.error(
-                    "Batch write failed to process {} items after {} retries",
-                    requestItems.get(tableName).size(),
-                    maxRetries);
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error(
+                        "Batch write failed to process {} items after {} retries",
+                        requestItems.get(tableName).size(),
+                        maxRetries);
+            }
             throw new AppException(
                     ErrorCode.INTERNAL_SERVER_ERROR,
                     "Batch write failed: "

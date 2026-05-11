@@ -125,9 +125,13 @@ public class CloudWatchService {
                     PutMetricDataRequest.builder().namespace(namespace).metricData(batch).build();
 
             cloudWatchClient.putMetricData(request);
-            LOGGER.debug("Flushed {} metrics to CloudWatch", batch.size());
+            if (LOGGER.isDebugEnabled()) {
+                LOGGER.debug("Flushed {} metrics to CloudWatch", batch.size());
+            }
         } catch (Exception e) {
-            LOGGER.error("Error flushing metrics to CloudWatch: {}", e.getMessage());
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error("Error flushing metrics to CloudWatch: {}", e.getMessage());
+            }
         }
     }
 
@@ -159,9 +163,13 @@ public class CloudWatchService {
         try {
             // Note: CloudWatch Logs requires different API (PutLogEvents)
             // This is a simplified version - in production, use CloudWatch Logs API
-            LOGGER.info("CloudWatch Log: [{}] {}", logGroup, message);
+            if (LOGGER.isInfoEnabled()) {
+                LOGGER.info("CloudWatch Log: [{}] {}", logGroup, message);
+            }
         } catch (Exception e) {
-            LOGGER.error("Failed to put log event to CloudWatch: {}", e.getMessage());
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error("Failed to put log event to CloudWatch: {}", e.getMessage());
+            }
         }
     }
 
@@ -184,9 +192,13 @@ public class CloudWatchService {
                             .comparisonOperator(ComparisonOperator.fromValue(comparisonOperator))
                             .alarmActions(List.of()) // Add SNS topic ARN for notifications
                             .build());
-            LOGGER.info("CloudWatch alarm created: {}", alarmName);
+            if (LOGGER.isInfoEnabled()) {
+                LOGGER.info("CloudWatch alarm created: {}", alarmName);
+            }
         } catch (Exception e) {
-            LOGGER.error("Failed to create CloudWatch alarm: {}", e.getMessage());
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error("Failed to create CloudWatch alarm: {}", e.getMessage());
+            }
         }
     }
 
@@ -208,7 +220,9 @@ public class CloudWatchService {
                                     Statistic.SUM)
                             .build());
         } catch (Exception e) {
-            LOGGER.error("Failed to get metric statistics: {}", e.getMessage());
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error("Failed to get metric statistics: {}", e.getMessage());
+            }
             return null;
         }
     }

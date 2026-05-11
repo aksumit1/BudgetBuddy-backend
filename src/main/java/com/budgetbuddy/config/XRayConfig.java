@@ -32,7 +32,9 @@ public class XRayConfig {
     @jakarta.annotation.PostConstruct
     public void logXRayConfiguration() {
         if (xrayEnabled) {
-            LOGGER.info("X-Ray tracing is enabled with sampling rate: {}%", samplingRate * 100);
+            if (LOGGER.isInfoEnabled()) {
+                LOGGER.info("X-Ray tracing is enabled with sampling rate: {}%", samplingRate * 100);
+            }
             LOGGER.info("To enable X-Ray tracing:");
             LOGGER.info("1. Add AWS X-Ray SDK dependency to pom.xml");
             LOGGER.info("2. Add @XRayEnabled annotation to controllers/services");

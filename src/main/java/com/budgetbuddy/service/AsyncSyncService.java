@@ -76,11 +76,13 @@ public class AsyncSyncService {
             batches.add(items.subList(i, Math.min(i + actualBatchSize, items.size())));
         }
 
-        LOGGER.debug(
-                "Processing {} items in {} batches of size {}",
-                items.size(),
-                batches.size(),
-                actualBatchSize);
+        if (LOGGER.isDebugEnabled()) {
+            LOGGER.debug(
+                    "Processing {} items in {} batches of size {}",
+                    items.size(),
+                    batches.size(),
+                    actualBatchSize);
+        }
 
         // Process batches in parallel
         final List<CompletableFuture<List<R>>> batchFutures =
@@ -94,10 +96,12 @@ public class AsyncSyncService {
                                                                 .map(processor)
                                                                 .collect(Collectors.toList());
                                                     } catch (Exception e) {
-                                                        LOGGER.error(
-                                                                "Error processing batch: {}",
-                                                                e.getMessage(),
-                                                                e);
+                                                        if (LOGGER.isErrorEnabled()) {
+                                                            LOGGER.error(
+                                                                    "Error processing batch: {}",
+                                                                    e.getMessage(),
+                                                                    e);
+                                                        }
                                                         return List.<R>of();
                                                     }
                                                 },
@@ -114,10 +118,12 @@ public class AsyncSyncService {
                                                     try {
                                                         return future.join().stream();
                                                     } catch (Exception e) {
-                                                        LOGGER.error(
-                                                                "Error joining batch future: {}",
-                                                                e.getMessage(),
-                                                                e);
+                                                        if (LOGGER.isErrorEnabled()) {
+                                                            LOGGER.error(
+                                                                    "Error joining batch future: {}",
+                                                                    e.getMessage(),
+                                                                    e);
+                                                        }
                                                         return java.util.stream.Stream.empty();
                                                     }
                                                 })
@@ -153,7 +159,9 @@ public class AsyncSyncService {
                         batch.stream().map(processor).collect(Collectors.toList());
                 results.addAll(batchResults);
             } catch (Exception e) {
-                LOGGER.error("Error processing sequential batch: {}", e.getMessage(), e);
+                if (LOGGER.isErrorEnabled()) {
+                    LOGGER.error("Error processing sequential batch: {}", e.getMessage(), e);
+                }
             }
         }
 

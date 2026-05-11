@@ -96,8 +96,11 @@ public class EmailNotificationService {
                     toEmail,
                     subject);
             if (templateData != null && templateData.containsKey("code")) {
-                LOGGER.info(
-                        "TEST MODE: Password reset code would be: {}", templateData.get("code"));
+                if (LOGGER.isInfoEnabled()) {
+                    LOGGER.info(
+                            "TEST MODE: Password reset code would be: {}",
+                            templateData.get("code"));
+                }
             }
             return true; // Return true in test mode to allow tests to proceed
         }
@@ -136,12 +139,16 @@ public class EmailNotificationService {
 
             final SendEmailResponse response = sesClient.sendEmail(request);
 
-            LOGGER.info("Email sent - MessageId: {}, To: {}", response.messageId(), toEmail);
+            if (LOGGER.isInfoEnabled()) {
+                LOGGER.info("Email sent - MessageId: {}, To: {}", response.messageId(), toEmail);
+            }
             return true;
         } catch (Exception e) {
             // isTestEnvironment is necessarily false at this point — the test-mode branch above
             // returns before this try block runs, so a second check here was dead code.
-            LOGGER.error("Failed to send email to: {}. Error: {}", toEmail, e.getMessage(), e);
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error("Failed to send email to: {}. Error: {}", toEmail, e.getMessage(), e);
+            }
             return false;
         }
     }
@@ -172,21 +179,25 @@ public class EmailNotificationService {
 
             final SendTemplatedEmailResponse response = sesClient.sendTemplatedEmail(request);
 
-            LOGGER.info(
-                    "Templated email sent - MessageId: {}, Template: {}, To: {}",
-                    response.messageId(),
-                    templateId,
-                    toEmail);
+            if (LOGGER.isInfoEnabled()) {
+                LOGGER.info(
+                        "Templated email sent - MessageId: {}, Template: {}, To: {}",
+                        response.messageId(),
+                        templateId,
+                        toEmail);
+            }
             return true;
         } catch (Exception e) {
             // isTestEnvironment is necessarily false here — the test-mode branch above returns
             // before this catch can run.
-            LOGGER.error(
-                    "Failed to send templated email to: {}, Template: {}. Error: {}",
-                    toEmail,
-                    templateId,
-                    e.getMessage(),
-                    e);
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error(
+                        "Failed to send templated email to: {}, Template: {}. Error: {}",
+                        toEmail,
+                        templateId,
+                        e.getMessage(),
+                        e);
+            }
             return false;
         }
     }

@@ -88,7 +88,9 @@ public class FIDO2Controller {
         response.put("options", result.getOptions());
         response.put(MESSAGE, "Registration challenge generated. Use this to create a passkey.");
 
-        LOGGER.info("Registration challenge generated for user: {}", user.getUserId());
+        if (LOGGER.isInfoEnabled()) {
+            LOGGER.info("Registration challenge generated for user: {}", user.getUserId());
+        }
         return ResponseEntity.ok(response);
     }
 
@@ -129,7 +131,9 @@ public class FIDO2Controller {
         response.put("success", true);
         response.put(MESSAGE, "Passkey registered successfully");
 
-        LOGGER.info("Passkey registered for user: {}", user.getUserId());
+        if (LOGGER.isInfoEnabled()) {
+            LOGGER.info("Passkey registered for user: {}", user.getUserId());
+        }
         return ResponseEntity.ok(response);
     }
 
@@ -158,7 +162,9 @@ public class FIDO2Controller {
                 MESSAGE,
                 "Authentication challenge generated. Use this to authenticate with your passkey.");
 
-        LOGGER.info("Authentication challenge generated for user: {}", request.getUserId());
+        if (LOGGER.isInfoEnabled()) {
+            LOGGER.info("Authentication challenge generated for user: {}", request.getUserId());
+        }
         return ResponseEntity.ok(response);
     }
 
@@ -187,7 +193,9 @@ public class FIDO2Controller {
         response.put("success", true);
         response.put(MESSAGE, "Passkey authentication successful");
 
-        LOGGER.info("Passkey authentication successful for user: {}", request.getUserId());
+        if (LOGGER.isInfoEnabled()) {
+            LOGGER.info("Passkey authentication successful for user: {}", request.getUserId());
+        }
         return ResponseEntity.ok(response);
     }
 
@@ -245,7 +253,10 @@ public class FIDO2Controller {
 
         fido2Service.deletePasskey(user.getUserId(), credentialId);
 
-        LOGGER.info("Passkey deleted for user: {}, credential: {}", user.getUserId(), credentialId);
+        if (LOGGER.isInfoEnabled()) {
+            LOGGER.info(
+                    "Passkey deleted for user: {}, credential: {}", user.getUserId(), credentialId);
+        }
         return ResponseEntity.noContent().build();
     }
 

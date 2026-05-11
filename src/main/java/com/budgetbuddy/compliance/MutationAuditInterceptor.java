@@ -75,7 +75,10 @@ public class MutationAuditInterceptor {
                     /* ipAddress */ null,
                     /* userAgent */ null);
         } catch (Exception e) {
-            LOGGER.warn("Mutation audit log failed ({} {}): {}", entityType, verb, e.getMessage());
+            if (LOGGER.isWarnEnabled()) {
+                LOGGER.warn(
+                        "Mutation audit log failed ({} {}): {}", entityType, verb, e.getMessage());
+            }
         }
     }
 }

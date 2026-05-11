@@ -359,42 +359,50 @@ public class AdvancedAccountDetectionService {
             detected.setAccountNumber(detectedNumber);
             detected.setFullAccountNumber(detectedNumber);
             // PII-hygiene: log only the mask, never the raw number.
-            LOGGER.info(
-                    "Detected account number: {} (confidence: {}, source: {}, method: {})",
-                    PrivacyRedaction.maskAccountNumber(detectedNumber),
-                    accountNumber.getConfidence(),
-                    accountNumber.getSource(),
-                    accountNumber.getMethod());
+            if (LOGGER.isInfoEnabled()) {
+                LOGGER.info(
+                        "Detected account number: {} (confidence: {}, source: {}, method: {})",
+                        PrivacyRedaction.maskAccountNumber(detectedNumber),
+                        accountNumber.getConfidence(),
+                        accountNumber.getSource(),
+                        accountNumber.getMethod());
+            }
         }
 
         if (institutionName != null && institutionName.getConfidence() >= 0.5) {
             detected.setInstitutionName(institutionName.getValue());
-            LOGGER.info(
-                    "Detected institution: {} (confidence: {}, source: {}, method: {})",
-                    institutionName.getValue(),
-                    institutionName.getConfidence(),
-                    institutionName.getSource(),
-                    institutionName.getMethod());
+            if (LOGGER.isInfoEnabled()) {
+                LOGGER.info(
+                        "Detected institution: {} (confidence: {}, source: {}, method: {})",
+                        institutionName.getValue(),
+                        institutionName.getConfidence(),
+                        institutionName.getSource(),
+                        institutionName.getMethod());
+            }
         }
 
         if (accountType != null && accountType.getConfidence() >= 0.5) {
             detected.setAccountType(accountType.getValue());
-            LOGGER.info(
-                    "Detected account type: {} (confidence: {}, source: {}, method: {})",
-                    accountType.getValue(),
-                    accountType.getConfidence(),
-                    accountType.getSource(),
-                    accountType.getMethod());
+            if (LOGGER.isInfoEnabled()) {
+                LOGGER.info(
+                        "Detected account type: {} (confidence: {}, source: {}, method: {})",
+                        accountType.getValue(),
+                        accountType.getConfidence(),
+                        accountType.getSource(),
+                        accountType.getMethod());
+            }
         }
 
         if (accountName != null && accountName.getConfidence() >= 0.5) {
             detected.setAccountName(accountName.getValue());
-            LOGGER.info(
-                    "Detected account name: {} (confidence: {}, source: {}, method: {})",
-                    accountName.getValue(),
-                    accountName.getConfidence(),
-                    accountName.getSource(),
-                    accountName.getMethod());
+            if (LOGGER.isInfoEnabled()) {
+                LOGGER.info(
+                        "Detected account name: {} (confidence: {}, source: {}, method: {})",
+                        accountName.getValue(),
+                        accountName.getConfidence(),
+                        accountName.getSource(),
+                        accountName.getMethod());
+            }
         }
 
         return detected;
@@ -692,7 +700,10 @@ public class AdvancedAccountDetectionService {
                     }
                 }
             } catch (Exception e) {
-                LOGGER.debug("Error extracting account number with pattern: {}", e.getMessage());
+                if (LOGGER.isDebugEnabled()) {
+                    LOGGER.debug(
+                            "Error extracting account number with pattern: {}", e.getMessage());
+                }
                 // Continue with next pattern
             }
         }

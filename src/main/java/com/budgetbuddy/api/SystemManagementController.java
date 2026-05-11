@@ -63,7 +63,9 @@ public class SystemManagementController {
             response.put("message", "DNS cache cleared successfully");
             return ResponseEntity.ok(response);
         } catch (Exception e) {
-            LOGGER.error("Failed to clear DNS cache: {}", e.getMessage(), e);
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error("Failed to clear DNS cache: {}", e.getMessage(), e);
+            }
             final Map<String, String> response = new HashMap<>();
             response.put(STATUS, "error");
             response.put("message", "Failed to clear DNS cache: " + e.getMessage());

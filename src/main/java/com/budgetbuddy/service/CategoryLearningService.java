@@ -108,11 +108,13 @@ public class CategoryLearningService {
                 existing.setCorrectedAt(now);
                 correctionTable.updateItem(existing);
 
-                LOGGER.info(
-                        "Updated correction count for merchant '{}' → '{}': {} times",
-                        normalizedMerchant,
-                        correctedCategoryPrimary,
-                        existing.getCorrectionCount());
+                if (LOGGER.isInfoEnabled()) {
+                    LOGGER.info(
+                            "Updated correction count for merchant '{}' → '{}': {} times",
+                            normalizedMerchant,
+                            correctedCategoryPrimary,
+                            existing.getCorrectionCount());
+                }
 
                 // Auto-learn if threshold reached
                 if (existing.getCorrectionCount() >= AUTO_LEARN_THRESHOLD) {
@@ -150,13 +152,19 @@ public class CategoryLearningService {
                         correctedCategoryPrimary);
             }
         } catch (DynamoDbException e) {
-            LOGGER.error("Failed to record correction (DynamoDB error): {}", e.getMessage(), e);
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error("Failed to record correction (DynamoDB error): {}", e.getMessage(), e);
+            }
             // Don't throw - learning is best effort
         } catch (IllegalArgumentException e) {
-            LOGGER.warn("Invalid input for correction recording: {}", e.getMessage());
+            if (LOGGER.isWarnEnabled()) {
+                LOGGER.warn("Invalid input for correction recording: {}", e.getMessage());
+            }
             // Don't throw - learning is best effort
         } catch (Exception e) {
-            LOGGER.error("Unexpected error recording correction: {}", e.getMessage(), e);
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error("Unexpected error recording correction: {}", e.getMessage(), e);
+            }
             // Don't throw - learning is best effort
         }
     }
@@ -246,19 +254,25 @@ public class CategoryLearningService {
                 return mapping;
             }
         } catch (IllegalArgumentException e) {
-            LOGGER.error("Invalid input for custom mapping: {}", e.getMessage());
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error("Invalid input for custom mapping: {}", e.getMessage());
+            }
             throw e; // Re-throw validation errors
         } catch (DynamoDbException e) {
-            LOGGER.error(
-                    "Failed to create/update custom mapping (DynamoDB error): {}",
-                    e.getMessage(),
-                    e);
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error(
+                        "Failed to create/update custom mapping (DynamoDB error): {}",
+                        e.getMessage(),
+                        e);
+            }
             throw new AppException(
                     ErrorCode.INTERNAL_SERVER_ERROR,
                     "Failed to save custom mapping due to database error",
                     e);
         } catch (Exception e) {
-            LOGGER.error("Failed to create/update custom mapping: {}", e.getMessage(), e);
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error("Failed to create/update custom mapping: {}", e.getMessage(), e);
+            }
             throw new AppException(
                     ErrorCode.INTERNAL_SERVER_ERROR, "Failed to save custom mapping", e);
         }
@@ -271,7 +285,9 @@ public class CategoryLearningService {
             final String normalized = normalizeMerchantName(merchantName);
             return findCustomMapping(userId, normalized);
         } catch (Exception e) {
-            LOGGER.debug("Error getting custom mapping: {}", e.getMessage());
+            if (LOGGER.isDebugEnabled()) {
+                LOGGER.debug("Error getting custom mapping: {}", e.getMessage());
+            }
             return null;
         }
     }
@@ -286,7 +302,9 @@ public class CategoryLearningService {
                     .filter(m -> m.getIsActive() != null && m.getIsActive())
                     .collect(Collectors.toList());
         } catch (Exception e) {
-            LOGGER.error("Failed to get user custom mappings: {}", e.getMessage(), e);
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error("Failed to get user custom mappings: {}", e.getMessage(), e);
+            }
             return List.of();
         }
     }
@@ -312,11 +330,13 @@ public class CategoryLearningService {
 
             // Edge case: Verify ownership
             if (!mapping.getUserId().equals(userId)) {
-                LOGGER.warn(
-                        "User {} attempted to delete mapping {} owned by {}",
-                        userId,
-                        mappingId,
-                        mapping.getUserId());
+                if (LOGGER.isWarnEnabled()) {
+                    LOGGER.warn(
+                            "User {} attempted to delete mapping {} owned by {}",
+                            userId,
+                            mappingId,
+                            mapping.getUserId());
+                }
                 throw new SecurityException("Cannot delete mapping owned by another user");
             }
 
@@ -325,18 +345,27 @@ public class CategoryLearningService {
             mapping.setUpdatedAt(Instant.now());
             customMappingTable.updateItem(mapping);
 
-            LOGGER.info("Deleted custom mapping: {}", mappingId);
+            if (LOGGER.isInfoEnabled()) {
+                LOGGER.info("Deleted custom mapping: {}", mappingId);
+            }
         } catch (IllegalArgumentException | SecurityException e) {
-            LOGGER.error("Invalid delete request: {}", e.getMessage());
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error("Invalid delete request: {}", e.getMessage());
+            }
             throw e; // Re-throw validation/security errors
         } catch (DynamoDbException e) {
-            LOGGER.error("Failed to delete custom mapping (DynamoDB error): {}", e.getMessage(), e);
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error(
+                        "Failed to delete custom mapping (DynamoDB error): {}", e.getMessage(), e);
+            }
             throw new AppException(
                     ErrorCode.INTERNAL_SERVER_ERROR,
                     "Failed to delete custom mapping due to database error",
                     e);
         } catch (Exception e) {
-            LOGGER.error("Failed to delete custom mapping: {}", e.getMessage(), e);
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error("Failed to delete custom mapping: {}", e.getMessage(), e);
+            }
             throw new AppException(
                     ErrorCode.INTERNAL_SERVER_ERROR, "Failed to delete custom mapping", e);
         }
@@ -380,7 +409,9 @@ public class CategoryLearningService {
                     .findFirst()
                     .orElse(null);
         } catch (Exception e) {
-            LOGGER.debug("Error finding existing correction: {}", e.getMessage());
+            if (LOGGER.isDebugEnabled()) {
+                LOGGER.debug("Error finding existing correction: {}", e.getMessage());
+            }
             return null;
         }
     }
@@ -398,7 +429,9 @@ public class CategoryLearningService {
                     .findFirst()
                     .orElse(null);
         } catch (Exception e) {
-            LOGGER.debug("Error finding custom mapping: {}", e.getMessage());
+            if (LOGGER.isDebugEnabled()) {
+                LOGGER.debug("Error finding custom mapping: {}", e.getMessage());
+            }
             return null;
         }
     }

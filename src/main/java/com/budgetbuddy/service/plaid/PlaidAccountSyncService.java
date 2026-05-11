@@ -73,17 +73,23 @@ public class PlaidAccountSyncService {
         }
 
         try {
-            LOGGER.info(
-                    "Starting account sync for user: {} (itemId: {})", user.getUserId(), itemId);
+            if (LOGGER.isInfoEnabled()) {
+                LOGGER.info(
+                        "Starting account sync for user: {} (itemId: {})",
+                        user.getUserId(),
+                        itemId);
+            }
 
             // Check if we already have accounts for this Plaid item BEFORE making API call
             if (itemId != null && !itemId.isEmpty()) {
                 final var existingAccounts = accountRepository.findByPlaidItemId(itemId);
                 if (!existingAccounts.isEmpty()) {
-                    LOGGER.info(
-                            "Found {} existing accounts for Plaid item {} - will update with latest data from Plaid",
-                            existingAccounts.size(),
-                            itemId);
+                    if (LOGGER.isInfoEnabled()) {
+                        LOGGER.info(
+                                "Found {} existing accounts for Plaid item {} - will update with latest data from Plaid",
+                                existingAccounts.size(),
+                                itemId);
+                    }
                 } else {
                     LOGGER.debug(
                             "No existing accounts found for Plaid item {} - this appears to be a new connection",
@@ -94,7 +100,9 @@ public class PlaidAccountSyncService {
             final var accountsResponse = plaidService.getAccounts(accessToken);
 
             if (accountsResponse.getAccounts() == null) { // Plaid SDK returns @NonNull
-                LOGGER.warn("No accounts returned from Plaid for user: {}", user.getUserId());
+                if (LOGGER.isWarnEnabled()) {
+                    LOGGER.warn("No accounts returned from Plaid for user: {}", user.getUserId());
+                }
                 return;
             }
 
@@ -135,9 +143,11 @@ public class PlaidAccountSyncService {
                 try {
                     final String accountId = dataExtractor.extractAccountId(plaidAccount);
                     if (accountId == null || accountId.isEmpty()) {
-                        LOGGER.error(
-                                "Account ID is null or empty, skipping. Account type: {}",
-                                plaidAccount.getClass().getName());
+                        if (LOGGER.isErrorEnabled()) {
+                            LOGGER.error(
+                                    "Account ID is null or empty, skipping. Account type: {}",
+                                    plaidAccount.getClass().getName());
+                        }
                         errorCount++;
                         continue;
                     }
@@ -196,10 +206,12 @@ public class PlaidAccountSyncService {
                     AccountTable account;
                     if (existingAccount.isPresent()) {
                         account = existingAccount.get();
-                        LOGGER.debug(
-                                "Updating existing account: {} (accountId: {})",
-                                accountId,
-                                account.getAccountId());
+                        if (LOGGER.isDebugEnabled()) {
+                            LOGGER.debug(
+                                    "Updating existing account: {} (accountId: {})",
+                                    accountId,
+                                    account.getAccountId());
+                        }
                         dataExtractor.updateAccountFromPlaid(account, plaidAccount);
 
                         if ((account.getInstitutionName() == null
@@ -255,9 +267,11 @@ public class PlaidAccountSyncService {
                                         IdGenerator.normalizeUUID(generatedAccountId);
                                 account.setAccountId(normalizedId);
                             } catch (IllegalArgumentException e) {
-                                LOGGER.warn(
-                                        "Failed to generate account ID, using UUID fallback: {}",
-                                        e.getMessage());
+                                if (LOGGER.isWarnEnabled()) {
+                                    LOGGER.warn(
+                                            "Failed to generate account ID, using UUID fallback: {}",
+                                            e.getMessage());
+                                }
                                 // CRITICAL FIX: Normalize generated UUID to lowercase for
                                 // consistency
                                 account.setAccountId(
@@ -312,7 +326,9 @@ public class PlaidAccountSyncService {
                     }
                     syncedCount++;
                 } catch (Exception e) {
-                    LOGGER.error("Error syncing account: {}", e.getMessage(), e);
+                    if (LOGGER.isErrorEnabled()) {
+                        LOGGER.error("Error syncing account: {}", e.getMessage(), e);
+                    }
                     errorCount++;
                 }
             }
@@ -340,27 +356,40 @@ public class PlaidAccountSyncService {
                             persistWithConflictRetry(accountToSave);
                         }
                     } catch (Exception saveError) {
-                        LOGGER.error(
-                                "Error saving account {}: {}",
-                                accountToSave.getAccountId(),
-                                saveError.getMessage());
+                        if (LOGGER.isErrorEnabled()) {
+                            LOGGER.error(
+                                    "Error saving account {}: {}",
+                                    accountToSave.getAccountId(),
+                                    saveError.getMessage());
+                        }
                         errorCount++;
                     }
                 }
-                LOGGER.debug(
-                        "Saved {} accounts for user: {}", accountsToSave.size(), user.getUserId());
+                if (LOGGER.isDebugEnabled()) {
+                    LOGGER.debug(
+                            "Saved {} accounts for user: {}",
+                            accountsToSave.size(),
+                            user.getUserId());
+                }
             }
 
-            LOGGER.info(
-                    "Account sync completed for user: {} - Synced: {}, Errors: {}",
-                    user.getUserId(),
-                    syncedCount,
-                    errorCount);
+            if (LOGGER.isInfoEnabled()) {
+                LOGGER.info(
+                        "Account sync completed for user: {} - Synced: {}, Errors: {}",
+                        user.getUserId(),
+                        syncedCount,
+                        errorCount);
+            }
         } catch (AppException e) {
             throw e;
         } catch (Exception e) {
-            LOGGER.error(
-                    "Error syncing accounts for user {}: {}", user.getUserId(), e.getMessage(), e);
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error(
+                        "Error syncing accounts for user {}: {}",
+                        user.getUserId(),
+                        e.getMessage(),
+                        e);
+            }
             throw new AppException(
                     ErrorCode.PLAID_CONNECTION_FAILED, "Failed to sync accounts", null, null, e);
         }
@@ -392,12 +421,17 @@ public class PlaidAccountSyncService {
         } catch (
                 com.budgetbuddy.repository.dynamodb.OptimisticLockHelper.OptimisticLockException
                         e) {
-            LOGGER.info(
-                    "Account {} had a concurrent user edit — re-reading and re-merging Plaid fields",
-                    account.getAccountId());
+            if (LOGGER.isInfoEnabled()) {
+                LOGGER.info(
+                        "Account {} had a concurrent user edit — re-reading and re-merging Plaid fields",
+                        account.getAccountId());
+            }
             final Optional<AccountTable> fresh = accountRepository.findById(account.getAccountId());
             if (fresh.isEmpty()) {
-                LOGGER.warn("Account {} disappeared during conflict retry", account.getAccountId());
+                if (LOGGER.isWarnEnabled()) {
+                    LOGGER.warn(
+                            "Account {} disappeared during conflict retry", account.getAccountId());
+                }
                 return;
             }
             final AccountTable merged = fresh.get();
@@ -419,9 +453,11 @@ public class PlaidAccountSyncService {
                             retry) {
                 // Second conflict — the user is actively editing. The next
                 // scheduled sync in a few minutes will catch up; don't thrash.
-                LOGGER.warn(
-                        "Account {} still conflicts after retry; skipping this sync cycle",
-                        account.getAccountId());
+                if (LOGGER.isWarnEnabled()) {
+                    LOGGER.warn(
+                            "Account {} still conflicts after retry; skipping this sync cycle",
+                            account.getAccountId());
+                }
             }
         }
     }

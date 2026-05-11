@@ -83,14 +83,18 @@ public class AwsConfig {
                 // LocalStack requires path-based access style (not virtual-hosted)
                 builder.serviceConfiguration(
                         S3Configuration.builder().pathStyleAccessEnabled(true).build());
-                LOGGER.info(
-                        "✅ S3Client configured with LocalStack endpoint: {} (path-style access enabled)",
-                        endpoint);
+                if (LOGGER.isInfoEnabled()) {
+                    LOGGER.info(
+                            "✅ S3Client configured with LocalStack endpoint: {} (path-style access enabled)",
+                            endpoint);
+                }
             } catch (Exception e) {
-                LOGGER.warn(
-                        "⚠️ Failed to configure S3 endpoint override: {} - {}",
-                        endpoint,
-                        e.getMessage());
+                if (LOGGER.isWarnEnabled()) {
+                    LOGGER.warn(
+                            "⚠️ Failed to configure S3 endpoint override: {} - {}",
+                            endpoint,
+                            e.getMessage());
+                }
             }
         }
 
@@ -122,14 +126,18 @@ public class AwsConfig {
                 // LocalStack requires path-based access style (not virtual-hosted)
                 builder.serviceConfiguration(
                         S3Configuration.builder().pathStyleAccessEnabled(true).build());
-                LOGGER.info(
-                        "✅ S3Presigner configured with LocalStack endpoint: {} (path-style access enabled)",
-                        endpoint);
+                if (LOGGER.isInfoEnabled()) {
+                    LOGGER.info(
+                            "✅ S3Presigner configured with LocalStack endpoint: {} (path-style access enabled)",
+                            endpoint);
+                }
             } catch (Exception e) {
-                LOGGER.warn(
-                        "⚠️ Failed to configure S3Presigner endpoint override: {} - {}",
-                        endpoint,
-                        e.getMessage());
+                if (LOGGER.isWarnEnabled()) {
+                    LOGGER.warn(
+                            "⚠️ Failed to configure S3Presigner endpoint override: {} - {}",
+                            endpoint,
+                            e.getMessage());
+                }
             }
         }
 

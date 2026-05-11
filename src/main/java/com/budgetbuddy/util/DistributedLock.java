@@ -114,10 +114,12 @@ public class DistributedLock {
         } catch (Exception e) {
             // Redis is down - fall back to local lock (not distributed, but allows operation to
             // continue)
-            LOGGER.warn(
-                    "Redis unavailable, falling back to local lock for key: {} (error: {})",
-                    lockKey,
-                    e.getMessage());
+            if (LOGGER.isWarnEnabled()) {
+                LOGGER.warn(
+                        "Redis unavailable, falling back to local lock for key: {} (error: {})",
+                        lockKey,
+                        e.getMessage());
+            }
             return new LockResult(true, UUID.randomUUID().toString());
         }
     }
@@ -151,10 +153,12 @@ public class DistributedLock {
             }
         } catch (Exception e) {
             // Redis is down - gracefully handle (lock will expire automatically)
-            LOGGER.warn(
-                    "Redis unavailable during lock release for key: {} (error: {}). Lock will expire automatically.",
-                    lockKey,
-                    e.getMessage());
+            if (LOGGER.isWarnEnabled()) {
+                LOGGER.warn(
+                        "Redis unavailable during lock release for key: {} (error: {}). Lock will expire automatically.",
+                        lockKey,
+                        e.getMessage());
+            }
             return true; // Return true to allow operation to continue
         }
     }

@@ -128,10 +128,12 @@ public class TableStructureDetectionService {
         // CRITICAL FIX: Limit OCR text size to prevent OOM
         final int MAX_OCR_TEXT_LENGTH = 10 * 1024 * 1024; // 10 MB
         if (ocrText.length() > MAX_OCR_TEXT_LENGTH) {
-            LOGGER.warn(
-                    "OCR text too large: {} characters, truncating to {} characters",
-                    ocrText.length(),
-                    MAX_OCR_TEXT_LENGTH);
+            if (LOGGER.isWarnEnabled()) {
+                LOGGER.warn(
+                        "OCR text too large: {} characters, truncating to {} characters",
+                        ocrText.length(),
+                        MAX_OCR_TEXT_LENGTH);
+            }
             ocrText = ocrText.substring(0, MAX_OCR_TEXT_LENGTH);
         }
 
@@ -154,7 +156,9 @@ public class TableStructureDetectionService {
             table.setHeaderRowIndex(headerIndex);
             final List<String> headers = parseRow(lines[headerIndex]);
             table.setHeaders(headers);
-            LOGGER.info("Found header row at line {}: {}", headerIndex + 1, headers);
+            if (LOGGER.isInfoEnabled()) {
+                LOGGER.info("Found header row at line {}: {}", headerIndex + 1, headers);
+            }
 
             // Detect column types
             final Map<Integer, String> columnTypes = detectColumnTypes(headers);
@@ -165,10 +169,12 @@ public class TableStructureDetectionService {
         final List<List<String>> dataRows = extractDataRows(lines, headerIndex);
         table.setRows(dataRows);
 
-        LOGGER.info(
-                "Detected table with {} headers and {} data rows",
-                table.getHeaders().size(),
-                dataRows.size());
+        if (LOGGER.isInfoEnabled()) {
+            LOGGER.info(
+                    "Detected table with {} headers and {} data rows",
+                    table.getHeaders().size(),
+                    dataRows.size());
+        }
 
         return table;
     }
@@ -187,11 +193,13 @@ public class TableStructureDetectionService {
             // Check if line contains multiple header keywords
             final int keywordCount = countHeaderKeywords(line);
             if (keywordCount >= 2) {
-                LOGGER.debug(
-                        "Found potential header row at line {} with {} keywords: {}",
-                        i + 1,
-                        keywordCount,
-                        line);
+                if (LOGGER.isDebugEnabled()) {
+                    LOGGER.debug(
+                            "Found potential header row at line {} with {} keywords: {}",
+                            i + 1,
+                            keywordCount,
+                            line);
+                }
                 return i;
             }
         }
@@ -201,8 +209,12 @@ public class TableStructureDetectionService {
             final String line = lines[i].trim();
             final String[] words = line.split("\\s+");
             if (words.length >= 3) {
-                LOGGER.debug(
-                        "Found potential header row at line {} (multiple words): {}", i + 1, line);
+                if (LOGGER.isDebugEnabled()) {
+                    LOGGER.debug(
+                            "Found potential header row at line {} (multiple words): {}",
+                            i + 1,
+                            line);
+                }
                 return i;
             }
         }

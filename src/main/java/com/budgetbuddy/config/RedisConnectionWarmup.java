@@ -77,24 +77,32 @@ public class RedisConnectionWarmup implements CommandLineRunner {
 
             if (isDnsFailure) {
                 // DNS resolution failure - clear DNS cache and retry once
-                LOGGER.debug(
-                        "Redis DNS resolution failed, clearing DNS cache and retrying: {}",
-                        e.getMessage());
+                if (LOGGER.isDebugEnabled()) {
+                    LOGGER.debug(
+                            "Redis DNS resolution failed, clearing DNS cache and retrying: {}",
+                            e.getMessage());
+                }
                 clearDnsCache();
                 try {
                     // Retry after clearing DNS cache
                     Thread.sleep(100); // Brief delay to allow DNS cache to clear
                     factory.getConnection().ping();
-                    LOGGER.debug("Redis connection warmup succeeded after DNS cache clear");
+                    if (LOGGER.isDebugEnabled()) {
+                        LOGGER.debug("Redis connection warmup succeeded after DNS cache clear");
+                    }
                 } catch (Exception retryException) {
-                    LOGGER.debug(
-                            "Redis connection warmup failed after DNS cache clear: {} (this is OK if Redis is optional)",
-                            retryException.getMessage());
+                    if (LOGGER.isDebugEnabled()) {
+                        LOGGER.debug(
+                                "Redis connection warmup failed after DNS cache clear: {} (this is OK if Redis is optional)",
+                                retryException.getMessage());
+                    }
                 }
             } else {
-                LOGGER.warn(
-                        "Failed to warm up Redis connection pool: {} (this is OK if Redis is optional)",
-                        e.getMessage());
+                if (LOGGER.isWarnEnabled()) {
+                    LOGGER.warn(
+                            "Failed to warm up Redis connection pool: {} (this is OK if Redis is optional)",
+                            e.getMessage());
+                }
             }
             // Don't fail startup if Redis is unavailable - health check will handle it
         }
@@ -121,7 +129,9 @@ public class RedisConnectionWarmup implements CommandLineRunner {
                     NETWORKADDRESS_CACHE_NEGATIVE_TTL,
                     originalNegativeTtl != null ? originalNegativeTtl : "1");
         } catch (Exception e) {
-            LOGGER.debug("Failed to clear DNS cache: {}", e.getMessage());
+            if (LOGGER.isDebugEnabled()) {
+                LOGGER.debug("Failed to clear DNS cache: {}", e.getMessage());
+            }
         }
     }
 }

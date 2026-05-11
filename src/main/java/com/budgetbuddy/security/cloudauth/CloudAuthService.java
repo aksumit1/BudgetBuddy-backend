@@ -84,7 +84,9 @@ public class CloudAuthService {
             result.setError("Invalid credentials");
             return result;
         } catch (Exception e) {
-            LOGGER.error("CloudAuth: Authentication error: {}", e.getMessage());
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error("CloudAuth: Authentication error: {}", e.getMessage());
+            }
             final CloudAuthResult result = new CloudAuthResult();
             result.setSuccess(false);
             result.setError("Authentication service error");
@@ -147,7 +149,9 @@ public class CloudAuthService {
             result.setError("User already exists");
             return result;
         } catch (Exception e) {
-            LOGGER.error("CloudAuth: Registration error: {}", e.getMessage());
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error("CloudAuth: Registration error: {}", e.getMessage());
+            }
             final CloudAuthResult result = new CloudAuthResult();
             result.setSuccess(false);
             result.setError("Registration service error");
@@ -162,7 +166,9 @@ public class CloudAuthService {
             cognitoClient.getUser(request);
             return true;
         } catch (Exception e) {
-            LOGGER.warn("CloudAuth: Token verification failed: {}", e.getMessage());
+            if (LOGGER.isWarnEnabled()) {
+                LOGGER.warn("CloudAuth: Token verification failed: {}", e.getMessage());
+            }
             return false;
         }
     }

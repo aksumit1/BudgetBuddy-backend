@@ -121,7 +121,9 @@ public class DistributedLockService {
         } catch (Exception e) {
             // If the lock table itself is broken we'd rather miss one cron run
             // than hammer DynamoDB — fail safe by not running.
-            LOGGER.warn("Distributed-lock acquire failed for key={}: {}", key, e.getMessage());
+            if (LOGGER.isWarnEnabled()) {
+                LOGGER.warn("Distributed-lock acquire failed for key={}: {}", key, e.getMessage());
+            }
             return false;
         }
     }
@@ -142,7 +144,9 @@ public class DistributedLockService {
         } catch (ConditionalCheckFailedException ignored) {
             // Another instance took over after TTL — let them release.
         } catch (Exception e) {
-            LOGGER.warn("Distributed-lock release failed for key={}: {}", key, e.getMessage());
+            if (LOGGER.isWarnEnabled()) {
+                LOGGER.warn("Distributed-lock release failed for key={}: {}", key, e.getMessage());
+            }
         }
     }
 }

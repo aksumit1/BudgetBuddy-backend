@@ -92,11 +92,13 @@ public class SubscriptionsBudgetSeeder {
                 "monthly", // period
                 null // currencyCode – service falls back to user's preferred
                 );
-        LOGGER.info(
-                "Seeded Subscriptions budget for user {} at {} (from {} detected subscriptions)",
-                userId,
-                suggested,
-                subs.size());
+        if (LOGGER.isInfoEnabled()) {
+            LOGGER.info(
+                    "Seeded Subscriptions budget for user {} at {} (from {} detected subscriptions)",
+                    userId,
+                    suggested,
+                    subs.size());
+        }
     }
 
     /** Sum of each subscription's monthly-equivalent amount, with a 10% cushion. */

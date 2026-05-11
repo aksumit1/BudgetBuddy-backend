@@ -140,11 +140,13 @@ public class TransactionActionService {
         }
 
         if (transactionOpt.isEmpty()) {
-            LOGGER.warn(
-                    "Transaction {} not found by ID or Plaid ID {} for user {} when creating action. Transaction may not be synced yet.",
-                    transactionId,
-                    plaidTransactionId != null ? plaidTransactionId : "N/A",
-                    user.getEmail());
+            if (LOGGER.isWarnEnabled()) {
+                LOGGER.warn(
+                        "Transaction {} not found by ID or Plaid ID {} for user {} when creating action. Transaction may not be synced yet.",
+                        transactionId,
+                        plaidTransactionId != null ? plaidTransactionId : "N/A",
+                        user.getEmail());
+            }
             throw new AppException(ErrorCode.TRANSACTION_NOT_FOUND, "Transaction not found");
         }
 
@@ -187,11 +189,13 @@ public class TransactionActionService {
                 if (existing.getUserId().equals(user.getUserId())
                         && existing.getTransactionId().equals(actualTransactionId)) {
                     // Same action (same user, same transaction) - return existing (idempotent)
-                    LOGGER.info(
-                            "Action with ID {} already exists for transaction {} and user {}. Returning existing for idempotency.",
-                            normalizedId,
-                            actualTransactionId,
-                            user.getUserId());
+                    if (LOGGER.isInfoEnabled()) {
+                        LOGGER.info(
+                                "Action with ID {} already exists for transaction {} and user {}. Returning existing for idempotency.",
+                                normalizedId,
+                                actualTransactionId,
+                                user.getUserId());
+                    }
                     return existing;
                 } else {
                     // Action exists but belongs to different user or transaction -
@@ -233,11 +237,13 @@ public class TransactionActionService {
         action.setUpdatedAt(Instant.now());
 
         actionRepository.save(action);
-        LOGGER.info(
-                "Created action {} for transaction {} by user {}",
-                action.getActionId(),
-                transactionId,
-                user.getEmail());
+        if (LOGGER.isInfoEnabled()) {
+            LOGGER.info(
+                    "Created action {} for transaction {} by user {}",
+                    action.getActionId(),
+                    transactionId,
+                    user.getEmail());
+        }
         return action;
     }
 
@@ -259,16 +265,20 @@ public class TransactionActionService {
             throw new AppException(ErrorCode.INVALID_INPUT, "Action ID is required");
         }
 
-        LOGGER.debug("Looking up action with ID: {} for user: {}", actionId, user.getEmail());
+        if (LOGGER.isDebugEnabled()) {
+            LOGGER.debug("Looking up action with ID: {} for user: {}", actionId, user.getEmail());
+        }
         final TransactionActionTable action =
                 actionRepository
                         .findById(actionId)
                         .orElseThrow(
                                 () -> {
-                                    LOGGER.warn(
-                                            "Action not found: {} for user: {}",
-                                            actionId,
-                                            user.getEmail());
+                                    if (LOGGER.isWarnEnabled()) {
+                                        LOGGER.warn(
+                                                "Action not found: {} for user: {}",
+                                                actionId,
+                                                user.getEmail());
+                                    }
                                     return new AppException(
                                             ErrorCode.RECORD_NOT_FOUND, "Action not found");
                                 });
@@ -305,7 +315,9 @@ public class TransactionActionService {
         action.setUpdatedAt(Instant.now());
 
         actionRepository.save(action);
-        LOGGER.info("Updated action {} for user {}", actionId, user.getEmail());
+        if (LOGGER.isInfoEnabled()) {
+            LOGGER.info("Updated action {} for user {}", actionId, user.getEmail());
+        }
         return action;
     }
 
@@ -331,7 +343,9 @@ public class TransactionActionService {
         }
 
         actionRepository.delete(actionId);
-        LOGGER.info("Deleted action {} for user {}", actionId, user.getEmail());
+        if (LOGGER.isInfoEnabled()) {
+            LOGGER.info("Deleted action {} for user {}", actionId, user.getEmail());
+        }
     }
 
     /**
@@ -376,10 +390,12 @@ public class TransactionActionService {
         } else {
             // Transaction doesn't exist yet - this is OK, actions can exist before transaction is
             // synced
-            LOGGER.debug(
-                    "Transaction {} not found in backend, but returning {} actions (transaction may not be synced yet)",
-                    transactionId,
-                    userActions.size());
+            if (LOGGER.isDebugEnabled()) {
+                LOGGER.debug(
+                        "Transaction {} not found in backend, but returning {} actions (transaction may not be synced yet)",
+                        transactionId,
+                        userActions.size());
+            }
         }
 
         return userActions;

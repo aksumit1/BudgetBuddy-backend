@@ -157,7 +157,9 @@ public class ExpenseReductionService {
                 }
             }
         } catch (Exception e) {
-            LOGGER.warn("Error analyzing subscriptions: {}", e.getMessage());
+            if (LOGGER.isWarnEnabled()) {
+                LOGGER.warn("Error analyzing subscriptions: {}", e.getMessage());
+            }
         }
 
         return recommendations;
@@ -286,7 +288,9 @@ public class ExpenseReductionService {
                 }
             }
         } catch (Exception e) {
-            LOGGER.warn("Error analyzing duplicate services: {}", e.getMessage());
+            if (LOGGER.isWarnEnabled()) {
+                LOGGER.warn("Error analyzing duplicate services: {}", e.getMessage());
+            }
         }
 
         return recommendations;

@@ -26,7 +26,8 @@ import org.springframework.web.filter.OncePerRequestFilter;
  */
 @edu.umd.cs.findbugs.annotations.SuppressFBWarnings(
         value = "CT_CONSTRUCTOR_THROW",
-        justification = "Java 25: Object.finalize() is deprecated-for-removal, so the finalizer-attack vector this rule guards against is not exploitable. Constructors throw to signal a startup misconfiguration (missing credentials, AWS client init failure, etc.).")
+        justification =
+                "Java 25: Object.finalize() is deprecated-for-removal, so the finalizer-attack vector this rule guards against is not exploitable. Constructors throw to signal a startup misconfiguration (missing credentials, AWS client init failure, etc.).")
 @Component
 @Order(1) // Execute before other filters
 // PMD's LawOfDemeter is documented as imprecise on chains involving
@@ -82,10 +83,12 @@ public class DDoSProtectionFilter extends OncePerRequestFilter {
 
         // Layer 1: IP-based rate limiting (DDoS protection)
         if (clientIp != null && !ddosProtectionService.isAllowed(clientIp)) {
-            LOGGER.warn(
-                    "DDoS protection: Blocked request from IP: {} | CorrelationId: {}",
-                    clientIp,
-                    MDC.get(CORRELATION_ID));
+            if (LOGGER.isWarnEnabled()) {
+                LOGGER.warn(
+                        "DDoS protection: Blocked request from IP: {} | CorrelationId: {}",
+                        clientIp,
+                        MDC.get(CORRELATION_ID));
+            }
             String correlationId = MDC.get(CORRELATION_ID);
             if (correlationId == null) {
                 correlationId = java.util.UUID.randomUUID().toString();
@@ -102,11 +105,13 @@ public class DDoSProtectionFilter extends OncePerRequestFilter {
 
         // Layer 2: Per-customer throttling
         if (userId != null && !rateLimitService.isAllowed(userId, request.getRequestURI())) {
-            LOGGER.warn(
-                    "Rate limit: Blocked request from user: {} for endpoint: {} | CorrelationId: {}",
-                    userId,
-                    request.getRequestURI(),
-                    MDC.get(CORRELATION_ID));
+            if (LOGGER.isWarnEnabled()) {
+                LOGGER.warn(
+                        "Rate limit: Blocked request from user: {} for endpoint: {} | CorrelationId: {}",
+                        userId,
+                        request.getRequestURI(),
+                        MDC.get(CORRELATION_ID));
+            }
             final int retryAfter = rateLimitService.getRetryAfter(userId, request.getRequestURI());
             String correlationId = MDC.get(CORRELATION_ID);
             if (correlationId == null) {
@@ -219,7 +224,9 @@ public class DDoSProtectionFilter extends OncePerRequestFilter {
             } catch (Exception e) {
                 // Token parsing failed - this is expected for invalid tokens
                 // Don't log at error level as this is normal for unauthenticated requests
-                LOGGER.debug("Could not extract user ID from JWT token: {}", e.getMessage());
+                if (LOGGER.isDebugEnabled()) {
+                    LOGGER.debug("Could not extract user ID from JWT token: {}", e.getMessage());
+                }
             }
         }
 
@@ -239,8 +246,10 @@ public class DDoSProtectionFilter extends OncePerRequestFilter {
             }
         } catch (Exception e) {
             // SecurityContext not available - this is normal when filter runs before authentication
-            LOGGER.debug(
-                    "SecurityContext not available for user ID extraction: {}", e.getMessage());
+            if (LOGGER.isDebugEnabled()) {
+                LOGGER.debug(
+                        "SecurityContext not available for user ID extraction: {}", e.getMessage());
+            }
         }
 
         return null; // No user ID available - rate limiting will be IP-based
@@ -265,7 +274,9 @@ public class DDoSProtectionFilter extends OncePerRequestFilter {
             }
             return totalSize;
         } catch (Exception e) {
-            LOGGER.warn("Failed to calculate header size: {}", e.getMessage());
+            if (LOGGER.isWarnEnabled()) {
+                LOGGER.warn("Failed to calculate header size: {}", e.getMessage());
+            }
             return 0;
         }
     }

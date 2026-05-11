@@ -83,10 +83,12 @@ public class DeviceAttestationController {
         response.put("deviceId", request.getDeviceId());
         response.put("trusted", true);
 
-        LOGGER.info(
-                "Device attestation verified for device: {} user: {}",
-                request.getDeviceId(),
-                user.getUserId());
+        if (LOGGER.isInfoEnabled()) {
+            LOGGER.info(
+                    "Device attestation verified for device: {} user: {}",
+                    request.getDeviceId(),
+                    user.getUserId());
+        }
         return ResponseEntity.ok(response);
     }
 

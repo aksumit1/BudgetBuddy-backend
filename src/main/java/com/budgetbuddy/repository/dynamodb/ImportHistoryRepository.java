@@ -31,8 +31,12 @@ import software.amazon.awssdk.enhanced.dynamodb.model.QueryConditional;
 })
 @edu.umd.cs.findbugs.annotations.SuppressFBWarnings(
         value = "CT_CONSTRUCTOR_THROW",
-        justification = "Java 25: Object.finalize() is deprecated-for-removal, so the finalizer-attack vector this rule guards against is not exploitable. Constructors throw to signal a startup misconfiguration (missing credentials, AWS client init failure, etc.).")
+        justification =
+                "Java 25: Object.finalize() is deprecated-for-removal, so the finalizer-attack vector this rule guards against is not exploitable. Constructors throw to signal a startup misconfiguration (missing credentials, AWS client init failure, etc.).")
 public class ImportHistoryRepository {
+
+    private static final org.slf4j.Logger LOGGER =
+            org.slf4j.LoggerFactory.getLogger(ImportHistoryRepository.class);
 
     private final DynamoDbTable<ImportHistoryTable> importHistoryTable;
     private final DynamoDbIndex<ImportHistoryTable> userIdIndex;
@@ -116,8 +120,7 @@ public class ImportHistoryRepository {
             }
         } catch (software.amazon.awssdk.services.dynamodb.model.ResourceNotFoundException e) {
             // GSI not available - return empty list
-            org.slf4j.LoggerFactory.getLogger(ImportHistoryRepository.class)
-                    .warn("UserIdIndex GSI not found for userId {}. Returning empty list.", userId);
+            LOGGER.warn("UserIdIndex GSI not found for userId {}. Returning empty list.", userId);
         }
         // Sort by createdAt descending (newest first)
         results.sort(

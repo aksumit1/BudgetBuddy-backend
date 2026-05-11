@@ -181,7 +181,9 @@ public class GDPRComplianceService {
                     com.fasterxml.jackson.databind.SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
             return mapper.writerWithDefaultPrettyPrinter().writeValueAsString(export);
         } catch (Exception e) {
-            LOGGER.error("Failed to export data as JSON: {}", e.getMessage());
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error("Failed to export data as JSON: {}", e.getMessage());
+            }
             throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to export data", e);
         }
     }
@@ -322,11 +324,13 @@ public class GDPRComplianceService {
             }
         } catch (Exception e) {
             // Log error but don't fail the entire deletion process
-            LOGGER.error(
-                    "Failed to delete account files from S3 for account {} (user {}): {}",
-                    accountId,
-                    userId,
-                    e.getMessage());
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error(
+                        "Failed to delete account files from S3 for account {} (user {}): {}",
+                        accountId,
+                        userId,
+                        e.getMessage());
+            }
         }
     }
 
@@ -340,14 +344,19 @@ public class GDPRComplianceService {
             final String exportPrefix = String.format("exports/user_%s_", userId);
             final int deletedCount = s3Service.deleteFilesByPrefix(exportPrefix);
             if (deletedCount > 0) {
-                LOGGER.info("Deleted {} export files from S3 for user: {}", deletedCount, userId);
+                if (LOGGER.isInfoEnabled()) {
+                    LOGGER.info(
+                            "Deleted {} export files from S3 for user: {}", deletedCount, userId);
+                }
             }
         } catch (Exception e) {
             // Log error but don't fail the entire deletion process
-            LOGGER.error(
-                    "Failed to delete export files from S3 for user {}: {}",
-                    userId,
-                    e.getMessage());
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error(
+                        "Failed to delete export files from S3 for user {}: {}",
+                        userId,
+                        e.getMessage());
+            }
         }
     }
 

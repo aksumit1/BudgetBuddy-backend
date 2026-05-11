@@ -215,7 +215,9 @@ public class SOC2ComplianceService {
                                             .build())
                             .build());
         } catch (Exception e) {
-            LOGGER.error("Failed to put metric to CloudWatch: {}", e.getMessage());
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error("Failed to put metric to CloudWatch: {}", e.getMessage());
+            }
         }
     }
 

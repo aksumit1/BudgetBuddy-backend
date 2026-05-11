@@ -37,7 +37,8 @@ import org.springframework.web.util.ContentCachingResponseWrapper;
 @SuppressWarnings("PMD.OnlyOneReturn")
 @SuppressFBWarnings(
         value = {"EI_EXPOSE_REP2", "CT_CONSTRUCTOR_THROW"},
-        justification = "Spring constructor injection — beans are shared by design; CT_CONSTRUCTOR_THROW: Java 25 deprecates Object.finalize() for removal, so the finalizer-attack vector this rule guards against is not exploitable")
+        justification =
+                "Spring constructor injection — beans are shared by design; CT_CONSTRUCTOR_THROW: Java 25 deprecates Object.finalize() for removal, so the finalizer-attack vector this rule guards against is not exploitable")
 public class NotFoundErrorTrackingFilter extends OncePerRequestFilter {
 
     private static final String UNKNOWN = "unknown";

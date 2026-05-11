@@ -710,11 +710,13 @@ public class CSVImportService {
                     // Duplicate - append number to make it unique
                     final String uniqueHeader = baseHeader + "_" + (count + 1);
                     normalizedHeaders.add(uniqueHeader);
-                    LOGGER.warn(
-                            "Duplicate header '{}' at column {} - renamed to '{}'",
-                            header,
-                            i + 1,
-                            uniqueHeader);
+                    if (LOGGER.isWarnEnabled()) {
+                        LOGGER.warn(
+                                "Duplicate header '{}' at column {} - renamed to '{}'",
+                                header,
+                                i + 1,
+                                uniqueHeader);
+                    }
                 }
             }
 
@@ -733,7 +735,9 @@ public class CSVImportService {
                 final String header = normalizedHeaders.get(i);
                 if (header != null && "balance".equals(header.toLowerCase(Locale.ROOT).trim())) {
                     balanceColumnIndex = i;
-                    LOGGER.info("✓ Found balance column at index {}: '{}'", i, headers.get(i));
+                    if (LOGGER.isInfoEnabled()) {
+                        LOGGER.info("✓ Found balance column at index {}: '{}'", i, headers.get(i));
+                    }
                     break;
                 }
             }
@@ -762,13 +766,15 @@ public class CSVImportService {
                                             userId, fromHeaders);
                             if (matchedAccountId != null) {
                                 detectedAccount = fromHeaders;
-                                LOGGER.info(
-                                        "Matched CSV import to existing account: {} (accountId: {}, accountNumber: {})",
-                                        detectedAccount.getAccountName(),
-                                        matchedAccountId,
-                                        detectedAccount.getAccountNumber() != null
-                                                ? detectedAccount.getAccountNumber()
-                                                : "N/A");
+                                if (LOGGER.isInfoEnabled()) {
+                                    LOGGER.info(
+                                            "Matched CSV import to existing account: {} (accountId: {}, accountNumber: {})",
+                                            detectedAccount.getAccountName(),
+                                            matchedAccountId,
+                                            detectedAccount.getAccountNumber() != null
+                                                    ? detectedAccount.getAccountNumber()
+                                                    : "N/A");
+                                }
                             } else {
                                 // Enhanced logging with account number and other details
                                 final String accountName =
@@ -783,27 +789,34 @@ public class CSVImportService {
                                         fromHeaders.getInstitutionName() != null
                                                 ? fromHeaders.getInstitutionName()
                                                 : "N/A";
-                                LOGGER.info(
-                                        "Detected account from CSV but no match found - Name: {}, AccountNumber: {}, Institution: {}, Type: {}",
-                                        accountName,
-                                        accountNumber,
-                                        institution,
-                                        fromHeaders.getAccountType() != null
-                                                ? fromHeaders.getAccountType()
-                                                : "N/A");
+                                if (LOGGER.isInfoEnabled()) {
+                                    LOGGER.info(
+                                            "Detected account from CSV but no match found - Name: {}, AccountNumber: {}, Institution: {}, Type: {}",
+                                            accountName,
+                                            accountNumber,
+                                            institution,
+                                            fromHeaders.getAccountType() != null
+                                                    ? fromHeaders.getAccountType()
+                                                    : "N/A");
+                                }
                                 detectedAccount = fromHeaders;
                             }
                         } catch (Exception e) {
-                            LOGGER.warn(
-                                    "Error during account matching for CSV import: {}",
-                                    e.getMessage());
+                            if (LOGGER.isWarnEnabled()) {
+                                LOGGER.warn(
+                                        "Error during account matching for CSV import: {}",
+                                        e.getMessage());
+                            }
                             // Continue without account matching - user can select account in UI
                             detectedAccount = fromHeaders;
                         }
                     }
                 } catch (Exception e) {
-                    LOGGER.warn(
-                            "Error during account detection for CSV import: {}", e.getMessage());
+                    if (LOGGER.isWarnEnabled()) {
+                        LOGGER.warn(
+                                "Error during account detection for CSV import: {}",
+                                e.getMessage());
+                    }
                     // Continue without account detection - user can select account in UI
                 }
             }
@@ -846,21 +859,25 @@ public class CSVImportService {
                         // Too many columns - truncate to header count
                         // Only log first few mismatches to avoid spam
                         if (mismatchCount <= 3) {
-                            LOGGER.warn(
-                                    "Row {}: Expected {} columns, found {}. Truncating to match header.",
-                                    rowNumber,
-                                    headers.size(),
-                                    values.size());
+                            if (LOGGER.isWarnEnabled()) {
+                                LOGGER.warn(
+                                        "Row {}: Expected {} columns, found {}. Truncating to match header.",
+                                        rowNumber,
+                                        headers.size(),
+                                        values.size());
+                            }
                         }
                         values = values.subList(0, headers.size());
                     } else {
                         // Too few columns - pad with empty strings
                         if (mismatchCount <= 3) {
-                            LOGGER.warn(
-                                    "Row {}: Expected {} columns, found {}. Padding with empty values.",
-                                    rowNumber,
-                                    headers.size(),
-                                    values.size());
+                            if (LOGGER.isWarnEnabled()) {
+                                LOGGER.warn(
+                                        "Row {}: Expected {} columns, found {}. Padding with empty values.",
+                                        rowNumber,
+                                        headers.size(),
+                                        values.size());
+                            }
                         }
                         while (values.size() < headers.size()) {
                             values.add("");
@@ -900,11 +917,13 @@ public class CSVImportService {
                             value = colIndex < values.size() ? values.get(colIndex) : null;
                             header = colIndex < headers.size() ? headers.get(colIndex) : null;
                         } catch (IndexOutOfBoundsException e) {
-                            LOGGER.warn(
-                                    "Index out of bounds accessing column {} (values: {}, headers: {})",
-                                    colIndex,
-                                    values.size(),
-                                    headers.size());
+                            if (LOGGER.isWarnEnabled()) {
+                                LOGGER.warn(
+                                        "Index out of bounds accessing column {} (values: {}, headers: {})",
+                                        colIndex,
+                                        values.size(),
+                                        headers.size());
+                            }
                             continue; // Skip this column
                         }
 
@@ -964,11 +983,13 @@ public class CSVImportService {
                                     if (isInstitutionColumn) {
                                         // Use value as institution name
                                         detectedAccount.setInstitutionName(value.trim());
-                                        LOGGER.info(
-                                                "✓ Extracted institution name from row {} column '{}': {}",
-                                                rowNumber,
-                                                header,
-                                                value.trim());
+                                        if (LOGGER.isInfoEnabled()) {
+                                            LOGGER.info(
+                                                    "✓ Extracted institution name from row {} column '{}': {}",
+                                                    rowNumber,
+                                                    header,
+                                                    value.trim());
+                                        }
                                     } else {
                                         // Try pattern matching for product names
                                         final String institution =
@@ -1061,9 +1082,11 @@ public class CSVImportService {
                     // For transaction tables, always infer from patterns (don't trust extracted
                     // account type from data)
                     if (isTransactionTable && detectedAccount.getAccountType() != null) {
-                        LOGGER.info(
-                                "⚠️ Transaction table detected - re-inferring account type from patterns (ignoring extracted type: {})",
-                                detectedAccount.getAccountType());
+                        if (LOGGER.isInfoEnabled()) {
+                            LOGGER.info(
+                                    "⚠️ Transaction table detected - re-inferring account type from patterns (ignoring extracted type: {})",
+                                    detectedAccount.getAccountType());
+                        }
                         detectedAccount.setAccountType(
                                 null); // Clear extracted type to force pattern inference
                     }
@@ -1102,16 +1125,18 @@ public class CSVImportService {
                                     detectedAccount.setAccountSubtype(subtype);
                                 }
                             }
-                            LOGGER.info(
-                                    "✓ Inferred account type from transaction patterns: {} / {} (debit: {}, credit: {}, check: {}, ACH: {}, ATM: {}, transfer: {})",
-                                    inferredType,
-                                    detectedAccount.getAccountSubtype(),
-                                    debitCount[0],
-                                    creditCount[0],
-                                    checkCount[0],
-                                    achCount[0],
-                                    atmCount[0],
-                                    transferCount[0]);
+                            if (LOGGER.isInfoEnabled()) {
+                                LOGGER.info(
+                                        "✓ Inferred account type from transaction patterns: {} / {} (debit: {}, credit: {}, check: {}, ACH: {}, ATM: {}, transfer: {})",
+                                        inferredType,
+                                        detectedAccount.getAccountSubtype(),
+                                        debitCount[0],
+                                        creditCount[0],
+                                        checkCount[0],
+                                        achCount[0],
+                                        atmCount[0],
+                                        transferCount[0]);
+                            }
                         } else {
                             LOGGER.warn(
                                     "⚠️ Could not infer account type from transaction patterns - user will need to select account type manually");
@@ -1152,10 +1177,12 @@ public class CSVImportService {
                             && result.getSuccessCount() < previewCategories.size()) {
                         previewCategory = previewCategories.get(result.getSuccessCount());
                         preserveAccountId = previewAccountId;
-                        LOGGER.debug(
-                                "Using preview category for transaction {}: categoryPrimary='{}'",
-                                result.getSuccessCount(),
-                                previewCategory.getCategoryPrimary());
+                        if (LOGGER.isDebugEnabled()) {
+                            LOGGER.debug(
+                                    "Using preview category for transaction {}: categoryPrimary='{}'",
+                                    result.getSuccessCount(),
+                                    previewCategory.getCategoryPrimary());
+                        }
                     }
 
                     final ParsedTransaction transaction =
@@ -1266,16 +1293,18 @@ public class CSVImportService {
                             detectedAccount.setAccountSubtype(subtype);
                         }
                     }
-                    LOGGER.info(
-                            "✓ Inferred account type from transaction patterns (final): {} / {} (debit: {}, credit: {}, check: {}, ACH: {}, ATM: {}, transfer: {})",
-                            inferredType,
-                            detectedAccount.getAccountSubtype(),
-                            debitCount[0],
-                            creditCount[0],
-                            checkCount[0],
-                            achCount[0],
-                            atmCount[0],
-                            transferCount[0]);
+                    if (LOGGER.isInfoEnabled()) {
+                        LOGGER.info(
+                                "✓ Inferred account type from transaction patterns (final): {} / {} (debit: {}, credit: {}, check: {}, ACH: {}, ATM: {}, transfer: {})",
+                                inferredType,
+                                detectedAccount.getAccountSubtype(),
+                                debitCount[0],
+                                creditCount[0],
+                                checkCount[0],
+                                achCount[0],
+                                atmCount[0],
+                                transferCount[0]);
+                    }
                 } else {
                     LOGGER.warn(
                             "⚠️ Could not infer account type from transaction patterns - user will need to select account type manually");
@@ -1322,15 +1351,19 @@ public class CSVImportService {
                 result.setMatchedAccountId(matchedAccountId);
             }
 
-            LOGGER.info(
-                    "Parsed CSV: {} successful, {} failed",
-                    result.getSuccessCount(),
-                    result.getFailureCount());
+            if (LOGGER.isInfoEnabled()) {
+                LOGGER.info(
+                        "Parsed CSV: {} successful, {} failed",
+                        result.getSuccessCount(),
+                        result.getFailureCount());
+            }
 
         } catch (AppException e) {
             throw e;
         } catch (Exception e) {
-            LOGGER.error("Error parsing CSV file: {}", e.getMessage(), e);
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error("Error parsing CSV file: {}", e.getMessage(), e);
+            }
             throw new AppException(
                     ErrorCode.INVALID_INPUT, "Failed to parse CSV file: " + e.getMessage());
         }
@@ -1363,10 +1396,12 @@ public class CSVImportService {
                     }
                 }
             } catch (Exception e) {
-                LOGGER.warn(
-                        "Error extracting account number from value '{}': {}",
-                        value,
-                        e.getMessage());
+                if (LOGGER.isWarnEnabled()) {
+                    LOGGER.warn(
+                            "Error extracting account number from value '{}': {}",
+                            value,
+                            e.getMessage());
+                }
             }
         }
 
@@ -3173,10 +3208,12 @@ public class CSVImportService {
                                     parsed);
                             return parsed;
                         } catch (Exception e) {
-                            LOGGER.debug(
-                                    "parseDate: Failed to parse '{}' as MM/dd/yyyy: {}",
-                                    trimmed,
-                                    e.getMessage());
+                            if (LOGGER.isDebugEnabled()) {
+                                LOGGER.debug(
+                                        "parseDate: Failed to parse '{}' as MM/dd/yyyy: {}",
+                                        trimmed,
+                                        e.getMessage());
+                            }
                         }
                     }
                     // If second number > 12, it must be dd/MM/yyyy (European format)
@@ -3192,10 +3229,12 @@ public class CSVImportService {
                                     parsed);
                             return parsed;
                         } catch (Exception e) {
-                            LOGGER.debug(
-                                    "parseDate: Failed to parse '{}' as dd/MM/yyyy: {}",
-                                    trimmed,
-                                    e.getMessage());
+                            if (LOGGER.isDebugEnabled()) {
+                                LOGGER.debug(
+                                        "parseDate: Failed to parse '{}' as dd/MM/yyyy: {}",
+                                        trimmed,
+                                        e.getMessage());
+                            }
                         }
                     }
                     // If both numbers <= 12, it's ambiguous - prefer US format (MM/dd/yyyy) for
@@ -3214,10 +3253,12 @@ public class CSVImportService {
                                     parsed);
                             return parsed;
                         } catch (Exception e) {
-                            LOGGER.debug(
-                                    "parseDate: Failed to parse '{}' as MM/dd/yyyy: {}",
-                                    trimmed,
-                                    e.getMessage());
+                            if (LOGGER.isDebugEnabled()) {
+                                LOGGER.debug(
+                                        "parseDate: Failed to parse '{}' as MM/dd/yyyy: {}",
+                                        trimmed,
+                                        e.getMessage());
+                            }
                         }
                     }
                 } catch (NumberFormatException e) {
@@ -3239,11 +3280,13 @@ public class CSVImportService {
                         parsed);
                 return parsed;
             } catch (DateTimeParseException e) {
-                LOGGER.debug(
-                        "parseDate: Failed to parse '{}' with formatter '{}': {}",
-                        trimmed,
-                        formatter,
-                        e.getMessage());
+                if (LOGGER.isDebugEnabled()) {
+                    LOGGER.debug(
+                            "parseDate: Failed to parse '{}' with formatter '{}': {}",
+                            trimmed,
+                            formatter,
+                            e.getMessage());
+                }
                 // Continue to next formatter
             }
         }
@@ -3262,10 +3305,12 @@ public class CSVImportService {
                         parsed);
                 return parsed;
             } catch (Exception e) {
-                LOGGER.debug(
-                        "parseDate: Failed to parse '{}' as ISO_LOCAL_DATE: {}",
-                        trimmed,
-                        e.getMessage());
+                if (LOGGER.isDebugEnabled()) {
+                    LOGGER.debug(
+                            "parseDate: Failed to parse '{}' as ISO_LOCAL_DATE: {}",
+                            trimmed,
+                            e.getMessage());
+                }
                 // Ignore and continue
             }
         }
@@ -3614,7 +3659,10 @@ public class CSVImportService {
             LOGGER.warn("Could not parse amount: {} (cleaned: {})", amountString, numericString);
             return new AmountParseResult(null, currencyCode);
         } catch (ArithmeticException e) {
-            LOGGER.warn("Arithmetic error parsing amount: {} - {}", amountString, e.getMessage());
+            if (LOGGER.isWarnEnabled()) {
+                LOGGER.warn(
+                        "Arithmetic error parsing amount: {} - {}", amountString, e.getMessage());
+            }
             return new AmountParseResult(null, currencyCode);
         }
     }
@@ -5137,17 +5185,21 @@ public class CSVImportService {
                 if (enhancedResult == null) {
                     LOGGER.debug("🏷️ parseCategory: Enhanced detection returned null result");
                 } else if (enhancedResult.category == null) {
-                    LOGGER.debug(
-                            "🏷️ parseCategory: Enhanced detection returned null category (method: {}, confidence: {})",
-                            enhancedResult.method,
-                            String.format("%.2f", enhancedResult.confidence));
+                    if (LOGGER.isDebugEnabled()) {
+                        LOGGER.debug(
+                                "🏷️ parseCategory: Enhanced detection returned null category (method: {}, confidence: {})",
+                                enhancedResult.method,
+                                String.format("%.2f", enhancedResult.confidence));
+                    }
                 } else {
-                    LOGGER.debug(
-                            "🏷️ parseCategory: Enhanced detection result - category='{}', confidence={}, method='{}', reason='{}'",
-                            enhancedResult.category,
-                            String.format("%.2f", enhancedResult.confidence),
-                            enhancedResult.method,
-                            enhancedResult.reason != null ? enhancedResult.reason : "N/A");
+                    if (LOGGER.isDebugEnabled()) {
+                        LOGGER.debug(
+                                "🏷️ parseCategory: Enhanced detection result - category='{}', confidence={}, method='{}', reason='{}'",
+                                enhancedResult.category,
+                                String.format("%.2f", enhancedResult.confidence),
+                                enhancedResult.method,
+                                enhancedResult.reason != null ? enhancedResult.reason : "N/A");
+                    }
                 }
 
                 // CRITICAL: Use enhanced detection if confidence is reasonable
@@ -5159,22 +5211,26 @@ public class CSVImportService {
                             "FUZZY_MATCH".equals(enhancedResult.method) ? 0.50 : 0.55;
 
                     if (enhancedResult.confidence >= confidenceThreshold) {
-                        LOGGER.debug(
-                                "🏷️ parseCategory: ✅ Enhanced detection (ML/Fuzzy) found: '{}' (confidence: {}, method: {}, threshold: {}) - RETURNING THIS CATEGORY",
-                                enhancedResult.category,
-                                String.format("%.2f", enhancedResult.confidence),
-                                enhancedResult.method,
-                                String.format("%.2f", confidenceThreshold));
+                        if (LOGGER.isDebugEnabled()) {
+                            LOGGER.debug(
+                                    "🏷️ parseCategory: ✅ Enhanced detection (ML/Fuzzy) found: '{}' (confidence: {}, method: {}, threshold: {}) - RETURNING THIS CATEGORY",
+                                    enhancedResult.category,
+                                    String.format("%.2f", enhancedResult.confidence),
+                                    enhancedResult.method,
+                                    String.format("%.2f", confidenceThreshold));
+                        }
                         // NOTE: Do NOT train model during preview - only during actual import
                         // Training happens in TransactionService when transaction is successfully
                         // created
                         return enhancedResult.category;
                     } else {
-                        LOGGER.debug(
-                                "🏷️ parseCategory: Enhanced detection found '{}' but confidence too low ({} < {}), continuing to fallback methods",
-                                enhancedResult.category,
-                                String.format("%.2f", enhancedResult.confidence),
-                                String.format("%.2f", confidenceThreshold));
+                        if (LOGGER.isDebugEnabled()) {
+                            LOGGER.debug(
+                                    "🏷️ parseCategory: Enhanced detection found '{}' but confidence too low ({} < {}), continuing to fallback methods",
+                                    enhancedResult.category,
+                                    String.format("%.2f", enhancedResult.confidence),
+                                    String.format("%.2f", confidenceThreshold));
+                        }
                     }
                 } else if (enhancedResult == null) {
                     LOGGER.debug(
@@ -5183,10 +5239,12 @@ public class CSVImportService {
             } catch (Exception e) {
                 // CRITICAL: Don't fail category detection if ML/fuzzy matching fails
                 // Log error but continue to fallback methods
-                LOGGER.warn(
-                        "🏷️ parseCategory: Enhanced category detection failed (non-fatal): {} - stack trace: {}",
-                        e.getMessage(),
-                        e.getClass().getSimpleName());
+                if (LOGGER.isWarnEnabled()) {
+                    LOGGER.warn(
+                            "🏷️ parseCategory: Enhanced category detection failed (non-fatal): {} - stack trace: {}",
+                            e.getMessage(),
+                            e.getClass().getSimpleName());
+                }
                 LOGGER.debug("🏷️ parseCategory: Enhanced detection exception details", e);
             }
         } else {
@@ -5350,10 +5408,12 @@ public class CSVImportService {
                     }
                 }
                 if (lower.contains(key)) {
-                    LOGGER.debug(
-                            "parseCategory: Matched category string '{}' → '{}' (substring match)",
-                            safeCategoryString,
-                            entry.getValue());
+                    if (LOGGER.isDebugEnabled()) {
+                        LOGGER.debug(
+                                "parseCategory: Matched category string '{}' → '{}' (substring match)",
+                                safeCategoryString,
+                                entry.getValue());
+                    }
                     return entry.getValue();
                 }
             }

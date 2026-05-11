@@ -47,7 +47,8 @@ import software.amazon.awssdk.services.dynamodb.model.UpdateTimeToLiveRequest;
 @SuppressWarnings({"PMD.AvoidCatchingGenericException", "PMD.OnlyOneReturn"})
 @SuppressFBWarnings(
         value = {"EI_EXPOSE_REP2", "CT_CONSTRUCTOR_THROW"},
-        justification = "Spring constructor injection — beans are shared by design; CT_CONSTRUCTOR_THROW: Java 25 deprecates Object.finalize() for removal, so the finalizer-attack vector this rule guards against is not exploitable")
+        justification =
+                "Spring constructor injection — beans are shared by design; CT_CONSTRUCTOR_THROW: Java 25 deprecates Object.finalize() for removal, so the finalizer-attack vector this rule guards against is not exploitable")
 @Service
 public class DDoSProtectionService {
 
@@ -246,9 +247,11 @@ public class DDoSProtectionService {
                                             ))
                             .build());
         } catch (Exception e) {
-            LOGGER.debug(
-                    "Failed to record request in DynamoDB: {}. Continuing without recording.",
-                    e.getMessage());
+            if (LOGGER.isDebugEnabled()) {
+                LOGGER.debug(
+                        "Failed to record request in DynamoDB: {}. Continuing without recording.",
+                        e.getMessage());
+            }
             // Mark DynamoDB as unavailable if we get persistent errors
             dynamoDbAvailable = false;
             // Don't fail the request if logging fails
@@ -292,7 +295,9 @@ public class DDoSProtectionService {
                 dynamoDbAvailable = false;
                 return false;
             }
-            LOGGER.warn("Failed to check if DDoS protection table exists: {}", e.getMessage());
+            if (LOGGER.isWarnEnabled()) {
+                LOGGER.warn("Failed to check if DDoS protection table exists: {}", e.getMessage());
+            }
             // Continue with creation attempt
         }
 
@@ -325,8 +330,11 @@ public class DDoSProtectionService {
                                                 .build())
                                 .build());
             } catch (Exception e) {
-                LOGGER.warn(
-                        "Failed to configure TTL for DDoS protection table: {}", e.getMessage());
+                if (LOGGER.isWarnEnabled()) {
+                    LOGGER.warn(
+                            "Failed to configure TTL for DDoS protection table: {}",
+                            e.getMessage());
+                }
             }
             LOGGER.info("DDoS protection table created successfully");
             dynamoDbAvailable = true;
@@ -339,20 +347,26 @@ public class DDoSProtectionService {
                 dynamoDbAvailable = false;
                 return false;
             }
-            LOGGER.error("Failed to create DDoS protection table: {}", e.getMessage(), e);
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error("Failed to create DDoS protection table: {}", e.getMessage(), e);
+            }
             dynamoDbAvailable = false;
             return false;
         } catch (ResourceInUseException e) {
             // Table was created by another instance between check and create - this is fine
-            LOGGER.debug("DDoS protection table already exists (race condition)");
+            if (LOGGER.isDebugEnabled()) {
+                LOGGER.debug("DDoS protection table already exists (race condition)");
+            }
             dynamoDbAvailable = true;
             return true;
         } catch (Exception e) {
-            LOGGER.error(
-                    "Failed to create DDoS protection table: {}. "
-                            + "DDoS protection will work in in-memory only mode. "
-                            + "Blocked IPs will not persist across restarts.",
-                    e.getMessage());
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error(
+                        "Failed to create DDoS protection table: {}. "
+                                + "DDoS protection will work in in-memory only mode. "
+                                + "Blocked IPs will not persist across restarts.",
+                        e.getMessage());
+            }
             dynamoDbAvailable = false;
             return false;
         }
@@ -387,9 +401,11 @@ public class DDoSProtectionService {
                     dynamoDbAvailable = false;
                 }
             } catch (Exception e) {
-                LOGGER.debug(
-                        "DynamoDB check failed: {}. Continuing with in-memory only mode.",
-                        e.getMessage());
+                if (LOGGER.isDebugEnabled()) {
+                    LOGGER.debug(
+                            "DynamoDB check failed: {}. Continuing with in-memory only mode.",
+                            e.getMessage());
+                }
                 dynamoDbAvailable = false;
             }
         }
@@ -427,9 +443,11 @@ public class DDoSProtectionService {
         } catch (NumberFormatException e) {
             LOGGER.error("Invalid blockedUntil value in DynamoDB for IP: {}", ipAddress);
         } catch (Exception e) {
-            LOGGER.debug(
-                    "Failed to check blocked IP in DynamoDB: {}. Using in-memory cache only.",
-                    e.getMessage());
+            if (LOGGER.isDebugEnabled()) {
+                LOGGER.debug(
+                        "Failed to check blocked IP in DynamoDB: {}. Using in-memory cache only.",
+                        e.getMessage());
+            }
             // Mark DynamoDB as unavailable if we get persistent errors
             dynamoDbAvailable = false;
         }
@@ -470,14 +488,18 @@ public class DDoSProtectionService {
                                                     .n(String.valueOf(blockedUntil + 86_400))
                                                     .build()))
                             .build());
-            LOGGER.warn(
-                    "Blocked IP address: {} until {}",
-                    ipAddress,
-                    Instant.ofEpochSecond(blockedUntil));
+            if (LOGGER.isWarnEnabled()) {
+                LOGGER.warn(
+                        "Blocked IP address: {} until {}",
+                        ipAddress,
+                        Instant.ofEpochSecond(blockedUntil));
+            }
         } catch (Exception e) {
-            LOGGER.debug(
-                    "Failed to block IP in DynamoDB: {}. IP blocked in-memory only.",
-                    e.getMessage());
+            if (LOGGER.isDebugEnabled()) {
+                LOGGER.debug(
+                        "Failed to block IP in DynamoDB: {}. IP blocked in-memory only.",
+                        e.getMessage());
+            }
             // Mark DynamoDB as unavailable if we get persistent errors
             dynamoDbAvailable = false;
         }
@@ -495,11 +517,13 @@ public class DDoSProtectionService {
                     try {
                         blockIpInDynamoDB(ipAddress);
                     } catch (Exception e) {
-                        LOGGER.error(
-                                "Error in async IP blocking for {}: {}",
-                                ipAddress,
-                                e.getMessage(),
-                                e);
+                        if (LOGGER.isErrorEnabled()) {
+                            LOGGER.error(
+                                    "Error in async IP blocking for {}: {}",
+                                    ipAddress,
+                                    e.getMessage(),
+                                    e);
+                        }
                     }
                 });
     }

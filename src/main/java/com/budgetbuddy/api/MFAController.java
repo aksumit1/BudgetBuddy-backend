@@ -104,7 +104,9 @@ public class MFAController {
         response.put(
                 MESSAGE, "TOTP setup successful. Scan the QR code with your authenticator app.");
 
-        LOGGER.info("TOTP setup initiated for user: {}", user.getUserId());
+        if (LOGGER.isInfoEnabled()) {
+            LOGGER.info("TOTP setup initiated for user: {}", user.getUserId());
+        }
         return ResponseEntity.ok(response);
     }
 
@@ -152,7 +154,9 @@ public class MFAController {
                 "warning",
                 "Save these backup codes in a secure location. They will not be shown again.");
 
-        LOGGER.info("TOTP verified and MFA enabled for user: {}", user.getUserId());
+        if (LOGGER.isInfoEnabled()) {
+            LOGGER.info("TOTP verified and MFA enabled for user: {}", user.getUserId());
+        }
         return ResponseEntity.ok(response);
     }
 
@@ -179,7 +183,9 @@ public class MFAController {
         response.put(SUCCESS, true);
         response.put(MESSAGE, "TOTP verified successfully");
 
-        LOGGER.info("TOTP authenticated for user: {}", request.getUserId());
+        if (LOGGER.isInfoEnabled()) {
+            LOGGER.info("TOTP authenticated for user: {}", request.getUserId());
+        }
         return ResponseEntity.ok(response);
     }
 
@@ -201,7 +207,9 @@ public class MFAController {
 
         mfaService.removeTOTP(user.getUserId());
 
-        LOGGER.info("TOTP removed for user: {}", user.getUserId());
+        if (LOGGER.isInfoEnabled()) {
+            LOGGER.info("TOTP removed for user: {}", user.getUserId());
+        }
         return ResponseEntity.noContent().build();
     }
 
@@ -232,7 +240,9 @@ public class MFAController {
                 "warning",
                 "Save these backup codes in a secure location. They will not be shown again.");
 
-        LOGGER.info("Backup codes generated for user: {}", user.getUserId());
+        if (LOGGER.isInfoEnabled()) {
+            LOGGER.info("Backup codes generated for user: {}", user.getUserId());
+        }
         return ResponseEntity.ok(response);
     }
 
@@ -259,7 +269,9 @@ public class MFAController {
         response.put(SUCCESS, true);
         response.put(MESSAGE, "Backup code verified successfully");
 
-        LOGGER.info("Backup code verified for user: {}", request.getUserId());
+        if (LOGGER.isInfoEnabled()) {
+            LOGGER.info("Backup code verified for user: {}", request.getUserId());
+        }
         return ResponseEntity.ok(response);
     }
 
@@ -306,18 +318,22 @@ public class MFAController {
                     notificationService.sendNotification(notificationRequest).isSmsSent();
 
             if (!smsSent) {
-                LOGGER.warn(
-                        "Failed to send SMS OTP for user: {}. OTP generated but not delivered.",
-                        user.getUserId());
+                if (LOGGER.isWarnEnabled()) {
+                    LOGGER.warn(
+                            "Failed to send SMS OTP for user: {}. OTP generated but not delivered.",
+                            user.getUserId());
+                }
                 // In production, this would be a critical error - consider throwing exception
                 // For now, log warning and continue (allows graceful degradation in dev/test)
             }
         } catch (Exception e) {
-            LOGGER.error(
-                    "Error sending SMS OTP for user: {}. Error: {}",
-                    user.getUserId(),
-                    e.getMessage(),
-                    e);
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error(
+                        "Error sending SMS OTP for user: {}. Error: {}",
+                        user.getUserId(),
+                        e.getMessage(),
+                        e);
+            }
             // In production, this would be a critical error - consider throwing exception
             // For now, log error and continue (allows graceful degradation in dev/test)
         }
@@ -329,10 +345,15 @@ public class MFAController {
         // In production/staging, OTP is only sent via SMS, never returned in response
         if (returnOtpInResponse) {
             response.put("otp", otp);
-            LOGGER.debug("OTP returned in response (dev/test mode) for user: {}", user.getUserId());
+            if (LOGGER.isDebugEnabled()) {
+                LOGGER.debug(
+                        "OTP returned in response (dev/test mode) for user: {}", user.getUserId());
+            }
         }
 
-        LOGGER.info("SMS OTP requested for user: {}", user.getUserId());
+        if (LOGGER.isInfoEnabled()) {
+            LOGGER.info("SMS OTP requested for user: {}", user.getUserId());
+        }
         return ResponseEntity.ok(response);
     }
 
@@ -381,18 +402,22 @@ public class MFAController {
                             );
 
             if (!emailSent) {
-                LOGGER.warn(
-                        "Failed to send email OTP for user: {}. OTP generated but not delivered.",
-                        user.getUserId());
+                if (LOGGER.isWarnEnabled()) {
+                    LOGGER.warn(
+                            "Failed to send email OTP for user: {}. OTP generated but not delivered.",
+                            user.getUserId());
+                }
                 // In production, this would be a critical error - consider throwing exception
                 // For now, log warning and continue (allows graceful degradation in dev/test)
             }
         } catch (Exception e) {
-            LOGGER.error(
-                    "Error sending email OTP for user: {}. Error: {}",
-                    user.getUserId(),
-                    e.getMessage(),
-                    e);
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error(
+                        "Error sending email OTP for user: {}. Error: {}",
+                        user.getUserId(),
+                        e.getMessage(),
+                        e);
+            }
             // In production, this would be a critical error - consider throwing exception
             // For now, log error and continue (allows graceful degradation in dev/test)
         }
@@ -404,10 +429,15 @@ public class MFAController {
         // In production/staging, OTP is only sent via email, never returned in response
         if (returnOtpInResponse) {
             response.put("otp", otp);
-            LOGGER.debug("OTP returned in response (dev/test mode) for user: {}", user.getUserId());
+            if (LOGGER.isDebugEnabled()) {
+                LOGGER.debug(
+                        "OTP returned in response (dev/test mode) for user: {}", user.getUserId());
+            }
         }
 
-        LOGGER.info("Email OTP requested for user: {}", user.getUserId());
+        if (LOGGER.isInfoEnabled()) {
+            LOGGER.info("Email OTP requested for user: {}", user.getUserId());
+        }
         return ResponseEntity.ok(response);
     }
 
@@ -435,7 +465,9 @@ public class MFAController {
         response.put(SUCCESS, true);
         response.put(MESSAGE, "SMS OTP verified successfully");
 
-        LOGGER.info("SMS OTP verified for user: {}", request.getUserId());
+        if (LOGGER.isInfoEnabled()) {
+            LOGGER.info("SMS OTP verified for user: {}", request.getUserId());
+        }
         return ResponseEntity.ok(response);
     }
 
@@ -463,7 +495,9 @@ public class MFAController {
         response.put(SUCCESS, true);
         response.put(MESSAGE, "Email OTP verified successfully");
 
-        LOGGER.info("Email OTP verified for user: {}", request.getUserId());
+        if (LOGGER.isInfoEnabled()) {
+            LOGGER.info("Email OTP verified for user: {}", request.getUserId());
+        }
         return ResponseEntity.ok(response);
     }
 
@@ -515,7 +549,9 @@ public class MFAController {
 
         mfaService.disableMFA(user.getUserId());
 
-        LOGGER.info("MFA disabled for user: {}", user.getUserId());
+        if (LOGGER.isInfoEnabled()) {
+            LOGGER.info("MFA disabled for user: {}", user.getUserId());
+        }
         return ResponseEntity.noContent().build();
     }
 

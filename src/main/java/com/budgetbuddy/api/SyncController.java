@@ -85,7 +85,9 @@ public class SyncController {
             throw new AppException(ErrorCode.INVALID_INPUT, USER_ID_IS_INVALID);
         }
 
-        LOGGER.info("Sync all request for user: {}", user.getUserId());
+        if (LOGGER.isInfoEnabled()) {
+            LOGGER.info("Sync all request for user: {}", user.getUserId());
+        }
 
         final SyncAllResponse response = syncService.getAllData(user.getUserId());
 
@@ -134,7 +136,10 @@ public class SyncController {
             throw new AppException(ErrorCode.INVALID_INPUT, USER_ID_IS_INVALID);
         }
 
-        LOGGER.info("Sync incremental request for user: {}, since: {}", user.getUserId(), since);
+        if (LOGGER.isInfoEnabled()) {
+            LOGGER.info(
+                    "Sync incremental request for user: {}, since: {}", user.getUserId(), since);
+        }
 
         final IncrementalSyncResponse response =
                 syncService.getIncrementalChanges(user.getUserId(), since);
@@ -178,7 +183,9 @@ public class SyncController {
             throw new AppException(ErrorCode.INVALID_INPUT, USER_ID_IS_INVALID);
         }
 
-        LOGGER.info("Sync status request for user: {}", user.getUserId());
+        if (LOGGER.isInfoEnabled()) {
+            LOGGER.info("Sync status request for user: {}", user.getUserId());
+        }
 
         final com.budgetbuddy.dto.SyncStatusResponse response =
                 syncService.getSyncStatus(user.getUserId());

@@ -112,9 +112,11 @@ public class EnhancedCategoryDetectionService {
         mlModel.loadModel();
         // All semantic categories and hard-coded strings are now statically merged in
         // initializeKnownMerchants()
-        LOGGER.info(
-                "EnhancedCategoryDetectionService initialized with {} known merchants",
-                knownMerchants.size());
+        if (LOGGER.isInfoEnabled()) {
+            LOGGER.info(
+                    "EnhancedCategoryDetectionService initialized with {} known merchants",
+                    knownMerchants.size());
+        }
     }
 
     /**
@@ -161,9 +163,11 @@ public class EnhancedCategoryDetectionService {
 
                 // CRITICAL: Boundary check - prevent memory issues
                 if (sharedMerchants.size() > 100_000) {
-                    LOGGER.error(
-                            "Shared merchant map size ({}) exceeds safety limit. Loading empty map.",
-                            sharedMerchants.size());
+                    if (LOGGER.isErrorEnabled()) {
+                        LOGGER.error(
+                                "Shared merchant map size ({}) exceeds safety limit. Loading empty map.",
+                                sharedMerchants.size());
+                    }
                     return;
                 }
 
@@ -201,7 +205,9 @@ public class EnhancedCategoryDetectionService {
             LOGGER.error("Out of memory loading merchants from shared service", e);
             knownMerchants.clear();
         } catch (Exception e) {
-            LOGGER.error("Error loading merchants from shared service: {}", e.getMessage(), e);
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error("Error loading merchants from shared service: {}", e.getMessage(), e);
+            }
             knownMerchants.clear();
         }
     }
@@ -435,13 +441,15 @@ public class EnhancedCategoryDetectionService {
                                         );
 
                         if (semanticMatch != null && semanticMatch.category != null) {
-                            LOGGER.info(
-                                    "EnhancedCategoryDetection: ✅ Semantic match found - category='{}', similarity={:.2f}, method='{}'",
-                                    semanticMatch.category,
-                                    semanticMatch.similarity,
-                                    semanticMatch.method != null
-                                            ? semanticMatch.method
-                                            : "SEMANTIC_MATCH");
+                            if (LOGGER.isInfoEnabled()) {
+                                LOGGER.info(
+                                        "EnhancedCategoryDetection: ✅ Semantic match found - category='{}', similarity={:.2f}, method='{}'",
+                                        semanticMatch.category,
+                                        semanticMatch.similarity,
+                                        semanticMatch.method != null
+                                                ? semanticMatch.method
+                                                : "SEMANTIC_MATCH");
+                            }
                             results.add(
                                     new DetectionResult(
                                             semanticMatch.category,
@@ -451,14 +459,18 @@ public class EnhancedCategoryDetectionService {
                                                     + String.format("%.2f", fuzzyScore)
                                                     + ")"));
                         } else {
-                            LOGGER.info(
-                                    "EnhancedCategoryDetection: Semantic matching returned null or no category match");
+                            if (LOGGER.isInfoEnabled()) {
+                                LOGGER.info(
+                                        "EnhancedCategoryDetection: Semantic matching returned null or no category match");
+                            }
                         }
                     } catch (Exception e) {
                         // CRITICAL: Error handling - log but continue with other methods
-                        LOGGER.warn(
-                                "EnhancedCategoryDetection: Semantic matching failed, continuing with other methods: {}",
-                                e.getMessage());
+                        if (LOGGER.isWarnEnabled()) {
+                            LOGGER.warn(
+                                    "EnhancedCategoryDetection: Semantic matching failed, continuing with other methods: {}",
+                                    e.getMessage());
+                        }
                         LOGGER.debug(
                                 "EnhancedCategoryDetection: Semantic matching exception details",
                                 e);
@@ -491,10 +503,12 @@ public class EnhancedCategoryDetectionService {
                         final BertCategoryMatcher.Match bertMatch =
                                 bertCategoryMatcher.match(fuzzyMatchText);
                         if (bertMatch != null) {
-                            LOGGER.info(
-                                    "EnhancedCategoryDetection: BERT match - category='{}' similarity={}",
-                                    bertMatch.category,
-                                    String.format("%.3f", bertMatch.similarity));
+                            if (LOGGER.isInfoEnabled()) {
+                                LOGGER.info(
+                                        "EnhancedCategoryDetection: BERT match - category='{}' similarity={}",
+                                        bertMatch.category,
+                                        String.format("%.3f", bertMatch.similarity));
+                            }
                             results.add(
                                     new DetectionResult(
                                             bertMatch.category,
@@ -503,9 +517,11 @@ public class EnhancedCategoryDetectionService {
                                             "Sentence-embedding cosine similarity"));
                         }
                     } catch (Exception e) {
-                        LOGGER.warn(
-                                "EnhancedCategoryDetection: BERT matching failed, continuing: {}",
-                                e.getMessage());
+                        if (LOGGER.isWarnEnabled()) {
+                            LOGGER.warn(
+                                    "EnhancedCategoryDetection: BERT matching failed, continuing: {}",
+                                    e.getMessage());
+                        }
                     }
                 }
             }
@@ -826,12 +842,14 @@ public class EnhancedCategoryDetectionService {
                         category);
             }
         } catch (Exception e) {
-            LOGGER.error(
-                    "Error adding known merchant '{}' -> '{}': {}",
-                    merchantName,
-                    category,
-                    e.getMessage(),
-                    e);
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error(
+                        "Error adding known merchant '{}' -> '{}': {}",
+                        merchantName,
+                        category,
+                        e.getMessage(),
+                        e);
+            }
         }
     }
 

@@ -107,7 +107,9 @@ public class ImportCategoryParser {
                     accountType,
                     accountSubtype);
         } catch (Exception e) {
-            LOGGER.error("Error parsing category: {}", e.getMessage(), e);
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error("Error parsing category: {}", e.getMessage(), e);
+            }
             return "other"; // Fallback to "other" on error
         }
     }

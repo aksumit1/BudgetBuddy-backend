@@ -32,7 +32,8 @@ import org.springframework.stereotype.Service;
 // here would mean catch (RuntimeException) which PMD flags identically.
 @edu.umd.cs.findbugs.annotations.SuppressFBWarnings(
         value = "CT_CONSTRUCTOR_THROW",
-        justification = "Java 25: Object.finalize() is deprecated-for-removal, so the finalizer-attack vector this rule guards against is not exploitable. Constructors throw to signal a startup misconfiguration (missing credentials, AWS client init failure, etc.).")
+        justification =
+                "Java 25: Object.finalize() is deprecated-for-removal, so the finalizer-attack vector this rule guards against is not exploitable. Constructors throw to signal a startup misconfiguration (missing credentials, AWS client init failure, etc.).")
 @SuppressWarnings({"PMD.AvoidCatchingGenericException", "PMD.OnlyOneReturn"})
 @Service
 public class OCRService {
@@ -93,9 +94,13 @@ public class OCRService {
             tesseract.setPageSegMode(1); // Automatic page segmentation with OSD
             tesseract.setOcrEngineMode(1); // Neural nets LSTM engine only
 
-            LOGGER.info("OCR Service initialized successfully");
+            if (LOGGER.isInfoEnabled()) {
+                LOGGER.info("OCR Service initialized successfully");
+            }
         } catch (Exception e) {
-            LOGGER.error("Failed to initialize OCR Service: {}", e.getMessage(), e);
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error("Failed to initialize OCR Service: {}", e.getMessage(), e);
+            }
             throw new AppException(
                     ErrorCode.INTERNAL_SERVER_ERROR, "OCR Service initialization failed", e);
         }
@@ -123,7 +128,9 @@ public class OCRService {
         try {
             pdfBytes = pdfInputStream.readAllBytes();
         } catch (IOException e) {
-            LOGGER.error("Error reading PDF input stream: {}", e.getMessage(), e);
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error("Error reading PDF input stream: {}", e.getMessage(), e);
+            }
             throw new AppException(
                     ErrorCode.INTERNAL_SERVER_ERROR, "Failed to read PDF input stream", e);
         }
@@ -176,26 +183,37 @@ public class OCRService {
 
                     if (pageText != null && !pageText.isBlank()) {
                         extractedText.append(pageText).append('\n');
-                        LOGGER.debug(
-                                "Extracted {} characters from page {}",
-                                pageText.length(),
-                                page + 1);
+                        if (LOGGER.isDebugEnabled()) {
+                            LOGGER.debug(
+                                    "Extracted {} characters from page {}",
+                                    pageText.length(),
+                                    page + 1);
+                        }
                     }
                 } catch (TesseractException e) {
-                    LOGGER.warn("OCR failed for page {}: {}", page + 1, e.getMessage());
+                    if (LOGGER.isWarnEnabled()) {
+                        LOGGER.warn("OCR failed for page {}: {}", page + 1, e.getMessage());
+                    }
                     // Continue with next page
                 } catch (IOException e) {
-                    LOGGER.error("Error rendering PDF page {}: {}", page + 1, e.getMessage());
+                    if (LOGGER.isErrorEnabled()) {
+                        LOGGER.error("Error rendering PDF page {}: {}", page + 1, e.getMessage());
+                    }
                     // Continue with next page
                 }
             }
 
             final String result = extractedText.toString();
-            LOGGER.info("OCR extraction completed: {} total characters extracted", result.length());
+            if (LOGGER.isInfoEnabled()) {
+                LOGGER.info(
+                        "OCR extraction completed: {} total characters extracted", result.length());
+            }
             return result;
 
         } catch (IOException e) {
-            LOGGER.error("Error loading PDF for OCR: {}", e.getMessage(), e);
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error("Error loading PDF for OCR: {}", e.getMessage(), e);
+            }
             throw new AppException(
                     ErrorCode.INTERNAL_SERVER_ERROR,
                     "Failed to extract text from PDF using OCR",
@@ -231,24 +249,32 @@ public class OCRService {
             final String extractedText;
             synchronized (tesseract) {
                 tesseract.setLanguage(langString);
-                LOGGER.debug("Using OCR languages: {}", langString);
+                if (LOGGER.isDebugEnabled()) {
+                    LOGGER.debug("Using OCR languages: {}", langString);
+                }
 
                 // Perform OCR
                 extractedText = tesseract.doOCR(image);
             }
 
-            LOGGER.info(
-                    "OCR extraction from image completed: {} characters extracted",
-                    extractedText != null ? extractedText.length() : 0);
+            if (LOGGER.isInfoEnabled()) {
+                LOGGER.info(
+                        "OCR extraction from image completed: {} characters extracted",
+                        extractedText != null ? extractedText.length() : 0);
+            }
 
             return extractedText != null ? extractedText : "";
 
         } catch (IOException e) {
-            LOGGER.error("Error reading image for OCR: {}", e.getMessage(), e);
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error("Error reading image for OCR: {}", e.getMessage(), e);
+            }
             throw new AppException(
                     ErrorCode.INTERNAL_SERVER_ERROR, "Failed to read image for OCR", e);
         } catch (TesseractException e) {
-            LOGGER.error("OCR failed for image: {}", e.getMessage(), e);
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error("OCR failed for image: {}", e.getMessage(), e);
+            }
             throw new AppException(
                     ErrorCode.INTERNAL_SERVER_ERROR,
                     "Failed to extract text from image using OCR",
@@ -272,7 +298,10 @@ public class OCRService {
         try {
             pdfBytes = pdfInputStream.readAllBytes();
         } catch (IOException e) {
-            LOGGER.warn("Error reading PDF input stream for scan detection: {}", e.getMessage());
+            if (LOGGER.isWarnEnabled()) {
+                LOGGER.warn(
+                        "Error reading PDF input stream for scan detection: {}", e.getMessage());
+            }
             return false; // Assume text-based on error
         }
 
@@ -296,9 +325,11 @@ public class OCRService {
 
             // If extracted text is very short or empty, likely scanned
             if (text == null || text.trim().length() < 50) {
-                LOGGER.debug(
-                        "PDF appears to be scanned (text length: {})",
-                        text != null ? text.length() : 0);
+                if (LOGGER.isDebugEnabled()) {
+                    LOGGER.debug(
+                            "PDF appears to be scanned (text length: {})",
+                            text != null ? text.length() : 0);
+                }
                 return true;
             }
 
@@ -316,17 +347,23 @@ public class OCRService {
 
             // If ratio is very low, likely scanned
             if (ratio < 0.1) {
-                LOGGER.debug("PDF appears to be scanned (non-whitespace ratio: {})", ratio);
+                if (LOGGER.isDebugEnabled()) {
+                    LOGGER.debug("PDF appears to be scanned (non-whitespace ratio: {})", ratio);
+                }
                 return true;
             }
 
-            LOGGER.debug(
-                    "PDF appears to be text-based (text length: {}, ratio: {})",
-                    text.length(),
-                    ratio);
+            if (LOGGER.isDebugEnabled()) {
+                LOGGER.debug(
+                        "PDF appears to be text-based (text length: {}, ratio: {})",
+                        text.length(),
+                        ratio);
+            }
             return false;
         } catch (IOException e) {
-            LOGGER.warn("Error checking if PDF is scanned: {}", e.getMessage());
+            if (LOGGER.isWarnEnabled()) {
+                LOGGER.warn("Error checking if PDF is scanned: {}", e.getMessage());
+            }
             // Assume text-based on error
             return false;
         }

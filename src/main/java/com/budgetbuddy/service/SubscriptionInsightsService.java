@@ -108,7 +108,9 @@ public class SubscriptionInsightsService {
             }
         }
 
-        LOGGER.info("Detected {} unused subscriptions for user: {}", insights.size(), userId);
+        if (LOGGER.isInfoEnabled()) {
+            LOGGER.info("Detected {} unused subscriptions for user: {}", insights.size(), userId);
+        }
         return insights;
     }
 
@@ -177,7 +179,9 @@ public class SubscriptionInsightsService {
             }
         }
 
-        LOGGER.info("Detected {} price changes for user: {}", alerts.size(), userId);
+        if (LOGGER.isInfoEnabled()) {
+            LOGGER.info("Detected {} price changes for user: {}", alerts.size(), userId);
+        }
         return alerts;
     }
 
@@ -234,10 +238,12 @@ public class SubscriptionInsightsService {
             }
         }
 
-        LOGGER.info(
-                "Generated {} cancellation recommendations for user: {}",
-                recommendations.size(),
-                userId);
+        if (LOGGER.isInfoEnabled()) {
+            LOGGER.info(
+                    "Generated {} cancellation recommendations for user: {}",
+                    recommendations.size(),
+                    userId);
+        }
         return recommendations;
     }
 

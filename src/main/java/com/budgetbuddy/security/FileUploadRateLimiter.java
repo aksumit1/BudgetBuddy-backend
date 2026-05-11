@@ -108,19 +108,24 @@ public class FileUploadRateLimiter {
         stats.totalSize.addAndGet(fileSize);
         stats.lastUploadTime = currentTime;
 
-        LOGGER.debug(
-                "File upload allowed for user {}: {}/{} uploads, {}/{} MB",
-                userId,
-                stats.uploadCount.get(),
-                maxUploadsPerHour,
-                stats.totalSize.get() / (1024 * 1024),
-                maxTotalSizePerHour / (1024 * 1024));
+        if (LOGGER.isDebugEnabled()) {
+            LOGGER.debug(
+                    "File upload allowed for user {}: {}/{} uploads, {}/{} MB",
+                    userId,
+                    stats.uploadCount.get(),
+                    maxUploadsPerHour,
+                    stats.totalSize.get() / (1024 * 1024),
+                    maxTotalSizePerHour / (1024 * 1024));
+        }
     }
 
     /** Record successful file upload (called after upload completes) */
     public void recordUpload(final String userId, final long fileSize) {
         // Stats are already updated in checkRateLimit, but we can add additional logging here
-        LOGGER.info("File upload completed for user {}: {} MB", userId, fileSize / (1024 * 1024));
+        if (LOGGER.isInfoEnabled()) {
+            LOGGER.info(
+                    "File upload completed for user {}: {} MB", userId, fileSize / (1024 * 1024));
+        }
     }
 
     /** Clean up old entries to prevent memory leaks */

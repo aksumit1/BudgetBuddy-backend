@@ -104,11 +104,13 @@ public class PlaidWebhookVerifier {
             }
             final long nowEpoch = Instant.now().getEpochSecond();
             if (Math.abs(nowEpoch - iat.longValue()) > IAT_TOLERANCE.toSeconds()) {
-                LOGGER.warn(
-                        "Plaid webhook iat outside tolerance: iat={} now={} toleranceSec={}",
-                        iat.longValue(),
-                        nowEpoch,
-                        IAT_TOLERANCE.toSeconds());
+                if (LOGGER.isWarnEnabled()) {
+                    LOGGER.warn(
+                            "Plaid webhook iat outside tolerance: iat={} now={} toleranceSec={}",
+                            iat.longValue(),
+                            nowEpoch,
+                            IAT_TOLERANCE.toSeconds());
+                }
                 return false;
             }
 
@@ -132,7 +134,9 @@ public class PlaidWebhookVerifier {
             }
             return true;
         } catch (JwtException e) {
-            LOGGER.warn("Plaid webhook JWT verification failed: {}", e.getMessage());
+            if (LOGGER.isWarnEnabled()) {
+                LOGGER.warn("Plaid webhook JWT verification failed: {}", e.getMessage());
+            }
             return false;
         }
     }
@@ -159,7 +163,9 @@ public class PlaidWebhookVerifier {
             keyCache.put(kid, new CachedKey(key, now.plus(KEY_CACHE_TTL)));
             return Optional.of(key);
         } catch (GeneralSecurityException | RuntimeException e) {
-            LOGGER.error("Failed to resolve Plaid JWK for kid={}: {}", kid, e.getMessage(), e);
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error("Failed to resolve Plaid JWK for kid={}: {}", kid, e.getMessage(), e);
+            }
             return Optional.empty();
         }
     }

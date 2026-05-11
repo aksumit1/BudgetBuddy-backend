@@ -84,7 +84,9 @@ public class TransactionSyncController {
         try {
             transactionSyncService.syncTransactions(user.getUserId(), accessToken);
 
-            LOGGER.info("Transaction sync started for user: {}", user.getUserId());
+            if (LOGGER.isInfoEnabled()) {
+                LOGGER.info("Transaction sync started for user: {}", user.getUserId());
+            }
 
             return ResponseEntity.accepted()
                     .body(
@@ -93,11 +95,13 @@ public class TransactionSyncController {
                                     "message", "Transaction sync started",
                                     "userId", user.getUserId()));
         } catch (Exception e) {
-            LOGGER.error(
-                    "Failed to start transaction sync for user {}: {}",
-                    user.getUserId(),
-                    e.getMessage(),
-                    e);
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error(
+                        "Failed to start transaction sync for user {}: {}",
+                        user.getUserId(),
+                        e.getMessage(),
+                        e);
+            }
             throw new AppException(
                     ErrorCode.INTERNAL_SERVER_ERROR,
                     "Failed to start transaction sync",
@@ -146,19 +150,23 @@ public class TransactionSyncController {
                             user.getUserId(), accessToken, sinceDate);
 
             final TransactionSyncService.SyncResult result = future.get();
-            LOGGER.info(
-                    "Incremental sync completed for user: {} - New: {}, Updated: {}",
-                    user.getUserId(),
-                    result.getNewCount(),
-                    result.getUpdatedCount());
+            if (LOGGER.isInfoEnabled()) {
+                LOGGER.info(
+                        "Incremental sync completed for user: {} - New: {}, Updated: {}",
+                        user.getUserId(),
+                        result.getNewCount(),
+                        result.getUpdatedCount());
+            }
 
             return ResponseEntity.ok(result);
         } catch (java.util.concurrent.ExecutionException e) {
-            LOGGER.error(
-                    "Incremental sync execution failed for user {}: {}",
-                    user.getUserId(),
-                    e.getMessage(),
-                    e);
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error(
+                        "Incremental sync execution failed for user {}: {}",
+                        user.getUserId(),
+                        e.getMessage(),
+                        e);
+            }
             throw new AppException(
                     ErrorCode.INTERNAL_SERVER_ERROR,
                     "Failed to sync transactions",
@@ -167,18 +175,22 @@ public class TransactionSyncController {
                     e.getCause());
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            LOGGER.error(
-                    "Incremental sync interrupted for user {}: {}",
-                    user.getUserId(),
-                    e.getMessage());
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error(
+                        "Incremental sync interrupted for user {}: {}",
+                        user.getUserId(),
+                        e.getMessage());
+            }
             throw new AppException(
                     ErrorCode.INTERNAL_SERVER_ERROR, "Sync operation interrupted", null, null, e);
         } catch (Exception e) {
-            LOGGER.error(
-                    "Failed to sync transactions for user {}: {}",
-                    user.getUserId(),
-                    e.getMessage(),
-                    e);
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error(
+                        "Failed to sync transactions for user {}: {}",
+                        user.getUserId(),
+                        e.getMessage(),
+                        e);
+            }
             throw new AppException(
                     ErrorCode.INTERNAL_SERVER_ERROR, "Failed to sync transactions", null, null, e);
         }
