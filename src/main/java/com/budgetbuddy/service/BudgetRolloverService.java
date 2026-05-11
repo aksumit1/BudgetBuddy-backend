@@ -111,12 +111,7 @@ public class BudgetRolloverService {
                     continue;
                 }
 
-                final BigDecimal spent =
-                        computeSpend(
-                                budget.getUserId(),
-                                budget.getCategory(),
-                                priorMonthStart,
-                                priorMonthEnd);
+                final BigDecimal spent = computeSpend(budget, priorMonthStart, priorMonthEnd);
                 final BigDecimal existingCarry =
                         budget.getCarriedAmount() != null
                                 ? budget.getCarriedAmount()
@@ -150,20 +145,22 @@ public class BudgetRolloverService {
     }
 
     private BigDecimal computeSpend(
-            final String userId,
-            final String category,
-            final LocalDate start,
-            final LocalDate end) {
+            final BudgetTable budget, final LocalDate start, final LocalDate end) {
         final List<TransactionTable> rows =
                 transactionRepository.findByUserIdAndDateRange(
-                        userId, start.format(DATE), end.format(DATE));
+                        budget.getUserId(), start.format(DATE), end.format(DATE));
         BigDecimal spent = BigDecimal.ZERO;
         for (final TransactionTable t : rows) {
             if (t == null || t.getAmount() == null) {
                 continue;
             }
-            if (!(category.equals(t.getCategoryPrimary())
-                    || category.equals(t.getCategoryDetailed()))) {
+            if (!(budget.getCategory().equals(t.getCategoryPrimary())
+                    || budget.getCategory().equals(t.getCategoryDetailed()))) {
+                continue;
+            }
+            if (!matchesBudgetCurrency(budget, t)) {
+                // Skip cross-currency transactions — a EUR Groceries purchase would
+                // otherwise be summed dollar-for-dollar into a USD Groceries budget.
                 continue;
             }
             if (t.getAmount().signum() < 0) {
@@ -172,6 +169,22 @@ public class BudgetRolloverService {
             }
         }
         return spent;
+    }
+
+    /**
+     * Returns true when {@code transaction} should count toward {@code budget}'s spend total.
+     * Either currency code being null is treated as "legacy / best effort match" so we don't
+     * regress single-currency users who pre-date the currencyCode column. Comparison is
+     * case-insensitive because some import paths normalize to uppercase ("USD") while others
+     * preserve client-supplied casing.
+     */
+    static boolean matchesBudgetCurrency(final BudgetTable budget, final TransactionTable t) {
+        final String bc = budget.getCurrencyCode();
+        final String tc = t.getCurrencyCode();
+        if (bc == null || bc.isBlank() || tc == null || tc.isBlank()) {
+            return true;
+        }
+        return bc.equalsIgnoreCase(tc);
     }
 
     private boolean isIncomeOrSavingsCategory(final String category) {

@@ -122,6 +122,13 @@ public class BudgetThresholdEvaluator {
                     || budget.getCategory().equals(t.getCategoryDetailed()))) {
                 continue;
             }
+            // Skip cross-currency transactions — a 100 EUR purchase must not move a
+            // 100 USD budget by the same notional amount.
+            // BudgetRolloverService.matchesBudgetCurrency
+            // owns the comparison rule so all budget aggregators stay in lockstep.
+            if (!BudgetRolloverService.matchesBudgetCurrency(budget, t)) {
+                continue;
+            }
             if (t.getAmount().signum() < 0) {
                 spent = spent.add(t.getAmount().abs());
             }

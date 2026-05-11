@@ -1,6 +1,7 @@
 package com.budgetbuddy.service;
 
 import com.budgetbuddy.model.dynamodb.BudgetTable;
+import com.budgetbuddy.model.dynamodb.GoalTable;
 import com.budgetbuddy.model.dynamodb.TransactionTable;
 import com.budgetbuddy.model.dynamodb.UserTable;
 import com.budgetbuddy.repository.dynamodb.BudgetRepository;
@@ -121,6 +122,11 @@ public class BudgetToGoalFlowService {
                     || budget.getCategory().equals(t.getCategoryDetailed()))) {
                 continue;
             }
+            // Cross-currency transactions must not influence a budget priced in a different
+            // currency — otherwise goal credit gets computed from mixed-currency under-spend.
+            if (!BudgetRolloverService.matchesBudgetCurrency(budget, t)) {
+                continue;
+            }
             if (t.getAmount().signum() < 0) {
                 spent = spent.add(t.getAmount().abs());
             }
@@ -148,69 +154,76 @@ public class BudgetToGoalFlowService {
         }
 
         // Find the goal and bump its currentAmount (only if progressMode allows it).
-        // Optimistic write — if the user just made a manual contribution on
-        // the same goal, we re-read and apply our delta on top of their
-        // new currentAmount. Without this the two writes would race and
-        // one would silently lose its contribution.
-        goalRepository
-                .findById(budget.getGoalId())
-                .ifPresent(
-                        goal -> {
-                            if ("manual".equalsIgnoreCase(goal.getProgressMode())) {
-                                return;
-                            }
-                            if (goal.getDeletedAt() != null) {
-                                return;
-                            }
-                            if (Boolean.TRUE.equals(goal.getCompleted())) {
-                                return;
-                            }
-
-                            for (int attempt = 0; attempt < 2; attempt++) {
-                                BigDecimal newAmount =
-                                        (goal.getCurrentAmount() == null
-                                                        ? BigDecimal.ZERO
-                                                        : goal.getCurrentAmount())
-                                                .add(delta);
-                                if (goal.getTargetAmount() != null
-                                        && newAmount.compareTo(goal.getTargetAmount()) > 0) {
-                                    newAmount = goal.getTargetAmount();
-                                }
-                                goal.setCurrentAmount(newAmount);
-                                goal.setUpdatedAt(Instant.now());
-                                try {
-                                    goalRepository.saveWithLock(goal);
-                                    LOGGER.info(
-                                            "Flowed {} from budget {} to goal {} (category={})",
-                                            delta,
-                                            budget.getBudgetId(),
-                                            goal.getGoalId(),
-                                            budget.getCategory());
-                                    return;
-                                } catch (
-                                        com.budgetbuddy.repository.dynamodb.OptimisticLockHelper
-                                                        .OptimisticLockException
-                                                conflict) {
-                                    if (attempt == 1) {
-                                        LOGGER.warn(
-                                                "Goal {} lost auto-credit of {} to a racing writer; next ingest will retry",
-                                                goal.getGoalId(),
-                                                delta);
-                                        return;
-                                    }
-                                    // Re-read and loop to re-apply delta against the fresh value.
-                                    goalRepository
-                                            .findById(goal.getGoalId())
-                                            .ifPresent(
-                                                    refreshed -> {
-                                                        goal.setVersion(refreshed.getVersion());
-                                                        goal.setCurrentAmount(
-                                                                refreshed.getCurrentAmount());
-                                                        goal.setCompleted(refreshed.getCompleted());
-                                                    });
-                                }
-                            }
-                        });
+        // Optimistic write with FULL-reload retry: on conflict we replace the in-memory
+        // entity wholesale rather than copying three fields. Partial-field refresh would
+        // re-save the stale `targetAmount` / `name` / `progressMode` / `accountIds` /
+        // `deletedAt` we read at attempt-0, silently clobbering any concurrent user edits
+        // to those fields. Completion + deletion are also re-checked after each refresh
+        // so a racing "I'm done with this goal" write doesn't get reopened by our retry.
+        final java.util.Optional<GoalTable> initialGoalOpt =
+                goalRepository.findById(budget.getGoalId());
+        if (initialGoalOpt.isEmpty()) {
+            // Goal disappeared between budget read and now — nothing to credit.
+            // Record cumulative funding below anyway so we don't keep retrying.
+        } else {
+            GoalTable current = initialGoalOpt.get();
+            if ("manual".equalsIgnoreCase(current.getProgressMode())
+                    || current.getDeletedAt() != null
+                    || Boolean.TRUE.equals(current.getCompleted())) {
+                // Goal isn't eligible for auto-credit; fall through to record funding.
+            } else {
+                for (int attempt = 0; attempt < 2; attempt++) {
+                    BigDecimal newAmount =
+                            (current.getCurrentAmount() == null
+                                            ? BigDecimal.ZERO
+                                            : current.getCurrentAmount())
+                                    .add(delta);
+                    if (current.getTargetAmount() != null
+                            && newAmount.compareTo(current.getTargetAmount()) > 0) {
+                        newAmount = current.getTargetAmount();
+                    }
+                    current.setCurrentAmount(newAmount);
+                    current.setUpdatedAt(Instant.now());
+                    try {
+                        goalRepository.saveWithLock(current);
+                        LOGGER.info(
+                                "Flowed {} from budget {} to goal {} (category={})",
+                                delta,
+                                budget.getBudgetId(),
+                                current.getGoalId(),
+                                budget.getCategory());
+                        break;
+                    } catch (
+                            com.budgetbuddy.repository.dynamodb.OptimisticLockHelper
+                                            .OptimisticLockException
+                                    conflict) {
+                        if (attempt == 1) {
+                            LOGGER.warn(
+                                    "Goal {} lost auto-credit of {} to a racing writer;"
+                                            + " next ingest will retry",
+                                    current.getGoalId(),
+                                    delta);
+                            break;
+                        }
+                        // Full-reload retry — picks up every concurrent edit, not just the
+                        // three fields the old code copied.
+                        final java.util.Optional<GoalTable> refreshedOpt =
+                                goalRepository.findById(current.getGoalId());
+                        if (refreshedOpt.isEmpty()) {
+                            break;
+                        }
+                        current = refreshedOpt.get();
+                        // Re-check eligibility — racer may have completed/deleted/converted
+                        // the goal to manual mode while we were preparing our write.
+                        if ("manual".equalsIgnoreCase(current.getProgressMode())
+                                || current.getDeletedAt() != null
+                                || Boolean.TRUE.equals(current.getCompleted())) {
+                            break;
+                        }
+                    }
+                }
+            }
+        }
 
         // Record the cumulative amount we've credited this cycle to dedupe future ingests.
         // Same optimistic-retry shape — the user may have just edited the
