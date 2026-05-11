@@ -1,6 +1,7 @@
 package com.budgetbuddy.compliance.financial;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
@@ -209,17 +210,25 @@ public class FinancialComplianceService {
                 communicationType);
     }
 
-    /** Transaction Monitoring Monitor transactions for suspicious activity */
+    /**
+     * Transaction Monitoring — surface suspicious transactions to CloudWatch + the audit log.
+     * Amount is BigDecimal to keep currency precision exact through the pipeline; the audit-log
+     * sink converts back to double at the wire (until that signature is migrated too).
+     */
     public void monitorTransaction(
-            final String transactionId, final double amount, final String userId) {
+            final String transactionId, final BigDecimal amount, final String userId) {
+        if (amount == null) {
+            return;
+        }
         if (isSuspiciousTransaction(amount, userId)) {
             LOGGER.warn(
-                    "Financial Compliance: Suspicious transaction detected: ID={}, Amount={}, User={}",
+                    "Financial Compliance: Suspicious transaction detected:"
+                            + " ID={}, Amount={}, User={}",
                     transactionId,
-                    amount,
+                    amount.toPlainString(),
                     userId);
             putMetric("SuspiciousTransaction", 1.0, Map.of());
-            auditLogService.logSuspiciousTransaction(transactionId, amount, userId);
+            auditLogService.logSuspiciousTransaction(transactionId, amount.doubleValue(), userId);
         } else {
             putMetric("Transaction", 1.0, Map.of());
         }
@@ -238,9 +247,15 @@ public class FinancialComplianceService {
                 && (dataType.contains("balance") || dataType.contains("amount"));
     }
 
-    private boolean isSuspiciousTransaction(final double amount, final String userId) {
-        // Simplified check - in production, would use ML models
-        return amount > 10_000; // Flag transactions over $10,000
+    /**
+     * Heuristic threshold check used by {@link #monitorTransaction}. ML-driven scoring belongs
+     * here later (per-user baselines, velocity, merchant rep); the constant is the floor.
+     */
+    private boolean isSuspiciousTransaction(final BigDecimal amount, final String userId) {
+        if (amount == null) {
+            return false;
+        }
+        return amount.compareTo(BigDecimal.valueOf(10_000)) > 0;
     }
 
     private void putMetric(

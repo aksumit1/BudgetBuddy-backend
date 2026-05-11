@@ -285,7 +285,7 @@ class FinancialComplianceServiceTest {
     void testMonitorTransactionWithSuspiciousAmountLogsSuspicious() {
         // Given
         final String transactionId = "txn-123";
-        final double amount = 15000.00; // Over threshold
+        final java.math.BigDecimal amount = new java.math.BigDecimal("15000.00"); // Over threshold
         doNothing()
                 .when(auditLogService)
                 .logSuspiciousTransaction(anyString(), anyDouble(), anyString());
@@ -297,7 +297,7 @@ class FinancialComplianceServiceTest {
 
         // Then
         verify(auditLogService, times(1))
-                .logSuspiciousTransaction(transactionId, amount, testUserId);
+                .logSuspiciousTransaction(transactionId, amount.doubleValue(), testUserId);
         verify(cloudWatchClient, times(1)).putMetricData(any(PutMetricDataRequest.class));
     }
 
@@ -305,7 +305,7 @@ class FinancialComplianceServiceTest {
     void testMonitorTransactionWithNormalAmountLogsTransaction() {
         // Given
         final String transactionId = "txn-123";
-        final double amount = 100.00; // Under threshold
+        final java.math.BigDecimal amount = new java.math.BigDecimal("100.00"); // Under threshold
         final PutMetricDataResponse response = PutMetricDataResponse.builder().build();
         when(cloudWatchClient.putMetricData(any(PutMetricDataRequest.class))).thenReturn(response);
 

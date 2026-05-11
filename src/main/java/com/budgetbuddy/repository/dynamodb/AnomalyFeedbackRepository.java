@@ -70,4 +70,23 @@ public class AnomalyFeedbackRepository {
         }
         return out;
     }
+
+    /**
+     * Delete every anomaly-feedback row owned by {@code userId}. Used by GDPR account-erasure;
+     * returns the count actually removed. Iterates the {@code UserIdIndex} GSI so the call is
+     * always per-user and never scans the full table.
+     */
+    public int deleteByUserId(final String userId) {
+        if (userId == null || userId.isEmpty()) {
+            return 0;
+        }
+        int deleted = 0;
+        for (final AnomalyFeedbackTable row : findByUserId(userId)) {
+            if (row.getFeedbackId() != null) {
+                table.deleteItem(Key.builder().partitionValue(row.getFeedbackId()).build());
+                deleted++;
+            }
+        }
+        return deleted;
+    }
 }

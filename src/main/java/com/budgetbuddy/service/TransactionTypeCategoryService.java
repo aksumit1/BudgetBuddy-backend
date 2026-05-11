@@ -367,15 +367,41 @@ public class TransactionTypeCategoryService {
             final String paymentChannel) {
 
         final String descLower = description != null ? description.toLowerCase(Locale.ROOT) : "";
-        TypeResult result0 = determineTypePriority0AccountType(account, categoryPrimary, categoryDetailed, amount, transactionTypeIndicator, description, paymentChannel, descLower);
+        TypeResult result0 =
+                determineTypePriority0AccountType(
+                        account,
+                        categoryPrimary,
+                        categoryDetailed,
+                        amount,
+                        transactionTypeIndicator,
+                        description,
+                        paymentChannel,
+                        descLower);
         if (result0 != null) {
             return result0;
         }
-        TypeResult result1 = determineTypePriority1Category(account, categoryPrimary, categoryDetailed, amount, transactionTypeIndicator, description, paymentChannel, descLower);
+        TypeResult result1 =
+                determineTypePriority1Category(
+                        account,
+                        categoryPrimary,
+                        categoryDetailed,
+                        amount,
+                        transactionTypeIndicator,
+                        description,
+                        paymentChannel,
+                        descLower);
         if (result1 != null) {
             return result1;
         }
-        return determineTypePriority2PaymentsAndIndicators(account, categoryPrimary, categoryDetailed, amount, transactionTypeIndicator, description, paymentChannel, descLower);
+        return determineTypePriority2PaymentsAndIndicators(
+                account,
+                categoryPrimary,
+                categoryDetailed,
+                amount,
+                transactionTypeIndicator,
+                description,
+                paymentChannel,
+                descLower);
     }
 
     private TypeResult determineTypePriority0AccountType(

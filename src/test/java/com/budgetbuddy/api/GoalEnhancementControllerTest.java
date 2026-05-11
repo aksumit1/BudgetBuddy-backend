@@ -139,7 +139,9 @@ class GoalEnhancementControllerTest {
         assertTrue(response.getBody() instanceof Map);
         final Map<?, ?> body = (Map<?, ?>) response.getBody();
         assertTrue(body.containsKey(ERROR));
-        assertEquals("Goal not found", body.get(ERROR));
+        // Body message is sanitized — the original AppException text is logged but NOT returned
+        // to the client (it could leak ownership info like "Goal does not belong to user").
+        assertEquals("An internal error occurred", body.get(ERROR));
     }
 
     @Test
@@ -385,7 +387,9 @@ class GoalEnhancementControllerTest {
         assertTrue(response.getBody() instanceof Map);
         final Map<?, ?> body = (Map<?, ?>) response.getBody();
         assertTrue(body.containsKey(ERROR));
-        assertEquals("Goal not found", body.get(ERROR));
+        // Body message is sanitized — the original AppException text is logged but NOT returned
+        // to the client (it could leak ownership info like "Goal does not belong to user").
+        assertEquals("An internal error occurred", body.get(ERROR));
         verify(roundUpService, never()).getRoundUpTotal(any(), anyString(), anyInt());
     }
 
@@ -483,7 +487,9 @@ class GoalEnhancementControllerTest {
         assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatusCode());
         assertNotNull(response.getBody());
         final Map<?, ?> body = (Map<?, ?>) response.getBody();
-        assertEquals("Goal not found", body.get(ERROR));
+        // Body message is sanitized — the original AppException text is logged but NOT returned
+        // to the client (it could leak ownership info like "Goal does not belong to user").
+        assertEquals("An internal error occurred", body.get(ERROR));
     }
 
     @Test

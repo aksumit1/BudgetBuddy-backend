@@ -4,17 +4,22 @@ import com.budgetbuddy.compliance.AuditLogService;
 import com.budgetbuddy.exception.AppException;
 import com.budgetbuddy.exception.ErrorCode;
 import com.budgetbuddy.model.dynamodb.AccountTable;
+import com.budgetbuddy.model.dynamodb.DeviceTokenTable;
 import com.budgetbuddy.model.dynamodb.FIDO2CredentialTable;
 import com.budgetbuddy.model.dynamodb.SubscriptionTable;
 import com.budgetbuddy.model.dynamodb.TransactionActionTable;
 import com.budgetbuddy.repository.dynamodb.AccountRepository;
+import com.budgetbuddy.repository.dynamodb.AnomalyFeedbackRepository;
 import com.budgetbuddy.repository.dynamodb.AuditLogRepository;
 import com.budgetbuddy.repository.dynamodb.BudgetRepository;
+import com.budgetbuddy.repository.dynamodb.DeviceTokenRepository;
 import com.budgetbuddy.repository.dynamodb.FIDO2CredentialRepository;
 import com.budgetbuddy.repository.dynamodb.GoalRepository;
+import com.budgetbuddy.repository.dynamodb.NetWorthSnapshotRepository;
 import com.budgetbuddy.repository.dynamodb.SubscriptionRepository;
 import com.budgetbuddy.repository.dynamodb.TransactionActionRepository;
 import com.budgetbuddy.repository.dynamodb.TransactionRepository;
+import com.budgetbuddy.repository.dynamodb.UserPreferencesRepository;
 import com.budgetbuddy.repository.dynamodb.UserRepository;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.time.Instant;
@@ -65,8 +70,19 @@ public class UserDeletionService {
     private final CacheManager cacheManager;
     private final ImportHistoryService importHistoryService;
     private final com.budgetbuddy.service.aws.S3Service s3Service;
+    private final DeviceTokenRepository deviceTokenRepository;
+    private final AnomalyFeedbackRepository anomalyFeedbackRepository;
+    private final NetWorthSnapshotRepository netWorthSnapshotRepository;
+    private final UserPreferencesRepository userPreferencesRepository;
 
-    // TODO Needs to delete the Insights and SSubscriptions
+    // GDPR coverage status. Tables swept by deleteAllUserData below:
+    //   accounts, transactions, transaction-actions, budgets, goals, subscriptions,
+    //   import-history, S3 objects, device-tokens, anomaly-feedback, net-worth-snapshots,
+    //   user-preferences. Audit logs are anonymized (not deleted) by design for compliance.
+    // FIDO2 credentials are deleted only by deleteAccountCompletely (not just data wipe).
+    // Tables NOT yet swept because no repository exists in the codebase:
+    //   custom-merchant-mapping, user-corrections (per-user ML training rows).
+    // These need their repository class created before they can be wired here.
 
     public UserDeletionService(
             final UserRepository userRepository,
@@ -81,7 +97,11 @@ public class UserDeletionService {
             final AuditLogService auditLogService,
             final CacheManager cacheManager,
             final ImportHistoryService importHistoryService,
-            final com.budgetbuddy.service.aws.S3Service s3Service) {
+            final com.budgetbuddy.service.aws.S3Service s3Service,
+            final DeviceTokenRepository deviceTokenRepository,
+            final AnomalyFeedbackRepository anomalyFeedbackRepository,
+            final NetWorthSnapshotRepository netWorthSnapshotRepository,
+            final UserPreferencesRepository userPreferencesRepository) {
         this.userRepository = userRepository;
         this.accountRepository = accountRepository;
         this.transactionRepository = transactionRepository;
@@ -95,6 +115,10 @@ public class UserDeletionService {
         this.cacheManager = cacheManager;
         this.importHistoryService = importHistoryService;
         this.s3Service = s3Service;
+        this.deviceTokenRepository = deviceTokenRepository;
+        this.anomalyFeedbackRepository = anomalyFeedbackRepository;
+        this.netWorthSnapshotRepository = netWorthSnapshotRepository;
+        this.userPreferencesRepository = userPreferencesRepository;
     }
 
     /**
@@ -143,10 +167,22 @@ public class UserDeletionService {
             // (accounts are already deleted)
             deleteS3FilesForUser(userId, accountIdsForS3);
 
-            // 10. Anonymize audit logs (keep for compliance, but remove PII)
+            // 10. Delete device-token / push registrations
+            deleteDeviceTokensForUser(userId);
+
+            // 11. Delete anomaly feedback (dismissed/confirmed fingerprints) — PII-ish
+            deleteAnomalyFeedbackForUser(userId);
+
+            // 12. Delete net-worth snapshot history
+            deleteNetWorthSnapshotsForUser(userId);
+
+            // 13. Delete per-user preferences (opt-ins, notification settings)
+            deleteUserPreferencesForUser(userId);
+
+            // 14. Anonymize audit logs (keep for compliance, but remove PII)
             anonymizeAuditLogsForUser(userId);
 
-            // 11. Evict all caches for this user
+            // 15. Evict all caches for this user
             evictUserCaches(userId);
 
             // Log deletion action
@@ -517,6 +553,55 @@ public class UserDeletionService {
         }
 
         LOGGER.info("Deleted {} FIDO2 credentials for user: {}", credentials.size(), userId);
+    }
+
+    /** Delete push-notification device-token rows registered to this user. */
+    private void deleteDeviceTokensForUser(final String userId) {
+        final List<DeviceTokenTable> tokens = deviceTokenRepository.findByUserId(userId);
+        int deleted = 0;
+        for (final DeviceTokenTable token : tokens) {
+            try {
+                deviceTokenRepository.delete(token.getUserId(), token.getDeviceToken());
+                deleted++;
+            } catch (Exception e) {
+                LOGGER.warn(
+                        "Failed to delete device-token for user {}: {}", userId, e.getMessage());
+            }
+        }
+        LOGGER.info("Deleted {} device-tokens for user: {}", deleted, userId);
+    }
+
+    /** Delete anomaly-feedback rows (dismissed/confirmed fingerprints) for this user. */
+    private void deleteAnomalyFeedbackForUser(final String userId) {
+        try {
+            final int deleted = anomalyFeedbackRepository.deleteByUserId(userId);
+            LOGGER.info("Deleted {} anomaly-feedback rows for user: {}", deleted, userId);
+        } catch (Exception e) {
+            LOGGER.warn(
+                    "Failed to delete anomaly-feedback for user {}: {}", userId, e.getMessage());
+        }
+    }
+
+    /** Delete net-worth snapshot history for this user. */
+    private void deleteNetWorthSnapshotsForUser(final String userId) {
+        try {
+            final int deleted = netWorthSnapshotRepository.deleteByUserId(userId);
+            LOGGER.info("Deleted {} net-worth snapshots for user: {}", deleted, userId);
+        } catch (Exception e) {
+            LOGGER.warn(
+                    "Failed to delete net-worth snapshots for user {}: {}", userId, e.getMessage());
+        }
+    }
+
+    /** Delete the single per-user preferences row. */
+    private void deleteUserPreferencesForUser(final String userId) {
+        try {
+            userPreferencesRepository.deleteByUserId(userId);
+            LOGGER.info("Deleted user-preferences row for user: {}", userId);
+        } catch (Exception e) {
+            LOGGER.warn(
+                    "Failed to delete user-preferences for user {}: {}", userId, e.getMessage());
+        }
     }
 
     /** Delete all import history for a user */

@@ -27,13 +27,17 @@ import com.budgetbuddy.model.dynamodb.SubscriptionTable;
 import com.budgetbuddy.model.dynamodb.TransactionActionTable;
 import com.budgetbuddy.model.dynamodb.TransactionTable;
 import com.budgetbuddy.repository.dynamodb.AccountRepository;
+import com.budgetbuddy.repository.dynamodb.AnomalyFeedbackRepository;
 import com.budgetbuddy.repository.dynamodb.AuditLogRepository;
 import com.budgetbuddy.repository.dynamodb.BudgetRepository;
+import com.budgetbuddy.repository.dynamodb.DeviceTokenRepository;
 import com.budgetbuddy.repository.dynamodb.FIDO2CredentialRepository;
 import com.budgetbuddy.repository.dynamodb.GoalRepository;
+import com.budgetbuddy.repository.dynamodb.NetWorthSnapshotRepository;
 import com.budgetbuddy.repository.dynamodb.SubscriptionRepository;
 import com.budgetbuddy.repository.dynamodb.TransactionActionRepository;
 import com.budgetbuddy.repository.dynamodb.TransactionRepository;
+import com.budgetbuddy.repository.dynamodb.UserPreferencesRepository;
 import com.budgetbuddy.repository.dynamodb.UserRepository;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -76,6 +80,14 @@ class UserDeletionServiceTest {
     @Mock private AuditLogService auditLogService;
 
     @Mock private CacheManager cacheManager;
+
+    @Mock private DeviceTokenRepository deviceTokenRepository;
+
+    @Mock private AnomalyFeedbackRepository anomalyFeedbackRepository;
+
+    @Mock private NetWorthSnapshotRepository netWorthSnapshotRepository;
+
+    @Mock private UserPreferencesRepository userPreferencesRepository;
 
     @InjectMocks private UserDeletionService userDeletionService;
 

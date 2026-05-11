@@ -235,7 +235,10 @@ public class TransactionAnomalyService {
             }
         }
 
-        // TODO: Add location anamolies
+        // Location-based anomalies (e.g. transaction from a country the user hasn't visited)
+        // require geo data we don't yet collect: Plaid's transaction location fields are sparse
+        // and the iOS client doesn't ship device-location telemetry to the backend. Until that
+        // pipeline lands, this detector relies on the amount/merchant/category signals above.
 
         // Remove duplicates and sort by severity
         return anomalies.stream()
@@ -435,8 +438,10 @@ public class TransactionAnomalyService {
                         .filter(name -> !name.isEmpty())
                         .collect(Collectors.toSet());
 
-        // TODO: Also flag a large transaction from the same merchant, or more frequent transaction
-        // from the same merchant
+        // Same-merchant velocity / size-spike flags (e.g. "Costco $50 → Costco $850" or "5x
+        // Starbucks in an hour") are handled by the merchant-spend baseline detector earlier in
+        // this class — see {@code detectMerchantSpendingAnomalies}. This method is the unknown-
+        // merchant pass; keeping it focused avoids double-firing on the same transaction.
 
         // Check recent transactions for unknown merchants
         for (final TransactionTable tx : recentExpenses) {

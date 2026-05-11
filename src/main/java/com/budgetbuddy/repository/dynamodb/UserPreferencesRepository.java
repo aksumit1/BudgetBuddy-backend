@@ -58,6 +58,21 @@ public class UserPreferencesRepository {
         }
     }
 
+    /**
+     * Delete the preferences row for {@code userId}. Used by GDPR account-erasure. {@code userId}
+     * is the partition key, so this is a single-shot deleteItem — no GSI walk required.
+     */
+    public void deleteByUserId(final String userId) {
+        if (userId == null || userId.isEmpty()) {
+            return;
+        }
+        try {
+            table.deleteItem(Key.builder().partitionValue(userId).build());
+        } catch (ResourceNotFoundException e) {
+            // Table not provisioned yet — treat as no-op.
+        }
+    }
+
     public UserPreferencesTable save(final UserPreferencesTable row) {
         // Keep sparse-GSI flag columns consistent with the boolean primary state
         // so the GSI stays sparse — absent when opted-out, present when opted-in.

@@ -67,4 +67,30 @@ public class NetWorthSnapshotRepository {
                 });
         return out;
     }
+
+    /**
+     * Delete every snapshot owned by {@code userId}. Used by GDPR account-erasure; returns the
+     * count actually removed. Iterates the {@code UserIdSnapshotDateIndex} GSI so the call is
+     * always per-user and never scans the full table.
+     */
+    public int deleteByUserId(final String userId) {
+        if (userId == null || userId.isEmpty()) {
+            return 0;
+        }
+        int deleted = 0;
+        // Date "" sorts before any real ISO date, so the GSI returns every snapshot for the user.
+        final var pages =
+                userIdDateIndex.query(
+                        QueryConditional.sortGreaterThanOrEqualTo(
+                                Key.builder().partitionValue(userId).sortValue("").build()));
+        for (final var page : pages) {
+            for (final NetWorthSnapshotTable row : page.items()) {
+                if (row.getSnapshotId() != null) {
+                    table.deleteItem(Key.builder().partitionValue(row.getSnapshotId()).build());
+                    deleted++;
+                }
+            }
+        }
+        return deleted;
+    }
 }

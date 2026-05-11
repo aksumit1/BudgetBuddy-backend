@@ -48,9 +48,9 @@ public class GoalEnhancementController {
 
     /**
      * Body string returned when a broad catch fires. The original exception text is logged with
-     * full stack trace via LOGGER but never returned to the client — it can include DynamoDB
-     * schema errors, internal exception subclass names, "Goal does not belong to user" (which
-     * leaks the existence of a foreign goalId), and similar implementation detail.
+     * full stack trace via LOGGER but never returned to the client — it can include DynamoDB schema
+     * errors, internal exception subclass names, "Goal does not belong to user" (which leaks the
+     * existence of a foreign goalId), and similar implementation detail.
      */
     private static final String INTERNAL_ERROR_MSG = "An internal error occurred";
 

@@ -65,16 +65,11 @@ public class DDoSProtectionService {
     @Value("${app.rate-limit.ddos.max-requests-per-minute:100000}")
     private long maxRequestsPerMinute;
 
-    // TODO: Implement hourly rate limiting - currently only per-minute rate limiting is implemented
-    // Reserved for future implementation of hourly rate limits
-    @Value("${app.rate-limit.ddos.max-requests-per-hour:5000000}")
-    @SuppressWarnings({
-        "unused",
-        "PMD.AvoidCatchingGenericException"
-    }) // Field reserved for future hourly rate limiting implementation
-    private long maxRequestsPerHour;
+    // The per-minute window above acts as the effective hourly ceiling (60 × 100K = 6M/h),
+    // which exceeds the previously-configured `max-requests-per-hour` ceiling (5M/h).
+    // The hourly field/property has been removed — it was reserved for a "future hourly window"
+    // that never landed and shipped as a dead `@SuppressWarnings("unused")` field that drifted.
 
-    // LOW PRIORITY FIX: Make DDoS protection constants fully configurable
     @Value("${app.rate-limit.ddos.block-duration-seconds:3600}")
     private int blockDurationSeconds; // 1 hour block
 
