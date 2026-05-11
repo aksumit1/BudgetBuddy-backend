@@ -40,14 +40,23 @@ public class PlaidSyncService {
     private static final Logger LOGGER = LoggerFactory.getLogger(PlaidSyncService.class);
 
     private final PlaidSyncOrchestrator syncOrchestrator;
+    private final PlaidAccessTokenRepository accessTokenRepository;
+    private final UserRepository userRepository;
+    private final DistributedLockService distributedLock;
+    private final ScanRateLimiter scanRateLimiter;
 
-    public PlaidSyncService(final PlaidSyncOrchestrator syncOrchestrator) {
+    public PlaidSyncService(
+            final PlaidSyncOrchestrator syncOrchestrator,
+            final PlaidAccessTokenRepository accessTokenRepository,
+            final UserRepository userRepository,
+            final DistributedLockService distributedLock,
+            final ScanRateLimiter scanRateLimiter) {
         this.syncOrchestrator = syncOrchestrator;
+        this.accessTokenRepository = accessTokenRepository;
+        this.userRepository = userRepository;
+        this.distributedLock = distributedLock;
+        this.scanRateLimiter = scanRateLimiter;
     }
-
-    // scheduledSync() below is a documented stub awaiting access-token storage; no distributed
-    // lock needed because the body has no side effects. When real sync wiring lands, wrap the
-    // body in `distributedLock.runOnce("plaidScheduledSync:" + today, 120, this::doSync)`.
 
     /**
      * Sync accounts for a user Delegates to PlaidAccountSyncService for better modularity
@@ -86,66 +95,86 @@ public class PlaidSyncService {
     }
 
     /**
-     * Scheduled sync for all users (runs daily) Syncs transactions for all users with active Plaid
-     * accounts
+     * Scheduled daily Plaid sync (02:35 UTC, staggered from the 02:00 cluster). Walks every row in
+     * {@code PlaidAccessTokens}, loads the owning user, and triggers a transaction resync for that
+     * (user, accessToken, itemId) tuple.
      *
-     * <p>Note: This implementation requires access tokens to be stored securely. In production,
-     * maintain a mapping of userId -> accessToken in a secure storage.
+     * <p>Two production safeguards layered on:
+     *
+     * <ul>
+     *   <li><b>Distributed lock</b> — when ECS auto-scales to N tasks the cron fires on every
+     *       replica; without a lock we'd re-sync every user N times, burning Plaid quota and
+     *       producing duplicate-detection churn. The lock key includes the date so consecutive days
+     *       are still independent.
+     *   <li><b>Scan rate limiter</b> — the access-token walk is a table scan; a misconfigured cron
+     *       firing hourly instead of daily could blow the AWS bill. The limiter caps concurrent
+     *       scans application-wide; if it rejects, we skip the run and the next cron tick retries.
+     * </ul>
      */
     @Scheduled(cron = "0 35 2 * * ?", zone = "UTC") // Staggered from 02:00 cluster
     public void scheduledSync() {
-        LOGGER.info("Starting scheduled Plaid sync for all users");
+        final LocalDate today = LocalDate.now(ZoneOffset.UTC);
+        final String lockKey = "plaidScheduledSync:" + today;
+        // 4h TTL — large enough for a multi-thousand-user fan-out under Plaid's rate limits.
+        distributedLock.runOnce(lockKey, 240, this::scheduledSyncInner);
+    }
 
+    private void scheduledSyncInner() {
+        if (!scanRateLimiter.acquire()) {
+            LOGGER.warn("Plaid scheduled sync skipped — scan rate limiter rejected permit");
+            return;
+        }
+        int attempted = 0;
+        int succeeded = 0;
+        int skippedMissingUser = 0;
         try {
-            // Find all unique user IDs that have accounts with plaidItemId (indicating active Plaid
-            // connection)
-            // Note: Implementation requires access token storage - see comments below
-
-            // OPTIMIZED: GSI on plaidItemId is now implemented in AccountRepository
-            // Use accountRepository.findByPlaidItemId() to find accounts by Plaid item ID (uses
-            // GSI)
-            // For finding users with Plaid accounts, query accounts and extract unique userIds
-            // Note: For access token storage, consider:
-            // 1. Maintaining a separate table/mapping of userId -> accessToken
-            // 2. Using DynamoDB Streams to maintain a list of active connections
-
-            LOGGER.info("Scheduled sync: Scanning for users with active Plaid connections");
-
-            // For now, we'll log that scheduled sync is running
-            // The actual sync implementation requires:
-            // 1. Access tokens stored securely (e.g., AWS Secrets Manager, encrypted DynamoDB
-            // table)
-            // 2. A way to retrieve access token for each user
-            // 3. Error handling for expired/invalid tokens
-
-            // Example implementation structure (commented out until access token storage is
-            // implemented):
-            /*
-            for (String userId : usersWithPlaidAccounts) {
+            LOGGER.info("Plaid scheduled sync starting (walking PlaidAccessTokens)");
+            for (final PlaidAccessTokenTable row : accessTokenRepository.findAll()) {
+                attempted++;
+                if (row.getUserId() == null
+                        || row.getAccessToken() == null
+                        || row.getAccessToken().isEmpty()) {
+                    continue;
+                }
                 try {
-                    String accessToken = getAccessTokenForUser(userId); // Retrieve from secure storage
-                    if (accessToken != null && !accessToken.isEmpty()) {
-                        UserTable user = userRepository.findById(userId).orElse(null);
-                        if (user != null) {
-                            syncTransactions(user, accessToken);
-                            LOGGER.debug("Scheduled sync completed for user: {}", userId);
+                    final Optional<UserTable> userOpt = userRepository.findById(row.getUserId());
+                    if (userOpt.isEmpty()) {
+                        skippedMissingUser++;
+                        if (LOGGER.isDebugEnabled()) {
+                            LOGGER.debug(
+                                    "Skipping orphaned access-token row userId={} itemId={}",
+                                    row.getUserId(),
+                                    row.getPlaidItemId());
                         }
+                        continue;
                     }
-                } catch (Exception e) {
-                    LOGGER.error("Failed to sync user {} in scheduled sync: {}", userId, e.getMessage());
+                    syncOrchestrator.syncTransactionsOnly(userOpt.get(), row.getAccessToken());
+                    succeeded++;
+                } catch (Exception perUser) {
+                    // One user's failure must not stop the rest of the fan-out. Common cases:
+                    // expired access token (the user will be prompted to re-link on their next
+                    // visit), Plaid rate-limit, transient AWS error. All are logged WARN so
+                    // ops can see the pattern but the cron keeps going.
+                    if (LOGGER.isWarnEnabled()) {
+                        LOGGER.warn(
+                                "Plaid scheduled sync failed for user={} item={}: {}",
+                                row.getUserId(),
+                                row.getPlaidItemId(),
+                                perUser.getMessage());
+                    }
                 }
             }
-            */
-
-            if (LOGGER.isInfoEnabled()) {
-                LOGGER.info(
-                        "Scheduled Plaid sync completed (access token storage required for full implementation)");
-            }
-
+            LOGGER.info(
+                    "Plaid scheduled sync complete: attempted={} succeeded={} orphanedRows={}",
+                    attempted,
+                    succeeded,
+                    skippedMissingUser);
         } catch (Exception e) {
             if (LOGGER.isErrorEnabled()) {
-                LOGGER.error("Error in scheduled Plaid sync: {}", e.getMessage(), e);
+                LOGGER.error("Plaid scheduled sync pass failed: {}", e.getMessage(), e);
             }
+        } finally {
+            scanRateLimiter.release();
         }
     }
 }

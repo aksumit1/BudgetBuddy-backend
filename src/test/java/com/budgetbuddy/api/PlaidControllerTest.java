@@ -75,7 +75,13 @@ class PlaidControllerTest {
                         userService,
                         accountRepository,
                         transactionService,
-                        taskExecutor);
+                        taskExecutor,
+                        // PlaidAccessTokenRepository is exercised only in the new exchange path
+                        // we added in this commit; the existing tests don't cover it, so we
+                        // pass a Mockito mock to satisfy the constructor without behaviour.
+                        org.mockito.Mockito.mock(
+                                com.budgetbuddy.repository.dynamodb.PlaidAccessTokenRepository
+                                        .class));
 
         testUser = new UserTable();
         testUser.setUserId(UUID.randomUUID().toString());

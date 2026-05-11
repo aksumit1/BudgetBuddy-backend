@@ -123,7 +123,7 @@ class PlaidDeduplicationTest {
                 .syncTransactionsOnly(any(UserTable.class), anyString());
 
         // Manually inject the orchestrator to ensure it's set before tests run
-        plaidSyncService = new PlaidSyncService(syncOrchestrator);
+        plaidSyncService = new PlaidSyncService(syncOrchestrator, null, null, null, null);
     }
 
     @Test

@@ -96,10 +96,10 @@ public class PlaidAccessTokenRepository {
     }
 
     /**
-     * Iterate every access-token row in the table — used by the daily scheduled sync. Uses a
-     * lazy {@link Iterable} so callers can stream without loading every row into a single list
-     * (~bounded but still cheaper if there are many users). Guarded at the call site by
-     * {@code ScanRateLimiter} so this rare-but-table-scan operation can't blow the DDB bill.
+     * Iterate every access-token row in the table — used by the daily scheduled sync. Uses a lazy
+     * {@link Iterable} so callers can stream without loading every row into a single list (~bounded
+     * but still cheaper if there are many users). Guarded at the call site by {@code
+     * ScanRateLimiter} so this rare-but-table-scan operation can't blow the DDB bill.
      */
     public Iterable<PlaidAccessTokenTable> findAll() {
         try {

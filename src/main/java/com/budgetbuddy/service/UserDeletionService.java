@@ -726,8 +726,8 @@ public class UserDeletionService {
     /**
      * Delete the backend-side Plaid access-token store for this user. Sister of
      * removePlaidItemsForUser (which clears Plaid IDs from the accounts table) — together they
-     * close out Plaid: the linked-account metadata is unlinked, and the long-lived access
-     * tokens that would otherwise let the scheduled sync keep pulling for this user are gone.
+     * close out Plaid: the linked-account metadata is unlinked, and the long-lived access tokens
+     * that would otherwise let the scheduled sync keep pulling for this user are gone.
      */
     private void deletePlaidAccessTokensForUser(final String userId) {
         try {

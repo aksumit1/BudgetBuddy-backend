@@ -92,7 +92,7 @@ public class PlaidController {
             final com.budgetbuddy.service.TransactionService transactionService,
             @Qualifier("taskExecutor") final Executor taskExecutor,
             final com.budgetbuddy.repository.dynamodb.PlaidAccessTokenRepository
-                            plaidAccessTokenRepository) {
+                    plaidAccessTokenRepository) {
         this.plaidService = plaidService;
         this.plaidSyncService = plaidSyncService;
         this.userService = userService;
