@@ -230,6 +230,45 @@ class PDFImportServiceFxAnnotationTest {
     }
 
     @Test
+    void fxAnchor_andParsedTxnAnchor_useTheSameKeyFormat_forAmountsOverOneThousand() {
+        // Regression: when the parent transaction amount has a thousands separator
+        // ($2,143.23), the FX side-channel was storing the anchor key WITH the comma
+        // (matched verbatim from the raw line) while fxAnchorFor built the lookup key
+        // from BigDecimal.toPlainString() (no comma). The two never matched and the FX
+        // info silently never attached for amounts >= $1,000. This locks in that both
+        // sides produce the canonical no-comma form so the lookup succeeds.
+        final String input =
+                String.join(
+                        "\n",
+                        "01/23     SYNTHETIC INTERNATIONAL HOTEL 2,143.23",
+                        "01/24    INDIAN RUPEE             ",
+                        "193,561.30 X 0.011072616 (EXCHG RATE)");
+
+        final PDFImportService.FxStripResult res =
+                PDFImportService.stripAndCaptureFxAnnotations(input);
+
+        // The captured key must NOT contain a comma — that's the bug indicator.
+        for (final String anchor : res.getAnnotationsByAnchor().keySet()) {
+            assertFalse(anchor.contains(","),
+                    "FX anchor key must use canonical no-comma form; got: " + anchor);
+        }
+
+        // And a ParsedTransaction with the same date+amount must look up successfully.
+        final PDFImportService.ParsedTransaction txn = new PDFImportService.ParsedTransaction();
+        txn.setDate(java.time.LocalDate.of(2026, 1, 23));
+        txn.setAmount(new java.math.BigDecimal("2143.23"));
+        txn.setDescription("SYNTHETIC INTERNATIONAL HOTEL");
+
+        PDFImportService.applyFxAnnotationIfPresent(txn, res.getAnnotationsByAnchor());
+
+        assertEquals("INR", txn.getOriginalCurrencyCode(),
+                "FX info must attach for amounts >= $1,000 — the comma-mismatch bug");
+        assertEquals(
+                0,
+                new java.math.BigDecimal("193561.30").compareTo(txn.getOriginalAmount()));
+    }
+
+    @Test
     void stripAndCaptureFxAnnotations_mapsUnknownCurrencyDisplayToItself() {
         // A currency display name we don't have an ISO mapping for must still be captured —
         // we fall back to the raw display name as the "code" so the data is preserved.

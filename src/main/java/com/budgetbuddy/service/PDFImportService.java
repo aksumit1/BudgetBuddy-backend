@@ -3479,7 +3479,12 @@ public class PDFImportService {
             final String day = dateMatch.group(2);
             // Normalise amount: strip $ and leading +/- (the sign is recovered from the
             // ParsedTransaction's flowDirection so the anchor doesn't need it).
-            String amt = amountMatch.group(1).replace("$", "");
+            // Strip the canonical-form noise so the anchor matches what fxAnchorFor builds
+            // from a ParsedTransaction.BigDecimal.toPlainString() (no $, no comma, no sign).
+            // The comma-stripping is the load-bearing one — without it any txn ≥ $1,000
+            // silently fails to attach its FX info because the saved key carries the
+            // thousands-separator from the raw PDF text but the lookup key doesn't.
+            String amt = amountMatch.group(1).replace("$", "").replace(",", "");
             if (amt.startsWith("-") || amt.startsWith("+")) {
                 amt = amt.substring(1);
             }
