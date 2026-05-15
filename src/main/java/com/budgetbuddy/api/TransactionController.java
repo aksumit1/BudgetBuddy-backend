@@ -6528,6 +6528,123 @@ public class TransactionController {
      * @param accountId Account ID to update
      * @param importResult PDF import result containing metadata
      */
+    /**
+     * Copy every PDF-extracted statement-summary field onto an {@link AccountTable}.
+     * Called from the "latest-statement wins" branches of {@link
+     * #updateAccountMetadataFromPDFImport(String, PDFImportService.ImportResult)} so
+     * an older statement uploaded after a newer one does NOT clobber the row.
+     *
+     * <p>Each field is copied only when present on the {@code ImportResult} — null
+     * values are skipped so a partial extraction (e.g. a scanned PDF where the APR
+     * block was OCR'd badly) does NOT null out a previously-good value. The purchase
+     * APR is mapped to {@code aprPercent} for backwards compatibility with the
+     * existing Plaid enrichment path.
+     *
+     * <p>Package-private (no {@code private}) so unit tests can drive it directly
+     * without spinning up the full controller.
+     */
+    /* default */ static void applyStatementSummaryToAccount(
+            final AccountTable account, final PDFImportService.ImportResult ir) {
+        if (account == null || ir == null) {
+            return;
+        }
+        // Balances + summary.
+        if (ir.getNewBalance() != null) {
+            account.setNewBalance(ir.getNewBalance());
+        }
+        if (ir.getPreviousBalance() != null) {
+            account.setPreviousBalance(ir.getPreviousBalance());
+        }
+        if (ir.getPastDueAmount() != null) {
+            account.setPastDueAmount(ir.getPastDueAmount());
+        }
+        if (ir.getCreditLimit() != null) {
+            account.setCreditLimit(ir.getCreditLimit());
+        }
+        if (ir.getAvailableCredit() != null) {
+            account.setAvailableCredit(ir.getAvailableCredit());
+        }
+        if (ir.getStatementDate() != null) {
+            account.setStatementDate(ir.getStatementDate());
+        }
+        if (ir.getBillingDays() != null) {
+            account.setBillingDays(ir.getBillingDays());
+        }
+
+        // Section totals.
+        if (ir.getPurchasesTotal() != null) {
+            account.setPurchasesTotal(ir.getPurchasesTotal());
+        }
+        if (ir.getPaymentsAndCreditsTotal() != null) {
+            account.setPaymentsAndCreditsTotal(ir.getPaymentsAndCreditsTotal());
+        }
+        if (ir.getCashAdvancesTotal() != null) {
+            account.setCashAdvancesTotal(ir.getCashAdvancesTotal());
+        }
+        if (ir.getBalanceTransfersTotal() != null) {
+            account.setBalanceTransfersTotal(ir.getBalanceTransfersTotal());
+        }
+        if (ir.getFeesChargedTotal() != null) {
+            account.setFeesChargedTotal(ir.getFeesChargedTotal());
+        }
+        if (ir.getInterestChargedTotal() != null) {
+            account.setInterestChargedTotal(ir.getInterestChargedTotal());
+        }
+
+        // APRs. Purchase APR → aprPercent (the canonical existing column); the others
+        // go to their dedicated columns.
+        if (ir.getPurchaseApr() != null) {
+            account.setAprPercent(ir.getPurchaseApr());
+        }
+        if (ir.getCashAdvanceApr() != null) {
+            account.setCashAdvanceApr(ir.getCashAdvanceApr());
+        }
+        if (ir.getBalanceTransferApr() != null) {
+            account.setBalanceTransferApr(ir.getBalanceTransferApr());
+        }
+        if (ir.getPenaltyApr() != null) {
+            account.setPenaltyApr(ir.getPenaltyApr());
+        }
+
+        // Cash-advance sub-limits.
+        if (ir.getCashAccessLine() != null) {
+            account.setCashAccessLine(ir.getCashAccessLine());
+        }
+        if (ir.getAvailableForCash() != null) {
+            account.setAvailableForCash(ir.getAvailableForCash());
+        }
+
+        // Foreign-tx fee — existing column reused.
+        if (ir.getForeignTransactionFeePercent() != null) {
+            account.setForeignTxFeePercent(ir.getForeignTransactionFeePercent());
+        }
+
+        // Annual fee.
+        if (ir.getAnnualMembershipFee() != null) {
+            account.setAnnualMembershipFee(ir.getAnnualMembershipFee());
+        }
+        if (ir.getAnnualMembershipFeeDueDate() != null) {
+            account.setAnnualMembershipFeeDueDate(ir.getAnnualMembershipFeeDueDate());
+        }
+
+        // AutoPay.
+        if (ir.getAutoPayEnabled() != null) {
+            account.setAutoPayEnabled(ir.getAutoPayEnabled());
+        }
+        if (ir.getNextAutoPayAmount() != null) {
+            account.setNextAutoPayAmount(ir.getNextAutoPayAmount());
+        }
+
+        // Points split. The legacy rewardPoints column is set by the caller using
+        // ir.getRewardPoints() — these two add the earned/balance specificity.
+        if (ir.getPointsEarnedThisPeriod() != null) {
+            account.setPointsEarnedThisPeriod(ir.getPointsEarnedThisPeriod());
+        }
+        if (ir.getPointsBalance() != null) {
+            account.setPointsBalance(ir.getPointsBalance());
+        }
+    }
+
     private void updateAccountMetadataFromPDFImport(
             final String accountId, final PDFImportService.ImportResult importResult) {
         LOGGER.info("🔄 [Account Metadata Update] Starting update for accountId: '{}'", accountId);
@@ -6588,6 +6705,9 @@ public class TransactionController {
                     if (newBalance != null) {
                         account.setBalance(newBalance);
                     }
+                    // Apply the full statement-summary block — this is the "first
+                    // statement" path so every captured field wins by default.
+                    applyStatementSummaryToAccount(account, importResult);
                     needsUpdate = true;
                     LOGGER.info(
                             "📅 [Account Metadata] Setting initial payment due date: {} (no existing date)",
@@ -6601,6 +6721,8 @@ public class TransactionController {
                     if (newRewardPoints != null) {
                         account.setRewardPoints(newRewardPoints);
                     }
+                    // Newer statement supersedes the existing summary block.
+                    applyStatementSummaryToAccount(account, importResult);
                     // Update balance with date comparison (for checking accounts)
                     LocalDate newBalanceDate = null;
                     if (importResult.getDetectedAccount() != null) {

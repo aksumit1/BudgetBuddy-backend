@@ -401,4 +401,144 @@ public class AccountTable {
     public void setDeletedAt(final Instant deletedAt) {
         this.deletedAt = deletedAt;
     }
+
+    // ========================================================================
+    //  PDF statement-summary persistence (added so the metadata surfaced in
+    //  the import-preview response survives past the preview screen). All
+    //  nullable — populated only on accounts that have been touched by a PDF
+    //  import. Older rows will read these as null with no migration needed
+    //  (DynamoDB is schemaless).
+    //
+    //  All time-sensitive fields use the "latest statement wins" rule
+    //  enforced in TransactionController.updateAccountMetadataFromPDFImport:
+    //  an import only overwrites these when its paymentDueDate is later than
+    //  what we already have on the row. That makes a re-import of the SAME
+    //  statement idempotent and an out-of-order import (older statement
+    //  uploaded after a newer one) a no-op.
+    // ========================================================================
+
+    private BigDecimal newBalance;
+    private BigDecimal previousBalance;
+    private BigDecimal pastDueAmount;
+    private LocalDate statementDate;
+    private Integer billingDays;
+
+    // Section totals.
+    private BigDecimal purchasesTotal;
+    private BigDecimal paymentsAndCreditsTotal;
+    private BigDecimal cashAdvancesTotal;
+    private BigDecimal balanceTransfersTotal;
+    private BigDecimal feesChargedTotal;
+    private BigDecimal interestChargedTotal;
+
+    // APR splits — the existing `aprPercent` field (above) stays as the canonical
+    // purchase APR for backwards compat. These add the other three rate types.
+    private BigDecimal cashAdvanceApr;
+    private BigDecimal balanceTransferApr;
+    private BigDecimal penaltyApr;
+
+    // Cash-advance secondary limits.
+    private BigDecimal cashAccessLine;
+    private BigDecimal availableForCash;
+
+    // Annual membership fee + upcoming billing date.
+    private BigDecimal annualMembershipFee;
+    private LocalDate annualMembershipFeeDueDate;
+
+    // AutoPay status + next scheduled deduction.
+    private Boolean autoPayEnabled;
+    private BigDecimal nextAutoPayAmount;
+
+    // Points split. The existing `rewardPoints` field stays — these add
+    // specificity (earned-this-period vs. cumulative balance).
+    private Long pointsEarnedThisPeriod;
+    private Long pointsBalance;
+
+    @DynamoDbAttribute("newBalance")
+    public BigDecimal getNewBalance() { return newBalance; }
+    public void setNewBalance(final BigDecimal v) { this.newBalance = v; }
+
+    @DynamoDbAttribute("previousBalance")
+    public BigDecimal getPreviousBalance() { return previousBalance; }
+    public void setPreviousBalance(final BigDecimal v) { this.previousBalance = v; }
+
+    @DynamoDbAttribute("pastDueAmount")
+    public BigDecimal getPastDueAmount() { return pastDueAmount; }
+    public void setPastDueAmount(final BigDecimal v) { this.pastDueAmount = v; }
+
+    @DynamoDbAttribute("statementDate")
+    public LocalDate getStatementDate() { return statementDate; }
+    public void setStatementDate(final LocalDate v) { this.statementDate = v; }
+
+    @DynamoDbAttribute("billingDays")
+    public Integer getBillingDays() { return billingDays; }
+    public void setBillingDays(final Integer v) { this.billingDays = v; }
+
+    @DynamoDbAttribute("purchasesTotal")
+    public BigDecimal getPurchasesTotal() { return purchasesTotal; }
+    public void setPurchasesTotal(final BigDecimal v) { this.purchasesTotal = v; }
+
+    @DynamoDbAttribute("paymentsAndCreditsTotal")
+    public BigDecimal getPaymentsAndCreditsTotal() { return paymentsAndCreditsTotal; }
+    public void setPaymentsAndCreditsTotal(final BigDecimal v) { this.paymentsAndCreditsTotal = v; }
+
+    @DynamoDbAttribute("cashAdvancesTotal")
+    public BigDecimal getCashAdvancesTotal() { return cashAdvancesTotal; }
+    public void setCashAdvancesTotal(final BigDecimal v) { this.cashAdvancesTotal = v; }
+
+    @DynamoDbAttribute("balanceTransfersTotal")
+    public BigDecimal getBalanceTransfersTotal() { return balanceTransfersTotal; }
+    public void setBalanceTransfersTotal(final BigDecimal v) { this.balanceTransfersTotal = v; }
+
+    @DynamoDbAttribute("feesChargedTotal")
+    public BigDecimal getFeesChargedTotal() { return feesChargedTotal; }
+    public void setFeesChargedTotal(final BigDecimal v) { this.feesChargedTotal = v; }
+
+    @DynamoDbAttribute("interestChargedTotal")
+    public BigDecimal getInterestChargedTotal() { return interestChargedTotal; }
+    public void setInterestChargedTotal(final BigDecimal v) { this.interestChargedTotal = v; }
+
+    @DynamoDbAttribute("cashAdvanceApr")
+    public BigDecimal getCashAdvanceApr() { return cashAdvanceApr; }
+    public void setCashAdvanceApr(final BigDecimal v) { this.cashAdvanceApr = v; }
+
+    @DynamoDbAttribute("balanceTransferApr")
+    public BigDecimal getBalanceTransferApr() { return balanceTransferApr; }
+    public void setBalanceTransferApr(final BigDecimal v) { this.balanceTransferApr = v; }
+
+    @DynamoDbAttribute("penaltyApr")
+    public BigDecimal getPenaltyApr() { return penaltyApr; }
+    public void setPenaltyApr(final BigDecimal v) { this.penaltyApr = v; }
+
+    @DynamoDbAttribute("cashAccessLine")
+    public BigDecimal getCashAccessLine() { return cashAccessLine; }
+    public void setCashAccessLine(final BigDecimal v) { this.cashAccessLine = v; }
+
+    @DynamoDbAttribute("availableForCash")
+    public BigDecimal getAvailableForCash() { return availableForCash; }
+    public void setAvailableForCash(final BigDecimal v) { this.availableForCash = v; }
+
+    @DynamoDbAttribute("annualMembershipFee")
+    public BigDecimal getAnnualMembershipFee() { return annualMembershipFee; }
+    public void setAnnualMembershipFee(final BigDecimal v) { this.annualMembershipFee = v; }
+
+    @DynamoDbAttribute("annualMembershipFeeDueDate")
+    public LocalDate getAnnualMembershipFeeDueDate() { return annualMembershipFeeDueDate; }
+    public void setAnnualMembershipFeeDueDate(final LocalDate v) { this.annualMembershipFeeDueDate = v; }
+
+    @DynamoDbAttribute("autoPayEnabled")
+    public Boolean getAutoPayEnabled() { return autoPayEnabled; }
+    public void setAutoPayEnabled(final Boolean v) { this.autoPayEnabled = v; }
+
+    @DynamoDbAttribute("nextAutoPayAmount")
+    public BigDecimal getNextAutoPayAmount() { return nextAutoPayAmount; }
+    public void setNextAutoPayAmount(final BigDecimal v) { this.nextAutoPayAmount = v; }
+
+    @DynamoDbAttribute("pointsEarnedThisPeriod")
+    public Long getPointsEarnedThisPeriod() { return pointsEarnedThisPeriod; }
+    public void setPointsEarnedThisPeriod(final Long v) { this.pointsEarnedThisPeriod = v; }
+
+    @DynamoDbAttribute("pointsBalance")
+    public Long getPointsBalance() { return pointsBalance; }
+    public void setPointsBalance(final Long v) { this.pointsBalance = v; }
 }
