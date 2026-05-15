@@ -214,8 +214,15 @@ public class HighInterestDetectionService {
                 continue; // No balance, no interest
             }
 
-            // Estimate interest rate (default to 20% for credit cards if not available)
-            final double interestRate = 0.20; // Default assumption
+            // Prefer the real APR from the most-recent statement (Chase PDF parser
+            // surfaces this as account.aprPercent on a 0-100 scale). Falls back to
+            // the 20% industry estimate when the account has never been imported.
+            // A real APR makes the alert quantitative — the user sees "you're paying
+            // 28.49% × $X" instead of an averaged guess.
+            final double interestRate =
+                    account.getAprPercent() != null && account.getAprPercent().signum() > 0
+                            ? account.getAprPercent().doubleValue() / 100.0
+                            : 0.20;
 
             // Calculate interest if only making minimum payments
             final BigDecimal monthlyInterest =

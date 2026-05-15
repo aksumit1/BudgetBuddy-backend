@@ -116,6 +116,12 @@ public class FinancialInsightsController {
     @org.springframework.beans.factory.annotation.Autowired(required = false)
     private com.budgetbuddy.service.CrossAccountAnomalyDetector crossAccountDetector;
 
+    // Credit-card specific insights powered by the new statement-summary fields on
+    // AccountTable. Optional because the service is new and not every test wiring
+    // injects it — guard at the call site.
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private com.budgetbuddy.service.CreditCardInsightsService creditCardInsightsService;
+
     public FinancialInsightsController(
             final TransactionAnomalyService anomalyService,
             final ExpenseReductionService expenseReductionService,
@@ -141,6 +147,50 @@ public class FinancialInsightsController {
         this.subscriptionRepository = subscriptionRepository;
         this.anomalyFeedbackService = anomalyFeedbackService;
         this.goalRepository = goalRepository;
+    }
+
+    /**
+     * Credit-card insights derived from the PDF statement-summary block: past-due,
+     * high-utilization, AutoPay-off, annual-fee-approaching. Distinct from
+     * {@code /high-interest} which targets long-running interest cost — this
+     * endpoint produces operational nudges from data the parser persists.
+     */
+    @GetMapping("/credit-cards")
+    public ResponseEntity<List<Map<String, Object>>> getCreditCardInsights(
+            @AuthenticationPrincipal final UserDetails userDetails) {
+        if (userDetails == null || userDetails.getUsername() == null) {
+            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, USER_NOT_AUTHENTICATED);
+        }
+        final UserTable user =
+                userService
+                        .findByEmail(userDetails.getUsername())
+                        .orElseThrow(
+                                () -> new AppException(ErrorCode.USER_NOT_FOUND, USER_NOT_FOUND_1));
+
+        if (creditCardInsightsService == null) {
+            // Service not on the classpath / not auto-wired — degrade to empty list
+            // rather than 500. iOS just renders nothing for this section.
+            return ResponseEntity.ok(List.of());
+        }
+        final List<com.budgetbuddy.service.CreditCardInsightsService.CreditCardInsight> insights =
+                creditCardInsightsService.detect(user.getUserId());
+
+        final List<Map<String, Object>> response =
+                insights.stream()
+                        .map(
+                                ins -> {
+                                    final Map<String, Object> m = new HashMap<>();
+                                    m.put("accountId", ins.accountId());
+                                    m.put("accountName", ins.accountName());
+                                    m.put("institutionName", ins.institutionName());
+                                    m.put("type", ins.type());
+                                    m.put("severity", ins.severity().name());
+                                    m.put("message", ins.message());
+                                    m.put("recommendation", ins.recommendation());
+                                    return m;
+                                })
+                        .collect(Collectors.toList());
+        return ResponseEntity.ok(response);
     }
 
     /**
