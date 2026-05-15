@@ -311,6 +311,32 @@ public class PDFImportService {
         // international purchase BEFORE we even apply the FX rate.
         private BigDecimal foreignTransactionFeePercent;
 
+        // AutoPay status — Chase prints "AUTOPAY IS ON" / "AUTOPAY IS OFF". Null when
+        // the statement doesn't mention AutoPay (e.g. cards that don't support it). The
+        // boolean is more useful than the raw string for downstream UI.
+        private Boolean autoPayEnabled;
+
+        // Next scheduled AutoPay deduction amount. Chase prints "Your next AutoPay
+        // payment for $403.87 will be deducted...". Only populated when AutoPay is on.
+        private BigDecimal nextAutoPayAmount;
+
+        // Reward points split: existing `rewardPoints` carries whichever value the
+        // priority-based RewardExtractor surfaces (typically the earned-this-period
+        // figure on transfer-partner cards; the balance on cards that show one).
+        // These two explicit fields let downstream callers tell the difference even
+        // when both appear on the same statement.
+        //
+        //   pointsEarnedThisPeriod — points ACCRUED during this billing cycle.
+        //     Chase Marriott Bonvoy: "Total points transferred to Marriott Bonvoy 2,020"
+        //     Chase Sapphire / similar: "Points earned this period: NN,NNN"
+        //
+        //   pointsBalance — CUMULATIVE points balance available to redeem.
+        //     Cards that keep points on the issuer side print "Points balance: NN,NNN"
+        //     or "Available points: NN,NNN". Transfer-partner cards (Marriott) typically
+        //     don't print a balance because the balance lives at the partner.
+        private Long pointsEarnedThisPeriod;
+        private Long pointsBalance;
+
         /**
          * Statement coverage window, extracted from the header when present (e.g. "Statement
          * period: 03/01/2024 - 03/31/2024"). Previously only the year was extracted for MM/DD
@@ -593,6 +619,38 @@ public class PDFImportService {
 
         public void setForeignTransactionFeePercent(final BigDecimal v) {
             this.foreignTransactionFeePercent = v;
+        }
+
+        public Boolean getAutoPayEnabled() {
+            return autoPayEnabled;
+        }
+
+        public void setAutoPayEnabled(final Boolean v) {
+            this.autoPayEnabled = v;
+        }
+
+        public BigDecimal getNextAutoPayAmount() {
+            return nextAutoPayAmount;
+        }
+
+        public void setNextAutoPayAmount(final BigDecimal v) {
+            this.nextAutoPayAmount = v;
+        }
+
+        public Long getPointsEarnedThisPeriod() {
+            return pointsEarnedThisPeriod;
+        }
+
+        public void setPointsEarnedThisPeriod(final Long v) {
+            this.pointsEarnedThisPeriod = v;
+        }
+
+        public Long getPointsBalance() {
+            return pointsBalance;
+        }
+
+        public void setPointsBalance(final Long v) {
+            this.pointsBalance = v;
         }
     }
 
@@ -7033,6 +7091,17 @@ public class PDFImportService {
         // Foreign transaction fee — disclosure block.
         result.setForeignTransactionFeePercent(extractForeignTransactionFeePercent(lines));
 
+        // AutoPay status + next scheduled deduction amount.
+        result.setAutoPayEnabled(extractAutoPayEnabled(lines));
+        result.setNextAutoPayAmount(extractNextAutoPayAmount(lines));
+
+        // Points split: earned this period vs. cumulative balance. Either may be null
+        // depending on the card type. The existing `rewardPoints` field stays — it's
+        // surfaced by the RewardExtractor and represents whichever signal it judges most
+        // important; these two add specificity on top.
+        result.setPointsEarnedThisPeriod(extractPointsEarnedThisPeriod(lines));
+        result.setPointsBalance(extractPointsBalance(lines));
+
         // Log summary
         LOGGER.info(
                 "📊 [Credit Card Metadata] Extraction summary - paymentDueDate: {}, minimumPaymentDue: {}, rewardPoints: {}",
@@ -7519,6 +7588,135 @@ public class PDFImportService {
     private static final Pattern FOREIGN_TX_FEE_PATTERN =
             Pattern.compile(
                     "(?i)(?:foreign|international)\\s+transaction\\s+fee\\s+of\\s+(\\d{1,2}(?:\\.\\d{1,2})?)\\s*%");
+
+    // ---------- AutoPay status + scheduled amount ----------
+
+    // Chase prints "AUTOPAY IS ON" / "AUTOPAY IS OFF" as a section header. Some other
+    // issuers use "Automatic Payments: Enabled" — accept both, case-insensitive. We
+    // require word boundaries so "automatic" doesn't false-positive on disclosure prose
+    // like "If we receive automatic payments before processing...".
+    private static final Pattern AUTOPAY_ON_PATTERN =
+            Pattern.compile(
+                    "(?i)\\b(?:autopay\\s+is\\s+on|automatic\\s+payments?\\s*(?::\\s*enabled|"
+                            + "\\s+is\\s+on))\\b");
+
+    private static final Pattern AUTOPAY_OFF_PATTERN =
+            Pattern.compile(
+                    "(?i)\\b(?:autopay\\s+is\\s+off|automatic\\s+payments?\\s*(?::\\s*disabled|"
+                            + "\\s+is\\s+off))\\b");
+
+    /**
+     * AutoPay status as a Boolean (true = on, false = off). Null when neither marker is
+     * present. The on/off check runs independently — a statement that contains both
+     * markers (e.g., one in the summary and one in disclosure prose) prefers ON because
+     * Chase only prints ON in disclosure when AutoPay is genuinely active.
+     */
+    /* default */ static Boolean extractAutoPayEnabled(final String[] lines) {
+        boolean sawOn = false;
+        boolean sawOff = false;
+        for (final String line : lines) {
+            if (line == null) {
+                continue;
+            }
+            if (AUTOPAY_ON_PATTERN.matcher(line).find()) {
+                sawOn = true;
+            } else if (AUTOPAY_OFF_PATTERN.matcher(line).find()) {
+                // Else-if so the ON regex (which is a stricter prefix) wins on the same line.
+                sawOff = true;
+            }
+        }
+        if (!sawOn && !sawOff) {
+            return null;
+        }
+        return sawOn;
+    }
+
+    // Chase prints "Your next AutoPay payment for $NN.NN will be deducted from..." —
+    // require the "for $" pivot so we don't accidentally grab some other $ amount on
+    // an autopay-mention line.
+    private static final Pattern NEXT_AUTOPAY_AMOUNT_PATTERN =
+            Pattern.compile(
+                    "(?i)next\\s+autopay\\s+payment\\s+(?:for|of)\\s+\\$([\\d]+(?:,\\d{3})*"
+                            + "(?:\\.\\d{1,2})?)");
+
+    /** Scheduled amount of the next AutoPay deduction, or null when not on AutoPay. */
+    /* default */ static BigDecimal extractNextAutoPayAmount(final String[] lines) {
+        final String joined = String.join(" ", lines).replaceAll("\\s+", " ");
+        final Matcher m = NEXT_AUTOPAY_AMOUNT_PATTERN.matcher(joined);
+        if (!m.find()) {
+            return null;
+        }
+        return staticParseAmount(m.group(1));
+    }
+
+    // ---------- points: earned-this-period vs. cumulative balance ----------
+
+    /**
+     * Patterns that identify "points ACCRUED this billing period" — i.e. the new points
+     * added during the current statement window. Chase Marriott Bonvoy emits this as
+     * "Total points transferred to Marriott Bonvoy NN,NNN"; other issuers use "earned"
+     * phrasing. The captured group is always the integer point count (commas allowed).
+     */
+    private static final Pattern[] POINTS_EARNED_PATTERNS = {
+        Pattern.compile(
+                "(?i)total\\s+points\\s+transferred\\s+to\\s+[a-z][a-z\\s]*?\\s+"
+                        + "(\\d{1,3}(?:,\\d{3})*|\\d+)\\b"),
+        Pattern.compile(
+                "(?i)points?\\s+(?:earned|accrued)\\s+(?:this\\s+period|this\\s+statement)"
+                        + "[\\s:]+(\\d{1,3}(?:,\\d{3})*|\\d+)\\b"),
+        Pattern.compile(
+                "(?i)(?:points|rewards\\s+points)\\s+earned[\\s:]+(\\d{1,3}(?:,\\d{3})*|\\d+)\\b"),
+    };
+
+    /** Patterns that identify CUMULATIVE points balance (available for redemption). */
+    private static final Pattern[] POINTS_BALANCE_PATTERNS = {
+        Pattern.compile(
+                "(?i)total\\s+points\\s+available\\s+for\\s+(?:redemption|redeeming|use)"
+                        + "[\\s:]+(\\d{1,3}(?:,\\d{3})*|\\d+)\\b"),
+        Pattern.compile(
+                "(?i)(?:points|rewards\\s+points)\\s+balance[\\s:]+(\\d{1,3}(?:,\\d{3})*|\\d+)\\b"),
+        Pattern.compile(
+                "(?i)available\\s+(?:points|rewards\\s+points)[\\s:]+(\\d{1,3}(?:,\\d{3})*|\\d+)\\b"),
+        Pattern.compile(
+                "(?i)(?:points|rewards\\s+points)\\s+available[\\s:]+(\\d{1,3}(?:,\\d{3})*|\\d+)\\b"),
+    };
+
+    private static Long extractLongFromPatterns(
+            final String[] lines, final Pattern[] patterns) {
+        for (final String line : lines) {
+            if (line == null || line.isBlank()) {
+                continue;
+            }
+            for (final Pattern p : patterns) {
+                final Matcher m = p.matcher(line);
+                if (m.find()) {
+                    try {
+                        return Long.parseLong(m.group(1).replace(",", ""));
+                    } catch (NumberFormatException ignored) {
+                        // Try next pattern.
+                    }
+                }
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Points accrued this billing cycle. For Chase Marriott Bonvoy this is "Total points
+     * transferred to Marriott Bonvoy NN,NNN" because the points transfer immediately. For
+     * other cards this is "Points earned this period: NN,NNN" or similar.
+     */
+    /* default */ static Long extractPointsEarnedThisPeriod(final String[] lines) {
+        return extractLongFromPatterns(lines, POINTS_EARNED_PATTERNS);
+    }
+
+    /**
+     * Cumulative points balance available to redeem. Returns null on transfer-partner
+     * cards (e.g. Marriott Bonvoy) where the balance lives at the partner instead.
+     */
+    /* default */ static Long extractPointsBalance(final String[] lines) {
+        return extractLongFromPatterns(lines, POINTS_BALANCE_PATTERNS);
+    }
 
     /* default */ static BigDecimal extractForeignTransactionFeePercent(final String[] lines) {
         // The sentence often wraps in the PDF text — join with space so the regex can

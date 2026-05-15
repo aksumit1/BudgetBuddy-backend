@@ -1,6 +1,7 @@
 package com.budgetbuddy.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -84,6 +85,7 @@ class MarriottBonvoyStatementFixtureTest {
                     "Cash Access Line $7,500",
                     "Available for Cash $7,500",
                     "+ 5X Points on Marriott Bonvoy purchases 4,500",
+                    "Total points transferred to Marriott Bonvoy 4,500",
                     "Thank you for using your Marriott Bonvoy® Premier Credit Card.",
                     "MARRIOTT BONVOY PREMIER",
                     "SYNTHETIC USER NAME",
@@ -107,7 +109,9 @@ class MarriottBonvoyStatementFixtureTest {
                     "Your annual membership fee in the amount of $99.00 will be billed on"
                             + " 07/01/2026. There is a transaction fee for each balance transfer.",
                     "There is a foreign transaction fee of 3% of the U.S. dollar amount"
-                            + " of any foreign transaction for some accounts.");
+                            + " of any foreign transaction for some accounts.",
+                    "Your next AutoPay payment for $999.99 will be deducted from your Pay From"
+                            + " account and credited on your due date.");
 
     // ---------- FX block: strip + capture ----------
 
@@ -309,6 +313,97 @@ class MarriottBonvoyStatementFixtureTest {
                 PDFImportService.extractStatementDate(lines, 2026, true);
         assertNotNull(statementDate, "Statement date must be extracted from header");
         assertEquals(java.time.LocalDate.of(2026, 6, 17), statementDate);
+    }
+
+    // ---------- AutoPay + scheduled amount ----------
+
+    @Test
+    void chaseMarriottBonvoyFixture_extractsAutoPayOnAndNextAmount() {
+        final String[] lines = STATEMENT_FIXTURE.split("\\n");
+        final Boolean enabled = PDFImportService.extractAutoPayEnabled(lines);
+        assertNotNull(enabled, "AutoPay status must be detected from 'AUTOPAY IS ON'");
+        assertTrue(enabled, "AutoPay must be ON for this fixture");
+
+        final BigDecimal next = PDFImportService.extractNextAutoPayAmount(lines);
+        assertNotNull(next, "Next AutoPay amount must be parsed from 'next AutoPay payment for $X'");
+        assertEquals(0, new BigDecimal("999.99").compareTo(next));
+    }
+
+    @Test
+    void autoPay_detectsOffWhenStatementSaysSo() {
+        final String input = String.join(
+                "\n",
+                "New Balance $100.00",
+                "AUTOPAY IS OFF",
+                "Payment Due Date: 07/14/26");
+        final Boolean enabled = PDFImportService.extractAutoPayEnabled(input.split("\\n"));
+        assertNotNull(enabled);
+        assertFalse(enabled, "AUTOPAY IS OFF must produce a false (not null)");
+    }
+
+    @Test
+    void autoPay_returnsNullWhenStatementDoesNotMentionAutoPay() {
+        final String input = String.join(
+                "\n",
+                "New Balance $100.00",
+                "Payment Due Date: 07/14/26");
+        assertEquals(null, PDFImportService.extractAutoPayEnabled(input.split("\\n")));
+        assertEquals(null, PDFImportService.extractNextAutoPayAmount(input.split("\\n")));
+    }
+
+    @Test
+    void autoPay_acceptsAutomaticPaymentsPhrasingFromOtherIssuers() {
+        // Some issuers use "Automatic Payments: Enabled" instead of Chase's "AUTOPAY IS ON".
+        final String input = "Automatic Payments: Enabled";
+        final Boolean enabled = PDFImportService.extractAutoPayEnabled(input.split("\\n"));
+        assertNotNull(enabled);
+        assertTrue(enabled);
+    }
+
+    // ---------- points: earned vs balance ----------
+
+    @Test
+    void chaseMarriottBonvoyFixture_extractsPointsEarnedThisPeriod() {
+        final String[] lines = STATEMENT_FIXTURE.split("\\n");
+        final Long earned = PDFImportService.extractPointsEarnedThisPeriod(lines);
+        assertNotNull(earned,
+                "Marriott Bonvoy 'Total points transferred to' phrase must yield earned-this-period");
+        assertEquals(4500L, earned.longValue(),
+                "Expected the synthetic 4,500 points from the transfer-to-Marriott line");
+    }
+
+    @Test
+    void chaseMarriottBonvoyFixture_pointsBalanceIsNull_forTransferPartnerCards() {
+        // Chase Marriott Bonvoy never prints a cumulative balance — the balance lives at
+        // Marriott. Confirm we return null rather than mistakenly returning the earned
+        // figure (which would conflate two distinct concepts).
+        final String[] lines = STATEMENT_FIXTURE.split("\\n");
+        final Long balance = PDFImportService.extractPointsBalance(lines);
+        assertEquals(null, balance,
+                "Marriott Bonvoy statements have no points balance — should return null");
+    }
+
+    @Test
+    void pointsBalance_extractedFromGenericPointsBalanceLine() {
+        // Synthetic statement from a non-transfer-partner card that prints both an
+        // earned figure and a balance. Both should populate independently.
+        final String input = String.join(
+                "\n",
+                "Points earned this period: 1,250",
+                "Points balance: 47,830");
+
+        final Long earned = PDFImportService.extractPointsEarnedThisPeriod(input.split("\\n"));
+        final Long balance = PDFImportService.extractPointsBalance(input.split("\\n"));
+        assertEquals(1250L, earned.longValue());
+        assertEquals(47830L, balance.longValue());
+    }
+
+    @Test
+    void pointsBalance_extractedFromAvailableForRedemptionPhrase() {
+        // Citi-style "Total points available for redemption: NN,NNN" phrasing.
+        final String input = "Total points available for redemption: 12,400";
+        final Long balance = PDFImportService.extractPointsBalance(input.split("\\n"));
+        assertEquals(12400L, balance.longValue());
     }
 
     // ---------- foreign transaction fee ----------
