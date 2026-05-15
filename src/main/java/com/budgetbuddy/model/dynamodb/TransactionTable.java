@@ -443,4 +443,70 @@ public class TransactionTable {
     public void setVersion(final Long version) {
         this.version = version;
     }
+
+    // ========================================================================
+    //  Foreign-currency original-amount block
+    //
+    //  Persisted from PDFImportService when a Chase-style "(EXCHG RATE)" block
+    //  was attached to the parent transaction during PDF parsing. All four
+    //  fields are nullable; a domestic USD purchase carries no FX context.
+    //
+    //  These supplement (don't replace) the existing `currencyCode` field,
+    //  which is the SETTLEMENT currency (USD on a US card). originalCurrencyCode
+    //  is what the merchant charged before conversion (INR, CHF, EUR, etc.).
+    //
+    //  DynamoDB schemaless — no CFN change needed for these attributes.
+    // ========================================================================
+
+    /** ISO 4217 code of the original-currency charge (e.g. "INR", "CHF"). */
+    private String originalCurrencyCode;
+
+    /** Issuer-printed currency name (e.g. "INDIAN RUPEE"). Kept alongside the code
+     *  because some less-common currencies fall back to display name when no
+     *  mapping is known. */
+    private String originalCurrencyDisplay;
+
+    /** Pre-conversion amount in the original currency (e.g. 14543.50 INR). */
+    private BigDecimal originalAmount;
+
+    /** Exchange rate applied to convert original → settlement (multiply by this
+     *  to go from original currency to USD). Stored with full precision (Chase
+     *  prints 9–10 decimal places). */
+    private BigDecimal exchangeRate;
+
+    @DynamoDbAttribute("originalCurrencyCode")
+    public String getOriginalCurrencyCode() {
+        return originalCurrencyCode;
+    }
+
+    public void setOriginalCurrencyCode(final String v) {
+        this.originalCurrencyCode = v;
+    }
+
+    @DynamoDbAttribute("originalCurrencyDisplay")
+    public String getOriginalCurrencyDisplay() {
+        return originalCurrencyDisplay;
+    }
+
+    public void setOriginalCurrencyDisplay(final String v) {
+        this.originalCurrencyDisplay = v;
+    }
+
+    @DynamoDbAttribute("originalAmount")
+    public BigDecimal getOriginalAmount() {
+        return originalAmount;
+    }
+
+    public void setOriginalAmount(final BigDecimal v) {
+        this.originalAmount = v;
+    }
+
+    @DynamoDbAttribute("exchangeRate")
+    public BigDecimal getExchangeRate() {
+        return exchangeRate;
+    }
+
+    public void setExchangeRate(final BigDecimal v) {
+        this.exchangeRate = v;
+    }
 }

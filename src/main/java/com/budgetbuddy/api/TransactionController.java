@@ -4489,6 +4489,36 @@ public class TransactionController {
                                     null // linkedTransactionId
                                     );
 
+                    // Persist FX context (Chase "EXCHG RATE" block → original currency,
+                    // original amount, exchange rate) onto the row. Only fires when the
+                    // parser attached an FX annotation to this transaction; domestic
+                    // purchases fall through with no extra write. Done as a follow-up
+                    // save rather than threading 4 more params through every
+                    // createTransaction overload — the overload chain is already 5 deep.
+                    if (parsed.getOriginalCurrencyCode() != null
+                            || parsed.getOriginalAmount() != null
+                            || parsed.getExchangeRate() != null) {
+                        createdTx.setOriginalCurrencyCode(parsed.getOriginalCurrencyCode());
+                        createdTx.setOriginalCurrencyDisplay(
+                                parsed.getOriginalCurrencyDisplay());
+                        createdTx.setOriginalAmount(parsed.getOriginalAmount());
+                        createdTx.setExchangeRate(parsed.getExchangeRate());
+                        try {
+                            transactionService.saveTransaction(createdTx);
+                        } catch (Exception fxSaveErr) {
+                            // Non-fatal: the parent transaction is already created.
+                            // FX context lives in the description suffix as a fallback,
+                            // so the user still sees it; we just lose the structured
+                            // fields for queries. Log and move on.
+                            if (LOGGER.isWarnEnabled()) {
+                                LOGGER.warn(
+                                        "FX persist failed for tx={}: {}",
+                                        createdTx.getTransactionId(),
+                                        fxSaveErr.getMessage());
+                            }
+                        }
+                    }
+
                     // CRITICAL: Log amount after creation to verify sign preservation
                     if (LOGGER.isInfoEnabled()) {
                         LOGGER.info(
