@@ -3848,6 +3848,18 @@ public class TransactionController {
                 response.setTotalPages(totalPages);
                 response.setHasNext(page < totalPages - 1);
 
+                // Statement-summary metadata: include ONLY on page 0 so subsequent chunks
+                // stay bandwidth-cheap (identical metadata on every page would balloon
+                // multi-page imports). Defensive null check so a parser regression that
+                // dropped DetectedAccount doesn't NPE the chunk path.
+                if (page == 0) {
+                    final DetectedAccountInfo summary =
+                            buildDetectedAccountInfoFromImportResult(importResult);
+                    if (summary != null) {
+                        response.setDetectedAccount(summary);
+                    }
+                }
+
                 return ResponseEntity.ok(response);
             }
         } catch (AppException e) {
@@ -4159,6 +4171,43 @@ public class TransactionController {
     }
 
     /**
+     * Build a full {@link DetectedAccountInfo} from an {@link PDFImportService.ImportResult}
+     * without needing an existing {@code AccountTable}. Used by the chunk endpoint (page 0)
+     * so iOS clients that skipped the preview screen still receive the statement-summary
+     * block. The PreviewEndpoint already has account-matching logic inline; this is the
+     * minimal-context fallback path.
+     *
+     * <p>Null-safe: returns null when {@code importResult} has no detected-account info AND
+     * no summary fields. Callers can use that to skip setting {@code detectedAccount} on
+     * the response entirely.
+     */
+    /* default */ static DetectedAccountInfo buildDetectedAccountInfoFromImportResult(
+            final PDFImportService.ImportResult importResult) {
+        if (importResult == null) {
+            return null;
+        }
+        final DetectedAccountInfo info = new DetectedAccountInfo();
+        final AccountDetectionService.DetectedAccount detected = importResult.getDetectedAccount();
+        if (detected != null) {
+            info.setAccountName(detected.getAccountName());
+            info.setInstitutionName(detected.getInstitutionName());
+            info.setAccountType(detected.getAccountType());
+            info.setAccountSubtype(detected.getAccountSubtype());
+            info.setAccountNumber(detected.getAccountNumber());
+            info.setCardNumber(detected.getCardNumber());
+            info.setBalance(detected.getBalance());
+            info.setMatchedAccountId(importResult.getMatchedAccountId());
+        }
+        // Header credit-card metadata that was always extracted.
+        info.setPaymentDueDate(importResult.getPaymentDueDate());
+        info.setMinimumPaymentDue(importResult.getMinimumPaymentDue());
+        info.setRewardPoints(importResult.getRewardPoints());
+        // Full statement-summary block.
+        copyStatementSummaryToAccountInfo(importResult, info);
+        return info;
+    }
+
+    /**
      * Copy every credit-card statement-summary field that {@link PDFImportService} populates
      * on the {@code ImportResult} onto the {@code DetectedAccountInfo} DTO. Centralised
      * because the preview endpoint has three assignment sites (matched-account /
@@ -4169,7 +4218,7 @@ public class TransactionController {
      * across. The DTO setters accept null so a missing field naturally serialises to a
      * missing JSON key.
      */
-    private static void copyStatementSummaryToAccountInfo(
+    /* default */ static void copyStatementSummaryToAccountInfo(
             final PDFImportService.ImportResult importResult, final DetectedAccountInfo info) {
         if (importResult == null || info == null) {
             return;
@@ -6214,6 +6263,13 @@ public class TransactionController {
         private int totalPages;
         private boolean hasNext;
 
+        // Populated ONLY on page 0 so the per-chunk payload stays small. iOS clients
+        // that skip the preview screen still receive the full statement-summary block
+        // (newBalance, creditLimit, APRs, AutoPay status, FX context, etc.) here.
+        // Null on every page > 0 — the metadata is identical across pages of the same
+        // upload, so duplicating it would waste bandwidth.
+        private DetectedAccountInfo detectedAccount;
+
         public BatchImportResponse getImportResponse() {
             return importResponse;
         }
@@ -6260,6 +6316,14 @@ public class TransactionController {
 
         public void setHasNext(final boolean hasNext) {
             this.hasNext = hasNext;
+        }
+
+        public DetectedAccountInfo getDetectedAccount() {
+            return detectedAccount;
+        }
+
+        public void setDetectedAccount(final DetectedAccountInfo detectedAccount) {
+            this.detectedAccount = detectedAccount;
         }
     }
 
