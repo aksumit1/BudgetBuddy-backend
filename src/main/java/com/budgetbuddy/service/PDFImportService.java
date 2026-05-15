@@ -7803,6 +7803,53 @@ public class PDFImportService {
                             + "\\s+(\\d{1,3}(?:,\\d{3})*|\\d+)\\s*$");
 
     /**
+     * Chase Freedom / Freedom Unlimited / Freedom Flex earning line. Several
+     * variants observed across cycles:
+     *
+     * <pre>
+     *   + 1% (1 Pt)/$1 earned on all purchases 37        ← original "earned on"
+     *   + 1% (1 Pts)/$1 on all purchases 9               ← drops "earned"
+     *   + 2%(2 Pts)/$1 addl. on Dining purchases 0       ← uses "addl. on"
+     *   4%(4 Pts)/$1 addl on Chase Travel 0              ← no leading "+", "addl on"
+     * </pre>
+     *
+     * Captures group 1 = rate (the leading percent), group 2 = category label
+     * (after the "on" / "addl on" / "earned on" connector), group 3 = points
+     * earned this cycle. The leading "+" is OPTIONAL because some bonus tiers
+     * start the rewards block without one.
+     */
+    private static final Pattern FREEDOM_BASE_EARNED_LINE_PATTERN =
+            Pattern.compile(
+                    "(?i)(?:^|\\s)\\+?\\s*(\\d{1,2})%\\s*\\(\\d{1,2}\\s*Pts?\\)/\\$1"
+                            + "\\s+(?:addl\\.?\\s+)?(?:earned\\s+)?on\\s+(.+?)"
+                            + "\\s+(\\d{1,3}(?:,\\d{3})*|\\d+)\\s*$");
+
+    /**
+     * Chase Freedom quarterly rotating-bonus earnings line:
+     * {@code + Bonus from 1Q 5% cat: Grocery Stores 148}.
+     * Captures group 1 = quarter (1Q–4Q), group 2 = bonus rate (5), group 3 =
+     * category label ("Grocery Stores"), group 4 = points earned this cycle.
+     */
+    private static final Pattern FREEDOM_BONUS_EARNED_LINE_PATTERN =
+            Pattern.compile(
+                    "(?i)(?:^|\\s)\\+\\s+Bonus\\s+from\\s+([1-4]Q)\\s+(\\d{1,2})%\\s+cat:\\s+"
+                            + "(.+?)\\s+(\\d{1,3}(?:,\\d{3})*|\\d+)\\s*$");
+
+    /**
+     * Chase Freedom "next quarter activation" sentence:
+     * {@code Get 5% cash back on up to $1,500 in combined purchases in this quarter}
+     * {@code s bonus categories from 4/1/25 - 6/30/25.}
+     * Captures group 1 = rate, group 2 = cap amount, group 3 = window start,
+     * group 4 = window end. The sentence usually wraps so we join lines first.
+     */
+    private static final Pattern FREEDOM_NEXT_QUARTER_PATTERN =
+            Pattern.compile(
+                    "(?i)Get\\s+(\\d{1,2})%\\s+cash\\s+back\\s+on\\s+up\\s+to\\s+"
+                            + "\\$([\\d,]+)\\s+in\\s+combined\\s+purchases.*?"
+                            + "from\\s+(\\d{1,2}/\\d{1,2}/\\d{2,4})\\s*-\\s*"
+                            + "(\\d{1,2}/\\d{1,2}/\\d{2,4})");
+
+    /**
      * Chase Amazon Visa "Previous points balance NN,NNN" — kept so the iOS UI can
      * display deltas ("you earned X this cycle"). Distinct from the current balance
      * (which is "Total points available for redemption").
@@ -7857,15 +7904,18 @@ public class PDFImportService {
     }
 
     /**
-     * Points accrued this billing cycle. Three strategies tried in order:
+     * Points accrued this billing cycle. Four strategies tried in order:
      *
      * <ol>
      *   <li>Chase Marriott Bonvoy: {@code Total points transferred to Marriott Bonvoy NN,NNN}.
      *   <li>Explicit "Points earned this period: NN,NNN" or "Points earned: NN,NNN".
      *   <li>Chase Amazon Visa style: SUM all "{@code + N% back on/at CATEGORY NN}" lines.
-     *       Returns null when the section isn't present at all; returns 0 when the user
-     *       didn't earn any rewards this cycle (vs. null = "we don't know").
+     *   <li>Chase Freedom style: SUM the base "{@code + 1% (1 Pt)/$1 earned on all
+     *       purchases NN}" + any quarterly "{@code + Bonus from NQ N% cat: CATEGORY NN}".
      * </ol>
+     *
+     * Returns null when the section isn't present at all; returns 0 when the user
+     * didn't earn any rewards this cycle (vs. null = "we don't know").
      */
     /* default */ static Long extractPointsEarnedThisPeriod(final String[] lines) {
         // 1+2: existing single-line / joined-text patterns.
@@ -7873,22 +7923,47 @@ public class PDFImportService {
         if (fromPattern != null) {
             return fromPattern;
         }
-        // 3: Amazon-style per-category sum. A statement either has multiple "+ N% back"
-        // lines (counts as "we found the rewards section") or has none (return null so
-        // we don't claim a fake 0).
+        // 3+4: per-category sum. A statement either has at least one matching line
+        // (counts as "we found the rewards section") or has none (return null so we
+        // don't claim a fake 0). Both Amazon-style and Freedom-style lines feed
+        // the same sum — they're never on the same statement.
         long sum = 0;
         boolean sawAny = false;
         for (final String line : lines) {
             if (line == null) {
                 continue;
             }
-            final Matcher m = AMAZON_STYLE_EARNED_LINE_PATTERN.matcher(line);
-            if (m.find()) {
+            // Amazon "+ N% back on CATEGORY NN".
+            final Matcher amz = AMAZON_STYLE_EARNED_LINE_PATTERN.matcher(line);
+            if (amz.find()) {
                 try {
-                    sum += Long.parseLong(m.group(1).replace(",", ""));
+                    sum += Long.parseLong(amz.group(1).replace(",", ""));
+                    sawAny = true;
+                    continue;
+                } catch (NumberFormatException ignored) {
+                    // fall through to other patterns
+                }
+            }
+            // Freedom base / Freedom Unlimited "+ N% (M Pts)/$1 ... on CATEGORY NN".
+            final Matcher freedomBase = FREEDOM_BASE_EARNED_LINE_PATTERN.matcher(line);
+            if (freedomBase.find()) {
+                try {
+                    // Group 1 = rate, group 2 = category, group 3 = earned this cycle.
+                    sum += Long.parseLong(freedomBase.group(3).replace(",", ""));
+                    sawAny = true;
+                    continue;
+                } catch (NumberFormatException ignored) {
+                    // skip
+                }
+            }
+            // Freedom rotating bonus "+ Bonus from NQ N% cat: CATEGORY NN".
+            final Matcher freedomBonus = FREEDOM_BONUS_EARNED_LINE_PATTERN.matcher(line);
+            if (freedomBonus.find()) {
+                try {
+                    sum += Long.parseLong(freedomBonus.group(4).replace(",", ""));
                     sawAny = true;
                 } catch (NumberFormatException ignored) {
-                    // skip malformed line, keep summing rest
+                    // skip
                 }
             }
         }
@@ -7958,11 +8033,21 @@ public class PDFImportService {
                     "(?i)total\\s+interest\\s+charged\\s+in\\s+\\d{4}\\s+\\$([\\d,]+(?:\\.\\d{1,2})?)");
 
     /**
-     * Per-category reward multipliers from "+ N% back on/at CATEGORY" lines.
-     * Returns rate as percent (5.0 not 0.05) so it lines up with the existing
-     * AccountTable.rewardMultipliers schema. Keys are raw issuer labels
-     * (lowercased + trimmed) so consumers can normalise to their own taxonomy.
-     * Empty map when no rewards block; never null.
+     * Per-category reward multipliers from earnings lines. Returns rate as percent
+     * (5.0 not 0.05) so it lines up with the existing AccountTable.rewardMultipliers
+     * schema. Keys are raw issuer labels (lowercased + trimmed) so consumers can
+     * normalise to their own taxonomy. Empty map when no rewards block; never null.
+     *
+     * <p>Three issuer formats supported:
+     *
+     * <ol>
+     *   <li>Amazon Visa: "{@code + N% back on/at CATEGORY NN}"
+     *   <li>Chase Freedom base: "{@code + N% (M Pts)/$1 earned on CATEGORY NN}"
+     *   <li>Chase Freedom quarterly bonus: "{@code + Bonus from NQ N% cat: CATEGORY NN}"
+     *       — stored with the quarter suffix on the key (e.g. "grocery stores (1q
+     *       bonus)") so a UI can distinguish the rotating-bonus tier from a permanent
+     *       category multiplier.
+     * </ol>
      */
     /* default */ static java.util.Map<String, BigDecimal> extractRewardMultipliersFromPdf(
             final String[] lines) {
@@ -7971,20 +8056,114 @@ public class PDFImportService {
             if (line == null) {
                 continue;
             }
-            final Matcher m = REWARD_MULTIPLIER_LINE_PATTERN.matcher(line);
-            if (m.find()) {
+            // Format 1: Amazon "+ N% back on/at CATEGORY NN".
+            final Matcher amz = REWARD_MULTIPLIER_LINE_PATTERN.matcher(line);
+            if (amz.find()) {
                 try {
-                    final BigDecimal rate = new BigDecimal(m.group(1));
-                    final String category = m.group(2).trim().toLowerCase(Locale.ROOT);
+                    final BigDecimal rate = new BigDecimal(amz.group(1));
+                    final String category = amz.group(2).trim().toLowerCase(Locale.ROOT);
+                    if (!category.isEmpty()) {
+                        out.put(category, rate);
+                    }
+                    continue;
+                } catch (NumberFormatException ignored) {
+                    // fall through
+                }
+            }
+            // Format 2: Freedom / Freedom Unlimited "+ N% (M Pts)/$1 ... on CATEGORY NN".
+            // Group 1 = rate, group 2 = category, group 3 = points-this-cycle.
+            final Matcher freedomBase = FREEDOM_BASE_EARNED_LINE_PATTERN.matcher(line);
+            if (freedomBase.find()) {
+                try {
+                    final BigDecimal rate = new BigDecimal(freedomBase.group(1));
+                    final String category =
+                            freedomBase.group(2).trim().toLowerCase(Locale.ROOT);
                     if (!category.isEmpty()) {
                         out.put(category, rate);
                     }
                 } catch (NumberFormatException ignored) {
-                    // skip malformed line
+                    // skip
+                }
+                continue;
+            }
+            // Format 3: Freedom rotating bonus "+ Bonus from NQ N% cat: CATEGORY NN".
+            final Matcher freedomBonus = FREEDOM_BONUS_EARNED_LINE_PATTERN.matcher(line);
+            if (freedomBonus.find()) {
+                try {
+                    final String quarter = freedomBonus.group(1).toLowerCase(Locale.ROOT);
+                    final BigDecimal rate = new BigDecimal(freedomBonus.group(2));
+                    final String rawCategory =
+                            freedomBonus.group(3).trim().toLowerCase(Locale.ROOT);
+                    if (!rawCategory.isEmpty()) {
+                        // Suffix the quarter so UIs can tell a rotating-bonus tier apart
+                        // from a permanent category multiplier.
+                        out.put(rawCategory + " (" + quarter + " bonus)", rate);
+                    }
+                } catch (NumberFormatException ignored) {
+                    // skip
                 }
             }
         }
         return out;
+    }
+
+    /** A rotating quarterly bonus tier captured from a Chase Freedom-style line. */
+    public record QuarterlyBonus(String quarter, BigDecimal rate, String category) {}
+
+    /**
+     * Extract the rotating-bonus tier for the current statement cycle (Chase Freedom:
+     * "{@code + Bonus from 1Q 5% cat: Grocery Stores 148}"). Returns the FIRST bonus
+     * tier found — most Chase Freedom statements only have one active at a time.
+     * Null when the statement has no rotating-bonus block.
+     */
+    /* default */ static QuarterlyBonus extractCurrentQuarterBonus(final String[] lines) {
+        for (final String line : lines) {
+            if (line == null) {
+                continue;
+            }
+            final Matcher m = FREEDOM_BONUS_EARNED_LINE_PATTERN.matcher(line);
+            if (m.find()) {
+                try {
+                    return new QuarterlyBonus(
+                            m.group(1).toUpperCase(Locale.ROOT),
+                            new BigDecimal(m.group(2)),
+                            m.group(3).trim());
+                } catch (NumberFormatException ignored) {
+                    return null;
+                }
+            }
+        }
+        return null;
+    }
+
+    /** Next-quarter bonus activation window from the Freedom disclosure prose. */
+    public record NextQuarterBonus(
+            BigDecimal rate, BigDecimal capAmount, LocalDate windowStart, LocalDate windowEnd) {}
+
+    /**
+     * Chase Freedom "Get 5% cash back on up to $1,500 in combined purchases in this
+     * quarter's bonus categories from MM/DD/YY - MM/DD/YY" sentence. Captures the
+     * rate, cap, and activation window so the iOS UI can nudge users to activate.
+     * Null when the disclosure isn't present.
+     */
+    /* default */ static NextQuarterBonus extractNextQuarterBonus(
+            final String[] lines, final Integer inferredYear, final boolean isUSLocale) {
+        final String joined = String.join(" ", lines).replaceAll("\\s+", " ");
+        final Matcher m = FREEDOM_NEXT_QUARTER_PATTERN.matcher(joined);
+        if (!m.find()) {
+            return null;
+        }
+        try {
+            final BigDecimal rate = new BigDecimal(m.group(1));
+            final BigDecimal cap = new BigDecimal(m.group(2).replace(",", ""));
+            final LocalDate start =
+                    staticParseAnnualFeeDate(m.group(3), inferredYear, isUSLocale);
+            final LocalDate end =
+                    staticParseAnnualFeeDate(m.group(4), inferredYear, isUSLocale);
+            return new NextQuarterBonus(rate, cap, start, end);
+        } catch (NumberFormatException nfe) {
+            return null;
+        }
     }
 
     /** YTD "Total fees charged in YYYY $N". Null when the row isn't present. */
