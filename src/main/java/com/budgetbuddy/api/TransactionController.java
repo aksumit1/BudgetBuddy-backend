@@ -3267,6 +3267,9 @@ public class TransactionController {
                                 accountInfo.setMinimumPaymentDue(account.getMinimumPaymentDue());
                                 accountInfo.setRewardPoints(account.getRewardPoints());
                             }
+                            // Statement-summary block — only available from the freshly
+                            // parsed PDF (existing AccountTable doesn't persist these yet).
+                            copyStatementSummaryToAccountInfo(importResult, accountInfo);
 
                             if (LOGGER.isInfoEnabled()) {
                                 LOGGER.info(
@@ -3302,6 +3305,7 @@ public class TransactionController {
                             accountInfo.setPaymentDueDate(importResult.getPaymentDueDate());
                             accountInfo.setMinimumPaymentDue(importResult.getMinimumPaymentDue());
                             accountInfo.setRewardPoints(importResult.getRewardPoints());
+                            copyStatementSummaryToAccountInfo(importResult, accountInfo);
                         }
                     } else {
                         // No match found - use detected account info
@@ -3327,6 +3331,7 @@ public class TransactionController {
                         accountInfo.setPaymentDueDate(importResult.getPaymentDueDate());
                         accountInfo.setMinimumPaymentDue(importResult.getMinimumPaymentDue());
                         accountInfo.setRewardPoints(importResult.getRewardPoints());
+                        copyStatementSummaryToAccountInfo(importResult, accountInfo);
                     }
 
                     response.setDetectedAccount(accountInfo);
@@ -4134,7 +4139,67 @@ public class TransactionController {
         if (parsed.getImporterCategoryDetailed() != null) {
             txMap.put("importerCategoryDetailed", parsed.getImporterCategoryDetailed());
         }
+        // Foreign-currency context: when Chase prints the original-currency block beneath
+        // an international purchase, PDFImportService strips the lines AND attaches the
+        // original amount + rate to the ParsedTransaction. Surface all three so iOS can
+        // show "₹14,543.50 @ 0.0108 = $156.72" instead of just "$156.72".
+        if (parsed.getOriginalCurrencyCode() != null) {
+            txMap.put("originalCurrencyCode", parsed.getOriginalCurrencyCode());
+        }
+        if (parsed.getOriginalCurrencyDisplay() != null) {
+            txMap.put("originalCurrencyDisplay", parsed.getOriginalCurrencyDisplay());
+        }
+        if (parsed.getOriginalAmount() != null) {
+            txMap.put("originalAmount", parsed.getOriginalAmount());
+        }
+        if (parsed.getExchangeRate() != null) {
+            txMap.put("exchangeRate", parsed.getExchangeRate());
+        }
         return txMap;
+    }
+
+    /**
+     * Copy every credit-card statement-summary field that {@link PDFImportService} populates
+     * on the {@code ImportResult} onto the {@code DetectedAccountInfo} DTO. Centralised
+     * because the preview endpoint has three assignment sites (matched-account /
+     * unmatched-but-detected / no-match-found) and every one must surface the same set so
+     * the iOS UI can render the summary regardless of which path the response came from.
+     *
+     * <p>Caller decides null-handling — this method just copies non-null values straight
+     * across. The DTO setters accept null so a missing field naturally serialises to a
+     * missing JSON key.
+     */
+    private static void copyStatementSummaryToAccountInfo(
+            final PDFImportService.ImportResult importResult, final DetectedAccountInfo info) {
+        if (importResult == null || info == null) {
+            return;
+        }
+        info.setNewBalance(importResult.getNewBalance());
+        info.setPreviousBalance(importResult.getPreviousBalance());
+        info.setCreditLimit(importResult.getCreditLimit());
+        info.setAvailableCredit(importResult.getAvailableCredit());
+        info.setPastDueAmount(importResult.getPastDueAmount());
+        info.setPurchasesTotal(importResult.getPurchasesTotal());
+        info.setPaymentsAndCreditsTotal(importResult.getPaymentsAndCreditsTotal());
+        info.setCashAdvancesTotal(importResult.getCashAdvancesTotal());
+        info.setBalanceTransfersTotal(importResult.getBalanceTransfersTotal());
+        info.setFeesChargedTotal(importResult.getFeesChargedTotal());
+        info.setInterestChargedTotal(importResult.getInterestChargedTotal());
+        info.setPurchaseApr(importResult.getPurchaseApr());
+        info.setCashAdvanceApr(importResult.getCashAdvanceApr());
+        info.setBalanceTransferApr(importResult.getBalanceTransferApr());
+        info.setPenaltyApr(importResult.getPenaltyApr());
+        info.setCashAccessLine(importResult.getCashAccessLine());
+        info.setAvailableForCash(importResult.getAvailableForCash());
+        info.setForeignTransactionFeePercent(importResult.getForeignTransactionFeePercent());
+        info.setBillingDays(importResult.getBillingDays());
+        info.setStatementDate(importResult.getStatementDate());
+        info.setAnnualMembershipFee(importResult.getAnnualMembershipFee());
+        info.setAnnualMembershipFeeDueDate(importResult.getAnnualMembershipFeeDueDate());
+        info.setAutoPayEnabled(importResult.getAutoPayEnabled());
+        info.setNextAutoPayAmount(importResult.getNextAutoPayAmount());
+        info.setPointsEarnedThisPeriod(importResult.getPointsEarnedThisPeriod());
+        info.setPointsBalance(importResult.getPointsBalance());
     }
 
     private Map<String, Object> buildTransactionMapInternal(
@@ -5039,6 +5104,51 @@ public class TransactionController {
         private java.math.BigDecimal minimumPaymentDue; // Minimum payment due amount
         private Long rewardPoints; // Reward points (0 to 10 million)
 
+        // Statement-summary fields populated by PDFImportService (Chase Marriott Bonvoy +
+        // any other issuer that prints the standard labels). All nullable — populated when
+        // the parser identifies the corresponding label, otherwise left null so the iOS
+        // app can decide whether to show "$N" or "—".
+        private java.math.BigDecimal newBalance;
+        private java.math.BigDecimal previousBalance;
+        private java.math.BigDecimal creditLimit;
+        private java.math.BigDecimal availableCredit;
+        private java.math.BigDecimal pastDueAmount;
+
+        // Section totals.
+        private java.math.BigDecimal purchasesTotal;
+        private java.math.BigDecimal paymentsAndCreditsTotal;
+        private java.math.BigDecimal cashAdvancesTotal;
+        private java.math.BigDecimal balanceTransfersTotal;
+        private java.math.BigDecimal feesChargedTotal;
+        private java.math.BigDecimal interestChargedTotal;
+
+        // APR disclosure block.
+        private java.math.BigDecimal purchaseApr;
+        private java.math.BigDecimal cashAdvanceApr;
+        private java.math.BigDecimal balanceTransferApr;
+        private java.math.BigDecimal penaltyApr;
+
+        // Cash advance sub-limits + foreign-tx fee + billing days + statement date.
+        private java.math.BigDecimal cashAccessLine;
+        private java.math.BigDecimal availableForCash;
+        private java.math.BigDecimal foreignTransactionFeePercent;
+        private Integer billingDays;
+        private java.time.LocalDate statementDate;
+
+        // Annual membership fee + upcoming billing date.
+        private java.math.BigDecimal annualMembershipFee;
+        private java.time.LocalDate annualMembershipFeeDueDate;
+
+        // AutoPay status + next scheduled deduction.
+        private Boolean autoPayEnabled;
+        private java.math.BigDecimal nextAutoPayAmount;
+
+        // Points split (earned-this-period vs cumulative balance). The legacy
+        // rewardPoints field is kept for backward compat — it reflects whichever value
+        // the priority-based RewardExtractor surfaces; these two add specificity.
+        private Long pointsEarnedThisPeriod;
+        private Long pointsBalance;
+
         public String getAccountName() {
             return accountName;
         }
@@ -5126,6 +5236,60 @@ public class TransactionController {
         public void setRewardPoints(final Long rewardPoints) {
             this.rewardPoints = rewardPoints;
         }
+
+        // --- statement summary getters/setters ---
+        public java.math.BigDecimal getNewBalance() { return newBalance; }
+        public void setNewBalance(final java.math.BigDecimal v) { this.newBalance = v; }
+        public java.math.BigDecimal getPreviousBalance() { return previousBalance; }
+        public void setPreviousBalance(final java.math.BigDecimal v) { this.previousBalance = v; }
+        public java.math.BigDecimal getCreditLimit() { return creditLimit; }
+        public void setCreditLimit(final java.math.BigDecimal v) { this.creditLimit = v; }
+        public java.math.BigDecimal getAvailableCredit() { return availableCredit; }
+        public void setAvailableCredit(final java.math.BigDecimal v) { this.availableCredit = v; }
+        public java.math.BigDecimal getPastDueAmount() { return pastDueAmount; }
+        public void setPastDueAmount(final java.math.BigDecimal v) { this.pastDueAmount = v; }
+        public java.math.BigDecimal getPurchasesTotal() { return purchasesTotal; }
+        public void setPurchasesTotal(final java.math.BigDecimal v) { this.purchasesTotal = v; }
+        public java.math.BigDecimal getPaymentsAndCreditsTotal() { return paymentsAndCreditsTotal; }
+        public void setPaymentsAndCreditsTotal(final java.math.BigDecimal v) { this.paymentsAndCreditsTotal = v; }
+        public java.math.BigDecimal getCashAdvancesTotal() { return cashAdvancesTotal; }
+        public void setCashAdvancesTotal(final java.math.BigDecimal v) { this.cashAdvancesTotal = v; }
+        public java.math.BigDecimal getBalanceTransfersTotal() { return balanceTransfersTotal; }
+        public void setBalanceTransfersTotal(final java.math.BigDecimal v) { this.balanceTransfersTotal = v; }
+        public java.math.BigDecimal getFeesChargedTotal() { return feesChargedTotal; }
+        public void setFeesChargedTotal(final java.math.BigDecimal v) { this.feesChargedTotal = v; }
+        public java.math.BigDecimal getInterestChargedTotal() { return interestChargedTotal; }
+        public void setInterestChargedTotal(final java.math.BigDecimal v) { this.interestChargedTotal = v; }
+        public java.math.BigDecimal getPurchaseApr() { return purchaseApr; }
+        public void setPurchaseApr(final java.math.BigDecimal v) { this.purchaseApr = v; }
+        public java.math.BigDecimal getCashAdvanceApr() { return cashAdvanceApr; }
+        public void setCashAdvanceApr(final java.math.BigDecimal v) { this.cashAdvanceApr = v; }
+        public java.math.BigDecimal getBalanceTransferApr() { return balanceTransferApr; }
+        public void setBalanceTransferApr(final java.math.BigDecimal v) { this.balanceTransferApr = v; }
+        public java.math.BigDecimal getPenaltyApr() { return penaltyApr; }
+        public void setPenaltyApr(final java.math.BigDecimal v) { this.penaltyApr = v; }
+        public java.math.BigDecimal getCashAccessLine() { return cashAccessLine; }
+        public void setCashAccessLine(final java.math.BigDecimal v) { this.cashAccessLine = v; }
+        public java.math.BigDecimal getAvailableForCash() { return availableForCash; }
+        public void setAvailableForCash(final java.math.BigDecimal v) { this.availableForCash = v; }
+        public java.math.BigDecimal getForeignTransactionFeePercent() { return foreignTransactionFeePercent; }
+        public void setForeignTransactionFeePercent(final java.math.BigDecimal v) { this.foreignTransactionFeePercent = v; }
+        public Integer getBillingDays() { return billingDays; }
+        public void setBillingDays(final Integer v) { this.billingDays = v; }
+        public java.time.LocalDate getStatementDate() { return statementDate; }
+        public void setStatementDate(final java.time.LocalDate v) { this.statementDate = v; }
+        public java.math.BigDecimal getAnnualMembershipFee() { return annualMembershipFee; }
+        public void setAnnualMembershipFee(final java.math.BigDecimal v) { this.annualMembershipFee = v; }
+        public java.time.LocalDate getAnnualMembershipFeeDueDate() { return annualMembershipFeeDueDate; }
+        public void setAnnualMembershipFeeDueDate(final java.time.LocalDate v) { this.annualMembershipFeeDueDate = v; }
+        public Boolean getAutoPayEnabled() { return autoPayEnabled; }
+        public void setAutoPayEnabled(final Boolean v) { this.autoPayEnabled = v; }
+        public java.math.BigDecimal getNextAutoPayAmount() { return nextAutoPayAmount; }
+        public void setNextAutoPayAmount(final java.math.BigDecimal v) { this.nextAutoPayAmount = v; }
+        public Long getPointsEarnedThisPeriod() { return pointsEarnedThisPeriod; }
+        public void setPointsEarnedThisPeriod(final Long v) { this.pointsEarnedThisPeriod = v; }
+        public Long getPointsBalance() { return pointsBalance; }
+        public void setPointsBalance(final Long v) { this.pointsBalance = v; }
     }
 
     public static class CSVImportPreviewResponse {
