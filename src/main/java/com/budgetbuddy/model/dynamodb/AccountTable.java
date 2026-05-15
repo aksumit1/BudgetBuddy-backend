@@ -450,9 +450,12 @@ public class AccountTable {
     private BigDecimal nextAutoPayAmount;
 
     // Points split. The existing `rewardPoints` field stays — these add
-    // specificity (earned-this-period vs. cumulative balance).
+    // specificity (earned-this-period vs. cumulative balance vs. prior cycle).
     private Long pointsEarnedThisPeriod;
     private Long pointsBalance;
+    // Chase Amazon Visa-style "Previous points balance" — explicit prior-cycle value
+    // that lets UIs show "earned X since last cycle" deltas without recomputing.
+    private Long previousPointsBalance;
 
     @DynamoDbAttribute("newBalance")
     public BigDecimal getNewBalance() { return newBalance; }
@@ -541,4 +544,8 @@ public class AccountTable {
     @DynamoDbAttribute("pointsBalance")
     public Long getPointsBalance() { return pointsBalance; }
     public void setPointsBalance(final Long v) { this.pointsBalance = v; }
+
+    @DynamoDbAttribute("previousPointsBalance")
+    public Long getPreviousPointsBalance() { return previousPointsBalance; }
+    public void setPreviousPointsBalance(final Long v) { this.previousPointsBalance = v; }
 }

@@ -4249,6 +4249,7 @@ public class TransactionController {
         info.setNextAutoPayAmount(importResult.getNextAutoPayAmount());
         info.setPointsEarnedThisPeriod(importResult.getPointsEarnedThisPeriod());
         info.setPointsBalance(importResult.getPointsBalance());
+        info.setPreviousPointsBalance(importResult.getPreviousPointsBalance());
     }
 
     private Map<String, Object> buildTransactionMapInternal(
@@ -5227,6 +5228,9 @@ public class TransactionController {
         // the priority-based RewardExtractor surfaces; these two add specificity.
         private Long pointsEarnedThisPeriod;
         private Long pointsBalance;
+        // Previous-cycle balance — Chase Amazon Visa explicitly prints this. Lets the
+        // iOS UI display "you earned X this cycle" deltas.
+        private Long previousPointsBalance;
 
         public String getAccountName() {
             return accountName;
@@ -5369,6 +5373,8 @@ public class TransactionController {
         public void setPointsEarnedThisPeriod(final Long v) { this.pointsEarnedThisPeriod = v; }
         public Long getPointsBalance() { return pointsBalance; }
         public void setPointsBalance(final Long v) { this.pointsBalance = v; }
+        public Long getPreviousPointsBalance() { return previousPointsBalance; }
+        public void setPreviousPointsBalance(final Long v) { this.previousPointsBalance = v; }
     }
 
     public static class CSVImportPreviewResponse {
@@ -6672,6 +6678,9 @@ public class TransactionController {
         }
         if (ir.getPointsBalance() != null) {
             account.setPointsBalance(ir.getPointsBalance());
+        }
+        if (ir.getPreviousPointsBalance() != null) {
+            account.setPreviousPointsBalance(ir.getPreviousPointsBalance());
         }
     }
 

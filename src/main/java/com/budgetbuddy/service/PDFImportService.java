@@ -336,6 +336,10 @@ public class PDFImportService {
         //     don't print a balance because the balance lives at the partner.
         private Long pointsEarnedThisPeriod;
         private Long pointsBalance;
+        // Prior-cycle balance — Chase Amazon Visa prints this explicitly as a separate
+        // row. Lets UIs show "you earned X since last cycle" alongside the current
+        // balance. Null for cards/issuers that don't print a prior balance.
+        private Long previousPointsBalance;
 
         /**
          * Statement coverage window, extracted from the header when present (e.g. "Statement
@@ -651,6 +655,14 @@ public class PDFImportService {
 
         public void setPointsBalance(final Long v) {
             this.pointsBalance = v;
+        }
+
+        public Long getPreviousPointsBalance() {
+            return previousPointsBalance;
+        }
+
+        public void setPreviousPointsBalance(final Long v) {
+            this.previousPointsBalance = v;
         }
     }
 
@@ -7100,12 +7112,15 @@ public class PDFImportService {
         result.setAutoPayEnabled(extractAutoPayEnabled(lines));
         result.setNextAutoPayAmount(extractNextAutoPayAmount(lines));
 
-        // Points split: earned this period vs. cumulative balance. Either may be null
-        // depending on the card type. The existing `rewardPoints` field stays — it's
-        // surfaced by the RewardExtractor and represents whichever signal it judges most
-        // important; these two add specificity on top.
+        // Points split: earned this period / cumulative balance / previous cycle's
+        // balance. Either of the first two may be null depending on the card type;
+        // previousPointsBalance is also optional (only Chase Amazon Visa-style
+        // statements print it explicitly). The existing `rewardPoints` field stays —
+        // it's surfaced by the RewardExtractor and represents whichever signal it
+        // judges most important; these three add specificity on top.
         result.setPointsEarnedThisPeriod(extractPointsEarnedThisPeriod(lines));
         result.setPointsBalance(extractPointsBalance(lines));
+        result.setPreviousPointsBalance(extractPreviousPointsBalance(lines));
 
         // Log summary
         LOGGER.info(
@@ -7232,7 +7247,7 @@ public class PDFImportService {
             if (line == null || line.isBlank()) {
                 continue;
             }
-            final String normalizedLine = line.trim();
+            final String normalizedLine = normalizeLineForLabelMatching(line.trim());
             for (final Pattern pattern : labelPatterns) {
                 final Matcher matcher = pattern.matcher(normalizedLine);
                 if (matcher.find()) {
@@ -7259,6 +7274,24 @@ public class PDFImportService {
             }
         }
         return null;
+    }
+
+    /**
+     * Strip PDFBox font-extraction artifacts that punctuate label words mid-character. The
+     * known case is Chase Prime Visa: PDFBox extracts "A`vailable Credit $14,841" and
+     * "B`alance Transfers $0.00" — the stray backtick comes from the ligature glyph in
+     * the title font, and the label regexes never match unless we strip it first.
+     *
+     * <p>We only strip a backtick when it sits between two letters; a backtick at the
+     * start or end of a word is harmless and probably intentional. This keeps the
+     * normalization tight enough to avoid false positives on raw transaction descriptions
+     * that happen to contain a backtick.
+     */
+    private static String normalizeLineForLabelMatching(final String line) {
+        if (line == null || line.indexOf('`') < 0) {
+            return line;
+        }
+        return line.replaceAll("(?<=\\p{L})`(?=\\p{L})", "");
     }
 
     /** Static counterpart to {@link #parseAmount(String)} usable from static helpers above. */
@@ -7673,18 +7706,60 @@ public class PDFImportService {
                 "(?i)(?:points|rewards\\s+points)\\s+earned[\\s:]+(\\d{1,3}(?:,\\d{3})*|\\d+)\\b"),
     };
 
-    /** Patterns that identify CUMULATIVE points balance (available for redemption). */
+    /**
+     * Patterns that identify CUMULATIVE points balance available to redeem.
+     *
+     * <p>The {@code (?<!previous\\s)} negative lookbehind on the bare "points balance"
+     * pattern is load-bearing: it prevents the regex from accidentally matching the
+     * "Previous points balance NN,NNN" row that Chase Amazon Visa prints right next
+     * to the actual current balance. Without this, the single-line pass returns the
+     * PRIOR cycle's balance — the iOS UI then shows a stale-looking number that
+     * also disagrees with the per-category earned figures below.
+     */
     private static final Pattern[] POINTS_BALANCE_PATTERNS = {
         Pattern.compile(
                 "(?i)total\\s+points\\s+available\\s+for\\s+(?:redemption|redeeming|use)"
                         + "[\\s:]+(\\d{1,3}(?:,\\d{3})*|\\d+)\\b"),
         Pattern.compile(
-                "(?i)(?:points|rewards\\s+points)\\s+balance[\\s:]+(\\d{1,3}(?:,\\d{3})*|\\d+)\\b"),
+                "(?i)(?<!previous\\s)(?:points|rewards\\s+points)\\s+balance"
+                        + "[\\s:]+(\\d{1,3}(?:,\\d{3})*|\\d+)\\b"),
         Pattern.compile(
                 "(?i)available\\s+(?:points|rewards\\s+points)[\\s:]+(\\d{1,3}(?:,\\d{3})*|\\d+)\\b"),
         Pattern.compile(
                 "(?i)(?:points|rewards\\s+points)\\s+available[\\s:]+(\\d{1,3}(?:,\\d{3})*|\\d+)\\b"),
+        // Column-interleaved recovery. PDFBox on Chase Prime Visa renders the rewards
+        // column as "Total points available for\n...several lines of unrelated content
+        // from the adjacent disclosure column...\nredemption 51,057". The other patterns
+        // require "for" and "redemption" to be adjacent (or separated only by whitespace),
+        // so they can't see this case. This looser pattern allows up to ~400 chars between
+        // the two anchor phrases and picks the closest redemption value. The two anchor
+        // phrases together are specific enough that a false positive in disclosure prose
+        // is implausible.
+        Pattern.compile(
+                "(?is)total\\s+points\\s+available\\s+for\\b.{0,400}?"
+                        + "\\b(?:redemption|redeeming|use)\\s+(\\d{1,3}(?:,\\d{3})*|\\d+)\\b"),
     };
+
+    /**
+     * Chase Amazon Visa per-category earnings line: {@code + 5% back on Amazon.com
+     * purchases 0}, {@code + 2% back at restaurants 189}. The whole rewards section
+     * is a series of these — to get the total earned this period we SUM all of them.
+     * The pattern captures the trailing integer (which may be 0 for unused
+     * categories). Per-category lines that wrap onto two lines get joined first.
+     */
+    private static final Pattern AMAZON_STYLE_EARNED_LINE_PATTERN =
+            Pattern.compile(
+                    "(?i)^\\s*\\+\\s+\\d{1,2}%\\s+back\\s+(?:on|at)\\s+[^0-9\\n]+?"
+                            + "\\s+(\\d{1,3}(?:,\\d{3})*|\\d+)\\s*$");
+
+    /**
+     * Chase Amazon Visa "Previous points balance NN,NNN" — kept so the iOS UI can
+     * display deltas ("you earned X this cycle"). Distinct from the current balance
+     * (which is "Total points available for redemption").
+     */
+    private static final Pattern PREVIOUS_POINTS_BALANCE_PATTERN =
+            Pattern.compile(
+                    "(?i)previous\\s+points\\s+balance[\\s:]+(\\d{1,3}(?:,\\d{3})*|\\d+)\\b");
 
     private static Long extractLongFromPatterns(
             final String[] lines, final Pattern[] patterns) {
@@ -7732,20 +7807,82 @@ public class PDFImportService {
     }
 
     /**
-     * Points accrued this billing cycle. For Chase Marriott Bonvoy this is "Total points
-     * transferred to Marriott Bonvoy NN,NNN" because the points transfer immediately. For
-     * other cards this is "Points earned this period: NN,NNN" or similar.
+     * Points accrued this billing cycle. Three strategies tried in order:
+     *
+     * <ol>
+     *   <li>Chase Marriott Bonvoy: {@code Total points transferred to Marriott Bonvoy NN,NNN}.
+     *   <li>Explicit "Points earned this period: NN,NNN" or "Points earned: NN,NNN".
+     *   <li>Chase Amazon Visa style: SUM all "{@code + N% back on/at CATEGORY NN}" lines.
+     *       Returns null when the section isn't present at all; returns 0 when the user
+     *       didn't earn any rewards this cycle (vs. null = "we don't know").
+     * </ol>
      */
     /* default */ static Long extractPointsEarnedThisPeriod(final String[] lines) {
-        return extractLongFromPatterns(lines, POINTS_EARNED_PATTERNS);
+        // 1+2: existing single-line / joined-text patterns.
+        final Long fromPattern = extractLongFromPatterns(lines, POINTS_EARNED_PATTERNS);
+        if (fromPattern != null) {
+            return fromPattern;
+        }
+        // 3: Amazon-style per-category sum. A statement either has multiple "+ N% back"
+        // lines (counts as "we found the rewards section") or has none (return null so
+        // we don't claim a fake 0).
+        long sum = 0;
+        boolean sawAny = false;
+        for (final String line : lines) {
+            if (line == null) {
+                continue;
+            }
+            final Matcher m = AMAZON_STYLE_EARNED_LINE_PATTERN.matcher(line);
+            if (m.find()) {
+                try {
+                    sum += Long.parseLong(m.group(1).replace(",", ""));
+                    sawAny = true;
+                } catch (NumberFormatException ignored) {
+                    // skip malformed line, keep summing rest
+                }
+            }
+        }
+        return sawAny ? sum : null;
     }
 
     /**
-     * Cumulative points balance available to redeem. Returns null on transfer-partner
-     * cards (e.g. Marriott Bonvoy) where the balance lives at the partner instead.
+     * Cumulative points balance available to redeem. Order-of-preference is:
+     *
+     * <ol>
+     *   <li>"Total points available for redemption NN,NNN" — the canonical Chase
+     *       label, often wrapped onto two lines (handled by the joined-text fallback).
+     *   <li>"Points balance NN,NNN" — generic, but anchored to skip "Previous points
+     *       balance" via the negative lookbehind on POINTS_BALANCE_PATTERNS[1].
+     *   <li>Available variants.
+     * </ol>
+     *
+     * Returns null on transfer-partner cards (e.g. Marriott Bonvoy) where the balance
+     * lives at the partner instead.
      */
     /* default */ static Long extractPointsBalance(final String[] lines) {
         return extractLongFromPatterns(lines, POINTS_BALANCE_PATTERNS);
+    }
+
+    /**
+     * Prior cycle's points balance, when the statement prints it explicitly (Chase
+     * Amazon Visa: "Previous points balance NN,NNN"). Lets the UI display deltas
+     * ("you earned X since last cycle"). Distinct from the current balance.
+     */
+    /* default */ static Long extractPreviousPointsBalance(final String[] lines) {
+        for (final String line : lines) {
+            if (line == null) {
+                continue;
+            }
+            final Matcher m = PREVIOUS_POINTS_BALANCE_PATTERN.matcher(line);
+            if (m.find()) {
+                try {
+                    return Long.parseLong(m.group(1).replace(",", ""));
+                } catch (NumberFormatException ignored) {
+                    return null;
+                }
+            }
+        }
+        return null;
     }
 
     /* default */ static BigDecimal extractForeignTransactionFeePercent(final String[] lines) {
