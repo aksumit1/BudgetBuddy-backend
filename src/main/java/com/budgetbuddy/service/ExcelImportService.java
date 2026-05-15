@@ -24,7 +24,14 @@ import org.springframework.stereotype.Service;
 
 /**
  * Excel Import Service Parses Excel files (.xlsx, .xls) and converts them to transaction data
- * Reuses CSVImportService logic for date/amount parsing and transaction creation
+ * Reuses CSVImportService logic for date/amount parsing and transaction creation.
+ *
+ * <p><b>Statement-summary scope:</b> like CSV, an Excel export is just rows of transactions
+ * — no credit-card summary block (newBalance / creditLimit / APRs / AutoPay) and no FX
+ * continuation lines. That metadata lives only in PDF bank statements; see {@link
+ * PDFImportService} for the extraction. The iOS CreditStatementSummaryCard auto-hides
+ * for accounts with no PDF-imported summary, so this importer's behaviour is correct by
+ * omission and CSV/Excel users see the same transaction UI they always have.
  */
 // PMD's LawOfDemeter is documented as imprecise on chains involving
 // standard library types (BigDecimal, String, Optional) and DTO

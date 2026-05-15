@@ -28,7 +28,15 @@ import org.springframework.stereotype.Service;
 
 /**
  * CSV Import Service Mirrors the iOS app's CSVImportService functionality Parses CSV files from
- * banks/credit cards and converts them to transaction data
+ * banks/credit cards and converts them to transaction data.
+ *
+ * <p><b>What this importer does NOT extract:</b> credit-card statement summary metadata
+ * (newBalance, creditLimit, APRs, AutoPay status, etc.) and per-transaction FX context
+ * (originalCurrency, exchangeRate). Those concepts only exist in PDF bank statements; a
+ * CSV export from the same issuer is just rows of transactions with no summary block
+ * and no FX-block continuation lines. The iOS UI handles this naturally — the
+ * statement-summary widget auto-hides when the underlying fields are null, so an
+ * account imported via CSV simply doesn't show that section.
  */
 // PMD's LawOfDemeter is documented as imprecise on chains involving
 // standard library types (BigDecimal, String, Optional) and DTO
