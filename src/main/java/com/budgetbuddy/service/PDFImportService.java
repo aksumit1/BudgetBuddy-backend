@@ -7683,6 +7683,16 @@ public class PDFImportService {
 
     private static Long extractLongFromPatterns(
             final String[] lines, final Pattern[] patterns) {
+        // Two passes:
+        //   1. Per-line for patterns that fit on a single line. Cheap and avoids
+        //      cross-line false positives when the same label appears in disclosure prose.
+        //   2. Joined-text fallback for patterns that span line breaks. Chase routinely
+        //      wraps "Total points transferred to\nMarriott Bonvoy NN,NNN" across two
+        //      lines, which the single-line pass can't see.
+        // Before joining, normalise PDFBox's date-glued-to-number quirk: it emits
+        // "Marriott Bonvoy 6,46404/14/26" when the points value abuts the next-due
+        // date column with no space. Insert a space anywhere a date pattern follows
+        // a digit so the number boundary is recoverable.
         for (final String line : lines) {
             if (line == null || line.isBlank()) {
                 continue;
@@ -7695,6 +7705,21 @@ public class PDFImportService {
                     } catch (NumberFormatException ignored) {
                         // Try next pattern.
                     }
+                }
+            }
+        }
+        // Second pass: join lines + de-glue dates, retry.
+        final String joined =
+                String.join(" ", lines)
+                        .replaceAll("(\\d)(?=\\d{2}/\\d{2}/\\d{2,4})", "$1 ")
+                        .replaceAll("\\s+", " ");
+        for (final Pattern p : patterns) {
+            final Matcher m = p.matcher(joined);
+            if (m.find()) {
+                try {
+                    return Long.parseLong(m.group(1).replace(",", ""));
+                } catch (NumberFormatException ignored) {
+                    // try next
                 }
             }
         }

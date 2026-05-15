@@ -406,6 +406,39 @@ class MarriottBonvoyStatementFixtureTest {
         assertEquals(12400L, balance.longValue());
     }
 
+    @Test
+    void pointsEarned_recoveredAcrossLineBreak_whenChaseSplitsPhrase() {
+        // PDFBox-on-Chase quirk #1: "Total points transferred to" lands on one line and
+        // "Marriott Bonvoy NN,NNN" lands on the next, so a single-line regex misses it.
+        // The fallback joins lines before retrying, which must recover the value.
+        final String input = String.join(
+                "\n",
+                "POINTS",
+                "Total points transferred to",
+                "Marriott Bonvoy 6,464");
+        final Long earned = PDFImportService.extractPointsEarnedThisPeriod(input.split("\\n"));
+        assertNotNull(earned, "Multi-line phrasing must still produce a value");
+        assertEquals(6464L, earned.longValue());
+    }
+
+    @Test
+    void pointsEarned_recoveredWhenPdfBoxGluesValueToFollowingDate() {
+        // PDFBox-on-Chase quirk #2: "Marriott Bonvoy 6,464" sits next to a date column
+        // "04/14/26" and PDFBox extracts them as one token: "Marriott Bonvoy 6,46404/14/26".
+        // The fallback inserts a synthetic space anywhere a date pattern abuts a digit,
+        // so the number boundary is recoverable.
+        final String input = String.join(
+                "\n",
+                "POINTS",
+                "Total points transferred to",
+                "Marriott Bonvoy 6,46404/14/26");
+        final Long earned = PDFImportService.extractPointsEarnedThisPeriod(input.split("\\n"));
+        assertNotNull(earned, "Glued-date quirk must not swallow the points value");
+        assertEquals(6464L, earned.longValue(),
+                "Must capture the comma-grouped points value, not the digit-prefix or"
+                        + " the concatenated number");
+    }
+
     // ---------- foreign transaction fee ----------
 
     @Test
