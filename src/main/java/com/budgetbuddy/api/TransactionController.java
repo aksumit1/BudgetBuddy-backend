@@ -4250,6 +4250,15 @@ public class TransactionController {
         info.setPointsEarnedThisPeriod(importResult.getPointsEarnedThisPeriod());
         info.setPointsBalance(importResult.getPointsBalance());
         info.setPreviousPointsBalance(importResult.getPreviousPointsBalance());
+        info.setYtdFeesCharged(importResult.getYtdFeesCharged());
+        info.setYtdInterestCharged(importResult.getYtdInterestCharged());
+        info.setCurrentQuarterBonusQuarter(importResult.getCurrentQuarterBonusQuarter());
+        info.setCurrentQuarterBonusRate(importResult.getCurrentQuarterBonusRate());
+        info.setCurrentQuarterBonusCategory(importResult.getCurrentQuarterBonusCategory());
+        info.setNextQuarterBonusRate(importResult.getNextQuarterBonusRate());
+        info.setNextQuarterBonusCap(importResult.getNextQuarterBonusCap());
+        info.setNextQuarterBonusStart(importResult.getNextQuarterBonusStart());
+        info.setNextQuarterBonusEnd(importResult.getNextQuarterBonusEnd());
     }
 
     private Map<String, Object> buildTransactionMapInternal(
@@ -5232,6 +5241,20 @@ public class TransactionController {
         // iOS UI display "you earned X this cycle" deltas.
         private Long previousPointsBalance;
 
+        // YTD totals (year-to-date fees + interest).
+        private java.math.BigDecimal ytdFeesCharged;
+        private java.math.BigDecimal ytdInterestCharged;
+
+        // Chase Freedom rotating bonus tier (current cycle) + next-quarter window.
+        // Both blocks are nullable as a whole on non-Freedom cards.
+        private String currentQuarterBonusQuarter;
+        private java.math.BigDecimal currentQuarterBonusRate;
+        private String currentQuarterBonusCategory;
+        private java.math.BigDecimal nextQuarterBonusRate;
+        private java.math.BigDecimal nextQuarterBonusCap;
+        private java.time.LocalDate nextQuarterBonusStart;
+        private java.time.LocalDate nextQuarterBonusEnd;
+
         public String getAccountName() {
             return accountName;
         }
@@ -5375,6 +5398,33 @@ public class TransactionController {
         public void setPointsBalance(final Long v) { this.pointsBalance = v; }
         public Long getPreviousPointsBalance() { return previousPointsBalance; }
         public void setPreviousPointsBalance(final Long v) { this.previousPointsBalance = v; }
+
+        public java.math.BigDecimal getYtdFeesCharged() { return ytdFeesCharged; }
+        public void setYtdFeesCharged(final java.math.BigDecimal v) { this.ytdFeesCharged = v; }
+
+        public java.math.BigDecimal getYtdInterestCharged() { return ytdInterestCharged; }
+        public void setYtdInterestCharged(final java.math.BigDecimal v) { this.ytdInterestCharged = v; }
+
+        public String getCurrentQuarterBonusQuarter() { return currentQuarterBonusQuarter; }
+        public void setCurrentQuarterBonusQuarter(final String v) { this.currentQuarterBonusQuarter = v; }
+
+        public java.math.BigDecimal getCurrentQuarterBonusRate() { return currentQuarterBonusRate; }
+        public void setCurrentQuarterBonusRate(final java.math.BigDecimal v) { this.currentQuarterBonusRate = v; }
+
+        public String getCurrentQuarterBonusCategory() { return currentQuarterBonusCategory; }
+        public void setCurrentQuarterBonusCategory(final String v) { this.currentQuarterBonusCategory = v; }
+
+        public java.math.BigDecimal getNextQuarterBonusRate() { return nextQuarterBonusRate; }
+        public void setNextQuarterBonusRate(final java.math.BigDecimal v) { this.nextQuarterBonusRate = v; }
+
+        public java.math.BigDecimal getNextQuarterBonusCap() { return nextQuarterBonusCap; }
+        public void setNextQuarterBonusCap(final java.math.BigDecimal v) { this.nextQuarterBonusCap = v; }
+
+        public java.time.LocalDate getNextQuarterBonusStart() { return nextQuarterBonusStart; }
+        public void setNextQuarterBonusStart(final java.time.LocalDate v) { this.nextQuarterBonusStart = v; }
+
+        public java.time.LocalDate getNextQuarterBonusEnd() { return nextQuarterBonusEnd; }
+        public void setNextQuarterBonusEnd(final java.time.LocalDate v) { this.nextQuarterBonusEnd = v; }
     }
 
     public static class CSVImportPreviewResponse {
@@ -6697,6 +6747,21 @@ public class TransactionController {
         final java.util.Map<String, BigDecimal> pdfMultipliers = ir.getRewardMultipliersFromPdf();
         if (pdfMultipliers != null && !pdfMultipliers.isEmpty()) {
             account.setRewardMultipliers(pdfMultipliers);
+        }
+        // Chase Freedom rotating-bonus tier (active this cycle). All three fields move
+        // together — current-quarter is a single concept split across columns for
+        // schema simplicity. Skip if the parser didn't surface a tier this statement.
+        if (ir.getCurrentQuarterBonusQuarter() != null) {
+            account.setCurrentQuarterBonusQuarter(ir.getCurrentQuarterBonusQuarter());
+            account.setCurrentQuarterBonusRate(ir.getCurrentQuarterBonusRate());
+            account.setCurrentQuarterBonusCategory(ir.getCurrentQuarterBonusCategory());
+        }
+        // Next-quarter activation window. The four fields also move together.
+        if (ir.getNextQuarterBonusStart() != null) {
+            account.setNextQuarterBonusRate(ir.getNextQuarterBonusRate());
+            account.setNextQuarterBonusCap(ir.getNextQuarterBonusCap());
+            account.setNextQuarterBonusStart(ir.getNextQuarterBonusStart());
+            account.setNextQuarterBonusEnd(ir.getNextQuarterBonusEnd());
         }
     }
 

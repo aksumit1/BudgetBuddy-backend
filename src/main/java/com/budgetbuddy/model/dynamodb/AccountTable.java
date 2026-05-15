@@ -462,6 +462,21 @@ public class AccountTable {
     private BigDecimal ytdFeesCharged;
     private BigDecimal ytdInterestCharged;
 
+    // Chase Freedom rotating-bonus tier (the active one this statement cycle).
+    // Three scalar columns rather than a nested struct to keep DynamoDB+iOS-Codable
+    // mapping simple. All three are set together or none of them; null = card has
+    // no rotating bonus active.
+    private String currentQuarterBonusQuarter;  // "1Q" – "4Q"
+    private BigDecimal currentQuarterBonusRate; // e.g. 5
+    private String currentQuarterBonusCategory; // e.g. "Grocery Stores"
+
+    // Next-quarter activation window (Chase Freedom only). Lets the iOS app remind
+    // users to activate before the new quarter opens.
+    private BigDecimal nextQuarterBonusRate;
+    private BigDecimal nextQuarterBonusCap;     // typically $1,500 cap on bonus spend
+    private LocalDate nextQuarterBonusStart;
+    private LocalDate nextQuarterBonusEnd;
+
     @DynamoDbAttribute("newBalance")
     public BigDecimal getNewBalance() { return newBalance; }
     public void setNewBalance(final BigDecimal v) { this.newBalance = v; }
@@ -561,4 +576,32 @@ public class AccountTable {
     @DynamoDbAttribute("ytdInterestCharged")
     public BigDecimal getYtdInterestCharged() { return ytdInterestCharged; }
     public void setYtdInterestCharged(final BigDecimal v) { this.ytdInterestCharged = v; }
+
+    @DynamoDbAttribute("currentQuarterBonusQuarter")
+    public String getCurrentQuarterBonusQuarter() { return currentQuarterBonusQuarter; }
+    public void setCurrentQuarterBonusQuarter(final String v) { this.currentQuarterBonusQuarter = v; }
+
+    @DynamoDbAttribute("currentQuarterBonusRate")
+    public BigDecimal getCurrentQuarterBonusRate() { return currentQuarterBonusRate; }
+    public void setCurrentQuarterBonusRate(final BigDecimal v) { this.currentQuarterBonusRate = v; }
+
+    @DynamoDbAttribute("currentQuarterBonusCategory")
+    public String getCurrentQuarterBonusCategory() { return currentQuarterBonusCategory; }
+    public void setCurrentQuarterBonusCategory(final String v) { this.currentQuarterBonusCategory = v; }
+
+    @DynamoDbAttribute("nextQuarterBonusRate")
+    public BigDecimal getNextQuarterBonusRate() { return nextQuarterBonusRate; }
+    public void setNextQuarterBonusRate(final BigDecimal v) { this.nextQuarterBonusRate = v; }
+
+    @DynamoDbAttribute("nextQuarterBonusCap")
+    public BigDecimal getNextQuarterBonusCap() { return nextQuarterBonusCap; }
+    public void setNextQuarterBonusCap(final BigDecimal v) { this.nextQuarterBonusCap = v; }
+
+    @DynamoDbAttribute("nextQuarterBonusStart")
+    public LocalDate getNextQuarterBonusStart() { return nextQuarterBonusStart; }
+    public void setNextQuarterBonusStart(final LocalDate v) { this.nextQuarterBonusStart = v; }
+
+    @DynamoDbAttribute("nextQuarterBonusEnd")
+    public LocalDate getNextQuarterBonusEnd() { return nextQuarterBonusEnd; }
+    public void setNextQuarterBonusEnd(final LocalDate v) { this.nextQuarterBonusEnd = v; }
 }

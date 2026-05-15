@@ -351,6 +351,19 @@ public class PDFImportService {
         private BigDecimal ytdFeesCharged;
         private BigDecimal ytdInterestCharged;
 
+        // Chase Freedom rotating bonus tier captured from "+ Bonus from NQ N% cat:
+        // CATEGORY NN". Stored as 3 scalar columns rather than a record so DynamoDB
+        // and iOS can mirror the schema straightforwardly.
+        private String currentQuarterBonusQuarter; // e.g. "1Q"
+        private BigDecimal currentQuarterBonusRate; // e.g. 5
+        private String currentQuarterBonusCategory; // e.g. "Grocery Stores"
+
+        // Next-quarter activation window from the Freedom disclosure prose.
+        private BigDecimal nextQuarterBonusRate;
+        private BigDecimal nextQuarterBonusCap;
+        private LocalDate nextQuarterBonusStart;
+        private LocalDate nextQuarterBonusEnd;
+
         /**
          * Statement coverage window, extracted from the header when present (e.g. "Statement
          * period: 03/01/2024 - 03/31/2024"). Previously only the year was extracted for MM/DD
@@ -698,6 +711,27 @@ public class PDFImportService {
         public void setYtdInterestCharged(final BigDecimal v) {
             this.ytdInterestCharged = v;
         }
+
+        public String getCurrentQuarterBonusQuarter() { return currentQuarterBonusQuarter; }
+        public void setCurrentQuarterBonusQuarter(final String v) { this.currentQuarterBonusQuarter = v; }
+
+        public BigDecimal getCurrentQuarterBonusRate() { return currentQuarterBonusRate; }
+        public void setCurrentQuarterBonusRate(final BigDecimal v) { this.currentQuarterBonusRate = v; }
+
+        public String getCurrentQuarterBonusCategory() { return currentQuarterBonusCategory; }
+        public void setCurrentQuarterBonusCategory(final String v) { this.currentQuarterBonusCategory = v; }
+
+        public BigDecimal getNextQuarterBonusRate() { return nextQuarterBonusRate; }
+        public void setNextQuarterBonusRate(final BigDecimal v) { this.nextQuarterBonusRate = v; }
+
+        public BigDecimal getNextQuarterBonusCap() { return nextQuarterBonusCap; }
+        public void setNextQuarterBonusCap(final BigDecimal v) { this.nextQuarterBonusCap = v; }
+
+        public LocalDate getNextQuarterBonusStart() { return nextQuarterBonusStart; }
+        public void setNextQuarterBonusStart(final LocalDate v) { this.nextQuarterBonusStart = v; }
+
+        public LocalDate getNextQuarterBonusEnd() { return nextQuarterBonusEnd; }
+        public void setNextQuarterBonusEnd(final LocalDate v) { this.nextQuarterBonusEnd = v; }
     }
 
     /** Parsed transaction data ready for database creation */
@@ -7164,6 +7198,22 @@ public class PDFImportService {
         // YTD totals.
         result.setYtdFeesCharged(extractYtdFeesCharged(lines));
         result.setYtdInterestCharged(extractYtdInterestCharged(lines));
+
+        // Chase Freedom rotating bonus tier + next-quarter activation window.
+        final QuarterlyBonus currentBonus = extractCurrentQuarterBonus(lines);
+        if (currentBonus != null) {
+            result.setCurrentQuarterBonusQuarter(currentBonus.quarter());
+            result.setCurrentQuarterBonusRate(currentBonus.rate());
+            result.setCurrentQuarterBonusCategory(currentBonus.category());
+        }
+        final NextQuarterBonus nextBonus =
+                extractNextQuarterBonus(lines, inferredYear, isUSLocale);
+        if (nextBonus != null) {
+            result.setNextQuarterBonusRate(nextBonus.rate());
+            result.setNextQuarterBonusCap(nextBonus.capAmount());
+            result.setNextQuarterBonusStart(nextBonus.windowStart());
+            result.setNextQuarterBonusEnd(nextBonus.windowEnd());
+        }
 
         // Log summary
         LOGGER.info(
