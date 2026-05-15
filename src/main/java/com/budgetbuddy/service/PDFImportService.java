@@ -341,6 +341,16 @@ public class PDFImportService {
         // balance. Null for cards/issuers that don't print a prior balance.
         private Long previousPointsBalance;
 
+        // Per-category reward multipliers learned from "+ N% back on CATEGORY" lines.
+        // Feeds the card-advisor's existing AccountTable.rewardMultipliers schema.
+        // Empty map (not null) when no rewards block is present.
+        private java.util.Map<String, BigDecimal> rewardMultipliersFromPdf;
+
+        // Year-to-date totals for fees + interest. Useful for end-of-year summaries.
+        // Null when the statement doesn't print the YTD row.
+        private BigDecimal ytdFeesCharged;
+        private BigDecimal ytdInterestCharged;
+
         /**
          * Statement coverage window, extracted from the header when present (e.g. "Statement
          * period: 03/01/2024 - 03/31/2024"). Previously only the year was extracted for MM/DD
@@ -663,6 +673,30 @@ public class PDFImportService {
 
         public void setPreviousPointsBalance(final Long v) {
             this.previousPointsBalance = v;
+        }
+
+        public java.util.Map<String, BigDecimal> getRewardMultipliersFromPdf() {
+            return rewardMultipliersFromPdf;
+        }
+
+        public void setRewardMultipliersFromPdf(final java.util.Map<String, BigDecimal> v) {
+            this.rewardMultipliersFromPdf = v;
+        }
+
+        public BigDecimal getYtdFeesCharged() {
+            return ytdFeesCharged;
+        }
+
+        public void setYtdFeesCharged(final BigDecimal v) {
+            this.ytdFeesCharged = v;
+        }
+
+        public BigDecimal getYtdInterestCharged() {
+            return ytdInterestCharged;
+        }
+
+        public void setYtdInterestCharged(final BigDecimal v) {
+            this.ytdInterestCharged = v;
         }
     }
 
@@ -7122,6 +7156,15 @@ public class PDFImportService {
         result.setPointsBalance(extractPointsBalance(lines));
         result.setPreviousPointsBalance(extractPreviousPointsBalance(lines));
 
+        // Per-category reward multipliers from "+ N% back" lines. Always populate
+        // (empty map when there's no rewards block) so downstream callers can
+        // distinguish "no rewards data" from "no card-advisor enrichment yet".
+        result.setRewardMultipliersFromPdf(extractRewardMultipliersFromPdf(lines));
+
+        // YTD totals.
+        result.setYtdFeesCharged(extractYtdFeesCharged(lines));
+        result.setYtdInterestCharged(extractYtdInterestCharged(lines));
+
         // Log summary
         LOGGER.info(
                 "📊 [Credit Card Metadata] Extraction summary - paymentDueDate: {}, minimumPaymentDue: {}, rewardPoints: {}",
@@ -7746,10 +7789,17 @@ public class PDFImportService {
      * is a series of these — to get the total earned this period we SUM all of them.
      * The pattern captures the trailing integer (which may be 0 for unused
      * categories). Per-category lines that wrap onto two lines get joined first.
+     *
+     * <p>The {@code (?:^|\\s)} anchor (instead of {@code ^\\s*}) is load-bearing: real
+     * Chase Prime Visa statements share the rewards column with a calendar block, so
+     * PDFBox routinely produces lines like {@code "14 15 16 17 18 19 20 + 2% back at
+     * restaurants 318"} — calendar digits glued in front of the actual reward row. The
+     * strict {@code ^\\s*\\+} version misses every such row and the parser silently
+     * reports zero earned points for these statements.
      */
     private static final Pattern AMAZON_STYLE_EARNED_LINE_PATTERN =
             Pattern.compile(
-                    "(?i)^\\s*\\+\\s+\\d{1,2}%\\s+back\\s+(?:on|at)\\s+[^0-9\\n]+?"
+                    "(?i)(?:^|\\s)\\+\\s+\\d{1,2}%\\s+back\\s+(?:on|at)\\s+[^0-9\\n]+?"
                             + "\\s+(\\d{1,3}(?:,\\d{3})*|\\d+)\\s*$");
 
     /**
@@ -7877,6 +7927,86 @@ public class PDFImportService {
             if (m.find()) {
                 try {
                     return Long.parseLong(m.group(1).replace(",", ""));
+                } catch (NumberFormatException ignored) {
+                    return null;
+                }
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Chase Amazon Visa per-category reward-multiplier line. Captures the percent
+     * (group 1) and category label (group 2):
+     *   + 5% back on Amazon.com purchases 0
+     *   + 2% back at restaurants 31
+     *   + 1% back on all other purchases 0
+     * The trailing integer is the points-earned this cycle for that category; we
+     * ignore it here because the per-cycle sum is captured separately.
+     */
+    private static final Pattern REWARD_MULTIPLIER_LINE_PATTERN =
+            Pattern.compile(
+                    "(?i)^\\s*\\+\\s+(\\d{1,2}(?:\\.\\d{1,2})?)%\\s+back\\s+(?:on|at)\\s+"
+                            + "(.+?)\\s+\\d{1,3}(?:,\\d{3})*\\s*$");
+
+    private static final Pattern YTD_FEES_PATTERN =
+            Pattern.compile(
+                    "(?i)total\\s+fees\\s+charged\\s+in\\s+\\d{4}\\s+\\$([\\d,]+(?:\\.\\d{1,2})?)");
+
+    private static final Pattern YTD_INTEREST_PATTERN =
+            Pattern.compile(
+                    "(?i)total\\s+interest\\s+charged\\s+in\\s+\\d{4}\\s+\\$([\\d,]+(?:\\.\\d{1,2})?)");
+
+    /**
+     * Per-category reward multipliers from "+ N% back on/at CATEGORY" lines.
+     * Returns rate as percent (5.0 not 0.05) so it lines up with the existing
+     * AccountTable.rewardMultipliers schema. Keys are raw issuer labels
+     * (lowercased + trimmed) so consumers can normalise to their own taxonomy.
+     * Empty map when no rewards block; never null.
+     */
+    /* default */ static java.util.Map<String, BigDecimal> extractRewardMultipliersFromPdf(
+            final String[] lines) {
+        final java.util.LinkedHashMap<String, BigDecimal> out = new java.util.LinkedHashMap<>();
+        for (final String line : lines) {
+            if (line == null) {
+                continue;
+            }
+            final Matcher m = REWARD_MULTIPLIER_LINE_PATTERN.matcher(line);
+            if (m.find()) {
+                try {
+                    final BigDecimal rate = new BigDecimal(m.group(1));
+                    final String category = m.group(2).trim().toLowerCase(Locale.ROOT);
+                    if (!category.isEmpty()) {
+                        out.put(category, rate);
+                    }
+                } catch (NumberFormatException ignored) {
+                    // skip malformed line
+                }
+            }
+        }
+        return out;
+    }
+
+    /** YTD "Total fees charged in YYYY $N". Null when the row isn't present. */
+    /* default */ static BigDecimal extractYtdFeesCharged(final String[] lines) {
+        return extractYtdLineValue(lines, YTD_FEES_PATTERN);
+    }
+
+    /** YTD "Total interest charged in YYYY $N". Null when the row isn't present. */
+    /* default */ static BigDecimal extractYtdInterestCharged(final String[] lines) {
+        return extractYtdLineValue(lines, YTD_INTEREST_PATTERN);
+    }
+
+    private static BigDecimal extractYtdLineValue(
+            final String[] lines, final Pattern pattern) {
+        for (final String line : lines) {
+            if (line == null) {
+                continue;
+            }
+            final Matcher m = pattern.matcher(line);
+            if (m.find()) {
+                try {
+                    return new BigDecimal(m.group(1).replace(",", ""));
                 } catch (NumberFormatException ignored) {
                     return null;
                 }

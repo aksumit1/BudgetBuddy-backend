@@ -6682,6 +6682,22 @@ public class TransactionController {
         if (ir.getPreviousPointsBalance() != null) {
             account.setPreviousPointsBalance(ir.getPreviousPointsBalance());
         }
+        // YTD totals — overwrite (not merge) because the issuer's YTD counter is
+        // authoritative.
+        if (ir.getYtdFeesCharged() != null) {
+            account.setYtdFeesCharged(ir.getYtdFeesCharged());
+        }
+        if (ir.getYtdInterestCharged() != null) {
+            account.setYtdInterestCharged(ir.getYtdInterestCharged());
+        }
+        // Reward multipliers from PDF — only overwrite when the PDF actually had a
+        // rewards block (non-empty map). An empty map means the parser saw no
+        // rewards section, which is different from "we know the rewards are nothing"
+        // and shouldn't clobber a multipliers map populated via Plaid or manual entry.
+        final java.util.Map<String, BigDecimal> pdfMultipliers = ir.getRewardMultipliersFromPdf();
+        if (pdfMultipliers != null && !pdfMultipliers.isEmpty()) {
+            account.setRewardMultipliers(pdfMultipliers);
+        }
     }
 
     private void updateAccountMetadataFromPDFImport(

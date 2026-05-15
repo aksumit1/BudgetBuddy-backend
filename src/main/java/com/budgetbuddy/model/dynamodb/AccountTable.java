@@ -457,6 +457,11 @@ public class AccountTable {
     // that lets UIs show "earned X since last cycle" deltas without recomputing.
     private Long previousPointsBalance;
 
+    // YTD totals from the most-recent statement. Reset each January when the issuer
+    // ticks the YTD counter. Null when the statement doesn't print the YTD row.
+    private BigDecimal ytdFeesCharged;
+    private BigDecimal ytdInterestCharged;
+
     @DynamoDbAttribute("newBalance")
     public BigDecimal getNewBalance() { return newBalance; }
     public void setNewBalance(final BigDecimal v) { this.newBalance = v; }
@@ -548,4 +553,12 @@ public class AccountTable {
     @DynamoDbAttribute("previousPointsBalance")
     public Long getPreviousPointsBalance() { return previousPointsBalance; }
     public void setPreviousPointsBalance(final Long v) { this.previousPointsBalance = v; }
+
+    @DynamoDbAttribute("ytdFeesCharged")
+    public BigDecimal getYtdFeesCharged() { return ytdFeesCharged; }
+    public void setYtdFeesCharged(final BigDecimal v) { this.ytdFeesCharged = v; }
+
+    @DynamoDbAttribute("ytdInterestCharged")
+    public BigDecimal getYtdInterestCharged() { return ytdInterestCharged; }
+    public void setYtdInterestCharged(final BigDecimal v) { this.ytdInterestCharged = v; }
 }
