@@ -258,6 +258,54 @@ public class PDFImportService {
         private BigDecimal minimumPaymentDue; // Minimum payment due amount
         private Long rewardPoints; // Reward points (0 to 10 million)
 
+        // Statement-summary block (Chase prints these as "New Balance", "Previous Balance",
+        // "Credit Access Line", "Available Credit", "Past Due Amount"). Surfaced on the
+        // import result so the iOS preview can show the full statement summary instead
+        // of just "N transactions imported".
+        private BigDecimal newBalance;
+        private BigDecimal previousBalance;
+        private BigDecimal creditLimit;
+        private BigDecimal availableCredit;
+        private BigDecimal pastDueAmount;
+
+        // Section totals (the per-bucket sums Chase prints at the top of the statement).
+        // Critical for a sanity check: sum(transactions of type X) ≈ X-section total —
+        // if not, a row was dropped during parsing.
+        private BigDecimal purchasesTotal;
+        private BigDecimal paymentsAndCreditsTotal;
+        private BigDecimal cashAdvancesTotal;
+        private BigDecimal balanceTransfersTotal;
+        private BigDecimal feesChargedTotal;
+        private BigDecimal interestChargedTotal;
+
+        // APR rates from the disclosure table at the bottom of the statement. Variable rates
+        // captured as a percent (e.g. 19.49). The (v)(d) annotations are dropped — they're
+        // shown in the disclosure block and don't need to round-trip.
+        private BigDecimal purchaseApr;
+        private BigDecimal cashAdvanceApr;
+        private BigDecimal balanceTransferApr;
+        private BigDecimal penaltyApr;
+
+        // Annual fee — Chase prints these as a single sentence "Your annual membership
+        // fee in the amount of $NN.NN will be billed on MM/DD/YYYY." We surface both
+        // pieces so the iOS app can show a "Fee due in 18 days" nudge.
+        private BigDecimal annualMembershipFee;
+        private LocalDate annualMembershipFeeDueDate;
+
+        // Cash advance secondary limits (separate sub-limit, distinct from credit limit).
+        private BigDecimal cashAccessLine;
+        private BigDecimal availableForCash;
+
+        // Billing-period length in days (Chase: "NN Days in Billing Period"). Derivable
+        // from start/end dates, but storing the printed value preserves the issuer's exact
+        // count even when month-boundary math drifts.
+        private Integer billingDays;
+
+        // The "Statement Date" line from the page header — usually identical to the
+        // billing-cycle closing date but kept explicit because some issuers print them
+        // as distinct values.
+        private LocalDate statementDate;
+
         /**
          * Statement coverage window, extracted from the header when present (e.g. "Statement
          * period: 03/01/2024 - 03/31/2024"). Previously only the year was extracted for MM/DD
@@ -364,6 +412,174 @@ public class PDFImportService {
 
         public void setRewardPoints(final Long rewardPoints) {
             this.rewardPoints = rewardPoints;
+        }
+
+        public BigDecimal getNewBalance() {
+            return newBalance;
+        }
+
+        public void setNewBalance(final BigDecimal newBalance) {
+            this.newBalance = newBalance;
+        }
+
+        public BigDecimal getPreviousBalance() {
+            return previousBalance;
+        }
+
+        public void setPreviousBalance(final BigDecimal previousBalance) {
+            this.previousBalance = previousBalance;
+        }
+
+        public BigDecimal getCreditLimit() {
+            return creditLimit;
+        }
+
+        public void setCreditLimit(final BigDecimal creditLimit) {
+            this.creditLimit = creditLimit;
+        }
+
+        public BigDecimal getAvailableCredit() {
+            return availableCredit;
+        }
+
+        public void setAvailableCredit(final BigDecimal availableCredit) {
+            this.availableCredit = availableCredit;
+        }
+
+        public BigDecimal getPastDueAmount() {
+            return pastDueAmount;
+        }
+
+        public void setPastDueAmount(final BigDecimal pastDueAmount) {
+            this.pastDueAmount = pastDueAmount;
+        }
+
+        public BigDecimal getPurchasesTotal() {
+            return purchasesTotal;
+        }
+
+        public void setPurchasesTotal(final BigDecimal v) {
+            this.purchasesTotal = v;
+        }
+
+        public BigDecimal getPaymentsAndCreditsTotal() {
+            return paymentsAndCreditsTotal;
+        }
+
+        public void setPaymentsAndCreditsTotal(final BigDecimal v) {
+            this.paymentsAndCreditsTotal = v;
+        }
+
+        public BigDecimal getCashAdvancesTotal() {
+            return cashAdvancesTotal;
+        }
+
+        public void setCashAdvancesTotal(final BigDecimal v) {
+            this.cashAdvancesTotal = v;
+        }
+
+        public BigDecimal getBalanceTransfersTotal() {
+            return balanceTransfersTotal;
+        }
+
+        public void setBalanceTransfersTotal(final BigDecimal v) {
+            this.balanceTransfersTotal = v;
+        }
+
+        public BigDecimal getFeesChargedTotal() {
+            return feesChargedTotal;
+        }
+
+        public void setFeesChargedTotal(final BigDecimal v) {
+            this.feesChargedTotal = v;
+        }
+
+        public BigDecimal getInterestChargedTotal() {
+            return interestChargedTotal;
+        }
+
+        public void setInterestChargedTotal(final BigDecimal v) {
+            this.interestChargedTotal = v;
+        }
+
+        public BigDecimal getPurchaseApr() {
+            return purchaseApr;
+        }
+
+        public void setPurchaseApr(final BigDecimal v) {
+            this.purchaseApr = v;
+        }
+
+        public BigDecimal getCashAdvanceApr() {
+            return cashAdvanceApr;
+        }
+
+        public void setCashAdvanceApr(final BigDecimal v) {
+            this.cashAdvanceApr = v;
+        }
+
+        public BigDecimal getBalanceTransferApr() {
+            return balanceTransferApr;
+        }
+
+        public void setBalanceTransferApr(final BigDecimal v) {
+            this.balanceTransferApr = v;
+        }
+
+        public BigDecimal getPenaltyApr() {
+            return penaltyApr;
+        }
+
+        public void setPenaltyApr(final BigDecimal v) {
+            this.penaltyApr = v;
+        }
+
+        public BigDecimal getAnnualMembershipFee() {
+            return annualMembershipFee;
+        }
+
+        public void setAnnualMembershipFee(final BigDecimal v) {
+            this.annualMembershipFee = v;
+        }
+
+        public LocalDate getAnnualMembershipFeeDueDate() {
+            return annualMembershipFeeDueDate;
+        }
+
+        public void setAnnualMembershipFeeDueDate(final LocalDate v) {
+            this.annualMembershipFeeDueDate = v;
+        }
+
+        public BigDecimal getCashAccessLine() {
+            return cashAccessLine;
+        }
+
+        public void setCashAccessLine(final BigDecimal v) {
+            this.cashAccessLine = v;
+        }
+
+        public BigDecimal getAvailableForCash() {
+            return availableForCash;
+        }
+
+        public void setAvailableForCash(final BigDecimal v) {
+            this.availableForCash = v;
+        }
+
+        public Integer getBillingDays() {
+            return billingDays;
+        }
+
+        public void setBillingDays(final Integer v) {
+            this.billingDays = v;
+        }
+
+        public LocalDate getStatementDate() {
+            return statementDate;
+        }
+
+        public void setStatementDate(final LocalDate v) {
+            this.statementDate = v;
         }
     }
 
@@ -541,6 +757,51 @@ public class PDFImportService {
         public void setAccountId(final String accountId) {
             this.accountId = accountId;
         }
+
+        // ---- Foreign-currency original amount (Chase Marriott Bonvoy + similar) ----
+        //
+        // When a purchase clears in a non-USD currency, Chase's PDF statement carries the
+        // original amount and the conversion rate alongside the USD figure. We capture
+        // those here so the iOS app can show "₹14,543.50 @ 0.0108 = $156.72" instead of
+        // just "$156.72" for an international purchase. These are nullable — populated
+        // only when the strip pass found an "(EXCHG RATE)" block paired with the txn.
+
+        private String originalCurrencyCode; // ISO 4217 — "INR", "EUR", ...
+        private String originalCurrencyDisplay; // Display name — "INDIAN RUPEE"
+        private BigDecimal originalAmount;
+        private BigDecimal exchangeRate;
+
+        public String getOriginalCurrencyCode() {
+            return originalCurrencyCode;
+        }
+
+        public void setOriginalCurrencyCode(final String originalCurrencyCode) {
+            this.originalCurrencyCode = originalCurrencyCode;
+        }
+
+        public String getOriginalCurrencyDisplay() {
+            return originalCurrencyDisplay;
+        }
+
+        public void setOriginalCurrencyDisplay(final String originalCurrencyDisplay) {
+            this.originalCurrencyDisplay = originalCurrencyDisplay;
+        }
+
+        public BigDecimal getOriginalAmount() {
+            return originalAmount;
+        }
+
+        public void setOriginalAmount(final BigDecimal originalAmount) {
+            this.originalAmount = originalAmount;
+        }
+
+        public BigDecimal getExchangeRate() {
+            return exchangeRate;
+        }
+
+        public void setExchangeRate(final BigDecimal exchangeRate) {
+            this.exchangeRate = exchangeRate;
+        }
     }
 
     /**
@@ -710,6 +971,18 @@ public class PDFImportService {
                         "Detected US locale from PDF headers - will prioritize MM/DD/YYYY date format");
             }
 
+            // Foreign-currency conversion annotation lines (Chase Marriott Bonvoy and
+            // similar: "INDIAN RUPEE NNN.NN X 0.NNNNN (EXCHG RATE)") would otherwise be
+            // mis-parsed as standalone transactions because the FX-header line begins
+            // with a date and the FX-detail line's "14,543.50" gets picked up as the
+            // amount. Strip them BEFORE stitching so they never reach the row builder.
+            // We also capture the FX data so it can be re-attached to the parent
+            // transaction below — we discard the lines, but not the data.
+            final FxStripResult fxStripResult = stripAndCaptureFxAnnotations(fullText);
+            fullText = fxStripResult.getCleanedText();
+            final Map<String, FxAnnotation> fxAnnotationsByAnchor =
+                    fxStripResult.getAnnotationsByAnchor();
+
             // Multi-page transaction stitching: pre-join lines that are
             // obviously continuations of a prior transaction (indented or
             // amount-less, following a dated line) so page boundaries and
@@ -860,6 +1133,10 @@ public class PDFImportService {
                         if (matchedAccountId != null) {
                             transaction.setAccountId(matchedAccountId);
                         }
+                        // Attach FX context captured earlier (Chase EXCHG RATE block →
+                        // original currency, original amount, rate). Match by (date, USD
+                        // amount) so we don't depend on description-string equality.
+                        applyFxAnnotationIfPresent(transaction, fxAnnotationsByAnchor);
                         result.addTransaction(transaction);
                     } else {
                         result.addError(
@@ -2791,7 +3068,7 @@ public class PDFImportService {
      *
      * <p>Drops page footers entirely so they don't break the chain.
      */
-    /* default */ String stitchContinuationLines(final String text) {
+    /* default */ static String stitchContinuationLines(final String text) {
         if (text == null || text.isEmpty()) {
             return text;
         }
@@ -2849,6 +3126,321 @@ public class PDFImportService {
                 || lower.startsWith("total ")
                 || lower.startsWith("subtotal ")
                 || lower.startsWith("available credit");
+    }
+
+    // Chase prints foreign-currency purchases as a 3-line block:
+    //   04/08    THE WESTIN PUNE KOREGA PUNE                                156.72
+    //   04/09    INDIAN RUPEE
+    //            14,543.50 X 0.010775948 (EXCHG RATE)
+    // The 2nd and 3rd lines are NOT separate transactions — they are FX-conversion
+    // detail for the purchase above. PDFBox emits them as standalone lines, and the
+    // 2nd line begins with a date so TXN_START_PATTERN incorrectly treats it as a
+    // new transaction (and the rate's "14,543.50" gets picked up by the rightmost-
+    // amount extractor, producing a $14,543.50 phantom row instead of the real
+    // $156.72 USD charge). These patterns catch the FX detail unambiguously via
+    // "(EXCHG RATE)" — the FX-header date line is then dropped by adjacency.
+    private static final Pattern FX_DETAIL_PATTERN =
+            Pattern.compile(
+                    "^\\s*([\\d,.]+)\\s+X\\s+([\\d.]+)\\s*\\(EXCHG\\s+RATE\\)\\s*$",
+                    Pattern.CASE_INSENSITIVE);
+
+    private static final Pattern FX_HEADER_PATTERN =
+            Pattern.compile("^\\s*\\d{1,2}/\\d{1,2}\\s+([A-Z][A-Z\\s]*[A-Z])\\s*$");
+
+    /**
+     * The "rightmost amount on the parent line" lookup pattern — used to anchor an FX hint
+     * to the USD amount we'll see again when the parser produces a {@link ParsedTransaction}.
+     */
+    private static final Pattern FX_PARENT_TRAILING_AMOUNT =
+            Pattern.compile(
+                    "(-?\\$?\\d{1,9}(?:,\\d{3})*\\.\\d{2})\\s*$");
+
+    private static final Pattern FX_PARENT_LEADING_DATE =
+            Pattern.compile("^\\s*(\\d{1,2})/(\\d{1,2})");
+
+    /**
+     * Map of Chase-issued foreign-currency display names to ISO 4217 codes. We keep this list
+     * narrow on purpose — only the currencies we've observed Chase emit. An unknown display
+     * name falls back to the raw label (e.g. "MOROCCAN DIRHAM") so the data isn't lost; the
+     * caller can later refine the code via a more exhaustive table.
+     */
+    private static final Map<String, String> CURRENCY_DISPLAY_TO_CODE;
+
+    static {
+        final Map<String, String> m = new HashMap<>();
+        m.put("INDIAN RUPEE", "INR");
+        m.put("EURO", "EUR");
+        m.put("BRITISH POUND", "GBP");
+        m.put("POUND STERLING", "GBP");
+        m.put("CANADIAN DOLLAR", "CAD");
+        m.put("JAPANESE YEN", "JPY");
+        m.put("MEXICAN PESO", "MXN");
+        m.put("AUSTRALIAN DOLLAR", "AUD");
+        m.put("CHINESE YUAN", "CNY");
+        m.put("CHINESE RENMINBI", "CNY");
+        m.put("HONG KONG DOLLAR", "HKD");
+        m.put("SINGAPORE DOLLAR", "SGD");
+        m.put("SWISS FRANC", "CHF");
+        m.put("KOREAN WON", "KRW");
+        m.put("NEW TAIWAN DOLLAR", "TWD");
+        m.put("THAI BAHT", "THB");
+        m.put("BRAZILIAN REAL", "BRL");
+        m.put("SOUTH AFRICAN RAND", "ZAR");
+        m.put("UAE DIRHAM", "AED");
+        m.put("SAUDI RIYAL", "SAR");
+        CURRENCY_DISPLAY_TO_CODE = java.util.Collections.unmodifiableMap(m);
+    }
+
+    /**
+     * Per-transaction FX annotation extracted from a Chase-style FX block. Anchored to its
+     * parent transaction via the (date, USD amount) pair — the date comes from the parent
+     * line's leading "MM/DD" token and the amount from the trailing dollar value, which is
+     * the same pair the {@link ParsedTransaction} will carry once the parser builds it.
+     */
+    public static final class FxAnnotation {
+        private final String originalCurrencyCode;
+        private final String originalCurrencyDisplay;
+        private final BigDecimal originalAmount;
+        private final BigDecimal exchangeRate;
+
+        public FxAnnotation(
+                final String originalCurrencyCode,
+                final String originalCurrencyDisplay,
+                final BigDecimal originalAmount,
+                final BigDecimal exchangeRate) {
+            this.originalCurrencyCode = originalCurrencyCode;
+            this.originalCurrencyDisplay = originalCurrencyDisplay;
+            this.originalAmount = originalAmount;
+            this.exchangeRate = exchangeRate;
+        }
+
+        public String getOriginalCurrencyCode() {
+            return originalCurrencyCode;
+        }
+
+        public String getOriginalCurrencyDisplay() {
+            return originalCurrencyDisplay;
+        }
+
+        public BigDecimal getOriginalAmount() {
+            return originalAmount;
+        }
+
+        public BigDecimal getExchangeRate() {
+            return exchangeRate;
+        }
+
+        /**
+         * Human-readable suffix to append to a transaction's description so the FX context
+         * surfaces in the UI without needing dedicated columns. Format: {@code (INR 14,543.50
+         * @ 0.010775948)}.
+         */
+        public String toDescriptionSuffix() {
+            final String code =
+                    originalCurrencyCode != null && !originalCurrencyCode.isBlank()
+                            ? originalCurrencyCode
+                            : originalCurrencyDisplay;
+            return "(" + code + " " + originalAmount.toPlainString() + " @ "
+                    + exchangeRate.toPlainString() + ")";
+        }
+    }
+
+    /** Return value of {@link #stripAndCaptureFxAnnotations(String)}. */
+    public static final class FxStripResult {
+        private final String cleanedText;
+        private final Map<String, FxAnnotation> annotationsByAnchor;
+
+        public FxStripResult(
+                final String cleanedText,
+                final Map<String, FxAnnotation> annotationsByAnchor) {
+            this.cleanedText = cleanedText;
+            this.annotationsByAnchor = annotationsByAnchor;
+        }
+
+        public String getCleanedText() {
+            return cleanedText;
+        }
+
+        /**
+         * Map keyed by {@code "MM-DD|amount"} (e.g. {@code "04-08|156.72"}) so callers can
+         * look up the FX context after the parser produces a transaction with the same date
+         * and amount.
+         */
+        public Map<String, FxAnnotation> getAnnotationsByAnchor() {
+            return annotationsByAnchor;
+        }
+    }
+
+    /**
+     * Drop foreign-currency conversion annotation lines (Chase-style: "INDIAN RUPEE NNN.NN X
+     * 0.NNNNN (EXCHG RATE)") so they don't get parsed as standalone transactions. Runs before
+     * {@link #stitchContinuationLines(String)} so by the time stitching sees the text the FX
+     * pair is already gone, and the parent USD purchase line stays a clean single-line row.
+     *
+     * <p>Heuristic: when a line matches the "EXCHG RATE" detail pattern, drop that line AND
+     * the immediately-preceding line if it looks like the FX header (date + all-caps currency
+     * name). The pair-detection (rather than dropping any all-caps-after-date line) keeps the
+     * filter safe for normal lowercase merchant lines.
+     */
+    /* default */ static String stripFxAnnotations(final String text) {
+        return stripAndCaptureFxAnnotations(text).getCleanedText();
+    }
+
+    /**
+     * Same as {@link #stripFxAnnotations(String)} but additionally captures the original FX
+     * data (currency, amount, rate) keyed by the parent transaction's (date, USD amount) so
+     * downstream code can enrich the matching {@link ParsedTransaction}. This is how we
+     * preserve the FX context that the strip pass would otherwise discard.
+     */
+    /* default */ static FxStripResult stripAndCaptureFxAnnotations(final String text) {
+        final Map<String, FxAnnotation> annotations = new java.util.LinkedHashMap<>();
+        if (text == null) {
+            return new FxStripResult(null, annotations);
+        }
+        if (text.isEmpty()) {
+            return new FxStripResult("", annotations);
+        }
+        final String[] lines = text.split("\\r?\\n");
+        final List<String> out = new ArrayList<>(lines.length);
+        for (final String line : lines) {
+            if (line == null) {
+                continue;
+            }
+            final Matcher detail = FX_DETAIL_PATTERN.matcher(line);
+            if (detail.find()) {
+                // Pull original amount + rate from the detail line. Tolerate the comma
+                // thousands separator that Chase always uses.
+                final BigDecimal origAmount;
+                final BigDecimal exchangeRate;
+                try {
+                    origAmount = new BigDecimal(detail.group(1).replace(",", ""));
+                    exchangeRate = new BigDecimal(detail.group(2));
+                } catch (NumberFormatException nfe) {
+                    // Fall through to header strip + line drop without recording an anchor.
+                    if (!out.isEmpty()
+                            && FX_HEADER_PATTERN.matcher(out.get(out.size() - 1)).find()) {
+                        out.remove(out.size() - 1);
+                    }
+                    continue;
+                }
+
+                // Pull the currency display name from the preceding FX header line (if any)
+                // and drop that line so it doesn't get parsed as a separate transaction.
+                String currencyDisplay = null;
+                if (!out.isEmpty()) {
+                    final Matcher header =
+                            FX_HEADER_PATTERN.matcher(out.get(out.size() - 1));
+                    if (header.find()) {
+                        currencyDisplay = header.group(1).trim();
+                        out.remove(out.size() - 1);
+                    }
+                }
+                final String currencyCode =
+                        currencyDisplay != null
+                                ? CURRENCY_DISPLAY_TO_CODE.getOrDefault(
+                                        currencyDisplay.toUpperCase(Locale.ROOT),
+                                        currencyDisplay)
+                                : null;
+
+                // Anchor to the most recent emitted transaction line — that's the parent
+                // USD purchase this FX block describes.
+                final String anchor = parentLineAnchor(out);
+                if (anchor != null) {
+                    annotations.put(
+                            anchor,
+                            new FxAnnotation(
+                                    currencyCode, currencyDisplay, origAmount, exchangeRate));
+                }
+                continue;
+            }
+            out.add(line);
+        }
+        return new FxStripResult(String.join("\n", out), annotations);
+    }
+
+    /**
+     * Build the {@code "MM-DD|amount"} anchor for the most recent emitted transaction line
+     * in {@code out}. Returns null if no such line is present.
+     */
+    private static String parentLineAnchor(final List<String> out) {
+        for (int i = out.size() - 1; i >= 0; i--) {
+            final String candidate = out.get(i);
+            final Matcher dateMatch = FX_PARENT_LEADING_DATE.matcher(candidate);
+            if (!dateMatch.find()) {
+                continue;
+            }
+            final Matcher amountMatch = FX_PARENT_TRAILING_AMOUNT.matcher(candidate);
+            if (!amountMatch.find()) {
+                continue;
+            }
+            final String month = dateMatch.group(1);
+            final String day = dateMatch.group(2);
+            // Normalise amount: strip $ and leading +/- (the sign is recovered from the
+            // ParsedTransaction's flowDirection so the anchor doesn't need it).
+            String amt = amountMatch.group(1).replace("$", "");
+            if (amt.startsWith("-") || amt.startsWith("+")) {
+                amt = amt.substring(1);
+            }
+            return String.format(Locale.ROOT, "%s-%s|%s", pad(month), pad(day), amt);
+        }
+        return null;
+    }
+
+    private static String pad(final String s) {
+        return s.length() == 1 ? "0" + s : s;
+    }
+
+    /**
+     * Build the anchor key for a {@link ParsedTransaction} so callers can look up its FX
+     * annotation by date + USD amount. Returns null when either field is missing.
+     */
+    /* default */ static String fxAnchorFor(final ParsedTransaction txn) {
+        if (txn == null || txn.getDate() == null || txn.getAmount() == null) {
+            return null;
+        }
+        return String.format(
+                Locale.ROOT,
+                "%02d-%02d|%s",
+                txn.getDate().getMonthValue(),
+                txn.getDate().getDayOfMonth(),
+                txn.getAmount().abs().toPlainString());
+    }
+
+    /**
+     * Inject the captured FX context onto a parsed transaction (if any) and append a
+     * human-readable suffix to its description so the FX info also surfaces in the UI
+     * without depending on dedicated DB columns. The anchor map is keyed by
+     * "MM-DD|amount" — same shape produced by {@link #fxAnchorFor(ParsedTransaction)}.
+     */
+    /* default */ static void applyFxAnnotationIfPresent(
+            final ParsedTransaction transaction,
+            final Map<String, FxAnnotation> annotationsByAnchor) {
+        if (transaction == null || annotationsByAnchor == null || annotationsByAnchor.isEmpty()) {
+            return;
+        }
+        final String anchor = fxAnchorFor(transaction);
+        if (anchor == null) {
+            return;
+        }
+        final FxAnnotation fx = annotationsByAnchor.get(anchor);
+        if (fx == null) {
+            return;
+        }
+        transaction.setOriginalCurrencyCode(fx.getOriginalCurrencyCode());
+        transaction.setOriginalCurrencyDisplay(fx.getOriginalCurrencyDisplay());
+        transaction.setOriginalAmount(fx.getOriginalAmount());
+        transaction.setExchangeRate(fx.getExchangeRate());
+
+        // Append a readable suffix so UIs that don't yet know about the FX fields still
+        // surface the info. Avoid double-appending if the suffix was already added (e.g.
+        // re-run on the same in-memory transaction).
+        final String suffix = fx.toDescriptionSuffix();
+        final String current = transaction.getDescription();
+        if (current == null || current.isBlank()) {
+            transaction.setDescription(suffix);
+        } else if (!current.contains(suffix)) {
+            transaction.setDescription(current + " " + suffix);
+        }
     }
 
     // -----------------------------------------------------------------------
@@ -6341,6 +6933,59 @@ public class PDFImportService {
             LOGGER.info("✅ [Credit Card Metadata] Extracted reward points: {}", rewardPoints);
         }
 
+        // Statement-summary block: New / Previous balance, Credit Limit, Available Credit,
+        // Past Due. Each one is best-effort — a statement that doesn't print a particular
+        // label leaves that field null on the result.
+        final BigDecimal newBalance = extractNewBalance(lines);
+        if (newBalance != null) {
+            result.setNewBalance(newBalance);
+        }
+        final BigDecimal previousBalance = extractPreviousBalance(lines);
+        if (previousBalance != null) {
+            result.setPreviousBalance(previousBalance);
+        }
+        final BigDecimal creditLimit = extractCreditLimit(lines);
+        if (creditLimit != null) {
+            result.setCreditLimit(creditLimit);
+        }
+        final BigDecimal availableCredit = extractAvailableCredit(lines);
+        if (availableCredit != null) {
+            result.setAvailableCredit(availableCredit);
+        }
+        final BigDecimal pastDueAmount = extractPastDueAmount(lines);
+        if (pastDueAmount != null) {
+            result.setPastDueAmount(pastDueAmount);
+        }
+
+        // Section totals — used to validate that the sum of imported transactions matches
+        // the statement's own subtotals (catches dropped rows during parsing).
+        result.setPurchasesTotal(extractPurchasesTotal(lines));
+        result.setPaymentsAndCreditsTotal(extractPaymentsAndCreditsTotal(lines));
+        result.setCashAdvancesTotal(extractCashAdvancesTotal(lines));
+        result.setBalanceTransfersTotal(extractBalanceTransfersTotal(lines));
+        result.setFeesChargedTotal(extractFeesChargedTotal(lines));
+        result.setInterestChargedTotal(extractInterestChargedTotal(lines));
+
+        // APR disclosure block.
+        result.setPurchaseApr(extractPurchaseApr(lines));
+        result.setCashAdvanceApr(extractCashAdvanceApr(lines));
+        result.setBalanceTransferApr(extractBalanceTransferApr(lines));
+        result.setPenaltyApr(extractPenaltyApr(lines));
+
+        // Annual fee — single sentence with both amount and date.
+        final Object[] feeBlock =
+                extractAnnualMembershipFeeAndDate(lines, inferredYear, isUSLocale);
+        if (feeBlock != null) {
+            result.setAnnualMembershipFee((BigDecimal) feeBlock[0]);
+            result.setAnnualMembershipFeeDueDate((LocalDate) feeBlock[1]);
+        }
+
+        // Cash advance sub-limits + billing days + statement date.
+        result.setCashAccessLine(extractCashAccessLine(lines));
+        result.setAvailableForCash(extractAvailableForCash(lines));
+        result.setBillingDays(extractBillingDays(lines));
+        result.setStatementDate(extractStatementDate(lines, inferredYear, isUSLocale));
+
         // Log summary
         LOGGER.info(
                 "📊 [Credit Card Metadata] Extraction summary - paymentDueDate: {}, minimumPaymentDue: {}, rewardPoints: {}",
@@ -6448,6 +7093,361 @@ public class PDFImportService {
             }
         }
 
+        return null;
+    }
+
+    /**
+     * Generic single-amount extractor: returns the first amount on a line that matches any of
+     * the supplied label phrases. Lets the balance/credit-limit/etc. extractors stay
+     * one-liner declarations of just the labels each one cares about.
+     *
+     * <p>The label regexes accept arbitrary whitespace between words ({@code minimum\\s+payment})
+     * but require the label to come BEFORE the amount on the same line — Chase emits all of
+     * these as "Label $amount" pairs on single lines.
+     */
+    private static BigDecimal extractLabeledAmount(
+            final String[] lines, final Pattern[] labelPatterns, final boolean allowZero) {
+        for (final String line : lines) {
+            if (line == null || line.isBlank()) {
+                continue;
+            }
+            final String normalizedLine = line.trim();
+            for (final Pattern pattern : labelPatterns) {
+                final Matcher matcher = pattern.matcher(normalizedLine);
+                if (matcher.find()) {
+                    String amountStr = null;
+                    if (matcher.group(1) != null) {
+                        amountStr = matcher.group(1).replaceAll("[()$\\s]", "").trim();
+                    } else if (matcher.group(2) != null) {
+                        amountStr = matcher.group(2).replaceAll("[$\\s]", "").trim();
+                    } else if (matcher.group(3) != null) {
+                        amountStr = matcher.group(3).replaceAll("[$\\s]", "").trim();
+                    }
+                    if (amountStr != null) {
+                        final BigDecimal amt = staticParseAmount(amountStr);
+                        if (amt != null && (allowZero || amt.compareTo(BigDecimal.ZERO) != 0)) {
+                            return amt;
+                        }
+                    }
+                }
+            }
+        }
+        return null;
+    }
+
+    /** Static counterpart to {@link #parseAmount(String)} usable from static helpers above. */
+    private static BigDecimal staticParseAmount(final String amountString) {
+        if (amountString == null || amountString.isBlank()) {
+            return null;
+        }
+        try {
+            final String cleaned =
+                    amountString.replaceAll("[$,\\s]", "").replace("(", "-").replace(")", "");
+            return new BigDecimal(cleaned);
+        } catch (NumberFormatException e) {
+            return null;
+        }
+    }
+
+    private static final Pattern[] NEW_BALANCE_LABELS = {
+        Pattern.compile("(?i)\\bnew\\s+balance[\\s:]+" + US_AMOUNT_PATTERN_STR),
+        Pattern.compile("(?i)\\bstatement\\s+balance[\\s:]+" + US_AMOUNT_PATTERN_STR),
+        Pattern.compile("(?i)\\bcurrent\\s+balance[\\s:]+" + US_AMOUNT_PATTERN_STR),
+    };
+
+    /** Statement-summary "New Balance" — the total owed on this statement. */
+    /* default */ static BigDecimal extractNewBalance(final String[] lines) {
+        // Chase prints "New Balance $403.87" — always positive, never zero on an active card.
+        // Allow zero for paid-off statements.
+        return extractLabeledAmount(lines, NEW_BALANCE_LABELS, true);
+    }
+
+    private static final Pattern[] PREVIOUS_BALANCE_LABELS = {
+        Pattern.compile("(?i)\\bprevious\\s+balance[\\s:]+" + US_AMOUNT_PATTERN_STR),
+        Pattern.compile("(?i)\\bprior\\s+balance[\\s:]+" + US_AMOUNT_PATTERN_STR),
+        Pattern.compile("(?i)\\blast\\s+statement\\s+balance[\\s:]+" + US_AMOUNT_PATTERN_STR),
+    };
+
+    /** Statement-summary "Previous Balance" — the balance carried into this cycle. */
+    /* default */ static BigDecimal extractPreviousBalance(final String[] lines) {
+        return extractLabeledAmount(lines, PREVIOUS_BALANCE_LABELS, true);
+    }
+
+    private static final Pattern[] CREDIT_LIMIT_LABELS = {
+        // Chase labels this "Credit Access Line"; mainstream cards use "Credit Limit"; some
+        // statements use "Total Credit Limit".
+        Pattern.compile("(?i)\\bcredit\\s+access\\s+line[\\s:]+" + US_AMOUNT_PATTERN_STR),
+        Pattern.compile("(?i)\\btotal\\s+credit\\s+limit[\\s:]+" + US_AMOUNT_PATTERN_STR),
+        Pattern.compile("(?i)\\bcredit\\s+limit[\\s:]+" + US_AMOUNT_PATTERN_STR),
+    };
+
+    /** Statement-summary "Credit Limit" / Chase "Credit Access Line". */
+    /* default */ static BigDecimal extractCreditLimit(final String[] lines) {
+        return extractLabeledAmount(lines, CREDIT_LIMIT_LABELS, false);
+    }
+
+    private static final Pattern[] AVAILABLE_CREDIT_LABELS = {
+        Pattern.compile("(?i)\\bavailable\\s+credit[\\s:]+" + US_AMOUNT_PATTERN_STR),
+        Pattern.compile("(?i)\\bcredit\\s+available[\\s:]+" + US_AMOUNT_PATTERN_STR),
+    };
+
+    /** Statement-summary "Available Credit" — credit limit minus current balance. */
+    /* default */ static BigDecimal extractAvailableCredit(final String[] lines) {
+        return extractLabeledAmount(lines, AVAILABLE_CREDIT_LABELS, true);
+    }
+
+    private static final Pattern[] PAST_DUE_LABELS = {
+        Pattern.compile("(?i)\\bpast\\s+due\\s+amount[\\s:]+" + US_AMOUNT_PATTERN_STR),
+        Pattern.compile("(?i)\\bamount\\s+past\\s+due[\\s:]+" + US_AMOUNT_PATTERN_STR),
+        Pattern.compile("(?i)\\bpast\\s+due[\\s:]+" + US_AMOUNT_PATTERN_STR),
+    };
+
+    /** Statement-summary "Past Due Amount" — non-zero means the user is delinquent. */
+    /* default */ static BigDecimal extractPastDueAmount(final String[] lines) {
+        return extractLabeledAmount(lines, PAST_DUE_LABELS, true);
+    }
+
+    // ---------- section totals ----------
+
+    private static final Pattern[] PURCHASES_TOTAL_LABELS = {
+        // Chase prints "Purchases +$403.87" — note the literal "+". We don't anchor on the
+        // sign because some issuers omit it. The amount pattern handles both forms.
+        Pattern.compile("(?i)^\\s*purchases[\\s:]+" + US_AMOUNT_PATTERN_STR),
+    };
+
+    /** Statement-section total: Purchases. */
+    /* default */ static BigDecimal extractPurchasesTotal(final String[] lines) {
+        return extractLabeledAmount(lines, PURCHASES_TOTAL_LABELS, true);
+    }
+
+    private static final Pattern[] PAYMENTS_CREDITS_LABELS = {
+        Pattern.compile(
+                "(?i)^\\s*payment(?:s?)\\s*,?\\s*credits[\\s:]+" + US_AMOUNT_PATTERN_STR),
+        Pattern.compile("(?i)^\\s*payments\\s+and\\s+credits[\\s:]+" + US_AMOUNT_PATTERN_STR),
+    };
+
+    /** Statement-section total: Payments + Credits. Always negative for an active card. */
+    /* default */ static BigDecimal extractPaymentsAndCreditsTotal(final String[] lines) {
+        return extractLabeledAmount(lines, PAYMENTS_CREDITS_LABELS, true);
+    }
+
+    private static final Pattern[] CASH_ADVANCES_TOTAL_LABELS = {
+        Pattern.compile("(?i)^\\s*cash\\s+advances[\\s:]+" + US_AMOUNT_PATTERN_STR),
+    };
+
+    /** Statement-section total: Cash Advances. */
+    /* default */ static BigDecimal extractCashAdvancesTotal(final String[] lines) {
+        return extractLabeledAmount(lines, CASH_ADVANCES_TOTAL_LABELS, true);
+    }
+
+    private static final Pattern[] BALANCE_TRANSFERS_TOTAL_LABELS = {
+        Pattern.compile("(?i)^\\s*balance\\s+transfers[\\s:]+" + US_AMOUNT_PATTERN_STR),
+    };
+
+    /** Statement-section total: Balance Transfers. */
+    /* default */ static BigDecimal extractBalanceTransfersTotal(final String[] lines) {
+        return extractLabeledAmount(lines, BALANCE_TRANSFERS_TOTAL_LABELS, true);
+    }
+
+    private static final Pattern[] FEES_CHARGED_LABELS = {
+        Pattern.compile("(?i)^\\s*fees\\s+charged[\\s:]+" + US_AMOUNT_PATTERN_STR),
+        Pattern.compile("(?i)^\\s*total\\s+fees[\\s:]+" + US_AMOUNT_PATTERN_STR),
+    };
+
+    /** Statement-section total: Fees Charged. */
+    /* default */ static BigDecimal extractFeesChargedTotal(final String[] lines) {
+        return extractLabeledAmount(lines, FEES_CHARGED_LABELS, true);
+    }
+
+    private static final Pattern[] INTEREST_CHARGED_LABELS = {
+        Pattern.compile("(?i)^\\s*interest\\s+charged[\\s:]+" + US_AMOUNT_PATTERN_STR),
+        Pattern.compile("(?i)^\\s*total\\s+interest[\\s:]+" + US_AMOUNT_PATTERN_STR),
+    };
+
+    /** Statement-section total: Interest Charged. */
+    /* default */ static BigDecimal extractInterestChargedTotal(final String[] lines) {
+        return extractLabeledAmount(lines, INTEREST_CHARGED_LABELS, true);
+    }
+
+    // ---------- APR rates ----------
+
+    /**
+     * Extract a percent rate keyed by label. Chase rows look like
+     * "Purchases 19.49%(v)(d)" or "Cash Advances 28.49%(v)(d)" — the rate is the first
+     * percent value on a line whose label matches. Returns null when nothing matches.
+     */
+    private static BigDecimal extractLabeledPercent(
+            final String[] lines, final Pattern labelPattern) {
+        for (final String line : lines) {
+            if (line == null || line.isBlank()) {
+                continue;
+            }
+            final Matcher m = labelPattern.matcher(line.trim());
+            if (m.find()) {
+                try {
+                    return new BigDecimal(m.group(1));
+                } catch (NumberFormatException nfe) {
+                    // continue looking
+                }
+            }
+        }
+        return null;
+    }
+
+    private static final Pattern PURCHASE_APR_PATTERN =
+            Pattern.compile(
+                    "(?i)^\\s*purchases?\\s+(\\d{1,2}\\.\\d{1,4})\\s*%",
+                    Pattern.CASE_INSENSITIVE);
+    private static final Pattern CASH_APR_PATTERN =
+            Pattern.compile(
+                    "(?i)^\\s*cash\\s+advances?\\s+(\\d{1,2}\\.\\d{1,4})\\s*%");
+    private static final Pattern BT_APR_PATTERN =
+            Pattern.compile(
+                    "(?i)^\\s*balance\\s+transfers?\\s+(\\d{1,2}\\.\\d{1,4})\\s*%");
+    private static final Pattern PENALTY_APR_PATTERN =
+            Pattern.compile(
+                    "(?i)penalty\\s+apr\\s+of\\s+(\\d{1,2}\\.\\d{1,4})\\s*%");
+
+    /** Variable purchase APR (e.g. 19.49). Null when the disclosure block is missing. */
+    /* default */ static BigDecimal extractPurchaseApr(final String[] lines) {
+        return extractLabeledPercent(lines, PURCHASE_APR_PATTERN);
+    }
+
+    /** Variable cash-advance APR. Always higher than the purchase APR on Chase cards. */
+    /* default */ static BigDecimal extractCashAdvanceApr(final String[] lines) {
+        return extractLabeledPercent(lines, CASH_APR_PATTERN);
+    }
+
+    /** Variable balance-transfer APR. */
+    /* default */ static BigDecimal extractBalanceTransferApr(final String[] lines) {
+        return extractLabeledPercent(lines, BT_APR_PATTERN);
+    }
+
+    /** Penalty APR (kicks in after a missed payment). */
+    /* default */ static BigDecimal extractPenaltyApr(final String[] lines) {
+        return extractLabeledPercent(lines, PENALTY_APR_PATTERN);
+    }
+
+    // ---------- annual membership fee + billing date ----------
+
+    private static final Pattern ANNUAL_FEE_PATTERN =
+            Pattern.compile(
+                    "(?i)annual\\s+membership\\s+fee[^$]*\\$([\\d]+(?:,\\d{3})*(?:\\.\\d{1,2})?)"
+                            + ".*?billed\\s+on\\s+([\\d]{1,2}[/-][\\d]{1,2}[/-][\\d]{2,4})");
+
+    /**
+     * Extract the annual fee amount and its scheduled billing date from the typical Chase
+     * sentence: "Your annual membership fee in the amount of $NN.NN will be billed on
+     * MM/DD/YYYY." Returns a 2-element array {amount, date} or null when missing. The
+     * helper exists because we need both halves and the date format varies per issuer.
+     */
+    /* default */ static Object[] extractAnnualMembershipFeeAndDate(
+            final String[] lines, final Integer inferredYear, final boolean isUSLocale) {
+        // Join across blank lines so the regex can span the sentence even when it
+        // wraps in the PDF text.
+        final String joined = String.join(" ", lines).replaceAll("\\s+", " ");
+        final Matcher m = ANNUAL_FEE_PATTERN.matcher(joined);
+        if (!m.find()) {
+            return null;
+        }
+        final BigDecimal fee = staticParseAmount(m.group(1));
+        final LocalDate date = staticParseAnnualFeeDate(m.group(2), inferredYear, isUSLocale);
+        return new Object[] {fee, date};
+    }
+
+    private static LocalDate staticParseAnnualFeeDate(
+            final String raw, final Integer inferredYear, final boolean isUSLocale) {
+        if (raw == null || raw.isBlank()) {
+            return null;
+        }
+        final List<DateTimeFormatter> formatters =
+                isUSLocale ? DATE_FORMATTERS_US : DATE_FORMATTERS_EUROPEAN;
+        for (final DateTimeFormatter fmt : formatters) {
+            try {
+                return LocalDate.parse(raw.trim(), fmt);
+            } catch (DateTimeParseException ignored) {
+                // try next
+            }
+        }
+        // Fallback for MM/DD or MM/DD/YY when the year is implicit
+        try {
+            final String[] parts = raw.split("[/-]");
+            if (parts.length == 2 && inferredYear != null) {
+                return LocalDate.of(
+                        inferredYear, Integer.parseInt(parts[0]), Integer.parseInt(parts[1]));
+            }
+            if (parts.length == 3) {
+                int y = Integer.parseInt(parts[2]);
+                if (y < 100) {
+                    y += 2000;
+                }
+                return LocalDate.of(y, Integer.parseInt(parts[0]), Integer.parseInt(parts[1]));
+            }
+        } catch (NumberFormatException ignored) {
+            // fall through
+        }
+        return null;
+    }
+
+    // ---------- cash limits + billing days + statement date ----------
+
+    private static final Pattern[] CASH_ACCESS_LINE_LABELS = {
+        Pattern.compile("(?i)^\\s*cash\\s+access\\s+line[\\s:]+" + US_AMOUNT_PATTERN_STR),
+        Pattern.compile("(?i)^\\s*cash\\s+credit\\s+limit[\\s:]+" + US_AMOUNT_PATTERN_STR),
+    };
+
+    /** Statement "Cash Access Line" — the cash-advance sub-limit. */
+    /* default */ static BigDecimal extractCashAccessLine(final String[] lines) {
+        return extractLabeledAmount(lines, CASH_ACCESS_LINE_LABELS, false);
+    }
+
+    private static final Pattern[] AVAILABLE_FOR_CASH_LABELS = {
+        Pattern.compile("(?i)^\\s*available\\s+for\\s+cash[\\s:]+" + US_AMOUNT_PATTERN_STR),
+        Pattern.compile("(?i)^\\s*cash\\s+available[\\s:]+" + US_AMOUNT_PATTERN_STR),
+    };
+
+    /** Statement "Available for Cash" — cash-advance headroom. */
+    /* default */ static BigDecimal extractAvailableForCash(final String[] lines) {
+        return extractLabeledAmount(lines, AVAILABLE_FOR_CASH_LABELS, true);
+    }
+
+    private static final Pattern BILLING_DAYS_PATTERN =
+            Pattern.compile("(?i)\\b(\\d{1,2})\\s+days\\s+in\\s+billing\\s+period\\b");
+
+    /** "31 Days in Billing Period" → 31. */
+    /* default */ static Integer extractBillingDays(final String[] lines) {
+        for (final String line : lines) {
+            if (line == null) {
+                continue;
+            }
+            final Matcher m = BILLING_DAYS_PATTERN.matcher(line);
+            if (m.find()) {
+                try {
+                    return Integer.parseInt(m.group(1));
+                } catch (NumberFormatException ignored) {
+                    return null;
+                }
+            }
+        }
+        return null;
+    }
+
+    private static final Pattern STATEMENT_DATE_PATTERN =
+            Pattern.compile(
+                    "(?i)statement\\s+date[\\s:]+([\\d]{1,2}[/-][\\d]{1,2}[/-][\\d]{2,4})");
+
+    /** Issue date printed in the page header. */
+    /* default */ static LocalDate extractStatementDate(
+            final String[] lines, final Integer inferredYear, final boolean isUSLocale) {
+        for (final String line : lines) {
+            if (line == null) {
+                continue;
+            }
+            final Matcher m = STATEMENT_DATE_PATTERN.matcher(line);
+            if (m.find()) {
+                return staticParseAnnualFeeDate(m.group(1), inferredYear, isUSLocale);
+            }
+        }
         return null;
     }
 
