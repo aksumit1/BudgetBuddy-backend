@@ -105,7 +105,9 @@ class MarriottBonvoyStatementFixtureTest {
                     "Balance Transfers 19.49%(v)(d) - 0 -   - 0 -",
                     "My Chase Loan 19.49%(v)(d) - 0 -   - 0 -",
                     "Your annual membership fee in the amount of $99.00 will be billed on"
-                            + " 07/01/2026. There is a transaction fee for each balance transfer.");
+                            + " 07/01/2026. There is a transaction fee for each balance transfer.",
+                    "There is a foreign transaction fee of 3% of the U.S. dollar amount"
+                            + " of any foreign transaction for some accounts.");
 
     // ---------- FX block: strip + capture ----------
 
@@ -307,6 +309,88 @@ class MarriottBonvoyStatementFixtureTest {
                 PDFImportService.extractStatementDate(lines, 2026, true);
         assertNotNull(statementDate, "Statement date must be extracted from header");
         assertEquals(java.time.LocalDate.of(2026, 6, 17), statementDate);
+    }
+
+    // ---------- foreign transaction fee ----------
+
+    @Test
+    void chaseMarriottBonvoyFixture_extractsForeignTransactionFeePercent() {
+        final String[] lines = STATEMENT_FIXTURE.split("\\n");
+        final BigDecimal fee = PDFImportService.extractForeignTransactionFeePercent(lines);
+        assertNotNull(fee, "Foreign-transaction fee % must be extracted from the disclosure");
+        assertEquals(0, new BigDecimal("3").compareTo(fee));
+    }
+
+    // ---------- false-positive guards (label / sub-label collisions) ----------
+
+    @Test
+    void creditLimit_doesNotMatchPrecedingPhrase_evenWhenAmountIsNonZero() {
+        // Production-grade adversarial: the disclosure line "Balance over the Credit Access
+        // Line $1,500.00" appears BEFORE the real "Credit Access Line $50,000". An older
+        // version of the extractor anchored on \b instead of ^\s* and would have matched
+        // "credit access line" inside the longer disclosure phrase, returning $1,500
+        // instead of the actual credit limit. The fix anchors to ^\s*.
+        final String input =
+                String.join(
+                        "\n",
+                        "Balance over the Credit Access Line $1,500.00",
+                        "Credit Access Line $50,000",
+                        "Available Credit $48,500");
+
+        final BigDecimal creditLimit = PDFImportService.extractCreditLimit(input.split("\\n"));
+        assertEquals(0,
+                new BigDecimal("50000").compareTo(creditLimit),
+                "Credit limit must NOT pick up the embedded label in the disclosure line");
+    }
+
+    @Test
+    void newBalance_doesNotMatchEmbeddedLabelInDisclosure() {
+        // Defense: a disclosure paragraph that mentions "your new balance" must NOT win
+        // over the actual "New Balance $X" row on the statement.
+        final String input =
+                String.join(
+                        "\n",
+                        "If your new balance is more than $50.00 you may opt in to automatic",
+                        "payments.",
+                        "New Balance $750.00");
+
+        final BigDecimal newBalance = PDFImportService.extractNewBalance(input.split("\\n"));
+        assertEquals(0, new BigDecimal("750.00").compareTo(newBalance));
+    }
+
+    @Test
+    void paymentsAndCreditsTotal_preservesNegativeSign_evenInParensFormat() {
+        // Some issuers print negatives as parens: "Payment, Credits ($1,500.00)". The
+        // extractor must NOT silently drop the sign when stripping the parens — that
+        // would falsely show as a positive payment, which inverts net-balance math.
+        final String input = "Payment, Credits ($1,500.00)";
+        final BigDecimal total =
+                PDFImportService.extractPaymentsAndCreditsTotal(new String[] {input});
+        assertNotNull(total);
+        assertEquals(0, new BigDecimal("-1500.00").compareTo(total),
+                "Parens-form must yield a negative — got " + total);
+    }
+
+    @Test
+    void fxDetailPattern_rejectsMalformedRateLines() {
+        // The tightened FX_DETAIL_PATTERN requires a sensibly-shaped rate (e.g. 1.123 or
+        // 0.0107) — pathological inputs like "1.2.3 X 4.5.6" should NOT match. Verify by
+        // feeding such a line; stripAndCaptureFxAnnotations must NOT add an anchor for it.
+        final String input =
+                String.join(
+                        "\n",
+                        "06/03     SYNTHETIC HOTEL X 100.00",
+                        "06/04     SWISS FRANC",
+                        "100.0.0 X 1.0.0 (EXCHG RATE)");
+
+        final PDFImportService.FxStripResult res =
+                PDFImportService.stripAndCaptureFxAnnotations(input);
+        // Garbage rate → no anchor recorded.
+        assertEquals(0, res.getAnnotationsByAnchor().size(),
+                "Malformed rate must not produce an FX anchor");
+        // And the SWISS FRANC header line stays because the detail didn't match.
+        assertTrue(res.getCleanedText().contains("SWISS FRANC"),
+                "Header must survive when paired detail is malformed");
     }
 
     @Test

@@ -306,6 +306,11 @@ public class PDFImportService {
         // as distinct values.
         private LocalDate statementDate;
 
+        // Foreign-transaction fee as a percentage (e.g. 3.0 for "3%"). Chase shows this
+        // in the disclosure prose. Useful for showing users the real cost of an
+        // international purchase BEFORE we even apply the FX rate.
+        private BigDecimal foreignTransactionFeePercent;
+
         /**
          * Statement coverage window, extracted from the header when present (e.g. "Statement
          * period: 03/01/2024 - 03/31/2024"). Previously only the year was extracted for MM/DD
@@ -580,6 +585,14 @@ public class PDFImportService {
 
         public void setStatementDate(final LocalDate v) {
             this.statementDate = v;
+        }
+
+        public BigDecimal getForeignTransactionFeePercent() {
+            return foreignTransactionFeePercent;
+        }
+
+        public void setForeignTransactionFeePercent(final BigDecimal v) {
+            this.foreignTransactionFeePercent = v;
         }
     }
 
@@ -3139,11 +3152,24 @@ public class PDFImportService {
     // amount extractor, producing a $14,543.50 phantom row instead of the real
     // $156.72 USD charge). These patterns catch the FX detail unambiguously via
     // "(EXCHG RATE)" — the FX-header date line is then dropped by adjacency.
+    // FX_DETAIL_PATTERN — tightened from the original `[\d,.]+ X [\d.]+`:
+    //   Amount: 1–12 digits, optional thousands commas, optional 1–4 decimal places.
+    //     Rejects pathological cases like "1.2.3" or ",,,".
+    //   Rate: 0–3 leading digits + decimal + 1–12 fraction digits (Chase prints 9–10).
+    //   The "X" is preserved as case-insensitive (Chase always uppercase).
+    //   The (EXCHG RATE) literal is unchanged — it's the unambiguous marker that drove
+    //   the whole strip strategy in the first place.
     private static final Pattern FX_DETAIL_PATTERN =
             Pattern.compile(
-                    "^\\s*([\\d,.]+)\\s+X\\s+([\\d.]+)\\s*\\(EXCHG\\s+RATE\\)\\s*$",
+                    "^\\s*(\\d{1,12}(?:,\\d{3})*(?:\\.\\d{1,4})?)\\s+X\\s+"
+                            + "(\\d{0,3}\\.\\d{1,12})\\s*\\(EXCHG\\s+RATE\\)\\s*$",
                     Pattern.CASE_INSENSITIVE);
 
+    // FX_HEADER_PATTERN — currency-name half of the Chase FX block. The label is always
+    // ALL-CAPS letters and (multi-word) spaces. We capture the name for the currency-code
+    // lookup; the date prefix is captured implicitly by the leading `\d{1,2}/\d{1,2}`.
+    // The pair-detection in stripAndCaptureFxAnnotations prevents this from eating real
+    // uppercase-merchant rows (it only drops the header when followed by an FX detail).
     private static final Pattern FX_HEADER_PATTERN =
             Pattern.compile("^\\s*\\d{1,2}/\\d{1,2}\\s+([A-Z][A-Z\\s]*[A-Z])\\s*$");
 
@@ -3188,6 +3214,24 @@ public class PDFImportService {
         m.put("SOUTH AFRICAN RAND", "ZAR");
         m.put("UAE DIRHAM", "AED");
         m.put("SAUDI RIYAL", "SAR");
+        m.put("DANISH KRONE", "DKK");
+        m.put("SWEDISH KRONA", "SEK");
+        m.put("NORWEGIAN KRONE", "NOK");
+        m.put("NEW ZEALAND DOLLAR", "NZD");
+        m.put("POLISH ZLOTY", "PLN");
+        m.put("CZECH KORUNA", "CZK");
+        m.put("HUNGARIAN FORINT", "HUF");
+        m.put("RUSSIAN RUBLE", "RUB");
+        m.put("TURKISH LIRA", "TRY");
+        m.put("PHILIPPINE PESO", "PHP");
+        m.put("MALAYSIAN RINGGIT", "MYR");
+        m.put("INDONESIAN RUPIAH", "IDR");
+        m.put("VIETNAMESE DONG", "VND");
+        m.put("ARGENTINE PESO", "ARS");
+        m.put("COLOMBIAN PESO", "COP");
+        m.put("CHILEAN PESO", "CLP");
+        m.put("ISRAELI SHEKEL", "ILS");
+        m.put("EGYPTIAN POUND", "EGP");
         CURRENCY_DISPLAY_TO_CODE = java.util.Collections.unmodifiableMap(m);
     }
 
@@ -6986,6 +7030,9 @@ public class PDFImportService {
         result.setBillingDays(extractBillingDays(lines));
         result.setStatementDate(extractStatementDate(lines, inferredYear, isUSLocale));
 
+        // Foreign transaction fee — disclosure block.
+        result.setForeignTransactionFeePercent(extractForeignTransactionFeePercent(lines));
+
         // Log summary
         LOGGER.info(
                 "📊 [Credit Card Metadata] Extraction summary - paymentDueDate: {}, minimumPaymentDue: {}, rewardPoints: {}",
@@ -7116,11 +7163,16 @@ public class PDFImportService {
                 final Matcher matcher = pattern.matcher(normalizedLine);
                 if (matcher.find()) {
                     String amountStr = null;
+                    // Group 1 = parens form ($1,234.56) — must NOT strip parens before
+                    // staticParseAmount runs, otherwise the negative sign encoded by the
+                    // parens is silently lost. staticParseAmount handles parens→sign.
                     if (matcher.group(1) != null) {
-                        amountStr = matcher.group(1).replaceAll("[()$\\s]", "").trim();
+                        amountStr = matcher.group(1).replaceAll("[$\\s]", "").trim();
                     } else if (matcher.group(2) != null) {
+                        // Signed: -$1,234.56 / +$1,234.56 — keep the leading sign.
                         amountStr = matcher.group(2).replaceAll("[$\\s]", "").trim();
                     } else if (matcher.group(3) != null) {
+                        // Standard $1,234.56 — no sign to preserve.
                         amountStr = matcher.group(3).replaceAll("[$\\s]", "").trim();
                     }
                     if (amountStr != null) {
@@ -7149,10 +7201,16 @@ public class PDFImportService {
         }
     }
 
+    // All balance / credit-limit label patterns anchor to start-of-line (^\s*) — NOT
+    // just \b. The \b form was too permissive: a line like "Balance over the Credit
+    // Access Line $0.00" (Chase prints this BEFORE the actual "Credit Access Line
+    // $25,000" row) would otherwise satisfy \bcredit\s+access\s+line and extract $0.00
+    // as the credit limit. With ^\s*, the regex requires the label to BEGIN the line
+    // — disclosure prose can never collide with the summary block.
     private static final Pattern[] NEW_BALANCE_LABELS = {
-        Pattern.compile("(?i)\\bnew\\s+balance[\\s:]+" + US_AMOUNT_PATTERN_STR),
-        Pattern.compile("(?i)\\bstatement\\s+balance[\\s:]+" + US_AMOUNT_PATTERN_STR),
-        Pattern.compile("(?i)\\bcurrent\\s+balance[\\s:]+" + US_AMOUNT_PATTERN_STR),
+        Pattern.compile("(?i)^\\s*new\\s+balance[\\s:]+" + US_AMOUNT_PATTERN_STR),
+        Pattern.compile("(?i)^\\s*statement\\s+balance[\\s:]+" + US_AMOUNT_PATTERN_STR),
+        Pattern.compile("(?i)^\\s*current\\s+balance[\\s:]+" + US_AMOUNT_PATTERN_STR),
     };
 
     /** Statement-summary "New Balance" — the total owed on this statement. */
@@ -7163,9 +7221,9 @@ public class PDFImportService {
     }
 
     private static final Pattern[] PREVIOUS_BALANCE_LABELS = {
-        Pattern.compile("(?i)\\bprevious\\s+balance[\\s:]+" + US_AMOUNT_PATTERN_STR),
-        Pattern.compile("(?i)\\bprior\\s+balance[\\s:]+" + US_AMOUNT_PATTERN_STR),
-        Pattern.compile("(?i)\\blast\\s+statement\\s+balance[\\s:]+" + US_AMOUNT_PATTERN_STR),
+        Pattern.compile("(?i)^\\s*previous\\s+balance[\\s:]+" + US_AMOUNT_PATTERN_STR),
+        Pattern.compile("(?i)^\\s*prior\\s+balance[\\s:]+" + US_AMOUNT_PATTERN_STR),
+        Pattern.compile("(?i)^\\s*last\\s+statement\\s+balance[\\s:]+" + US_AMOUNT_PATTERN_STR),
     };
 
     /** Statement-summary "Previous Balance" — the balance carried into this cycle. */
@@ -7175,10 +7233,11 @@ public class PDFImportService {
 
     private static final Pattern[] CREDIT_LIMIT_LABELS = {
         // Chase labels this "Credit Access Line"; mainstream cards use "Credit Limit"; some
-        // statements use "Total Credit Limit".
-        Pattern.compile("(?i)\\bcredit\\s+access\\s+line[\\s:]+" + US_AMOUNT_PATTERN_STR),
-        Pattern.compile("(?i)\\btotal\\s+credit\\s+limit[\\s:]+" + US_AMOUNT_PATTERN_STR),
-        Pattern.compile("(?i)\\bcredit\\s+limit[\\s:]+" + US_AMOUNT_PATTERN_STR),
+        // statements use "Total Credit Limit". Order matters: most-specific first so
+        // "Total Credit Limit" doesn't get short-circuited by the generic "Credit Limit".
+        Pattern.compile("(?i)^\\s*credit\\s+access\\s+line[\\s:]+" + US_AMOUNT_PATTERN_STR),
+        Pattern.compile("(?i)^\\s*total\\s+credit\\s+limit[\\s:]+" + US_AMOUNT_PATTERN_STR),
+        Pattern.compile("(?i)^\\s*credit\\s+limit[\\s:]+" + US_AMOUNT_PATTERN_STR),
     };
 
     /** Statement-summary "Credit Limit" / Chase "Credit Access Line". */
@@ -7187,8 +7246,8 @@ public class PDFImportService {
     }
 
     private static final Pattern[] AVAILABLE_CREDIT_LABELS = {
-        Pattern.compile("(?i)\\bavailable\\s+credit[\\s:]+" + US_AMOUNT_PATTERN_STR),
-        Pattern.compile("(?i)\\bcredit\\s+available[\\s:]+" + US_AMOUNT_PATTERN_STR),
+        Pattern.compile("(?i)^\\s*available\\s+credit[\\s:]+" + US_AMOUNT_PATTERN_STR),
+        Pattern.compile("(?i)^\\s*credit\\s+available[\\s:]+" + US_AMOUNT_PATTERN_STR),
     };
 
     /** Statement-summary "Available Credit" — credit limit minus current balance. */
@@ -7197,9 +7256,9 @@ public class PDFImportService {
     }
 
     private static final Pattern[] PAST_DUE_LABELS = {
-        Pattern.compile("(?i)\\bpast\\s+due\\s+amount[\\s:]+" + US_AMOUNT_PATTERN_STR),
-        Pattern.compile("(?i)\\bamount\\s+past\\s+due[\\s:]+" + US_AMOUNT_PATTERN_STR),
-        Pattern.compile("(?i)\\bpast\\s+due[\\s:]+" + US_AMOUNT_PATTERN_STR),
+        Pattern.compile("(?i)^\\s*past\\s+due\\s+amount[\\s:]+" + US_AMOUNT_PATTERN_STR),
+        Pattern.compile("(?i)^\\s*amount\\s+past\\s+due[\\s:]+" + US_AMOUNT_PATTERN_STR),
+        Pattern.compile("(?i)^\\s*past\\s+due[\\s:]+" + US_AMOUNT_PATTERN_STR),
     };
 
     /** Statement-summary "Past Due Amount" — non-zero means the user is delinquent. */
@@ -7449,6 +7508,31 @@ public class PDFImportService {
             }
         }
         return null;
+    }
+
+    /**
+     * Foreign-transaction fee percent. Chase prints this in the disclosure block as
+     * "There is a foreign transaction fee of 3% of the U.S. dollar amount..."; some
+     * issuers use "International Transaction Fee" instead. The line may wrap so we join
+     * across lines before matching.
+     */
+    private static final Pattern FOREIGN_TX_FEE_PATTERN =
+            Pattern.compile(
+                    "(?i)(?:foreign|international)\\s+transaction\\s+fee\\s+of\\s+(\\d{1,2}(?:\\.\\d{1,2})?)\\s*%");
+
+    /* default */ static BigDecimal extractForeignTransactionFeePercent(final String[] lines) {
+        // The sentence often wraps in the PDF text — join with space so the regex can
+        // span breaks. Don't trim individual lines; the regex tolerates whitespace runs.
+        final String joined = String.join(" ", lines).replaceAll("\\s+", " ");
+        final Matcher m = FOREIGN_TX_FEE_PATTERN.matcher(joined);
+        if (!m.find()) {
+            return null;
+        }
+        try {
+            return new BigDecimal(m.group(1));
+        } catch (NumberFormatException nfe) {
+            return null;
+        }
     }
 
     /** Parses an amount string, handling various formats */
