@@ -3901,6 +3901,57 @@ public class CSVImportService {
                                 || safeAccountType.contains(HSA)
                                 || safeAccountType.contains("529"));
 
+        // ========== STEP 0: Credit-card-account payment short-circuit ==========
+        //
+        // When we KNOW the account is a credit card AND the transaction is a
+        // negative-amount AutoPay / payment / e-payment / payment-received,
+        // categorize as PAYMENT regardless of whether the description contains
+        // a recognized issuer name. Pre-fix, isCreditCardPayment (called at
+        // STEP 1d) required BOTH a payment-indicator (AUTOPAY etc.) AND an
+        // issuer name (CHASE / CITI / etc.) in the description. But on an
+        // issuer's own statement the issuer name is implicit, so rows like
+        // "AUTOPAY 999990000012756RAUTOPAY AUTO-PMT" missed isCreditCardPayment
+        // and fell through to other heuristics — yielding inconsistent
+        // categoryPrimary values (sometimes Expense, sometimes Payment) and
+        // surfacing in the UI as "Expense/Payment" for one row and
+        // "Payment/Payment" for another. User-facing fix: on a credit-card
+        // account, a negative-amount payment-shaped row is ALWAYS PAYMENT.
+        final boolean isCreditCardAccount =
+                safeAccountType != null
+                        && (safeAccountType.contains(CREDIT)
+                                || safeAccountType.contains("credit_card")
+                                || safeAccountType.contains("creditcard"));
+        if (isCreditCardAccount
+                && safeAmount != null
+                && safeAmount.compareTo(BigDecimal.ZERO) < 0
+                && safeDescription != null) {
+            final String descLower = safeDescription.toLowerCase(Locale.ROOT);
+            final boolean looksLikePayment =
+                    descLower.contains(AUTOPAY)
+                            || descLower.contains(AUTO_PAY)
+                            || descLower.contains("auto-pmt")
+                            || descLower.contains("auto pmt")
+                            || descLower.contains(E_PAYMENT)
+                            || descLower.contains(EPAYMENT)
+                            || descLower.contains("internet payment")
+                            || descLower.contains("online payment")
+                            || descLower.contains("payment received")
+                            || descLower.contains("payment - thank you")
+                            || descLower.contains("payment thank you")
+                            || descLower.contains("mobile payment")
+                            || descLower.contains("ach payment")
+                            || descLower.contains("electronic payment")
+                            || descLower.contains("et payment");
+            if (looksLikePayment) {
+                LOGGER.debug(
+                        "🏷️ parseCategory: STEP 0 — credit-card account payment "
+                                + "(desc='{}', amount={}) → 'payment'",
+                        safeDescription,
+                        safeAmount);
+                return PAYMENT;
+            }
+        }
+
         // ========== STEP 1: Early Unambiguous Checks (Transaction-Type Independent) ==========
 
         // STEP 1a: Check for zero amount transactions FIRST (before any other checks)

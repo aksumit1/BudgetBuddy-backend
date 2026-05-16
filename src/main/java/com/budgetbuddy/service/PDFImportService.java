@@ -4023,18 +4023,32 @@ public class PDFImportService {
     }
 
     /**
-     * Collapse runs of whitespace and lowercase. The structured-parse path
-     * normalizes the merchant description's internal whitespace ("STARBUCKS
-     * #4936  NEWCASTLE  WA" → "STARBUCKS #4936 NEWCASTLE WA"), but the YAML
-     * registry path preserves the raw PDF spacing. Without normalizing here,
-     * the dedupe key differs by whitespace alone and the merge keeps both
-     * rows for what is the same transaction.
+     * Normalize a description for dedupe comparison across the two parse
+     * passes. Three transformations:
+     *
+     * <ol>
+     *   <li>Strip leading {@code MM/DD} or {@code MM/DD/YY[YY]} date prefix
+     *       — the structured parser separates the date into its own field
+     *       and leaves description clean, but YAML registry's regex captures
+     *       the leading date into the description for some single-line
+     *       layouts (e.g. US Bank "04/15 ET PAYMENT THANK YOU"). Without
+     *       stripping, the dedupe key differs by the date prefix alone.
+     *   <li>Collapse runs of whitespace — structured-parse normalizes
+     *       merchant whitespace to single spaces; YAML preserves the raw
+     *       PDF spacing ("SAFEWAY #1444          BELLEVUE      WA").
+     *   <li>Lowercase + trim — case-insensitive comparison.
+     * </ol>
      */
     private static String normalizeDescriptionForDedupe(final String desc) {
         if (desc == null) {
             return "";
         }
-        return desc.replaceAll("\\s+", " ").trim().toLowerCase(Locale.ROOT);
+        String d = desc;
+        // Strip a leading MM/DD or MM/DD/YY[YY] date prefix (with optional `*`
+        // posting-date marker like Amex prints).
+        d = d.replaceFirst(
+                "^\\s*\\d{1,2}[/-]\\d{1,2}(?:[/-]\\d{2,4})?\\*?\\s+", "");
+        return d.replaceAll("\\s+", " ").trim().toLowerCase(Locale.ROOT);
     }
 
     private static String normalizeAmountForDedupe(final String amount) {
