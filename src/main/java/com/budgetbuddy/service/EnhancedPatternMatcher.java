@@ -130,9 +130,18 @@ public class EnhancedPatternMatcher {
                     // require decimal
                     // This ensures we don't match "11" from "11/09" or "800" from "800-544-0422",
                     // but we do match "1234.56" and "12345678.23"
-                    "(?:\\d{1,9}(?:[,\\s]\\d{3})*|\\d+)\\.\\d{1,2}"
-                    + // Must have decimal: "458.40", "1,234.56", "1234.56", "12345678.23"
-                    ")";
+                    "(?:\\d{1,9}(?:[,\\s]\\d{3})*|\\d+)\\.\\d{1,2}|"
+                    +
+                    // Leading-dot amounts (".40", ".05") with no integer part.
+                    // Apple Card prints foreign-transaction fees this way
+                    // ("FOREIGN TRANSACTION FEE .40"). Without this branch the
+                    // amount-anchored extractor skips the fee line and the
+                    // statement double-counts the parent merchant's amount.
+                    // The surrounding `(?<!\\w)` guard at AMOUNT_PATTERN_COMPILED
+                    // (and the `\\s+` separator in the wrapping line regex)
+                    // keeps this from matching fragments inside dates.
+                    "\\.\\d{2}"
+                    + ")";
 
     // Use word boundaries to prevent matching fragments from phone numbers or account numbers
     // (?<!\\w) ensures match is not preceded by word character, (?!\\w) ensures not followed by
@@ -353,13 +362,15 @@ public class EnhancedPatternMatcher {
                         .max(Comparator.comparingDouble(MatchResult::getConfidence))
                         .orElse(new MatchResult(false, null, 0.0, "none"));
 
-        if (bestMatch.isMatched()) {
-            if (LOGGER.isInfoEnabled()) {
-                LOGGER.info(
-                        "Matched line with pattern '{}' (confidence: {})",
-                        bestMatch.getPatternUsed(),
-                        bestMatch.getConfidence());
-            }
+        if (bestMatch.isMatched() && LOGGER.isDebugEnabled()) {
+            // Per-row INFO log here spammed the audit harness output (hundreds
+            // of lines per parse) with no production value. Dropped to DEBUG so
+            // you can still get the detail with `logging.level.com.budgetbuddy.
+            // service.EnhancedPatternMatcher=DEBUG`.
+            LOGGER.debug(
+                    "Matched line with pattern '{}' (confidence: {})",
+                    bestMatch.getPatternUsed(),
+                    bestMatch.getConfidence());
         }
 
         return bestMatch;

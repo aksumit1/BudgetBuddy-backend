@@ -16,8 +16,15 @@ import java.util.regex.Pattern;
  * (dollars, not points) and uses an annual-certificate redemption model.
  *
  * <p>Owns Citi-specific patterns directly. Cross-issuer patterns inherited via StatementParsingUtilities through the AbstractIssuerProfile delegation.
+ *
+ * @deprecated Migration target — superseded by {@code pdf-templates-v2/citi.yaml}.
+ *     Card detection + statement-period + balance/total extraction are now in v2.
+ *     ThankYou Points multi-line balance + Costco annual cashback certificate
+ *     still require this class. Deletion gated on v2 schema gaining
+ *     {@code points_block} + {@code cashback_certificate} rule types. See
+ *     {@code docs/pdf-import-deprecation-map.md}.
  */
-
+@Deprecated(since = "v2-migration-q1")
 public final class CitiIssuerProfile extends AbstractIssuerProfile {
 
     // Citi-only: bare "Payments -$X" (sign tightly attached to $ — distinguishes from

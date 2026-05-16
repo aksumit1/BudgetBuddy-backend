@@ -1,0 +1,110 @@
+{
+  "_comment": "Grafana dashboard JSON for PDF Import quality. Import via Dashboards → New → Import → paste JSON. Targets Prometheus by default; swap the datasource UID if you use a different one.",
+  "title": "PDF Import — Parser Quality",
+  "uid": "pdf-import-quality",
+  "schemaVersion": 38,
+  "timezone": "",
+  "refresh": "1m",
+  "time": {"from": "now-7d", "to": "now"},
+  "templating": {
+    "list": [
+      {
+        "name": "institution",
+        "label": "Institution",
+        "type": "query",
+        "datasource": {"type": "prometheus"},
+        "query": "label_values(pdf_import_total, institution)",
+        "includeAll": true,
+        "multi": true,
+        "current": {"text": "All", "value": "$__all"}
+      },
+      {
+        "name": "account_type",
+        "label": "Account type",
+        "type": "query",
+        "datasource": {"type": "prometheus"},
+        "query": "label_values(pdf_import_total{institution=~\"$institution\"}, account_type)",
+        "includeAll": true,
+        "multi": true,
+        "current": {"text": "All", "value": "$__all"}
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1, "title": "Reconciliation pass rate (last 24h)",
+      "type": "stat",
+      "gridPos": {"x": 0, "y": 0, "w": 8, "h": 6},
+      "targets": [{
+        "expr": "sum(rate(pdf_import_reconciliation_total{status=\"pass\", institution=~\"$institution\", account_type=~\"$account_type\"}[24h])) / clamp_min(sum(rate(pdf_import_reconciliation_total{status=~\"pass|fail\", institution=~\"$institution\", account_type=~\"$account_type\"}[24h])), 1e-9)",
+        "legendFormat": "pass rate"
+      }],
+      "fieldConfig": {"defaults": {"unit": "percentunit", "min": 0, "max": 1, "thresholds": {"steps": [{"color": "red", "value": 0}, {"color": "yellow", "value": 0.9}, {"color": "green", "value": 0.95}]}}}
+    },
+    {
+      "id": 2, "title": "Imports per minute (success vs error)",
+      "type": "timeseries",
+      "gridPos": {"x": 8, "y": 0, "w": 16, "h": 6},
+      "targets": [
+        {"expr": "sum by (status) (rate(pdf_import_total{institution=~\"$institution\", account_type=~\"$account_type\"}[5m]))", "legendFormat": "{{status}}"}
+      ]
+    },
+    {
+      "id": 3, "title": "Reconciliation pass rate by institution",
+      "type": "timeseries",
+      "gridPos": {"x": 0, "y": 6, "w": 24, "h": 8},
+      "targets": [{
+        "expr": "sum by (institution) (rate(pdf_import_reconciliation_total{status=\"pass\"}[15m])) / clamp_min(sum by (institution) (rate(pdf_import_reconciliation_total{status=~\"pass|fail\"}[15m])), 1e-9)",
+        "legendFormat": "{{institution}}"
+      }],
+      "fieldConfig": {"defaults": {"unit": "percentunit", "min": 0, "max": 1}}
+    },
+    {
+      "id": 4, "title": "Failure reasons (top 10)",
+      "type": "barchart",
+      "gridPos": {"x": 0, "y": 14, "w": 12, "h": 8},
+      "targets": [{
+        "expr": "topk(10, sum by (reason) (rate(pdf_import_failure_reasons_total[1h])))",
+        "legendFormat": "{{reason}}"
+      }]
+    },
+    {
+      "id": 5, "title": "Parse duration p50/p95/p99",
+      "type": "timeseries",
+      "gridPos": {"x": 12, "y": 14, "w": 12, "h": 8},
+      "targets": [
+        {"expr": "histogram_quantile(0.50, sum by (le, institution) (rate(pdf_import_duration_seconds_bucket{institution=~\"$institution\"}[5m])))", "legendFormat": "{{institution}} p50"},
+        {"expr": "histogram_quantile(0.95, sum by (le, institution) (rate(pdf_import_duration_seconds_bucket{institution=~\"$institution\"}[5m])))", "legendFormat": "{{institution}} p95"},
+        {"expr": "histogram_quantile(0.99, sum by (le, institution) (rate(pdf_import_duration_seconds_bucket{institution=~\"$institution\"}[5m])))", "legendFormat": "{{institution}} p99"}
+      ],
+      "fieldConfig": {"defaults": {"unit": "s"}}
+    },
+    {
+      "id": 6, "title": "Transactions per parse (distribution)",
+      "type": "heatmap",
+      "gridPos": {"x": 0, "y": 22, "w": 12, "h": 8},
+      "targets": [{
+        "expr": "sum by (le) (rate(pdf_import_transactions_bucket{institution=~\"$institution\"}[15m]))",
+        "format": "heatmap"
+      }]
+    },
+    {
+      "id": 7, "title": "Reconciliation deltas by bucket",
+      "type": "timeseries",
+      "gridPos": {"x": 12, "y": 22, "w": 12, "h": 8},
+      "targets": [
+        {"expr": "sum by (bucket) (rate(pdf_import_reconciliation_total{status=\"fail\"}[10m]))", "legendFormat": "{{bucket}} failures"},
+        {"expr": "sum by (bucket) (rate(pdf_import_reconciliation_total{status=\"pass\"}[10m]))", "legendFormat": "{{bucket}} passes"}
+      ]
+    }
+  ],
+  "annotations": {
+    "list": [{
+      "name": "Deploys",
+      "datasource": {"type": "prometheus"},
+      "enable": true,
+      "iconColor": "rgba(0, 211, 255, 1)",
+      "expr": "changes(process_start_time_seconds{job=\"budgetbuddy-backend\"}[1m]) > 0"
+    }]
+  }
+}

@@ -142,6 +142,13 @@ public class PDFImportService {
     private final com.budgetbuddy.service.ocr.PdfOcrService pdfOcrService;
     private final com.budgetbuddy.service.pdf.PdfTemplateRegistry pdfTemplateRegistry;
     private final com.budgetbuddy.service.pdf.PdfTemplateMissTracker pdfTemplateMissTracker;
+    private final com.budgetbuddy.service.diagnostics.PdfImportDiagnosticStore diagnosticStore;
+    private final com.budgetbuddy.service.diagnostics.PdfImportDiagnosticBuilder diagnosticBuilder =
+            new com.budgetbuddy.service.diagnostics.PdfImportDiagnosticBuilder();
+    private final com.budgetbuddy.service.diagnostics.PdfImportMetrics importMetrics;
+    private final com.budgetbuddy.service.pdf.v2.PdfTemplateV2Registry pdfTemplateV2Registry;
+    private final com.budgetbuddy.service.pdf.v2.PdfTemplateV2Evaluator pdfTemplateV2Evaluator =
+            new com.budgetbuddy.service.pdf.v2.PdfTemplateV2Evaluator();
 
     // Issuer-profile registry — singleton, built once from the default chain. Detection
     // is stateless so a single instance is safe across threads. Per-request the
@@ -192,7 +199,16 @@ public class PDFImportService {
                     final com.budgetbuddy.service.pdf.PdfTemplateRegistry pdfTemplateRegistry,
             @Autowired(required = false)
                     final com.budgetbuddy.service.pdf.PdfTemplateMissTracker
-                            pdfTemplateMissTracker) {
+                            pdfTemplateMissTracker,
+            @Autowired(required = false)
+                    final com.budgetbuddy.service.diagnostics.PdfImportDiagnosticStore
+                            diagnosticStore,
+            @Autowired(required = false)
+                    final com.budgetbuddy.service.diagnostics.PdfImportMetrics
+                            importMetrics,
+            @Autowired(required = false)
+                    final com.budgetbuddy.service.pdf.v2.PdfTemplateV2Registry
+                            pdfTemplateV2Registry) {
         this.accountDetectionService = accountDetectionService;
         this.importCategoryParser = importCategoryParser;
         this.enhancedPatternMatcher = enhancedPatternMatcher;
@@ -200,6 +216,9 @@ public class PDFImportService {
         this.pdfOcrService = pdfOcrService;
         this.pdfTemplateRegistry = pdfTemplateRegistry;
         this.pdfTemplateMissTracker = pdfTemplateMissTracker;
+        this.diagnosticStore = diagnosticStore;
+        this.importMetrics = importMetrics;
+        this.pdfTemplateV2Registry = pdfTemplateV2Registry;
     }
 
     /**
@@ -217,6 +236,9 @@ public class PDFImportService {
                 importCategoryParser,
                 enhancedPatternMatcher,
                 rewardExtractor,
+                null,
+                null,
+                null,
                 null,
                 null,
                 null);
@@ -1027,6 +1049,28 @@ public class PDFImportService {
             String fileName,
             final String userId,
             final String password) {
+        final long __parseStartNanos = System.nanoTime();
+        try {
+            final ImportResult __result = parsePdfInternal(inputStream, fileName, userId, password);
+            if (importMetrics != null) {
+                importMetrics.recordParse(__result, null,
+                        System.nanoTime() - __parseStartNanos);
+            }
+            return __result;
+        } catch (final RuntimeException __e) {
+            if (importMetrics != null) {
+                importMetrics.recordParse(null, __e,
+                        System.nanoTime() - __parseStartNanos);
+            }
+            throw __e;
+        }
+    }
+
+    private ImportResult parsePdfInternal(
+            final InputStream inputStream,
+            String fileName,
+            final String userId,
+            final String password) {
         final ImportResult result = new ImportResult();
 
         // Read all bytes from input stream
@@ -1208,6 +1252,12 @@ public class PDFImportService {
             // as the transaction amount instead of the USD.
             fullText = stripAmexFxBlocks(fullText);
 
+            // Chase prints FX-fee rows with a parent-reference continuation that
+            // restates the parent purchase's $amount. Strip the parent-ref line so
+            // stitchContinuationLines doesn't glue it onto the fee row (and the
+            // parser pick `$13.46` instead of `.40` as the fee amount).
+            fullText = stripChaseFxFeeParentRef(fullText);
+
             // Multi-page transaction stitching: pre-join lines that are
             // obviously continuations of a prior transaction (indented or
             // amount-less, following a dated line) so page boundaries and
@@ -1388,6 +1438,23 @@ public class PDFImportService {
                 }
             }
 
+            // Year-rollover correction. parseDate blindly grafts `inferredYear`
+            // onto MM/DD rows, which is wrong for credit-card statements that
+            // straddle a year boundary: January 2026's billing cycle is roughly
+            // Dec-09-2025 → Jan-08-2026, and parseDate produces 2026-12-09 for
+            // the December rows. After the result is fully built we have the
+            // real statement end date, so any tx whose date lands AFTER that
+            // boundary was a victim of the year-graft — roll it back one year
+            // so it lands within the billing period.
+            if (result.getStatementEndDate() != null) {
+                final java.time.LocalDate stmtEnd = result.getStatementEndDate();
+                for (final ParsedTransaction tx : result.getTransactions()) {
+                    if (tx.getDate() != null && tx.getDate().isAfter(stmtEnd)) {
+                        tx.setDate(tx.getDate().minusYears(1));
+                    }
+                }
+            }
+
             // Set detected account info in result
             if (detectedAccount != null) {
                 result.setDetectedAccount(detectedAccount);
@@ -1395,13 +1462,20 @@ public class PDFImportService {
             }
 
             // Extract credit card statement metadata (payment due date, minimum payment, reward
-            // points)
+            // points) via the legacy IssuerProfile chain. Runs FIRST so v2 can
+            // override metadata fields for issuers migrated to YAML.
             LOGGER.info(
                     "🔍 [PDF Parse] Starting credit card metadata extraction (inferredYear: {}, isUSLocale: {})",
                     inferredYear,
                     isUSLocale);
             // Use the pre-stitch text — see comment at metadataText definition.
             extractCreditCardMetadata(metadataText, result, inferredYear, isUSLocale);
+
+            // YAML v2 takeover pass. Runs AFTER legacy so it can OVERRIDE the
+            // legacy-set fields for issuers covered by a v2 template. For
+            // un-migrated issuers (Apple Card, BoA, Discover), legacy values
+            // remain in place because v2 has no template for them.
+            applyV2FillMissing(fullText, fileName, result);
             if (LOGGER.isInfoEnabled()) {
                 LOGGER.info(
                         "🔍 [PDF Parse] Completed credit card metadata extraction - paymentDueDate: {}, minimumPaymentDue: {}, rewardPoints: {}",
@@ -1409,6 +1483,23 @@ public class PDFImportService {
                         result.getMinimumPaymentDue(),
                         result.getRewardPoints());
             }
+
+            // Transaction-level math reconciliation. Sum parsed rows by direction
+            // and compare against the issuer-printed section totals. Missing
+            // transactions is the #1 trust-buster of the import pipeline; this
+            // check turns silent under-extraction into a visible warning so the
+            // user knows BEFORE they accept the import that something is off.
+            //
+            // Tolerance is $1 to absorb rounding on issuer subtotals; anything
+            // larger almost always means a row was dropped or counted twice.
+            reconcileTransactionSums(result);
+
+            // Layer 2: capture a redacted diagnostic blob whenever the parse is
+            // "interesting" (reconciliation failed, parse errors exist, etc.).
+            // The builder returns null on clean parses, so storage is bounded
+            // by the actual problem rate. Storage failure is logged WARN inside
+            // the store and never breaks the import.
+            captureDiagnosticIfInteresting(result, pdfBytes, fullText, document.getNumberOfPages());
 
             if (LOGGER.isInfoEnabled()) {
                 LOGGER.info(
@@ -3471,7 +3562,24 @@ public class PDFImportService {
                 // appears later).
             }
 
-            if (pending != null && !looksLikeSectionHeader(trimmed)) {
+
+            // Context-aware section-header check. The cardholder-name
+            // branch of looksLikeSectionHeader only fires when the
+            // pending transaction is structurally complete (already
+            // contains an amount). While a transaction is still
+            // building, an intermediate ALL-CAPS line is a MERCHANT-
+            // CATEGORY tag ("FAST FOOD RESTAURANT", "DIGITAL GOODS
+            // MERCH", "VIDEO RENTAL STORE", etc.), not a section break.
+            // Without this guard the stitch breaks mid-transaction and
+            // the amount line is left orphaned, dropping the row from
+            // the parsed output.
+            final boolean pendingHasAmount =
+                    pending != null && PENDING_HAS_AMOUNT.matcher(pending).find();
+            final boolean isHeader =
+                    looksLikeStructuralSectionHeader(trimmed)
+                            || (pendingHasAmount && looksLikeCardholderName(trimmed));
+
+            if (pending != null && !isHeader) {
                 pending.append(' ').append(trimmed);
                 continue;
             }
@@ -3486,6 +3594,50 @@ public class PDFImportService {
             out.append(pending).append('\n');
         }
         return out.toString();
+    }
+
+    /**
+     * Detects whether {@code pending} contains a recognisable amount
+     * (`$X.XX`, `-$X.XX`, `(X.XX)`). Used by stitchContinuationLines to
+     * decide whether a subsequent ALL-CAPS line is a section break or a
+     * merchant-category continuation tag.
+     */
+    private static final java.util.regex.Pattern PENDING_HAS_AMOUNT =
+            java.util.regex.Pattern.compile(
+                    "[-+]?\\$?-?\\d{1,3}(?:,\\d{3})*\\.\\d{2}"
+                            + "(?:\\s*(?:CR|DR|CREDIT|DEBIT))?"
+                            + "(?:\\s*[⧫\\s]*)?$",
+                    java.util.regex.Pattern.CASE_INSENSITIVE);
+
+    /**
+     * Structural section-header markers (statement period, account
+     * summary, totals, etc.) — the unambiguous ones. Used by the
+     * stitcher unconditionally; the cardholder-name branch is only
+     * applied when {@code pending} has already accumulated an amount.
+     */
+    private static boolean looksLikeStructuralSectionHeader(final String trimmed) {
+        final String lower = trimmed.toLowerCase(Locale.ROOT);
+        return lower.startsWith(STATEMENT_PERIOD)
+                || lower.startsWith(ACCOUNT_SUMMARY)
+                || lower.startsWith(BEGINNING_BALANCE)
+                || lower.startsWith(ENDING_BALANCE)
+                || lower.startsWith("total ")
+                || lower.startsWith("subtotal ")
+                || lower.startsWith("available credit")
+                || "amount".equals(lower)
+                || "fees".equals(lower)
+                || "interest charged".equals(lower)
+                || lower.startsWith("detail continued")
+                || lower.startsWith("detail *indicates")
+                || lower.startsWith("new charges")
+                || lower.startsWith("credits amount")
+                || lower.startsWith("payments amount")
+                || lower.startsWith("fees amount")
+                || lower.startsWith("new charges amount")
+                || "summary".equals(lower)
+                || lower.contains("account ending ")
+                || lower.contains("card ending ")
+                || lower.contains("closing date ");
     }
 
     private static boolean looksLikeSectionHeader(final String trimmed) {
@@ -3519,8 +3671,188 @@ public class PDFImportService {
                 // — the "Account Ending" phrase reliably marks a per-page header.
                 || lower.contains("account ending ")
                 || lower.contains("card ending ")
-                || lower.contains("closing date ");
+                || lower.contains("closing date ")
+                // Cardholder-name lines printed between transaction sections
+                // on Citi Costco / Amex statements ("AGARWAL S KUMAR",
+                // "GARIMA AGARWAL"). Without this guard the name gets glued
+                // onto the preceding payment row, breaking the amount-
+                // anchored regex and dropping the payment from the row set.
+                || looksLikeCardholderName(trimmed);
     }
+
+    /**
+     * Cardholder-name detector for the stitcher. Accepts 2-4 ALL-CAPS
+     * tokens (e.g. "GARIMA AGARWAL", "AGARWAL S KUMAR", "GARIMA DIPTI
+     * AGARWAL") with each long token ≥4 letters, BUT explicitly rejects
+     * 2-word non-name phrases that commonly appear as transaction
+     * continuation lines: "GIFT CARD", "AIR INDIA", "JET BLUE",
+     * "PASSENGER TICKET", "TICKET NUMBER" etc. Those would otherwise
+     * masquerade as section headers and break the multi-line stitch of
+     * the underlying transaction.
+     *
+     * <p>The blacklist is intentional and finite — adding more business
+     * 2-word phrases is a one-line change in {@link #NON_NAME_TOKENS_2W}.
+     */
+    static boolean looksLikeCardholderName(final String trimmed) {
+        if (!CARDHOLDER_NAME_PATTERN.matcher(trimmed).matches()) {
+            return false;
+        }
+        // Apply 2-token blacklist BEFORE accepting.
+        final String[] tokens = trimmed.split("\\s+");
+        if (tokens.length == 2) {
+            final String norm = trimmed.toUpperCase(Locale.ROOT);
+            if (NON_NAME_TOKENS_2W.contains(norm)) {
+                return false;
+            }
+            // Common business-token first words ("AIR", "JET", "ROYAL",
+            // "GIFT", "TICKET", "PASSENGER") universally indicate non-name.
+            for (final String prefix : NON_NAME_FIRST_TOKENS) {
+                if (tokens[0].equals(prefix)) {
+                    return false;
+                }
+            }
+        }
+        // 3+ tokens: phrases like "FAST FOOD RESTAURANT", "VIDEO RENTAL STORE",
+        // "MISC SPECIALTY RETAIL" all match `CAPS CAPS CAPS` so the regex above
+        // passes them. They're Amex category-descriptor lines printed beneath a
+        // single-line transaction (not a cardholder header). Before this guard
+        // they false-positived as section headers, which caused the stitcher to
+        // flush the in-progress transaction BEFORE the amount line on the next
+        // row, dropping every STARBUCKS / VIDEO-RENTAL / FOOD-category row from
+        // the Amex Platinum 1-21002 statements. Reject if any token is a known
+        // retail-category word — real cardholder names virtually never overlap.
+        for (final String tok : tokens) {
+            if (NON_NAME_BUSINESS_TOKENS.contains(tok)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /**
+     * See {@link #looksLikeCardholderName}.
+     */
+    private static final java.util.regex.Pattern CARDHOLDER_NAME_PATTERN =
+            java.util.regex.Pattern.compile(
+                    "^[A-Z]{4,}(?:\\s+[A-Z](?:[A-Z]+)?){1,3}$");
+
+    /** Two-word phrases that look like a cardholder name but are not. */
+    private static final java.util.Set<String> NON_NAME_TOKENS_2W =
+            java.util.Set.of(
+                    "GIFT CARD",
+                    "GIFT SHOP",
+                    "GIFT STORE",
+                    "AIR INDIA",
+                    "JET BLUE",
+                    "JET AIRWAYS",
+                    "VIRGIN ATLANTIC",
+                    "BRITISH AIRWAYS",
+                    "AIR FRANCE",
+                    "AIR CANADA",
+                    "AMERICAN AIRLINES",
+                    "UNITED AIRLINES",
+                    "DELTA AIRLINES",
+                    "SOUTHWEST AIRLINES",
+                    "ROYAL CARIBBEAN",
+                    "ROYAL DUTCH",
+                    "PASSENGER TICKET",
+                    "TICKET NUMBER",
+                    "TICKETING AGENT",
+                    "RENTAL CAR",
+                    "STANDARD PURCHASES",
+                    "CASH ADVANCES",
+                    "BALANCE TRANSFERS",
+                    "FEES CHARGED",
+                    "INTEREST CHARGED",
+                    "NEW CHARGES",
+                    "GRAND TOTAL",
+                    "SUB TOTAL",
+                    "MONTHLY STATEMENT");
+
+    /**
+     * First-token prefixes that universally indicate a business / context
+     * phrase rather than a personal name. If the first word matches and the
+     * whole line is 2 tokens, the line is not a cardholder name.
+     */
+    private static final java.util.Set<String> NON_NAME_FIRST_TOKENS =
+            java.util.Set.of(
+                    "AIR",
+                    "JET",
+                    "ROYAL",
+                    "VIRGIN",
+                    "GIFT",
+                    "TICKET",
+                    "TICKETING",
+                    "PASSENGER",
+                    "STANDARD",
+                    "CASH",
+                    "BALANCE",
+                    "FEES",
+                    "INTEREST",
+                    "TOTAL",
+                    "SUBTOTAL");
+
+    /**
+     * Tokens that, when present anywhere in a 3-4 word ALL-CAPS line, mark it as
+     * a category / industry descriptor rather than a cardholder name. Amex prints
+     * these as a second line under each transaction (e.g. "FAST FOOD RESTAURANT",
+     * "VIDEO RENTAL STORE", "MISC SPECIALTY RETAIL") and they kept getting picked
+     * up by the cardholder regex, prematurely flushing the in-flight stitched
+     * transaction before its amount line arrived from the next column.
+     */
+    private static final java.util.Set<String> NON_NAME_BUSINESS_TOKENS =
+            java.util.Set.of(
+                    "FOOD",
+                    "RESTAURANT",
+                    "RESTAURANTS",
+                    "STORE",
+                    "STORES",
+                    "SHOP",
+                    "SHOPPING",
+                    "RENTAL",
+                    "RENTALS",
+                    "RETAIL",
+                    "VIDEO",
+                    "FAST",
+                    "MISC",
+                    "SPECIALTY",
+                    "MERCHANDISE",
+                    "MARKET",
+                    "MARKETS",
+                    "GROCERY",
+                    "GROCERIES",
+                    "SUPPLY",
+                    "SUPPLIES",
+                    "PRODUCTS",
+                    "SERVICE",
+                    "SERVICES",
+                    "OFFICE",
+                    "MEDICAL",
+                    "DENTAL",
+                    "PHARMACY",
+                    "DRUGSTORE",
+                    "HOTEL",
+                    "HOTELS",
+                    "RESORT",
+                    "RESORTS",
+                    "AIRLINE",
+                    "AIRLINES",
+                    "AIRPORT",
+                    "TRANSIT",
+                    "TRANSPORTATION",
+                    "TRAVEL",
+                    "AUTOMOTIVE",
+                    "AUTO",
+                    "INSURANCE",
+                    "GENERAL",
+                    "BUSINESS",
+                    "WHOLESALE",
+                    "DISCOUNT",
+                    "CATERER",
+                    "BAKERY",
+                    "PIZZA",
+                    "BURGER",
+                    "CAFE");
 
     // Chase prints foreign-currency purchases as a 3-line block:
     //   04/08    THE WESTIN PUNE KOREGA PUNE                                156.72
@@ -3576,7 +3908,13 @@ public class PDFImportService {
                             + "|Singapore\\s+Dollars?"
                             + "|New\\s+Taiwan\\s+Dollars?"
                             + "|British\\s+Pounds?"
-                            + "|Pound\\s+Sterling"
+                            // Both "Pound Sterling" (singular) and "Pounds Sterling"
+                            // (Amex's actual emission) need to match. Without the
+                            // plural form, the FX strip pass leaves the 4.40 +
+                            // "Pounds Sterling" lines in the text, the stitcher
+                            // glues them to the parent, and the parser produces
+                            // a phantom row at the foreign amount.
+                            + "|Pounds?\\s+Sterling"
                             + "|Japanese\\s+Yen"
                             + "|Chinese\\s+(?:Yuan|Renminbi)"
                             + "|Korean\\s+Won"
@@ -3786,6 +4124,47 @@ public class PDFImportService {
      * downstream code can enrich the matching {@link ParsedTransaction}. This is how we
      * preserve the FX context that the strip pass would otherwise discard.
      */
+    // Chase FX-fee block parent-reference line. After PDFBox extracts a Chase
+    // foreign-currency transaction the layout is:
+    //   08/09  TRG HOLDINGS LIMITED LONDON 13.46           ← parent purchase
+    //   08/10  POUND STERLING                              ← FX header (dropped)
+    //          10.00 X 1.346000000 (EXCHG RATE)            ← FX detail (dropped)
+    //   08/10  FOREIGN TRANSACTION FEE .40                 ← FX fee, $0.40
+    //          TRG HOLDINGS LIMITED LONDON $13.46          ← parent-ref ← THIS LINE
+    // The parent-ref line restates the parent purchase merchant + USD amount; it is
+    // NOT a separate transaction. Without removing it, stitchContinuationLines glues
+    // it onto the FX fee row and the parser picks `$13.46` as the fee amount instead
+    // of `.40`. We detect by shape: an UPPERCASE merchant phrase ending in a $-prefixed
+    // amount, immediately following a "FOREIGN TRANSACTION FEE .NN" line.
+    private static final Pattern CHASE_FX_FEE_ROW =
+            Pattern.compile(
+                    "(?i)^\\s*\\d{1,2}/\\d{1,2}\\s+foreign\\s+transaction\\s+fee\\s+"
+                            + "\\.\\d{1,2}\\s*$");
+    private static final Pattern CHASE_FX_PARENT_REF =
+            Pattern.compile(
+                    "^\\s*[A-Z][A-Z0-9\\s\\.\\-/*&,#']+\\$\\d{1,9}(?:,\\d{3})*\\.\\d{2}\\s*$");
+
+    /**
+     * Drop the parent-reference line that follows a Chase FOREIGN TRANSACTION FEE row.
+     * Runs after {@link #stripAndCaptureFxAnnotations} so the FX-header/detail pair is
+     * already gone — what remains is the fee row + the merchant + $amount continuation,
+     * and we strip the latter so it can't be stitched onto the fee row as its amount.
+     */
+    public static String stripChaseFxFeeParentRef(final String text) {
+        if (text == null || text.isEmpty()) return text;
+        final String[] lines = text.split("\\r?\\n", -1);
+        final List<String> out = new ArrayList<>(lines.length);
+        for (int i = 0; i < lines.length; i++) {
+            out.add(lines[i]);
+            if (lines[i] != null && CHASE_FX_FEE_ROW.matcher(lines[i]).matches()
+                    && i + 1 < lines.length && lines[i + 1] != null
+                    && CHASE_FX_PARENT_REF.matcher(lines[i + 1]).matches()) {
+                i++; // skip the parent-reference line
+            }
+        }
+        return String.join("\n", out);
+    }
+
     public static FxStripResult stripAndCaptureFxAnnotations(final String text) {
         final Map<String, FxAnnotation> annotations = new java.util.LinkedHashMap<>();
         if (text == null) {
@@ -3971,26 +4350,127 @@ public class PDFImportService {
         return rows;
     }
 
-    /** Dedupes by (date|description|amount). */
+    /**
+     * Dedupes rows from the two parse passes (structured Pattern 1-7 vs
+     * YAML registry) and from same-pass duplicate matches.
+     *
+     * <p>Primary key: {@code (normalizedDate | normalizedDescription |
+     * normalizedAmount)}. A row from {@code additional} that exactly
+     * matches a row in {@code primary} (or a row already accepted from
+     * {@code additional}) is dropped.
+     *
+     * <p>Secondary collapse: when the primary key doesn't match but the
+     * description+amount are identical and the dates are within 3 days
+     * of each other, treat them as the same transaction. Citi prints
+     * two dates per row (sale + post); Pattern 7 picks the first, YAML
+     * picks the second, so the same physical row produces two
+     * candidates whose primary keys differ by a 1-3 day offset. Without
+     * the window, every two-date Citi row counts twice. The 3-day cap
+     * keeps unrelated same-merchant same-amount transactions
+     * (rideshare to same destination on different weeks) from
+     * collapsing.
+     */
     private List<Map<String, String>> mergeDedupedRows(
             final List<Map<String, String>> primary, final List<Map<String, String>> additional) {
         if (additional == null || additional.isEmpty()) {
             return primary;
         }
         final Set<String> seen = new HashSet<>();
+        // Secondary fingerprint (description|amount) → list of accepted ISO dates.
+        final Map<String, List<String>> dateBucket = new HashMap<>();
         final List<Map<String, String>> merged =
                 new ArrayList<>(primary.size() + additional.size());
         for (final Map<String, String> row : primary) {
             seen.add(dedupeKey(row));
+            indexSecondary(row, dateBucket);
             merged.add(row);
         }
         for (final Map<String, String> row : additional) {
             final String key = dedupeKey(row);
-            if (seen.add(key)) {
-                merged.add(row);
+            if (!seen.add(key)) {
+                continue;
             }
+            // Cross-pass collision check only — compare YAML row against
+            // primary (Pattern 7) rows already in the bucket. Do NOT add
+            // additional rows to the bucket — that would over-collapse
+            // legitimate same-merchant same-amount transactions on
+            // different days within the YAML's own output.
+            if (collidesByDescAmountAndCloseDate(row, dateBucket)) {
+                continue;
+            }
+            merged.add(row);
         }
         return merged;
+    }
+
+    private static void indexSecondary(
+            final Map<String, String> row, final Map<String, List<String>> bucket) {
+        final String fingerprint = secondaryFingerprint(row);
+        if (fingerprint == null) {
+            return;
+        }
+        bucket.computeIfAbsent(fingerprint, k -> new ArrayList<>())
+                .add(normalizeDateForDedupe(String.valueOf(row.getOrDefault(DATE, "")),
+                        inferredYearOf(row)));
+    }
+
+    private static boolean collidesByDescAmountAndCloseDate(
+            final Map<String, String> row, final Map<String, List<String>> bucket) {
+        final String fingerprint = secondaryFingerprint(row);
+        if (fingerprint == null) {
+            return false;
+        }
+        final List<String> existingDates = bucket.get(fingerprint);
+        if (existingDates == null || existingDates.isEmpty()) {
+            return false;
+        }
+        final String rowDate = normalizeDateForDedupe(
+                String.valueOf(row.getOrDefault(DATE, "")), inferredYearOf(row));
+        if (rowDate.isEmpty()) {
+            return false;
+        }
+        for (final String d : existingDates) {
+            if (datesWithin(rowDate, d, 3)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static String secondaryFingerprint(final Map<String, String> row) {
+        final String desc =
+                normalizeDescriptionForDedupe(String.valueOf(row.getOrDefault(DESCRIPTION, "")));
+        final String amt =
+                normalizeAmountForDedupe(String.valueOf(row.getOrDefault(AMOUNT, "")));
+        if (desc.isEmpty() || amt.isEmpty()) {
+            return null;
+        }
+        return desc + "|" + amt;
+    }
+
+    private static Integer inferredYearOf(final Map<String, String> row) {
+        final Object y = row.get("_inferredYear");
+        if (y == null) {
+            return null;
+        }
+        try {
+            return Integer.valueOf(y.toString().trim());
+        } catch (NumberFormatException ignored) {
+            return null;
+        }
+    }
+
+    private static boolean datesWithin(final String a, final String b, final int days) {
+        if (a == null || b == null || a.isEmpty() || b.isEmpty()) {
+            return false;
+        }
+        try {
+            final java.time.LocalDate da = java.time.LocalDate.parse(a);
+            final java.time.LocalDate db = java.time.LocalDate.parse(b);
+            return Math.abs(java.time.temporal.ChronoUnit.DAYS.between(da, db)) <= days;
+        } catch (java.time.format.DateTimeParseException ignored) {
+            return a.equals(b);
+        }
     }
 
     /**
@@ -4048,6 +4528,39 @@ public class PDFImportService {
         // posting-date marker like Amex prints).
         d = d.replaceFirst(
                 "^\\s*\\d{1,2}[/-]\\d{1,2}(?:[/-]\\d{2,4})?\\*?\\s+", "");
+        // Strip trailing diamond marker — Amex foreign-transaction sentinel
+        // that the YAML path keeps and Pattern 7 strips. Without removing it
+        // here, YAML and Pattern 7 produce different dedupe keys for the
+        // same physical row and we double-count.
+        d = d.replaceAll("[⧫\\s]+$", "");
+        // Strip US phone numbers in any common format. Pattern 7 cuts the
+        // phone line off the description; the YAML path keeps it. Without
+        // this normalisation the keys differ and rows double-count.
+        //   "206-685-1553" / "(206) 685-1553" / "8005928996" / "+1-206-685-1553"
+        d = d.replaceAll(
+                "\\+?\\d?[-.\\s]?\\(?\\d{3}\\)?[-.\\s]?\\d{3}[-.\\s]?\\d{4}\\b",
+                "");
+        // Strip Amex foreign-transaction "X.XX Pounds Sterling" / "X.XX Canadian
+        // Dollars" / "X.XX Indian Rupees" annotations. When a single row holds
+        // both the foreign amount and the USD amount, the extractor produces
+        // two rows: one with amount=foreign (no $), one with amount=USD ($).
+        // Stripping the foreign-currency annotation makes both rows share a
+        // dedupe key so the duplicate collapses to one. Captures the major
+        // ISO-4217 names that Amex prints.
+        d = d.replaceAll(
+                "\\s*\\$?[0-9]+(?:,[0-9]{3})*(?:\\.[0-9]{1,2})?\\s+"
+                        + "(?:pounds\\s+sterling|canadian\\s+dollars?|"
+                        + "australian\\s+dollars?|new\\s+zealand\\s+dollars?|"
+                        + "indian\\s+rupees?|japanese\\s+yen|chinese\\s+yuan|"
+                        + "euros?|euro|swiss\\s+francs?|mexican\\s+pesos?|"
+                        + "south\\s+african\\s+rand|brazilian\\s+real|"
+                        + "singapore\\s+dollars?|hong\\s+kong\\s+dollars?|"
+                        + "thai\\s+baht|emirati\\s+dirham)\\b",
+                "");
+        // Also strip a leading "*" that Amex sometimes prepends to posted
+        // payment rows so " * RETURNED PAYMENT FEE" and "RETURNED PAYMENT FEE"
+        // share a key.
+        d = d.replaceFirst("^\\s*\\*\\s*", "");
         return d.replaceAll("\\s+", " ").trim().toLowerCase(Locale.ROOT);
     }
 
@@ -4627,10 +5140,11 @@ public class PDFImportService {
                         row.put(USER, userStr.trim());
                     } else if (currentUsername != null) {
                         // Apply detected username (either from before header or before this
-                        // transaction)
+                        // transaction). Logged at DEBUG — INFO produced one line per
+                        // transaction in multi-card statements, drowning the audit log.
                         row.put(USER, currentUsername);
-                        if (LOGGER.isInfoEnabled()) {
-                            LOGGER.info(
+                        if (LOGGER.isDebugEnabled()) {
+                            LOGGER.debug(
                                     "Applied detected username '{}' to transaction at line {}",
                                     currentUsername,
                                     i + 1);
@@ -7081,23 +7595,28 @@ public class PDFImportService {
                                 || amountStrUpper.contains("(CR)")
                                 || amountStrUpper.contains("(DR)");
 
-                // Check if this is a Wells Fargo payment pattern
-                final boolean isWellsFargoPayment = isWellsFargoPaymentPattern(description);
+                // Check if this is a known credit-card payment pattern across any
+                // issuer (Wells Fargo, USB, Chase, Citi, Amex, Discover, etc.). All
+                // of these flow funds FROM checking TO the card (reducing balance).
+                // The backend convention for credit-card accounts is: payments are
+                // positive, purchases are negative. The blind .negate() at the
+                // bottom of this block flips the sign assuming every row is a
+                // purchase — which is wrong for payment rows that appear in the
+                // statement with a positive number.
+                final boolean isPaymentRow =
+                        isWellsFargoPaymentPattern(description)
+                                || isGenericCreditCardPaymentPattern(description);
 
                 // Only negate if there's no explicit CR/DR indicator
                 // If CR/DR is present, parseUSAmount already handled the sign correctly
                 if (!hasExplicitCRDR) {
-                    if (isWellsFargoPayment) {
-                        // Wells Fargo payments: Keep positive amounts positive, make negative
-                        // amounts positive
-                        if (amount.compareTo(BigDecimal.ZERO) <= 0) {
-                            if (amount.compareTo(BigDecimal.ZERO) < 0) {
-                                // Negative - negate to make it positive
-                                amount = amount.negate();
-                                // PDF Import: Wells Fargo payment negated to positive
-                            }
-                            // Already positive - keep it positive (don't negate)
-                            // PDF Import: Wells Fargo payment already positive, keeping positive
+                    if (isPaymentRow) {
+                        // Payment row: force amount POSITIVE to match the
+                        // "payment > 0" backend convention regardless of whether
+                        // the statement showed it as positive (most issuers) or
+                        // negative (some Citi layouts).
+                        if (amount.signum() < 0) {
+                            amount = amount.negate();
                         }
                     } else {
                         // Standard credit card reversal: positive expenses become negative,
@@ -7253,6 +7772,57 @@ public class PDFImportService {
      * @param description Transaction description (should be all caps for Wells Fargo)
      * @return true if matches Wells Fargo payment pattern
      */
+    /**
+     * Recognise a credit-card payment row across any issuer (Citi, USB, Chase,
+     * Amex, Discover, BofA, Apple Card, Cap One, etc.). Used to override the
+     * blind credit-card sign reversal for payment rows so they stay positive
+     * in line with the backend convention.
+     *
+     * <p>Patterns covered:
+     * <ul>
+     *   <li>"AUTOPAY ..."             — Citi, Chase, Amex
+     *   <li>"AUTOMATIC PAYMENT - THANK YOU" — Citi, Chase
+     *   <li>"ELECTRONIC PAYMENT - THANK YOU" — Discover, BofA
+     *   <li>"MOBILE PAYMENT - THANK YOU"     — Apple, Capital One
+     *   <li>"ONLINE PAYMENT - THANK YOU"     — generic
+     *   <li>"PAYMENT - THANK YOU"            — generic
+     *   <li>"MTC PAYMENT THANK YOU"          — USB
+     *   <li>"PAYMENT RECEIVED - THANK YOU"  — Discover variant
+     *   <li>"INTERNET PAYMENT"               — BofA legacy
+     *   <li>"PAYMENT-THANKYOU"               — single-word variant
+     * </ul>
+     */
+    private boolean isGenericCreditCardPaymentPattern(final String description) {
+        if (description == null || description.isBlank()) {
+            return false;
+        }
+        final String upper = description.toUpperCase(Locale.ROOT).trim();
+
+        // Disqualify reversals/failures (they're fees, not payments)
+        if (upper.contains("RETURN")
+                || upper.contains("REVERSAL")
+                || upper.contains("REJECTED")
+                || upper.contains("FAILED")
+                || upper.contains("NSF")) {
+            return false;
+        }
+
+        // Strong indicators in priority order
+        return upper.contains("AUTOPAY")
+                || upper.contains("AUTOMATIC PAYMENT")
+                || upper.contains("ELECTRONIC PAYMENT")
+                || upper.contains("MOBILE PAYMENT")
+                || upper.contains("ONLINE PAYMENT")
+                || upper.contains("INTERNET PAYMENT")
+                || upper.contains("MTC PAYMENT")
+                || upper.contains("PAYMENT - THANK YOU")
+                || upper.contains("PAYMENT- THANK YOU")
+                || upper.contains("PAYMENT -THANK YOU")
+                || upper.contains("PAYMENT-THANKYOU")
+                || upper.contains("PAYMENT THANK YOU")
+                || upper.contains("PAYMENT RECEIVED");
+    }
+
     private boolean isWellsFargoPaymentPattern(final String description) {
         if (description == null || description.isBlank()) {
             return false;
@@ -7699,6 +8269,186 @@ public class PDFImportService {
             return cashBackBalance;
         }
         return pointsEarnedThisPeriod;
+    }
+
+    /**
+     * Compare the sum of parsed transactions against the issuer-printed section
+     * totals. Discrepancies almost always mean a row was missed or duplicated.
+     * We emit an info message (non-fatal) so the import still proceeds, but the
+     * UI can surface "we may have missed transactions on this statement" to the
+     * user with the exact deltas. Reconciliation logic:
+     *
+     * <ul>
+     *   <li>expectedDebit = purchases + cashAdvances + balanceTransfers + fees + interest</li>
+     *   <li>parsedDebit   = sum of |amount| for FlowDirection.DEBIT transactions</li>
+     *   <li>expectedCredit = paymentsAndCredits</li>
+     *   <li>parsedCredit   = sum of |amount| for FlowDirection.CREDIT transactions</li>
+     * </ul>
+     *
+     * <p>Skipped when the statement doesn't print any section totals (some
+     * checking-account statements). Tolerance is $1 to absorb rounding noise
+     * from issuer subtotal printing.
+     */
+    private static final BigDecimal RECONCILIATION_TOLERANCE = new BigDecimal("1.00");
+
+    /**
+     * v2 authoritative takeover. When an issuer has a v2 template, v2 OWNS
+     * the metadata fields the template covers. We clear legacy-set values for
+     * those fields first (so wrong values from the GenericFallbackProfile can't
+     * leak through), then run v2 and apply its output.
+     */
+    private void applyV2FillMissing(
+            final String fullText,
+            final String fileName,
+            final ImportResult result) {
+        if (pdfTemplateV2Registry == null || result == null) return;
+        final AccountDetectionService.DetectedAccount a = result.getDetectedAccount();
+        final String institution = a == null ? null : a.getInstitutionName();
+        final com.budgetbuddy.service.pdf.v2.PdfTemplateV2 tpl =
+                pdfTemplateV2Registry.findByInstitution(institution);
+        if (tpl == null) return;
+
+        try {
+            final com.budgetbuddy.service.pdf.v2.PdfTemplateV2Evaluator.CardDetectionResult cdr =
+                    pdfTemplateV2Evaluator.evaluateCardDetection(tpl, fullText, fileName);
+            if (cdr != null && a != null) {
+                if (cdr.lastFour != null) a.setAccountNumber(cdr.lastFour);
+                if (cdr.accountHolder != null) a.setAccountHolderName(cdr.accountHolder);
+            }
+        } catch (final RuntimeException e) {
+            LOGGER.warn("v2 card-detection failed: {}", e.getMessage());
+        }
+
+        final com.budgetbuddy.service.pdf.v2.PdfTemplateV2.MetadataRules mr = tpl.getMetadata();
+        if (mr != null) {
+            if (!mr.getNewBalance().isEmpty()) result.setNewBalance(null);
+            if (!mr.getPreviousBalance().isEmpty()) result.setPreviousBalance(null);
+            if (!mr.getPurchasesTotal().isEmpty()) result.setPurchasesTotal(null);
+            if (!mr.getPaymentsTotal().isEmpty()) result.setPaymentsAndCreditsTotal(null);
+            if (!mr.getFeesTotal().isEmpty()) result.setFeesChargedTotal(null);
+            if (!mr.getInterestTotal().isEmpty()) result.setInterestChargedTotal(null);
+        }
+
+        try {
+            final com.budgetbuddy.service.pdf.v2.PdfTemplateV2Evaluator.MetadataResult m =
+                    pdfTemplateV2Evaluator.evaluateMetadata(tpl, fullText);
+            if (m != null) {
+                if (m.newBalance != null) result.setNewBalance(m.newBalance);
+                if (m.previousBalance != null) result.setPreviousBalance(m.previousBalance);
+                if (m.purchasesTotal != null) result.setPurchasesTotal(m.purchasesTotal);
+                if (m.paymentsAndCreditsTotal != null)
+                    result.setPaymentsAndCreditsTotal(m.paymentsAndCreditsTotal);
+                if (m.feesTotal != null) result.setFeesChargedTotal(m.feesTotal);
+                if (m.interestTotal != null) result.setInterestChargedTotal(m.interestTotal);
+                if (m.statementDate != null) result.setStatementDate(m.statementDate);
+                if (m.statementStart != null) result.setStatementStartDate(m.statementStart);
+                if (m.statementEnd != null) result.setStatementEndDate(m.statementEnd);
+            }
+        } catch (final RuntimeException e) {
+            LOGGER.warn("v2 metadata failed: {}", e.getMessage());
+        }
+    }
+
+    /**
+     * Capture a redacted diagnostic blob for an interesting parse (reconciliation
+     * fail, parse errors, or other anomaly). Wrapped in a try/catch so any failure
+     * here is a logged warning — diagnostics must never break an import.
+     */
+    private void captureDiagnosticIfInteresting(
+            final ImportResult result,
+            final byte[] pdfBytes,
+            final String fullText,
+            final int pageCount) {
+        if (diagnosticStore == null) return;
+        try {
+            final com.budgetbuddy.service.diagnostics.PdfImportDiagnostic diag =
+                    diagnosticBuilder.buildIfInteresting(
+                            result,
+                            pdfBytes,
+                            fullText,
+                            pageCount,
+                            getClass().getPackage().getImplementationVersion(),
+                            /* forceCapture */ false);
+            if (diag != null) {
+                diagnosticStore.store(diag);
+            }
+        } catch (final RuntimeException e) {
+            LOGGER.warn(
+                    "Diagnostic capture failed for PDF import (non-fatal): {}",
+                    e.getMessage());
+        }
+    }
+
+    private void reconcileTransactionSums(final ImportResult result) {
+        if (result == null || result.getTransactions().isEmpty()) return;
+        BigDecimal parsedDebit = BigDecimal.ZERO;
+        BigDecimal parsedCredit = BigDecimal.ZERO;
+        for (final ParsedTransaction t : result.getTransactions()) {
+            final BigDecimal amt = t.getAmount() == null ? BigDecimal.ZERO : t.getAmount().abs();
+            if (t.getFlowDirection() == FlowDirection.CREDIT) {
+                parsedCredit = parsedCredit.add(amt);
+            } else {
+                parsedDebit = parsedDebit.add(amt);
+            }
+        }
+
+        BigDecimal expectedDebit = null;
+        if (result.getPurchasesTotal() != null) {
+            expectedDebit = nzAbs(expectedDebit).add(result.getPurchasesTotal().abs());
+        }
+        if (result.getCashAdvancesTotal() != null) {
+            expectedDebit = nzAbs(expectedDebit).add(result.getCashAdvancesTotal().abs());
+        }
+        if (result.getBalanceTransfersTotal() != null) {
+            expectedDebit = nzAbs(expectedDebit).add(result.getBalanceTransfersTotal().abs());
+        }
+        if (result.getFeesChargedTotal() != null) {
+            expectedDebit = nzAbs(expectedDebit).add(result.getFeesChargedTotal().abs());
+        }
+        if (result.getInterestChargedTotal() != null) {
+            expectedDebit = nzAbs(expectedDebit).add(result.getInterestChargedTotal().abs());
+        }
+        final BigDecimal expectedCredit =
+                result.getPaymentsAndCreditsTotal() == null
+                        ? null
+                        : result.getPaymentsAndCreditsTotal().abs();
+
+        // Debit reconciliation
+        if (expectedDebit != null) {
+            final BigDecimal delta = parsedDebit.subtract(expectedDebit).setScale(2, java.math.RoundingMode.HALF_UP);
+            if (delta.abs().compareTo(RECONCILIATION_TOLERANCE) > 0) {
+                final String msg = String.format(
+                        "Transaction sum mismatch on debits: statement says %s (purchases+fees+interest+advances), parsed sum is %s, delta %s. %s",
+                        expectedDebit.toPlainString(),
+                        parsedDebit.toPlainString(),
+                        delta.toPlainString(),
+                        delta.signum() < 0
+                                ? "Parsed less than expected — likely missing transactions."
+                                : "Parsed more than expected — likely a duplicate row or wrong amount.");
+                result.addInfo(msg);
+                LOGGER.warn("Reconciliation FAIL (debits): {}", msg);
+            }
+        }
+        // Credit reconciliation
+        if (expectedCredit != null) {
+            final BigDecimal delta = parsedCredit.subtract(expectedCredit).setScale(2, java.math.RoundingMode.HALF_UP);
+            if (delta.abs().compareTo(RECONCILIATION_TOLERANCE) > 0) {
+                final String msg = String.format(
+                        "Transaction sum mismatch on payments/credits: statement says %s, parsed sum is %s, delta %s. %s",
+                        expectedCredit.toPlainString(),
+                        parsedCredit.toPlainString(),
+                        delta.toPlainString(),
+                        delta.signum() < 0
+                                ? "Parsed less than expected — likely missing payment / refund."
+                                : "Parsed more than expected — likely a duplicate payment row.");
+                result.addInfo(msg);
+                LOGGER.warn("Reconciliation FAIL (credits): {}", msg);
+            }
+        }
+    }
+
+    private static BigDecimal nzAbs(final BigDecimal v) {
+        return v == null ? BigDecimal.ZERO : v;
     }
 
     private void extractCreditCardMetadata(

@@ -19,8 +19,14 @@ import java.util.regex.Pattern;
  * still carries the pattern as a safety net during the transition). Once all profiles
  * are migrated, the corresponding entries in StatementParsingUtilities can be removed and the
  * generic fallback becomes truly minimal.
+ *
+ * @deprecated Migration target — superseded by {@code pdf-templates-v2/wells-fargo.yaml}.
+ *     Card detection + period + balance/total extraction now in v2. APR table
+ *     + Active Cash $-balance extraction still require this class. Deletion
+ *     gated on v2 schema gaining {@code apr_table} + {@code cashback_balance}
+ *     rule types. See {@code docs/pdf-import-deprecation-map.md}.
  */
-
+@Deprecated(since = "v2-migration-q1")
 public final class WellsFargoIssuerProfile extends AbstractIssuerProfile {
 
     // Wells-only label: "Total Available Credit $16,200". StatementParsingUtilities still

@@ -910,6 +910,79 @@ Resources:
         - Key: ManagedBy
           Value: CloudFormation
 
+  # Merchant Enrichment Cache Table — persistent learning store for
+  # categorisations discovered by external sources (OSM, Wikidata,
+  # Foursquare, …) and the LLM self-review loop. Keyed by
+  # (normalisedMerchant|city|state|country). One row per unique merchant
+  # location. 365-day TTL with DynamoDB auto-eviction.
+  MerchantEnrichmentCacheTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub '${TablePrefix}-MerchantEnrichmentCache'
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: cacheKey
+          AttributeType: S
+      KeySchema:
+        - AttributeName: cacheKey
+          KeyType: HASH
+      TimeToLiveSpecification:
+        AttributeName: ttl
+        Enabled: true
+      # Security: Server-side encryption (KMS - uses AWS managed key if KMSKeyId not provided)
+      SSESpecification:
+        SSEEnabled: true
+        SSEType: KMS
+        KMSMasterKeyId: !If
+          - HasKMSKey
+          - !Ref KMSKeyId
+          - !Ref AWS::NoValue
+      # PITR enabled for Checkov CKV_AWS_28 compliance.
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+      Tags:
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Application
+          Value: BudgetBuddy
+        - Key: ManagedBy
+          Value: CloudFormation
+
+  # Uncategorised Review Items — durable queue for the LLM self-learning
+  # loop. CategoryCascade L0-L8 fall-throughs land here; SelfLearningWorker
+  # drains, calls the LLM suggester, and writes accepted suggestions to
+  # MerchantEnrichmentCache. 7-day TTL auto-evicts stale items.
+  UncategorisedReviewItemsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub '${TablePrefix}-UncategorisedReviewItems'
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: itemId
+          AttributeType: S
+      KeySchema:
+        - AttributeName: itemId
+          KeyType: HASH
+      TimeToLiveSpecification:
+        AttributeName: ttl
+        Enabled: true
+      SSESpecification:
+        SSEEnabled: true
+        SSEType: KMS
+        KMSMasterKeyId: !If
+          - HasKMSKey
+          - !Ref KMSKeyId
+          - !Ref AWS::NoValue
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+      Tags:
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Application
+          Value: BudgetBuddy
+        - Key: ManagedBy
+          Value: CloudFormation
+
   # Household Table (for partner / household sharing)
   # One row per inviter user. GSI on invitee email so the accept-invitation
   # endpoint can look up by email.
@@ -1177,6 +1250,18 @@ Outputs:
     Value: !Ref CustomMerchantMappingsTable
     Export:
       Name: !Sub '${AWS::StackName}-CustomMerchantMappingsTable'
+
+  MerchantEnrichmentCacheTableName:
+    Description: Persistent learning cache for category lookups
+    Value: !Ref MerchantEnrichmentCacheTable
+    Export:
+      Name: !Sub '${AWS::StackName}-MerchantEnrichmentCacheTable'
+
+  UncategorisedReviewItemsTableName:
+    Description: Durable queue for LLM self-review of uncategorised transactions
+    Value: !Ref UncategorisedReviewItemsTable
+    Export:
+      Name: !Sub '${AWS::StackName}-UncategorisedReviewItemsTable'
 
   HouseholdTableName:
     Description: Name of the Household sharing table

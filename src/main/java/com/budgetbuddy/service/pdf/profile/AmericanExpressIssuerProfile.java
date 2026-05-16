@@ -17,8 +17,16 @@ import java.util.regex.Pattern;
  * labels, and Membership Rewards points (Daily Cash on co-brands like Hilton, Delta).
  *
  * <p>Owns Amex-specific patterns directly. Cross-issuer patterns inherited via StatementParsingUtilities through the AbstractIssuerProfile delegation.
+ *
+ * @deprecated Migration target — superseded by {@code pdf-templates-v2/american-express.yaml}.
+ *     Card detection + balance/total extraction now in v2. The stacked
+ *     Account Summary / Account Total label-then-value blocks, Membership
+ *     Rewards multi-line points, and Pay Over Time Limit stacked layout
+ *     still require this class. Deletion gated on v2 schema gaining
+ *     {@code stacked_label_block} + {@code points_block} rule types. See
+ *     {@code docs/pdf-import-deprecation-map.md}.
  */
-
+@Deprecated(since = "v2-migration-q1")
 public final class AmericanExpressIssuerProfile extends AbstractIssuerProfile {
 
     // Amex closing-date header (single-line, no colon variant common):

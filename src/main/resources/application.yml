@@ -315,6 +315,62 @@ app:
       # Android platform application ARN for push notifications
       # Format: arn:aws:sns:region:account-id:app/GCM/application-name
 
+  # ===========================================================================
+  # Category cascade — L0-L9 merchant→category resolution.
+  # See com.budgetbuddy.service.category.CategoryCascade.
+  #
+  # Persistence: MerchantEnrichmentCache DynamoDB table (CFN-provisioned)
+  # holds every learned mapping. Once a merchant is resolved by ANY source,
+  # subsequent imports hit the cache — no external round-trip.
+  #
+  # Self-learning: cascade fall-throughs land in UncategorisedReviewItems
+  # (DynamoDB). SelfLearningWorker drains the queue, asks the LLM
+  # suggester to categorise, and promotes high-confidence results to
+  # MerchantEnrichmentCache so the NEXT import is a cache hit.
+  # ===========================================================================
+  category:
+    # OSM Overpass — free, no key, ~10K/day public quota.
+    overpass:
+      enabled: ${CATEGORY_OVERPASS_ENABLED:true}
+      url: ${CATEGORY_OVERPASS_URL:https://overpass-api.de/api/interpreter}
+      timeout-seconds: ${CATEGORY_OVERPASS_TIMEOUT_SECONDS:5}
+    # OSM Nominatim — free, no key, 1 req/sec policy.
+    nominatim:
+      enabled: ${CATEGORY_NOMINATIM_ENABLED:true}
+      url: ${CATEGORY_NOMINATIM_URL:https://nominatim.openstreetmap.org/search}
+      user-agent: ${CATEGORY_NOMINATIM_USER_AGENT:BudgetBuddy/1.0 (merchant-categorisation; ops@budgetbuddy.app)}
+      timeout-seconds: ${CATEGORY_NOMINATIM_TIMEOUT_SECONDS:5}
+    # Wikidata SPARQL — free, no key, unlimited. Well-known global brands.
+    wikidata:
+      enabled: ${CATEGORY_WIKIDATA_ENABLED:true}
+      url: ${CATEGORY_WIKIDATA_URL:https://query.wikidata.org/sparql}
+      timeout-seconds: ${CATEGORY_WIKIDATA_TIMEOUT_SECONDS:5}
+    # Foursquare — free tier 1K/day, requires API key.
+    foursquare:
+      enabled: ${CATEGORY_FOURSQUARE_ENABLED:false}
+      url: ${CATEGORY_FOURSQUARE_URL:https://api.foursquare.com/v3/places/search}
+      api-key: ${FSQ_API_KEY:}
+      timeout-seconds: ${CATEGORY_FOURSQUARE_TIMEOUT_SECONDS:5}
+    # OpenCorporates — free SIC codes for registered businesses.
+    opencorporates:
+      enabled: ${CATEGORY_OPENCORPORATES_ENABLED:false}
+      url: ${CATEGORY_OPENCORPORATES_URL:https://api.opencorporates.com/v0.4/companies/search}
+      api-token: ${OPENCORPORATES_API_TOKEN:}
+      timeout-seconds: ${CATEGORY_OPENCORPORATES_TIMEOUT_SECONDS:5}
+    # Anthropic LLM suggester (background loop only — never on import path).
+    anthropic:
+      enabled: ${CATEGORY_ANTHROPIC_ENABLED:false}
+      url: ${CATEGORY_ANTHROPIC_URL:https://api.anthropic.com/v1/messages}
+      api-key: ${ANTHROPIC_API_KEY:}
+      model: ${CATEGORY_ANTHROPIC_MODEL:claude-haiku-4-5-20251001}
+      timeout-seconds: ${CATEGORY_ANTHROPIC_TIMEOUT_SECONDS:10}
+    # Background drain of UncategorisedReviewItems → LLM → store promotion.
+    self-learning:
+      enabled: ${CATEGORY_SELF_LEARNING_ENABLED:false}
+      batch-size: ${CATEGORY_SELF_LEARNING_BATCH_SIZE:50}
+      confidence-threshold: ${CATEGORY_SELF_LEARNING_CONFIDENCE_THRESHOLD:0.75}
+      fixed-rate-ms: ${CATEGORY_SELF_LEARNING_FIXED_RATE_MS:60000}
+
 # Actuator Configuration (Minimal - only essential endpoints)
 management:
   endpoints:
@@ -536,4 +592,5 @@ pdf:
     # PathMatchingResourcePatternResolver (single-colon classpath: only
     # resolves single resources, not directory globs).
     resource-pattern: ${PDF_TEMPLATES_RESOURCE:classpath*:pdf-templates/*.yaml}
+
 

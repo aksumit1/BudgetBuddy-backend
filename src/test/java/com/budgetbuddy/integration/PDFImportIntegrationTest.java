@@ -174,8 +174,12 @@ class PDFImportIntegrationTest {
     }
 
     @Test
-    @DisplayName("Should parse PDF with year in statement period")
+    @DisplayName("Should parse PDF with year in statement period (year-rollover)")
     void testPDFImportYearInStatementPeriod() throws Exception {
+        // Statement period is January 2024. A 12/01 transaction in that statement
+        // is a December 2023 charge that posted into the January cycle — the
+        // year-rollover logic in parsePDF must recognize that 12/01 falls AFTER
+        // 01/31/2024 if we naively graft year=2024, and roll back to 2023.
         final String pdfText =
                 """
                         Statement Period: 01/01/2024 - 01/31/2024
@@ -190,8 +194,10 @@ class PDFImportIntegrationTest {
         assertEquals(1, result.getSuccessCount(), "Should parse transaction");
 
         final PDFImportService.ParsedTransaction tx = result.getTransactions().get(0);
-        // Should infer year 2024 from statement period
-        assertEquals(2024, tx.getDate().getYear(), "Should infer year from statement period");
+        assertEquals(2023, tx.getDate().getYear(),
+                "12/01 in a January 2024 statement should resolve to 2023, not 2024");
+        assertEquals(12, tx.getDate().getMonthValue());
+        assertEquals(1, tx.getDate().getDayOfMonth());
     }
 
     @Test

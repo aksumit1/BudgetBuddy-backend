@@ -1,0 +1,116 @@
+# Citi — Double Cash, Costco Anywhere, ThankYou variants
+#
+# Covers 9 statements (5 Double Cash + 4 Costco). Citi's statement layout has a
+# two-column page (transactions on the left, rewards summary on the right) that
+# PDFBox extracts as interleaved lines — so the stitching rules below must
+# match the rewards-prose phrases Citi prints to avoid them being treated as
+# section breaks.
+#
+# Status: unverified
+id: citi-v2
+institution: Citibank
+description: "Citi credit cards (Double Cash, Costco Anywhere, ThankYou)"
+status: unverified
+
+card_detection:
+  institution_match:
+    - any_of:
+        - "(?i)\\bcitibank\\b"
+        - "(?i)\\bciti\\b"
+        - "(?i)citi\\.com"
+        - "(?i)\\bcosto\\s+anywhere\\b"
+        - "(?i)\\bdouble\\s+cash\\b"
+        - "(?i)\\bThankYou\\s+Points\\b"
+
+  last_four:
+    - pattern: "(?i)Account\\s+(?:number|ending)\\s*(?:[#x*\\s-]+)?(\\d{4})\\b"
+      filename_fallback: true
+    - pattern: "(?i)Member\\s+ID[:\\s]+(\\d+)"   # Citi prints a long member ID; tail 4 digits = card
+      filename_fallback: true
+
+  account_holder:
+    - source: above_account_ending
+      lines_above_account: 1-5
+
+metadata:
+  statement_date:
+    - label: "Statement / Closing Date"
+      adjacent: date
+    - label: "Closing Date"
+      adjacent: date
+
+  # Citi prints "Billing Period: 12/05/25 - 01/04/26"
+  statement_period:
+    - pattern: "(?i)billing\\s+period[:\\s]+(\\d{1,2}/\\d{1,2}/\\d{2,4})\\s*[-–]\\s*(\\d{1,2}/\\d{1,2}/\\d{2,4})"
+    - pattern: "(?i)statement\\s+period[:\\s]+(\\d{1,2}/\\d{1,2}/\\d{2,4})\\s*[-–]\\s*(\\d{1,2}/\\d{1,2}/\\d{2,4})"
+
+  # Citi prints Activity Summary as one-row-per-field with optional ± prefix:
+  #   "Payments -$2,039.46"
+  #   "Purchases  +$1,958.02"
+  # We use explicit patterns anchored at start-of-line to avoid matching
+  # rewards-section lines like "1% on all other purchases  +$0.08".
+  new_balance:
+    - pattern: "(?im)^\\s*New\\s+Balance\\s+\\$([\\d,]+\\.\\d{2})"
+    - pattern: "(?i)New\\s+Balance(?:\\s+as\\s+of\\s+\\d{1,2}/\\d{1,2}/\\d{2,4})?\\s+\\$([\\d,]+\\.\\d{2})"
+
+  previous_balance:
+    - pattern: "(?im)^\\s*Previous\\s+Balance\\s+[-+]?\\$([\\d,]+\\.\\d{2})"
+    - pattern: "(?i)Previous\\s+Balance\\s+[-+]?\\$([\\d,]+\\.\\d{2})"
+
+  purchases_total:
+    - pattern: "(?im)^\\s*Purchases\\s+[-+]?\\$([\\d,]+\\.\\d{2})"
+    - pattern: "(?im)^\\s*Standard\\s+Purchases\\s+[-+]?\\$([\\d,]+\\.\\d{2})"
+
+  payments_total:
+    - pattern: "(?im)^\\s*Payments\\s+[-+]?\\$([\\d,]+\\.\\d{2})"
+    - pattern: "(?im)^\\s*Payments,?\\s+Credits(?:\\s+and\\s+Adjustments)?\\s+[-+]?\\$([\\d,]+\\.\\d{2})"
+
+  fees_total:
+    - pattern: "(?im)^\\s*Fees\\s+Charged\\s+[-+]?\\$([\\d,]+\\.\\d{2})"
+
+  interest_total:
+    - pattern: "(?im)^\\s*Interest\\s+Charged\\s+[-+]?\\$([\\d,]+\\.\\d{2})"
+
+preprocessing:
+  stitch:
+    # Citi prints these rewards-prose phrases on the right column. They look
+    # like ALL-CAPS continuation lines, so without listing them as section
+    # headers the stitcher would either glue them onto the previous
+    # transaction OR (worse) treat them as a section break that flushes
+    # the in-progress transaction.
+    section_headers:
+      - "Standard Purchases"
+      - "Payments, Credits and Adjustments"
+      - "Payments, Credits"
+      - "TWO WAYS TO EARN"
+      - "ThankYou Points from Citi"
+      - "ThankYou Points on Purchases"
+      - "ThankYou Points on Payments"
+      - "Earnings This Billing Period"
+      - "Eligible Purchases"
+      - "Eligible Payments"
+      - "PURCHASE TRACKER"
+      - "Bonus from Citi Travel"
+      - "Total ThankYou Points Balance"
+      - "Reward Center Balance"
+      - "Other Bonus"
+      - "Total Earned this Period"
+
+layouts:
+  # Citi two-date row (Double Cash + Costco):
+  #   "12/02 12/03 BELLEVUE SCHOOL DISTRI BELLEVUE WA $5.00"
+  - name: citi-credit-card-two-date
+    accountType: credit
+    lineRegex: '^(?<date>\d{1,2}/\d{1,2})\s+\d{1,2}/\d{1,2}\s+(?<description>.+?)\s+\$?(?<amount>-?\d{1,3}(?:,\d{3})*\.\d{2})\s*$'
+    dateFormat: "M/d"
+    signConvention: credit-positive
+    minAmount: 0.01
+
+  # Costco statements sometimes use a single-date variant in the rewards
+  # section. We accept either form; first-match wins.
+  - name: citi-credit-card-single-date
+    accountType: credit
+    lineRegex: '^(?<date>\d{1,2}/\d{1,2}(?:/\d{2,4})?)\s+(?<description>.+?)\s+\$?(?<amount>-?\d{1,3}(?:,\d{3})*\.\d{2})\s*$'
+    dateFormat: "M/d"
+    signConvention: credit-positive
+    minAmount: 0.01

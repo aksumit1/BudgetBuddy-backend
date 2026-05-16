@@ -1,6 +1,11 @@
 # Citi — credit cards (Double Cash / Custom Cash / Costco / AAdvantage / Premier).
 #
 # Status: VALIDATED — passes citi/credit-card-basic snapshot.
+#
+# Amount tail anchor accepts BOTH "$4,892.61" and "-$4,892.61" forms. Citi
+# emits the negative-then-dollar form on Costco AutoPay rows; without the
+# inner sign branch the regex misses the payment and statement math diverges
+# by the full payment amount. parseAmountFlexible strips the $ later.
 id: citi-v1
 institution: Citi
 description: "Citibank consumer credit cards"
@@ -9,7 +14,7 @@ layouts:
   # Two-date layout FIRST — Citi's common CC layout. Posting-date captured.
   - name: credit-card-two-date
     accountType: credit
-    lineRegex: '^\s*\d{1,2}/\d{1,2}\s+(?<date>\d{1,2}/\d{1,2})\s+(?<description>.+?)\s+\$?(?<amount>-?\d{1,3}(?:,\d{3})*(?:\.\d{2}))\s*$'
+    lineRegex: '^\s*\d{1,2}/\d{1,2}\s+(?<date>\d{1,2}/\d{1,2})\s+(?<description>.+?)\s+(?<amount>-?\$?-?\d{1,3}(?:,\d{3})*(?:\.\d{2}))\s*$'
     dateFormat: "M/d"
     signConvention: credit-positive
     minAmount: 0.01
@@ -18,7 +23,7 @@ layouts:
   # Negative lookahead on date prevents overlap with two-date layout.
   - name: credit-card-with-ref
     accountType: credit
-    lineRegex: '^\s*(?<date>\d{1,2}/\d{1,2})(?!\s+\d{1,2}/\d{1,2})\s+(?<description>.+?)\s+(?:[A-Z0-9]{6,}\s+)?\$?(?<amount>-?\d{1,3}(?:,\d{3})*(?:\.\d{2}))\s*$'
+    lineRegex: '^\s*(?<date>\d{1,2}/\d{1,2})(?!\s+\d{1,2}/\d{1,2})\s+(?<description>.+?)\s+(?:[A-Z0-9]{6,}\s+)?(?<amount>-?\$?-?\d{1,3}(?:,\d{3})*(?:\.\d{2}))\s*$'
     dateFormat: "M/d"
     signConvention: credit-positive
     minAmount: 0.01

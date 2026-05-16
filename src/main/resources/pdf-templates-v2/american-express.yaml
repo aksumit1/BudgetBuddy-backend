@@ -1,0 +1,155 @@
+# American Express — Platinum, Morgan Stanley Platinum, Gold, Blue Cash, etc.
+#
+# Covers 9 statements in the corpus (5 Morgan Stanley Platinum + 4 regular
+# Platinum/Gold). The Amex layout has two flavours:
+#
+#   - Single-line transactions (Morgan Stanley Platinum, FX-marked with ⧫)
+#   - Multi-line three-line transactions (regular Platinum, no ⧫):
+#       date+desc / phone-or-detail / amount
+#
+# The transaction-shape parsing is handled by PDFImportService's Pattern 7 (a
+# stateful multi-line matcher) — not by these YAML layouts. v2 here only
+# expresses the single-line compact rows + the card / metadata extraction.
+#
+# Status: unverified
+id: amex-v2
+institution: American Express
+description: "American Express credit and charge cards"
+status: unverified
+
+card_detection:
+  institution_match:
+    - any_of:
+        - "(?i)americanexpress\\.com"
+        - "(?i)American\\s+Express"
+        - "(?i)\\bAMEX\\b"
+        - "(?i)Make\\s+Check\\s+Payable\\s+to\\s+American\\s+Express"
+        - "(?i)Morgan\\s+Stanley\\s+Platinum"
+
+  # Amex prints account number as "Account Ending 8-41007" (an X-NNNNN form
+  # where the leading single digit is a check digit, not part of the user-
+  # visible last-4). We strip the hyphen and keep the last 4 of the digits.
+  last_four:
+    - pattern: "(?i)account\\s+ending\\s+(?:[\\d-]+)?(\\d{4})\\b"
+      filename_fallback: true
+
+  account_holder:
+    - source: above_account_ending
+      lines_above_account: 1-3
+
+metadata:
+  statement_date:
+    - label: "Closing Date"
+      adjacent: date
+
+  # Amex doesn't use "Opening/Closing Date" — it prints period as separate
+  # statement-date headers per page. Period extraction falls back to the
+  # legacy code path for now (v2 fill-missing only).
+
+  # Amex prints "New Balance $4,138.88" embedded in a long disclosure prose
+  # line (the AutoPay block). We extract via explicit regex because our
+  # label-adjacent rule skips lines >200 chars to avoid false-positive matches
+  # against arbitrary prose.
+  new_balance:
+    - pattern: "(?i)New\\s+Balance\\s+\\$([\\d,]+\\.\\d{2})"
+
+  # Amex statements have three label blocks: Account Summary (Pay-In-Full
+  # subtotal, usually $0 for charge cards), Account Total (real values), and
+  # then per-section "Total X for this Period" lines that print the same
+  # values in summary form. The Total-X lines are the most reliable —
+  # they're explicit, single-occurrence, and PDFBox extracts them as one
+  # physical line with the value(s) inline.
+  # Amex prints the consolidated "Account Total" block as a stacked layout in
+  # PDFBox's default extraction: 6 label lines then 6 value lines. We address
+  # the labels by index. The Pay-In-Full and Pay Over Time blocks above it
+  # share the same label names but each has its own value stack — using
+  # stacked_header anchors us to the right one.
+  # Amex statements come in two flavours:
+  #  (a) CHARGE cards (Platinum, Gold, MS Platinum) — 6-label "Account Total"
+  #      block including "New Cash Advances".
+  #  (b) CREDIT cards (Blue Cash, Blue Business, Delta, Hilton) — 5-label
+  #      "Account Summary" block, no cash-advance row.
+  # We try both stacked rules + the "Total X" inline summary patterns. First
+  # rule that produces a value wins; the rules are ordered most-specific first.
+
+  previous_balance:
+    - stacked_header: "Account Total"
+      stacked_labels: ["Previous Balance", "Payments/Credits", "New Charges", "New Cash Advances", "Fees", "Interest Charged"]
+      stacked_index: 0
+    - stacked_header: "Account Summary"
+      stacked_labels: ["Previous Balance", "Payments/Credits", "New Charges", "Fees", "Interest Charged"]
+      stacked_index: 0
+
+  purchases_total:
+    - stacked_header: "Account Total"
+      stacked_labels: ["Previous Balance", "Payments/Credits", "New Charges", "New Cash Advances", "Fees", "Interest Charged"]
+      stacked_index: 2
+    - stacked_header: "Account Summary"
+      stacked_labels: ["Previous Balance", "Payments/Credits", "New Charges", "Fees", "Interest Charged"]
+      stacked_index: 2
+    - pattern: "(?im)^\\s*Total\\s+New\\s+Charges\\s+\\$([\\d,]+\\.\\d{2})"
+
+  payments_total:
+    - stacked_header: "Account Total"
+      stacked_labels: ["Previous Balance", "Payments/Credits", "New Charges", "New Cash Advances", "Fees", "Interest Charged"]
+      stacked_index: 1
+    - stacked_header: "Account Summary"
+      stacked_labels: ["Previous Balance", "Payments/Credits", "New Charges", "Fees", "Interest Charged"]
+      stacked_index: 1
+    - pattern: "(?im)^\\s*Total\\s+Payments\\s+and\\s+Credits\\s+-?\\$([\\d,]+\\.\\d{2})"
+
+  fees_total:
+    - stacked_header: "Account Total"
+      stacked_labels: ["Previous Balance", "Payments/Credits", "New Charges", "New Cash Advances", "Fees", "Interest Charged"]
+      stacked_index: 4
+    - stacked_header: "Account Summary"
+      stacked_labels: ["Previous Balance", "Payments/Credits", "New Charges", "Fees", "Interest Charged"]
+      stacked_index: 3
+    - pattern: "(?im)^\\s*Total\\s+Fees\\s+for\\s+this\\s+Period\\s+\\$([\\d,]+\\.\\d{2})"
+
+  interest_total:
+    - stacked_header: "Account Total"
+      stacked_labels: ["Previous Balance", "Payments/Credits", "New Charges", "New Cash Advances", "Fees", "Interest Charged"]
+      stacked_index: 5
+    - stacked_header: "Account Summary"
+      stacked_labels: ["Previous Balance", "Payments/Credits", "New Charges", "Fees", "Interest Charged"]
+      stacked_index: 4
+    - pattern: "(?im)^\\s*Total\\s+Interest\\s+Charged\\s+for\\s+this\\s+Period\\s+\\$([\\d,]+\\.\\d{2})"
+
+preprocessing:
+  fx_block_strip:
+    - kind: amex-three-line
+  stitch:
+    end_of_transaction_marker: "⧫"
+    section_headers:
+      - "Detail"
+      - "Detail Continued"
+      - "Account Total"
+      - "Account Summary"
+      - "Pay In Full"
+      - "Pay Over Time"
+      - "New Charges"
+      - "Payments/Credits"
+      - "Fees"
+      - "Interest Charged"
+      - "Total Fees in"
+      - "Total Interest in"
+
+layouts:
+  # Compact single-line (Morgan Stanley Platinum + some MS variants):
+  #   "12/19/25 GOOGLE *YOUTUBE MUSIC G.CO/HELPPAY# CA $18.72 ⧫"
+  - name: amex-compact-single-line
+    accountType: credit
+    lineRegex: '^(?<date>\d{1,2}/\d{1,2}/\d{2,4})\*?\s+(?<description>.+?)\s+\$?(?<amount>-?\d{1,3}(?:,\d{3})*\.\d{2})\s*⧫?\s*$'
+    dateFormat: "M/d/yy"
+    signConvention: credit-positive
+    minAmount: 0.01
+
+  # Amex "Reward Bonus" mid-line +$N.NN with date BEFORE the bonus rows:
+  #   "5% Cashback Bonus +$2.10 10/14 AMZN MKTP US"
+  - name: amex-reward-prefix
+    accountType: credit
+    lineRegex: '^.+?\+\$(?<amount>\d{1,3}(?:,\d{3})*\.\d{2}).*?(?<date>\d{1,2}/\d{1,2}/\d{2,4})\b(?<description>.*)$'
+    dateFormat: "M/d/yy"
+    signConvention: credit-positive
+    minAmount: 0.01

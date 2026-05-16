@@ -1,0 +1,93 @@
+# Merchant catalog — keyword-to-category mappings, loaded at startup.
+#
+# Adding/correcting a merchant is a YAML edit, not a Java change. The
+# CSVImportService merges these entries with its built-in chain lists so
+# the categorizer becomes scalable as new businesses come online without
+# requiring a rebuild + deploy for each one.
+#
+# Schema:
+#   merchants:
+#     <category-name>:
+#       wordBoundary:   # short tokens that must match as whole words
+#         - <keyword>
+#       contains:       # multi-word tokens; whitespace acts as boundary
+#         - <keyword>
+#
+# Categories must match TransactionCategory constants in
+# TransactionTypeCategoryService.EXPENSE_CATEGORIES:
+#   dining, groceries, travel, transportation, education, entertainment,
+#   shopping, payment, fees, tech, insurance, pet, utilities, health,
+#   healthcare, charity, home improvement, subscriptions, other
+
+merchants:
+  dining:
+    contains:
+      # Empty by default — base catalog already covers the big chains in
+      # CSVImportService.POPULAR_DINING_CHAINS_*. Add new merchants here
+      # without recompiling.
+      - "chiknchop"
+      - "wingstop"
+      - "din tai fung"
+      - "tatte bakery"
+      - "blank street"
+      - "wagamama express"
+  groceries:
+    contains:
+      - "instacart"
+      - "amazon fresh"
+      - "amazonfresh"
+      - "good eggs"
+      - "imperfect foods"
+      - "hello fresh"
+      - "blue apron"
+  transportation:
+    contains:
+      - "waymo"
+      - "via"
+      - "via rideshare"
+      - "revel"
+      - "lime scooter"
+      - "bird scooter"
+      - "spin scooter"
+  travel:
+    contains:
+      - "rocketmiles"
+      - "hipcamp"
+      - "hopper"
+      - "kayak.com"
+  tech:
+    contains:
+      - "linear.app"
+      - "raycast"
+      - "tailscale"
+      - "datadog"
+      - "render.com"
+      - "fly.io"
+      - "supabase"
+      - "neon.tech"
+      - "vercel.com"
+  shopping:
+    contains:
+      - "rei.com"
+      - "patagonia"
+      - "north face"
+      - "lululemon"
+      - "athleta"
+  utilities:
+    contains:
+      - "comcast xfinity"
+      - "xfinity comcast"
+      - "puget sound energy"
+      - "seattle public utilities"
+      - "spu utility"
+  health:
+    contains:
+      - "one medical"
+      - "forward health"
+      - "carbon health"
+  fees:
+    contains:
+      - "wire transfer fee"
+      - "overdraft fee"
+      - "atm fee"
+      - "stop payment fee"

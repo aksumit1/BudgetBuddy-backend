@@ -11,9 +11,12 @@ import com.budgetbuddy.util.IdGenerator;
 import com.budgetbuddy.util.StringUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -293,6 +296,34 @@ public class SubscriptionService {
                     allExpenses.size());
         }
 
+        // PATTERN-BASED PASS — augment the keyword-based candidates above with
+        // transactions whose CADENCE + AMOUNT STABILITY look like a subscription
+        // even though the merchant isn't in any known-subscription list. The
+        // downstream frequency detector + amount-grouping filter quality, so
+        // anything that survives is structurally subscription-shaped.
+        //
+        // Rationale: a brand-new subscription (e.g. Anthropic, Cursor, a niche
+        // newsletter) gets the right charges on the right cadence long before
+        // it shows up in our hand-curated brand list. Pattern + cadence catch
+        // those without us having to add the name first.
+        final java.util.Set<String> existingIds = new java.util.HashSet<>();
+        for (final TransactionTable tx : subscriptionCandidates) {
+            existingIds.add(tx.getTransactionId());
+        }
+        final List<TransactionTable> patternCandidates =
+                findPatternBasedSubscriptionCandidates(allExpenses, existingIds);
+        if (!patternCandidates.isEmpty()) {
+            subscriptionCandidates.addAll(patternCandidates);
+            if (LOGGER.isInfoEnabled()) {
+                LOGGER.info(
+                        "Pattern-based pass added {} candidates "
+                                + "(total candidates now {} from {} expenses)",
+                        patternCandidates.size(),
+                        subscriptionCandidates.size(),
+                        allExpenses.size());
+            }
+        }
+
         // Group transactions by similar merchant (using fuzzy matching) and amount
         final Map<String, List<TransactionTable>> transactionsByMerchant =
                 groupTransactionsByMerchant(subscriptionCandidates);
@@ -506,6 +537,167 @@ public class SubscriptionService {
                     "Detected {} subscriptions for user: {}", detectedSubscriptions.size(), userId);
         }
         return detectedSubscriptions;
+    }
+
+    /**
+     * Pattern-based candidate finder. Identifies expense transactions whose
+     * <strong>cadence</strong> and <strong>amount stability</strong> structurally
+     * look like a subscription, even when the merchant name isn't on any
+     * known-subscription list.
+     *
+     * <p>Algorithm:
+     * <ol>
+     *   <li>Group expenses by normalized merchant key.
+     *   <li>Within each merchant, group by amount bucket (rounded to whole
+     *       dollar — wiggles from taxes/proration collapse together).
+     *   <li>For each (merchant, amount) cohort with ≥3 transactions, measure
+     *       the gap (in days) between consecutive charges.
+     *   <li>If the gaps cluster around a recognised cadence (14, 30, 90, 365
+     *       days ±5), and the per-charge amounts are within ±10% of the mean,
+     *       the cohort qualifies.
+     * </ol>
+     *
+     * <p>Only transactions NOT already in {@code existingIds} are returned, so
+     * this augments the keyword-based pass without duplicates.
+     */
+    private List<TransactionTable> findPatternBasedSubscriptionCandidates(
+            final List<TransactionTable> allExpenses,
+            final java.util.Set<String> existingIds) {
+        final Map<String, List<TransactionTable>> byMerchant = new HashMap<>();
+        for (final TransactionTable tx : allExpenses) {
+            // Exclude transfers / loan payments / card payments — those are
+            // recurring by nature but not subscriptions.
+            if (isNonSubscriptionRecurringMovement(
+                    tx.getCategoryPrimary(),
+                    tx.getCategoryDetailed(),
+                    tx.getMerchantName(),
+                    tx.getDescription())) {
+                continue;
+            }
+            final String key = patternKeyForTransaction(tx);
+            if (key == null) {
+                continue;
+            }
+            byMerchant.computeIfAbsent(key, k -> new ArrayList<>()).add(tx);
+        }
+
+        final List<TransactionTable> qualified = new ArrayList<>();
+        for (final Map.Entry<String, List<TransactionTable>> entry : byMerchant.entrySet()) {
+            final List<TransactionTable> txs = entry.getValue();
+            if (txs.size() < 3) {
+                continue;
+            }
+            // Bucket by integer dollar amount
+            final Map<Long, List<TransactionTable>> byAmt = new HashMap<>();
+            for (final TransactionTable tx : txs) {
+                if (tx.getAmount() == null) {
+                    continue;
+                }
+                final long bucket = tx.getAmount().abs().setScale(0, RoundingMode.HALF_UP).longValueExact();
+                byAmt.computeIfAbsent(bucket, k -> new ArrayList<>()).add(tx);
+            }
+            for (final List<TransactionTable> cohort : byAmt.values()) {
+                if (cohort.size() < 3) {
+                    continue;
+                }
+                if (cohortMatchesSubscriptionCadence(cohort)) {
+                    for (final TransactionTable tx : cohort) {
+                        if (existingIds.add(tx.getTransactionId())) {
+                            qualified.add(tx);
+                        }
+                    }
+                }
+            }
+        }
+        return qualified;
+    }
+
+    /** Normalize a transaction's merchant for pattern grouping. */
+    private String patternKeyForTransaction(final TransactionTable tx) {
+        final String merchant = tx.getMerchantName();
+        if (merchant != null && !merchant.isBlank()) {
+            return merchant.trim().toLowerCase(Locale.ROOT);
+        }
+        final String desc = tx.getDescription();
+        if (desc != null && !desc.isBlank()) {
+            // Strip trailing digits / store-id noise; keep first 30 chars
+            String norm =
+                    desc.trim()
+                            .toLowerCase(Locale.ROOT)
+                            .replaceAll("\\b\\d+\\b", "")
+                            .replaceAll("\\s+", " ")
+                            .trim();
+            if (norm.length() > 30) {
+                norm = norm.substring(0, 30);
+            }
+            return norm;
+        }
+        return null;
+    }
+
+    /**
+     * True iff the cohort's per-charge gaps cluster around a known subscription
+     * cadence (14d, 30d, 90d, 365d ±5d tolerance) AND amounts are within ±10%
+     * of mean. Cohort must be size ≥3.
+     */
+    private boolean cohortMatchesSubscriptionCadence(final List<TransactionTable> cohort) {
+        if (cohort.size() < 3) {
+            return false;
+        }
+        // Sort by date
+        final List<TransactionTable> sorted = new ArrayList<>(cohort);
+        sorted.sort(
+                Comparator.comparing(
+                        t -> parseDate(t.getTransactionDate()),
+                        Comparator.nullsLast(Comparator.naturalOrder())));
+        // Compute gaps
+        final List<Long> gaps = new ArrayList<>();
+        LocalDate prev = null;
+        for (final TransactionTable tx : sorted) {
+            final LocalDate d = parseDate(tx.getTransactionDate());
+            if (d == null) {
+                continue;
+            }
+            if (prev != null) {
+                gaps.add(ChronoUnit.DAYS.between(prev, d));
+            }
+            prev = d;
+        }
+        if (gaps.size() < 2) {
+            return false;
+        }
+        final double avgGap = gaps.stream().mapToLong(Long::longValue).average().orElse(0);
+        // Recognised cadences
+        final int[] cadences = {7, 14, 15, 30, 31, 60, 90, 180, 365};
+        boolean cadenceOk = false;
+        for (final int c : cadences) {
+            if (Math.abs(avgGap - c) <= 5) {
+                cadenceOk = true;
+                break;
+            }
+        }
+        if (!cadenceOk) {
+            return false;
+        }
+        // Amount stability within ±10% of mean
+        final List<BigDecimal> amts = new ArrayList<>();
+        for (final TransactionTable tx : sorted) {
+            if (tx.getAmount() != null) {
+                amts.add(tx.getAmount().abs());
+            }
+        }
+        if (amts.isEmpty()) {
+            return false;
+        }
+        final double mean = amts.stream().mapToDouble(BigDecimal::doubleValue).average().orElse(0);
+        if (mean < 0.01) {
+            return false;
+        }
+        final double maxDev = amts.stream()
+                .mapToDouble(a -> Math.abs(a.doubleValue() - mean) / mean)
+                .max()
+                .orElse(0);
+        return maxDev <= 0.10;
     }
 
     /**

@@ -237,6 +237,39 @@ class AccountDetectionServiceTest {
     }
 
     @Test
+    void testDetectFromPDFContentUSBankHashMaskedAccountNumber() {
+        // U.S. Bank prints the account ending with `#` glyphs as the mask, not `*` or `x`.
+        // Regression: before the fix, the regex only allowed `[*xX]` in the mask class so
+        // "Account Ending in: #### #### #### 1739" never matched and the last-4 was lost.
+        final String pdfText =
+                "U.S. Bank Smartly Visa Signature® Card\n"
+                        + "Account Ending in: #### #### #### 1739\n"
+                        + "Credit Limit $5,000\n";
+        final String filename = "USB Credit Card 1739.pdf";
+
+        final AccountDetectionService.DetectedAccount detected =
+                accountDetectionService.detectFromPDFContent(pdfText, filename);
+
+        assertNotNull(detected);
+        assertEquals("1739", detected.getAccountNumber());
+    }
+
+    @Test
+    void testDetectFromPDFContentFallsBackToFilenameWhenAccountAbsentFromBody() {
+        // Sanity check for the filename-fallback path: institution is detectable from the
+        // body but the number lives only in the filename. Before the fallback was added,
+        // accountNumber stayed null and per-card attribution would silently break.
+        final String pdfText = "U.S. Bank Cardmember Service\nMinimum Payment Due $213.00";
+        final String filename = "USB Credit Card 4242.pdf";
+
+        final AccountDetectionService.DetectedAccount detected =
+                accountDetectionService.detectFromPDFContent(pdfText, filename);
+
+        assertNotNull(detected);
+        assertEquals("4242", detected.getAccountNumber());
+    }
+
+    @Test
     void testDetectFromPDFContentEmptyTextFallsBackToFilename() {
         // Given
         final String pdfText = "";

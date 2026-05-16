@@ -860,9 +860,10 @@ public class AccountDetectionService {
                             + ")"
                             +
                             // Capture group: Account number (allows hyphens, spaces, masks)
-                            // Increased mask limit to handle patterns like "xxxx xxxx xxxx 4666"
-                            // (up to 24 chars of masks/spaces)
-                            "([*xX\\s-]{0,24}(?:\\d[\\s-]*){3,19}\\d)",
+                            // U.S. Bank prints "Account Ending in: #### #### #### 1739" — the
+                            // mask glyph there is `#`, not the `*`/`x` Chase/Citi use, so the
+                            // class needs to accept both.
+                            "([*xX#\\s-]{0,24}(?:\\d[\\s-]*){3,19}\\d)",
                     Pattern.CASE_INSENSITIVE);
 
     // Pattern for credit/debit card numbers (16 digits, possibly masked, with various formats)
@@ -876,10 +877,7 @@ public class AccountDetectionService {
     private static final Pattern CARD_NUMBER_PATTERN =
             Pattern.compile(
                     "(?:(?:card|credit\\s*card|debit\\s*card)\\s*(?:number|#)?\\s*(?:ending\\s*(?:in|with)?\\s*:?\\s*|with\\s*(?:last\\s*)?(?:4\\s*|four\\s*)?(?:digits?|numbers?)\\s*:?\\s*)?)"
-                            +
-                            // Increased mask limit to handle patterns like "xxxx xxxx xxxx 4666"
-                            // (up to 24 chars of masks/spaces)
-                            "([*xX\\s-]{0,24}(?:\\d[\\s-]*){3,19}\\d)",
+                            + "([*xX#\\s-]{0,24}(?:\\d[\\s-]*){3,19}\\d)",
                     Pattern.CASE_INSENSITIVE);
 
     // Keywords for account number detection in headers/data
@@ -1266,10 +1264,21 @@ public class AccountDetectionService {
         }
 
         // Detect account number using enhanced pattern matching
-        final String accountNumber = extractAccountNumberFromText(headerText);
+        String accountNumber = extractAccountNumberFromText(headerText);
         if (accountNumber != null) {
             detected.setAccountNumber(accountNumber);
             LOGGER.info("✓ Extracted account number from PDF: {}", accountNumber);
+        } else {
+            // Fall back to the filename. Statements whose body uses masked digits the
+            // text-content regex can't recover from (US Bank's "#### #### #### 1739")
+            // still encode the last-4 in the filename — losing it would silently break
+            // per-card attribution downstream.
+            final DetectedAccount fromFilename = detectFromFilename(filename);
+            if (fromFilename != null && fromFilename.getAccountNumber() != null) {
+                accountNumber = fromFilename.getAccountNumber();
+                detected.setAccountNumber(accountNumber);
+                LOGGER.info("✓ Using account number from filename: {}", accountNumber);
+            }
         }
 
         // Detect card number (for credit cards) using enhanced pattern
@@ -1278,7 +1287,7 @@ public class AccountDetectionService {
             try {
                 String cardNum = cardMatcher.group(1);
                 if (cardNum != null) {
-                    cardNum = cardNum.replaceAll("[*xX]", "");
+                    cardNum = cardNum.replaceAll("[*xX#\\s-]", "");
                     if (cardNum.length() >= 4) {
                         // CRITICAL FIX: Ensure safe substring
                         final int startIndex = Math.max(0, cardNum.length() - 4);
@@ -1792,7 +1801,7 @@ public class AccountDetectionService {
                         // Keep only digits for consistent storage
                         // Example: "8-41007" -> "841007", "****1234" -> "1234", "1234 5678" ->
                         // "12345678"
-                        accountNum = accountNum.replaceAll("[*xX\\s-]", "");
+                        accountNum = accountNum.replaceAll("[*xX#\\s-]", "");
                         if (accountNum.length() >= 4) {
                             // Extract last 4 digits (for security, we only store last 4)
                             final int startIndex = Math.max(0, accountNum.length() - 4);
@@ -1821,7 +1830,7 @@ public class AccountDetectionService {
                     String cardNum = cardMatcher.group(1);
                     if (cardNum != null && !cardNum.isBlank()) {
                         // Remove masks, hyphens, spaces
-                        cardNum = cardNum.replaceAll("[*xX\\s-]", "");
+                        cardNum = cardNum.replaceAll("[*xX#\\s-]", "");
                         if (cardNum.length() >= 4) {
                             // Extract last 4 digits
                             final int startIndex = Math.max(0, cardNum.length() - 4);

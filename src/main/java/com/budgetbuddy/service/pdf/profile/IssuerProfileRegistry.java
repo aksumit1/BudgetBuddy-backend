@@ -49,16 +49,13 @@ public final class IssuerProfileRegistry {
      * </ol>
      */
     public static IssuerProfileRegistry defaultRegistry() {
+        // v2 YAML owns the migrated issuers (US Bank, Chase, Amex, Citi, Wells
+        // Fargo). Only un-migrated issuers stay on the legacy chain.
         return new IssuerProfileRegistry(
                 List.of(
                         new AppleCardIssuerProfile(),
                         new BankOfAmericaIssuerProfile(),
-                        new DiscoverIssuerProfile(),
-                        new WellsFargoIssuerProfile(),
-                        new USBankIssuerProfile(),
-                        new AmericanExpressIssuerProfile(),
-                        new ChaseIssuerProfile(),
-                        new CitiIssuerProfile()));
+                        new DiscoverIssuerProfile()));
     }
 
     /** Returns the first profile whose {@code matches} predicate fires, or fallback. */

@@ -1,0 +1,1938 @@
+# Category rules engine — declarative source of truth for merchant→category.
+#
+# Schema:
+#   rules:
+#     - category: <category>     # must match TransactionCategory constants
+#       priority: <int>          # higher wins; ties break by file order
+#       mode: word | contains    # word = whole-word, contains = substring
+#       keywords: [...]          # lowercase tokens
+#
+# Priority tiers (higher → earlier dispatch):
+#   1000 — explicit payment/fee patterns (must win over generic merchants)
+#    950 — strong context-sensitive overrides (Costco Gas vs Costco WHSE)
+#    900 — unambiguous strong brand catches (PayPal, Coinbase, Geico)
+#    850 — brand-tied location patterns
+#    800 — major multi-word brand names (Whole Foods, In-N-Out)
+#    700 — single-word brand tokens (Chipotle, Starbucks) — word mode
+#    600 — domain keywords (kitchen, cafe, hotel, sushi)
+#    500 — POS prefixes (TST*, SQ*, RBL*)
+#    400 — long-tail / niche brands
+#    300 — generic merchant-category descriptors
+#
+# Coverage scope: US + UK + EU + India + East Asia + LatAm major chains.
+# Adding/correcting a merchant is a YAML edit; no recompile required.
+
+rules:
+  # =================================================================
+  # FEES (highest priority — must beat brand-tied rules)
+  # =================================================================
+  - category: fees
+    priority: 1000
+    mode: contains
+    keywords:
+      - "foreign transaction fee"
+      - "returned payment fee"
+      - "late fee"
+      - "overlimit fee"
+      - "over limit fee"
+      - "balance transfer fee"
+      - "cash advance fee"
+      - "annual membership fee"
+      - "annual fee"
+      - "service fee"
+      - "membership rewards"
+      - "wire transfer fee"
+      - "overdraft fee"
+      - "atm fee"
+      - "stop payment fee"
+      - "convenience fee"
+      - "processing fee"
+      - "transaction fee"
+      - "currency conversion fee"
+      - "dispute fee"
+      - "rush delivery fee"
+      - "expedited fee"
+
+  # =================================================================
+  # INSURANCE
+  # =================================================================
+  - category: insurance
+    priority: 900
+    mode: word
+    keywords:
+      - geico
+      - allstate
+      - progressive
+      - usaa
+      - esurance
+      - metlife
+      - aetna
+      - cigna
+      - humana
+      - molina
+      - centene
+      - mercury
+      - lemonade
+      - hippo
+      - travelers
+  - category: insurance
+    priority: 900
+    mode: contains
+    keywords:
+      - "state farm"
+      - "farmers insurance"
+      - "farmers ins"
+      - "liberty mutual"
+      - "nationwide ins"
+      - "nationwide insurance"
+      - "blue cross"
+      - "blue shield"
+      - "bcbs"
+      - "kaiser permanente"
+      - "unitedhealth"
+      - "uhc one"
+      - "anthem"
+      - "wfginsurance"
+      - "worldfinanc"
+      - "world financial"
+      - "insurance agency"
+      - "insuranceagency"
+      - "insurance co"
+      - "foremost insurance"
+      - "fic*foremost"
+      - "american family"
+      - "auto-owners"
+      - "auto owners ins"
+      - "erie insurance"
+      - "amica mutual"
+      - "the hartford"
+      - "aaa insurance"
+      - "aarp insurance"
+      - "direct auto"
+      - "gainsco"
+      - "national general"
+      - "american modern"
+      - "ada insurance"
+      - "axa insurance"
+      - "zurich insurance"
+      - "allianz"
+      - "lic of india"
+      - "hdfc ergo"
+      - "icici lombard"
+      - "bajaj allianz"
+
+  # =================================================================
+  # CHARITY
+  # =================================================================
+  - category: charity
+    priority: 900
+    mode: contains
+    keywords:
+      - "girl scouts"
+      - "boy scouts"
+      - "salvation army"
+      - "red cross"
+      - "unicef"
+      - "doctors without borders"
+      - "world vision"
+      - "habitat for humanity"
+      - "goodwill"
+      - "donorbox"
+      - "givelively"
+      - "go fund me"
+      - "gofundme"
+      - "make a wish"
+      - "make-a-wish"
+      - "march of dimes"
+      - "susan g komen"
+      - "american heart association"
+      - "american cancer society"
+      - "aclu"
+      - "sierra club"
+      - "nature conservancy"
+      - "greenpeace"
+      - "heifer international"
+      - "charity water"
+      - "save the children"
+      - "toys for tots"
+      - "feeding america"
+      - "food bank"
+      - "humane society"
+      - "aspca"
+      - "the smile train"
+      - "smile train"
+      - "nrdc"
+      - "amnesty international"
+      - "planned parenthood"
+      - "the trevor project"
+
+  # =================================================================
+  # PAYMENT / TRANSFER apps  (catches Venmo/PayPal/Zelle as merchant)
+  # =================================================================
+  - category: payment
+    priority: 900
+    mode: contains
+    keywords:
+      - "venmo *"
+      - "venmo payment"
+      - "zelle payment"
+      - "paypal *"
+      - "paypal transfer"
+      - "cash app*"
+      - "cashapp *"
+      - "cash app transfer"
+
+  # =================================================================
+  # TECH / SaaS / Streaming / AI
+  # =================================================================
+  - category: tech
+    priority: 900
+    mode: word
+    keywords:
+      - spotify
+      - netflix
+      - hulu
+      - hbo
+      - peacock
+      - tidal
+      - pandora
+      - deezer
+      - soundcloud
+      - qobuz
+      - shudder
+      - mubi
+      - starz
+      - anthropic
+      - openai
+      - cohere
+      - github
+      - gitlab
+      - notion
+      - obsidian
+      - trello
+      - asana
+      - figma
+      - sketch
+      - canva
+      - miro
+      - loom
+      - dropbox
+      - box
+      - icloud
+      - onedrive
+      - backblaze
+      - carbonite
+      - wasabi
+      - adobe
+      - zoom
+      - slack
+      - audible
+      - twitch
+      - patreon
+      - midjourney
+      - perplexity
+      - replicate
+      - render
+      - tailscale
+      - datadog
+      - sentry
+      - mixpanel
+      - amplitude
+      - cloudflare
+      - heroku
+      - netlify
+      - vercel
+      - supabase
+      - planetscale
+      - codecademy
+      - kindle
+      - audible
+      - shopify
+      - squarespace
+      - webflow
+      - typeform
+      - calendly
+      - mailchimp
+      - sendgrid
+      - twilio
+      - lastpass
+      - bitwarden
+      - dashlane
+      - mullvad
+      - nordvpn
+      - expressvpn
+      - surfshark
+      - protonmail
+      - protonvpn
+  - category: tech
+    priority: 900
+    mode: contains
+    keywords:
+      - "apple music"
+      - "apple tv"
+      - "apple arcade"
+      - "apple one"
+      - "apple icloud"
+      - "amazon prime video"
+      - "prime video"
+      - "amazon music"
+      - "amazon kindle"
+      - "youtube premium"
+      - "youtube music"
+      - "youtubepremium"
+      - "youtubemusic"
+      - "youtube tv"
+      - "google one"
+      - "google workspace"
+      - "google cloud"
+      - "google drive"
+      - "google play"
+      - "google fi"
+      - "microsoft 365"
+      - "office 365"
+      - "microsoft store"
+      - "microsoft azure"
+      - "claude.ai"
+      - "chatgpt"
+      - "huggingface"
+      - "hugging face"
+      - "github copilot"
+      - "cursor.so"
+      - "cursor ai"
+      - "replit"
+      - "walmart+"
+      - "walmart plus"
+      - "playstation plus"
+      - "xbox game pass"
+      - "nintendo online"
+      - "nintendo switch online"
+      - "epic games"
+      - "steam wallet"
+      - "steam games"
+      - "geforce now"
+      - "discord nitro"
+      - "linkedin premium"
+      - "linkedin learning"
+      - "max subscription"
+      - "max.com"
+      - "paramount+"
+      - "paramount plus"
+      - "discovery+"
+      - "discovery plus"
+      - "espn+"
+      - "espn plus"
+      - "disney plus"
+      - "crunchyroll"
+      - "funimation"
+      - "acorn tv"
+      - "britbox"
+      - "pluto tv"
+      - "tubi tv"
+      - "criterion channel"
+      - "headspace"
+      - "calm.com"
+      - "calm subscription"
+      - "insight timer"
+      - "duolingo"
+      - "babbel"
+      - "rosetta stone"
+      - "brilliant.org"
+      - "masterclass"
+      - "todoist"
+      - "raycast"
+      - "1password.com"
+      - "1password subscription"
+      - "linear app"
+      - "linear.app"
+      - "render.com"
+      - "fly.io"
+      - "neon.tech"
+      - "aws *"
+      - "amazon web services"
+      - "google cloud platform"
+      - "digitalocean"
+      - "digital ocean"
+      - "stitch fix"
+      - "birchbox"
+      - "loot crate"
+      - "fresh n lean"
+      - "daily harvest"
+
+  # =================================================================
+  # TRAVEL — Hotels (global)
+  # =================================================================
+  - category: travel
+    priority: 800
+    mode: contains
+    keywords:
+      # US/Major
+      - "hotel"
+      - "motel"
+      - "resort"
+      - "marriott"
+      - "hilton"
+      - "hyatt"
+      - "holiday inn"
+      - "airbnb"
+      - "vrbo"
+      - "booking.com"
+      - "expedia"
+      - "travelocity"
+      - "priceline"
+      - "hotwire"
+      - "trivago"
+      - "kayak.com"
+      - "hopper"
+      - "skyscanner"
+      - "hostelworld"
+      - "agoda"
+      - "trip.com"
+      - "trip advisor"
+      - "tripadvisor"
+      # Marriott brands
+      - "aloft"
+      - "westin"
+      - "sheraton"
+      - "courtyard"
+      - "ritz-carlton"
+      - "ritz carlton"
+      - "doubletree"
+      - "embassy suites"
+      - "fairfield inn"
+      - "homewood suites"
+      - "residence inn"
+      - "springhill suites"
+      - "townplace suites"
+      - "townplaces"
+      - "renaissance hotel"
+      - "le meridien"
+      - "st regis"
+      - "w hotel"
+      - "jw marriott"
+      - "edition hotel"
+      - "moxy hotel"
+      - "ac hotel"
+      - "tribute portfolio"
+      - "autograph collection"
+      - "design hotels"
+      - "element by westin"
+      # Hilton brands
+      - "hampton inn"
+      - "hampton by hilton"
+      - "doubletree by hilton"
+      - "embassy suites by"
+      - "tru by hilton"
+      - "home2 suites"
+      - "homewood suites by"
+      - "garden inn"
+      - "curio collection"
+      - "tapestry collection"
+      - "canopy by hilton"
+      - "conrad hotels"
+      - "waldorf astoria"
+      - "lxr hotels"
+      # IHG / others
+      - "ihg "
+      - "intercontinental"
+      - "crowne plaza"
+      - "kimpton"
+      - "candlewood suites"
+      - "staybridge"
+      - "indigo hotels"
+      - "voco hotel"
+      - "vignette collection"
+      # Choice / Wyndham / La Quinta
+      - "choice hotels"
+      - "comfort inn"
+      - "comfort suites"
+      - "quality inn"
+      - "sleep inn"
+      - "mainstay suites"
+      - "econo lodge"
+      - "rodeway inn"
+      - "wyndham"
+      - "days inn"
+      - "super 8"
+      - "ramada"
+      - "baymont"
+      - "la quinta"
+      - "extended stay"
+      - "best western"
+      # Luxury / boutique
+      - "four seasons"
+      - "loews hotels"
+      - "fairmont"
+      - "shangri-la"
+      - "shangri la"
+      - "mandarin oriental"
+      - "peninsula hotel"
+      - "rosewood hotel"
+      - "banyan tree"
+      - "aman resort"
+      - "six senses"
+      - "1 hotels"
+      - "nomad hotel"
+      - "the standard hotel"
+      - "ace hotel"
+      # International budget
+      - "premier inn"
+      - "travelodge"
+      - "easyhotel"
+      - "ibis hotel"
+      - "novotel"
+      - "mercure hotel"
+      - "pullman hotel"
+      - "accor"
+      - "sofitel"
+      - "raffles hotel"
+      # Indian
+      - "itc hotel"
+      - "oberoi hotel"
+      - "leela palace"
+      - "lemon tree hotel"
+      - "ginger hotel"
+      - "fab hotels"
+      - "fabhotels"
+      - "treebo hotel"
+      - "oyo "
+      - "oyo rooms"
+      - "vivanta"
+      - "taj bangalo"
+      - "taj hotel"
+      - "taj palace"
+      - "taj mahal"
+      - "the taj"
+      - "oberoi"
+      - "leela palace"
+      - "leela mumbai"
+      # Asian
+      - "ana hotels"
+      - "okura hotels"
+      - "imperial hotel"
+      - "prince hotel"
+      # Other / regional
+      - "chalet hotel"
+      - "narita airport"
+      - "haneda airport"
+      - "heathrow"
+      - "gatwick airport"
+      - "frankfurt airport"
+      - "tsa precheck"
+      - "tsa pre"
+      - "global entry"
+      - "clear plus"
+      - "clearme.com"
+      - "wi-fi onboard"
+      - "wifi onboard"
+      - "inflight wifi"
+      - "in-flight wifi"
+      - "in flight wifi"
+      - "gogo inflight"
+      - "panasonic avionics"
+      - "viasat air"
+      - "select service partner"
+      - "lounge "
+
+  # =================================================================
+  # TRAVEL — Airlines (global)
+  # =================================================================
+  - category: travel
+    priority: 800
+    mode: contains
+    keywords:
+      # US
+      - "delta air"
+      - "delta airlines"
+      - "united airlines"
+      - "american airlines"
+      - "southwest air"
+      - "jetblue"
+      - "alaska air"
+      - "alaska airlines"
+      - "spirit airlines"
+      - "frontier airlines"
+      - "allegiant air"
+      - "hawaiian airlines"
+      - "sun country air"
+      - "breeze airways"
+      - "avelo air"
+      # Canadian
+      - "air canada"
+      - "westjet"
+      - "porter airlines"
+      - "flair airlines"
+      # European
+      - "british airways"
+      - "lufthansa"
+      - "air france"
+      - "klm"
+      - "iberia"
+      - "swiss intl"
+      - "swiss airlines"
+      - "austrian airlines"
+      - "easyjet"
+      - "ryanair"
+      - "wizz air"
+      - "virgin atlantic"
+      - "virgin america"
+      - "tap portugal"
+      - "norwegian air"
+      - "scandinavian air"
+      - "sas scandinavian"
+      - "finnair"
+      - "aer lingus"
+      - "vueling"
+      - "ita airways"
+      - "alitalia"
+      # Middle East / Africa
+      - "emirates"
+      - "etihad"
+      - "qatar airways"
+      - "saudia"
+      - "egyptair"
+      - "ethiopian airlines"
+      - "kenya airways"
+      - "south african air"
+      # Asia
+      - "cathay pacific"
+      - "singapore airlines"
+      - "thai airways"
+      - "malaysia airlines"
+      - "ana airlines"
+      - "ana all nippon"
+      - "japan airlines"
+      - "jal "
+      - "korean air"
+      - "asiana airlines"
+      - "eva air"
+      - "china airlines"
+      - "china eastern"
+      - "china southern"
+      - "hainan airlines"
+      - "vietnam airlines"
+      - "philippine airlines"
+      - "cebu pacific"
+      - "lion air"
+      - "garuda indonesia"
+      - "air new zealand"
+      - "qantas"
+      # Indian
+      - "indigo airlines"
+      - "indigo airline"
+      - "spicejet"
+      - "vistara"
+      - "air india"
+      - "akasa air"
+      - "go first"
+      - "go air"
+
+  # =================================================================
+  # TRAVEL — Travel agencies / corporate
+  # =================================================================
+  - category: travel
+    priority: 800
+    mode: contains
+    keywords:
+      - "bcd travel"
+      - "amex travel"
+      - "chase travel"
+      - "capital one travel"
+      - "rocketmiles"
+      - "hipcamp"
+      - "travelperk"
+      - "concur travel"
+
+  # =================================================================
+  # TRANSPORTATION — Brand-tied gas locations (priority over groceries)
+  # =================================================================
+  - category: transportation
+    priority: 950
+    mode: contains
+    keywords:
+      - "costco gas"
+      - "sams gas"
+      - "sam's gas"
+      - "walmart gas"
+      - "kroger gas"
+      - "safeway gas"
+      - "fred meyer fuel"
+      - "fred meyer gas"
+      - "albertsons gas"
+
+  # =================================================================
+  # TRANSPORTATION — Gas stations + EV charging
+  # =================================================================
+  - category: transportation
+    priority: 800
+    mode: word
+    keywords:
+      - chevron
+      - shell
+      - exxon
+      - mobil
+      - bp
+      - arco
+      - valero
+      - sunoco
+      - marathon
+      - speedway
+      - citgo
+      - "76"
+      - waymo
+      - lyft
+      - uber
+      - bolt
+      - ola
+      - cabify
+  - category: transportation
+    priority: 800
+    mode: contains
+    keywords:
+      - "uber trip"
+      - "uber ride"
+      - "lyft *"
+      - "lyft.com"
+      - "lyft rides"
+      - "tesla supercharger"
+      - "tesla supercharging"
+      - "ev charging"
+      - "electrify america"
+      - "chargepoint"
+      - "evgo"
+      - "blink charging"
+      # International rideshare
+      - "ola cabs"
+      - "didi rider"
+      - "grab car"
+      - "grabtaxi"
+      - "blablacar"
+      - "indriver"
+      - "yandex go"
+      - "free now"
+      - "curb taxi"
+      - "gett taxi"
+      # More US gas
+      - "quiktrip"
+      - "qt #"
+      - "wawa #"
+      - "kwik trip"
+      - "sheetz"
+      - "royal farms"
+      - "casey's general"
+      - "caseys general"
+      - "maverik"
+      - "buc-ee"
+      - "bucees"
+      - "stripes #"
+      - "pilot flying j"
+      - "loves travel"
+      - "love's travel"
+      - "love's #"
+      - "loves #"
+      - "phillips 66"
+      - "phillips66"
+      - "conoco"
+      - "irving oil"
+      - "petro-canada"
+      - "petro canada"
+      # Tolls / DMV
+      - "wsdot"
+      - "goodtogo"
+      - "good to go"
+      - "e-zpass"
+      - "ez pass"
+      - "fastrak"
+      - "fasttrak"
+      - "sunpass"
+      - "k-tag"
+      - "ipass"
+      - "vehicle licensing"
+      - "vehicle registration"
+      - "dmv "
+      - "tfl travel"
+      - "tfl.gov"
+      - "transport for london"
+      - "metro card"
+      - "metrocard"
+      - "subway card"
+      - "subway nyc"
+      - "bart fare"
+      - "muni "
+      - "mbta "
+      - "septa "
+      - "lacmta"
+      - "wmata"
+      - "njtransit"
+      - "amtrak"
+      # Auto service
+      - "honda ctr"
+      - "honda center"
+      - "honda of "
+      - "toyota of "
+      - "subaru of "
+      - "ford of "
+      - "chevy of "
+      - "autozone"
+      - "auto zone"
+      - "advance auto"
+      - "napa auto"
+      - "o'reilly auto"
+      - "oreilly auto"
+      - "pep boys"
+      - "jiffy lube"
+      - "valvoline instant"
+      - "midas auto"
+      - "monro auto"
+      - "tire kingdom"
+      - "discount tire"
+      - "tires plus"
+      # Car rental
+      - "enterprise rent"
+      - "enterprise rac"
+      - "budget rent a car"
+      - "budget rent-a"
+      - "alamo rent a car"
+      - "alamo rac"
+      - "hertz rent"
+      - "avis rent"
+      - "avis rac"
+      - "national rental car"
+      - "dollar rent"
+      - "thrifty rent"
+      - "fox rent"
+      - "sixt rent"
+      - "zipcar"
+      - "turo "
+      - "getaround"
+      # Bike/scooter share
+      - "lime scoot"
+      - "lime ride"
+      - "bird scoot"
+      - "bird ride"
+      - "spin scoot"
+      - "spin ride"
+      - "citi bike"
+      - "divvy bike"
+      - "mobike"
+      # Parking apps
+      - "sdot paybyphone"
+      - "paybyphone parking"
+      - "spothero"
+      - "parkwhiz"
+      - "parkme"
+      - "parkmobile"
+      - "premium parking"
+      - "abm parking"
+      - "ace parking"
+      - "lanier parking"
+      - "interpark"
+      - "metropolis parking"
+      - "passport parking"
+      # Shipping (transport-related)
+      - "ups store"
+      - "ups #"
+      - "the ups store"
+      - "fedex office"
+      - "fedex print"
+      - "usps.com"
+      - "us postal"
+      - "post office #"
+
+  # =================================================================
+  # DINING — POS prefixes (highest dining priority)
+  # =================================================================
+  - category: dining
+    priority: 500
+    mode: contains
+    keywords:
+      - "tst*"
+      - "sq *"
+      - "sq*"
+      - "rbl*"
+      - "uep*"
+      - "tpd"
+      - "ctlp*"
+      - "cpi*canteen"
+      - "wpy *"
+      - "wpy*"
+      - "tst* canteen"
+
+  # =================================================================
+  # DINING — Major chains (word-boundary tokens)
+  # =================================================================
+  - category: dining
+    priority: 700
+    mode: word
+    keywords:
+      - starbucks
+      - sbux
+      - chipotle
+      - mcdonald
+      - mcdonalds
+      - wendys
+      - wendy's
+      - subway
+      - kfc
+      - popeyes
+      - arby
+      - arbys
+      - sonic
+      - panera
+      - qdoba
+      - cava
+      - ihop
+      - denny
+      - dennys
+      - panda
+      - tgif
+      - bww
+      - cpk
+      - pho
+      - ramen
+      - sushi
+      - kebab
+      - gyro
+      - shawarma
+      - biryani
+      - tikka
+      - naan
+      - thai
+      - boba
+      - deli
+      - bbq
+      - bistro
+      - grill
+      - cafe
+      - diner
+      - pizza
+      - burger
+      - tacos
+      - donut
+      - donuts
+      - bakery
+      - coffee
+      - espresso
+      - wingstop
+      - dominos
+      - hardees
+      - whataburger
+      - zaxby
+      - zaxbys
+      - bojangles
+      - costa
+      - greggs
+      - itsu
+      - leon
+      - pret
+      - nandos
+
+  # =================================================================
+  # DINING — Multi-word brands
+  # =================================================================
+  - category: dining
+    priority: 700
+    mode: contains
+    keywords:
+      # US fast food
+      - "burger king"
+      - "taco bell"
+      - "chick fil a"
+      - "chick-fil-a"
+      - "chickfila"
+      - "in n out"
+      - "in-n-out"
+      - "five guys"
+      - "shake shack"
+      - "shakeshack"
+      - "buffalo wild wings"
+      - "pizza hut"
+      - "papa john"
+      - "papa johns"
+      - "little caesar"
+      - "jimmy john"
+      - "jimmy johns"
+      - "jersey mike"
+      - "firehouse sub"
+      - "firehouse subs"
+      - "quiznos"
+      - "potbelly sandwich"
+      - "tim hortons"
+      - "tim horton"
+      - "auntie anne"
+      - "carl's jr"
+      - "carls jr"
+      - "jack in the box"
+      - "white castle"
+      - "raising cane"
+      - "raising canes"
+      - "boston market"
+      - "el pollo loco"
+      - "el pollo"
+      - "panera bread"
+      - "noodles & co"
+      - "noodles and co"
+      - "sweetgreen"
+      - "mod pizza"
+      - "blaze pizza"
+      - "&pizza"
+      - "halal guys"
+      - "moe's southwest"
+      - "moes southwest"
+      - "baja fresh"
+      - "qdoba mexican"
+      - "rubio"
+      - "del taco"
+      - "taco john"
+      - "taco johns"
+      - "taco time"
+      - "pollo tropical"
+      - "salata salad"
+      - "tropical smoothie"
+      - "smoothie king"
+      - "jamba juice"
+      - "robeks"
+      - "cinnabon"
+      - "krispy kreme"
+      - "dunkin"
+      - "dutch bros"
+      - "peet"
+      - "philz"
+      - "blue bottle"
+      - "stumptown coffee"
+      - "intelligentsia"
+      - "verve coffee"
+      - "counter culture coffee"
+      # US casual
+      - "olive garden"
+      - "applebee"
+      - "applebees"
+      - "cracker barrel"
+      - "panda express"
+      - "longhorn steak"
+      - "outback steak"
+      - "lone star steak"
+      - "bonefish grill"
+      - "red lobster"
+      - "red robin"
+      - "cheesecake factory"
+      - "ruby tuesday"
+      - "ruby's diner"
+      - "chili's"
+      - "chilis grill"
+      - "tgi friday"
+      - "tgi fridays"
+      - "waffle house"
+      - "perkins restaurant"
+      - "perkins family"
+      - "golden corral"
+      - "texas roadhouse"
+      - "bj's brewhouse"
+      - "bjs brewhouse"
+      - "joe's crab shack"
+      - "joes crab shack"
+      - "yard house"
+      - "p f chang"
+      - "pf chang"
+      - "p.f. chang"
+      # Steakhouse / fine
+      - "ruth's chris"
+      - "ruths chris"
+      - "morton's the steakhouse"
+      - "mortons the steakhouse"
+      - "the capital grille"
+      - "capital grille"
+      - "fogo de chao"
+      - "texas de brazil"
+      - "benihana"
+      - "kura sushi"
+      - "yo sushi"
+      - "wagamama"
+      - "wagamama express"
+      # Ice cream / dessert
+      - "ben & jerry"
+      - "ben and jerry"
+      - "baskin robbins"
+      - "baskin-robbins"
+      - "dairy queen"
+      - "cold stone"
+      - "carvel ice"
+      - "haagen-dazs"
+      - "häagen-dazs"
+      - "haagen dazs"
+      - "yogurtland"
+      - "menchies"
+      - "pinkberry"
+      - "16 handles"
+      - "salt & straw"
+      # Bagel / breakfast
+      - "einstein bagel"
+      - "einstein bros"
+      - "noah's bagel"
+      - "noahs bagel"
+      - "bruegger"
+      - "bagel works"
+      # Salad / healthy
+      - "tender greens"
+      - "mendocino farm"
+      - "just salad"
+      - "lyfe kitchen"
+      - "leann chin"
+      - "lee's sandwich"
+      - "schlotzsky"
+      - "capriotti"
+      - "fuddrucker"
+      - "krystal"
+      - "long john silver"
+      - "captain d"
+      - "church's chicken"
+      - "churchs chicken"
+      - "naf naf"
+      - "garbanzo mediterranean"
+      - "cava grill"
+      - "freebirds"
+      - "snowfox"
+      # UK
+      - "wagamama"
+      - "pret a manger"
+      - "pret a"
+      - "costa coffee"
+      - "caffe nero"
+      - "greggs bakery"
+      - "leon restaurant"
+      - "wahaca"
+      - "yo! sushi"
+      - "honest burgers"
+      - "bills restaurant"
+      - "pizza express"
+      - "itsu sushi"
+      # Indian chains
+      - "haldiram"
+      - "haldirams"
+      - "barbeque nation"
+      - "mainland china"
+      - "bikanervala"
+      - "saravana bhavan"
+      - "biryani house"
+      - "india bistro"
+      - "tikka masala"
+      - "dosa hut"
+      - "dosa palace"
+      - "bombay house"
+      - "royal india"
+      - "udipi cafe"
+      - "udupi cafe"
+      - "indian cuisine"
+      - "indian restaurant"
+      - "indian food"
+      - "mother india"
+      - "punjabi by nature"
+      # Asian
+      - "din tai fung"
+      - "ichiran ramen"
+      - "ichiran"
+      - "ippudo"
+      - "sukiya"
+      - "yoshinoya"
+      - "genki sushi"
+      - "kura sushi"
+      - "kpot"
+      - "bonchon"
+      - "bbq chicken"
+      - "ipoh house"
+      - "bibim"
+      - "kimchi house"
+      # Mexican
+      - "chipotle mexican grill"
+      - "rubios coastal"
+      - "rubio's coastal"
+      - "el torito"
+      - "abuelo's"
+      # Other / regional
+      - "wild ginger"
+      - "hot pot"
+      - "happy lamb"
+      - "trader vic"
+      - "trader vic's"
+      - "viet kitchen"
+      - "vietnamese"
+      - "delhiwala"
+      - "chicha san chen"
+      - "cutters point"
+      - "basil viet"
+      - "shinya shokudo"
+      - "tokuni"
+      - "brunello"
+      - "tres sandwich"
+      - "bouquet -"
+      - "tippy "
+      - "fantuan"
+      - "xi'an"
+      - "xi an noodles"
+      - "lee s kitchen"
+      - "lee's kitchen"
+      - "uw food"
+      - "uw dining"
+      - "food court"
+      - "food services"
+      - "so tasty"
+      - "tasty foods"
+      - "slurp station"
+      - "poke dondon"
+      - "dumpling"
+      - "ramen house"
+      - "sushi train"
+      - "ikea seatle rest"
+      - "ikea seattle rest"
+      - "ikea restaurant"
+      - "almondcroissant"
+      - "almond croissant"
+      - "steamedmilk"
+      - "steamed milk"
+      - "golkonda"
+      - "tatte bakery"
+      - "blank street"
+
+  # =================================================================
+  # GROCERIES — Warehouse / convenience / supermarket (global)
+  # =================================================================
+  - category: groceries
+    priority: 700
+    mode: word
+    keywords:
+      - costco
+      - kroger
+      - publix
+      - wegmans
+      - aldi
+      - lidl
+      - albertsons
+      - safeway
+      - vons
+      - sprouts
+      - winco
+      - shoprite
+      - ralphs
+      - heb
+      - qfc
+      - mayuri
+      - tesco
+      - sainsburys
+      - waitrose
+      - morrisons
+      - asda
+      - carrefour
+      - auchan
+      - rewe
+      - edeka
+      - hofer
+      - billa
+      - migros
+      - coop
+      - intermarche
+  - category: groceries
+    priority: 700
+    mode: contains
+    keywords:
+      # US
+      - "trader joe"
+      - "trader joes"
+      - "trader joe's"
+      - "whole foods"
+      - "fred meyer"
+      - "town & country market"
+      - "town and country market"
+      - "town & country marke"
+      - "harris teeter"
+      - "h-e-b"
+      - "h e b"
+      - "food lion"
+      - "giant food"
+      - "shaw's market"
+      - "shaws market"
+      - "stop & shop"
+      - "stop and shop"
+      - "shoprite supermarket"
+      - "gristedes"
+      - "fresh market"
+      - "the fresh market"
+      - "stew leonard"
+      - "stew leonards"
+      - "smart & final"
+      - "smart and final"
+      - "winco foods"
+      # UK
+      - "tesco store"
+      - "tesco metro"
+      - "tesco express"
+      - "sainsbury's"
+      - "sainsburys"
+      - "marks & spencer"
+      - "marks and spencer"
+      - "m&s food"
+      - "asda store"
+      - "morrisons supermarket"
+      - "co-op food"
+      - "co op food"
+      - "iceland foods"
+      - "lidl uk"
+      - "aldi uk"
+      - "ocado"
+      - "ocado retail"
+      # Europe
+      - "carrefour market"
+      - "auchan store"
+      - "auchan retail"
+      - "leclerc"
+      - "intermarché"
+      - "intermarche"
+      - "lidl france"
+      - "rewe markt"
+      - "edeka markt"
+      - "penny markt"
+      - "kaufland"
+      # Indian / South Asian groceries
+      - "uwajimaya"
+      - "h mart"
+      - "h-mart"
+      - "99 ranch"
+      - "ranch market"
+      - "ranch 99"
+      - "patel brothers"
+      - "patel brother"
+      - "subzi mandi"
+      - "subzi bazaar"
+      - "namaste india"
+      - "namaste plaza"
+      - "spice bazaar"
+      - "bombay bazaar"
+      - "india metro"
+      - "india supermarket"
+      - "apna bazar"
+      - "apna bazaar"
+      - "mayuri food"
+      - "mayuri international"
+      - "kesar indian"
+      - "house of spices"
+      - "indian grocery"
+      - "indian bazaar"
+      - "indian bazar"
+      - "mehran foods"
+      # East Asian
+      - "lawson "
+      - "family mart"
+      - "familymart"
+      - "don quijote"
+      - "donki"
+      - "daiso"
+      - "mitsuwa"
+      - "marukai"
+      - "tokyo central"
+      - "nijiya market"
+      - "lotte plaza"
+      - "lotte mart"
+      - "lotte foods"
+      # LatAm
+      - "vallarta market"
+      - "la mexicana"
+      - "el super "
+      - "cardenas market"
+      - "carniceria "
+      - "mariscos "
+      # Convenience
+      - "7-eleven"
+      - "7 eleven"
+      - "7eleven"
+      - "circle k"
+      - "walmart neighborhood market"
+      - "walmart supercenter"
+      - "amazon fresh"
+      - "amazonfresh"
+      - "instacart"
+      - "good eggs"
+      - "imperfect foods"
+      - "hello fresh"
+      - "blue apron"
+      - "sun basket"
+      - "home chef"
+
+  # =================================================================
+  # ENTERTAINMENT — movies + activities + venues
+  # =================================================================
+  - category: entertainment
+    priority: 700
+    mode: contains
+    keywords:
+      - "amc theatre"
+      - "amc cinema"
+      - "regal cinema"
+      - "regal cinemas"
+      - "cinemark"
+      - "showcase cinema"
+      - "marcus theatre"
+      - "alamo drafthouse"
+      - "landmark theatre"
+      - "topgolf"
+      - "top golf"
+      - "dave & buster"
+      - "dave and buster"
+      - "main event"
+      - "round1"
+      - "escape room"
+      - "puzzle room"
+      - "snoqualmie pass"
+      - "stevens pass"
+      - "crystal mountain"
+      - "ski resort"
+      - "smokies life"
+      - "national park"
+      - "state park"
+      - "bellevueski"
+      - "lift ticket"
+      - "disney park"
+      - "disneyland"
+      - "disney world"
+      - "universal studios"
+      - "six flags"
+      - "seaworld"
+      - "cedar fair"
+      - "knott's berry"
+      - "busch gardens"
+      - "legoland"
+      - "dollywood"
+      - "ticketmaster"
+      - "stubhub"
+      - "seatgeek"
+      - "axs.com"
+      - "vivid seats"
+      - "fandango.com"
+      - "atomtickets"
+      - "atom tickets"
+      - "live nation"
+      - "house of blues"
+
+  # =================================================================
+  # HEALTH — pharmacies, telehealth, mental wellness
+  # =================================================================
+  - category: health
+    priority: 800
+    mode: contains
+    keywords:
+      - "cvs pharmacy"
+      - "cvs *"
+      - "cvs #"
+      - "cvs/pharmacy"
+      - "walgreens"
+      - "walgreen "
+      - "rite aid"
+      - "rite-aid"
+      - "duane reade"
+      - "boots pharmacy"
+      - "boots uk"
+      - "walmart pharmacy"
+      - "costco pharmacy"
+      - "bartell drug"
+      - "bartell drugs"
+      - "one medical"
+      - "forward health"
+      - "carbon health"
+      - "zocdoc"
+      - "doctor on demand"
+      - "doctorondemand"
+      - "teladoc"
+      - "teladoc health"
+      - "amwell"
+      - "doxy.me"
+      - "sesame care"
+      - "betterhelp"
+      - "talkspace"
+      - "cerebral"
+      - "hims health"
+      - "hers health"
+      - "ro pharmacy"
+      - "nurx"
+      - "aspen dental"
+      - "western dental"
+      - "lenscrafters"
+      - "pearle vision"
+      - "warby parker"
+      - "zenni optical"
+      - "americas best"
+      - "america's best"
+      - "studio wax"
+      - "wax studio"
+      - "esthetics"
+      - "esthetician"
+      - "beauty studio"
+      - "beauty bar"
+      - "beauty salon"
+      - "skincare"
+      - "skin care clinic"
+      - "skin clinic"
+      - "spa salon"
+      - "day spa"
+      - "massage envy"
+      - "european wax"
+      - "supercuts"
+      - "great clips"
+      - "sport clips"
+      - "drybar"
+      - "ulta beauty"
+      - "sephora"
+      - "galaxy beauty"
+      - "urvashi beauty"
+      - "headspace"
+      - "calm app"
+      - "calm meditation"
+      - "insight timer"
+
+  # =================================================================
+  # HOME IMPROVEMENT
+  # =================================================================
+  - category: home improvement
+    priority: 700
+    mode: contains
+    keywords:
+      - "home depot"
+      - "homedepot"
+      - "home depot #"
+      - "lowes"
+      - "lowe's"
+      - "lowe’s"
+      - "sherwin-williams"
+      - "sherwin williams"
+      - "sherwinwilliams"
+      - "ace hardware"
+      - "true value"
+      - "menards"
+      - "ferguson plumbing"
+      - "ikea "
+      - "ikea.com"
+      - "ikea seatt"
+      - "ikea seattle"
+      - "ikea renton"
+      - "floor & decor"
+      - "floor and decor"
+      - "lumber liquidators"
+      - "tile shop"
+      - "restoration hardware"
+      - "westlake"
+      - "pottery barn"
+      - "west elm"
+      - "crate & barrel"
+      - "crate and barrel"
+      - "bed bath"
+
+  # =================================================================
+  # PET
+  # =================================================================
+  - category: pet
+    priority: 700
+    mode: contains
+    keywords:
+      - "petsmart"
+      - "petco"
+      - "pet supplies plus"
+      - "pet supermarket"
+      - "sp farmers"
+      - "fetch bones"
+      - "chewy.com"
+      - "chewy *"
+      - "barkbox"
+      - "rover.com"
+      - "wag.com"
+      - "wag!"
+      - "vca animal"
+      - "vca pet"
+      - "banfield pet"
+      - "bluepearl"
+      - "camp bow wow"
+      - "petsmart grooming"
+      - "petfood express"
+      - "veterinary"
+
+  # =================================================================
+  # UTILITIES — power / gas / water / internet
+  # =================================================================
+  - category: utilities
+    priority: 600
+    mode: contains
+    keywords:
+      - "republic services"
+      - "waste management"
+      - "wm.com"
+      - "wm waste"
+      - "trash service"
+      - "garbage service"
+      - "sewer service"
+      - "water department"
+      - "comcast xfinity"
+      - "xfinity comcast"
+      - "xfinity mobile"
+      - "puget sound energy"
+      - "seattle public utilities"
+      - "spu utility"
+      # Power utilities
+      - "pg&e"
+      - "pg and e"
+      - "pacific gas & electric"
+      - "pacific gas and electric"
+      - "southern california edison"
+      - "sce.com"
+      - "sdg&e"
+      - "san diego gas"
+      - "consolidated edison"
+      - "coned"
+      - "duke energy"
+      - "southern company"
+      - "fpl florida power"
+      - "florida power & light"
+      - "xcel energy"
+      - "pepco"
+      - "avista utilities"
+      - "ameren"
+      - "eversource"
+      - "national grid"
+      - "nv energy"
+      - "idaho power"
+      - "georgia power"
+      - "ohio edison"
+      - "alabama power"
+      - "centerpoint energy"
+      - "dominion energy"
+      # Gas utilities
+      - "socalgas"
+      - "nicor gas"
+      - "pse&g"
+      - "spire inc"
+      - "nw natural"
+      - "atmos energy"
+      # Internet/Cable
+      - "spectrum cable"
+      - "spectrum internet"
+      - "cox communications"
+      - "cox cable"
+      - "at&t internet"
+      - "at&t fiber"
+      - "verizon fios"
+      - "centurylink"
+      - "frontier comm"
+      - "optimum cable"
+      - "starlink"
+      - "google fiber"
+      # Mobile (utilities-ish)
+      - "verizon wireless"
+      - "verizon mobile"
+      - "at&t wireless"
+      - "at&t mobile"
+      - "t-mobile"
+      - "tmobile.com"
+      - "mint mobile"
+      - "visible mobile"
+      - "cricket wireless"
+      - "boost mobile"
+      - "metro pcs"
+      - "metropcs"
+      - "us cellular"
+      - "tracfone"
+      - "republic wireless"
+      - "google fi"
+      # International telecom
+      - "airtel "
+      - "jio "
+      - "reliance jio"
+      - "vodafone idea"
+      - "vodafone uk"
+      - "ee mobile"
+      - "o2 mobile"
+      - "orange mobile"
+      - "telefonica"
+      - "rogers wireless"
+      - "bell mobility"
+      - "telus mobility"
+
+  # =================================================================
+  # EDUCATION — schools, exams, MOOC
+  # =================================================================
+  - category: education
+    priority: 600
+    mode: contains
+    keywords:
+      - "examfx"
+      - "psi exams"
+      - "psi services"
+      - "kaplan"
+      - "pearson vue"
+      - "prometric"
+      - "ets-toefl"
+      - "ets-gre"
+      - "ets.org"
+      - "magoosh"
+      - "princeton review"
+      - "rockwell institute"
+      - "ucla extension"
+      - "berkeley extension"
+      - "stanford continuing"
+      - "harvard extension"
+      - "nipr*"
+      - "nipr "
+      - "vue*aamc"
+      - "aamc exam"
+      - "school district"
+      - "schooldistrict"
+      - "school distri"
+      - "school district pts"
+      - "tyee middle"
+      - "tyee elementary"
+      - "pta dues"
+      - "pto dues"
+      - "wyzant tutor"
+      - "outschool"
+      - "vipkid"
+      - "varsity tutors"
+      - "paypams"
+      - "mypaymentsplus"
+      - "ankihub"
+      - "anki core"
+      - "linkedin learning"
+      - "frontend masters"
+      - "team treehouse"
+      - "khan academy"
+
+  # =================================================================
+  # SHOPPING — apparel / electronics / general retail / online
+  # =================================================================
+  - category: shopping
+    priority: 700
+    mode: word
+    keywords:
+      - target
+      - rei
+      - macys
+      - macy's
+      - nordstrom
+      - bloomingdales
+      - kohls
+      - belk
+      - sears
+      - jcpenney
+      - dillards
+      - costco
+      - sams
+      - walmart
+      - aliexpress
+      - shein
+      - temu
+      - shopee
+      - zappos
+      - chewy
+      - wayfair
+      - overstock
+      - ebay
+      - amazon
+  - category: shopping
+    priority: 700
+    mode: contains
+    keywords:
+      # Apparel
+      - "h&m"
+      - "h & m"
+      - "old navy"
+      - "gap.com"
+      - "gap store"
+      - "banana republic"
+      - "athleta store"
+      - "j.crew"
+      - "j crew"
+      - "j. crew"
+      - "uniqlo"
+      - "zara "
+      - "zara.com"
+      - "forever 21"
+      - "anthropologie"
+      - "madewell"
+      - "free people"
+      - "lululemon"
+      - "athleta"
+      - "north face"
+      - "the north face"
+      - "patagonia"
+      - "columbia sportswear"
+      - "rei coop"
+      - "rei.com"
+      - "rei #"
+      - "ll bean"
+      - "l.l. bean"
+      - "l.l.bean"
+      - "eddie bauer"
+      - "marmot"
+      - "arc'teryx"
+      - "arcteryx"
+      - "carhartt"
+      - "dickies"
+      - "levi's store"
+      - "levi store"
+      - "levis store"
+      - "levis #"
+      - "levi's #"
+      - "ross dress"
+      - "ross stores"
+      - "tj maxx"
+      - "marshalls"
+      - "homegoods"
+      - "world market"
+      - "container store"
+      - "bed bath"
+      - "kohl's"
+      - "kohls #"
+      # Department
+      - "nordstrom rack"
+      - "saks fifth"
+      - "neiman marcus"
+      - "off 5th"
+      - "last call"
+      # Electronics
+      - "best buy"
+      - "micro center"
+      - "microcenter"
+      - "apple store"
+      - "microsoft store"
+      - "b&h photo"
+      - "b h photo"
+      - "adorama"
+      - "newegg"
+      - "fry's electronics"
+      # Toys / hobby
+      - "lego store"
+      - "build-a-bear"
+      - "michaels store"
+      - "joann fabric"
+      - "joann.com"
+      - "hobby lobby"
+      # Books
+      - "barnes & noble"
+      - "barnes and noble"
+      - "books-a-million"
+      - "powell's books"
+      - "waterstones"
+      - "blackwell's"
+      # Sporting goods
+      - "dick's sporting"
+      - "dicks sporting"
+      - "academy sports"
+      - "big 5 sporting"
+      - "sporting goods"
+      - "harbor freight"
+      # Office
+      - "office depot"
+      - "staples store"
+      - "the ups store"
+      - "ups store"
+      # Online
+      - "amazon marketplace"
+      - "amazon.com"
+      - "amazon mktp"
+      - "amazon prime"
+      - "amzn mktp"
+      - "amzn.com"
+      - "ebay store"
+      - "ebay.com"
+      - "etsy"
+      - "etsy.com"
+      - "wayfair"
+      - "overstock"
+      - "chewy"
+      - "zappos"
+      # Variety / misc
+      - "uwm plaza gift"
+      - "gift shop"
+      - "gift store"
+      - "gift esp"
+      - "plaza gift"
+
+  # =================================================================
+  # SUBSCRIPTIONS (recurring, curated)
+  # =================================================================
+  - category: subscriptions
+    priority: 700
+    mode: contains
+    keywords:
+      - "uber one"
+      - "doordash dashpass"
+      - "instacart+"
+      - "shipt membership"
+      - "amazon prime membership"
+      - "amazon prime annual"
+      - "cnn news"
+      - "the athletic"
+      - "substack"
+      - "medium membership"
+      - "reuters news"
+      - "ap news"
+      - "the economist"
+      - "wsj subscription"
+      - "wall street journal"
+      - "nytimes subscription"
+      - "ny times"
+      - "ft.com subscription"
+      - "financial times"
+      - "barron's online"
+      - "barrons online"
+      - "d j*barrons"
+      - "bloomberg subscription"
+      - "harpers magazine"
+      - "the new yorker"
+      - "consumer reports"
+
+  # =================================================================
+  # FITNESS / GYM (mapped to health)
+  # =================================================================
+  - category: health
+    priority: 650
+    mode: contains
+    keywords:
+      - "equinox"
+      - "orange theory"
+      - "orangetheory"
+      - "24 hour fitness"
+      - "24hour fitness"
+      - "lifetime fitness"
+      - "la fitness"
+      - "planet fitness"
+      - "anytime fitness"
+      - "crunch fitness"
+      - "f45 training"
+      - "barry's bootcamp"
+      - "barrys bootcamp"
+      - "soulcycle"
+      - "soul cycle"
+      - "peloton"
+      - "classpass"
+      - "mirror fitness"
+      - "tonal fitness"
+      - "pure barre"
+      - "burn boot camp"
+      - "gold's gym"
+      - "golds gym"
+      - "yoga studio"
+      - "ymca"
+      - "ywca"
+      - "crossfit"
+      - "proclub"
+      - "pro club"
+
+  # =================================================================
+  # GENERIC last-resort merchant category descriptors that Amex prints
+  # =================================================================
+  - category: transportation
+    priority: 300
+    mode: contains
+    keywords:
+      - "service stn"
+      - "service station"
+
+  - category: dining
+    priority: 300
+    mode: contains
+    keywords:
+      - "fast food restaurant"
+      - "fast food restaurants"

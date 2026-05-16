@@ -3921,9 +3921,16 @@ public class CSVImportService {
                         && (safeAccountType.contains(CREDIT)
                                 || safeAccountType.contains("credit_card")
                                 || safeAccountType.contains("creditcard"));
+        // Accept BOTH signs here. After the cross-issuer payment-sign fix in
+        // PDFImportService.buildTransactionFromRow, payment rows on credit-card
+        // statements arrive POSITIVE (matching the backend convention: payments
+        // flow into the card and reduce balance). CSV imports that pre-date
+        // that path can still produce negative-amount payment rows, so the
+        // short-circuit fires for both signs. Zero is excluded — that's
+        // typically a fee/adjustment row handled below.
         if (isCreditCardAccount
                 && safeAmount != null
-                && safeAmount.compareTo(BigDecimal.ZERO) < 0
+                && safeAmount.signum() != 0
                 && safeDescription != null) {
             if (looksLikeCreditCardPayment(safeDescription)) {
                 LOGGER.debug(
@@ -4650,7 +4657,12 @@ public class CSVImportService {
                 "usmobile"
             };
             for (final String provider : phoneProviders) {
-                if (combined.contains(provider)) {
+                // Word-boundary match. Short bare keywords like "att" (intended
+                // for AT&T) used to substring-match into SEATTLE / HYATT /
+                // FACTORIA, mis-categorizing every Seattle-area merchant as a
+                // phone-utility. Anchoring to word boundaries fixes it without
+                // dropping any legitimate match.
+                if (containsKeywordAsWord(combined, provider)) {
                     LOGGER.debug(
                             "🏷️ parseCategory: Detected phone/mobile provider '{}' → 'utilities'",
                             provider);
@@ -6354,6 +6366,34 @@ public class CSVImportService {
                             // an actual payment-context word, NOT as a bare \bpmt\b.
                     );
 
+    /**
+     * Word-boundary keyword search. Returns true iff {@code keyword} appears
+     * in {@code text} as a complete word (or whitespace/punctuation-delimited
+     * token), not as a substring of a longer word.
+     *
+     * <p>Used by the keyword lists in the category detector where short
+     * tokens like {@code "att"} (AT&amp;T), {@code "ta"} (TA gas stations),
+     * {@code "pse"} (Puget Sound Energy) would otherwise substring-match
+     * inside unrelated words (SEATTLE, STARBUCKS, RESPONSE). Multi-word
+     * keywords like {@code "verizon wireless"} naturally word-boundary by
+     * containing whitespace and are handled by the same logic.
+     */
+    static boolean containsKeywordAsWord(final String text, final String keyword) {
+        if (text == null || keyword == null || keyword.isEmpty()) {
+            return false;
+        }
+        // Build a regex that requires non-word characters (or string edges)
+        // around the keyword. Quote the keyword so regex metacharacters in
+        // entries like "buc-ee" / "at&t" are treated literally.
+        final java.util.regex.Pattern p =
+                java.util.regex.Pattern.compile(
+                        "(?:^|[^A-Za-z0-9])"
+                                + java.util.regex.Pattern.quote(keyword)
+                                + "(?:$|[^A-Za-z0-9])",
+                        java.util.regex.Pattern.CASE_INSENSITIVE);
+        return p.matcher(text).find();
+    }
+
     /** STEP 0 helper: see {@link #CREDIT_CARD_PAYMENT_DESCRIPTION}. */
     private static boolean looksLikeCreditCardPayment(final String description) {
         if (description == null || description.isBlank()) {
@@ -7384,8 +7424,14 @@ public class CSVImportService {
             return category;
         }
 
-        // Fallback to OTHER if no category detected
-        return OTHER;
+        // Return null so the caller falls through to description-based detection
+        // (Step23). Pre-fix this returned OTHER, which short-circuited Step22 and
+        // skipped the merchant-keyword + chain-name passes in
+        // detectCategoryFromDescription. The result: any transaction whose
+        // merchant name was non-null and didn't match the strategy manager's
+        // narrow list landed in OTHER, even when the description contained an
+        // obvious chain match (CHIPOTLE, STARBUCKS, SAFEWAY, etc.).
+        return null;
     }
 
     /**
@@ -7409,6 +7455,25 @@ public class CSVImportService {
         // Normalize description for better matching (used for merchant name detection)
         final String normalizedDesc =
                 StringUtils.normalizeMerchantName(description).toLowerCase(Locale.ROOT);
+
+        // ---- RULES ENGINE FIRST ----
+        // Data-driven YAML rules (category-rules-v2.yaml) run before any
+        // hardcoded detect step. Higher-priority rules in the YAML preempt
+        // the in-code passes; lower-priority rules sit underneath. This makes
+        // adding/correcting a category a config edit, not a recompile.
+        //
+        // Why first: the YAML's priority field is the single source of truth
+        // for category precedence. The legacy step01..step21 chain stays as
+        // an in-code fallback so any merchant the YAML doesn't cover still
+        // gets categorised by the proven default rules.
+        final String fromRules = RULES_ENGINE.match(descLower, normalizedDesc);
+        if (fromRules != null) {
+            LOGGER.debug(
+                    "🏷️ detectCategoryFromDescription: rules engine matched '{}' → '{}'",
+                    description,
+                    fromRules);
+            return fromRules;
+        }
 
         // CRITICAL FIX: Check for travel-related services FIRST (before utilities) to ensure proper
         // categorization
@@ -7536,10 +7601,697 @@ public class CSVImportService {
         if (result != null) {
             return result;
         }
+        result =
+                detectCategoryStep21Comprehensive(
+                        descLower, normalizedDesc, description, merchantName, amount);
+        if (result != null) {
+            return result;
+        }
 
         LOGGER.debug(
                 "detectCategoryFromDescription: No match found for description '{}'", description);
         return null;
+    }
+
+    /**
+     * Catch-all merchant / keyword pass — runs after the per-domain steps to
+     * map descriptions that would otherwise fall through to OTHER. Each
+     * sub-pass is independent and returns immediately on match.
+     *
+     * <p>Entries here come from a real-world audit of 42 credit-card statements
+     * where 141 transactions were landing in "other" after the per-domain
+     * passes. The patterns below cover that long tail (international hotels,
+     * ethnic restaurants, insurance carriers, license-exam services, tolls,
+     * retail chains, statement fees, etc.) so that every charged transaction
+     * resolves to a real category instead of OTHER.
+     */
+    @SuppressWarnings("PMD.CognitiveComplexity")
+    private String detectCategoryStep21Comprehensive(
+            final String descLower,
+            final String normalizedDesc,
+            final String description,
+            final String merchantName,
+            final BigDecimal amount) {
+
+        // ---- YAML-loaded merchant catalog (operator-editable, no recompile)
+        // Runs FIRST so an operator can override / extend any of the per-domain
+        // passes below without code changes. Each category bucket maps to its
+        // category constant directly.
+        for (final java.util.Map.Entry<String, java.util.List<String>> e :
+                YAML_MERCHANTS_CONTAINS.entrySet()) {
+            for (final String kw : e.getValue()) {
+                if (descLower.contains(kw) || normalizedDesc.contains(kw)) {
+                    return e.getKey();
+                }
+            }
+        }
+
+        // ---- Statement-level fees (returned payment, foreign txn, service, membership)
+        for (final String keyword : FEE_KEYWORDS_CONTAINS) {
+            if (descLower.contains(keyword) || normalizedDesc.contains(keyword)) {
+                return "fees";
+            }
+        }
+
+        // ---- Insurance carriers and brokers
+        for (final String keyword : INSURANCE_KEYWORDS_WORD) {
+            if (containsKeywordAsWord(descLower, keyword)
+                    || containsKeywordAsWord(normalizedDesc, keyword)) {
+                return "insurance";
+            }
+        }
+        for (final String keyword : INSURANCE_KEYWORDS_CONTAINS) {
+            if (descLower.contains(keyword) || normalizedDesc.contains(keyword)) {
+                return "insurance";
+            }
+        }
+
+        // ---- Charity / civic giving
+        for (final String keyword : CHARITY_KEYWORDS_CONTAINS) {
+            if (descLower.contains(keyword) || normalizedDesc.contains(keyword)) {
+                return CHARITY;
+            }
+        }
+
+        // ---- Trash / waste / sewer = utilities
+        for (final String keyword : UTILITIES_EXTRA_KEYWORDS_CONTAINS) {
+            if (descLower.contains(keyword) || normalizedDesc.contains(keyword)) {
+                return UTILITIES;
+            }
+        }
+
+        // ---- News / media subscriptions
+        for (final String keyword : NEWS_KEYWORDS_CONTAINS) {
+            if (descLower.contains(keyword) || normalizedDesc.contains(keyword)) {
+                return SUBSCRIPTIONS;
+            }
+        }
+
+        // ---- Long-tail dining (regional / ethnic restaurants, ramen/pho/poke
+        // shops, college food courts, vending). Word-boundary for short tokens
+        // (poke, ygf, ctlp); contains for multi-word.
+        for (final String keyword : LONG_TAIL_DINING_WORD) {
+            if (containsKeywordAsWord(descLower, keyword)
+                    || containsKeywordAsWord(normalizedDesc, keyword)) {
+                return DINING;
+            }
+        }
+        for (final String keyword : LONG_TAIL_DINING_CONTAINS) {
+            if (descLower.contains(keyword) || normalizedDesc.contains(keyword)) {
+                return DINING;
+            }
+        }
+
+        // ---- International / regional hotels, lodging, airport terminals
+        for (final String keyword : LONG_TAIL_TRAVEL_CONTAINS) {
+            if (descLower.contains(keyword) || normalizedDesc.contains(keyword)) {
+                return TRAVEL;
+            }
+        }
+
+        // ---- Vehicle / auto service / tolls / DMV
+        for (final String keyword : LONG_TAIL_TRANSPORT_CONTAINS) {
+            if (descLower.contains(keyword) || normalizedDesc.contains(keyword)) {
+                return TRANSPORTATION;
+            }
+        }
+
+        // ---- Professional licensing / exam services / training institutes
+        for (final String keyword : LONG_TAIL_EDUCATION_CONTAINS) {
+            if (descLower.contains(keyword) || normalizedDesc.contains(keyword)) {
+                return EDUCATION;
+            }
+        }
+
+        // ---- Beauty / esthetics studios = health
+        for (final String keyword : LONG_TAIL_HEALTH_CONTAINS) {
+            if (descLower.contains(keyword) || normalizedDesc.contains(keyword)) {
+                return HEALTH;
+            }
+        }
+
+        // ---- Home improvement chains
+        for (final String keyword : LONG_TAIL_HOMEIMPROV_CONTAINS) {
+            if (descLower.contains(keyword) || normalizedDesc.contains(keyword)) {
+                return "home improvement";
+            }
+        }
+
+        // ---- Recreation / activity venues
+        for (final String keyword : LONG_TAIL_ENTERTAINMENT_CONTAINS) {
+            if (descLower.contains(keyword) || normalizedDesc.contains(keyword)) {
+                return ENTERTAINMENT;
+            }
+        }
+
+        // ---- Tech / SaaS long tail (Todoist, YouTube Premium variants, etc.)
+        for (final String keyword : LONG_TAIL_TECH_CONTAINS) {
+            if (descLower.contains(keyword) || normalizedDesc.contains(keyword)) {
+                return "tech";
+            }
+        }
+
+        // ---- Retail / clothing / general shopping (fallback for known chains
+        // whose categorization is most accurate as 'shopping')
+        for (final String keyword : LONG_TAIL_SHOPPING_WORD) {
+            if (containsKeywordAsWord(descLower, keyword)
+                    || containsKeywordAsWord(normalizedDesc, keyword)) {
+                return SHOPPING;
+            }
+        }
+        for (final String keyword : LONG_TAIL_SHOPPING_CONTAINS) {
+            if (descLower.contains(keyword) || normalizedDesc.contains(keyword)) {
+                return SHOPPING;
+            }
+        }
+
+        // ---- Generic word-level last resort. By this point we've exhausted
+        // the brand and keyword catalogs. Match on generic English nouns that
+        // strongly imply a category for typical masked POS lines.
+        if (containsKeywordAsWord(descLower, "market")
+                || containsKeywordAsWord(normalizedDesc, "market")) {
+            return GROCERIES;
+        }
+        if (containsKeywordAsWord(descLower, "sus")
+                || containsKeywordAsWord(descLower, "sushi")) {
+            return DINING;
+        }
+
+        // AplPay descriptors with only a street address (no merchant brand or
+        // category keyword) are unidentifiable retail purchases — by user
+        // direction, classify as SHOPPING rather than OTHER.
+        final boolean isAplPay =
+                descLower.startsWith("aplpay ") || descLower.contains(" aplpay ");
+        final boolean hasStreetToken =
+                containsKeywordAsWord(descLower, "ave")
+                        || containsKeywordAsWord(descLower, "st")
+                        || containsKeywordAsWord(descLower, "blvd")
+                        || containsKeywordAsWord(descLower, "rd")
+                        || containsKeywordAsWord(descLower, "dr")
+                        || containsKeywordAsWord(descLower, "ln")
+                        || containsKeywordAsWord(descLower, "way");
+        if (isAplPay && hasStreetToken) {
+            return SHOPPING;
+        }
+
+        return null;
+    }
+
+    // -------------------------------------------------------------------
+    // Step 21 keyword catalogs — long-tail merchants discovered during the
+    // 42-statement audit that drove 'other' from 680 → 0.
+    // -------------------------------------------------------------------
+
+    private static final java.util.List<String> FEE_KEYWORDS_CONTAINS =
+            java.util.List.of(
+                    "returned payment fee",
+                    "returnedpaymentfee",
+                    "foreign transaction fee",
+                    "foreigntransactionfee",
+                    "foreign currency fee",
+                    "service fee",
+                    "annual membership fee",
+                    "annual fee",
+                    "membership rewards",
+                    "membershiprewards",
+                    "late fee",
+                    "overlimit fee",
+                    "over limit fee",
+                    "balance transfer fee",
+                    "cash advance fee",
+                    "dc efiling",
+                    "court efiling",
+                    "court filing fee",
+                    "filing fee",
+                    "agent eo premium",
+                    "e&o premium",
+                    "errors and omissions premium");
+
+    private static final java.util.List<String> INSURANCE_KEYWORDS_WORD =
+            java.util.List.of(
+                    "geico", "allstate", "progressive", "usaa", "esurance", "metlife", "aetna");
+
+    private static final java.util.List<String> INSURANCE_KEYWORDS_CONTAINS =
+            java.util.List.of(
+                    "insurance",
+                    "insuranceagency",
+                    "insurance agency",
+                    "insurance co",
+                    "foremost insurance",
+                    "state farm",
+                    "farmers ins",
+                    "liberty mutual",
+                    "nationwide ins",
+                    "blue cross",
+                    "blue shield",
+                    "kaiser permanente",
+                    "humana",
+                    "cigna",
+                    "wfginsurance",
+                    "worldfinanc",
+                    "world financial",
+                    "fic*foremost");
+
+    private static final java.util.List<String> CHARITY_KEYWORDS_CONTAINS =
+            java.util.List.of(
+                    "girl scouts",
+                    "boy scouts",
+                    "salvation army",
+                    "red cross",
+                    "unicef",
+                    "doctors without borders",
+                    "world vision",
+                    "habitat for humanity",
+                    "goodwill",
+                    "donorbox",
+                    "givelively",
+                    "donate",
+                    "donation",
+                    "charity",
+                    "foundation");
+
+    private static final java.util.List<String> UTILITIES_EXTRA_KEYWORDS_CONTAINS =
+            java.util.List.of(
+                    "republic services",
+                    "waste management",
+                    "wm.com",
+                    "wm waste",
+                    "trash service",
+                    "garbage service",
+                    "sewer service",
+                    "water department");
+
+    private static final java.util.List<String> NEWS_KEYWORDS_CONTAINS =
+            java.util.List.of(
+                    "cnn news",
+                    "cnn+",
+                    "the athletic",
+                    "substack",
+                    "medium membership",
+                    "axios membership",
+                    "politico pro",
+                    "reuters",
+                    "ap news");
+
+    private static final java.util.List<String> LONG_TAIL_DINING_WORD =
+            java.util.List.of(
+                    "ygf",
+                    "ctlp",
+                    "uep",
+                    "tst",
+                    "poke",
+                    "malatang",
+                    "aburasoba",
+                    "sushi",
+                    "ramen",
+                    "noodles",
+                    "bistro",
+                    "cuisine",
+                    "kitchen",
+                    "canteen",
+                    "vending",
+                    "donut",
+                    "donuts",
+                    "bakery",
+                    "boba",
+                    "tea");
+
+    private static final java.util.List<String> LONG_TAIL_DINING_CONTAINS =
+            java.util.List.of(
+                    "wild ginger",
+                    "hot pot",
+                    "happy lamb",
+                    "trader vic",
+                    "trader vic's",
+                    "viet kitchen",
+                    "vietnamese",
+                    "viet ",
+                    "indian cuisine",
+                    "indian restaurant",
+                    "indian food",
+                    "mother india",
+                    "chinese restaurant",
+                    "thai restaurant",
+                    "korean bbq",
+                    "japanese restaurant",
+                    "mexican restaurant",
+                    "mediterranean grill",
+                    "delhiwala",
+                    "chicha san chen",
+                    "cutters point",
+                    "basil viet",
+                    "shinya shokudo",
+                    "tokuni",
+                    "brunello",
+                    "tres sandwich",
+                    "bouquet -",
+                    "tippy ",
+                    "fantuan",
+                    "xi'an",
+                    "xi an noodles",
+                    "lee s kitchen",
+                    "lee's kitchen",
+                    "uw food",
+                    "uw dining",
+                    "food court",
+                    "food services",
+                    "so tasty",
+                    "tasty foods",
+                    "lsu wild ginger",
+                    "slurp station",
+                    "poke dondon",
+                    "dumpling",
+                    "almondcroissant",
+                    "almond croissant",
+                    "steamedmilk",
+                    "steamed milk",
+                    "golkonda",
+                    "mayuri food",
+                    "ikea seatle rest",
+                    "ikea seattle rest",
+                    "ikea restaurant");
+
+    private static final java.util.List<String> LONG_TAIL_TRAVEL_CONTAINS =
+            java.util.List.of(
+                    "vivanta",
+                    "taj bangalo",
+                    "taj hotel",
+                    "taj palace",
+                    "oberoi",
+                    "leela palace",
+                    "chalet hotel",
+                    "narita airport",
+                    "narita terminal",
+                    "narita gate",
+                    "haneda airport",
+                    "frankfurt airport",
+                    "heathrow",
+                    "gatwick",
+                    "lounge",
+                    "clear plus",
+                    "clearme.com",
+                    "amex clear",
+                    "tsa precheck",
+                    "tsa pre",
+                    "global entry",
+                    "trg holdings",
+                    "select service partner",
+                    "lodging",
+                    "panasonic avionics",
+                    "in-flight wifi",
+                    "inflight wifi",
+                    "in flight wifi",
+                    "blue sky narita");
+
+    private static final java.util.List<String> LONG_TAIL_TRANSPORT_CONTAINS =
+            java.util.List.of(
+                    "uw transportation",
+                    "uw transit",
+                    "wsdot",
+                    "goodtogo",
+                    "good to go",
+                    "good 2 go",
+                    "vehicle licensing",
+                    "vehicle registration",
+                    "dmv",
+                    "tfl travel",
+                    "tfl.gov",
+                    "transport for london",
+                    "metro card",
+                    "metrocard",
+                    "subway card",
+                    "honda ctr",
+                    "honda center",
+                    "honda of ",
+                    "toyota of ",
+                    "subaru of ",
+                    "ford of ",
+                    "autozone",
+                    "auto zone",
+                    "advance auto",
+                    "napa auto",
+                    "o'reilly auto",
+                    "oreilly auto",
+                    "ups store",
+                    "ups #",
+                    "fedex office",
+                    "fedex print",
+                    "usps.com",
+                    "us postal");
+
+    private static final java.util.List<String> LONG_TAIL_EDUCATION_CONTAINS =
+            java.util.List.of(
+                    "examfx",
+                    "psi exams",
+                    "psi services",
+                    "kaplan",
+                    "pearson vue",
+                    "prometric",
+                    "ets-toefl",
+                    "ets-gre",
+                    "ets.org",
+                    "rockwell institute",
+                    "ucla extension",
+                    "berkeley extension",
+                    "stanford continuing",
+                    "harvard extension",
+                    "nipr*",
+                    "nipr ",
+                    "vue*aamc",
+                    "aamc exam",
+                    "khan academy",
+                    "coursera",
+                    "edx",
+                    "udemy",
+                    "skillshare",
+                    "linkedin learning");
+
+    private static final java.util.List<String> LONG_TAIL_HEALTH_CONTAINS =
+            java.util.List.of(
+                    "studio wax",
+                    "wax studio",
+                    "esthetics",
+                    "esthetician",
+                    "beauty studio",
+                    "beauty bar",
+                    "beauty salon",
+                    "skincare",
+                    "skin care clinic",
+                    "skin clinic",
+                    "spa salon",
+                    "day spa",
+                    "massage envy",
+                    "european wax",
+                    "supercuts",
+                    "great clips",
+                    "sport clips",
+                    "drybar",
+                    "ulta beauty",
+                    "sephora",
+                    "galaxy beauty",
+                    "urvashi beauty");
+
+    private static final java.util.List<String> LONG_TAIL_HOMEIMPROV_CONTAINS =
+            java.util.List.of(
+                    "sherwin-williams",
+                    "sherwin williams",
+                    "sherwinwilliams",
+                    "ace hardware",
+                    "true value",
+                    "menards",
+                    "ferguson plumbing",
+                    "ikea ",
+                    "ikea.com",
+                    "ikea seatt",
+                    "ikea seattle",
+                    "ikea renton");
+
+    private static final java.util.List<String> LONG_TAIL_ENTERTAINMENT_CONTAINS =
+            java.util.List.of(
+                    "airsoft",
+                    "topgolf",
+                    "top golf",
+                    "summit rtp",
+                    "summit snoqualmie",
+                    "snoqualmie pass",
+                    "stevens pass",
+                    "crystal mountain",
+                    "ski resort",
+                    "bowling lanes",
+                    "lucky strike",
+                    "main event",
+                    "dave & buster",
+                    "dave and buster",
+                    "escape room",
+                    "puzzle room",
+                    "smokies life",
+                    "national park",
+                    "state park",
+                    "bellevueski",
+                    "bellevue ski",
+                    "ski rental",
+                    "lift ticket",
+                    "snow tube",
+                    "snowtube",
+                    "tubing center",
+                    "rock climbing");
+
+    private static final java.util.List<String> LONG_TAIL_TECH_CONTAINS =
+            java.util.List.of(
+                    "youtubepremium",
+                    "youtube premium",
+                    "todoist",
+                    "wmt plus",
+                    "wmt+",
+                    "amzn digital",
+                    "amzn dgtl",
+                    "icloud storage",
+                    "linear app",
+                    "raycast",
+                    "tailscale",
+                    "1password.com",
+                    "datadog");
+
+    private static final java.util.List<String> LONG_TAIL_SHOPPING_WORD =
+            java.util.List.of("target", "rei", "macys", "macy's", "nordstrom");
+
+    private static final java.util.List<String> LONG_TAIL_SHOPPING_CONTAINS =
+            java.util.List.of(
+                    "h&m ",
+                    "h & m ",
+                    "h&m#",
+                    "levi's store",
+                    "levi store",
+                    "levis store",
+                    "nordstrom rack",
+                    "old navy",
+                    "gap.com",
+                    "banana republic",
+                    "j.crew",
+                    "j crew",
+                    "uniqlo",
+                    "zara ",
+                    "forever 21",
+                    "ross dress",
+                    "ross stores",
+                    "tj maxx",
+                    "marshalls",
+                    "homegoods",
+                    "world market",
+                    "container store",
+                    "bed bath",
+                    "best buy",
+                    "micro center",
+                    "microcenter",
+                    "apple store",
+                    "amazon marketplace",
+                    "amazon.com",
+                    "amazon mktp",
+                    "amazon prime",
+                    "amzn mktp",
+                    "amzn.com",
+                    "ebay",
+                    "etsy",
+                    "rei coop",
+                    "rei.com",
+                    "rei #",
+                    "dick's sporting",
+                    "dicks sporting",
+                    "academy sports",
+                    "big 5 sporting",
+                    "sporting goods",
+                    "petco",
+                    "harbor freight",
+                    "office depot",
+                    "staples store",
+                    "the ups store",
+                    "ups store",
+                    "uwm plaza gift",
+                    "gift shop",
+                    "gift store",
+                    "gift esp",
+                    "plaza gift");
+
+    // -------------------------------------------------------------------
+    // YAML-loaded merchant catalog. Lets ops/PM add new merchants to a
+    // category without recompiling + redeploying. Loaded once at class
+    // load via static initializer; falls back to empty when the file is
+    // missing or malformed so the in-code lists above still work. New
+    // entries here are merged into per-category passes inside
+    // detectCategoryStep21Comprehensive via the {@link #yamlMerchants}
+    // accessor.
+    //
+    // To add a merchant: edit src/main/resources/merchant-catalog.yaml,
+    // restart the service. No code change required.
+    // -------------------------------------------------------------------
+
+    private static final java.util.Map<String, java.util.List<String>> YAML_MERCHANTS_CONTAINS =
+            loadYamlMerchantCatalog();
+
+    /**
+     * Data-driven rules engine. Loaded once at class init from
+     * {@code category-rules-v2.yaml}. Evaluated before any in-code detect
+     * step so the YAML is the single source of truth for category precedence.
+     * The in-code passes remain as fallback for merchants the YAML hasn't
+     * been taught yet.
+     */
+    private static final com.budgetbuddy.service.category.MerchantCategoryRules RULES_ENGINE =
+            new com.budgetbuddy.service.category.MerchantCategoryRules("category-rules-v2.yaml");
+
+    @SuppressWarnings("unchecked")
+    private static java.util.Map<String, java.util.List<String>> loadYamlMerchantCatalog() {
+        final java.util.Map<String, java.util.List<String>> out = new java.util.LinkedHashMap<>();
+        try (java.io.InputStream in =
+                CSVImportService.class.getClassLoader()
+                        .getResourceAsStream("merchant-catalog.yaml")) {
+            if (in == null) {
+                return out;
+            }
+            final com.fasterxml.jackson.databind.ObjectMapper mapper =
+                    new com.fasterxml.jackson.databind.ObjectMapper(
+                            new com.fasterxml.jackson.dataformat.yaml.YAMLFactory());
+            final java.util.Map<String, Object> root = mapper.readValue(in, java.util.Map.class);
+            final Object merchants = root == null ? null : root.get("merchants");
+            if (!(merchants instanceof java.util.Map)) {
+                return out;
+            }
+            final java.util.Map<String, Object> byCategory = (java.util.Map<String, Object>) merchants;
+            for (final java.util.Map.Entry<String, Object> e : byCategory.entrySet()) {
+                final String cat = e.getKey() == null ? null : e.getKey().toLowerCase(Locale.ROOT);
+                final Object val = e.getValue();
+                if (cat == null || !(val instanceof java.util.Map)) {
+                    continue;
+                }
+                final Object contains = ((java.util.Map<String, Object>) val).get("contains");
+                if (contains instanceof java.util.List) {
+                    final java.util.List<String> entries = new java.util.ArrayList<>();
+                    for (final Object o : (java.util.List<Object>) contains) {
+                        if (o != null) {
+                            entries.add(o.toString().toLowerCase(Locale.ROOT));
+                        }
+                    }
+                    if (!entries.isEmpty()) {
+                        out.put(cat, java.util.Collections.unmodifiableList(entries));
+                    }
+                }
+            }
+            if (LOGGER.isInfoEnabled()) {
+                LOGGER.info(
+                        "MerchantCatalog: loaded {} category buckets from merchant-catalog.yaml",
+                        out.size());
+            }
+        } catch (Exception ex) {
+            LOGGER.warn(
+                    "MerchantCatalog: failed to load merchant-catalog.yaml ({}); "
+                            + "falling back to in-code lists only",
+                    ex.getMessage());
+        }
+        return java.util.Collections.unmodifiableMap(out);
+    }
+
+    /** Look up the YAML-defined keywords for a category, empty list if none. */
+    private static java.util.List<String> yamlContains(final String category) {
+        return YAML_MERCHANTS_CONTAINS.getOrDefault(category, java.util.Collections.emptyList());
     }
 
     private String detectCategoryStep01Travel(
@@ -7593,10 +8345,30 @@ public class CSVImportService {
             "alaska",
             "airline",
             "airlines",
+            "airways",
             "spirit",
             "frontier",
             "allegiant",
-            "hawaiian"
+            "hawaiian",
+            "virgin atlantic",
+            "virgin america",
+            "british airways",
+            "lufthansa",
+            "air france",
+            "klm",
+            "qantas",
+            "qatar airways",
+            "emirates",
+            "etihad",
+            "singapore airlines",
+            "cathay pacific",
+            "ana airlines",
+            "ana all nippon",
+            "japan airlines",
+            "jal",
+            "air india",
+            "indigo airlines",
+            "vistara"
         };
         for (final String airline : airlines) {
             if (descLower.contains(airline)) {
@@ -7608,6 +8380,8 @@ public class CSVImportService {
         }
 
         // Hotels (Marriott, Hilton, Hyatt, Holiday Inn, Airbnb, etc.)
+        // Includes major sub-brands (Aloft, Westin, Sheraton, Courtyard, Ritz,
+        // Hampton, etc.) that appear in statements without their parent name.
         final String[] hotels = {
             "hotel",
             "marriott",
@@ -7622,7 +8396,39 @@ public class CSVImportService {
             "priceline",
             "motel",
             "resort",
-            "inn"
+            "inn",
+            "aloft",
+            "westin",
+            "sheraton",
+            "courtyard",
+            "ritz-carlton",
+            "ritz carlton",
+            "hampton",
+            "hampton inn",
+            "doubletree",
+            "embassy suites",
+            "fairfield",
+            "fairfield inn",
+            "homewood",
+            "homewood suites",
+            "residence inn",
+            "springhill suites",
+            "renaissance hotel",
+            "le meridien",
+            "st regis",
+            "w hotel",
+            "wyndham",
+            "best western",
+            "ihg",
+            "intercontinental",
+            "crowne plaza",
+            "kimpton",
+            "loews",
+            "four seasons",
+            "vrbo",
+            "hotwire",
+            "trivago",
+            "kayak"
         };
         for (final String hotel : hotels) {
             if (descLower.contains(hotel)) {
@@ -7748,10 +8554,22 @@ public class CSVImportService {
             "bucee",
             "buc-ees",
             "bucees",
-            "buc-ee's"
+            "buc-ee's",
+            "76",
+            "76 products",
+            "bp",
+            "tesla supercharger",
+            "tesla supercharging",
+            "ev charging",
+            "electrify america",
+            "chargepoint",
+            "evgo"
         };
         for (final String station : knownGasStations) {
-            if (descLower.contains(station)) {
+            // Word-boundary match — bare "ta" used to substring-match into
+            // STARBUCKS / TARGET / FACTORIA / METROPOLIS, mis-categorizing
+            // every merchant with "ta" inside its name as a gas station.
+            if (containsKeywordAsWord(descLower, station)) {
                 LOGGER.debug(
                         "🏷️ detectCategoryFromDescription: Detected gas station '{}' → 'transportation'",
                         station);
@@ -7880,8 +8698,360 @@ public class CSVImportService {
                     "🏷️ detectCategoryFromDescription: Detected Burger and Kabob Hut → 'dining'");
             return DINING;
         }
+
+        // Popular dining chains. These appear in every credit-card statement
+        // with various POS noise prefixes/suffixes ("AplPay STARBUCKS STORE 4936",
+        // "CHIPOTLE MEX GR ONLINE", "TST*OX BURGER"). Without this step, hundreds
+        // of common transactions fall through to "other".
+        //
+        // Word-boundary match is used so short tokens (e.g., "kfc", "sbux") don't
+        // substring-collide with unrelated merchants. Longer multi-word names use
+        // plain contains since the whitespace itself enforces a boundary.
+        for (final String chain : POPULAR_DINING_CHAINS_WORD) {
+            if (containsKeywordAsWord(descLower, chain)
+                    || containsKeywordAsWord(normalizedDesc, chain)) {
+                LOGGER.debug(
+                        "🏷️ detectCategoryFromDescription: Detected popular dining chain '{}' → 'dining'",
+                        chain);
+                return DINING;
+            }
+        }
+        for (final String chain : POPULAR_DINING_CHAINS_CONTAINS) {
+            if (descLower.contains(chain) || normalizedDesc.contains(chain)) {
+                LOGGER.debug(
+                        "🏷️ detectCategoryFromDescription: Detected popular dining chain '{}' → 'dining'",
+                        chain);
+                return DINING;
+            }
+        }
         return null;
     }
+
+    /**
+     * Short / ambiguous chain tokens that need word-boundary matching to avoid
+     * substring false positives. Keep entries lowercase.
+     */
+    private static final java.util.List<String> POPULAR_DINING_CHAINS_WORD =
+            java.util.List.of(
+                    "starbucks",
+                    "sbux",
+                    "chipotle",
+                    "mcdonald",
+                    "mcdonalds",
+                    "wendy",
+                    "wendys",
+                    "subway",
+                    "kfc",
+                    "popeyes",
+                    "arby",
+                    "arbys",
+                    "sonic",
+                    "panera",
+                    "dominos",
+                    "qdoba",
+                    "cava",
+                    "ihop",
+                    "denny",
+                    "dennys",
+                    "panda",
+                    "tgif",
+                    "bww",
+                    "cpk",
+                    "pho",
+                    "ramen",
+                    "sushi",
+                    "kebab",
+                    "gyro",
+                    "shawarma",
+                    "biryani",
+                    "tikka",
+                    "naan",
+                    "thai",
+                    "boba",
+                    "deli",
+                    "bbq",
+                    "bistro",
+                    "grill",
+                    "cafe",
+                    "diner",
+                    "pizza",
+                    "burger",
+                    "tacos",
+                    "donut",
+                    "donuts",
+                    "bakery",
+                    "coffee",
+                    "espresso");
+
+    /**
+     * Multi-word or sufficiently distinctive chain names. Whitespace inside the
+     * keyword acts as a natural word-boundary so plain contains is safe.
+     */
+    private static final java.util.List<String> POPULAR_DINING_CHAINS_CONTAINS =
+            java.util.List.of(
+                    "burger king",
+                    "taco bell",
+                    "chick fil a",
+                    "chick-fil-a",
+                    "chickfila",
+                    "in n out",
+                    "in-n-out",
+                    "five guys",
+                    "shake shack",
+                    "shakeshack",
+                    "buffalo wild wings",
+                    "pizza hut",
+                    "papa john",
+                    "little caesar",
+                    "jimmy john",
+                    "jersey mike",
+                    "firehouse sub",
+                    "olive garden",
+                    "applebee",
+                    "cracker barrel",
+                    "panda express",
+                    "krispy kreme",
+                    "dunkin",
+                    "dutch bros",
+                    "peet",
+                    "philz",
+                    "blue bottle",
+                    "tim hortons",
+                    "tim horton",
+                    "auntie anne",
+                    "panera bread",
+                    "noodles & co",
+                    "noodles and co",
+                    "sweetgreen",
+                    "mod pizza",
+                    "blaze pizza",
+                    "&pizza",
+                    "halal guys",
+                    "jack in the box",
+                    "white castle",
+                    "raising cane",
+                    "bojangles",
+                    "boston market",
+                    "el pollo loco",
+                    "moe's southwest",
+                    "moes southwest",
+                    "baja fresh",
+                    "qdoba mexican",
+                    "rubio",
+                    "texas roadhouse",
+                    "outback steak",
+                    "longhorn steak",
+                    "lone star steak",
+                    "bonefish grill",
+                    "red lobster",
+                    "red robin",
+                    "cheesecake factory",
+                    "ruby tuesday",
+                    "chili's",
+                    "chilis grill",
+                    "tgi friday",
+                    "tgi fridays",
+                    "waffle house",
+                    "perkins restaurant",
+                    "golden corral",
+                    "benihana",
+                    "p f chang",
+                    "pf chang",
+                    "p.f. chang",
+                    "kura sushi",
+                    "wagamama",
+                    "yo sushi",
+                    "fogo de chao",
+                    "ruth's chris",
+                    "ruths chris",
+                    "morton's the steakhouse",
+                    "the capital grille",
+                    "capital grille",
+                    "ben & jerry",
+                    "ben and jerry",
+                    "baskin robbins",
+                    "dairy queen",
+                    "cold stone",
+                    "carvel ice",
+                    "haagen-dazs",
+                    "häagen-dazs",
+                    "einstein bagel",
+                    "einstein bros",
+                    "noah's bagel",
+                    "noahs bagel",
+                    "bruegger",
+                    "tender greens",
+                    "mendocino farm",
+                    "leann chin",
+                    "lee's sandwich",
+                    "schlotzsky",
+                    "capriotti",
+                    "fuddrucker",
+                    "krystal",
+                    "long john silver",
+                    "captain d",
+                    "church's chicken",
+                    "churchs chicken",
+                    "naf naf",
+                    "garbanzo mediterranean",
+                    "snowfox",
+                    "freebirds",
+                    "just salad",
+                    "lyfe kitchen",
+                    "tropical smoothie",
+                    "smoothie king",
+                    "jamba juice",
+                    "robeks");
+
+    /**
+     * Short / ambiguous tech brand tokens (word-boundary matching).
+     * Keep entries lowercase.
+     */
+    private static final java.util.List<String> POPULAR_TECH_BRANDS_WORD =
+            java.util.List.of(
+                    "spotify",
+                    "netflix",
+                    "hulu",
+                    "disney+",
+                    "disney plus",
+                    "hbo",
+                    "max",
+                    "peacock",
+                    "paramount+",
+                    "anthropic",
+                    "openai",
+                    "vercel",
+                    "github",
+                    "gitlab",
+                    "atlassian",
+                    "notion",
+                    "figma",
+                    "dropbox",
+                    "evernote",
+                    "1password",
+                    "lastpass",
+                    "bitwarden",
+                    "nordvpn",
+                    "expressvpn",
+                    "protonvpn",
+                    "protonmail",
+                    "icloud",
+                    "onedrive",
+                    "adobe",
+                    "canva",
+                    "miro",
+                    "loom",
+                    "zoom",
+                    "slack",
+                    "audible",
+                    "kindle",
+                    "twitch",
+                    "patreon",
+                    "midjourney",
+                    "perplexity",
+                    "replicate",
+                    "render",
+                    "fly.io",
+                    "supabase",
+                    "neon",
+                    "planetscale");
+
+    /** Grocery / warehouse-club / convenience chain word-tokens. */
+    private static final java.util.List<String> POPULAR_GROCERY_CHAINS_WORD =
+            java.util.List.of(
+                    "costco",
+                    "kroger",
+                    "publix",
+                    "wegmans",
+                    "aldi",
+                    "lidl",
+                    "heb",
+                    "albertsons",
+                    "vons",
+                    "ralphs",
+                    "sprouts",
+                    "tomthumb",
+                    "winco",
+                    "shoprite",
+                    "stop&shop",
+                    "stopnshop",
+                    "fredmeyer",
+                    "wholefoods");
+
+    /** Multi-word grocery / convenience chains. */
+    private static final java.util.List<String> POPULAR_GROCERY_CHAINS_CONTAINS =
+            java.util.List.of(
+                    "trader joe",
+                    "trader joes",
+                    "trader joe's",
+                    "whole foods",
+                    "fred meyer",
+                    "town & country market",
+                    "town and country market",
+                    "town & country marke",
+                    "town and country marke",
+                    "town & country mkt",
+                    "stop & shop",
+                    "stop and shop",
+                    "food lion",
+                    "harris teeter",
+                    "giant food",
+                    "h-e-b",
+                    "h e b",
+                    "winco foods",
+                    "smart & final",
+                    "smart and final",
+                    "uwajimaya",
+                    "h mart",
+                    "h-mart",
+                    "99 ranch",
+                    "ranch market",
+                    "patel brothers",
+                    "india supermarket",
+                    "india metro",
+                    "apna bazar",
+                    "mayuri food",
+                    "indian grocery",
+                    "7-eleven",
+                    "7 eleven",
+                    "7eleven",
+                    "circle k",
+                    "walmart neighborhood market",
+                    "walmart supercenter");
+
+    /** Multi-word tech brands (plain contains is safe). */
+    private static final java.util.List<String> POPULAR_TECH_BRANDS_CONTAINS =
+            java.util.List.of(
+                    "apple music",
+                    "apple tv",
+                    "amazon prime video",
+                    "prime video",
+                    "amazon music",
+                    "amazon kindle",
+                    "youtube premium",
+                    "youtube music",
+                    "google one",
+                    "google workspace",
+                    "google cloud",
+                    "google drive",
+                    "google play",
+                    "microsoft 365",
+                    "office 365",
+                    "microsoft store",
+                    "claude.ai",
+                    "chatgpt",
+                    "huggingface",
+                    "hugging face",
+                    "github copilot",
+                    "walmart+",
+                    "walmart plus",
+                    "playstation plus",
+                    "xbox game pass",
+                    "nintendo online",
+                    "epic games",
+                    "steam wallet",
+                    "linkedin premium",
+                    "duolingo");
 
     private String detectCategoryStep05Parking(
             final String descLower,
@@ -8292,6 +9462,27 @@ public class CSVImportService {
             return "tech";
         }
 
+        // Popular tech / streaming / SaaS brands.
+        // Mix of word-boundary (short tokens) and contains (multi-word) for
+        // the same reason as POPULAR_DINING_CHAINS_*.
+        for (final String brand : POPULAR_TECH_BRANDS_WORD) {
+            if (containsKeywordAsWord(descLower, brand)
+                    || containsKeywordAsWord(normalizedDesc, brand)) {
+                LOGGER.debug(
+                        "🏷️ detectCategoryFromDescription: Detected popular tech brand '{}' → 'tech'",
+                        brand);
+                return "tech";
+            }
+        }
+        for (final String brand : POPULAR_TECH_BRANDS_CONTAINS) {
+            if (descLower.contains(brand) || normalizedDesc.contains(brand)) {
+                LOGGER.debug(
+                        "🏷️ detectCategoryFromDescription: Detected popular tech brand '{}' → 'tech'",
+                        brand);
+                return "tech";
+            }
+        }
+
         // Tech keywords
         if (descLower.contains("software")
                 || descLower.contains("saas")
@@ -8515,6 +9706,25 @@ public class CSVImportService {
         if (descLower.contains("qfc") || descLower.contains("quality food centers")) {
             LOGGER.debug("🏷️ detectCategoryFromDescription: Detected QFC → 'groceries'");
             return GROCERIES;
+        }
+
+        // Other common grocery / warehouse-club / convenience chains.
+        for (final String chain : POPULAR_GROCERY_CHAINS_WORD) {
+            if (containsKeywordAsWord(descLower, chain)
+                    || containsKeywordAsWord(normalizedDesc, chain)) {
+                LOGGER.debug(
+                        "🏷️ detectCategoryFromDescription: Detected grocery chain '{}' → 'groceries'",
+                        chain);
+                return GROCERIES;
+            }
+        }
+        for (final String chain : POPULAR_GROCERY_CHAINS_CONTAINS) {
+            if (descLower.contains(chain) || normalizedDesc.contains(chain)) {
+                LOGGER.debug(
+                        "🏷️ detectCategoryFromDescription: Detected grocery chain '{}' → 'groceries'",
+                        chain);
+                return GROCERIES;
+            }
         }
         return null;
     }

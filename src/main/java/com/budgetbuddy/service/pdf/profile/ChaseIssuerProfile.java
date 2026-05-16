@@ -18,8 +18,15 @@ import java.util.regex.Pattern;
  * (Marriott Bonvoy transfer-partner points, Amazon Visa per-category multipliers,
  * Freedom rotating-quarter bonus) remain in StatementParsingUtilities for now because they
  * involve multi-pattern aggregation that's harder to isolate per-brand.
+ *
+ * @deprecated Migration target — superseded by {@code pdf-templates-v2/chase.yaml}.
+ *     Card detection + statement-period + balance/total extraction are now in v2.
+ *     Brand-specific reward / quarterly-bonus extraction still requires this
+ *     class. Deletion gated on v2 schema gaining {@code points_block},
+ *     {@code quarterly_bonus}, and {@code apr_table} rule types. See
+ *     {@code docs/pdf-import-deprecation-map.md}.
  */
-
+@Deprecated(since = "v2-migration-q1")
 public final class ChaseIssuerProfile extends AbstractIssuerProfile {
 
     // Chase: "Opening/Closing Date 05/13/26 - 06/12/26" — single label with two

@@ -1,0 +1,86 @@
+# U.S. Bank — Smartly Visa Signature credit card statement
+#
+# This is the first v2 template, used as a proof-of-concept for the YAML
+# migration. It covers full extraction (card detection, statement metadata,
+# transaction layouts) so the corresponding code in AccountDetectionService /
+# USBankIssuerProfile becomes deletable once parity is verified on the
+# 5 U.S. Bank statements in the 42-PDF corpus.
+#
+# Status: unverified (until validated against the corpus by PdfTemplateV2EvaluatorTest)
+id: us-bank-v2
+institution: U.S. Bank
+description: "U.S. Bank credit card (Smartly Visa Signature) — v2 schema"
+status: unverified
+
+card_detection:
+  institution_match:
+    - any_of:
+        - "(?i)U\\.S\\.\\s+Bank\\b"
+        - "(?i)usbank\\.com"
+        - "(?i)U\\.S\\.\\s+Bancorp"
+
+  # U.S. Bank prints "Account Ending in: #### #### #### 1739". The mask glyph
+  # is `#`, not the `*`/`x` Chase/Citi use — the v1 regex missed this for
+  # months until the # was added to the mask character class.
+  last_four:
+    - pattern: "(?i)account\\s+ending\\s+(?:in[\\s:]+)?([*xX#\\s-]{0,24}\\d{3,5})"
+      filename_fallback: true
+
+  account_holder:
+    - source: above_account_ending
+      lines_above_account: 1-3
+
+metadata:
+  statement_date:
+    - label: "Closing Date"
+      adjacent: date
+
+  statement_period:
+    - pattern: "Open Date:\\s+(\\d{1,2}/\\d{1,2}/\\d{4})\\s+Closing Date:\\s+(\\d{1,2}/\\d{1,2}/\\d{4})"
+
+  # U.S. Bank Activity Summary block prints labels with their values inline:
+  #   "Previous Balance + $20,574.32"
+  #   "Payments - $20,574.32"
+  #   "Purchases $0.00"
+  #   "Interest Charged + $79.99"
+  # We use explicit patterns anchored at line start to avoid matching the
+  # word "purchases" / "interest" / etc inside arbitrary disclosure prose.
+  new_balance:
+    - pattern: "(?im)^\\s*New\\s+Balance\\s+\\$([\\d,]+\\.\\d{2})"
+
+  previous_balance:
+    - pattern: "(?im)^\\s*Previous\\s+Balance\\s+[-+]?\\s*\\$([\\d,]+\\.\\d{2})"
+
+  purchases_total:
+    - pattern: "(?im)^\\s*Purchases\\s+[-+]?\\s*\\$([\\d,]+\\.\\d{2})"
+
+  payments_total:
+    - pattern: "(?im)^\\s*Payments\\s+[-+]?\\s*\\$([\\d,]+\\.\\d{2})"
+
+  fees_total:
+    - pattern: "(?im)^\\s*Fees\\s+Charged\\s+[-+]?\\s*\\$([\\d,]+\\.\\d{2})"
+
+  interest_total:
+    - pattern: "(?im)^\\s*Interest\\s+Charged\\s+[-+]?\\s*\\$([\\d,]+\\.\\d{2})"
+
+preprocessing:
+  # U.S. Bank statements don't have multi-line FX blocks, so no FX-strip
+  # strategies needed. Stitching is the standard single-line transaction model.
+  stitch:
+    section_headers:
+      - "Purchases"
+      - "Payments"
+      - "Fees Charged"
+      - "Interest Charged"
+      - "Total"
+
+layouts:
+  - name: usb-credit-card-single-line
+    accountType: credit
+    # U.S. Bank credit card layout:
+    #   "04/15 ET PAYMENT THANK YOU $-18,000.32"
+    # Two date columns are NOT used here — single posting date + merchant + amount.
+    lineRegex: '^(?<date>\d{1,2}/\d{1,2}(?:/\d{2,4})?)\s+(?<description>.+?)\s+\$?(?<amount>-?\d{1,3}(?:,\d{3})*\.\d{2})\s*$'
+    dateFormat: "M/d"
+    signConvention: credit-positive
+    minAmount: 0.01

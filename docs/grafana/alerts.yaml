@@ -1,0 +1,55 @@
+# Prometheus alert rules for PDF import quality. Place under
+# /etc/prometheus/rules/budgetbuddy-pdf-import.yaml or include via
+# rule_files: in prometheus.yml.
+groups:
+  - name: pdf-import-quality
+    interval: 1m
+    rules:
+      - alert: PdfImportIssuerReconciliationDegraded
+        expr: |
+          (
+            sum by (institution) (rate(pdf_import_reconciliation_total{status="pass"}[1h])) /
+            clamp_min(
+              sum by (institution) (rate(pdf_import_reconciliation_total{status=~"pass|fail"}[1h])),
+              1e-9
+            )
+          ) < 0.95
+        for: 30m
+        labels:
+          severity: warning
+          area: pdf-import
+        annotations:
+          summary: "PDF import reconciliation below 95% for {{ $labels.institution }}"
+          description: |
+            Reconciliation pass rate is {{ $value | humanizePercentage }} for
+            {{ $labels.institution }}. Either the issuer's template changed
+            (open a v2 YAML patch) or a recent deploy broke parsing.
+          runbook: https://github.com/anthropic/budgetbuddy/blob/main/docs/pdf-import-architecture.md#layer-4
+
+      - alert: PdfImportFailureRateHigh
+        expr: |
+          (
+            sum(rate(pdf_import_total{status="error"}[10m])) /
+            clamp_min(sum(rate(pdf_import_total[10m])), 1e-9)
+          ) > 0.05
+        for: 5m
+        labels:
+          severity: critical
+          area: pdf-import
+        annotations:
+          summary: "PDF import error rate above 5%"
+          description: "{{ $value | humanizePercentage }} of imports erroring."
+
+      - alert: PdfImportParseLatencyP99High
+        expr: |
+          histogram_quantile(
+            0.99,
+            sum by (le) (rate(pdf_import_duration_seconds_bucket[10m]))
+          ) > 10
+        for: 10m
+        labels:
+          severity: warning
+          area: pdf-import
+        annotations:
+          summary: "PDF parse p99 above 10s"
+          description: "p99 = {{ $value }}s; investigate parser hot paths."

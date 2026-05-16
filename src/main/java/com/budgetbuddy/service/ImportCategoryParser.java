@@ -1,8 +1,10 @@
 package com.budgetbuddy.service;
 
+import com.budgetbuddy.service.category.CategoryCascade;
 import java.math.BigDecimal;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 
@@ -27,9 +29,26 @@ public class ImportCategoryParser {
     private static final Logger LOGGER = LoggerFactory.getLogger(ImportCategoryParser.class);
 
     private final CSVImportService csvImportService;
+    private final CategoryCascade cascade;
 
-    public ImportCategoryParser(@Lazy final CSVImportService csvImportService) {
+    @Autowired
+    public ImportCategoryParser(
+            @Lazy final CSVImportService csvImportService,
+            @org.springframework.beans.factory.annotation.Autowired(required = false)
+                    final CategoryCascade cascade) {
         this.csvImportService = csvImportService;
+        this.cascade = cascade;
+    }
+
+    /**
+     * Legacy 1-arg constructor kept for tests that wired this service
+     * before {@link CategoryCascade} existed. The cascade is the
+     * preferred entry point in production; tests that don't exercise
+     * the cascade can still construct an instance via this overload
+     * without having to mock four extra beans.
+     */
+    public ImportCategoryParser(final CSVImportService csvImportService) {
+        this(csvImportService, null);
     }
 
     /**
@@ -93,6 +112,35 @@ public class ImportCategoryParser {
         if (csvImportService == null) {
             LOGGER.warn("CSVImportService not available, returning null category");
             return null;
+        }
+
+        // ---- Layered cascade FIRST ----
+        // Run the unified L0→L8 cascade (user override → MCC → merchant DB →
+        // Plaid → curated YAML → location lookup → ML/fuzzy). If any layer
+        // returns a category, we use it. The legacy CSVImportService keyword
+        // chain becomes L9 — the genuine fallback it was always meant to be.
+        //
+        // null-guarded: in test setups that mock the cascade out (or in
+        // environments where DynamoDB isn't reachable yet), we degrade
+        // silently to the legacy chain. No behaviour regression.
+        if (cascade != null) {
+            try {
+                final TransactionTypeCategoryService.CategoryResult cascadeResult =
+                        cascade.classify(
+                                CategoryCascade.Context.builder()
+                                        .merchantName(merchantName)
+                                        .description(description)
+                                        .build());
+                if (cascadeResult != null
+                        && cascadeResult.getCategoryPrimary() != null
+                        && !cascadeResult.getCategoryPrimary().isBlank()) {
+                    return cascadeResult.getCategoryPrimary();
+                }
+            } catch (Exception e) {
+                LOGGER.debug(
+                        "CategoryCascade failed (will fall back to CSVImportService): {}",
+                        e.getMessage());
+            }
         }
 
         try {

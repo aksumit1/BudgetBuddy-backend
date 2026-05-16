@@ -17,8 +17,15 @@ import java.util.regex.Pattern;
  * <p>Owns the patterns that uniquely identify a U.S. Bank statement layout. The
  * shared StatementParsingUtilities serves as the fallback for unknown issuers, but
  * for any statement detected as U.S. Bank, this profile is authoritative.
+ *
+ * @deprecated Migration target — superseded by {@code pdf-templates-v2/us-bank.yaml}.
+ *     Card detection + statement-period + balance/total extraction are now in the
+ *     v2 evaluator. Stacked-label metadata + APR table extraction still require
+ *     this class. Deletion gated on v2 schema gaining {@code stacked_label_block}
+ *     + {@code apr_table} rule types, then a parity test against the 5 USB
+ *     statements in the corpus. See {@code docs/pdf-import-deprecation-map.md}.
  */
-
+@Deprecated(since = "v2-migration-q1")
 public final class USBankIssuerProfile extends AbstractIssuerProfile {
 
     // USB-only labels for limit and available credit.

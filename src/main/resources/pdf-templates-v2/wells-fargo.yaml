@@ -1,0 +1,89 @@
+# Wells Fargo — Active Cash, Autograph, Reflect credit cards
+#
+# Covers the 4 Wells Fargo statements in the corpus (Document1-4.pdf). WF
+# statements are sparse — 5-7 transactions each — and use a single-date layout
+# with the amount at end-of-line.
+#
+# Status: unverified
+id: wells-fargo-v2
+institution: Wells Fargo
+description: "Wells Fargo credit cards"
+status: unverified
+
+card_detection:
+  institution_match:
+    - any_of:
+        - "(?i)\\bWells\\s+Fargo\\b"
+        - "(?i)wellsfargo\\.com"
+        - "(?i)Active\\s+Cash\\s+(?:Visa|World)?\\s*Card"
+        - "(?i)\\bAUTOGRAPH\\b"
+        - "(?i)\\bREFLECT\\b"
+
+  last_four:
+    - pattern: "(?i)account\\s+ending\\s+(?:in\\s+)?(\\d{4})\\b"
+      filename_fallback: true
+    - pattern: "(?i)Account\\s+number[\\s:]+[*xX\\s-]*(\\d{4})\\b"
+      filename_fallback: true
+
+  account_holder:
+    - source: above_account_ending
+      lines_above_account: 1-3
+
+metadata:
+  statement_date:
+    - label: "Statement Date"
+      adjacent: date
+    - label: "Closing Date"
+      adjacent: date
+
+  # WF prints "Statement period: 03/19/2026 to 04/17/2026"
+  statement_period:
+    - pattern: "(?i)statement\\s+period[:\\s]+(\\d{1,2}/\\d{1,2}/\\d{2,4})\\s+to\\s+(\\d{1,2}/\\d{1,2}/\\d{2,4})"
+    - pattern: "(?i)billing\\s+period[:\\s]+(\\d{1,2}/\\d{1,2}/\\d{2,4})\\s*[-–to]\\s*(\\d{1,2}/\\d{1,2}/\\d{2,4})"
+
+  new_balance:
+    - label: "New Balance"
+      adjacent: dollar
+    - label: "New Balance Total"
+      adjacent: dollar
+  previous_balance:
+    - label: "Previous Balance"
+      adjacent: dollar
+  purchases_total:
+    - label: "Purchases, Cash Advances & Balance Transfers"
+      adjacent: dollar
+    - label: "Purchases"
+      adjacent: dollar
+  payments_total:
+    - label: "Payments and Credits"
+      adjacent: dollar
+    - label: "Payments"
+      adjacent: dollar
+  fees_total:
+    - label: "Fees Charged"
+      adjacent: dollar
+  interest_total:
+    - label: "Interest Charged"
+      adjacent: dollar
+
+preprocessing:
+  stitch:
+    section_headers:
+      - "Transactions"
+      - "Payments"
+      - "Purchases"
+      - "Cash Advances"
+      - "Fees Charged"
+      - "Interest Charged"
+      - "Rewards Summary"
+      - "Cash Rewards Earned"
+
+layouts:
+  # WF single-date with amount at end:
+  #   "11/27 SAFEWAY #1444 BELLEVUE WA $14.27"
+  - name: wells-fargo-credit-single-date
+    accountType: credit
+    lineRegex: '^(?<date>\d{1,2}/\d{1,2}(?:/\d{2,4})?)\s+(?<description>.+?)\s+\$?(?<amount>-?\d{1,3}(?:,\d{3})*\.\d{2})\s*$'
+    dateFormat: "M/d"
+    signConvention: credit-positive
+    minAmount: 0.01
