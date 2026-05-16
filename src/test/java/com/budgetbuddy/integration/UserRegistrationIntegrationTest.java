@@ -76,16 +76,50 @@ class UserRegistrationIntegrationTest {
         uniqueEmail = "test-" + System.currentTimeMillis() + "@example.com";
     }
 
+    /**
+     * Fetch a PAKE2 challenge nonce for {@code email}. Required preamble for every
+     * /api/auth/register call — the controller rejects requests without a
+     * server-issued challenge as INVALID_INPUT. Mirrors the production iOS client
+     * flow (challenge → password_hash with challenge → register).
+     *
+     * <p>Deserializes the response into {@code Map<String, Object>} rather than the
+     * server-side {@code ChallengeService.ChallengeResponse} DTO, which has no
+     * default constructor and so isn't Jackson-deserializable on the test side
+     * without bespoke configuration.
+     */
+    private String fetchRegistrationChallenge(final String email) {
+        final com.budgetbuddy.api.AuthController.ChallengeRequest req =
+                new com.budgetbuddy.api.AuthController.ChallengeRequest();
+        req.setEmail(email);
+        final HttpHeaders h = new HttpHeaders();
+        h.setContentType(org.springframework.http.MediaType.APPLICATION_JSON);
+        final HttpEntity<com.budgetbuddy.api.AuthController.ChallengeRequest> entity =
+                new HttpEntity<>(req, h);
+        @SuppressWarnings({"unchecked", "rawtypes"})
+        final ResponseEntity<java.util.Map> resp =
+                restTemplate.exchange(
+                        baseUrl + "/api/auth/register/challenge",
+                        HttpMethod.POST,
+                        entity,
+                        java.util.Map.class);
+        assertTrue(
+                resp.getStatusCode().is2xxSuccessful(),
+                "Challenge endpoint should succeed for " + email);
+        assertNotNull(resp.getBody(), "Challenge response body must not be null");
+        final Object challenge = resp.getBody().get("challenge");
+        assertNotNull(challenge, "Challenge response must include 'challenge' field");
+        return challenge.toString();
+    }
+
     @Test
     void testRegisterNewUserSucceeds() {
-        // Arrange
+        // Arrange — PAKE2 requires a challenge nonce before /register will accept the body.
         final AuthRequest request = new AuthRequest();
         request.setEmail(uniqueEmail);
         request.setPasswordHash(
                 Base64.getEncoder()
                         .encodeToString(TESTPASSWORD123.getBytes(StandardCharsets.UTF_8)));
-        // BREAKING CHANGE: Client salt removed
-        // request.setSalt(Base64.getEncoder().encodeToString("somesalt".getBytes(StandardCharsets.UTF_8)));
+        request.setChallenge(fetchRegistrationChallenge(uniqueEmail));
 
         final HttpHeaders headers = new HttpHeaders();
         headers.setContentType(org.springframework.http.MediaType.APPLICATION_JSON);
@@ -114,13 +148,15 @@ class UserRegistrationIntegrationTest {
 
     @Test
     void testRegisterDuplicateUserReturnsProperError() {
-        // Arrange - Register user first
+        // Arrange - Register user first. Each /register call needs a fresh challenge —
+        // the server consumes the nonce on use, so the duplicate attempt below must
+        // also fetch its own challenge or it would fail for the wrong reason.
         final AuthRequest firstRequest = new AuthRequest();
         firstRequest.setEmail(uniqueEmail);
         firstRequest.setPasswordHash(
                 Base64.getEncoder()
                         .encodeToString(TESTPASSWORD123.getBytes(StandardCharsets.UTF_8)));
-        // BREAKING CHANGE: Client salt removed
+        firstRequest.setChallenge(fetchRegistrationChallenge(uniqueEmail));
 
         final HttpHeaders headers = new HttpHeaders();
         headers.setContentType(org.springframework.http.MediaType.APPLICATION_JSON);
@@ -136,7 +172,7 @@ class UserRegistrationIntegrationTest {
         duplicateRequest.setPasswordHash(
                 Base64.getEncoder()
                         .encodeToString(TESTPASSWORD123.getBytes(StandardCharsets.UTF_8)));
-        // BREAKING CHANGE: Client salt removed
+        duplicateRequest.setChallenge(fetchRegistrationChallenge(uniqueEmail));
         final HttpEntity<AuthRequest> duplicateEntity = new HttpEntity<>(duplicateRequest, headers);
 
         // Act
@@ -166,8 +202,7 @@ class UserRegistrationIntegrationTest {
         request.setPasswordHash(
                 Base64.getEncoder()
                         .encodeToString(TESTPASSWORD123.getBytes(StandardCharsets.UTF_8)));
-        // BREAKING CHANGE: Client salt removed
-        // request.setSalt(Base64.getEncoder().encodeToString("somesalt".getBytes(StandardCharsets.UTF_8)));
+        request.setChallenge(fetchRegistrationChallenge(uniqueEmail));
 
         final HttpHeaders headers = new HttpHeaders();
         headers.setContentType(org.springframework.http.MediaType.APPLICATION_JSON);
@@ -218,7 +253,7 @@ class UserRegistrationIntegrationTest {
             request.setPasswordHash(
                     Base64.getEncoder()
                             .encodeToString(TESTPASSWORD123.getBytes(StandardCharsets.UTF_8)));
-            // BREAKING CHANGE: Client salt removed - backend handles salt management
+            request.setChallenge(fetchRegistrationChallenge(email));
             final HttpEntity<AuthRequest> entity = new HttpEntity<>(request, headers);
 
             final ResponseEntity<AuthResponse> response =
