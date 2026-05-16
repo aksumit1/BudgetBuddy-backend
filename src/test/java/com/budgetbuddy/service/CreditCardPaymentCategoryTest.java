@@ -120,6 +120,162 @@ class CreditCardPaymentCategoryTest {
                 "Positive-amount row must not get the STEP 0 'payment' short-circuit");
     }
 
+    // ============================================================
+    // World-knowledge coverage: every major issuer + payment shape
+    // ============================================================
+
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.MethodSource("realWorldCreditCardPaymentDescriptions")
+    @DisplayName("All known real-world credit-card payment shapes → 'payment'")
+    void allRealWorldPaymentDescriptions_categorizedAsPayment(
+            final String issuer, final String description) {
+        final String result = csv.parseCategory(
+                null, description, null, new BigDecimal("-100.00"),
+                null, null, null, "credit", "credit card");
+        assertEquals("payment", result,
+                issuer + ": '" + description + "' must categorize as 'payment'");
+    }
+
+    static java.util.stream.Stream<org.junit.jupiter.params.provider.Arguments>
+            realWorldCreditCardPaymentDescriptions() {
+        return java.util.stream.Stream.of(
+                // Chase
+                org.junit.jupiter.params.provider.Arguments.of(
+                        "Chase", "AUTOMATIC PAYMENT - THANK YOU"),
+                org.junit.jupiter.params.provider.Arguments.of(
+                        "Chase", "MOBILE PAYMENT - THANK YOU"),
+                org.junit.jupiter.params.provider.Arguments.of(
+                        "Chase", "ONLINE PAYMENT - THANK YOU"),
+                org.junit.jupiter.params.provider.Arguments.of(
+                        "Chase", "PAYMENT THANK YOU"),
+                org.junit.jupiter.params.provider.Arguments.of(
+                        "Chase", "Payment Thank You"),
+                // Citi
+                org.junit.jupiter.params.provider.Arguments.of(
+                        "Citi", "AUTOPAY 999990000012756RAUTOPAY AUTO-PMT"),
+                org.junit.jupiter.params.provider.Arguments.of(
+                        "Citi", "AUTOPAY THANK YOU"),
+                org.junit.jupiter.params.provider.Arguments.of(
+                        "Citi", "PAYMENT, THANK YOU"),
+                // Amex
+                org.junit.jupiter.params.provider.Arguments.of(
+                        "Amex", "* AGARWAL AUTOPAY PAYMENT RECEIVED - THANK YOU JPMorgan"),
+                org.junit.jupiter.params.provider.Arguments.of(
+                        "Amex", "PAYMENT RECEIVED - THANK YOU"),
+                org.junit.jupiter.params.provider.Arguments.of(
+                        "Amex", "MOBILE PAYMENT"),
+                // Wells Fargo
+                org.junit.jupiter.params.provider.Arguments.of(
+                        "WF", "F353100FN00CHGDDA AUTOMATIC PAYMENT - THANK YOU"),
+                org.junit.jupiter.params.provider.Arguments.of(
+                        "WF", "ONLINE PAYMENT - THANK YOU"),
+                // Bank of America
+                org.junit.jupiter.params.provider.Arguments.of(
+                        "BofA", "ONLINE PAYMENT - THANK YOU"),
+                org.junit.jupiter.params.provider.Arguments.of(
+                        "BofA", "ELECTRONIC PAYMENT"),
+                org.junit.jupiter.params.provider.Arguments.of(
+                        "BofA", "PHONE PAYMENT"),
+                org.junit.jupiter.params.provider.Arguments.of(
+                        "BofA", "BRANCH PAYMENT"),
+                org.junit.jupiter.params.provider.Arguments.of(
+                        "BofA", "ACH PAYMENT"),
+                // Discover
+                org.junit.jupiter.params.provider.Arguments.of(
+                        "Discover", "DISCOVER E-PAYMENT - THANK YOU"),
+                org.junit.jupiter.params.provider.Arguments.of(
+                        "Discover", "INTERNET PAYMENT - THANK YOU"),
+                org.junit.jupiter.params.provider.Arguments.of(
+                        "Discover", "AUTOPAY THANK YOU"),
+                // US Bank
+                org.junit.jupiter.params.provider.Arguments.of(
+                        "USB", "INTERNET PAYMENT THANK YOU"),
+                org.junit.jupiter.params.provider.Arguments.of(
+                        "USB", "0000 INTERNET PAYMENT THANK YOU"),
+                org.junit.jupiter.params.provider.Arguments.of(
+                        "USB", "ET PAYMENT THANK YOU"),
+                // Capital One
+                org.junit.jupiter.params.provider.Arguments.of(
+                        "Cap1", "CAPITAL ONE MOBILE PYMT AUTH"),
+                org.junit.jupiter.params.provider.Arguments.of(
+                        "Cap1", "WEB PYMT"),
+                org.junit.jupiter.params.provider.Arguments.of(
+                        "Cap1", "AUTOPAY PAYMENT"),
+                // Apple Card / Goldman Sachs
+                org.junit.jupiter.params.provider.Arguments.of(
+                        "Apple", "ACH Deposit Internet transfer from account"),
+                org.junit.jupiter.params.provider.Arguments.of(
+                        "Apple", "PAYMENT FROM CHASE BANK"),
+                // Synchrony / store cards
+                org.junit.jupiter.params.provider.Arguments.of(
+                        "Synchrony", "WEB PAYMENT - THANK YOU"),
+                org.junit.jupiter.params.provider.Arguments.of(
+                        "Synchrony", "MAIL-IN PAYMENT"),
+                // Generic abbreviations / variants
+                org.junit.jupiter.params.provider.Arguments.of(
+                        "Generic", "RECURRING PAYMENT"),
+                org.junit.jupiter.params.provider.Arguments.of(
+                        "Generic", "EFT PAYMENT"),
+                org.junit.jupiter.params.provider.Arguments.of(
+                        "Generic", "BANK PAYMENT - THANK YOU"),
+                org.junit.jupiter.params.provider.Arguments.of(
+                        "Generic", "BILL PAY - CHASE CREDIT CARD"),
+                org.junit.jupiter.params.provider.Arguments.of(
+                        "Generic", "DIRECT PAYMENT"),
+                org.junit.jupiter.params.provider.Arguments.of(
+                        "Generic", "PAYMENT CREDIT"),
+                org.junit.jupiter.params.provider.Arguments.of(
+                        "Generic", "PAYMENT POSTED"),
+                org.junit.jupiter.params.provider.Arguments.of(
+                        "Generic", "THANK YOU FOR YOUR PAYMENT"));
+    }
+
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(strings = {
+            // Reversals / fees that share payment keywords but should NOT be
+            // categorized as a payment-to-credit-card. The user expects these
+            // to remain categorized as 'fee' / 'other'.
+            "RETURNED PAYMENT",
+            "STOPPED PAYMENT",
+            "REJECTED PAYMENT",
+            "REVERSED PAYMENT",
+            "DECLINED PAYMENT",
+            "NSF PAYMENT",
+            "PAYMENT REVERSAL",
+            "PAYMENT RETURNED",
+            "REVERSAL OF PAYMENT - THANK YOU",
+    })
+    @DisplayName("Payment reversals / fees NOT categorized as 'payment'")
+    void paymentReversal_notCategorizedAsPayment(final String description) {
+        final String result = csv.parseCategory(
+                null, description, null, new BigDecimal("-100.00"),
+                null, null, null, "credit", "credit card");
+        // We assert STEP 0 does NOT fire — actual category will come from
+        // downstream heuristics (likely 'fee' or 'other'). The key invariant:
+        // a reversal/failure shouldn't be classified as a payment-to-card.
+        assertEquals(false, "payment".equals(result),
+                description + " is a reversal/failure, not a payment-to-card");
+    }
+
+    @Test
+    @DisplayName("'EQUIPMENT' and 'SHIPMENT' don't trigger PMT word-boundary false positive")
+    void abbreviationWordBoundary_avoidsFalsePositives() {
+        // PYMT / PMT abbreviations use word boundaries so substrings inside
+        // other words don't match.
+        for (final String desc : new String[] {
+                "GYM EQUIPMENT STORE",
+                "SHIPMENT FEE",
+                "PIGMENT SUPPLIES",
+                "AUGMENT INC",
+        }) {
+            final String result = csv.parseCategory(
+                    null, desc, null, new BigDecimal("-100.00"),
+                    null, null, null, "credit", "credit card");
+            assertEquals(false, "payment".equals(result),
+                    "'" + desc + "' must not match PYMT/PMT via substring");
+        }
+    }
+
     @Test
     @DisplayName("Negative amount on CHECKING account NOT categorized as payment via STEP 0")
     void negativeAmount_checkingAccount_skipsStep0Shortcut() {

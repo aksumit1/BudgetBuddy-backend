@@ -3925,24 +3925,7 @@ public class CSVImportService {
                 && safeAmount != null
                 && safeAmount.compareTo(BigDecimal.ZERO) < 0
                 && safeDescription != null) {
-            final String descLower = safeDescription.toLowerCase(Locale.ROOT);
-            final boolean looksLikePayment =
-                    descLower.contains(AUTOPAY)
-                            || descLower.contains(AUTO_PAY)
-                            || descLower.contains("auto-pmt")
-                            || descLower.contains("auto pmt")
-                            || descLower.contains(E_PAYMENT)
-                            || descLower.contains(EPAYMENT)
-                            || descLower.contains("internet payment")
-                            || descLower.contains("online payment")
-                            || descLower.contains("payment received")
-                            || descLower.contains("payment - thank you")
-                            || descLower.contains("payment thank you")
-                            || descLower.contains("mobile payment")
-                            || descLower.contains("ach payment")
-                            || descLower.contains("electronic payment")
-                            || descLower.contains("et payment");
-            if (looksLikePayment) {
+            if (looksLikeCreditCardPayment(safeDescription)) {
                 LOGGER.debug(
                         "🏷️ parseCategory: STEP 0 — credit-card account payment "
                                 + "(desc='{}', amount={}) → 'payment'",
@@ -6279,6 +6262,124 @@ public class CSVImportService {
      * @param categoryString Category string from CSV
      * @return true if this is a credit card payment
      */
+    /**
+     * Compiled match for credit-card payment descriptions as printed on the
+     * issuer's own statement (no issuer name needed — account context supplies
+     * that). Designed for the STEP 0 short-circuit in parseCategorySimplified.
+     *
+     * <p>World-knowledge inventory of how the major issuers describe a payment
+     * on their own statement:
+     *
+     * <ul>
+     *   <li><b>Chase</b>: "AUTOMATIC PAYMENT - THANK YOU",
+     *       "MOBILE PAYMENT - THANK YOU", "ONLINE PAYMENT - THANK YOU",
+     *       "PAYMENT THANK YOU"
+     *   <li><b>Citi</b>: "AUTOPAY ... AUTO-PMT", "AUTOPAY THANK YOU"
+     *   <li><b>Amex</b>: "AUTOPAY PAYMENT RECEIVED - THANK YOU",
+     *       "PAYMENT RECEIVED - THANK YOU", "MOBILE PAYMENT"
+     *   <li><b>Wells Fargo</b>: "AUTOMATIC PAYMENT - THANK YOU",
+     *       "ONLINE PAYMENT - THANK YOU"
+     *   <li><b>Bank of America</b>: "ONLINE PAYMENT - THANK YOU",
+     *       "ELECTRONIC PAYMENT", "PHONE PAYMENT", "BRANCH PAYMENT"
+     *   <li><b>Discover</b>: "DISCOVER E-PAYMENT - THANK YOU",
+     *       "INTERNET PAYMENT - THANK YOU", "AUTOPAY THANK YOU"
+     *   <li><b>US Bank</b>: "INTERNET PAYMENT THANK YOU",
+     *       "ET PAYMENT THANK YOU" (electronic transfer), "ACH PAYMENT"
+     *   <li><b>Capital One</b>: "CAPITAL ONE MOBILE PYMT AUTH",
+     *       "AUTOPAY PAYMENT", "WEB PYMT"
+     *   <li><b>Apple Card</b> (Goldman Sachs): "ACH Deposit Internet
+     *       transfer from", "PAYMENT FROM &lt;bank&gt;"
+     *   <li><b>Synchrony / store cards</b>: "WEB PAYMENT - THANK YOU",
+     *       "PHONE PAYMENT", "MAIL-IN PAYMENT"
+     *   <li><b>Generic abbreviations across issuers</b>: PYMT, PMT (need
+     *       word boundary to avoid matching inside other words like
+     *       "EQUIPMENT" or "SHIPMENT")
+     * </ul>
+     *
+     * <p>Returns true when the description on a credit-card account looks like
+     * a payment-to-credit-card. The negative-amount + credit-card-account
+     * preconditions are checked by the caller; this method only inspects the
+     * description text. False positives are constrained by the fact that the
+     * caller has already narrowed to (creditCardAccount AND negativeAmount).
+     */
+    private static final java.util.regex.Pattern CREDIT_CARD_PAYMENT_DESCRIPTION =
+            java.util.regex.Pattern.compile(
+                    "(?i)"
+                            // ---- Multi-word phrases (case-insensitive substring) ----
+                            + "autopay"
+                            + "|auto[\\s-]?pay\\b"
+                            + "|auto[\\s-]?p(?:ay)?mt\\b"
+                            + "|e[-\\s]?payment"
+                            + "|internet\\s+(?:payment|pymt|pmt)"
+                            + "|online\\s+(?:payment|pymt|pmt)"
+                            + "|mobile\\s+(?:payment|pymt|pmt)"
+                            + "|web\\s+(?:payment|pymt|pmt)"
+                            + "|phone\\s+(?:payment|pymt|pmt)"
+                            + "|pay\\s+by\\s+phone"
+                            + "|branch\\s+(?:payment|pymt|pmt)"
+                            + "|mail(?:[-\\s]in)?\\s+(?:payment|pymt|pmt)"
+                            + "|check\\s+(?:payment|pymt|pmt)"
+                            + "|wire\\s+(?:payment|pymt|pmt)"
+                            + "|ach\\s+(?:payment|pymt|pmt|debit|credit)"
+                            + "|eft\\s+(?:payment|pymt|pmt)"
+                            + "|electronic\\s+(?:payment|funds\\s+transfer)"
+                            + "|et\\s+(?:payment|pymt|pmt)"  // US Bank "ET PAYMENT"
+                            + "|direct\\s+(?:payment|pay|debit)"
+                            + "|bill\\s+(?:payment|pay\\b)"
+                            + "|bank\\s+(?:payment|pymt|pmt)"
+                            + "|automatic\\s+payment"
+                            + "|automated\\s+payment"
+                            + "|recurring\\s+payment"
+                            // Discover / Apple Card / Goldman variants
+                            + "|payment\\s+from\\b"          // "PAYMENT FROM CHASE BANK"
+                            // Apple Card / Goldman shape: "ACH Deposit Internet
+                            // transfer from <bank> account" — no "payment" word
+                            // appears anywhere, but on a credit-card account
+                            // with a negative amount this IS a payment-to-card.
+                            + "|ach\\s+deposit"
+                            + "|internet\\s+transfer\\s+from"
+                            + "|payment\\s+received"
+                            + "|payment\\s+posted"
+                            + "|payment\\s+credit"
+                            // "PAYMENT - THANK YOU" / "PAYMENT THANK YOU" / "THANK YOU - PAYMENT"
+                            + "|payment\\s*[-,]?\\s*thank\\s+you"
+                            + "|thank\\s+you\\s+(?:for\\s+your\\s+)?payment"
+                            + "|thank\\s+you\\s*[-,]?\\s*payment"
+                            // ---- Bare abbreviations with word boundaries ----
+                            // PYMT/PMT alone are too risky as plain substrings
+                            // (EQUIPMENT, SHIPMENT) so anchor with word boundaries.
+                            + "|\\bpymt\\b"
+                            + "|\\bpyment\\b"
+                            // PMT is even shorter — only accept when adjacent to
+                            // an actual payment-context word, NOT as a bare \bpmt\b.
+                    );
+
+    /** STEP 0 helper: see {@link #CREDIT_CARD_PAYMENT_DESCRIPTION}. */
+    private static boolean looksLikeCreditCardPayment(final String description) {
+        if (description == null || description.isBlank()) {
+            return false;
+        }
+        // Reject negative-context payment words ("returned payment",
+        // "stopped payment", "rejected payment", "reversed payment", "declined
+        // payment") — those are fees / reversals, not the original payment.
+        // Even though they share keywords, the user expects them categorized
+        // as 'fee' or 'other'.
+        final String lower = description.toLowerCase(java.util.Locale.ROOT);
+        if (lower.contains("returned payment")
+                || lower.contains("return payment")
+                || lower.contains("stopped payment")
+                || lower.contains("rejected payment")
+                || lower.contains("reversed payment")
+                || lower.contains("reversal of payment")
+                || lower.contains("declined payment")
+                || lower.contains("nsf payment")
+                || lower.contains("payment reversal")
+                || lower.contains("payment returned")) {
+            return false;
+        }
+        return CREDIT_CARD_PAYMENT_DESCRIPTION.matcher(description).find();
+    }
+
     private boolean isCreditCardPayment(
             String description, final String merchantName, final String categoryString) {
         if (description == null) {
