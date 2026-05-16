@@ -157,7 +157,6 @@ public class PdfTemplateRegistry {
         }
         final String needle = detectedInstitution.toLowerCase(Locale.ROOT);
         final List<PdfTemplate> preferred = new ArrayList<>();
-        final List<PdfTemplate> rest = new ArrayList<>();
         for (final PdfTemplate t : templates) {
             final String inst = t.getInstitution();
             if (inst != null
@@ -165,14 +164,23 @@ public class PdfTemplateRegistry {
                     && (needle.contains(inst.toLowerCase(Locale.ROOT))
                             || inst.toLowerCase(Locale.ROOT).contains(needle))) {
                 preferred.add(t);
-            } else {
-                rest.add(t);
             }
         }
+        // When the institution is confidently detected, return ONLY the matching
+        // templates. Pre-fix, off-institution templates (PNC, Regions, TD Bank,
+        // U.S. Bank checking-single-line) were picked up as fallbacks on lines
+        // the detected issuer's own template couldn't match — and they often
+        // stripped the negative sign on payment amounts, producing a phantom
+        // duplicate of an already-extracted AutoPay row. The structured-parse
+        // path already covers any line the YAML registry doesn't, so the
+        // off-institution fallback was strictly harmful here.
+        //
+        // Fall back to the full template list only when NO institution-keyed
+        // template is registered for this issuer — that's the legitimate
+        // "let's try anything" case for an unknown layout.
         if (preferred.isEmpty()) {
             return templates;
         }
-        preferred.addAll(rest);
         return Collections.unmodifiableList(preferred);
     }
 }

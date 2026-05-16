@@ -4017,10 +4017,24 @@ public class PDFImportService {
         return String.join(
                 "|",
                 normalizeDateForDedupe(rawDate, inferredYear),
-                String.valueOf(row.getOrDefault(DESCRIPTION, ""))
-                        .trim()
-                        .toLowerCase(Locale.ROOT),
+                normalizeDescriptionForDedupe(
+                        String.valueOf(row.getOrDefault(DESCRIPTION, ""))),
                 normalizeAmountForDedupe(rawAmount));
+    }
+
+    /**
+     * Collapse runs of whitespace and lowercase. The structured-parse path
+     * normalizes the merchant description's internal whitespace ("STARBUCKS
+     * #4936  NEWCASTLE  WA" → "STARBUCKS #4936 NEWCASTLE WA"), but the YAML
+     * registry path preserves the raw PDF spacing. Without normalizing here,
+     * the dedupe key differs by whitespace alone and the merge keeps both
+     * rows for what is the same transaction.
+     */
+    private static String normalizeDescriptionForDedupe(final String desc) {
+        if (desc == null) {
+            return "";
+        }
+        return desc.replaceAll("\\s+", " ").trim().toLowerCase(Locale.ROOT);
     }
 
     private static String normalizeAmountForDedupe(final String amount) {

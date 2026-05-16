@@ -298,6 +298,114 @@ class SweepLearningsRegressionTest {
                         + "downstream generateAccountName fallback will yield 'Chase credit card NNNN'");
     }
 
+    // ============================================================
+    // Citi AutoPay duplication (cross-issuer YAML template leak)
+    // ============================================================
+
+    @Test
+    void registryOrderedFor_restrictsToMatchingInstitutionOnly() throws Exception {
+        // Real bug: Citi AutoPay row `12/28 AUTOPAY ... -$1,670.03` was being
+        // extracted ONCE by the structured parser (as -$1,670.03) and AGAIN by
+        // off-institution YAML templates (PNC / Regions / TD Bank / US Bank
+        // checking-single-line) which stripped the leading `-` sign and
+        // produced +$1,670.03. Dedupe by exact (date, desc, amount) kept both
+        // because the signs differed. orderedFor must return ONLY the templates
+        // matching the detected institution when one is registered; off-
+        // institution fallback was strictly harmful.
+        final com.budgetbuddy.service.pdf.PdfTemplateRegistry reg =
+                new com.budgetbuddy.service.pdf.PdfTemplateRegistry();
+        final java.lang.reflect.Field f =
+                com.budgetbuddy.service.pdf.PdfTemplateRegistry.class
+                        .getDeclaredField("resourcePattern");
+        f.setAccessible(true);
+        f.set(reg, "classpath:pdf-templates/*.yaml");
+        final java.lang.reflect.Method init =
+                com.budgetbuddy.service.pdf.PdfTemplateRegistry.class.getDeclaredMethod("init");
+        init.setAccessible(true);
+        init.invoke(reg);
+
+        final var citiTemplates = reg.orderedFor("Citi");
+        assertEquals(1, citiTemplates.size(),
+                "When institution is detected, orderedFor returns ONLY matching templates");
+        assertEquals("citi-v1", citiTemplates.get(0).getId());
+
+        // 'Citibank' / 'Citicards' also resolve to the Citi template via substring match.
+        assertEquals(1, reg.orderedFor("Citibank").size());
+
+        // Unknown institution falls back to full list (legitimate try-anything case).
+        assertTrue(reg.orderedFor("UnknownBank").size() > 1,
+                "Unknown institution must fall back to the full template list");
+
+        // Null institution returns full list (no detection).
+        assertTrue(reg.orderedFor(null).size() > 1);
+    }
+
+    @Test
+    void dedupeKey_collapsesWhitespaceVariants() throws Exception {
+        // Real bug: structured parse normalizes merchant whitespace
+        // ("SAFEWAY #1444 BELLEVUE WA"), YAML preserves original PDF spacing
+        // ("SAFEWAY #1444          BELLEVUE      WA"). The dedupe key MUST
+        // collapse runs of whitespace so the same transaction extracted by
+        // both paths gets merged. Pre-fix, 36 duplicate groups survived in
+        // the January Citi statement.
+        final java.lang.reflect.Method m =
+                PDFImportService.class.getDeclaredMethod("dedupeKey", java.util.Map.class);
+        m.setAccessible(true);
+        final PDFImportService svc =
+                new PDFImportService(
+                        org.mockito.Mockito.mock(AccountDetectionService.class),
+                        org.mockito.Mockito.mock(ImportCategoryParser.class),
+                        new EnhancedPatternMatcher(),
+                        null);
+        final java.util.Map<String, String> structured = new java.util.HashMap<>();
+        structured.put("date", "12/17");
+        structured.put("description", "SAFEWAY #1444 BELLEVUE WA");
+        structured.put("amount", "$5.98");
+        structured.put("_inferredYear", "2026");
+        final java.util.Map<String, String> registry = new java.util.HashMap<>();
+        registry.put("date", "2026-12-17");
+        registry.put("description", "SAFEWAY #1444          BELLEVUE      WA");
+        registry.put("amount", "5.98");
+        final String keyA = (String) m.invoke(svc, structured);
+        final String keyB = (String) m.invoke(svc, registry);
+        assertEquals(keyA, keyB,
+                "Dedupe key must collapse runs of whitespace so structured-parse "
+                        + "and YAML descriptions for the same transaction merge");
+    }
+
+    @Test
+    void dedupeKey_preservesSignSoLegitRefundPlusPurchaseSurvive() throws Exception {
+        // CRITICAL safety: when a merchant prints both a refund and a fresh
+        // purchase for the same amount on the same day (HOME DEPOT $16.28
+        // refund + $16.28 new purchase on 12/09), the SIGNS differ — dedupe
+        // must keep BOTH rows. Preserving the sign in normalizeAmountForDedupe
+        // is what makes this case work.
+        final java.lang.reflect.Method m =
+                PDFImportService.class.getDeclaredMethod("dedupeKey", java.util.Map.class);
+        m.setAccessible(true);
+        final PDFImportService svc =
+                new PDFImportService(
+                        org.mockito.Mockito.mock(AccountDetectionService.class),
+                        org.mockito.Mockito.mock(ImportCategoryParser.class),
+                        new EnhancedPatternMatcher(),
+                        null);
+        final java.util.Map<String, String> refund = new java.util.HashMap<>();
+        refund.put("date", "12/09");
+        refund.put("description", "THE HOME DEPOT #4704 ISSAQUAH WA");
+        refund.put("amount", "-$16.28");
+        refund.put("_inferredYear", "2026");
+        final java.util.Map<String, String> purchase = new java.util.HashMap<>();
+        purchase.put("date", "12/09");
+        purchase.put("description", "THE HOME DEPOT #4704 ISSAQUAH WA");
+        purchase.put("amount", "$16.28");
+        purchase.put("_inferredYear", "2026");
+        final String keyRefund = (String) m.invoke(svc, refund);
+        final String keyPurchase = (String) m.invoke(svc, purchase);
+        assertTrue(!keyRefund.equals(keyPurchase),
+                "Refund (-$16.28) and purchase ($16.28) on same day at same merchant "
+                        + "must NOT collapse — they're distinct transactions");
+    }
+
     @Test
     void productNameExtractor_realCardNameWinsOverMarketing() throws Exception {
         // When a legitimate product name AND the marketing tagline both appear,
