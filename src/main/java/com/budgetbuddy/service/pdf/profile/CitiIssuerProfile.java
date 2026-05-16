@@ -26,6 +26,14 @@ public final class CitiIssuerProfile extends AbstractIssuerProfile {
             Pattern.compile(
                     "(?i)^\\s*payments\\s+\\-?\\$?([\\d]+(?:,\\d{3})*(?:\\.\\d{1,2})?)");
 
+    // Citi prints "Payments -$X" and "Credits -$X" on SEPARATE lines. The
+    // combined total used for math reconciliation is Payments + Credits, not
+    // Payments alone — a missing Credits row leaves the statement identity
+    // off by exactly the Credits amount.
+    private static final Pattern CITI_CREDITS_BARE =
+            Pattern.compile(
+                    "(?i)^\\s*credits\\s+\\-?\\$?([\\d]+(?:,\\d{3})*(?:\\.\\d{1,2})?)");
+
     // Citi Costco available credit: "Available Credit Limit $X" (other Citi cards print
     // "Available credit $X" which the shared StatementParsingUtilities pattern handles).
     private static final Pattern CITI_AVAILABLE_CREDIT_LIMIT =
@@ -113,21 +121,47 @@ public final class CitiIssuerProfile extends AbstractIssuerProfile {
     @Override
     public BigDecimal extractPaymentsAndCreditsTotal(
             final String[] lines, final ExtractionContext ctx) {
-        // Citi prints "Payments -$X" with sign attached. We capture and normalize to
-        // positive (the base class convention). When no Citi-specific match, fall back
-        // through the shared StatementParsingUtilities + sign-normalize path.
+        // Citi prints Payments and Credits as TWO separate lines, both with
+        // negative sign attached:
+        //   "Payments -$1,670.03"
+        //   "Credits -$38.51"
+        // The math identity uses the SUM. Pre-fix, this method returned only
+        // the Payments value, so the validator failed by exactly the Credits
+        // amount. We now scan for both, sum them, and normalize to positive.
+        BigDecimal payments = null;
+        BigDecimal credits = null;
         for (final String line : lines) {
-            if (line == null) {
-                continue;
-            }
-            final Matcher m = CITI_PAYMENTS_BARE.matcher(line.trim());
-            if (m.find()) {
-                try {
-                    return new BigDecimal(m.group(1).replace(",", "")).abs();
-                } catch (NumberFormatException ignored) {
-                    return null;
+            if (line == null) continue;
+            final String trimmed = line.trim();
+            if (payments == null) {
+                final Matcher m = CITI_PAYMENTS_BARE.matcher(trimmed);
+                if (m.find()) {
+                    try {
+                        payments = new BigDecimal(m.group(1).replace(",", "")).abs();
+                    } catch (NumberFormatException ignored) {
+                        // skip and keep scanning
+                    }
                 }
             }
+            if (credits == null) {
+                final Matcher m = CITI_CREDITS_BARE.matcher(trimmed);
+                if (m.find()) {
+                    try {
+                        credits = new BigDecimal(m.group(1).replace(",", "")).abs();
+                    } catch (NumberFormatException ignored) {
+                        // skip and keep scanning
+                    }
+                }
+            }
+        }
+        if (payments != null && credits != null) {
+            return payments.add(credits);
+        }
+        if (payments != null) {
+            return payments;
+        }
+        if (credits != null) {
+            return credits;
         }
         return super.extractPaymentsAndCreditsTotal(lines, ctx);
     }

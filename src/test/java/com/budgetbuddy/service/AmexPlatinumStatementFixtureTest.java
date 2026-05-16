@@ -181,6 +181,116 @@ class AmexPlatinumStatementFixtureTest {
     }
 
     @Test
+    void amexPlatinum_accountTotal_sixLabelBlock_extractsAllValues() {
+        // Real Morgan Stanley Platinum statements have 6 category labels
+        // (Previous Balance, Payments/Credits, New Charges, New Cash Advances,
+        // Fees, Interest Charged) followed by 6 signed-dollar values. Distinct
+        // from credit cards' 5-label Account Summary. The Amex profile's
+        // Account Total extractor must pick the consolidated values, NOT the
+        // Pay-In-Full sub-section's all-zero values that appear above it.
+        final String[] platinumLayout = {
+            "Account Summary",
+            "Pay In Full",
+            "Previous Balance",
+            "Payments/Credits",
+            "New Charges",
+            "Fees",
+            "New Balance =",
+            "$0.00",
+            "-$0.00",
+            "+$0.00",
+            "+$0.00",
+            "$0.00",
+            "Account Total",
+            "Previous Balance",
+            "Payments/Credits",
+            "New Charges",
+            "New Cash Advances",
+            "Fees",
+            "Interest Charged",
+            "$1,211.92",
+            "-$1,459.34",
+            "+$2,828.73",
+            "+$0.00",
+            "+$0.00",
+            "+$0.00",
+            "New Balance",
+            "Minimum Payment Due",
+            "$2,581.31",
+            "$51.62",
+        };
+        final com.budgetbuddy.service.pdf.profile.AmericanExpressIssuerProfile profile =
+                new com.budgetbuddy.service.pdf.profile.AmericanExpressIssuerProfile();
+        final com.budgetbuddy.service.pdf.profile.IssuerProfile.ExtractionContext ctx =
+                new com.budgetbuddy.service.pdf.profile.IssuerProfile.ExtractionContext(
+                        2026, true);
+        assertEquals(0, new BigDecimal("1211.92")
+                .compareTo(profile.extractPreviousBalance(platinumLayout, ctx)),
+                "previousBalance from Account Total, not Pay-In-Full's $0");
+        assertEquals(0, new BigDecimal("2828.73")
+                .compareTo(profile.extractPurchasesTotal(platinumLayout, ctx)),
+                "purchasesTotal = Account Total index 2 (New Charges)");
+        assertEquals(0, new BigDecimal("1459.34")
+                .compareTo(profile.extractPaymentsAndCreditsTotal(platinumLayout, ctx)),
+                "paymentsAndCreditsTotal = abs(Account Total index 1)");
+        assertEquals(0, BigDecimal.ZERO
+                .compareTo(profile.extractCashAdvancesTotal(platinumLayout, ctx)),
+                "cashAdvancesTotal = Account Total index 3");
+    }
+
+    @Test
+    void amexPlatinum_payOverTimeApr_isExtractedAsPurchaseApr() {
+        // Charge cards print the purchases-APR equivalent as "Pay Over Time
+        // <date> NN.NN% (v)". Pre-fix, extractPurchaseApr returned null because
+        // there was no "Purchases" label.
+        final String[] lines = {
+            "Pay Over Time 12/30/2022 19.49% (v) $0.00 $0.00",
+            "Cash Advances 12/30/2022 28.74% (v) $0.00 $0.00",
+        };
+        final com.budgetbuddy.service.pdf.profile.AmericanExpressIssuerProfile profile =
+                new com.budgetbuddy.service.pdf.profile.AmericanExpressIssuerProfile();
+        final com.budgetbuddy.service.pdf.profile.IssuerProfile.ExtractionContext ctx =
+                new com.budgetbuddy.service.pdf.profile.IssuerProfile.ExtractionContext(
+                        2026, true);
+        assertEquals(0, new BigDecimal("19.49")
+                .compareTo(profile.extractPurchaseApr(lines, ctx)),
+                "Pay Over Time row at index 0 must be the purchase APR");
+    }
+
+    @Test
+    void amexPlatinum_accountTotalMath_balances() {
+        // 1211.92 - 1459.34 + 2828.73 + 0 + 0 + 0 = 2581.31
+        final String[] platinumLayout = {
+            "Account Total",
+            "Previous Balance",
+            "Payments/Credits",
+            "New Charges",
+            "New Cash Advances",
+            "Fees",
+            "Interest Charged",
+            "$1,211.92",
+            "-$1,459.34",
+            "+$2,828.73",
+            "+$0.00",
+            "+$0.00",
+            "+$0.00",
+        };
+        final com.budgetbuddy.service.pdf.profile.AmericanExpressIssuerProfile profile =
+                new com.budgetbuddy.service.pdf.profile.AmericanExpressIssuerProfile();
+        final com.budgetbuddy.service.pdf.profile.IssuerProfile.ExtractionContext ctx =
+                new com.budgetbuddy.service.pdf.profile.IssuerProfile.ExtractionContext(
+                        2026, true);
+        final BigDecimal computed = profile.extractPreviousBalance(platinumLayout, ctx)
+                .subtract(profile.extractPaymentsAndCreditsTotal(platinumLayout, ctx))
+                .add(profile.extractPurchasesTotal(platinumLayout, ctx))
+                .add(profile.extractCashAdvancesTotal(platinumLayout, ctx))
+                .add(profile.extractFeesChargedTotal(platinumLayout, ctx))
+                .add(profile.extractInterestChargedTotal(platinumLayout, ctx));
+        assertEquals(0, new BigDecimal("2581.31").compareTo(computed),
+                "Account Total math must balance to NewBalance ($2,581.31)");
+    }
+
+    @Test
     void amexMembershipRewards_randomized_threeLinePointsBalance() {
         final java.util.Random rng = new java.util.Random(0xA_E_EE_DAB);
         for (int i = 0; i < 50; i++) {

@@ -1194,6 +1194,20 @@ public class PDFImportService {
             final Map<String, FxAnnotation> fxAnnotationsByAnchor =
                     fxStripResult.getAnnotationsByAnchor();
 
+            // Preserve the pre-stitch text for metadata extraction. The metadata
+            // block (balances, min payment, APRs, due dates) lives on the front
+            // page in a label-stack-then-value-stack layout; stitchContinuationLines
+            // collapses the whole front page into a single mega-line which then
+            // makes the first regex hit the wrong value. Transaction parsing still
+            // uses the stitched text below.
+            final String metadataText = fullText;
+
+            // Strip Amex's 3-line FX block (foreign amount / currency name / USD ⧫).
+            // Must run BEFORE stitchContinuationLines, otherwise the foreign-currency
+            // amount gets glued into the parent transaction and Pattern 2 picks it
+            // as the transaction amount instead of the USD.
+            fullText = stripAmexFxBlocks(fullText);
+
             // Multi-page transaction stitching: pre-join lines that are
             // obviously continuations of a prior transaction (indented or
             // amount-less, following a dated line) so page boundaries and
@@ -1386,7 +1400,8 @@ public class PDFImportService {
                     "🔍 [PDF Parse] Starting credit card metadata extraction (inferredYear: {}, isUSLocale: {})",
                     inferredYear,
                     isUSLocale);
-            extractCreditCardMetadata(fullText, result, inferredYear, isUSLocale);
+            // Use the pre-stitch text — see comment at metadataText definition.
+            extractCreditCardMetadata(metadataText, result, inferredYear, isUSLocale);
             if (LOGGER.isInfoEnabled()) {
                 LOGGER.info(
                         "🔍 [PDF Parse] Completed credit card metadata extraction - paymentDueDate: {}, minimumPaymentDue: {}, rewardPoints: {}",
@@ -3264,9 +3279,16 @@ public class PDFImportService {
     // -----------------------------------------------------------------------
 
     // Lines that look like "page 3 of 12" — drop them before stitching so
-    // continuation detection isn't fooled by page-footer noise.
+    // continuation detection isn't fooled by page-footer noise. Also catches
+    // Amex's short form "p. 3/9" and the "Continued on reverse" / "Continued
+    // on next page" footers that appear between transaction rows on Amex
+    // statements and were causing Pattern 7 to chain a row's amount onto the
+    // next page's section header instead of emitting it.
     private static final Pattern PAGE_FOOTER_PATTERN =
-            Pattern.compile("(?i)\\bpage\\s+\\d+\\s+of\\s+\\d+\\b");
+            Pattern.compile(
+                    "(?i)\\bpage\\s+\\d+\\s+of\\s+\\d+\\b"
+                            + "|^\\s*p\\.\\s*\\d+\\s*/\\s*\\d+\\s*$"
+                            + "|^\\s*continued\\s+on\\s+(?:reverse|next\\s+page)\\s*$");
 
     // A line "starts a transaction" if it begins with a date-shaped token.
     // Used to decide when a following line is a continuation vs a new row.
@@ -3434,6 +3456,21 @@ public class PDFImportService {
                 continue;
             }
 
+            // Amex's ⧫ is the universal end-of-transaction marker for foreign-
+            // transaction rows. When the current pending row ends with ⧫, the
+            // transaction is complete — flush it BEFORE considering whether to
+            // append more lines, otherwise the cardholder name of the next
+            // section ("GARIMA DIPTI AGARWAL") gets glued onto the description.
+            if (pending != null
+                    && pending.length() > 0
+                    && pending.charAt(pending.length() - 1) == '⧫') {
+                out.append(pending).append('\n');
+                pending = null;
+                // Fall through so the current line gets treated as a regular
+                // standalone line (it'll only get stitched if a new txn-start
+                // appears later).
+            }
+
             if (pending != null && !looksLikeSectionHeader(trimmed)) {
                 pending.append(' ').append(trimmed);
                 continue;
@@ -3459,7 +3496,30 @@ public class PDFImportService {
                 || lower.startsWith(ENDING_BALANCE)
                 || lower.startsWith("total ")
                 || lower.startsWith("subtotal ")
-                || lower.startsWith("available credit");
+                || lower.startsWith("available credit")
+                // Amex section-transition labels between transaction blocks.
+                // These appear on their own line at the bottom of one page
+                // (after a transaction's amount) and at the top of the next
+                // (before the next transaction's date). Without flushing
+                // `pending` here, the current transaction's amount line gets
+                // glued to the next page's section header and Pattern 7 misses
+                // the row entirely.
+                || "amount".equals(lower)
+                || "fees".equals(lower)
+                || "interest charged".equals(lower)
+                || lower.startsWith("detail continued")
+                || lower.startsWith("detail *indicates")
+                || lower.startsWith("new charges")
+                || lower.startsWith("credits amount")
+                || lower.startsWith("payments amount")
+                || lower.startsWith("fees amount")
+                || lower.startsWith("new charges amount")
+                || "summary".equals(lower)
+                // Amex page header: "AGARWAL SUMIT KUMAR Account Ending 1-21002"
+                // — the "Account Ending" phrase reliably marks a per-page header.
+                || lower.contains("account ending ")
+                || lower.contains("card ending ")
+                || lower.contains("closing date ");
     }
 
     // Chase prints foreign-currency purchases as a 3-line block:
@@ -3493,6 +3553,43 @@ public class PDFImportService {
     // uppercase-merchant rows (it only drops the header when followed by an FX detail).
     private static final Pattern FX_HEADER_PATTERN =
             Pattern.compile("^\\s*\\d{1,2}/\\d{1,2}\\s+([A-Z][A-Z\\s]*[A-Z])\\s*$");
+
+    // Amex's 3-line FX block (different from Chase's "X (EXCHG RATE)" form):
+    //   "           72,107.44"   ← indented foreign-currency amount (no $)
+    //   "Indian Rupees"          ← currency display name
+    //   "$776.02 ⧫"              ← USD amount with diamond marker
+    // The foreign amount and currency-name lines must be dropped before
+    // stitchContinuationLines runs — otherwise the foreign amount gets stitched
+    // into the parent transaction line and Pattern 2 picks `72,107.44` as the
+    // transaction amount instead of `$776.02`. The diamond on the USD line is
+    // Amex's universal "foreign transaction" marker.
+    private static final Pattern AMEX_FX_FOREIGN_AMOUNT_PATTERN =
+            Pattern.compile("^\\s*\\d{1,12}(?:,\\d{3})*(?:\\.\\d{1,2})\\s*$");
+    private static final Pattern AMEX_FX_CURRENCY_NAME_PATTERN =
+            Pattern.compile(
+                    "^\\s*(?:"
+                            + "Indian\\s+Rupees?"
+                            + "|Hong\\s+Kong\\s+Dollars?"
+                            + "|Mexican\\s+Pesos?"
+                            + "|Canadian\\s+Dollars?"
+                            + "|Australian\\s+Dollars?"
+                            + "|Singapore\\s+Dollars?"
+                            + "|New\\s+Taiwan\\s+Dollars?"
+                            + "|British\\s+Pounds?"
+                            + "|Pound\\s+Sterling"
+                            + "|Japanese\\s+Yen"
+                            + "|Chinese\\s+(?:Yuan|Renminbi)"
+                            + "|Korean\\s+Won"
+                            + "|Thai\\s+Baht"
+                            + "|Swiss\\s+Francs?"
+                            + "|Brazilian\\s+Reals?"
+                            + "|South\\s+African\\s+Rands?"
+                            + "|Moroccan\\s+Dirhams?"
+                            + "|UAE\\s+Dirhams?"
+                            + "|Euros?"
+                            + ")\\s*$");
+    private static final Pattern AMEX_FX_USD_LINE_PATTERN =
+            Pattern.compile(".*[-]?\\$\\d{1,9}(?:,\\d{3})*\\.\\d{2}\\s*⧫.*");
 
     /**
      * The "rightmost amount on the parent line" lookup pattern — used to anchor an FX hint
@@ -3649,6 +3746,38 @@ public class PDFImportService {
      */
     public static String stripFxAnnotations(final String text) {
         return stripAndCaptureFxAnnotations(text).getCleanedText();
+    }
+
+    /**
+     * Strip Amex's 3-line FX block — see {@code AMEX_FX_FOREIGN_AMOUNT_PATTERN}
+     * for the shape. Drops the foreign-amount and currency-name lines, leaving
+     * the USD line intact so stitching glues it to the parent transaction.
+     * Idempotent: running it twice produces the same output.
+     */
+    public static String stripAmexFxBlocks(final String text) {
+        if (text == null || text.isEmpty()) {
+            return text;
+        }
+        final String[] lines = text.split("\\r?\\n", -1);
+        final java.util.List<String> out = new java.util.ArrayList<>(lines.length);
+        for (int i = 0; i < lines.length; i++) {
+            final String l1 = lines[i];
+            // Try to detect a 3-line FX block starting here.
+            if (l1 != null
+                    && AMEX_FX_FOREIGN_AMOUNT_PATTERN.matcher(l1).matches()
+                    && i + 2 < lines.length
+                    && lines[i + 1] != null
+                    && AMEX_FX_CURRENCY_NAME_PATTERN.matcher(lines[i + 1]).matches()
+                    && lines[i + 2] != null
+                    && AMEX_FX_USD_LINE_PATTERN.matcher(lines[i + 2]).matches()) {
+                // Drop l1 (foreign amount) and the currency-name line; keep l3
+                // (USD + diamond) which stitching will glue to the parent row.
+                i++; // skip currency-name line on next iteration
+                continue;
+            }
+            out.add(l1);
+        }
+        return String.join("\n", out);
     }
 
     /**
@@ -4013,6 +4142,82 @@ public class PDFImportService {
                     "(?:[-+]?[\\$£€₹¥]?\\d{1,3}(?:,\\d{3})*(?:\\.\\d{2})(?:\\s?(?:CR|DR))?)"
                             + "|(?:\\([\\$£€₹¥]?\\d{1,3}(?:,\\d{3})*(?:\\.\\d{2})\\))");
 
+    // Interest-charge / APR-disclosure rows are NOT transactions, even though
+    // they superficially look like one (balance-type label + dollar amounts).
+    // Wells Fargo's "Interest Charge Calculation" table prints rows like:
+    //   "PURCHASES 18.49% variable $0.00 31 $0.00 $545.91"
+    // where the trailing $545.91 is the *balance subject to interest rate*,
+    // not a posted purchase. U.S. Bank, Citi, Chase, and Amex all emit a
+    // structurally similar row in their APR-disclosure block.
+    //
+    // The structured-parse + EnhancedPatternMatcher paths already skip these
+    // (the line carries no MM/DD date token), but adding an explicit guard
+    // here documents the intent and prevents any future regex relaxation from
+    // accidentally promoting an APR row into the transaction list.
+    private static final Pattern APR_DISCLOSURE_ROW_PATTERN =
+            Pattern.compile(
+                    "^\\s*(?:STANDARD\\s+)?"
+                            + "(?:PURCHASES?|CASH\\s+ADVANCES?|"
+                            + "BALANCE\\s+TRANSFERS?|PENALTY|PROMOTIONAL)"
+                            + "\\b.*?\\d+\\.\\d{1,3}\\s*%",
+                    Pattern.CASE_INSENSITIVE);
+
+    // Amex APR-disclosure prose. Amex prints a multi-line block like:
+    //   "Introductory Purchase"
+    //   "Rate Expires 04/17/2026 then will go to 16.74% (v)"
+    //   "0.00% $24,984.87 $0.00"
+    // The middle line carries a MM/DD/YYYY date and the multi-line lookahead
+    // can glue it into a phantom transaction with description "then will go to"
+    // and amount 16.74. Reject any line containing these tell-tale phrases.
+    private static final Pattern APR_DISCLOSURE_PROSE_PATTERN =
+            Pattern.compile(
+                    "rate\\s+expires"
+                            + "|then\\s+will\\s+go\\s+to"
+                            + "|variable\\s+rate"
+                            + "|variable\\s+apr"
+                            + "|\\(\\s*v\\s*\\)\\s+variable",
+                    Pattern.CASE_INSENSITIVE);
+
+    // AutoPay-disclosure prose (Amex, Chase, others). The disclosure sentence
+    // carries a MM/DD/YY date and a $-amount, so Pattern 7's lookahead matches
+    // it as a phantom transaction:
+    //   "We will debit your bank account for your monthly AutoPay payment of"
+    //   "$1,966.00 on 04/03/26. This date may not be the same date your bank"
+    // Yields {date=04/03, desc="on . This date may not be the same date your
+    // bank", amount=$1,966.00}. Reject any line containing these tell-tale
+    // phrases.
+    private static final Pattern AUTOPAY_DISCLOSURE_PROSE_PATTERN =
+            Pattern.compile(
+                    "debit\\s+your\\s+bank\\s+account"
+                            + "|this\\s+date\\s+may\\s+not\\s+be\\s+the\\s+same"
+                            + "|will\\s+be\\s+deducted\\s+from\\s+your\\s+account"
+                            + "|automatic\\s+payment\\s+on\\s+\\d{1,2}/\\d{1,2}",
+                    Pattern.CASE_INSENSITIVE);
+
+    // Amex prints "Account Ending 1-21002" (one-digit prefix, hyphen, 5-digit
+    // suffix). The `\d-\d{5,}` shape matches DATE_PATTERN's `\d-\d` head and
+    // would be mis-parsed as a date if not filtered. Real dates never have a
+    // 5+ digit day component.
+    private static final Pattern AMEX_ACCOUNT_SUFFIX_PATTERN =
+            Pattern.compile("\\b\\d-\\d{5,}\\b");
+
+    // Trailing column headers Amex emits between transaction blocks. They
+    // occasionally get glued onto the previous transaction's description by
+    // Pattern 7's multi-line lookahead. Strip them in post-processing. Distinct
+    // from TRAILING_SECTION_HEADER_PATTERN (which splits whole lines mid-line):
+    // this only matches the column-header suffix at the END of a description.
+    private static final Pattern TRAILING_COLUMN_HEADER_SUFFIX_PATTERN =
+            Pattern.compile(
+                    "\\s+(?:"
+                            + "Credits\\s+Amount"
+                            + "|Fees\\s+Amount"
+                            + "|Payments\\s+Amount"
+                            + "|New\\s+Charges\\s+Amount"
+                            + "|Charges\\s+Amount"
+                            + "|Total\\s+Amount"
+                            + ")\\s*$",
+                    Pattern.CASE_INSENSITIVE);
+
     private List<Map<String, String>> extractWithLooseFallback(
             final String fullText, Integer inferredYear, boolean isUSLocale) {
         final List<Map<String, String>> rows = new ArrayList<>();
@@ -4040,6 +4245,9 @@ public class PDFImportService {
                 continue;
             }
             if (lower.startsWith(ENDING_BALANCE)) {
+                continue;
+            }
+            if (APR_DISCLOSURE_ROW_PATTERN.matcher(line).find()) {
                 continue;
             }
 
@@ -4232,6 +4440,17 @@ public class PDFImportService {
                         continue; // this line is the header itself, not a transaction
                     }
 
+                    // Skip non-transaction rows that mimic a transaction shape:
+                    //   - APR-disclosure tables ("PURCHASES 18.49% variable ... $545.91")
+                    //   - APR-disclosure prose ("Rate Expires ... then will go to 16.74% (v)")
+                    //   - Amex "Account Ending 1-21002 -$28.36" where the 1-21002
+                    //     suffix mimics a 1/21 date.
+                    if (APR_DISCLOSURE_ROW_PATTERN.matcher(line).find()
+                            || APR_DISCLOSURE_PROSE_PATTERN.matcher(line).find()
+                            || AUTOPAY_DISCLOSURE_PROSE_PATTERN.matcher(line).find()
+                            || AMEX_ACCOUNT_SUFFIX_PATTERN.matcher(line).find()) {
+                        continue;
+                    }
                     // Skip summary/total lines and page numbers
                     final String lineLower = line.toLowerCase(Locale.ROOT);
                     if (lineLower.contains("total")
@@ -4294,6 +4513,29 @@ public class PDFImportService {
                     final String description =
                             findField(
                                     row, DESCRIPTION, DETAILS, MEMO, PAYEE, TRANSACTION, MERCHANT);
+
+                    // Reject phantom APR-disclosure / AutoPay-disclosure rows
+                    // (see comment in extractTransactionsFallback for rationale).
+                    if (description != null
+                            && (APR_DISCLOSURE_ROW_PATTERN.matcher(description).find()
+                                    || APR_DISCLOSURE_PROSE_PATTERN
+                                            .matcher(description)
+                                            .find()
+                                    || AUTOPAY_DISCLOSURE_PROSE_PATTERN
+                                            .matcher(description)
+                                            .find())) {
+                        continue;
+                    }
+                    // Strip trailing section-header text glued onto the description.
+                    if (description != null) {
+                        final String cleaned =
+                                TRAILING_COLUMN_HEADER_SUFFIX_PATTERN
+                                        .matcher(description)
+                                        .replaceAll("");
+                        if (!cleaned.equals(description)) {
+                            row.put(DESCRIPTION, cleaned.trim());
+                        }
+                    }
 
                     // CRITICAL: All three fields (date, description, amount) must be present and
                     // valid
@@ -4396,7 +4638,8 @@ public class PDFImportService {
      */
     @SuppressWarnings("PMD.CyclomaticComplexity")
     private boolean isFallbackInformationalLine(final String line, final String lineLower) {
-        return lineLower.contains(STATEMENT_PERIOD)
+        return APR_DISCLOSURE_ROW_PATTERN.matcher(line).find()
+                || lineLower.contains(STATEMENT_PERIOD)
                 || lineLower.contains("account number")
                 || lineLower.contains("total")
                 || lineLower.contains(BALANCE)
@@ -4497,6 +4740,20 @@ public class PDFImportService {
             if (line.isEmpty()) {
                 continue;
             }
+            // Hard early-skip for non-transaction rows that mimic a transaction
+            // shape. Each guard runs BEFORE tryAllPatterns because the pattern-
+            // specific parsers are tried first and can synthesize a phantom
+            // transaction from one of these decoy lines:
+            //   - APR-disclosure rows ("PURCHASES 18.49% variable $0.00 30 $0.00 $545.91")
+            //   - APR-disclosure prose ("Rate Expires 04/17/2026 then will go to 16.74% (v)")
+            //   - Amex "Account Ending 1-21002 -$28.36" where the 1-21 suffix
+            //     mimics a 1/21 date for the DATE_PATTERN matcher.
+            if (APR_DISCLOSURE_ROW_PATTERN.matcher(line).find()
+                    || APR_DISCLOSURE_PROSE_PATTERN.matcher(line).find()
+                    || AUTOPAY_DISCLOSURE_PROSE_PATTERN.matcher(line).find()
+                    || AMEX_ACCOUNT_SUFFIX_PATTERN.matcher(line).find()) {
+                continue;
+            }
             // LOGGER.debug("SUM Line = {}", line);
 
             // Detect username from lines before this transaction (1-4 lines before)
@@ -4516,7 +4773,36 @@ public class PDFImportService {
                 // Validate the result has all required fields
                 final String dateStr = patternResult.get(DATE);
                 final String amountStr = patternResult.get(AMOUNT);
-                final String description = patternResult.get(DESCRIPTION);
+                String description = patternResult.get(DESCRIPTION);
+
+                // Pattern 7 (multi-line) can glue a date-only line to a subsequent
+                // non-transaction line, producing phantom rows like:
+                //   {date=04/17, desc="PURCHASES 18.49% variable...", amount=$13,696.35}
+                //     - the trailing $ is the balance subject to interest, not a purchase
+                //   {date=04/17, desc="then will go to", amount=16.74}
+                //     - the APR-disclosure prose "Rate Expires 04/17/2026 then will go to 16.74%"
+                // Reject the row when the synthesized description matches either.
+                if (description != null
+                        && (APR_DISCLOSURE_ROW_PATTERN.matcher(description).find()
+                                || APR_DISCLOSURE_PROSE_PATTERN
+                                        .matcher(description)
+                                        .find()
+                                || AUTOPAY_DISCLOSURE_PROSE_PATTERN
+                                        .matcher(description)
+                                        .find())) {
+                    continue;
+                }
+
+                // Strip trailing section headers ("Credits Amount", "Fees Amount", etc.)
+                // that Pattern 7 occasionally pulls in from the line AFTER the amount.
+                if (description != null) {
+                    final String cleaned =
+                            TRAILING_COLUMN_HEADER_SUFFIX_PATTERN.matcher(description).replaceAll("");
+                    if (!cleaned.equals(description)) {
+                        description = cleaned.trim();
+                        patternResult.put(DESCRIPTION, description);
+                    }
+                }
 
                 if (dateStr != null
                         && !dateStr.isEmpty()
@@ -4574,12 +4860,25 @@ public class PDFImportService {
                     if (pattern1Result != null
                             && pattern1Result.equals(patternResult)
                             && lineIdx + 2 < lines.length) {
-                        // Check if next lines look like continuation details
-                        final String nextLine =
+                        // Check if next lines look like continuation details.
+                        //
+                        // The next line must NOT start with a date — otherwise it's the
+                        // NEXT transaction, not a continuation. Without this guard, a run
+                        // of stitched single-line Amex transactions had every other row
+                        // eaten: line N's amount ($X.XX) ends with `\d+\.\d+`, so the
+                        // matches-`\d+\.\d+` branch grabbed line N+1 as a "continuation"
+                        // and the next-transaction loop iteration found it in
+                        // processedLines and skipped it.
+                        final String nextLineRaw =
                                 lineIdx + 1 < lines.length && lines[lineIdx + 1] != null
-                                        ? lines[lineIdx + 1].trim().toLowerCase(Locale.ROOT)
+                                        ? lines[lineIdx + 1].trim()
                                         : "";
+                        final String nextLine = nextLineRaw.toLowerCase(Locale.ROOT);
+                        final boolean nextStartsWithDate =
+                                nextLineRaw.matches(
+                                        "^\\d{1,2}[/-]\\d{1,2}(?:[/-]\\d{2,4})?\\*?\\s+.*");
                         if (!nextLine.isEmpty()
+                                && !nextStartsWithDate
                                 && (nextLine.contains("ending in")
                                         || nextLine.contains("apple pay")
                                         || nextLine.contains("@")
@@ -4587,7 +4886,12 @@ public class PDFImportService {
                             processedLines.add(lineIdx + 1);
                             if (lineIdx + 2 < lines.length && lines[lineIdx + 2] != null) {
                                 final String line3 = lines[lineIdx + 2].trim();
-                                if (line3.contains("@") || line3.matches(".*\\d+\\.\\d+.*")) {
+                                final boolean line3StartsWithDate =
+                                        line3.matches(
+                                                "^\\d{1,2}[/-]\\d{1,2}(?:[/-]\\d{2,4})?\\*?\\s+.*");
+                                if (!line3StartsWithDate
+                                        && (line3.contains("@")
+                                                || line3.matches(".*\\d+\\.\\d+.*"))) {
                                     processedLines.add(lineIdx + 2);
                                 }
                             }
@@ -4990,13 +5294,18 @@ public class PDFImportService {
                 || lineLower.matches(".*open.*to.*close.*date.*")
                 || lineLower.matches(".*\\b\\d{5}-\\d{4}\\b.*")
                 || lineLower.matches(".*\\b[a-z]{2}\\s+\\d{5}-\\d{4}\\b.*")
-                || ((lineLower.contains("carol stream")
-                                || lineLower.contains("street")
-                                || lineLower.contains("address")
-                                || lineLower.contains("city")
-                                || lineLower.contains("state")
-                                || lineLower.contains("zip"))
+                // Address-shape lines. Originally this rule used bare-substring
+                // checks for "city", "state", "zip" — those false-positive on
+                // every transaction whose merchant location is "X CITY" (Salt
+                // Lake City, Redwood City, Iowa City…) or "STATE FARM …", since
+                // a 5-digit ZIP-like number is also present. Drop the loose
+                // substrings and only fire on labeled address lines or the
+                // Carol-Stream P.O. box that some issuers use as a return-mail
+                // header.
+                || (lineLower.contains("carol stream")
                         && lineLower.matches(".*\\d{5}.*"))
+                || lineLower.matches("\\s*(?:address|street)\\s*:.*\\d{5}.*")
+                || lineLower.matches(".*\\b(?:zip|postal)\\s*code\\b.*\\d{5}.*")
                 || lineLower.matches(".*\\d{1,2}\\s*-\\s*\\d{1,2}\\s+days?.*")
                 || lineLower.matches(".*\\d{1,2}\\s+to\\s+\\d{1,2}\\s+days?.*")
                 || (lineLower.matches(
@@ -7346,6 +7655,24 @@ public class PDFImportService {
      * Extract credit card statement metadata: payment due date, minimum payment due, and reward
      * points
      */
+    /**
+     * Pick the first non-null rewards-signal value across the three mutually-
+     * exclusive shapes documented at the call site. Returns null when none of
+     * the statement's three rewards shapes are populated.
+     */
+    private static Object firstNonNullRewardsSignal(
+            final Object pointsBalance,
+            final Object cashBackBalance,
+            final Object pointsEarnedThisPeriod) {
+        if (pointsBalance != null) {
+            return pointsBalance;
+        }
+        if (cashBackBalance != null) {
+            return cashBackBalance;
+        }
+        return pointsEarnedThisPeriod;
+    }
+
     private void extractCreditCardMetadata(
             final String fullText,
             final ImportResult result,
@@ -7420,7 +7747,23 @@ public class PDFImportService {
         if (creditLimit != null) {
             result.setCreditLimit(creditLimit);
         }
-        final BigDecimal availableCredit = profile.extractAvailableCredit(lines, ctx);
+        BigDecimal availableCredit = profile.extractAvailableCredit(lines, ctx);
+        // Fallback: when the issuer's statement doesn't print "Available Credit"
+        // explicitly (Amex prints "Amount Above the Credit Limit" instead),
+        // derive it from creditLimit − newBalance. Clamped at zero — over-limit
+        // accounts have no available credit, not negative. Only computed when
+        // both anchors were extracted; otherwise we'd silently emit zero.
+        if (availableCredit == null && creditLimit != null && newBalance != null) {
+            final BigDecimal derived = creditLimit.subtract(newBalance);
+            availableCredit =
+                    derived.compareTo(BigDecimal.ZERO) < 0 ? BigDecimal.ZERO : derived;
+            if (LOGGER.isInfoEnabled()) {
+                LOGGER.info(
+                        "✅ [Credit Card Metadata] Derived available credit from"
+                                + " creditLimit−newBalance: {}",
+                        availableCredit);
+            }
+        }
         if (availableCredit != null) {
             result.setAvailableCredit(availableCredit);
         }
@@ -7522,8 +7865,28 @@ public class PDFImportService {
                         .record("statementDate", result.getStatementDate())
                         .record("billingDays", result.getBillingDays())
                         .record("autoPayEnabled", result.getAutoPayEnabled())
-                        .record("pointsBalance", result.getPointsBalance())
-                        .record("cashBackBalance", result.getCashBackBalance())
+                        // Rewards signal — any of:
+                        //   pointsBalance       : cumulative points (Amex Platinum,
+                        //                         Citi Double Cash, Chase Freedom)
+                        //   cashBackBalance     : cumulative cash back (Wells Fargo
+                        //                         Active Cash, Citi Costco)
+                        //   pointsEarnedThisPeriod : period-earned (Marriott Bonvoy
+                        //                         Premier transfers points to
+                        //                         Marriott so no balance prints;
+                        //                         Amex Blue Business Cash shows
+                        //                         cashback as a credit row only)
+                        // These are all mutually-exclusive shapes of "did this
+                        // statement give us useful rewards data". Counting them
+                        // together so cash-back cards and points cards share the
+                        // same rubric AND cards that print period-only signals
+                        // (Marriott / Blue Business Cash) aren't penalized for
+                        // never printing a cumulative balance.
+                        .record(
+                                "rewardsBalance",
+                                firstNonNullRewardsSignal(
+                                        result.getPointsBalance(),
+                                        result.getCashBackBalance(),
+                                        result.getPointsEarnedThisPeriod()))
                         .mathResult(mathResult)
                         .build();
         LOGGER.info("📊 [Extraction Health] {}", report.summary());

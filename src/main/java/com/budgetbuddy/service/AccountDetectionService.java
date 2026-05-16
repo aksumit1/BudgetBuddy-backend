@@ -2945,6 +2945,18 @@ public class AccountDetectionService {
             "customer service",
             "customer support",
             "technical support",
+            // Marketing/instructional tag lines that include an issuer name but
+            // are NOT the card product. Pre-fix, Chase list-style PDFs whose
+            // first product-shaped line was "Chase Mobile app today®" got that
+            // as the accountName. The blacklist runs AFTER the generic-term
+            // override that would otherwise let "card" / "visa" indicators
+            // promote them. Listed here so they're hard-rejected regardless of
+            // any matched indicator's strength.
+            "mobile app today",
+            "download the.*app",
+            "download our",
+            "manage your account online",
+            "manage your account",
             "p\\.o\\. box",
             "po box",
             "p.o. box",
@@ -3081,9 +3093,19 @@ public class AccountDetectionService {
         }
 
         // Pattern 1: scan each line for institution + product-indicator and collect candidates.
+        //
+        // Limit the scan to the first ~30 header lines. The product/card name
+        // is virtually always printed on lines 1-5 of a statement; anything later
+        // is marketing or disclosure text that can false-positive (e.g. Amex's
+        // "Events with Amexº Benefit Removal" notice on page 6 was winning over
+        // the real "American Express Blue Business Cashº" header on line 1).
+        // 30 is enough headroom for issuers that pad the top of the statement
+        // with payment-coupon lines before the card-name line (Amex has ~20).
+        final String[] productScanLines = headerText.split("\n");
+        final int productScanLimit = Math.min(productScanLines.length, 30);
         final List<Map.Entry<String, String>> candidateProductNames = new ArrayList<>();
-        for (final String line : headerText.split("\n")) {
-            tryAddProductCandidateFromLine(line, candidateProductNames);
+        for (int i = 0; i < productScanLimit; i++) {
+            tryAddProductCandidateFromLine(productScanLines[i], candidateProductNames);
         }
         if (!candidateProductNames.isEmpty()) {
             return selectBestProductCandidate(candidateProductNames);
@@ -3351,9 +3373,32 @@ public class AccountDetectionService {
 
         final Pattern pattern =
                 Pattern.compile(institutionPattern.toString(), Pattern.CASE_INSENSITIVE);
-        final Matcher matcher = pattern.matcher(headerText);
-        if (matcher.find()) {
+        // Restrict the scan to the first 30 header lines for the same reason
+        // tryAddProductCandidateFromLine does — marketing footers far below the
+        // header line ("Chase branch or call the number...", "Chase Dining
+        // storefront in our mobile app...") otherwise become false-positive
+        // product names. The real card name, when present, is always on lines
+        // 1-5.
+        final String[] allLines = headerText.split("\n");
+        final int limit = Math.min(allLines.length, 30);
+        final String headerSlice =
+                String.join("\n", java.util.Arrays.copyOfRange(allLines, 0, limit));
+        final Matcher matcher = pattern.matcher(headerSlice);
+        while (matcher.find()) {
             final String productName = matcher.group(0).trim().replaceAll("\\s+", " ");
+            // Reject marketing/instructional taglines that happen to contain
+            // an issuer name + `®` / `™`. Real card names use product words
+            // ("Visa", "Cash", "Rewards", "Platinum"); marketing taglines use
+            // app/website terms.
+            if (lineMatchesBlacklist(productName)
+                    || productName.toLowerCase(Locale.ROOT).contains("mobile app")
+                    || productName.toLowerCase(Locale.ROOT).contains("download the")
+                    || productName.toLowerCase(Locale.ROOT).contains("manage your account")) {
+                LOGGER.info(
+                        "Skipping product-name candidate (marketing/instructional): {}",
+                        productName);
+                continue;
+            }
             LOGGER.info("Extracted product name (regex pattern): {}", productName);
             return productName;
         }
@@ -4253,6 +4298,50 @@ public class AccountDetectionService {
             LOGGER.debug(
                     "extractAndValidateName: Rejected '{}' - does not start with letter", name);
             return null;
+        }
+
+        // Reject prose/boilerplate that slipped through. A real person's name on
+        // a credit-card statement is ALL CAPS (Amex, Chase) or TitleCase (some
+        // bank statements). Common English connectors like "and", "or", "the",
+        // "for" appearing as standalone words inside the candidate are a strong
+        // signal that this is a partial regex capture from a sentence — e.g.
+        // "Card Members and Centurion Cardmembers" → captured as "s and
+        // Centurion Cardmembers" by the over-broad `card\s*member` pattern.
+        //
+        // Also reject candidates that start with a one-character word followed
+        // by a connector (the same "s and Centurion" shape).
+        final String[] connectorCheckWords = name.split("\\s+");
+        if (connectorCheckWords.length >= 2) {
+            // Note: deliberately exclude single-character connectors like "a" / "I" —
+            // a standalone "A" in a name is virtually always a middle initial
+            // ("Roger A Fernandes"), not the article. The leading-single-char
+            // check below catches the "s and Centurion" shape regardless.
+            final java.util.Set<String> connectors =
+                    java.util.Set.of(
+                            "and", "or", "of", "the", "for", "to", "in", "on", "at",
+                            "by", "is", "are", "was", "were", "be", "with", "from",
+                            "as", "our", "your", "their", "this", "that", "an");
+            for (final String w : connectorCheckWords) {
+                if (connectors.contains(w.toLowerCase(Locale.ROOT))) {
+                    LOGGER.debug(
+                            "extractAndValidateName: Rejected '{}' - contains connector word '{}'",
+                            name,
+                            w);
+                    return null;
+                }
+            }
+            // Reject "s and Centurion" shape: leading single-character word that
+            // isn't a title or initial (titles like "Dr." / initials like "C."
+            // end in a period). Middle-position single-character words ARE valid
+            // middle initials and should be left alone — "Roger A Fernandes" is
+            // a real name.
+            if (connectorCheckWords[0].length() == 1
+                    && !connectorCheckWords[0].endsWith(".")) {
+                LOGGER.debug(
+                        "extractAndValidateName: Rejected '{}' - leading single-character word",
+                        name);
+                return null;
+            }
         }
 
         // Check for excluded words (case-insensitive) - reuse lowerName from earlier

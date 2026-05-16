@@ -402,12 +402,25 @@ public static BigDecimal extractFeesChargedTotal(final String[] lines) {
     return extractLabeledAmount(lines, FEES_CHARGED_LABELS, true);
 }
 
+// US Bank prints "Interest Charged + $79.99" — sign is `+` separated from `$`
+// by a space. The standard US_AMOUNT_PATTERN_STR's [-+]\$ branch requires the
+// sign to be directly attached to `$`. We accept an optional leading `+` /
+// `-` with whitespace via the non-capturing prefix `(?:[+\-]\s*)?` so the
+// captured-group indices downstream still align.
+private static final String OPTIONAL_LEADING_SIGN = "(?:[+\\-]\\s*)?";
 private static final Pattern[] INTEREST_CHARGED_LABELS = {
-    Pattern.compile("(?i)^\\s*interest\\s+charged[\\s:]+" + US_AMOUNT_PATTERN_STR),
-    Pattern.compile("(?i)^\\s*total\\s+interest[\\s:]+" + US_AMOUNT_PATTERN_STR),
+    Pattern.compile(
+            "(?i)^\\s*interest\\s+charged[\\s:]+"
+                    + OPTIONAL_LEADING_SIGN
+                    + US_AMOUNT_PATTERN_STR),
+    Pattern.compile(
+            "(?i)^\\s*total\\s+interest[\\s:]+"
+                    + OPTIONAL_LEADING_SIGN
+                    + US_AMOUNT_PATTERN_STR),
     // Wells Fargo: "TOTAL INTEREST CHARGED FOR THIS PERIOD $0.00".
     Pattern.compile(
             "(?i)^\\s*total\\s+interest\\s+charged\\s+for\\s+this\\s+period[\\s:]+"
+                    + OPTIONAL_LEADING_SIGN
                     + US_AMOUNT_PATTERN_STR),
 };
 

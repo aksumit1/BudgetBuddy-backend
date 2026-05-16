@@ -51,13 +51,28 @@ public class RewardExtractor {
 
     // Pre-compiled patterns shared by the multi-line points scan. Compile-once avoids the
     // per-call allocation that used to live inside extractRewardPoints.
+    //
+    // MULTI_LINE_REWARD_LINE1 must reference points/rewards/miles. The previous
+    // version also accepted bare "available" or "total" — far too loose: it
+    // fires on every "Total Payments and Credits ..." line which sits right
+    // above a dollar amount, producing nonsense like rewardPoints=1396 on a
+    // cash-back card with no points printed. Require a points-domain keyword.
     private static final Pattern MULTI_LINE_REWARD_LINE1 =
-            Pattern.compile("(?i).*(?:points|pts|rewards|miles|available|total).*");
+            Pattern.compile(
+                    "(?i).*(?:"
+                            + "points|pts|rewards|miles"
+                            + "|available\\s+(?:points|rewards|miles)"
+                            + "|total\\s+(?:points|rewards|miles)"
+                            + ").*");
     private static final Pattern MULTI_LINE_ACCOUNT_HINT =
             Pattern.compile("(?i).*(?:account|as\\s+of).*");
     private static final Pattern DATE_IN_LINE = Pattern.compile(".*\\d{1,2}/\\d{1,2}/\\d{2,4}.*");
     private static final Pattern ACCOUNT_NUMBER_TAIL = Pattern.compile(".*\\d{4}\\s*$");
     private static final Pattern NUMBER_WITH_COMMA = Pattern.compile("(\\d{1,7}(?:,\\d{3})+)");
+    // Currency-bearing lines aren't point values — reject when probing for a
+    // raw integer points total. Catches "Payments -$1,396.00" and "$1,461.05".
+    private static final Pattern HAS_CURRENCY_SYMBOL =
+            Pattern.compile(".*[\\$£€₹¥].*");
 
     /** Reward pattern definition */
     public static class RewardPattern {
@@ -380,7 +395,9 @@ public class RewardExtractor {
      * a date or a 4-digit account number suffix.
      */
     private Long parsePointsIfNotDateOrAccount(final String line, final String origin) {
-        if (DATE_IN_LINE.matcher(line).matches() || ACCOUNT_NUMBER_TAIL.matcher(line).matches()) {
+        if (DATE_IN_LINE.matcher(line).matches()
+                || ACCOUNT_NUMBER_TAIL.matcher(line).matches()
+                || HAS_CURRENCY_SYMBOL.matcher(line).matches()) {
             return null;
         }
         final Matcher matcher = NUMBER_WITH_COMMA.matcher(line);
