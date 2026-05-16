@@ -143,6 +143,37 @@ public class PDFImportService {
     private final com.budgetbuddy.service.pdf.PdfTemplateRegistry pdfTemplateRegistry;
     private final com.budgetbuddy.service.pdf.PdfTemplateMissTracker pdfTemplateMissTracker;
 
+    // Issuer-profile registry — singleton, built once from the default chain. Detection
+    // is stateless so a single instance is safe across threads. Per-request the
+    // registry's detect() returns the appropriate profile based on header text.
+    private static final com.budgetbuddy.service.pdf.profile.IssuerProfileRegistry
+            ISSUER_PROFILE_REGISTRY =
+                    com.budgetbuddy.service.pdf.profile.IssuerProfileRegistry.defaultRegistry();
+
+    /**
+     * Builds the header-only excerpt used for issuer profile detection. We use the
+     * first 30 non-blank lines, joined with newlines, so profile {@code matches}
+     * regexes can anchor on multi-word phrases that span lines without scanning the
+     * full document. The bound is generous enough to capture the page-1 issuer
+     * identification block (almost always within line 20 on US credit-card statements).
+     */
+    private static String buildHeaderTextForProfileDetection(final String[] lines) {
+        if (lines == null || lines.length == 0) {
+            return "";
+        }
+        final StringBuilder sb = new StringBuilder(2048);
+        int kept = 0;
+        for (int i = 0; i < lines.length && kept < 30; i++) {
+            final String line = lines[i];
+            if (line == null || line.isBlank()) {
+                continue;
+            }
+            sb.append(line).append('\n');
+            kept++;
+        }
+        return sb.toString();
+    }
+
     // Pattern cache for bank/institution name filtering (performance optimization)
     // Cache compiled patterns to avoid recompiling in loops
     private static final Map<String, Pattern> BANK_NAME_PATTERN_CACHE = new ConcurrentHashMap<>();
@@ -191,8 +222,10 @@ public class PDFImportService {
                 null);
     }
 
-    // Date formatters matching iOS app - reordered to prioritize unambiguous formats
-    private static final List<DateTimeFormatter> DATE_FORMATTERS_EUROPEAN =
+    // Date formatters matching iOS app - reordered to prioritize unambiguous formats.
+    // Public so StatementParsingUtilities (which moved out of this class during the
+    // issuer-profile migration) can reuse them without duplicating the lists.
+    public static final List<DateTimeFormatter> DATE_FORMATTERS_EUROPEAN =
             Arrays.asList(
                     // ISO format first (most unambiguous)
                     DateTimeFormatter.ISO_LOCAL_DATE, // yyyy-MM-dd
@@ -210,8 +243,8 @@ public class PDFImportService {
                     DateTimeFormatter.ofPattern("dd-MMM-yy"),
                     DateTimeFormatter.ofPattern("dd/MM/yy"));
 
-    // US date formatters (prioritize MM/DD/YYYY)
-    private static final List<DateTimeFormatter> DATE_FORMATTERS_US =
+    // US date formatters (prioritize MM/DD/YYYY) — public for StatementParsingUtilities.
+    public static final List<DateTimeFormatter> DATE_FORMATTERS_US =
             Arrays.asList(
                     // ISO format first (most unambiguous)
                     DateTimeFormatter.ISO_LOCAL_DATE, // yyyy-MM-dd
@@ -345,6 +378,12 @@ public class PDFImportService {
         // Feeds the card-advisor's existing AccountTable.rewardMultipliers schema.
         // Empty map (not null) when no rewards block is present.
         private java.util.Map<String, BigDecimal> rewardMultipliersFromPdf;
+
+        // Wells Fargo Active Cash (and other cash-back cards) print redeemable rewards as
+        // a dollar value rather than an integer point count. Mutually exclusive with
+        // {@code pointsBalance} per card — one or the other is populated. Stored as
+        // BigDecimal so $110.96 stays exact.
+        private BigDecimal cashBackBalance;
 
         // Year-to-date totals for fees + interest. Useful for end-of-year summaries.
         // Null when the statement doesn't print the YTD row.
@@ -696,6 +735,14 @@ public class PDFImportService {
             this.rewardMultipliersFromPdf = v;
         }
 
+        public BigDecimal getCashBackBalance() {
+            return cashBackBalance;
+        }
+
+        public void setCashBackBalance(final BigDecimal v) {
+            this.cashBackBalance = v;
+        }
+
         public BigDecimal getYtdFeesCharged() {
             return ytdFeesCharged;
         }
@@ -953,6 +1000,19 @@ public class PDFImportService {
         public void setExchangeRate(final BigDecimal exchangeRate) {
             this.exchangeRate = exchangeRate;
         }
+
+        // Wallet provider detected from the merchant description prefix (Apple Pay /
+        // Google Pay / PayPal / Square / etc.). See WalletProviderDetector. Null means
+        // either an unrecognized prefix or a physical-card swipe (the implicit default).
+        private String walletProvider;
+
+        public String getWalletProvider() {
+            return walletProvider;
+        }
+
+        public void setWalletProvider(final String v) {
+            this.walletProvider = v;
+        }
     }
 
     /**
@@ -1139,6 +1199,17 @@ public class PDFImportService {
             // amount-less, following a dated line) so page boundaries and
             // multi-line Pattern-7 layouts don't drop rows.
             fullText = stitchContinuationLines(fullText);
+
+            // Some PDF layouts emit a transaction row and the section header of the
+            // next group on the same extracted physical line (PDFBox merges fragments
+            // that share a Y-coordinate). Split those AFTER stitching — otherwise
+            // stitch's "section header has no date, must be a continuation" rule
+            // would just glue them back together.
+            fullText = splitTransactionFromTrailingSectionHeader(fullText);
+            // Same artifact in a different shape: two transactions glued onto one
+            // physical line. Splitting at <amount> <date> boundaries reconstitutes
+            // them as separate rows.
+            fullText = splitGluedTransactions(fullText);
 
             // Parse PDF text to extract transactions via the structured template
             // set (Pattern 1-7 + EnhancedPatternMatcher). Each template encodes
@@ -3208,6 +3279,118 @@ public class PDFImportService {
                             + ")",
                     Pattern.CASE_INSENSITIVE);
 
+    // Section-header phrases that Chase / BoA / Wells / Amex print between transaction
+    // groups. When PDFBox glues one onto the end of the prior transaction's line, we use
+    // this list to detect and split. The list is intentionally specific (not a generic
+    // "ends with capitalized words") so we don't accidentally split a real merchant name
+    // like "STANDARD MOTOR PRODUCTS" off a transaction row.
+    private static final Pattern TRAILING_SECTION_HEADER_PATTERN =
+            Pattern.compile(
+                    "^(.*?[-+]?\\$?\\d{1,3}(?:,\\d{3})*\\.\\d{2}(?:\\s*(?:CR|DR))?)"
+                            + "\\s+("
+                            + "Standard\\s+Purchases"
+                            + "|Purchases\\s+Prior\\s+to(?:\\s+\\d{1,2}/\\d{1,2}/\\d{2,4})?"
+                            + "|Payments,?\\s+Credits(?:\\s+and\\s+Adjustments)?"
+                            + "|Cash\\s+Advances"
+                            + "|Balance\\s+Transfers"
+                            + "|Fees\\s+Charged"
+                            + "|Interest\\s+Charged"
+                            + "|Total\\s+(?:Payments|Purchases|Fees|Interest)"
+                            // Page-N header glued from the next page (multi-page extraction).
+                            + "|Page\\s+\\d+\\b.*"
+                            + ")\\b(.*)$",
+                    Pattern.CASE_INSENSITIVE);
+
+    /**
+     * Split a line of the form {@code <transaction-with-amount> <section-header-name>...}
+     * back into two physical lines so the transaction matchers can anchor on the amount
+     * at end-of-line. PDFBox occasionally glues a section header onto the trailing edge
+     * of the previous transaction's row when they share a Y-coordinate (or one tab too
+     * few separates them). Without splitting, Pattern1 / Pattern2 fail their {@code $}
+     * anchor and the entire row gets dropped.
+     */
+    public static String splitTransactionFromTrailingSectionHeader(final String text) {
+        if (text == null || text.isEmpty()) {
+            return text;
+        }
+        final String[] lines = text.split("\\r?\\n");
+        final StringBuilder out = new StringBuilder(text.length() + 32);
+        for (final String rawLine : lines) {
+            if (rawLine == null) {
+                out.append('\n');
+                continue;
+            }
+            // Only consider lines that begin with a date so we don't split benign prose
+            // that happens to mention "Standard Purchases" after a number.
+            final String trimmed = rawLine.stripLeading();
+            if (!java.util.regex.Pattern.compile("^\\d{1,2}[/-]\\d{1,2}(?:[/-]\\d{2,4})?\\b")
+                    .matcher(trimmed)
+                    .find()) {
+                out.append(rawLine).append('\n');
+                continue;
+            }
+            final Matcher m = TRAILING_SECTION_HEADER_PATTERN.matcher(rawLine);
+            if (m.matches()) {
+                out.append(m.group(1)).append('\n');
+                final String header = m.group(2);
+                final String rest = m.group(3) == null ? "" : m.group(3).trim();
+                out.append(header);
+                if (!rest.isEmpty()) {
+                    out.append(' ').append(rest);
+                }
+                out.append('\n');
+            } else {
+                out.append(rawLine).append('\n');
+            }
+        }
+        return out.toString();
+    }
+
+    // Matches the boundary between two transactions glued onto one physical line:
+    // {@code <amount> <date>}. We split there so each transaction lands on its own
+    // line for Pattern1's {@code $}-anchored matcher.
+    private static final Pattern GLUED_TRANSACTION_BOUNDARY_PATTERN =
+            Pattern.compile(
+                    // amount: optional sign, optional $, digits w/ optional thousands, decimal
+                    "([-+]?\\$?\\d{1,3}(?:,\\d{3})*\\.\\d{2}(?:\\s*(?:CR|DR))?)"
+                            + "\\s+"
+                            // date that starts the next transaction
+                            + "(?=\\d{1,2}[/-]\\d{1,2}(?:[/-]\\d{2,4})?\\s)");
+
+    /**
+     * Split a physical line that contains two transactions glued together by PDFBox
+     * extraction (this happens when the source PDF rendered two adjacent transaction
+     * rows close enough together vertically that they share a "logical line"). The
+     * boundary is {@code <amount> <date>} — once we see an amount immediately followed
+     * by another date, the next chunk is a new transaction and should start on its own
+     * line. Acts on lines that BEGIN with a date so we don't shatter free-form text.
+     */
+    public static String splitGluedTransactions(final String text) {
+        if (text == null || text.isEmpty()) {
+            return text;
+        }
+        final String[] lines = text.split("\\r?\\n");
+        final StringBuilder out = new StringBuilder(text.length() + 32);
+        for (final String rawLine : lines) {
+            if (rawLine == null) {
+                out.append('\n');
+                continue;
+            }
+            final String trimmed = rawLine.stripLeading();
+            if (!java.util.regex.Pattern.compile("^\\d{1,2}[/-]\\d{1,2}(?:[/-]\\d{2,4})?\\b")
+                    .matcher(trimmed)
+                    .find()) {
+                out.append(rawLine).append('\n');
+                continue;
+            }
+            // Replace every "<amount> <date>" boundary with "<amount>\n<date>".
+            final String split =
+                    GLUED_TRANSACTION_BOUNDARY_PATTERN.matcher(rawLine).replaceAll("$1\n");
+            out.append(split).append('\n');
+        }
+        return out.toString();
+    }
+
     /**
      * Joins lines that are continuations of a prior transaction. Motivated by Pattern-7 style
      * layouts (Amex, some Chase cards) where one transaction spans 3-5 physical lines, and by page
@@ -3219,7 +3402,7 @@ public class PDFImportService {
      *
      * <p>Drops page footers entirely so they don't break the chain.
      */
-    /* default */ static String stitchContinuationLines(final String text) {
+    public static String stitchContinuationLines(final String text) {
         if (text == null || text.isEmpty()) {
             return text;
         }
@@ -3464,7 +3647,7 @@ public class PDFImportService {
      * name). The pair-detection (rather than dropping any all-caps-after-date line) keeps the
      * filter safe for normal lowercase merchant lines.
      */
-    /* default */ static String stripFxAnnotations(final String text) {
+    public static String stripFxAnnotations(final String text) {
         return stripAndCaptureFxAnnotations(text).getCleanedText();
     }
 
@@ -3474,7 +3657,7 @@ public class PDFImportService {
      * downstream code can enrich the matching {@link ParsedTransaction}. This is how we
      * preserve the FX context that the strip pass would otherwise discard.
      */
-    /* default */ static FxStripResult stripAndCaptureFxAnnotations(final String text) {
+    public static FxStripResult stripAndCaptureFxAnnotations(final String text) {
         final Map<String, FxAnnotation> annotations = new java.util.LinkedHashMap<>();
         if (text == null) {
             return new FxStripResult(null, annotations);
@@ -3581,7 +3764,7 @@ public class PDFImportService {
      * Build the anchor key for a {@link ParsedTransaction} so callers can look up its FX
      * annotation by date + USD amount. Returns null when either field is missing.
      */
-    /* default */ static String fxAnchorFor(final ParsedTransaction txn) {
+    public static String fxAnchorFor(final ParsedTransaction txn) {
         if (txn == null || txn.getDate() == null || txn.getAmount() == null) {
             return null;
         }
@@ -3599,7 +3782,7 @@ public class PDFImportService {
      * without depending on dedicated DB columns. The anchor map is keyed by
      * "MM-DD|amount" — same shape produced by {@link #fxAnchorFor(ParsedTransaction)}.
      */
-    /* default */ static void applyFxAnnotationIfPresent(
+    public static void applyFxAnnotationIfPresent(
             final ParsedTransaction transaction,
             final Map<String, FxAnnotation> annotationsByAnchor) {
         if (transaction == null || annotationsByAnchor == null || annotationsByAnchor.isEmpty()) {
@@ -3681,12 +3864,84 @@ public class PDFImportService {
         return merged;
     }
 
+    /**
+     * Build a comparison key that survives format differences between the two parse
+     * passes: structured-parse keeps raw issuer dates ("12/01") and dollar-prefixed
+     * amounts ("$14.27"), while the YAML registry path normalizes to ISO dates and
+     * strips currency symbols. We normalize BOTH sides here so the same transaction
+     * gets collapsed regardless of which pass produced it. The structured-parse path
+     * stashes the inferred year under "_inferredYear" so a MM/DD date can be promoted
+     * to the same ISO form the registry path emits.
+     */
     private static String dedupeKey(final Map<String, String> row) {
+        final String rawDate = String.valueOf(row.getOrDefault(DATE, ""));
+        final String rawAmount = String.valueOf(row.getOrDefault(AMOUNT, ""));
+        Integer inferredYear = null;
+        final Object yearObj = row.get("_inferredYear");
+        if (yearObj != null) {
+            try {
+                inferredYear = Integer.valueOf(yearObj.toString().trim());
+            } catch (NumberFormatException ignored) {
+                // fall through with null
+            }
+        }
         return String.join(
                 "|",
-                String.valueOf(row.getOrDefault(DATE, "")),
-                String.valueOf(row.getOrDefault(DESCRIPTION, "")).toLowerCase(Locale.ROOT),
-                String.valueOf(row.getOrDefault(AMOUNT, "")));
+                normalizeDateForDedupe(rawDate, inferredYear),
+                String.valueOf(row.getOrDefault(DESCRIPTION, ""))
+                        .trim()
+                        .toLowerCase(Locale.ROOT),
+                normalizeAmountForDedupe(rawAmount));
+    }
+
+    private static String normalizeAmountForDedupe(final String amount) {
+        if (amount == null) {
+            return "";
+        }
+        // Strip currency symbol, commas, and whitespace. Preserve the sign so a
+        // -$14.27 payment never collides with a +$14.27 purchase.
+        return amount.replaceAll("[$,\\s]", "");
+    }
+
+    private static String normalizeDateForDedupe(final String date, final Integer inferredYear) {
+        if (date == null || date.isBlank()) {
+            return "";
+        }
+        final String trimmed = date.trim();
+        // Already ISO (yyyy-MM-dd) — leave alone, the registry path uses this form.
+        if (trimmed.matches("^\\d{4}-\\d{2}-\\d{2}$")) {
+            return trimmed;
+        }
+        // Common US slash formats with explicit year.
+        for (final DateTimeFormatter fmt :
+                new DateTimeFormatter[] {
+                    DateTimeFormatter.ofPattern("M/d/yyyy"),
+                    DateTimeFormatter.ofPattern("M/d/yy"),
+                    DateTimeFormatter.ofPattern("MM/dd/yyyy"),
+                    DateTimeFormatter.ofPattern("MM/dd/yy"),
+                }) {
+            try {
+                return LocalDate.parse(trimmed, fmt).toString();
+            } catch (DateTimeParseException ignored) {
+                // try next
+            }
+        }
+        // MM/dd without explicit year — graft the inferred year so both passes converge.
+        final java.util.regex.Matcher mmdd =
+                java.util.regex.Pattern.compile("^(\\d{1,2})/(\\d{1,2})$").matcher(trimmed);
+        if (mmdd.matches()) {
+            final int month = Integer.parseInt(mmdd.group(1));
+            final int day = Integer.parseInt(mmdd.group(2));
+            if (inferredYear != null) {
+                try {
+                    return LocalDate.of(inferredYear, month, day).toString();
+                } catch (java.time.DateTimeException ignored) {
+                    // fall through to year-less form
+                }
+            }
+            return String.format("%02d-%02d", month, day);
+        }
+        return trimmed;
     }
 
     // -----------------------------------------------------------------------
@@ -6554,6 +6809,17 @@ public class PDFImportService {
 
         transaction.setDescription(cleanedDescription);
 
+        // Detect the wallet provider (Apple Pay / Google Pay / PayPal / Square / etc.)
+        // from the description prefix. Uses the original (pre-cleaning) description
+        // because removeNamesFromText can strip the "APL*" / "PYPL *" prefix off the
+        // front of the merchant name. Null when no recognized prefix → physical card.
+        final String walletProvider =
+                com.budgetbuddy.service.pdf.profile.WalletProviderDetector
+                        .detectName(description);
+        if (walletProvider != null) {
+            transaction.setWalletProvider(walletProvider);
+        }
+
         // Parse merchant name - extract from merchant field or description (NOT from user field)
         // Merchant is where the purchase was made (e.g., "Amazon", "Starbucks")
         String merchantName = findField(row, MERCHANT, "merchant name", PAYEE);
@@ -7097,6 +7363,23 @@ public class PDFImportService {
         final String[] lines = fullText.split("\\r?\\n");
         // Credit Card Metadata: Processing PDF lines
 
+        // Issuer-profile dispatch: detect ONCE from the header lines, then route the
+        // per-field extractors through the profile. Each profile delegates to the
+        // legacy static extractor by default (preserving exact prior behavior); only
+        // profiles like BoA / Apple Card override fields where their statement layout
+        // differs from the generic union. Migration of existing patterns into per-
+        // issuer overrides is incremental and safe.
+        final String headerText = buildHeaderTextForProfileDetection(lines);
+        final com.budgetbuddy.service.pdf.profile.IssuerProfile profile =
+                ISSUER_PROFILE_REGISTRY.detect(headerText);
+        final com.budgetbuddy.service.pdf.profile.IssuerProfile.ExtractionContext ctx =
+                new com.budgetbuddy.service.pdf.profile.IssuerProfile.ExtractionContext(
+                        inferredYear, isUSLocale);
+        LOGGER.info(
+                "📍 [Credit Card Metadata] Detected issuer profile: {} (brand: {})",
+                profile.issuerId(),
+                profile.detectBrand(headerText));
+
         // Extract payment due date
         final LocalDate paymentDueDate = extractPaymentDueDate(lines, inferredYear, isUSLocale);
         if (paymentDueDate != null) {
@@ -7122,63 +7405,65 @@ public class PDFImportService {
 
         // Statement-summary block: New / Previous balance, Credit Limit, Available Credit,
         // Past Due. Each one is best-effort — a statement that doesn't print a particular
-        // label leaves that field null on the result.
-        final BigDecimal newBalance = extractNewBalance(lines);
+        // label leaves that field null on the result. Calls flow through the detected
+        // profile so issuer-specific overrides (BoA "Total Credit Line",
+        // Apple "Total Balance") take precedence over the generic union.
+        final BigDecimal newBalance = profile.extractNewBalance(lines, ctx);
         if (newBalance != null) {
             result.setNewBalance(newBalance);
         }
-        final BigDecimal previousBalance = extractPreviousBalance(lines);
+        final BigDecimal previousBalance = profile.extractPreviousBalance(lines, ctx);
         if (previousBalance != null) {
             result.setPreviousBalance(previousBalance);
         }
-        final BigDecimal creditLimit = extractCreditLimit(lines);
+        final BigDecimal creditLimit = profile.extractCreditLimit(lines, ctx);
         if (creditLimit != null) {
             result.setCreditLimit(creditLimit);
         }
-        final BigDecimal availableCredit = extractAvailableCredit(lines);
+        final BigDecimal availableCredit = profile.extractAvailableCredit(lines, ctx);
         if (availableCredit != null) {
             result.setAvailableCredit(availableCredit);
         }
-        final BigDecimal pastDueAmount = extractPastDueAmount(lines);
+        final BigDecimal pastDueAmount = profile.extractPastDueAmount(lines, ctx);
         if (pastDueAmount != null) {
             result.setPastDueAmount(pastDueAmount);
         }
 
         // Section totals — used to validate that the sum of imported transactions matches
         // the statement's own subtotals (catches dropped rows during parsing).
-        result.setPurchasesTotal(extractPurchasesTotal(lines));
-        result.setPaymentsAndCreditsTotal(extractPaymentsAndCreditsTotal(lines));
-        result.setCashAdvancesTotal(extractCashAdvancesTotal(lines));
-        result.setBalanceTransfersTotal(extractBalanceTransfersTotal(lines));
-        result.setFeesChargedTotal(extractFeesChargedTotal(lines));
-        result.setInterestChargedTotal(extractInterestChargedTotal(lines));
+        result.setPurchasesTotal(profile.extractPurchasesTotal(lines, ctx));
+        result.setPaymentsAndCreditsTotal(profile.extractPaymentsAndCreditsTotal(lines, ctx));
+        result.setCashAdvancesTotal(profile.extractCashAdvancesTotal(lines, ctx));
+        result.setBalanceTransfersTotal(profile.extractBalanceTransfersTotal(lines, ctx));
+        result.setFeesChargedTotal(profile.extractFeesChargedTotal(lines, ctx));
+        result.setInterestChargedTotal(profile.extractInterestChargedTotal(lines, ctx));
 
         // APR disclosure block.
-        result.setPurchaseApr(extractPurchaseApr(lines));
-        result.setCashAdvanceApr(extractCashAdvanceApr(lines));
-        result.setBalanceTransferApr(extractBalanceTransferApr(lines));
-        result.setPenaltyApr(extractPenaltyApr(lines));
+        result.setPurchaseApr(profile.extractPurchaseApr(lines, ctx));
+        result.setCashAdvanceApr(profile.extractCashAdvanceApr(lines, ctx));
+        result.setBalanceTransferApr(profile.extractBalanceTransferApr(lines, ctx));
+        result.setPenaltyApr(profile.extractPenaltyApr(lines, ctx));
 
         // Annual fee — single sentence with both amount and date.
-        final Object[] feeBlock =
-                extractAnnualMembershipFeeAndDate(lines, inferredYear, isUSLocale);
+        final Object[] feeBlock = profile.extractAnnualMembershipFeeAndDate(lines, ctx);
         if (feeBlock != null) {
             result.setAnnualMembershipFee((BigDecimal) feeBlock[0]);
             result.setAnnualMembershipFeeDueDate((LocalDate) feeBlock[1]);
         }
 
         // Cash advance sub-limits + billing days + statement date.
-        result.setCashAccessLine(extractCashAccessLine(lines));
-        result.setAvailableForCash(extractAvailableForCash(lines));
-        result.setBillingDays(extractBillingDays(lines));
-        result.setStatementDate(extractStatementDate(lines, inferredYear, isUSLocale));
+        result.setCashAccessLine(profile.extractCashAccessLine(lines, ctx));
+        result.setAvailableForCash(profile.extractAvailableForCash(lines, ctx));
+        result.setBillingDays(profile.extractBillingDays(lines, ctx));
+        result.setStatementDate(profile.extractStatementDate(lines, ctx));
 
         // Foreign transaction fee — disclosure block.
-        result.setForeignTransactionFeePercent(extractForeignTransactionFeePercent(lines));
+        result.setForeignTransactionFeePercent(
+                profile.extractForeignTransactionFeePercent(lines, ctx));
 
         // AutoPay status + next scheduled deduction amount.
-        result.setAutoPayEnabled(extractAutoPayEnabled(lines));
-        result.setNextAutoPayAmount(extractNextAutoPayAmount(lines));
+        result.setAutoPayEnabled(profile.extractAutoPayEnabled(lines, ctx));
+        result.setNextAutoPayAmount(profile.extractNextAutoPayAmount(lines, ctx));
 
         // Points split: earned this period / cumulative balance / previous cycle's
         // balance. Either of the first two may be null depending on the card type;
@@ -7186,28 +7471,81 @@ public class PDFImportService {
         // statements print it explicitly). The existing `rewardPoints` field stays —
         // it's surfaced by the RewardExtractor and represents whichever signal it
         // judges most important; these three add specificity on top.
-        result.setPointsEarnedThisPeriod(extractPointsEarnedThisPeriod(lines));
-        result.setPointsBalance(extractPointsBalance(lines));
-        result.setPreviousPointsBalance(extractPreviousPointsBalance(lines));
+        result.setPointsEarnedThisPeriod(profile.extractPointsEarnedThisPeriod(lines, ctx));
+        result.setPointsBalance(profile.extractPointsBalance(lines, ctx));
+        result.setPreviousPointsBalance(profile.extractPreviousPointsBalance(lines, ctx));
 
         // Per-category reward multipliers from "+ N% back" lines. Always populate
         // (empty map when there's no rewards block) so downstream callers can
         // distinguish "no rewards data" from "no card-advisor enrichment yet".
-        result.setRewardMultipliersFromPdf(extractRewardMultipliersFromPdf(lines));
+        result.setRewardMultipliersFromPdf(profile.extractRewardMultipliersFromPdf(lines, ctx));
+
+        // Cash-back redeemable balance — Wells Fargo Active Cash and similar cards
+        // express rewards as a dollar amount rather than an integer point count.
+        // Mutually exclusive with pointsBalance per card.
+        result.setCashBackBalance(profile.extractCashBackBalance(lines, ctx));
 
         // YTD totals.
-        result.setYtdFeesCharged(extractYtdFeesCharged(lines));
-        result.setYtdInterestCharged(extractYtdInterestCharged(lines));
+        result.setYtdFeesCharged(profile.extractYtdFeesCharged(lines, ctx));
+        result.setYtdInterestCharged(profile.extractYtdInterestCharged(lines, ctx));
 
-        // Chase Freedom rotating bonus tier + next-quarter activation window.
-        final QuarterlyBonus currentBonus = extractCurrentQuarterBonus(lines);
+        // Build a structured extraction report — health band + math reconciliation +
+        // missing-field list. Logged as a single line so production telemetry can
+        // alert on FAIL/DEGRADED bands per (issuer, brand). When the band drops,
+        // SyntheticFixtureGenerator.anonymize() converts the raw PDF text to a
+        // PII-safe regression fixture for the test suite.
+        final com.budgetbuddy.service.pdf.profile.StatementMathValidator validator =
+                new com.budgetbuddy.service.pdf.profile.StatementMathValidator();
+        final com.budgetbuddy.service.pdf.profile.StatementMathValidator.Result mathResult =
+                validator.validate(
+                        result.getPreviousBalance(),
+                        result.getNewBalance(),
+                        result.getPaymentsAndCreditsTotal(),
+                        result.getPurchasesTotal(),
+                        result.getCashAdvancesTotal(),
+                        result.getBalanceTransfersTotal(),
+                        result.getFeesChargedTotal(),
+                        result.getInterestChargedTotal());
+        final com.budgetbuddy.service.pdf.profile.StatementExtractionReport report =
+                com.budgetbuddy.service.pdf.profile.StatementExtractionReport.builder()
+                        .issuerId(profile.issuerId())
+                        .brand(profile.detectBrand(headerText))
+                        .rawLineCount(lines.length)
+                        .rawCharCount(fullText.length())
+                        .record("newBalance", result.getNewBalance())
+                        .record("previousBalance", result.getPreviousBalance())
+                        .record("creditLimit", result.getCreditLimit())
+                        .record("availableCredit", result.getAvailableCredit())
+                        .record("purchasesTotal", result.getPurchasesTotal())
+                        .record("paymentsAndCreditsTotal", result.getPaymentsAndCreditsTotal())
+                        .record("purchaseApr", result.getPurchaseApr())
+                        .record("statementDate", result.getStatementDate())
+                        .record("billingDays", result.getBillingDays())
+                        .record("autoPayEnabled", result.getAutoPayEnabled())
+                        .record("pointsBalance", result.getPointsBalance())
+                        .record("cashBackBalance", result.getCashBackBalance())
+                        .mathResult(mathResult)
+                        .build();
+        LOGGER.info("📊 [Extraction Health] {}", report.summary());
+        if (report.healthBand()
+                == com.budgetbuddy.service.pdf.profile.StatementExtractionReport.HealthBand.FAIL
+                || report.healthBand()
+                == com.budgetbuddy.service.pdf.profile.StatementExtractionReport.HealthBand.DEGRADED) {
+            LOGGER.warn("⚠️ [Extraction Health] degraded extraction:\n{}", report);
+        }
+
+        // Chase Freedom rotating bonus tier + next-quarter activation window — now
+        // dispatched through the profile (Chase profile owns the patterns; others
+        // delegate to the legacy fallback for any cross-issuer surprises).
+        final com.budgetbuddy.service.pdf.profile.StatementParsingUtilities.QuarterlyBonus
+                currentBonus = profile.extractCurrentQuarterBonus(lines, ctx);
         if (currentBonus != null) {
             result.setCurrentQuarterBonusQuarter(currentBonus.quarter());
             result.setCurrentQuarterBonusRate(currentBonus.rate());
             result.setCurrentQuarterBonusCategory(currentBonus.category());
         }
-        final NextQuarterBonus nextBonus =
-                extractNextQuarterBonus(lines, inferredYear, isUSLocale);
+        final com.budgetbuddy.service.pdf.profile.StatementParsingUtilities.NextQuarterBonus
+                nextBonus = profile.extractNextQuarterBonus(lines, ctx);
         if (nextBonus != null) {
             result.setNextQuarterBonusRate(nextBonus.rate());
             result.setNextQuarterBonusCap(nextBonus.capAmount());
@@ -7325,939 +7663,7 @@ public class PDFImportService {
         return null;
     }
 
-    /**
-     * Generic single-amount extractor: returns the first amount on a line that matches any of
-     * the supplied label phrases. Lets the balance/credit-limit/etc. extractors stay
-     * one-liner declarations of just the labels each one cares about.
-     *
-     * <p>The label regexes accept arbitrary whitespace between words ({@code minimum\\s+payment})
-     * but require the label to come BEFORE the amount on the same line — Chase emits all of
-     * these as "Label $amount" pairs on single lines.
-     */
-    private static BigDecimal extractLabeledAmount(
-            final String[] lines, final Pattern[] labelPatterns, final boolean allowZero) {
-        for (final String line : lines) {
-            if (line == null || line.isBlank()) {
-                continue;
-            }
-            final String normalizedLine = normalizeLineForLabelMatching(line.trim());
-            for (final Pattern pattern : labelPatterns) {
-                final Matcher matcher = pattern.matcher(normalizedLine);
-                if (matcher.find()) {
-                    String amountStr = null;
-                    // Group 1 = parens form ($1,234.56) — must NOT strip parens before
-                    // staticParseAmount runs, otherwise the negative sign encoded by the
-                    // parens is silently lost. staticParseAmount handles parens→sign.
-                    if (matcher.group(1) != null) {
-                        amountStr = matcher.group(1).replaceAll("[$\\s]", "").trim();
-                    } else if (matcher.group(2) != null) {
-                        // Signed: -$1,234.56 / +$1,234.56 — keep the leading sign.
-                        amountStr = matcher.group(2).replaceAll("[$\\s]", "").trim();
-                    } else if (matcher.group(3) != null) {
-                        // Standard $1,234.56 — no sign to preserve.
-                        amountStr = matcher.group(3).replaceAll("[$\\s]", "").trim();
-                    }
-                    if (amountStr != null) {
-                        final BigDecimal amt = staticParseAmount(amountStr);
-                        if (amt != null && (allowZero || amt.compareTo(BigDecimal.ZERO) != 0)) {
-                            return amt;
-                        }
-                    }
-                }
-            }
-        }
-        return null;
-    }
 
-    /**
-     * Strip PDFBox font-extraction artifacts that punctuate label words mid-character. The
-     * known case is Chase Prime Visa: PDFBox extracts "A`vailable Credit $14,841" and
-     * "B`alance Transfers $0.00" — the stray backtick comes from the ligature glyph in
-     * the title font, and the label regexes never match unless we strip it first.
-     *
-     * <p>We only strip a backtick when it sits between two letters; a backtick at the
-     * start or end of a word is harmless and probably intentional. This keeps the
-     * normalization tight enough to avoid false positives on raw transaction descriptions
-     * that happen to contain a backtick.
-     */
-    private static String normalizeLineForLabelMatching(final String line) {
-        if (line == null || line.indexOf('`') < 0) {
-            return line;
-        }
-        return line.replaceAll("(?<=\\p{L})`(?=\\p{L})", "");
-    }
-
-    /** Static counterpart to {@link #parseAmount(String)} usable from static helpers above. */
-    private static BigDecimal staticParseAmount(final String amountString) {
-        if (amountString == null || amountString.isBlank()) {
-            return null;
-        }
-        try {
-            final String cleaned =
-                    amountString.replaceAll("[$,\\s]", "").replace("(", "-").replace(")", "");
-            return new BigDecimal(cleaned);
-        } catch (NumberFormatException e) {
-            return null;
-        }
-    }
-
-    // All balance / credit-limit label patterns anchor to start-of-line (^\s*) — NOT
-    // just \b. The \b form was too permissive: a line like "Balance over the Credit
-    // Access Line $0.00" (Chase prints this BEFORE the actual "Credit Access Line
-    // $25,000" row) would otherwise satisfy \bcredit\s+access\s+line and extract $0.00
-    // as the credit limit. With ^\s*, the regex requires the label to BEGIN the line
-    // — disclosure prose can never collide with the summary block.
-    private static final Pattern[] NEW_BALANCE_LABELS = {
-        Pattern.compile("(?i)^\\s*new\\s+balance[\\s:]+" + US_AMOUNT_PATTERN_STR),
-        Pattern.compile("(?i)^\\s*statement\\s+balance[\\s:]+" + US_AMOUNT_PATTERN_STR),
-        Pattern.compile("(?i)^\\s*current\\s+balance[\\s:]+" + US_AMOUNT_PATTERN_STR),
-    };
-
-    /** Statement-summary "New Balance" — the total owed on this statement. */
-    /* default */ static BigDecimal extractNewBalance(final String[] lines) {
-        // Chase prints "New Balance $403.87" — always positive, never zero on an active card.
-        // Allow zero for paid-off statements.
-        return extractLabeledAmount(lines, NEW_BALANCE_LABELS, true);
-    }
-
-    private static final Pattern[] PREVIOUS_BALANCE_LABELS = {
-        Pattern.compile("(?i)^\\s*previous\\s+balance[\\s:]+" + US_AMOUNT_PATTERN_STR),
-        Pattern.compile("(?i)^\\s*prior\\s+balance[\\s:]+" + US_AMOUNT_PATTERN_STR),
-        Pattern.compile("(?i)^\\s*last\\s+statement\\s+balance[\\s:]+" + US_AMOUNT_PATTERN_STR),
-    };
-
-    /** Statement-summary "Previous Balance" — the balance carried into this cycle. */
-    /* default */ static BigDecimal extractPreviousBalance(final String[] lines) {
-        return extractLabeledAmount(lines, PREVIOUS_BALANCE_LABELS, true);
-    }
-
-    private static final Pattern[] CREDIT_LIMIT_LABELS = {
-        // Chase labels this "Credit Access Line"; mainstream cards use "Credit Limit"; some
-        // statements use "Total Credit Limit". Order matters: most-specific first so
-        // "Total Credit Limit" doesn't get short-circuited by the generic "Credit Limit".
-        Pattern.compile("(?i)^\\s*credit\\s+access\\s+line[\\s:]+" + US_AMOUNT_PATTERN_STR),
-        Pattern.compile("(?i)^\\s*total\\s+credit\\s+limit[\\s:]+" + US_AMOUNT_PATTERN_STR),
-        Pattern.compile("(?i)^\\s*credit\\s+limit[\\s:]+" + US_AMOUNT_PATTERN_STR),
-    };
-
-    /** Statement-summary "Credit Limit" / Chase "Credit Access Line". */
-    /* default */ static BigDecimal extractCreditLimit(final String[] lines) {
-        return extractLabeledAmount(lines, CREDIT_LIMIT_LABELS, false);
-    }
-
-    private static final Pattern[] AVAILABLE_CREDIT_LABELS = {
-        Pattern.compile("(?i)^\\s*available\\s+credit[\\s:]+" + US_AMOUNT_PATTERN_STR),
-        Pattern.compile("(?i)^\\s*credit\\s+available[\\s:]+" + US_AMOUNT_PATTERN_STR),
-    };
-
-    /** Statement-summary "Available Credit" — credit limit minus current balance. */
-    /* default */ static BigDecimal extractAvailableCredit(final String[] lines) {
-        return extractLabeledAmount(lines, AVAILABLE_CREDIT_LABELS, true);
-    }
-
-    private static final Pattern[] PAST_DUE_LABELS = {
-        Pattern.compile("(?i)^\\s*past\\s+due\\s+amount[\\s:]+" + US_AMOUNT_PATTERN_STR),
-        Pattern.compile("(?i)^\\s*amount\\s+past\\s+due[\\s:]+" + US_AMOUNT_PATTERN_STR),
-        Pattern.compile("(?i)^\\s*past\\s+due[\\s:]+" + US_AMOUNT_PATTERN_STR),
-    };
-
-    /** Statement-summary "Past Due Amount" — non-zero means the user is delinquent. */
-    /* default */ static BigDecimal extractPastDueAmount(final String[] lines) {
-        return extractLabeledAmount(lines, PAST_DUE_LABELS, true);
-    }
-
-    // ---------- section totals ----------
-
-    private static final Pattern[] PURCHASES_TOTAL_LABELS = {
-        // Chase prints "Purchases +$403.87" — note the literal "+". We don't anchor on the
-        // sign because some issuers omit it. The amount pattern handles both forms.
-        Pattern.compile("(?i)^\\s*purchases[\\s:]+" + US_AMOUNT_PATTERN_STR),
-    };
-
-    /** Statement-section total: Purchases. */
-    /* default */ static BigDecimal extractPurchasesTotal(final String[] lines) {
-        return extractLabeledAmount(lines, PURCHASES_TOTAL_LABELS, true);
-    }
-
-    private static final Pattern[] PAYMENTS_CREDITS_LABELS = {
-        Pattern.compile(
-                "(?i)^\\s*payment(?:s?)\\s*,?\\s*credits[\\s:]+" + US_AMOUNT_PATTERN_STR),
-        Pattern.compile("(?i)^\\s*payments\\s+and\\s+credits[\\s:]+" + US_AMOUNT_PATTERN_STR),
-    };
-
-    /** Statement-section total: Payments + Credits. Always negative for an active card. */
-    /* default */ static BigDecimal extractPaymentsAndCreditsTotal(final String[] lines) {
-        return extractLabeledAmount(lines, PAYMENTS_CREDITS_LABELS, true);
-    }
-
-    private static final Pattern[] CASH_ADVANCES_TOTAL_LABELS = {
-        Pattern.compile("(?i)^\\s*cash\\s+advances[\\s:]+" + US_AMOUNT_PATTERN_STR),
-    };
-
-    /** Statement-section total: Cash Advances. */
-    /* default */ static BigDecimal extractCashAdvancesTotal(final String[] lines) {
-        return extractLabeledAmount(lines, CASH_ADVANCES_TOTAL_LABELS, true);
-    }
-
-    private static final Pattern[] BALANCE_TRANSFERS_TOTAL_LABELS = {
-        Pattern.compile("(?i)^\\s*balance\\s+transfers[\\s:]+" + US_AMOUNT_PATTERN_STR),
-    };
-
-    /** Statement-section total: Balance Transfers. */
-    /* default */ static BigDecimal extractBalanceTransfersTotal(final String[] lines) {
-        return extractLabeledAmount(lines, BALANCE_TRANSFERS_TOTAL_LABELS, true);
-    }
-
-    private static final Pattern[] FEES_CHARGED_LABELS = {
-        Pattern.compile("(?i)^\\s*fees\\s+charged[\\s:]+" + US_AMOUNT_PATTERN_STR),
-        Pattern.compile("(?i)^\\s*total\\s+fees[\\s:]+" + US_AMOUNT_PATTERN_STR),
-    };
-
-    /** Statement-section total: Fees Charged. */
-    /* default */ static BigDecimal extractFeesChargedTotal(final String[] lines) {
-        return extractLabeledAmount(lines, FEES_CHARGED_LABELS, true);
-    }
-
-    private static final Pattern[] INTEREST_CHARGED_LABELS = {
-        Pattern.compile("(?i)^\\s*interest\\s+charged[\\s:]+" + US_AMOUNT_PATTERN_STR),
-        Pattern.compile("(?i)^\\s*total\\s+interest[\\s:]+" + US_AMOUNT_PATTERN_STR),
-    };
-
-    /** Statement-section total: Interest Charged. */
-    /* default */ static BigDecimal extractInterestChargedTotal(final String[] lines) {
-        return extractLabeledAmount(lines, INTEREST_CHARGED_LABELS, true);
-    }
-
-    // ---------- APR rates ----------
-
-    /**
-     * Extract a percent rate keyed by label. Chase rows look like
-     * "Purchases 19.49%(v)(d)" or "Cash Advances 28.49%(v)(d)" — the rate is the first
-     * percent value on a line whose label matches. Returns null when nothing matches.
-     */
-    private static BigDecimal extractLabeledPercent(
-            final String[] lines, final Pattern labelPattern) {
-        for (final String line : lines) {
-            if (line == null || line.isBlank()) {
-                continue;
-            }
-            final Matcher m = labelPattern.matcher(line.trim());
-            if (m.find()) {
-                try {
-                    return new BigDecimal(m.group(1));
-                } catch (NumberFormatException nfe) {
-                    // continue looking
-                }
-            }
-        }
-        return null;
-    }
-
-    private static final Pattern PURCHASE_APR_PATTERN =
-            Pattern.compile(
-                    "(?i)^\\s*purchases?\\s+(\\d{1,2}\\.\\d{1,4})\\s*%",
-                    Pattern.CASE_INSENSITIVE);
-    private static final Pattern CASH_APR_PATTERN =
-            Pattern.compile(
-                    "(?i)^\\s*cash\\s+advances?\\s+(\\d{1,2}\\.\\d{1,4})\\s*%");
-    private static final Pattern BT_APR_PATTERN =
-            Pattern.compile(
-                    "(?i)^\\s*balance\\s+transfers?\\s+(\\d{1,2}\\.\\d{1,4})\\s*%");
-    private static final Pattern PENALTY_APR_PATTERN =
-            Pattern.compile(
-                    "(?i)penalty\\s+apr\\s+of\\s+(\\d{1,2}\\.\\d{1,4})\\s*%");
-
-    /** Variable purchase APR (e.g. 19.49). Null when the disclosure block is missing. */
-    /* default */ static BigDecimal extractPurchaseApr(final String[] lines) {
-        return extractLabeledPercent(lines, PURCHASE_APR_PATTERN);
-    }
-
-    /** Variable cash-advance APR. Always higher than the purchase APR on Chase cards. */
-    /* default */ static BigDecimal extractCashAdvanceApr(final String[] lines) {
-        return extractLabeledPercent(lines, CASH_APR_PATTERN);
-    }
-
-    /** Variable balance-transfer APR. */
-    /* default */ static BigDecimal extractBalanceTransferApr(final String[] lines) {
-        return extractLabeledPercent(lines, BT_APR_PATTERN);
-    }
-
-    /** Penalty APR (kicks in after a missed payment). */
-    /* default */ static BigDecimal extractPenaltyApr(final String[] lines) {
-        return extractLabeledPercent(lines, PENALTY_APR_PATTERN);
-    }
-
-    // ---------- annual membership fee + billing date ----------
-
-    private static final Pattern ANNUAL_FEE_PATTERN =
-            Pattern.compile(
-                    "(?i)annual\\s+membership\\s+fee[^$]*\\$([\\d]+(?:,\\d{3})*(?:\\.\\d{1,2})?)"
-                            + ".*?billed\\s+on\\s+([\\d]{1,2}[/-][\\d]{1,2}[/-][\\d]{2,4})");
-
-    /**
-     * Extract the annual fee amount and its scheduled billing date from the typical Chase
-     * sentence: "Your annual membership fee in the amount of $NN.NN will be billed on
-     * MM/DD/YYYY." Returns a 2-element array {amount, date} or null when missing. The
-     * helper exists because we need both halves and the date format varies per issuer.
-     */
-    /* default */ static Object[] extractAnnualMembershipFeeAndDate(
-            final String[] lines, final Integer inferredYear, final boolean isUSLocale) {
-        // Join across blank lines so the regex can span the sentence even when it
-        // wraps in the PDF text.
-        final String joined = String.join(" ", lines).replaceAll("\\s+", " ");
-        final Matcher m = ANNUAL_FEE_PATTERN.matcher(joined);
-        if (!m.find()) {
-            return null;
-        }
-        final BigDecimal fee = staticParseAmount(m.group(1));
-        final LocalDate date = staticParseAnnualFeeDate(m.group(2), inferredYear, isUSLocale);
-        return new Object[] {fee, date};
-    }
-
-    private static LocalDate staticParseAnnualFeeDate(
-            final String raw, final Integer inferredYear, final boolean isUSLocale) {
-        if (raw == null || raw.isBlank()) {
-            return null;
-        }
-        final List<DateTimeFormatter> formatters =
-                isUSLocale ? DATE_FORMATTERS_US : DATE_FORMATTERS_EUROPEAN;
-        for (final DateTimeFormatter fmt : formatters) {
-            try {
-                return LocalDate.parse(raw.trim(), fmt);
-            } catch (DateTimeParseException ignored) {
-                // try next
-            }
-        }
-        // Fallback for MM/DD or MM/DD/YY when the year is implicit
-        try {
-            final String[] parts = raw.split("[/-]");
-            if (parts.length == 2 && inferredYear != null) {
-                return LocalDate.of(
-                        inferredYear, Integer.parseInt(parts[0]), Integer.parseInt(parts[1]));
-            }
-            if (parts.length == 3) {
-                int y = Integer.parseInt(parts[2]);
-                if (y < 100) {
-                    y += 2000;
-                }
-                return LocalDate.of(y, Integer.parseInt(parts[0]), Integer.parseInt(parts[1]));
-            }
-        } catch (NumberFormatException ignored) {
-            // fall through
-        }
-        return null;
-    }
-
-    // ---------- cash limits + billing days + statement date ----------
-
-    private static final Pattern[] CASH_ACCESS_LINE_LABELS = {
-        Pattern.compile("(?i)^\\s*cash\\s+access\\s+line[\\s:]+" + US_AMOUNT_PATTERN_STR),
-        Pattern.compile("(?i)^\\s*cash\\s+credit\\s+limit[\\s:]+" + US_AMOUNT_PATTERN_STR),
-    };
-
-    /** Statement "Cash Access Line" — the cash-advance sub-limit. */
-    /* default */ static BigDecimal extractCashAccessLine(final String[] lines) {
-        return extractLabeledAmount(lines, CASH_ACCESS_LINE_LABELS, false);
-    }
-
-    private static final Pattern[] AVAILABLE_FOR_CASH_LABELS = {
-        Pattern.compile("(?i)^\\s*available\\s+for\\s+cash[\\s:]+" + US_AMOUNT_PATTERN_STR),
-        Pattern.compile("(?i)^\\s*cash\\s+available[\\s:]+" + US_AMOUNT_PATTERN_STR),
-    };
-
-    /** Statement "Available for Cash" — cash-advance headroom. */
-    /* default */ static BigDecimal extractAvailableForCash(final String[] lines) {
-        return extractLabeledAmount(lines, AVAILABLE_FOR_CASH_LABELS, true);
-    }
-
-    private static final Pattern BILLING_DAYS_PATTERN =
-            Pattern.compile("(?i)\\b(\\d{1,2})\\s+days\\s+in\\s+billing\\s+period\\b");
-
-    /** "31 Days in Billing Period" → 31. */
-    /* default */ static Integer extractBillingDays(final String[] lines) {
-        for (final String line : lines) {
-            if (line == null) {
-                continue;
-            }
-            final Matcher m = BILLING_DAYS_PATTERN.matcher(line);
-            if (m.find()) {
-                try {
-                    return Integer.parseInt(m.group(1));
-                } catch (NumberFormatException ignored) {
-                    return null;
-                }
-            }
-        }
-        return null;
-    }
-
-    private static final Pattern STATEMENT_DATE_PATTERN =
-            Pattern.compile(
-                    "(?i)statement\\s+date[\\s:]+([\\d]{1,2}[/-][\\d]{1,2}[/-][\\d]{2,4})");
-
-    /** Issue date printed in the page header. */
-    /* default */ static LocalDate extractStatementDate(
-            final String[] lines, final Integer inferredYear, final boolean isUSLocale) {
-        for (final String line : lines) {
-            if (line == null) {
-                continue;
-            }
-            final Matcher m = STATEMENT_DATE_PATTERN.matcher(line);
-            if (m.find()) {
-                return staticParseAnnualFeeDate(m.group(1), inferredYear, isUSLocale);
-            }
-        }
-        return null;
-    }
-
-    /**
-     * Foreign-transaction fee percent. Chase prints this in the disclosure block as
-     * "There is a foreign transaction fee of 3% of the U.S. dollar amount..."; some
-     * issuers use "International Transaction Fee" instead. The line may wrap so we join
-     * across lines before matching.
-     */
-    private static final Pattern FOREIGN_TX_FEE_PATTERN =
-            Pattern.compile(
-                    "(?i)(?:foreign|international)\\s+transaction\\s+fee\\s+of\\s+(\\d{1,2}(?:\\.\\d{1,2})?)\\s*%");
-
-    // ---------- AutoPay status + scheduled amount ----------
-
-    // Chase prints "AUTOPAY IS ON" / "AUTOPAY IS OFF" as a section header. Some other
-    // issuers use "Automatic Payments: Enabled" — accept both, case-insensitive. We
-    // require word boundaries so "automatic" doesn't false-positive on disclosure prose
-    // like "If we receive automatic payments before processing...".
-    private static final Pattern AUTOPAY_ON_PATTERN =
-            Pattern.compile(
-                    "(?i)\\b(?:autopay\\s+is\\s+on|automatic\\s+payments?\\s*(?::\\s*enabled|"
-                            + "\\s+is\\s+on))\\b");
-
-    private static final Pattern AUTOPAY_OFF_PATTERN =
-            Pattern.compile(
-                    "(?i)\\b(?:autopay\\s+is\\s+off|automatic\\s+payments?\\s*(?::\\s*disabled|"
-                            + "\\s+is\\s+off))\\b");
-
-    /**
-     * AutoPay status as a Boolean (true = on, false = off). Null when neither marker is
-     * present. The on/off check runs independently — a statement that contains both
-     * markers (e.g., one in the summary and one in disclosure prose) prefers ON because
-     * Chase only prints ON in disclosure when AutoPay is genuinely active.
-     */
-    /* default */ static Boolean extractAutoPayEnabled(final String[] lines) {
-        boolean sawOn = false;
-        boolean sawOff = false;
-        for (final String line : lines) {
-            if (line == null) {
-                continue;
-            }
-            if (AUTOPAY_ON_PATTERN.matcher(line).find()) {
-                sawOn = true;
-            } else if (AUTOPAY_OFF_PATTERN.matcher(line).find()) {
-                // Else-if so the ON regex (which is a stricter prefix) wins on the same line.
-                sawOff = true;
-            }
-        }
-        if (!sawOn && !sawOff) {
-            return null;
-        }
-        return sawOn;
-    }
-
-    // Chase prints "Your next AutoPay payment for $NN.NN will be deducted from..." —
-    // require the "for $" pivot so we don't accidentally grab some other $ amount on
-    // an autopay-mention line.
-    private static final Pattern NEXT_AUTOPAY_AMOUNT_PATTERN =
-            Pattern.compile(
-                    "(?i)next\\s+autopay\\s+payment\\s+(?:for|of)\\s+\\$([\\d]+(?:,\\d{3})*"
-                            + "(?:\\.\\d{1,2})?)");
-
-    /** Scheduled amount of the next AutoPay deduction, or null when not on AutoPay. */
-    /* default */ static BigDecimal extractNextAutoPayAmount(final String[] lines) {
-        final String joined = String.join(" ", lines).replaceAll("\\s+", " ");
-        final Matcher m = NEXT_AUTOPAY_AMOUNT_PATTERN.matcher(joined);
-        if (!m.find()) {
-            return null;
-        }
-        return staticParseAmount(m.group(1));
-    }
-
-    // ---------- points: earned-this-period vs. cumulative balance ----------
-
-    /**
-     * Patterns that identify "points ACCRUED this billing period" — i.e. the new points
-     * added during the current statement window. Chase Marriott Bonvoy emits this as
-     * "Total points transferred to Marriott Bonvoy NN,NNN"; other issuers use "earned"
-     * phrasing. The captured group is always the integer point count (commas allowed).
-     */
-    private static final Pattern[] POINTS_EARNED_PATTERNS = {
-        Pattern.compile(
-                "(?i)total\\s+points\\s+transferred\\s+to\\s+[a-z][a-z\\s]*?\\s+"
-                        + "(\\d{1,3}(?:,\\d{3})*|\\d+)\\b"),
-        Pattern.compile(
-                "(?i)points?\\s+(?:earned|accrued)\\s+(?:this\\s+period|this\\s+statement)"
-                        + "[\\s:]+(\\d{1,3}(?:,\\d{3})*|\\d+)\\b"),
-        Pattern.compile(
-                "(?i)(?:points|rewards\\s+points)\\s+earned[\\s:]+(\\d{1,3}(?:,\\d{3})*|\\d+)\\b"),
-    };
-
-    /**
-     * Patterns that identify CUMULATIVE points balance available to redeem.
-     *
-     * <p>The {@code (?<!previous\\s)} negative lookbehind on the bare "points balance"
-     * pattern is load-bearing: it prevents the regex from accidentally matching the
-     * "Previous points balance NN,NNN" row that Chase Amazon Visa prints right next
-     * to the actual current balance. Without this, the single-line pass returns the
-     * PRIOR cycle's balance — the iOS UI then shows a stale-looking number that
-     * also disagrees with the per-category earned figures below.
-     */
-    private static final Pattern[] POINTS_BALANCE_PATTERNS = {
-        Pattern.compile(
-                "(?i)total\\s+points\\s+available\\s+for\\s+(?:redemption|redeeming|use)"
-                        + "[\\s:]+(\\d{1,3}(?:,\\d{3})*|\\d+)\\b"),
-        Pattern.compile(
-                "(?i)(?<!previous\\s)(?:points|rewards\\s+points)\\s+balance"
-                        + "[\\s:]+(\\d{1,3}(?:,\\d{3})*|\\d+)\\b"),
-        Pattern.compile(
-                "(?i)available\\s+(?:points|rewards\\s+points)[\\s:]+(\\d{1,3}(?:,\\d{3})*|\\d+)\\b"),
-        Pattern.compile(
-                "(?i)(?:points|rewards\\s+points)\\s+available[\\s:]+(\\d{1,3}(?:,\\d{3})*|\\d+)\\b"),
-        // Column-interleaved recovery. PDFBox on Chase Prime Visa renders the rewards
-        // column as "Total points available for\n...several lines of unrelated content
-        // from the adjacent disclosure column...\nredemption 51,057". The other patterns
-        // require "for" and "redemption" to be adjacent (or separated only by whitespace),
-        // so they can't see this case. This looser pattern allows up to ~400 chars between
-        // the two anchor phrases and picks the closest redemption value. The two anchor
-        // phrases together are specific enough that a false positive in disclosure prose
-        // is implausible.
-        Pattern.compile(
-                "(?is)total\\s+points\\s+available\\s+for\\b.{0,400}?"
-                        + "\\b(?:redemption|redeeming|use)\\s+(\\d{1,3}(?:,\\d{3})*|\\d+)\\b"),
-    };
-
-    /**
-     * Chase Amazon Visa per-category earnings line: {@code + 5% back on Amazon.com
-     * purchases 0}, {@code + 2% back at restaurants 189}. The whole rewards section
-     * is a series of these — to get the total earned this period we SUM all of them.
-     * The pattern captures the trailing integer (which may be 0 for unused
-     * categories). Per-category lines that wrap onto two lines get joined first.
-     *
-     * <p>The {@code (?:^|\\s)} anchor (instead of {@code ^\\s*}) is load-bearing: real
-     * Chase Prime Visa statements share the rewards column with a calendar block, so
-     * PDFBox routinely produces lines like {@code "14 15 16 17 18 19 20 + 2% back at
-     * restaurants 318"} — calendar digits glued in front of the actual reward row. The
-     * strict {@code ^\\s*\\+} version misses every such row and the parser silently
-     * reports zero earned points for these statements.
-     */
-    private static final Pattern AMAZON_STYLE_EARNED_LINE_PATTERN =
-            Pattern.compile(
-                    "(?i)(?:^|\\s)\\+\\s+\\d{1,2}%\\s+back\\s+(?:on|at)\\s+[^0-9\\n]+?"
-                            + "\\s+(\\d{1,3}(?:,\\d{3})*|\\d+)\\s*$");
-
-    /**
-     * Chase Freedom / Freedom Unlimited / Freedom Flex earning line. Several
-     * variants observed across cycles:
-     *
-     * <pre>
-     *   + 1% (1 Pt)/$1 earned on all purchases 37        ← original "earned on"
-     *   + 1% (1 Pts)/$1 on all purchases 9               ← drops "earned"
-     *   + 2%(2 Pts)/$1 addl. on Dining purchases 0       ← uses "addl. on"
-     *   4%(4 Pts)/$1 addl on Chase Travel 0              ← no leading "+", "addl on"
-     * </pre>
-     *
-     * Captures group 1 = rate (the leading percent), group 2 = category label
-     * (after the "on" / "addl on" / "earned on" connector), group 3 = points
-     * earned this cycle. The leading "+" is OPTIONAL because some bonus tiers
-     * start the rewards block without one.
-     */
-    private static final Pattern FREEDOM_BASE_EARNED_LINE_PATTERN =
-            Pattern.compile(
-                    "(?i)(?:^|\\s)\\+?\\s*(\\d{1,2})%\\s*\\(\\d{1,2}\\s*Pts?\\)/\\$1"
-                            + "\\s+(?:addl\\.?\\s+)?(?:earned\\s+)?on\\s+(.+?)"
-                            + "\\s+(\\d{1,3}(?:,\\d{3})*|\\d+)\\s*$");
-
-    /**
-     * Chase Freedom quarterly rotating-bonus earnings line:
-     * {@code + Bonus from 1Q 5% cat: Grocery Stores 148}.
-     * Captures group 1 = quarter (1Q–4Q), group 2 = bonus rate (5), group 3 =
-     * category label ("Grocery Stores"), group 4 = points earned this cycle.
-     */
-    private static final Pattern FREEDOM_BONUS_EARNED_LINE_PATTERN =
-            Pattern.compile(
-                    "(?i)(?:^|\\s)\\+\\s+Bonus\\s+from\\s+([1-4]Q)\\s+(\\d{1,2})%\\s+cat:\\s+"
-                            + "(.+?)\\s+(\\d{1,3}(?:,\\d{3})*|\\d+)\\s*$");
-
-    /**
-     * Chase Freedom "next quarter activation" sentence:
-     * {@code Get 5% cash back on up to $1,500 in combined purchases in this quarter}
-     * {@code s bonus categories from 4/1/25 - 6/30/25.}
-     * Captures group 1 = rate, group 2 = cap amount, group 3 = window start,
-     * group 4 = window end. The sentence usually wraps so we join lines first.
-     */
-    private static final Pattern FREEDOM_NEXT_QUARTER_PATTERN =
-            Pattern.compile(
-                    "(?i)Get\\s+(\\d{1,2})%\\s+cash\\s+back\\s+on\\s+up\\s+to\\s+"
-                            + "\\$([\\d,]+)\\s+in\\s+combined\\s+purchases.*?"
-                            + "from\\s+(\\d{1,2}/\\d{1,2}/\\d{2,4})\\s*-\\s*"
-                            + "(\\d{1,2}/\\d{1,2}/\\d{2,4})");
-
-    /**
-     * Chase Amazon Visa "Previous points balance NN,NNN" — kept so the iOS UI can
-     * display deltas ("you earned X this cycle"). Distinct from the current balance
-     * (which is "Total points available for redemption").
-     */
-    private static final Pattern PREVIOUS_POINTS_BALANCE_PATTERN =
-            Pattern.compile(
-                    "(?i)previous\\s+points\\s+balance[\\s:]+(\\d{1,3}(?:,\\d{3})*|\\d+)\\b");
-
-    private static Long extractLongFromPatterns(
-            final String[] lines, final Pattern[] patterns) {
-        // Two passes:
-        //   1. Per-line for patterns that fit on a single line. Cheap and avoids
-        //      cross-line false positives when the same label appears in disclosure prose.
-        //   2. Joined-text fallback for patterns that span line breaks. Chase routinely
-        //      wraps "Total points transferred to\nMarriott Bonvoy NN,NNN" across two
-        //      lines, which the single-line pass can't see.
-        // Before joining, normalise PDFBox's date-glued-to-number quirk: it emits
-        // "Marriott Bonvoy 6,46404/14/26" when the points value abuts the next-due
-        // date column with no space. Insert a space anywhere a date pattern follows
-        // a digit so the number boundary is recoverable.
-        for (final String line : lines) {
-            if (line == null || line.isBlank()) {
-                continue;
-            }
-            for (final Pattern p : patterns) {
-                final Matcher m = p.matcher(line);
-                if (m.find()) {
-                    try {
-                        return Long.parseLong(m.group(1).replace(",", ""));
-                    } catch (NumberFormatException ignored) {
-                        // Try next pattern.
-                    }
-                }
-            }
-        }
-        // Second pass: join lines + de-glue dates, retry.
-        final String joined =
-                String.join(" ", lines)
-                        .replaceAll("(\\d)(?=\\d{2}/\\d{2}/\\d{2,4})", "$1 ")
-                        .replaceAll("\\s+", " ");
-        for (final Pattern p : patterns) {
-            final Matcher m = p.matcher(joined);
-            if (m.find()) {
-                try {
-                    return Long.parseLong(m.group(1).replace(",", ""));
-                } catch (NumberFormatException ignored) {
-                    // try next
-                }
-            }
-        }
-        return null;
-    }
-
-    /**
-     * Points accrued this billing cycle. Four strategies tried in order:
-     *
-     * <ol>
-     *   <li>Chase Marriott Bonvoy: {@code Total points transferred to Marriott Bonvoy NN,NNN}.
-     *   <li>Explicit "Points earned this period: NN,NNN" or "Points earned: NN,NNN".
-     *   <li>Chase Amazon Visa style: SUM all "{@code + N% back on/at CATEGORY NN}" lines.
-     *   <li>Chase Freedom style: SUM the base "{@code + 1% (1 Pt)/$1 earned on all
-     *       purchases NN}" + any quarterly "{@code + Bonus from NQ N% cat: CATEGORY NN}".
-     * </ol>
-     *
-     * Returns null when the section isn't present at all; returns 0 when the user
-     * didn't earn any rewards this cycle (vs. null = "we don't know").
-     */
-    /* default */ static Long extractPointsEarnedThisPeriod(final String[] lines) {
-        // 1+2: existing single-line / joined-text patterns.
-        final Long fromPattern = extractLongFromPatterns(lines, POINTS_EARNED_PATTERNS);
-        if (fromPattern != null) {
-            return fromPattern;
-        }
-        // 3+4: per-category sum. A statement either has at least one matching line
-        // (counts as "we found the rewards section") or has none (return null so we
-        // don't claim a fake 0). Both Amazon-style and Freedom-style lines feed
-        // the same sum — they're never on the same statement.
-        long sum = 0;
-        boolean sawAny = false;
-        for (final String line : lines) {
-            if (line == null) {
-                continue;
-            }
-            // Amazon "+ N% back on CATEGORY NN".
-            final Matcher amz = AMAZON_STYLE_EARNED_LINE_PATTERN.matcher(line);
-            if (amz.find()) {
-                try {
-                    sum += Long.parseLong(amz.group(1).replace(",", ""));
-                    sawAny = true;
-                    continue;
-                } catch (NumberFormatException ignored) {
-                    // fall through to other patterns
-                }
-            }
-            // Freedom base / Freedom Unlimited "+ N% (M Pts)/$1 ... on CATEGORY NN".
-            final Matcher freedomBase = FREEDOM_BASE_EARNED_LINE_PATTERN.matcher(line);
-            if (freedomBase.find()) {
-                try {
-                    // Group 1 = rate, group 2 = category, group 3 = earned this cycle.
-                    sum += Long.parseLong(freedomBase.group(3).replace(",", ""));
-                    sawAny = true;
-                    continue;
-                } catch (NumberFormatException ignored) {
-                    // skip
-                }
-            }
-            // Freedom rotating bonus "+ Bonus from NQ N% cat: CATEGORY NN".
-            final Matcher freedomBonus = FREEDOM_BONUS_EARNED_LINE_PATTERN.matcher(line);
-            if (freedomBonus.find()) {
-                try {
-                    sum += Long.parseLong(freedomBonus.group(4).replace(",", ""));
-                    sawAny = true;
-                } catch (NumberFormatException ignored) {
-                    // skip
-                }
-            }
-        }
-        return sawAny ? sum : null;
-    }
-
-    /**
-     * Cumulative points balance available to redeem. Order-of-preference is:
-     *
-     * <ol>
-     *   <li>"Total points available for redemption NN,NNN" — the canonical Chase
-     *       label, often wrapped onto two lines (handled by the joined-text fallback).
-     *   <li>"Points balance NN,NNN" — generic, but anchored to skip "Previous points
-     *       balance" via the negative lookbehind on POINTS_BALANCE_PATTERNS[1].
-     *   <li>Available variants.
-     * </ol>
-     *
-     * Returns null on transfer-partner cards (e.g. Marriott Bonvoy) where the balance
-     * lives at the partner instead.
-     */
-    /* default */ static Long extractPointsBalance(final String[] lines) {
-        return extractLongFromPatterns(lines, POINTS_BALANCE_PATTERNS);
-    }
-
-    /**
-     * Prior cycle's points balance, when the statement prints it explicitly (Chase
-     * Amazon Visa: "Previous points balance NN,NNN"). Lets the UI display deltas
-     * ("you earned X since last cycle"). Distinct from the current balance.
-     */
-    /* default */ static Long extractPreviousPointsBalance(final String[] lines) {
-        for (final String line : lines) {
-            if (line == null) {
-                continue;
-            }
-            final Matcher m = PREVIOUS_POINTS_BALANCE_PATTERN.matcher(line);
-            if (m.find()) {
-                try {
-                    return Long.parseLong(m.group(1).replace(",", ""));
-                } catch (NumberFormatException ignored) {
-                    return null;
-                }
-            }
-        }
-        return null;
-    }
-
-    /**
-     * Chase Amazon Visa per-category reward-multiplier line. Captures the percent
-     * (group 1) and category label (group 2):
-     *   + 5% back on Amazon.com purchases 0
-     *   + 2% back at restaurants 31
-     *   + 1% back on all other purchases 0
-     * The trailing integer is the points-earned this cycle for that category; we
-     * ignore it here because the per-cycle sum is captured separately.
-     */
-    private static final Pattern REWARD_MULTIPLIER_LINE_PATTERN =
-            Pattern.compile(
-                    "(?i)^\\s*\\+\\s+(\\d{1,2}(?:\\.\\d{1,2})?)%\\s+back\\s+(?:on|at)\\s+"
-                            + "(.+?)\\s+\\d{1,3}(?:,\\d{3})*\\s*$");
-
-    private static final Pattern YTD_FEES_PATTERN =
-            Pattern.compile(
-                    "(?i)total\\s+fees\\s+charged\\s+in\\s+\\d{4}\\s+\\$([\\d,]+(?:\\.\\d{1,2})?)");
-
-    private static final Pattern YTD_INTEREST_PATTERN =
-            Pattern.compile(
-                    "(?i)total\\s+interest\\s+charged\\s+in\\s+\\d{4}\\s+\\$([\\d,]+(?:\\.\\d{1,2})?)");
-
-    /**
-     * Per-category reward multipliers from earnings lines. Returns rate as percent
-     * (5.0 not 0.05) so it lines up with the existing AccountTable.rewardMultipliers
-     * schema. Keys are raw issuer labels (lowercased + trimmed) so consumers can
-     * normalise to their own taxonomy. Empty map when no rewards block; never null.
-     *
-     * <p>Three issuer formats supported:
-     *
-     * <ol>
-     *   <li>Amazon Visa: "{@code + N% back on/at CATEGORY NN}"
-     *   <li>Chase Freedom base: "{@code + N% (M Pts)/$1 earned on CATEGORY NN}"
-     *   <li>Chase Freedom quarterly bonus: "{@code + Bonus from NQ N% cat: CATEGORY NN}"
-     *       — stored with the quarter suffix on the key (e.g. "grocery stores (1q
-     *       bonus)") so a UI can distinguish the rotating-bonus tier from a permanent
-     *       category multiplier.
-     * </ol>
-     */
-    /* default */ static java.util.Map<String, BigDecimal> extractRewardMultipliersFromPdf(
-            final String[] lines) {
-        final java.util.LinkedHashMap<String, BigDecimal> out = new java.util.LinkedHashMap<>();
-        for (final String line : lines) {
-            if (line == null) {
-                continue;
-            }
-            // Format 1: Amazon "+ N% back on/at CATEGORY NN".
-            final Matcher amz = REWARD_MULTIPLIER_LINE_PATTERN.matcher(line);
-            if (amz.find()) {
-                try {
-                    final BigDecimal rate = new BigDecimal(amz.group(1));
-                    final String category = amz.group(2).trim().toLowerCase(Locale.ROOT);
-                    if (!category.isEmpty()) {
-                        out.put(category, rate);
-                    }
-                    continue;
-                } catch (NumberFormatException ignored) {
-                    // fall through
-                }
-            }
-            // Format 2: Freedom / Freedom Unlimited "+ N% (M Pts)/$1 ... on CATEGORY NN".
-            // Group 1 = rate, group 2 = category, group 3 = points-this-cycle.
-            final Matcher freedomBase = FREEDOM_BASE_EARNED_LINE_PATTERN.matcher(line);
-            if (freedomBase.find()) {
-                try {
-                    final BigDecimal rate = new BigDecimal(freedomBase.group(1));
-                    final String category =
-                            freedomBase.group(2).trim().toLowerCase(Locale.ROOT);
-                    if (!category.isEmpty()) {
-                        out.put(category, rate);
-                    }
-                } catch (NumberFormatException ignored) {
-                    // skip
-                }
-                continue;
-            }
-            // Format 3: Freedom rotating bonus "+ Bonus from NQ N% cat: CATEGORY NN".
-            final Matcher freedomBonus = FREEDOM_BONUS_EARNED_LINE_PATTERN.matcher(line);
-            if (freedomBonus.find()) {
-                try {
-                    final String quarter = freedomBonus.group(1).toLowerCase(Locale.ROOT);
-                    final BigDecimal rate = new BigDecimal(freedomBonus.group(2));
-                    final String rawCategory =
-                            freedomBonus.group(3).trim().toLowerCase(Locale.ROOT);
-                    if (!rawCategory.isEmpty()) {
-                        // Suffix the quarter so UIs can tell a rotating-bonus tier apart
-                        // from a permanent category multiplier.
-                        out.put(rawCategory + " (" + quarter + " bonus)", rate);
-                    }
-                } catch (NumberFormatException ignored) {
-                    // skip
-                }
-            }
-        }
-        return out;
-    }
-
-    /** A rotating quarterly bonus tier captured from a Chase Freedom-style line. */
-    public record QuarterlyBonus(String quarter, BigDecimal rate, String category) {}
-
-    /**
-     * Extract the rotating-bonus tier for the current statement cycle (Chase Freedom:
-     * "{@code + Bonus from 1Q 5% cat: Grocery Stores 148}"). Returns the FIRST bonus
-     * tier found — most Chase Freedom statements only have one active at a time.
-     * Null when the statement has no rotating-bonus block.
-     */
-    /* default */ static QuarterlyBonus extractCurrentQuarterBonus(final String[] lines) {
-        for (final String line : lines) {
-            if (line == null) {
-                continue;
-            }
-            final Matcher m = FREEDOM_BONUS_EARNED_LINE_PATTERN.matcher(line);
-            if (m.find()) {
-                try {
-                    return new QuarterlyBonus(
-                            m.group(1).toUpperCase(Locale.ROOT),
-                            new BigDecimal(m.group(2)),
-                            m.group(3).trim());
-                } catch (NumberFormatException ignored) {
-                    return null;
-                }
-            }
-        }
-        return null;
-    }
-
-    /** Next-quarter bonus activation window from the Freedom disclosure prose. */
-    public record NextQuarterBonus(
-            BigDecimal rate, BigDecimal capAmount, LocalDate windowStart, LocalDate windowEnd) {}
-
-    /**
-     * Chase Freedom "Get 5% cash back on up to $1,500 in combined purchases in this
-     * quarter's bonus categories from MM/DD/YY - MM/DD/YY" sentence. Captures the
-     * rate, cap, and activation window so the iOS UI can nudge users to activate.
-     * Null when the disclosure isn't present.
-     */
-    /* default */ static NextQuarterBonus extractNextQuarterBonus(
-            final String[] lines, final Integer inferredYear, final boolean isUSLocale) {
-        final String joined = String.join(" ", lines).replaceAll("\\s+", " ");
-        final Matcher m = FREEDOM_NEXT_QUARTER_PATTERN.matcher(joined);
-        if (!m.find()) {
-            return null;
-        }
-        try {
-            final BigDecimal rate = new BigDecimal(m.group(1));
-            final BigDecimal cap = new BigDecimal(m.group(2).replace(",", ""));
-            final LocalDate start =
-                    staticParseAnnualFeeDate(m.group(3), inferredYear, isUSLocale);
-            final LocalDate end =
-                    staticParseAnnualFeeDate(m.group(4), inferredYear, isUSLocale);
-            return new NextQuarterBonus(rate, cap, start, end);
-        } catch (NumberFormatException nfe) {
-            return null;
-        }
-    }
-
-    /** YTD "Total fees charged in YYYY $N". Null when the row isn't present. */
-    /* default */ static BigDecimal extractYtdFeesCharged(final String[] lines) {
-        return extractYtdLineValue(lines, YTD_FEES_PATTERN);
-    }
-
-    /** YTD "Total interest charged in YYYY $N". Null when the row isn't present. */
-    /* default */ static BigDecimal extractYtdInterestCharged(final String[] lines) {
-        return extractYtdLineValue(lines, YTD_INTEREST_PATTERN);
-    }
-
-    private static BigDecimal extractYtdLineValue(
-            final String[] lines, final Pattern pattern) {
-        for (final String line : lines) {
-            if (line == null) {
-                continue;
-            }
-            final Matcher m = pattern.matcher(line);
-            if (m.find()) {
-                try {
-                    return new BigDecimal(m.group(1).replace(",", ""));
-                } catch (NumberFormatException ignored) {
-                    return null;
-                }
-            }
-        }
-        return null;
-    }
-
-    /* default */ static BigDecimal extractForeignTransactionFeePercent(final String[] lines) {
-        // The sentence often wraps in the PDF text — join with space so the regex can
-        // span breaks. Don't trim individual lines; the regex tolerates whitespace runs.
-        final String joined = String.join(" ", lines).replaceAll("\\s+", " ");
-        final Matcher m = FOREIGN_TX_FEE_PATTERN.matcher(joined);
-        if (!m.find()) {
-            return null;
-        }
-        try {
-            return new BigDecimal(m.group(1));
-        } catch (NumberFormatException nfe) {
-            return null;
-        }
-    }
 
     /** Parses an amount string, handling various formats */
     private BigDecimal parseAmount(final String amountString) {

@@ -1,0 +1,15 @@
+{
+  "institution": "Chase",
+  "note": "synthetic — Chase Prime Visa (Amazon co-brand) prints a single posting-date column; this differs from the Marriott Bonvoy two-date layout. Names + amounts are not real.",
+  "expected": [
+    { "date": "2024-05-08", "description": "AUTOMATIC PAYMENT - THANK YOU",          "amount": "-215.50" },
+    { "date": "2024-04-12", "description": "EXAMPLE EATERY ONLINE https://prod. CA", "amount": "20.00" },
+    { "date": "2024-04-15", "description": "EXAMPLE EATERY ONLINE https://prod. CA", "amount": "22.11" },
+    { "date": "2024-04-18", "description": "EXAMPLE EATERY ONLINE https://prod. CA", "amount": "22.61" },
+    { "date": "2024-04-19", "description": "EXAMPLE EATERY ONLINE https://prod. CA", "amount": "22.61" },
+    { "date": "2024-04-19", "description": "EXAMPLE EATERY ONLINE https://prod. CA", "amount": "5.25" },
+    { "date": "2024-04-22", "description": "EXAMPLE EATERY ONLINE https://prod. CA", "amount": "22.11" },
+    { "date": "2024-04-25", "description": "EXAMPLE EATERY ONLINE https://prod. CA", "amount": "22.11" },
+    { "date": "2024-04-24", "description": "EXAMPLE EATERY ONLINE https://prod. CA", "amount": "22.11" }
+  ]
+}

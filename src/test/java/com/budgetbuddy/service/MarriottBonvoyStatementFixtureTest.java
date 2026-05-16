@@ -1,5 +1,7 @@
 package com.budgetbuddy.service;
 
+import com.budgetbuddy.service.pdf.profile.StatementParsingUtilities;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -144,24 +146,24 @@ class MarriottBonvoyStatementFixtureTest {
     void chaseMarriottBonvoyFixture_extractsAllStatementSummaryFields() {
         final String[] lines = STATEMENT_FIXTURE.split("\\n");
 
-        final BigDecimal newBalance = PDFImportService.extractNewBalance(lines);
+        final BigDecimal newBalance = StatementParsingUtilities.extractNewBalance(lines);
         assertNotNull(newBalance, "New Balance must be extracted");
         assertEquals(0, new BigDecimal("999.99").compareTo(newBalance));
 
-        final BigDecimal previousBalance = PDFImportService.extractPreviousBalance(lines);
+        final BigDecimal previousBalance = StatementParsingUtilities.extractPreviousBalance(lines);
         assertNotNull(previousBalance, "Previous Balance must be extracted");
         assertEquals(0, new BigDecimal("2500.00").compareTo(previousBalance));
 
-        final BigDecimal creditLimit = PDFImportService.extractCreditLimit(lines);
+        final BigDecimal creditLimit = StatementParsingUtilities.extractCreditLimit(lines);
         assertNotNull(creditLimit,
                 "Credit Limit must be extracted (Chase labels it 'Credit Access Line')");
         assertEquals(0, new BigDecimal("50000").compareTo(creditLimit));
 
-        final BigDecimal availableCredit = PDFImportService.extractAvailableCredit(lines);
+        final BigDecimal availableCredit = StatementParsingUtilities.extractAvailableCredit(lines);
         assertNotNull(availableCredit, "Available Credit must be extracted");
         assertEquals(0, new BigDecimal("49000").compareTo(availableCredit));
 
-        final BigDecimal pastDue = PDFImportService.extractPastDueAmount(lines);
+        final BigDecimal pastDue = StatementParsingUtilities.extractPastDueAmount(lines);
         assertNotNull(pastDue, "Past Due Amount must be extracted (even when $0.00)");
         assertEquals(0, BigDecimal.ZERO.compareTo(pastDue));
     }
@@ -173,7 +175,7 @@ class MarriottBonvoyStatementFixtureTest {
         // pick the credit limit, not the cash limit — a label-collision bug here would
         // silently understate every Chase user's credit headroom by ~7x.
         final String[] lines = STATEMENT_FIXTURE.split("\\n");
-        final BigDecimal creditLimit = PDFImportService.extractCreditLimit(lines);
+        final BigDecimal creditLimit = StatementParsingUtilities.extractCreditLimit(lines);
         assertEquals(0, new BigDecimal("50000").compareTo(creditLimit));
     }
 
@@ -229,23 +231,23 @@ class MarriottBonvoyStatementFixtureTest {
         final String[] lines = STATEMENT_FIXTURE.split("\\n");
 
         assertEquals(0,
-                new BigDecimal("999.99").compareTo(PDFImportService.extractPurchasesTotal(lines)),
+                new BigDecimal("999.99").compareTo(StatementParsingUtilities.extractPurchasesTotal(lines)),
                 "Purchases total");
         assertEquals(0,
                 new BigDecimal("-2500.00").compareTo(
-                        PDFImportService.extractPaymentsAndCreditsTotal(lines)),
+                        StatementParsingUtilities.extractPaymentsAndCreditsTotal(lines)),
                 "Payments+Credits total (negative on credit cards)");
         assertEquals(0,
-                BigDecimal.ZERO.compareTo(PDFImportService.extractCashAdvancesTotal(lines)),
+                BigDecimal.ZERO.compareTo(StatementParsingUtilities.extractCashAdvancesTotal(lines)),
                 "Cash Advances total");
         assertEquals(0,
-                BigDecimal.ZERO.compareTo(PDFImportService.extractBalanceTransfersTotal(lines)),
+                BigDecimal.ZERO.compareTo(StatementParsingUtilities.extractBalanceTransfersTotal(lines)),
                 "Balance Transfers total");
         assertEquals(0,
-                BigDecimal.ZERO.compareTo(PDFImportService.extractFeesChargedTotal(lines)),
+                BigDecimal.ZERO.compareTo(StatementParsingUtilities.extractFeesChargedTotal(lines)),
                 "Fees Charged total");
         assertEquals(0,
-                BigDecimal.ZERO.compareTo(PDFImportService.extractInterestChargedTotal(lines)),
+                BigDecimal.ZERO.compareTo(StatementParsingUtilities.extractInterestChargedTotal(lines)),
                 "Interest Charged total");
     }
 
@@ -256,17 +258,17 @@ class MarriottBonvoyStatementFixtureTest {
         final String[] lines = STATEMENT_FIXTURE.split("\\n");
 
         assertEquals(0,
-                new BigDecimal("19.49").compareTo(PDFImportService.extractPurchaseApr(lines)),
+                new BigDecimal("19.49").compareTo(StatementParsingUtilities.extractPurchaseApr(lines)),
                 "Purchase APR");
         assertEquals(0,
-                new BigDecimal("28.49").compareTo(PDFImportService.extractCashAdvanceApr(lines)),
+                new BigDecimal("28.49").compareTo(StatementParsingUtilities.extractCashAdvanceApr(lines)),
                 "Cash Advance APR");
         assertEquals(0,
                 new BigDecimal("19.49").compareTo(
-                        PDFImportService.extractBalanceTransferApr(lines)),
+                        StatementParsingUtilities.extractBalanceTransferApr(lines)),
                 "Balance Transfer APR");
         assertEquals(0,
-                new BigDecimal("29.99").compareTo(PDFImportService.extractPenaltyApr(lines)),
+                new BigDecimal("29.99").compareTo(StatementParsingUtilities.extractPenaltyApr(lines)),
                 "Penalty APR");
     }
 
@@ -276,7 +278,7 @@ class MarriottBonvoyStatementFixtureTest {
     void chaseMarriottBonvoyFixture_extractsAnnualMembershipFeeAndDate() {
         final String[] lines = STATEMENT_FIXTURE.split("\\n");
         final Object[] feeBlock =
-                PDFImportService.extractAnnualMembershipFeeAndDate(lines, 2026, true);
+                StatementParsingUtilities.extractAnnualMembershipFeeAndDate(lines, 2026, true);
 
         assertNotNull(feeBlock, "Annual fee sentence must produce a {fee, date} pair");
         assertEquals(0, new BigDecimal("99.00").compareTo((BigDecimal) feeBlock[0]),
@@ -291,17 +293,17 @@ class MarriottBonvoyStatementFixtureTest {
     void chaseMarriottBonvoyFixture_extractsCashLimits() {
         final String[] lines = STATEMENT_FIXTURE.split("\\n");
         assertEquals(0,
-                new BigDecimal("7500").compareTo(PDFImportService.extractCashAccessLine(lines)),
+                new BigDecimal("7500").compareTo(StatementParsingUtilities.extractCashAccessLine(lines)),
                 "Cash Access Line");
         assertEquals(0,
-                new BigDecimal("7500").compareTo(PDFImportService.extractAvailableForCash(lines)),
+                new BigDecimal("7500").compareTo(StatementParsingUtilities.extractAvailableForCash(lines)),
                 "Available for Cash");
     }
 
     @Test
     void chaseMarriottBonvoyFixture_extractsBillingDays() {
         final String[] lines = STATEMENT_FIXTURE.split("\\n");
-        final Integer billingDays = PDFImportService.extractBillingDays(lines);
+        final Integer billingDays = StatementParsingUtilities.extractBillingDays(lines);
         assertNotNull(billingDays);
         assertEquals(31, billingDays.intValue());
     }
@@ -310,7 +312,7 @@ class MarriottBonvoyStatementFixtureTest {
     void chaseMarriottBonvoyFixture_extractsStatementDate() {
         final String[] lines = STATEMENT_FIXTURE.split("\\n");
         final java.time.LocalDate statementDate =
-                PDFImportService.extractStatementDate(lines, 2026, true);
+                StatementParsingUtilities.extractStatementDate(lines, 2026, true);
         assertNotNull(statementDate, "Statement date must be extracted from header");
         assertEquals(java.time.LocalDate.of(2026, 6, 17), statementDate);
     }
@@ -320,11 +322,11 @@ class MarriottBonvoyStatementFixtureTest {
     @Test
     void chaseMarriottBonvoyFixture_extractsAutoPayOnAndNextAmount() {
         final String[] lines = STATEMENT_FIXTURE.split("\\n");
-        final Boolean enabled = PDFImportService.extractAutoPayEnabled(lines);
+        final Boolean enabled = StatementParsingUtilities.extractAutoPayEnabled(lines);
         assertNotNull(enabled, "AutoPay status must be detected from 'AUTOPAY IS ON'");
         assertTrue(enabled, "AutoPay must be ON for this fixture");
 
-        final BigDecimal next = PDFImportService.extractNextAutoPayAmount(lines);
+        final BigDecimal next = StatementParsingUtilities.extractNextAutoPayAmount(lines);
         assertNotNull(next, "Next AutoPay amount must be parsed from 'next AutoPay payment for $X'");
         assertEquals(0, new BigDecimal("999.99").compareTo(next));
     }
@@ -336,7 +338,7 @@ class MarriottBonvoyStatementFixtureTest {
                 "New Balance $100.00",
                 "AUTOPAY IS OFF",
                 "Payment Due Date: 07/14/26");
-        final Boolean enabled = PDFImportService.extractAutoPayEnabled(input.split("\\n"));
+        final Boolean enabled = StatementParsingUtilities.extractAutoPayEnabled(input.split("\\n"));
         assertNotNull(enabled);
         assertFalse(enabled, "AUTOPAY IS OFF must produce a false (not null)");
     }
@@ -347,15 +349,15 @@ class MarriottBonvoyStatementFixtureTest {
                 "\n",
                 "New Balance $100.00",
                 "Payment Due Date: 07/14/26");
-        assertEquals(null, PDFImportService.extractAutoPayEnabled(input.split("\\n")));
-        assertEquals(null, PDFImportService.extractNextAutoPayAmount(input.split("\\n")));
+        assertEquals(null, StatementParsingUtilities.extractAutoPayEnabled(input.split("\\n")));
+        assertEquals(null, StatementParsingUtilities.extractNextAutoPayAmount(input.split("\\n")));
     }
 
     @Test
     void autoPay_acceptsAutomaticPaymentsPhrasingFromOtherIssuers() {
         // Some issuers use "Automatic Payments: Enabled" instead of Chase's "AUTOPAY IS ON".
         final String input = "Automatic Payments: Enabled";
-        final Boolean enabled = PDFImportService.extractAutoPayEnabled(input.split("\\n"));
+        final Boolean enabled = StatementParsingUtilities.extractAutoPayEnabled(input.split("\\n"));
         assertNotNull(enabled);
         assertTrue(enabled);
     }
@@ -365,7 +367,7 @@ class MarriottBonvoyStatementFixtureTest {
     @Test
     void chaseMarriottBonvoyFixture_extractsPointsEarnedThisPeriod() {
         final String[] lines = STATEMENT_FIXTURE.split("\\n");
-        final Long earned = PDFImportService.extractPointsEarnedThisPeriod(lines);
+        final Long earned = StatementParsingUtilities.extractPointsEarnedThisPeriod(lines);
         assertNotNull(earned,
                 "Marriott Bonvoy 'Total points transferred to' phrase must yield earned-this-period");
         assertEquals(4500L, earned.longValue(),
@@ -378,7 +380,7 @@ class MarriottBonvoyStatementFixtureTest {
         // Marriott. Confirm we return null rather than mistakenly returning the earned
         // figure (which would conflate two distinct concepts).
         final String[] lines = STATEMENT_FIXTURE.split("\\n");
-        final Long balance = PDFImportService.extractPointsBalance(lines);
+        final Long balance = StatementParsingUtilities.extractPointsBalance(lines);
         assertEquals(null, balance,
                 "Marriott Bonvoy statements have no points balance — should return null");
     }
@@ -392,8 +394,8 @@ class MarriottBonvoyStatementFixtureTest {
                 "Points earned this period: 1,250",
                 "Points balance: 47,830");
 
-        final Long earned = PDFImportService.extractPointsEarnedThisPeriod(input.split("\\n"));
-        final Long balance = PDFImportService.extractPointsBalance(input.split("\\n"));
+        final Long earned = StatementParsingUtilities.extractPointsEarnedThisPeriod(input.split("\\n"));
+        final Long balance = StatementParsingUtilities.extractPointsBalance(input.split("\\n"));
         assertEquals(1250L, earned.longValue());
         assertEquals(47830L, balance.longValue());
     }
@@ -402,7 +404,7 @@ class MarriottBonvoyStatementFixtureTest {
     void pointsBalance_extractedFromAvailableForRedemptionPhrase() {
         // Citi-style "Total points available for redemption: NN,NNN" phrasing.
         final String input = "Total points available for redemption: 12,400";
-        final Long balance = PDFImportService.extractPointsBalance(input.split("\\n"));
+        final Long balance = StatementParsingUtilities.extractPointsBalance(input.split("\\n"));
         assertEquals(12400L, balance.longValue());
     }
 
@@ -416,7 +418,7 @@ class MarriottBonvoyStatementFixtureTest {
                 "POINTS",
                 "Total points transferred to",
                 "Marriott Bonvoy 6,464");
-        final Long earned = PDFImportService.extractPointsEarnedThisPeriod(input.split("\\n"));
+        final Long earned = StatementParsingUtilities.extractPointsEarnedThisPeriod(input.split("\\n"));
         assertNotNull(earned, "Multi-line phrasing must still produce a value");
         assertEquals(6464L, earned.longValue());
     }
@@ -432,7 +434,7 @@ class MarriottBonvoyStatementFixtureTest {
                 "POINTS",
                 "Total points transferred to",
                 "Marriott Bonvoy 6,46404/14/26");
-        final Long earned = PDFImportService.extractPointsEarnedThisPeriod(input.split("\\n"));
+        final Long earned = StatementParsingUtilities.extractPointsEarnedThisPeriod(input.split("\\n"));
         assertNotNull(earned, "Glued-date quirk must not swallow the points value");
         assertEquals(6464L, earned.longValue(),
                 "Must capture the comma-grouped points value, not the digit-prefix or"
@@ -444,7 +446,7 @@ class MarriottBonvoyStatementFixtureTest {
     @Test
     void chaseMarriottBonvoyFixture_extractsForeignTransactionFeePercent() {
         final String[] lines = STATEMENT_FIXTURE.split("\\n");
-        final BigDecimal fee = PDFImportService.extractForeignTransactionFeePercent(lines);
+        final BigDecimal fee = StatementParsingUtilities.extractForeignTransactionFeePercent(lines);
         assertNotNull(fee, "Foreign-transaction fee % must be extracted from the disclosure");
         assertEquals(0, new BigDecimal("3").compareTo(fee));
     }
@@ -465,7 +467,7 @@ class MarriottBonvoyStatementFixtureTest {
                         "Credit Access Line $50,000",
                         "Available Credit $48,500");
 
-        final BigDecimal creditLimit = PDFImportService.extractCreditLimit(input.split("\\n"));
+        final BigDecimal creditLimit = StatementParsingUtilities.extractCreditLimit(input.split("\\n"));
         assertEquals(0,
                 new BigDecimal("50000").compareTo(creditLimit),
                 "Credit limit must NOT pick up the embedded label in the disclosure line");
@@ -482,7 +484,7 @@ class MarriottBonvoyStatementFixtureTest {
                         "payments.",
                         "New Balance $750.00");
 
-        final BigDecimal newBalance = PDFImportService.extractNewBalance(input.split("\\n"));
+        final BigDecimal newBalance = StatementParsingUtilities.extractNewBalance(input.split("\\n"));
         assertEquals(0, new BigDecimal("750.00").compareTo(newBalance));
     }
 
@@ -493,7 +495,7 @@ class MarriottBonvoyStatementFixtureTest {
         // would falsely show as a positive payment, which inverts net-balance math.
         final String input = "Payment, Credits ($1,500.00)";
         final BigDecimal total =
-                PDFImportService.extractPaymentsAndCreditsTotal(new String[] {input});
+                StatementParsingUtilities.extractPaymentsAndCreditsTotal(new String[] {input});
         assertNotNull(total);
         assertEquals(0, new BigDecimal("-1500.00").compareTo(total),
                 "Parens-form must yield a negative — got " + total);
@@ -527,8 +529,8 @@ class MarriottBonvoyStatementFixtureTest {
         // must NOT cross-wire — the New Balance regex must reject the "Previous Balance"
         // line and vice versa.
         final String[] lines = STATEMENT_FIXTURE.split("\\n");
-        final BigDecimal newBalance = PDFImportService.extractNewBalance(lines);
-        final BigDecimal previousBalance = PDFImportService.extractPreviousBalance(lines);
+        final BigDecimal newBalance = StatementParsingUtilities.extractNewBalance(lines);
+        final BigDecimal previousBalance = StatementParsingUtilities.extractPreviousBalance(lines);
         assertEquals(0, new BigDecimal("999.99").compareTo(newBalance));
         assertEquals(0, new BigDecimal("2500.00").compareTo(previousBalance));
         // And they must be distinct values — sanity check against a regex that grabbed the

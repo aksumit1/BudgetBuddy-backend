@@ -509,4 +509,27 @@ public class TransactionTable {
     public void setExchangeRate(final BigDecimal v) {
         this.exchangeRate = v;
     }
+
+    // ========================================================================
+    //  Wallet provider — detected from the merchant description prefix.
+    //  Examples: "APL*STARBUCKS" → apple-pay, "PYPL *EBAY" → paypal.
+    //  Powers wallet-segmented analytics ("70% of dining via Apple Pay") and
+    //  helps separate physical-card swipes from tokenized payments for fraud
+    //  monitoring. Nullable: legacy rows or unrecognized merchant prefixes
+    //  stay null — physical card is the implicit default.
+    //
+    //  Wire format is the stable string from WalletProviderDetector.WalletProvider
+    //  .wireName() so the enum constant name can evolve without breaking
+    //  DynamoDB rows.
+    // ========================================================================
+    private String walletProvider;
+
+    @DynamoDbAttribute("walletProvider")
+    public String getWalletProvider() {
+        return walletProvider;
+    }
+
+    public void setWalletProvider(final String v) {
+        this.walletProvider = v;
+    }
 }

@@ -1,5 +1,7 @@
 package com.budgetbuddy.service;
 
+import com.budgetbuddy.service.pdf.profile.StatementParsingUtilities;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -43,43 +45,43 @@ class PDFImportServiceMetadataEdgeCasesTest {
         // Pass a single-element array with a null entry. Every extractor must walk past
         // it without NPE and return null because no label was found.
         final String[] singleNull = new String[] {null};
-        assertNull(PDFImportService.extractNewBalance(singleNull));
-        assertNull(PDFImportService.extractPreviousBalance(singleNull));
-        assertNull(PDFImportService.extractCreditLimit(singleNull));
-        assertNull(PDFImportService.extractAvailableCredit(singleNull));
-        assertNull(PDFImportService.extractPastDueAmount(singleNull));
-        assertNull(PDFImportService.extractPurchasesTotal(singleNull));
-        assertNull(PDFImportService.extractPaymentsAndCreditsTotal(singleNull));
-        assertNull(PDFImportService.extractCashAdvancesTotal(singleNull));
-        assertNull(PDFImportService.extractBalanceTransfersTotal(singleNull));
-        assertNull(PDFImportService.extractFeesChargedTotal(singleNull));
-        assertNull(PDFImportService.extractInterestChargedTotal(singleNull));
-        assertNull(PDFImportService.extractPurchaseApr(singleNull));
-        assertNull(PDFImportService.extractCashAdvanceApr(singleNull));
-        assertNull(PDFImportService.extractBalanceTransferApr(singleNull));
-        assertNull(PDFImportService.extractPenaltyApr(singleNull));
-        assertNull(PDFImportService.extractCashAccessLine(singleNull));
-        assertNull(PDFImportService.extractAvailableForCash(singleNull));
-        assertNull(PDFImportService.extractBillingDays(singleNull));
-        assertNull(PDFImportService.extractStatementDate(singleNull, 2026, true));
-        assertNull(PDFImportService.extractForeignTransactionFeePercent(singleNull));
-        assertNull(PDFImportService.extractAutoPayEnabled(singleNull));
-        assertNull(PDFImportService.extractNextAutoPayAmount(singleNull));
-        assertNull(PDFImportService.extractPointsEarnedThisPeriod(singleNull));
-        assertNull(PDFImportService.extractPointsBalance(singleNull));
-        assertNull(PDFImportService.extractAnnualMembershipFeeAndDate(singleNull, 2026, true));
+        assertNull(StatementParsingUtilities.extractNewBalance(singleNull));
+        assertNull(StatementParsingUtilities.extractPreviousBalance(singleNull));
+        assertNull(StatementParsingUtilities.extractCreditLimit(singleNull));
+        assertNull(StatementParsingUtilities.extractAvailableCredit(singleNull));
+        assertNull(StatementParsingUtilities.extractPastDueAmount(singleNull));
+        assertNull(StatementParsingUtilities.extractPurchasesTotal(singleNull));
+        assertNull(StatementParsingUtilities.extractPaymentsAndCreditsTotal(singleNull));
+        assertNull(StatementParsingUtilities.extractCashAdvancesTotal(singleNull));
+        assertNull(StatementParsingUtilities.extractBalanceTransfersTotal(singleNull));
+        assertNull(StatementParsingUtilities.extractFeesChargedTotal(singleNull));
+        assertNull(StatementParsingUtilities.extractInterestChargedTotal(singleNull));
+        assertNull(StatementParsingUtilities.extractPurchaseApr(singleNull));
+        assertNull(StatementParsingUtilities.extractCashAdvanceApr(singleNull));
+        assertNull(StatementParsingUtilities.extractBalanceTransferApr(singleNull));
+        assertNull(StatementParsingUtilities.extractPenaltyApr(singleNull));
+        assertNull(StatementParsingUtilities.extractCashAccessLine(singleNull));
+        assertNull(StatementParsingUtilities.extractAvailableForCash(singleNull));
+        assertNull(StatementParsingUtilities.extractBillingDays(singleNull));
+        assertNull(StatementParsingUtilities.extractStatementDate(singleNull, 2026, true));
+        assertNull(StatementParsingUtilities.extractForeignTransactionFeePercent(singleNull));
+        assertNull(StatementParsingUtilities.extractAutoPayEnabled(singleNull));
+        assertNull(StatementParsingUtilities.extractNextAutoPayAmount(singleNull));
+        assertNull(StatementParsingUtilities.extractPointsEarnedThisPeriod(singleNull));
+        assertNull(StatementParsingUtilities.extractPointsBalance(singleNull));
+        assertNull(StatementParsingUtilities.extractAnnualMembershipFeeAndDate(singleNull, 2026, true));
     }
 
     @Test
     void emptyArrayInput_everyExtractor_returnsNull() {
         final String[] empty = new String[0];
-        assertNull(PDFImportService.extractNewBalance(empty));
-        assertNull(PDFImportService.extractCreditLimit(empty));
-        assertNull(PDFImportService.extractPurchaseApr(empty));
-        assertNull(PDFImportService.extractAutoPayEnabled(empty));
-        assertNull(PDFImportService.extractPointsEarnedThisPeriod(empty));
-        assertNull(PDFImportService.extractStatementDate(empty, 2026, true));
-        assertNull(PDFImportService.extractBillingDays(empty));
+        assertNull(StatementParsingUtilities.extractNewBalance(empty));
+        assertNull(StatementParsingUtilities.extractCreditLimit(empty));
+        assertNull(StatementParsingUtilities.extractPurchaseApr(empty));
+        assertNull(StatementParsingUtilities.extractAutoPayEnabled(empty));
+        assertNull(StatementParsingUtilities.extractPointsEarnedThisPeriod(empty));
+        assertNull(StatementParsingUtilities.extractStatementDate(empty, 2026, true));
+        assertNull(StatementParsingUtilities.extractBillingDays(empty));
     }
 
     @Test
@@ -91,15 +93,15 @@ class PDFImportServiceMetadataEdgeCasesTest {
             "Please refer to your cardmember agreement for more details.",
             "Call 1-800-555-1234 with any questions about your account.",
         };
-        assertNull(PDFImportService.extractNewBalance(lines));
-        assertNull(PDFImportService.extractPreviousBalance(lines));
-        assertNull(PDFImportService.extractCreditLimit(lines));
-        assertNull(PDFImportService.extractAvailableCredit(lines));
-        assertNull(PDFImportService.extractPastDueAmount(lines));
-        assertNull(PDFImportService.extractPurchasesTotal(lines));
-        assertNull(PDFImportService.extractPaymentsAndCreditsTotal(lines));
-        assertNull(PDFImportService.extractAutoPayEnabled(lines));
-        assertNull(PDFImportService.extractPointsEarnedThisPeriod(lines));
+        assertNull(StatementParsingUtilities.extractNewBalance(lines));
+        assertNull(StatementParsingUtilities.extractPreviousBalance(lines));
+        assertNull(StatementParsingUtilities.extractCreditLimit(lines));
+        assertNull(StatementParsingUtilities.extractAvailableCredit(lines));
+        assertNull(StatementParsingUtilities.extractPastDueAmount(lines));
+        assertNull(StatementParsingUtilities.extractPurchasesTotal(lines));
+        assertNull(StatementParsingUtilities.extractPaymentsAndCreditsTotal(lines));
+        assertNull(StatementParsingUtilities.extractAutoPayEnabled(lines));
+        assertNull(StatementParsingUtilities.extractPointsEarnedThisPeriod(lines));
     }
 
     // ============================================================
@@ -115,7 +117,7 @@ class PDFImportServiceMetadataEdgeCasesTest {
         "NEW BALANCE $1,234.56", // upper-case
     })
     void newBalance_acceptsAllDocumentedAliases(final String line) {
-        final BigDecimal v = PDFImportService.extractNewBalance(new String[] {line});
+        final BigDecimal v = StatementParsingUtilities.extractNewBalance(new String[] {line});
         assertNotNull(v, "Line '" + line + "' must produce a non-null new balance");
         assertEquals(0, new BigDecimal("1234.56").compareTo(v),
                 "Line '" + line + "' must extract $1,234.56");
@@ -128,7 +130,7 @@ class PDFImportServiceMetadataEdgeCasesTest {
         "Last Statement Balance $999.99",
     })
     void previousBalance_acceptsAllDocumentedAliases(final String line) {
-        final BigDecimal v = PDFImportService.extractPreviousBalance(new String[] {line});
+        final BigDecimal v = StatementParsingUtilities.extractPreviousBalance(new String[] {line});
         assertNotNull(v);
         assertEquals(0, new BigDecimal("999.99").compareTo(v));
     }
@@ -140,7 +142,7 @@ class PDFImportServiceMetadataEdgeCasesTest {
         "Credit Limit $50,000", // generic
     })
     void creditLimit_acceptsAllDocumentedAliases(final String line) {
-        final BigDecimal v = PDFImportService.extractCreditLimit(new String[] {line});
+        final BigDecimal v = StatementParsingUtilities.extractCreditLimit(new String[] {line});
         assertNotNull(v);
         assertEquals(0, new BigDecimal("50000").compareTo(v));
     }
@@ -151,7 +153,7 @@ class PDFImportServiceMetadataEdgeCasesTest {
         "Credit Available: $42,000",
     })
     void availableCredit_acceptsAllDocumentedAliases(final String line) {
-        final BigDecimal v = PDFImportService.extractAvailableCredit(new String[] {line});
+        final BigDecimal v = StatementParsingUtilities.extractAvailableCredit(new String[] {line});
         assertNotNull(v);
         assertEquals(0, new BigDecimal("42000").compareTo(v));
     }
@@ -163,7 +165,7 @@ class PDFImportServiceMetadataEdgeCasesTest {
         "Past Due: $0.00",
     })
     void pastDueAmount_acceptsAllDocumentedAliases(final String line) {
-        final BigDecimal v = PDFImportService.extractPastDueAmount(new String[] {line});
+        final BigDecimal v = StatementParsingUtilities.extractPastDueAmount(new String[] {line});
         assertNotNull(v);
         assertEquals(0, BigDecimal.ZERO.compareTo(v));
     }
@@ -177,7 +179,7 @@ class PDFImportServiceMetadataEdgeCasesTest {
         "Automatic Payment is on",
     })
     void autoPay_recognisesEveryDocumentedOnPhrase(final String line) {
-        final Boolean enabled = PDFImportService.extractAutoPayEnabled(new String[] {line});
+        final Boolean enabled = StatementParsingUtilities.extractAutoPayEnabled(new String[] {line});
         assertNotNull(enabled, "Line '" + line + "' must produce a non-null AutoPay status");
         assertTrue(enabled, "Line '" + line + "' must yield true");
     }
@@ -190,7 +192,7 @@ class PDFImportServiceMetadataEdgeCasesTest {
         "Automatic Payments is off",
     })
     void autoPay_recognisesEveryDocumentedOffPhrase(final String line) {
-        final Boolean enabled = PDFImportService.extractAutoPayEnabled(new String[] {line});
+        final Boolean enabled = StatementParsingUtilities.extractAutoPayEnabled(new String[] {line});
         assertNotNull(enabled);
         assertFalse(enabled);
     }
@@ -211,7 +213,7 @@ class PDFImportServiceMetadataEdgeCasesTest {
             {"Authorize us to make automatic payments from your designated bank account."},
         };
         for (final String[] lines : disclosurePhrases) {
-            final Boolean result = PDFImportService.extractAutoPayEnabled(lines);
+            final Boolean result = StatementParsingUtilities.extractAutoPayEnabled(lines);
             assertNull(result,
                     "Disclosure phrase '" + lines[0] + "' must NOT produce a Boolean — got: "
                             + result);
@@ -226,7 +228,7 @@ class PDFImportServiceMetadataEdgeCasesTest {
             "exceeding your credit limit, please call the number on the back of your card.",
             "We may reduce your credit limit at our discretion.",
         };
-        assertNull(PDFImportService.extractCreditLimit(disclosureLines));
+        assertNull(StatementParsingUtilities.extractCreditLimit(disclosureLines));
     }
 
     @Test
@@ -237,7 +239,7 @@ class PDFImportServiceMetadataEdgeCasesTest {
             "After we apply your payment, your new balance will be reduced.",
             "Your new balance reflects all activity from the prior cycle.",
         };
-        assertNull(PDFImportService.extractNewBalance(lines));
+        assertNull(StatementParsingUtilities.extractNewBalance(lines));
     }
 
     @Test
@@ -246,7 +248,7 @@ class PDFImportServiceMetadataEdgeCasesTest {
             "Your previous balance may have included pending charges that have since posted.",
             "Compare your prior balance against this cycle to understand changes.",
         };
-        assertNull(PDFImportService.extractPreviousBalance(lines));
+        assertNull(StatementParsingUtilities.extractPreviousBalance(lines));
     }
 
     @Test
@@ -256,7 +258,7 @@ class PDFImportServiceMetadataEdgeCasesTest {
             "Purchases made with cash advances from an ATM or with a check do not qualify.",
             "We will not impose interest charges on any portion of a purchase balance.",
         };
-        assertNull(PDFImportService.extractPurchasesTotal(lines));
+        assertNull(StatementParsingUtilities.extractPurchasesTotal(lines));
     }
 
     // ============================================================
@@ -272,9 +274,9 @@ class PDFImportServiceMetadataEdgeCasesTest {
             "Cash Access Line $5,000",
         };
         assertEquals(0, new BigDecimal("50000")
-                .compareTo(PDFImportService.extractCreditLimit(lines)));
+                .compareTo(StatementParsingUtilities.extractCreditLimit(lines)));
         assertEquals(0, new BigDecimal("5000")
-                .compareTo(PDFImportService.extractCashAccessLine(lines)));
+                .compareTo(StatementParsingUtilities.extractCashAccessLine(lines)));
     }
 
     @Test
@@ -284,9 +286,9 @@ class PDFImportServiceMetadataEdgeCasesTest {
             "Available for Cash $5,000",
         };
         assertEquals(0, new BigDecimal("42000")
-                .compareTo(PDFImportService.extractAvailableCredit(lines)));
+                .compareTo(StatementParsingUtilities.extractAvailableCredit(lines)));
         assertEquals(0, new BigDecimal("5000")
-                .compareTo(PDFImportService.extractAvailableForCash(lines)));
+                .compareTo(StatementParsingUtilities.extractAvailableForCash(lines)));
     }
 
     @Test
@@ -303,17 +305,17 @@ class PDFImportServiceMetadataEdgeCasesTest {
             "Interest Charged $5.00",
         };
         assertEquals(0, new BigDecimal("300.00")
-                .compareTo(PDFImportService.extractPurchasesTotal(lines)));
+                .compareTo(StatementParsingUtilities.extractPurchasesTotal(lines)));
         assertEquals(0, new BigDecimal("-200.00")
-                .compareTo(PDFImportService.extractPaymentsAndCreditsTotal(lines)));
+                .compareTo(StatementParsingUtilities.extractPaymentsAndCreditsTotal(lines)));
         assertEquals(0, new BigDecimal("50.00")
-                .compareTo(PDFImportService.extractCashAdvancesTotal(lines)));
+                .compareTo(StatementParsingUtilities.extractCashAdvancesTotal(lines)));
         assertEquals(0, new BigDecimal("25.00")
-                .compareTo(PDFImportService.extractBalanceTransfersTotal(lines)));
+                .compareTo(StatementParsingUtilities.extractBalanceTransfersTotal(lines)));
         assertEquals(0, new BigDecimal("10.00")
-                .compareTo(PDFImportService.extractFeesChargedTotal(lines)));
+                .compareTo(StatementParsingUtilities.extractFeesChargedTotal(lines)));
         assertEquals(0, new BigDecimal("5.00")
-                .compareTo(PDFImportService.extractInterestChargedTotal(lines)));
+                .compareTo(StatementParsingUtilities.extractInterestChargedTotal(lines)));
     }
 
     @Test
@@ -327,15 +329,15 @@ class PDFImportServiceMetadataEdgeCasesTest {
             "Penalty APR of 29.99%.",
         };
         assertEquals(0, new BigDecimal("19.49")
-                .compareTo(PDFImportService.extractPurchaseApr(lines)));
+                .compareTo(StatementParsingUtilities.extractPurchaseApr(lines)));
         assertEquals(0, new BigDecimal("28.49")
-                .compareTo(PDFImportService.extractCashAdvanceApr(lines)));
+                .compareTo(StatementParsingUtilities.extractCashAdvanceApr(lines)));
         // BT rate is intentionally distinct (19.50 vs 19.49) to catch a regex that
         // matches whichever appears first.
         assertEquals(0, new BigDecimal("19.50")
-                .compareTo(PDFImportService.extractBalanceTransferApr(lines)));
+                .compareTo(StatementParsingUtilities.extractBalanceTransferApr(lines)));
         assertEquals(0, new BigDecimal("29.99")
-                .compareTo(PDFImportService.extractPenaltyApr(lines)));
+                .compareTo(StatementParsingUtilities.extractPenaltyApr(lines)));
     }
 
     // ============================================================
@@ -345,7 +347,7 @@ class PDFImportServiceMetadataEdgeCasesTest {
     @Test
     void newBalance_acceptsZero() {
         final BigDecimal v =
-                PDFImportService.extractNewBalance(new String[] {"New Balance $0.00"});
+                StatementParsingUtilities.extractNewBalance(new String[] {"New Balance $0.00"});
         assertNotNull(v);
         assertEquals(0, BigDecimal.ZERO.compareTo(v));
     }
@@ -354,7 +356,7 @@ class PDFImportServiceMetadataEdgeCasesTest {
     void creditLimit_acceptsSixFigureAmount() {
         // High-net-worth cards can have $100k+ limits. Verify the comma-grouped pattern
         // handles them.
-        final BigDecimal v = PDFImportService.extractCreditLimit(
+        final BigDecimal v = StatementParsingUtilities.extractCreditLimit(
                 new String[] {"Credit Access Line $150,000"});
         assertNotNull(v);
         assertEquals(0, new BigDecimal("150000").compareTo(v));
@@ -364,7 +366,7 @@ class PDFImportServiceMetadataEdgeCasesTest {
     void newBalance_acceptsSubDollarAmount() {
         // Tiny balances (interest accrual on near-paid-off cards).
         final BigDecimal v =
-                PDFImportService.extractNewBalance(new String[] {"New Balance $0.05"});
+                StatementParsingUtilities.extractNewBalance(new String[] {"New Balance $0.05"});
         assertNotNull(v);
         assertEquals(0, new BigDecimal("0.05").compareTo(v));
     }
@@ -373,7 +375,7 @@ class PDFImportServiceMetadataEdgeCasesTest {
     void pastDueAmount_acceptsLargeNonZeroValue_forDelinquentAccounts() {
         // A delinquent account would print a non-zero past-due. The extractor must NOT
         // reject it as "zero looks suspicious".
-        final BigDecimal v = PDFImportService.extractPastDueAmount(
+        final BigDecimal v = StatementParsingUtilities.extractPastDueAmount(
                 new String[] {"Past Due Amount $2,847.00"});
         assertNotNull(v);
         assertEquals(0, new BigDecimal("2847.00").compareTo(v));
@@ -445,8 +447,8 @@ class PDFImportServiceMetadataEdgeCasesTest {
                 "\n",
                 "Points earned this period: 2,500",
                 "Points balance: 47,890");
-        final Long earned = PDFImportService.extractPointsEarnedThisPeriod(input.split("\\n"));
-        final Long balance = PDFImportService.extractPointsBalance(input.split("\\n"));
+        final Long earned = StatementParsingUtilities.extractPointsEarnedThisPeriod(input.split("\\n"));
+        final Long balance = StatementParsingUtilities.extractPointsBalance(input.split("\\n"));
         assertEquals(2500L, earned.longValue());
         assertEquals(47890L, balance.longValue());
     }
@@ -455,14 +457,14 @@ class PDFImportServiceMetadataEdgeCasesTest {
     void pointsEarnedThisPeriod_rejectsGarbageNumeric() {
         // A misformed line that LOOKS like it might match but isn't a real points line.
         final String[] lines = {"You earned a lot of points last cycle."};
-        assertNull(PDFImportService.extractPointsEarnedThisPeriod(lines));
+        assertNull(StatementParsingUtilities.extractPointsEarnedThisPeriod(lines));
     }
 
     @Test
     void pointsBalance_zeroValueIsValidAndReturned() {
         // A user who has redeemed everything: explicit zero balance.
         final String[] lines = {"Points balance: 0"};
-        final Long balance = PDFImportService.extractPointsBalance(lines);
+        final Long balance = StatementParsingUtilities.extractPointsBalance(lines);
         assertNotNull(balance);
         assertEquals(0L, balance.longValue());
     }
@@ -473,14 +475,14 @@ class PDFImportServiceMetadataEdgeCasesTest {
 
     @Test
     void statementDate_acceptsFourDigitYear() {
-        final LocalDate d = PDFImportService.extractStatementDate(
+        final LocalDate d = StatementParsingUtilities.extractStatementDate(
                 new String[] {"Statement Date: 06/17/2026"}, 2026, true);
         assertEquals(LocalDate.of(2026, 6, 17), d);
     }
 
     @Test
     void statementDate_acceptsTwoDigitYear_via2000Offset() {
-        final LocalDate d = PDFImportService.extractStatementDate(
+        final LocalDate d = StatementParsingUtilities.extractStatementDate(
                 new String[] {"Statement Date: 06/17/26"}, 2026, true);
         assertEquals(LocalDate.of(2026, 6, 17), d);
     }
@@ -488,10 +490,10 @@ class PDFImportServiceMetadataEdgeCasesTest {
     @Test
     void billingDays_acceptsOneOrTwoDigits() {
         assertEquals(7,
-                PDFImportService.extractBillingDays(new String[] {"7 Days in Billing Period"})
+                StatementParsingUtilities.extractBillingDays(new String[] {"7 Days in Billing Period"})
                         .intValue());
         assertEquals(31,
-                PDFImportService.extractBillingDays(new String[] {"31 Days in Billing Period"})
+                StatementParsingUtilities.extractBillingDays(new String[] {"31 Days in Billing Period"})
                         .intValue());
     }
 
@@ -499,7 +501,7 @@ class PDFImportServiceMetadataEdgeCasesTest {
     void billingDays_rejectsThreeDigitNumberBeforeLabel() {
         // "100 Days in Billing Period" is implausible. The regex \d{1,2} guards against
         // accidentally capturing 3-digit prefixes. (It also forbids "111 Days...".)
-        assertNull(PDFImportService.extractBillingDays(
+        assertNull(StatementParsingUtilities.extractBillingDays(
                 new String[] {"100 Days in Billing Period"}));
     }
 
@@ -513,7 +515,7 @@ class PDFImportServiceMetadataEdgeCasesTest {
             "Your annual membership fee in the amount of $95.00 will be billed on 09/01/2026."
         };
         final Object[] block =
-                PDFImportService.extractAnnualMembershipFeeAndDate(lines, 2026, true);
+                StatementParsingUtilities.extractAnnualMembershipFeeAndDate(lines, 2026, true);
         assertNotNull(block);
         assertEquals(0, new BigDecimal("95.00").compareTo((BigDecimal) block[0]));
         assertEquals(LocalDate.of(2026, 9, 1), block[1]);
@@ -526,7 +528,7 @@ class PDFImportServiceMetadataEdgeCasesTest {
             "If your Account Agreement has an annual membership fee, you are",
             "responsible for it every year your Account is open.",
         };
-        assertNull(PDFImportService.extractAnnualMembershipFeeAndDate(lines, 2026, true));
+        assertNull(StatementParsingUtilities.extractAnnualMembershipFeeAndDate(lines, 2026, true));
     }
 
     // ============================================================
@@ -537,7 +539,7 @@ class PDFImportServiceMetadataEdgeCasesTest {
     void labels_toleratesTabsAsLabelAmountSeparator() {
         // PDFBox occasionally emits tabs instead of spaces — verify [\s:]+ catches them.
         final String[] lines = {"New Balance\t$1,234.56"};
-        final BigDecimal v = PDFImportService.extractNewBalance(lines);
+        final BigDecimal v = StatementParsingUtilities.extractNewBalance(lines);
         assertNotNull(v);
         assertEquals(0, new BigDecimal("1234.56").compareTo(v));
     }
@@ -545,7 +547,7 @@ class PDFImportServiceMetadataEdgeCasesTest {
     @Test
     void labels_toleratesMultipleSpacesBeforeAmount() {
         final String[] lines = {"Credit Access Line          $25,000"};
-        final BigDecimal v = PDFImportService.extractCreditLimit(lines);
+        final BigDecimal v = StatementParsingUtilities.extractCreditLimit(lines);
         assertNotNull(v);
         assertEquals(0, new BigDecimal("25000").compareTo(v));
     }
@@ -560,7 +562,7 @@ class PDFImportServiceMetadataEdgeCasesTest {
             "There is an International Transaction Fee of 2.5% of the U.S. dollar amount"
         };
         final BigDecimal fee =
-                PDFImportService.extractForeignTransactionFeePercent(lines);
+                StatementParsingUtilities.extractForeignTransactionFeePercent(lines);
         assertNotNull(fee);
         assertEquals(0, new BigDecimal("2.5").compareTo(fee));
     }
@@ -584,12 +586,12 @@ class PDFImportServiceMetadataEdgeCasesTest {
         lines[N] = "New Balance $123.45";
 
         final long start = System.currentTimeMillis();
-        final BigDecimal v = PDFImportService.extractNewBalance(lines);
+        final BigDecimal v = StatementParsingUtilities.extractNewBalance(lines);
         // Run every extractor on the same large input to stress the full pipeline.
-        PDFImportService.extractCreditLimit(lines);
-        PDFImportService.extractPurchaseApr(lines);
-        PDFImportService.extractAutoPayEnabled(lines);
-        PDFImportService.extractPointsEarnedThisPeriod(lines);
+        StatementParsingUtilities.extractCreditLimit(lines);
+        StatementParsingUtilities.extractPurchaseApr(lines);
+        StatementParsingUtilities.extractAutoPayEnabled(lines);
+        StatementParsingUtilities.extractPointsEarnedThisPeriod(lines);
         final long elapsed = System.currentTimeMillis() - start;
 
         assertNotNull(v);
@@ -609,9 +611,9 @@ class PDFImportServiceMetadataEdgeCasesTest {
                     + " balance shown on this statement will take longer to pay off.";
         }
         // No actual labels in the noise. Every extractor must return null.
-        assertNull(PDFImportService.extractNewBalance(lines));
-        assertNull(PDFImportService.extractPreviousBalance(lines));
-        assertNull(PDFImportService.extractCreditLimit(lines));
-        assertNull(PDFImportService.extractAutoPayEnabled(lines));
+        assertNull(StatementParsingUtilities.extractNewBalance(lines));
+        assertNull(StatementParsingUtilities.extractPreviousBalance(lines));
+        assertNull(StatementParsingUtilities.extractCreditLimit(lines));
+        assertNull(StatementParsingUtilities.extractAutoPayEnabled(lines));
     }
 }

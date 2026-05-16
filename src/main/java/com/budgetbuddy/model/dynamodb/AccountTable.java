@@ -457,6 +457,11 @@ public class AccountTable {
     // that lets UIs show "earned X since last cycle" deltas without recomputing.
     private Long previousPointsBalance;
 
+    // Wells Fargo Active Cash and other flat cash-back cards print redeemable rewards
+    // as a dollar value. Mutually exclusive with pointsBalance per card: a card uses
+    // either points OR cash-back, never both.
+    private BigDecimal cashBackBalance;
+
     // YTD totals from the most-recent statement. Reset each January when the issuer
     // ticks the YTD counter. Null when the statement doesn't print the YTD row.
     private BigDecimal ytdFeesCharged;
@@ -568,6 +573,10 @@ public class AccountTable {
     @DynamoDbAttribute("previousPointsBalance")
     public Long getPreviousPointsBalance() { return previousPointsBalance; }
     public void setPreviousPointsBalance(final Long v) { this.previousPointsBalance = v; }
+
+    @DynamoDbAttribute("cashBackBalance")
+    public BigDecimal getCashBackBalance() { return cashBackBalance; }
+    public void setCashBackBalance(final BigDecimal v) { this.cashBackBalance = v; }
 
     @DynamoDbAttribute("ytdFeesCharged")
     public BigDecimal getYtdFeesCharged() { return ytdFeesCharged; }

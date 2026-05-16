@@ -124,7 +124,9 @@ app:
   jwt:
     secret: ${JWT_SECRET:your-256-bit-secret-key-change-in-production}
     secret-name: ${JWT_SECRET_NAME:budgetbuddy/jwt-secret}
-    expiration: 1800000 # 30 minutes (short-lived for Zero Trust, balanced for user workflow)
+    expiration: 14400000 # 4 hours — bumped from 30 min. Combined with refresh-token revocation paths
+    # (FIDO2 step-up, MFA, explicit logout) and the iOS biometric gate on the refresh token itself,
+    # 4h gives an acceptable Zero-Trust window while drastically reducing Face ID prompt frequency.
     refresh-expiration: 2592000000 # 30 days (longer-lived, encrypted in keychain)
   
   # Plaid Configuration

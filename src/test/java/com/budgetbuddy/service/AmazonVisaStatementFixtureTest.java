@@ -1,5 +1,7 @@
 package com.budgetbuddy.service;
 
+import com.budgetbuddy.service.pdf.profile.StatementParsingUtilities;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -105,42 +107,42 @@ class AmazonVisaStatementFixtureTest {
     void amazonVisaFixture_extractsCoreSummaryFields() {
         final String[] lines = STATEMENT_FIXTURE.split("\\n");
         assertEquals(0,
-                new BigDecimal("250.00").compareTo(PDFImportService.extractNewBalance(lines)));
+                new BigDecimal("250.00").compareTo(StatementParsingUtilities.extractNewBalance(lines)));
         assertEquals(0,
-                new BigDecimal("50.00").compareTo(PDFImportService.extractPreviousBalance(lines)));
+                new BigDecimal("50.00").compareTo(StatementParsingUtilities.extractPreviousBalance(lines)));
         assertEquals(0,
-                new BigDecimal("20000").compareTo(PDFImportService.extractCreditLimit(lines)));
+                new BigDecimal("20000").compareTo(StatementParsingUtilities.extractCreditLimit(lines)));
         assertEquals(0,
-                new BigDecimal("19750").compareTo(PDFImportService.extractAvailableCredit(lines)));
+                new BigDecimal("19750").compareTo(StatementParsingUtilities.extractAvailableCredit(lines)));
         assertEquals(0,
-                BigDecimal.ZERO.compareTo(PDFImportService.extractPastDueAmount(lines)));
+                BigDecimal.ZERO.compareTo(StatementParsingUtilities.extractPastDueAmount(lines)));
         assertEquals(0,
-                new BigDecimal("4000").compareTo(PDFImportService.extractCashAccessLine(lines)));
+                new BigDecimal("4000").compareTo(StatementParsingUtilities.extractCashAccessLine(lines)));
     }
 
     @Test
     void amazonVisaFixture_extractsAprsAndBillingInfo() {
         final String[] lines = STATEMENT_FIXTURE.split("\\n");
         assertEquals(0,
-                new BigDecimal("21.74").compareTo(PDFImportService.extractPurchaseApr(lines)));
+                new BigDecimal("21.74").compareTo(StatementParsingUtilities.extractPurchaseApr(lines)));
         assertEquals(0,
-                new BigDecimal("22.74").compareTo(PDFImportService.extractCashAdvanceApr(lines)));
+                new BigDecimal("22.74").compareTo(StatementParsingUtilities.extractCashAdvanceApr(lines)));
         assertEquals(0,
-                new BigDecimal("29.99").compareTo(PDFImportService.extractPenaltyApr(lines)));
-        assertEquals(31, PDFImportService.extractBillingDays(lines).intValue());
+                new BigDecimal("29.99").compareTo(StatementParsingUtilities.extractPenaltyApr(lines)));
+        assertEquals(31, StatementParsingUtilities.extractBillingDays(lines).intValue());
         assertEquals(LocalDate.of(2026, 6, 12),
-                PDFImportService.extractStatementDate(lines, 2026, true));
+                StatementParsingUtilities.extractStatementDate(lines, 2026, true));
     }
 
     @Test
     void amazonVisaFixture_extractsAutoPayAndForeignFee() {
         final String[] lines = STATEMENT_FIXTURE.split("\\n");
-        assertTrue(PDFImportService.extractAutoPayEnabled(lines));
+        assertTrue(StatementParsingUtilities.extractAutoPayEnabled(lines));
         assertEquals(0,
-                new BigDecimal("250.00").compareTo(PDFImportService.extractNextAutoPayAmount(lines)));
+                new BigDecimal("250.00").compareTo(StatementParsingUtilities.extractNextAutoPayAmount(lines)));
         assertEquals(0,
                 new BigDecimal("3").compareTo(
-                        PDFImportService.extractForeignTransactionFeePercent(lines)));
+                        StatementParsingUtilities.extractForeignTransactionFeePercent(lines)));
     }
 
     @Test
@@ -149,7 +151,7 @@ class AmazonVisaStatementFixtureTest {
         // "Your annual membership fee in the amount of $X will be billed on..." sentence.
         // Extractor must correctly return null (NOT default-zero).
         final String[] lines = STATEMENT_FIXTURE.split("\\n");
-        assertNull(PDFImportService.extractAnnualMembershipFeeAndDate(lines, 2026, true));
+        assertNull(StatementParsingUtilities.extractAnnualMembershipFeeAndDate(lines, 2026, true));
     }
 
     // ============================================================
@@ -164,7 +166,7 @@ class AmazonVisaStatementFixtureTest {
         // the CURRENT balance (75,750 from "Total points available for redemption")
         // wins, NOT the prior cycle's 75,000.
         final String[] lines = STATEMENT_FIXTURE.split("\\n");
-        final Long balance = PDFImportService.extractPointsBalance(lines);
+        final Long balance = StatementParsingUtilities.extractPointsBalance(lines);
         assertNotNull(balance);
         assertEquals(75_750L, balance.longValue(),
                 "Must extract CURRENT balance (75,750) not PRIOR balance (75,000) — "
@@ -178,7 +180,7 @@ class AmazonVisaStatementFixtureTest {
         // zero-valued categories (which contribute 0 to the sum but signal that the
         // rewards section is present).
         final String[] lines = STATEMENT_FIXTURE.split("\\n");
-        final Long earned = PDFImportService.extractPointsEarnedThisPeriod(lines);
+        final Long earned = StatementParsingUtilities.extractPointsEarnedThisPeriod(lines);
         assertNotNull(earned);
         assertEquals(750L, earned.longValue(),
                 "Earned this period must be the SUM (500 + 250) of all per-category lines, "
@@ -189,7 +191,7 @@ class AmazonVisaStatementFixtureTest {
     void amazonVisaFixture_extractsPreviousPointsBalance() {
         final String[] lines = STATEMENT_FIXTURE.split("\\n");
         assertEquals(75_000L,
-                PDFImportService.extractPreviousPointsBalance(lines).longValue(),
+                StatementParsingUtilities.extractPreviousPointsBalance(lines).longValue(),
                 "Previous balance must be extracted as a separate field");
     }
 
@@ -200,11 +202,11 @@ class AmazonVisaStatementFixtureTest {
         // internally consistent). 75,000 + 750 = 75,750.
         final String[] lines = STATEMENT_FIXTURE.split("\\n");
         final long previous =
-                PDFImportService.extractPreviousPointsBalance(lines).longValue();
+                StatementParsingUtilities.extractPreviousPointsBalance(lines).longValue();
         final long earned =
-                PDFImportService.extractPointsEarnedThisPeriod(lines).longValue();
+                StatementParsingUtilities.extractPointsEarnedThisPeriod(lines).longValue();
         final long current =
-                PDFImportService.extractPointsBalance(lines).longValue();
+                StatementParsingUtilities.extractPointsBalance(lines).longValue();
         assertEquals(current, previous + earned,
                 "previous + earned must equal current — math sanity check across all 3 extractors");
     }
@@ -217,7 +219,7 @@ class AmazonVisaStatementFixtureTest {
     void amazonVisaFixture_extractsEveryCategoryMultiplier_withCorrectRate() {
         final String[] lines = STATEMENT_FIXTURE.split("\\n");
         final java.util.Map<String, java.math.BigDecimal> multipliers =
-                PDFImportService.extractRewardMultipliersFromPdf(lines);
+                StatementParsingUtilities.extractRewardMultipliersFromPdf(lines);
         // 8 categories on the Amazon Visa.
         assertEquals(8, multipliers.size(), "Must capture every per-category line");
 
@@ -248,7 +250,7 @@ class AmazonVisaStatementFixtureTest {
         // "Amazon.com purchases" must become "amazon.com purchases".
         final String[] lines = STATEMENT_FIXTURE.split("\\n");
         final java.util.Map<String, java.math.BigDecimal> multipliers =
-                PDFImportService.extractRewardMultipliersFromPdf(lines);
+                StatementParsingUtilities.extractRewardMultipliersFromPdf(lines);
         for (final String key : multipliers.keySet()) {
             assertEquals(key.toLowerCase(java.util.Locale.ROOT), key,
                     "Category key '" + key + "' must be lowercased");
@@ -267,7 +269,7 @@ class AmazonVisaStatementFixtureTest {
             "Payment Due Date: 05/01/26",
         };
         final java.util.Map<String, java.math.BigDecimal> multipliers =
-                PDFImportService.extractRewardMultipliersFromPdf(minimalLines);
+                StatementParsingUtilities.extractRewardMultipliersFromPdf(minimalLines);
         assertNotNull(multipliers);
         assertTrue(multipliers.isEmpty(),
                 "No rewards block must yield empty map, not null");
@@ -284,7 +286,7 @@ class AmazonVisaStatementFixtureTest {
             "Prime membership (otherwise 3% back).",
         };
         final java.util.Map<String, java.math.BigDecimal> multipliers =
-                PDFImportService.extractRewardMultipliersFromPdf(disclosureLines);
+                StatementParsingUtilities.extractRewardMultipliersFromPdf(disclosureLines);
         assertTrue(multipliers.isEmpty(),
                 "Disclosure prose must NOT produce false-positive multipliers");
     }
@@ -297,7 +299,7 @@ class AmazonVisaStatementFixtureTest {
             "+ 3.5% back at restaurants 25",
         };
         final java.util.Map<String, java.math.BigDecimal> multipliers =
-                PDFImportService.extractRewardMultipliersFromPdf(lines);
+                StatementParsingUtilities.extractRewardMultipliersFromPdf(lines);
         assertEquals(0, new BigDecimal("1.5")
                 .compareTo(multipliers.get("all purchases")));
         assertEquals(0, new BigDecimal("3.5")
@@ -316,8 +318,8 @@ class AmazonVisaStatementFixtureTest {
         // The fixture doesn't include the YTD lines explicitly; verify the helpers
         // return null when absent, then test on a focused fixture below.
         // Skip the missing-line path here since this fixture intentionally omits it.
-        assertNull(PDFImportService.extractYtdFeesCharged(lines));
-        assertNull(PDFImportService.extractYtdInterestCharged(lines));
+        assertNull(StatementParsingUtilities.extractYtdFeesCharged(lines));
+        assertNull(StatementParsingUtilities.extractYtdInterestCharged(lines));
     }
 
     @Test
@@ -327,16 +329,16 @@ class AmazonVisaStatementFixtureTest {
             "Total interest charged in 2026 $1,234.56",
         };
         assertEquals(0, new BigDecimal("125.00")
-                .compareTo(PDFImportService.extractYtdFeesCharged(lines)));
+                .compareTo(StatementParsingUtilities.extractYtdFeesCharged(lines)));
         assertEquals(0, new BigDecimal("1234.56")
-                .compareTo(PDFImportService.extractYtdInterestCharged(lines)));
+                .compareTo(StatementParsingUtilities.extractYtdInterestCharged(lines)));
     }
 
     @Test
     void ytdExtractors_returnNull_whenLineAbsent() {
         final String[] lines = {"New Balance $100"};
-        assertNull(PDFImportService.extractYtdFeesCharged(lines));
-        assertNull(PDFImportService.extractYtdInterestCharged(lines));
+        assertNull(StatementParsingUtilities.extractYtdFeesCharged(lines));
+        assertNull(StatementParsingUtilities.extractYtdInterestCharged(lines));
     }
 
     @Test
@@ -344,7 +346,7 @@ class AmazonVisaStatementFixtureTest {
         // The bare "Fees Charged $N" row (current-cycle total) must NOT be picked
         // up by the YTD pattern, which requires "in YYYY" between label and amount.
         final String[] lines = {"Fees Charged $0.00"};
-        assertNull(PDFImportService.extractYtdFeesCharged(lines),
+        assertNull(StatementParsingUtilities.extractYtdFeesCharged(lines),
                 "YTD pattern must require 'in YYYY' anchor — current-cycle total is separate");
     }
 

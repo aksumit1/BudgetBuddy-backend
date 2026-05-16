@@ -4250,6 +4250,7 @@ public class TransactionController {
         info.setPointsEarnedThisPeriod(importResult.getPointsEarnedThisPeriod());
         info.setPointsBalance(importResult.getPointsBalance());
         info.setPreviousPointsBalance(importResult.getPreviousPointsBalance());
+        info.setCashBackBalance(importResult.getCashBackBalance());
         info.setYtdFeesCharged(importResult.getYtdFeesCharged());
         info.setYtdInterestCharged(importResult.getYtdInterestCharged());
         info.setCurrentQuarterBonusQuarter(importResult.getCurrentQuarterBonusQuarter());
@@ -4507,12 +4508,16 @@ public class TransactionController {
                     // createTransaction overload — the overload chain is already 5 deep.
                     if (parsed.getOriginalCurrencyCode() != null
                             || parsed.getOriginalAmount() != null
-                            || parsed.getExchangeRate() != null) {
+                            || parsed.getExchangeRate() != null
+                            || parsed.getWalletProvider() != null) {
                         createdTx.setOriginalCurrencyCode(parsed.getOriginalCurrencyCode());
                         createdTx.setOriginalCurrencyDisplay(
                                 parsed.getOriginalCurrencyDisplay());
                         createdTx.setOriginalAmount(parsed.getOriginalAmount());
                         createdTx.setExchangeRate(parsed.getExchangeRate());
+                        // Wallet provider — detected from merchant description prefix
+                        // (Apple Pay / Google Pay / PayPal / Square / Venmo / Zelle / Cash App).
+                        createdTx.setWalletProvider(parsed.getWalletProvider());
                         try {
                             transactionService.saveTransaction(createdTx);
                         } catch (Exception fxSaveErr) {
@@ -5241,6 +5246,10 @@ public class TransactionController {
         // iOS UI display "you earned X this cycle" deltas.
         private Long previousPointsBalance;
 
+        // Wells Fargo Active Cash and other flat cash-back cards: redeemable rewards
+        // expressed as a dollar value. Mutually exclusive with pointsBalance per card.
+        private java.math.BigDecimal cashBackBalance;
+
         // YTD totals (year-to-date fees + interest).
         private java.math.BigDecimal ytdFeesCharged;
         private java.math.BigDecimal ytdInterestCharged;
@@ -5398,6 +5407,8 @@ public class TransactionController {
         public void setPointsBalance(final Long v) { this.pointsBalance = v; }
         public Long getPreviousPointsBalance() { return previousPointsBalance; }
         public void setPreviousPointsBalance(final Long v) { this.previousPointsBalance = v; }
+        public java.math.BigDecimal getCashBackBalance() { return cashBackBalance; }
+        public void setCashBackBalance(final java.math.BigDecimal v) { this.cashBackBalance = v; }
 
         public java.math.BigDecimal getYtdFeesCharged() { return ytdFeesCharged; }
         public void setYtdFeesCharged(final java.math.BigDecimal v) { this.ytdFeesCharged = v; }
@@ -6731,6 +6742,11 @@ public class TransactionController {
         }
         if (ir.getPreviousPointsBalance() != null) {
             account.setPreviousPointsBalance(ir.getPreviousPointsBalance());
+        }
+        // Cash-back redeemable balance (dollar value on Wells Fargo Active Cash and
+        // similar). Mutually exclusive with pointsBalance per card.
+        if (ir.getCashBackBalance() != null) {
+            account.setCashBackBalance(ir.getCashBackBalance());
         }
         // YTD totals — overwrite (not merge) because the issuer's YTD counter is
         // authoritative.

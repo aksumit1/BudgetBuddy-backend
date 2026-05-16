@@ -48,7 +48,8 @@ public class StartupReadinessProbe {
             List.of("Users", "Accounts", "Transactions", "Budgets", "Goals");
 
     private static final int MAX_ATTEMPTS = 5;
-    private static final long RETRY_DELAY_MS = 5_000L;
+    // Non-final so tests can shrink the inter-attempt sleep — production keeps the 5s default.
+    /* default */ long retryDelayMs = 5_000L;
 
     private final DynamoDbClient dynamoDbClient;
     private final ApplicationContext applicationContext;
@@ -105,7 +106,7 @@ public class StartupReadinessProbe {
                     failure);
             if (attempt < MAX_ATTEMPTS) {
                 try {
-                    Thread.sleep(RETRY_DELAY_MS);
+                    Thread.sleep(retryDelayMs);
                 } catch (InterruptedException ie) {
                     Thread.currentThread().interrupt();
                     return;

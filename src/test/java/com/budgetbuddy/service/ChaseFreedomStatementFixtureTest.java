@@ -1,5 +1,7 @@
 package com.budgetbuddy.service;
 
+import com.budgetbuddy.service.pdf.profile.StatementParsingUtilities;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -74,7 +76,7 @@ class ChaseFreedomStatementFixtureTest {
     @Test
     void freedomUnlimited_earnedSumsAllTierLines() {
         final String[] lines = FREEDOM_UNLIMITED_FIXTURE.split("\\n");
-        final Long earned = PDFImportService.extractPointsEarnedThisPeriod(lines);
+        final Long earned = StatementParsingUtilities.extractPointsEarnedThisPeriod(lines);
         assertNotNull(earned, "Multi-tier Freedom rewards block must produce a value");
         // 0 (Chase Travel) + 0 (Dining) + 0 (Drugstore) + 9 (all purchases) = 9
         assertEquals(9L, earned.longValue());
@@ -83,7 +85,7 @@ class ChaseFreedomStatementFixtureTest {
     @Test
     void freedomClassic_earnedSumsBaseAndQuarterlyBonus() {
         final String[] lines = FREEDOM_QUARTERLY_FIXTURE.split("\\n");
-        final Long earned = PDFImportService.extractPointsEarnedThisPeriod(lines);
+        final Long earned = StatementParsingUtilities.extractPointsEarnedThisPeriod(lines);
         assertNotNull(earned);
         // 37 (base) + 148 (1Q grocery bonus) = 185
         assertEquals(185L, earned.longValue(),
@@ -94,11 +96,11 @@ class ChaseFreedomStatementFixtureTest {
     void mathReconciles_previousPlusEarnedEqualsCurrent_classicFreedom() {
         final String[] lines = FREEDOM_QUARTERLY_FIXTURE.split("\\n");
         final long previous =
-                PDFImportService.extractPreviousPointsBalance(lines).longValue();
+                StatementParsingUtilities.extractPreviousPointsBalance(lines).longValue();
         final long earned =
-                PDFImportService.extractPointsEarnedThisPeriod(lines).longValue();
+                StatementParsingUtilities.extractPointsEarnedThisPeriod(lines).longValue();
         final long current =
-                PDFImportService.extractPointsBalance(lines).longValue();
+                StatementParsingUtilities.extractPointsBalance(lines).longValue();
         assertEquals(current, previous + earned,
                 "previous (9,262) + earned (185) must equal current (9,447)");
     }
@@ -107,11 +109,11 @@ class ChaseFreedomStatementFixtureTest {
     void mathReconciles_previousPlusEarnedEqualsCurrent_freedomUnlimited() {
         final String[] lines = FREEDOM_UNLIMITED_FIXTURE.split("\\n");
         final long previous =
-                PDFImportService.extractPreviousPointsBalance(lines).longValue();
+                StatementParsingUtilities.extractPreviousPointsBalance(lines).longValue();
         final long earned =
-                PDFImportService.extractPointsEarnedThisPeriod(lines).longValue();
+                StatementParsingUtilities.extractPointsEarnedThisPeriod(lines).longValue();
         final long current =
-                PDFImportService.extractPointsBalance(lines).longValue();
+                StatementParsingUtilities.extractPointsBalance(lines).longValue();
         assertEquals(current, previous + earned,
                 "previous (14,084) + earned (9) must equal current (14,093)");
     }
@@ -124,7 +126,7 @@ class ChaseFreedomStatementFixtureTest {
     void freedomUnlimited_capturesAllPermanentCategoryMultipliers() {
         final String[] lines = FREEDOM_UNLIMITED_FIXTURE.split("\\n");
         final Map<String, BigDecimal> mults =
-                PDFImportService.extractRewardMultipliersFromPdf(lines);
+                StatementParsingUtilities.extractRewardMultipliersFromPdf(lines);
         assertEquals(0, new BigDecimal("4").compareTo(mults.get("chase travel")),
                 "4% Chase Travel tier must capture (and note: no leading '+' in fixture)");
         assertEquals(0, new BigDecimal("2").compareTo(mults.get("dining purchases")));
@@ -140,7 +142,7 @@ class ChaseFreedomStatementFixtureTest {
         // we don't want it overwriting a permanent entry).
         final String[] lines = FREEDOM_QUARTERLY_FIXTURE.split("\\n");
         final Map<String, BigDecimal> mults =
-                PDFImportService.extractRewardMultipliersFromPdf(lines);
+                StatementParsingUtilities.extractRewardMultipliersFromPdf(lines);
         assertEquals(0, new BigDecimal("1").compareTo(mults.get("all purchases")));
         assertEquals(0, new BigDecimal("5").compareTo(mults.get("grocery stores (1q bonus)")),
                 "Quarterly bonus must be suffixed with quarter (so a permanent grocery"
@@ -154,8 +156,8 @@ class ChaseFreedomStatementFixtureTest {
     @Test
     void currentQuarterBonus_capturesQuarterRateAndCategory() {
         final String[] lines = FREEDOM_QUARTERLY_FIXTURE.split("\\n");
-        final PDFImportService.QuarterlyBonus bonus =
-                PDFImportService.extractCurrentQuarterBonus(lines);
+        final StatementParsingUtilities.QuarterlyBonus bonus =
+                StatementParsingUtilities.extractCurrentQuarterBonus(lines);
         assertNotNull(bonus, "Statement with rotating bonus must produce a value");
         assertEquals("1Q", bonus.quarter());
         assertEquals(0, new BigDecimal("5").compareTo(bonus.rate()));
@@ -167,7 +169,7 @@ class ChaseFreedomStatementFixtureTest {
         // Freedom Unlimited has permanent categories — no quarterly rotation. Must
         // return null, NOT misinterpret a permanent line as a bonus tier.
         final String[] lines = FREEDOM_UNLIMITED_FIXTURE.split("\\n");
-        assertNull(PDFImportService.extractCurrentQuarterBonus(lines));
+        assertNull(StatementParsingUtilities.extractCurrentQuarterBonus(lines));
     }
 
     // ============================================================
@@ -177,8 +179,8 @@ class ChaseFreedomStatementFixtureTest {
     @Test
     void nextQuarterBonus_capturesRateCapAndWindow() {
         final String[] lines = FREEDOM_QUARTERLY_FIXTURE.split("\\n");
-        final PDFImportService.NextQuarterBonus next =
-                PDFImportService.extractNextQuarterBonus(lines, 2025, true);
+        final StatementParsingUtilities.NextQuarterBonus next =
+                StatementParsingUtilities.extractNextQuarterBonus(lines, 2025, true);
         assertNotNull(next);
         assertEquals(0, new BigDecimal("5").compareTo(next.rate()));
         assertEquals(0, new BigDecimal("1500").compareTo(next.capAmount()));
@@ -189,7 +191,7 @@ class ChaseFreedomStatementFixtureTest {
     @Test
     void nextQuarterBonus_returnsNull_whenDisclosureNotPresent() {
         final String[] lines = FREEDOM_UNLIMITED_FIXTURE.split("\\n");
-        assertNull(PDFImportService.extractNextQuarterBonus(lines, 2025, true));
+        assertNull(StatementParsingUtilities.extractNextQuarterBonus(lines, 2025, true));
     }
 
     // ============================================================
@@ -199,10 +201,10 @@ class ChaseFreedomStatementFixtureTest {
     @Test
     void extractors_returnSafeDefaults_forEmptyLines() {
         final String[] empty = new String[0];
-        assertNull(PDFImportService.extractPointsEarnedThisPeriod(empty));
-        assertTrue(PDFImportService.extractRewardMultipliersFromPdf(empty).isEmpty());
-        assertNull(PDFImportService.extractCurrentQuarterBonus(empty));
-        assertNull(PDFImportService.extractNextQuarterBonus(empty, 2025, true));
+        assertNull(StatementParsingUtilities.extractPointsEarnedThisPeriod(empty));
+        assertTrue(StatementParsingUtilities.extractRewardMultipliersFromPdf(empty).isEmpty());
+        assertNull(StatementParsingUtilities.extractCurrentQuarterBonus(empty));
+        assertNull(StatementParsingUtilities.extractNextQuarterBonus(empty, 2025, true));
     }
 
     @Test
@@ -213,7 +215,7 @@ class ChaseFreedomStatementFixtureTest {
         // statement.
         final String[] lines = {"4%(4 Pts)/$1 addl on Chase Travel 0"};
         final Map<String, BigDecimal> mults =
-                PDFImportService.extractRewardMultipliersFromPdf(lines);
+                StatementParsingUtilities.extractRewardMultipliersFromPdf(lines);
         assertEquals(0, new BigDecimal("4").compareTo(mults.get("chase travel")),
                 "First tier without leading '+' must still capture");
     }
@@ -232,16 +234,16 @@ class ChaseFreedomStatementFixtureTest {
         // depends on Spring beans), but we CAN validate the helper extractors
         // produce what the orchestrator would read.
         final String[] lines = FREEDOM_QUARTERLY_FIXTURE.split("\\n");
-        final PDFImportService.QuarterlyBonus q =
-                PDFImportService.extractCurrentQuarterBonus(lines);
+        final StatementParsingUtilities.QuarterlyBonus q =
+                StatementParsingUtilities.extractCurrentQuarterBonus(lines);
         assertNotNull(q);
         // What the metadata-copy step reads from the QuarterlyBonus record:
         assertEquals("1Q", q.quarter());
         assertEquals(0, new BigDecimal("5").compareTo(q.rate()));
         assertEquals("Grocery Stores", q.category());
 
-        final PDFImportService.NextQuarterBonus n =
-                PDFImportService.extractNextQuarterBonus(lines, 2025, true);
+        final StatementParsingUtilities.NextQuarterBonus n =
+                StatementParsingUtilities.extractNextQuarterBonus(lines, 2025, true);
         assertNotNull(n);
         // Fields the metadata-copy step uses to populate ImportResult setters:
         assertEquals(0, new BigDecimal("5").compareTo(n.rate()));
@@ -256,8 +258,8 @@ class ChaseFreedomStatementFixtureTest {
         // statement (which has permanent tiers, no quarterly rotation). Otherwise
         // the iOS UI would show a "Q? bonus" row pointing nowhere.
         final String[] lines = FREEDOM_UNLIMITED_FIXTURE.split("\\n");
-        assertNull(PDFImportService.extractCurrentQuarterBonus(lines));
-        assertNull(PDFImportService.extractNextQuarterBonus(lines, 2025, true));
+        assertNull(StatementParsingUtilities.extractCurrentQuarterBonus(lines));
+        assertNull(StatementParsingUtilities.extractNextQuarterBonus(lines, 2025, true));
     }
 
     @Test
@@ -295,7 +297,7 @@ class ChaseFreedomStatementFixtureTest {
         };
         for (final String line : cases) {
             final Long earned =
-                    PDFImportService.extractPointsEarnedThisPeriod(new String[] {line});
+                    StatementParsingUtilities.extractPointsEarnedThisPeriod(new String[] {line});
             assertNotNull(earned,
                     "Line variant must produce earned value: '" + line + "'");
             assertEquals(100L, earned.longValue(),

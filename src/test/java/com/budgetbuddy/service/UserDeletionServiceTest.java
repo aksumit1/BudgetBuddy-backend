@@ -393,6 +393,100 @@ class UserDeletionServiceTest {
         verify(userRepository, times(1)).delete(testUserId);
     }
 
+    // MARK: - Extended GDPR sweep coverage
+    //
+    // These tests assert that deleteAllUserData() actually invokes every repository in the
+    // sweep list — not just transactions / accounts / budgets / goals which the older tests
+    // covered. The gap they close is the silent regression where someone adds a new
+    // PII-bearing table, mocks it in setUp, but forgets to wire its delete call into the
+    // deletion service — the service still passes the older tests but leaks user data.
+
+    @Test
+    void deleteAllUserData_invokesEverySweepHook_evenWhenAllReposReturnEmpty() {
+        // Empty data — we don't care what comes back; we only care that the sweep CALLED
+        // each repository's delete-by-user method.
+        when(accountRepository.findByUserId(testUserId)).thenReturn(new ArrayList<>());
+        when(transactionRepository.findByUserId(testUserId, 0, 100)).thenReturn(new ArrayList<>());
+        when(actionRepository.findByUserId(testUserId)).thenReturn(new ArrayList<>());
+        when(subscriptionRepository.findByUserId(testUserId)).thenReturn(new ArrayList<>());
+        when(budgetRepository.findByUserId(testUserId)).thenReturn(new ArrayList<>());
+        when(goalRepository.findByUserId(testUserId)).thenReturn(new ArrayList<>());
+        when(deviceTokenRepository.findByUserId(testUserId)).thenReturn(new ArrayList<>());
+
+        userDeletionService.deleteAllUserData(testUserId);
+
+        // Each must be called exactly once per deletion. If a new GDPR-relevant repo is added
+        // and not wired in, this assertion catches it (it would still pass) — but the
+        // *missing* call would fail to verify. So extend this test when you add a new repo.
+        verify(plaidAccessTokenRepository, times(1)).deleteByUserId(testUserId);
+        verify(anomalyFeedbackRepository, times(1)).deleteByUserId(testUserId);
+        verify(netWorthSnapshotRepository, times(1)).deleteByUserId(testUserId);
+        verify(userCorrectionRepository, times(1)).deleteByUserId(testUserId);
+        verify(customMerchantMappingRepository, times(1)).deleteByUserId(testUserId);
+        verify(userPreferencesRepository, times(1)).deleteByUserId(testUserId);
+    }
+
+    @Test
+    void deleteAllUserData_continues_whenPlaidAccessTokenSweepThrows() {
+        // Resilience: if the Plaid sweep blows up (DDB throttle, IAM hiccup), the rest of
+        // the GDPR deletion MUST still complete. Otherwise a single transient AWS error
+        // would leave the user's category-learning rows and net-worth snapshots un-deleted.
+        when(accountRepository.findByUserId(testUserId)).thenReturn(new ArrayList<>());
+        when(transactionRepository.findByUserId(testUserId, 0, 100)).thenReturn(new ArrayList<>());
+        when(actionRepository.findByUserId(testUserId)).thenReturn(new ArrayList<>());
+        when(subscriptionRepository.findByUserId(testUserId)).thenReturn(new ArrayList<>());
+        when(budgetRepository.findByUserId(testUserId)).thenReturn(new ArrayList<>());
+        when(goalRepository.findByUserId(testUserId)).thenReturn(new ArrayList<>());
+        when(deviceTokenRepository.findByUserId(testUserId)).thenReturn(new ArrayList<>());
+        when(plaidAccessTokenRepository.deleteByUserId(anyString()))
+                .thenThrow(new RuntimeException("DDB throttle"));
+
+        // Must not propagate — the catch in deletePlaidAccessTokensForUser is the safety net.
+        assertDoesNotThrow(() -> userDeletionService.deleteAllUserData(testUserId));
+
+        // And the downstream sweeps must still have run.
+        verify(userPreferencesRepository, times(1)).deleteByUserId(testUserId);
+        verify(userCorrectionRepository, times(1)).deleteByUserId(testUserId);
+        verify(customMerchantMappingRepository, times(1)).deleteByUserId(testUserId);
+    }
+
+    @Test
+    void deleteAllUserData_isIdempotent_secondCallStillInvokesSweeps() {
+        // Idempotency: running deleteAllUserData twice in a row (retry after a partial
+        // failure, GDPR cron sweeping the same user twice) must call every sweep again
+        // safely — the repos themselves are expected to no-op on empty rows.
+        when(accountRepository.findByUserId(testUserId)).thenReturn(new ArrayList<>());
+        when(transactionRepository.findByUserId(testUserId, 0, 100)).thenReturn(new ArrayList<>());
+        when(actionRepository.findByUserId(testUserId)).thenReturn(new ArrayList<>());
+        when(subscriptionRepository.findByUserId(testUserId)).thenReturn(new ArrayList<>());
+        when(budgetRepository.findByUserId(testUserId)).thenReturn(new ArrayList<>());
+        when(goalRepository.findByUserId(testUserId)).thenReturn(new ArrayList<>());
+        when(deviceTokenRepository.findByUserId(testUserId)).thenReturn(new ArrayList<>());
+
+        userDeletionService.deleteAllUserData(testUserId);
+        userDeletionService.deleteAllUserData(testUserId);
+
+        verify(plaidAccessTokenRepository, times(2)).deleteByUserId(testUserId);
+        verify(anomalyFeedbackRepository, times(2)).deleteByUserId(testUserId);
+        verify(netWorthSnapshotRepository, times(2)).deleteByUserId(testUserId);
+    }
+
+    @Test
+    void deletePlaidIntegration_doesNotTouchBackendAccessTokenStore() {
+        // Important separation: deletePlaidIntegration only un-links the iOS-side connection
+        // (clears Plaid IDs on accounts, deletes transactions). The BACKEND-side
+        // PlaidAccessToken store should ONLY be wiped on full data deletion, not on the
+        // "I want to disconnect Plaid but keep my history" flow. Otherwise users would lose
+        // their scheduled-sync access token even though they kept their accounts.
+        when(accountRepository.findByUserId(testUserId)).thenReturn(new ArrayList<>());
+        when(transactionRepository.findByUserId(testUserId, 0, 100)).thenReturn(new ArrayList<>());
+        when(actionRepository.findByUserId(testUserId)).thenReturn(new ArrayList<>());
+
+        userDeletionService.deletePlaidIntegration(testUserId);
+
+        verify(plaidAccessTokenRepository, org.mockito.Mockito.never()).deleteByUserId(anyString());
+    }
+
     // MARK: - Helper Methods
 
     private AccountTable createAccount(final String id) {
