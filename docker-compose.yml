@@ -193,6 +193,12 @@ services:
       BEHAVIORAL_ANALYSIS_WINDOW_SECONDS: ${BEHAVIORAL_ANALYSIS_WINDOW_SECONDS:-3600}
       BEHAVIORAL_ANALYSIS_HIGH_RISK_THRESHOLD: ${BEHAVIORAL_ANALYSIS_HIGH_RISK_THRESHOLD:-70.0}
       BEHAVIORAL_ANALYSIS_MEDIUM_RISK_THRESHOLD: ${BEHAVIORAL_ANALYSIS_MEDIUM_RISK_THRESHOLD:-40.0}
+      # File Upload Rate Limit — sized for batch PDF imports (e.g. 100 statements
+      # in one user action). Mirrors the defaults in application.yml's
+      # app.file-upload block; export these to override locally without editing yml.
+      APP_FILE_UPLOAD_MAX_PER_HOUR: ${APP_FILE_UPLOAD_MAX_PER_HOUR:-500}
+      APP_FILE_UPLOAD_MAX_BYTES_PER_HOUR: ${APP_FILE_UPLOAD_MAX_BYTES_PER_HOUR:-1073741824}
+      APP_FILE_UPLOAD_MIN_INTERVAL_MS: ${APP_FILE_UPLOAD_MIN_INTERVAL_MS:-0}
       # Optimize DNS resolution
       # Docker's embedded DNS must be FIRST for service discovery (redis, localstack)
       # External DNS servers are used as fallback for external hostnames (like sandbox.plaid.com)

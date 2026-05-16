@@ -30,13 +30,20 @@ public class FileUploadRateLimiter {
     private boolean rateLimitEnabled;
 
     // Rate limit configuration - configurable via properties for tests
-    @Value("${app.file-upload.max-uploads-per-hour:50}")
+    //
+    // Defaults sized for a real workload: a user picking 100 statement PDFs from
+    // Files / Photos and uploading them in one go, with headroom for retries and
+    // a same-day second batch (target: 500 uploads/hour). The min-interval is 0
+    // so the iOS client can drive the import in parallel — sequencing it would
+    // multiply wall time by N for no security benefit, since per-file scanning,
+    // quarantine, and integrity checks already run on every request.
+    @Value("${app.file-upload.max-uploads-per-hour:500}")
     private int maxUploadsPerHour;
 
-    @Value("${app.file-upload.max-total-size-per-hour:104857600}") // 100MB default
+    @Value("${app.file-upload.max-total-size-per-hour:1073741824}") // 1 GB default
     private long maxTotalSizePerHour;
 
-    @Value("${app.file-upload.min-time-between-uploads-ms:1000}") // 1 second default
+    @Value("${app.file-upload.min-time-between-uploads-ms:0}") // allow full parallelism
     private long minTimeBetweenUploadsMs;
 
     // Per-user tracking: userId -> UploadStats

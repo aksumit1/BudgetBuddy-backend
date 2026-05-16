@@ -179,6 +179,15 @@ app:
       notfound:
         max-per-minute: 1000 # Allow many 404s (Plaid errors are common)
         max-per-hour: 10000 # Allow retries for Plaid connection issues
+
+  # Per-file-upload rate limiting (separate from the per-endpoint rate limiter
+  # above; this layer guards the import-pdf / import-csv paths specifically).
+  # Sized for a 100-file batch import in one user action with headroom for a
+  # second same-hour batch.
+  file-upload:
+    max-uploads-per-hour: ${APP_FILE_UPLOAD_MAX_PER_HOUR:500}
+    max-total-size-per-hour: ${APP_FILE_UPLOAD_MAX_BYTES_PER_HOUR:1073741824} # 1 GB
+    min-time-between-uploads-ms: ${APP_FILE_UPLOAD_MIN_INTERVAL_MS:0} # allow parallel uploads
   
   # Security
   security:

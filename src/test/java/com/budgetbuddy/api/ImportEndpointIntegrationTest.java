@@ -106,6 +106,8 @@ class ImportEndpointIntegrationTest {
 
     @Mock private com.budgetbuddy.api.config.TransactionControllerConfig config;
 
+    @Mock private com.budgetbuddy.service.importer.TransactionImportOrchestrator importOrchestrator;
+
     private TransactionController transactionController;
 
     private UserTable testUser;
@@ -164,6 +166,25 @@ class ImportEndpointIntegrationTest {
                         org.mockito.Mockito.mock(
                                 com.fasterxml.jackson.databind.ObjectMapper.class));
 
+        // Stub the orchestrator's processBatch so the controller's thin delegator
+        // produces a real BatchImportResponse (default Mockito would return null,
+        // which the controller then NPEs on at .getTotal()). The stub mirrors the
+        // happy path: every input transaction counted as created, none failed,
+        // none flagged as duplicates.
+        when(importOrchestrator.processBatch(
+                        any(UserTable.class),
+                        anyList(),
+                        anyString(),
+                        nullable(String.class)))
+                .thenAnswer(
+                        invocation -> {
+                            final java.util.List<?> txs = invocation.getArgument(1);
+                            final int n = txs == null ? 0 : txs.size();
+                            return new com.budgetbuddy.service.importer
+                                            .TransactionImportOrchestrator.BatchImportResult(
+                                    n, n, 0, 0);
+                        });
+
         // Create controller with mocked config
         transactionController =
                 new TransactionController(
@@ -176,9 +197,7 @@ class ImportEndpointIntegrationTest {
                                 com.budgetbuddy.service.BudgetToGoalFlowService.class),
                         org.mockito.Mockito.mock(
                                 com.budgetbuddy.service.correctness.IdempotencyService.class),
-                        org.mockito.Mockito.mock(
-                                com.budgetbuddy.service.importer.TransactionImportOrchestrator
-                                        .class));
+                        importOrchestrator);
     }
 
     @Test
