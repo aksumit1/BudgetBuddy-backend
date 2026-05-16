@@ -98,18 +98,40 @@ public class HealthCheckConfig {
      * SecretsManager health probe. The JWT signing key is fetched from Secrets Manager; if Secrets
      * Manager is unreachable after a key rotation, JWT verification falls over for every request.
      * Probing it here lets the orchestrator drop the task before customer impact.
+     *
+     * <p><b>Reachability vs. retrieval:</b> we test that the SDK can talk to Secrets Manager,
+     * not that any particular secret exists. A call to {@code getSecret("budgetbuddy/healthcheck",
+     * "")} that fails with {@link ResourceNotFoundException} means the service IS reachable
+     * (the request roundtripped and the server responded "no such secret"). We treat that as
+     * UP. Only network / IAM / 5xx failures should drop the probe to DOWN, because those are
+     * the conditions that would actually break JWT key retrieval at runtime.
      */
     @Bean
     public HealthIndicator secretsManagerHealthIndicator(
             final com.budgetbuddy.aws.secrets.SecretsManagerService secretsManagerService) {
         return () -> {
             try {
-                // Probe the SDK roundtrip. The default "" lets the call return cleanly even
-                // when the sentinel name doesn't exist — we're testing reachability, not
-                // value retrieval.
                 secretsManagerService.getSecret("budgetbuddy/healthcheck", "");
                 return Health.up().withDetail(SERVICE, "SecretsManager").build();
             } catch (Exception e) {
+                // ResourceNotFoundException means the call reached AWS and got back a
+                // "no such secret" response — that's a successful reachability check.
+                // The exception may be wrapped in AppException, so unwrap and check the
+                // chain.
+                Throwable cause = e;
+                while (cause != null) {
+                    if (cause
+                            instanceof software.amazon.awssdk.services.secretsmanager.model
+                                    .ResourceNotFoundException) {
+                        return Health.up()
+                                .withDetail(SERVICE, "SecretsManager")
+                                .withDetail(
+                                        "note",
+                                        "reachable; sentinel secret not provisioned (expected)")
+                                .build();
+                    }
+                    cause = cause.getCause();
+                }
                 return Health.down()
                         .withDetail(SERVICE, "SecretsManager")
                         .withDetail("error", e.getClass().getSimpleName())

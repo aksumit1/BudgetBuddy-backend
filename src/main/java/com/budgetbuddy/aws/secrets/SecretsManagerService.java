@@ -135,7 +135,22 @@ public class SecretsManagerService {
 
             return secretValue;
         } catch (SecretsManagerException e) {
-            if (LOGGER.isErrorEnabled()) {
+            // Distinguish "secret not provisioned yet" (expected during bootstrap, in
+            // LocalStack dev, and during healthcheck probing) from genuine unreachability
+            // (IAM denial, network failure, 5xx). The former is a normal NOT_FOUND
+            // response and shouldn't be ERROR-logged on every call — it spams the logs
+            // and the HealthCheckConfig probe interprets it as reachable anyway.
+            final boolean isNotFound =
+                    e
+                            instanceof software.amazon.awssdk.services.secretsmanager.model
+                                    .ResourceNotFoundException;
+            if (isNotFound) {
+                if (LOGGER.isDebugEnabled()) {
+                    LOGGER.debug(
+                            "Secret {} not provisioned in AWS Secrets Manager (will use fallback if available)",
+                            secretName);
+                }
+            } else if (LOGGER.isErrorEnabled()) {
                 LOGGER.error(
                         "Error fetching secret {} from AWS Secrets Manager: {}",
                         secretName,
