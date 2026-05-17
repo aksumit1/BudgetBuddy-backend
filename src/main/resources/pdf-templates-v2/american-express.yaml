@@ -116,6 +116,68 @@ metadata:
       stacked_index: 4
     - pattern: "(?im)^\\s*Total\\s+Interest\\s+Charged\\s+for\\s+this\\s+Period\\s+\\$([\\d,]+\\.\\d{2})"
 
+  # YTD fees / interest — Amex prints "Total Fees in 2026 $895.00" etc.
+  ytd_fees:
+    - pattern: "(?i)Total\\s+Fees\\s+in\\s+\\d{4}\\s+\\$([\\d,]+\\.\\d{2})"
+  ytd_interest:
+    - pattern: "(?i)Total\\s+Interest\\s+in\\s+\\d{4}\\s+\\$([\\d,]+\\.\\d{2})"
+
+  # Credit limit layouts:
+  #   - Charge cards (Platinum, Gold): "Pay Over Time Limit" stacked above
+  #     "Available Pay Over Time Limit", two $-values below.
+  #   - Credit cards (Blue Business Cash, etc.): "Credit Limit" stacked above
+  #     either "Amount Above the Credit Limit" (over-limit) or "Available
+  #     Credit" (within-limit), two $-values below.
+  # The (?s) blocks tolerate blank lines between the labels and values.
+  credit_limit:
+    - pattern: "(?is)Pay\\s+Over\\s+Time\\s+Limit\\s*\\n+\\s*Available\\s+Pay\\s+Over\\s+Time\\s+Limit\\s*\\n+\\s*\\$([\\d,]+\\.\\d{2})"
+    - pattern: "(?is)Credit\\s+Limit\\s*\\n+\\s*(?:Amount\\s+Above\\s+the\\s+Credit\\s+Limit|Available\\s+Credit)\\s*\\n+\\s*\\$([\\d,]+\\.\\d{2})"
+    - pattern: "(?i)Pay\\s+Over\\s+Time\\s+Limit[:\\s]+\\$([\\d,]+\\.\\d{2})"
+    - pattern: "(?im)^\\s*Credit\\s+Limit\\s+\\$([\\d,]+\\.\\d{2})"
+  # Available credit: ONLY the within-limit form yields a real availableCredit
+  # value. The over-limit form's second value is "amount above limit" — NOT
+  # an available-credit value, so we leave it null and let downstream fall back
+  # to max(0, limit - newBalance).
+  available_credit:
+    - pattern: "(?is)Pay\\s+Over\\s+Time\\s+Limit\\s*\\n+\\s*Available\\s+Pay\\s+Over\\s+Time\\s+Limit\\s*\\n+\\s*\\$[\\d,]+\\.\\d{2}\\s*\\n+\\s*\\$([\\d,]+\\.\\d{2})"
+    - pattern: "(?is)Credit\\s+Limit\\s*\\n+\\s*Available\\s+Credit\\s*\\n+\\s*\\$[\\d,]+\\.\\d{2}\\s*\\n+\\s*\\$([\\d,]+\\.\\d{2})"
+    - pattern: "(?i)Available\\s+Pay\\s+Over\\s+Time\\s+Limit[:\\s]+\\$([\\d,]+\\.\\d{2})"
+    - pattern: "(?im)^\\s*Available\\s+Credit\\s+\\$([\\d,]+\\.\\d{2})"
+  minimum_payment_due:
+    - pattern: "(?i)Minimum\\s+Payment\\s+Due\\s+\\$([\\d,]+\\.\\d{2})"
+  payment_due_date:
+    - pattern: "(?i)Payment\\s+Due\\s+Date\\s+(\\d{1,2}/\\d{1,2}/\\d{2,4})"
+
+  # APR table: "Pay Over Time 12/30/2022 19.49% (v)"
+  purchase_apr:
+    - pattern: "(?im)^\\s*Pay\\s+Over\\s+Time\\b.*?(\\d{1,2}\\.\\d{1,3})\\s*%"
+    - pattern: "(?im)^\\s*Purchases\\b.*?(\\d{1,2}\\.\\d{1,3})\\s*%"
+  cash_advance_apr:
+    - pattern: "(?im)^\\s*Cash\\s+Advances?\\b.*?(\\d{1,2}\\.\\d{1,3})\\s*%"
+  penalty_apr:
+    - pattern: "(?i)Penalty\\s+APR(?:\\s+of)?\\s+(\\d{1,2}\\.\\d{1,3})\\s*%"
+
+  # Membership Rewards points balance — 3-line block: heading, "Available and
+  # Pending as of MM/DD/YY", integer. (?is) makes . span newlines.
+  points_balance:
+    - pattern: "(?is)Membership\\s+Rewards.{0,3}\\s+Points.*?Available\\s+and\\s+Pending\\s+as\\s+of\\s+\\d{1,2}/\\d{1,2}/\\d{2,4}\\s+(\\d{1,3}(?:,\\d{3})*|\\d+)"
+
+  autopay_enabled:
+    - label: "debit your bank account"
+  next_autopay_amount:
+    - pattern: "(?i)debit\\s+your\\s+bank\\s+account\\s+for\\s+your\\s+(?:monthly\\s+autopay\\s+)?payment\\s+of\\s+\\$([\\d,]+\\.\\d{2})"
+
+  annual_fee:
+    - pattern: "(?i)(?:ANNUAL\\s+MEMBERSHIP\\s+FEE|Annual\\s+Fee)\\s+\\$([\\d,]+\\.\\d{2})"
+    - pattern: "(?i)annual\\s+membership\\s+fee\\s+in\\s+the\\s+amount\\s+of\\s+\\$([\\d,]+\\.\\d{2})"
+
+  foreign_tx_fee_percent:
+    - pattern: "(?i)[Ff]oreign\\s+[Tt]ransaction\\s+[Ff]ee[^%]*?(\\d{1,2}(?:\\.\\d{1,3})?)\\s*%"
+
+  billing_days:
+    - pattern: "(?i)Days?\\s+in\\s+Billing\\s+(?:Period|Cycle)[:\\s]+(\\d{1,3})"
+    - pattern: "(?i)(?<!\\d)(\\d{1,3})\\s+Days?\\s+in\\s+Billing\\s+(?:Period|Cycle)"
+
 preprocessing:
   fx_block_strip:
     - kind: amex-three-line

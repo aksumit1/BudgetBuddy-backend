@@ -1,0 +1,32 @@
+# Shared fragment for v2 templates. Issuer templates use `extends: [common]`
+# to pull in the patterns that look the same across most US credit-card
+# statements. Issuer-specific rules in the child template come FIRST in the
+# evaluator's fallback chain — these only run when the issuer's own rules
+# all miss.
+#
+# Status note: this template has no `card_detection` and no `samples:` so
+# nothing dispatches to it directly; it's only meaningful when another
+# template extends it.
+id: common
+institution: Common Fragment
+description: "Shared metadata rules for credit-card statements"
+status: validated
+
+metadata:
+  # Payment Due Date — most issuers print "Payment Due Date 06/12/26" inline.
+  payment_due_date:
+    - pattern: "(?im)Payment\\s+Due\\s+Date[:\\s]+(\\d{1,2}/\\d{1,2}/\\d{2,4})"
+
+  # Minimum Payment Due — accepts colon, em-dash, or whitespace separator.
+  minimum_payment_due:
+    - pattern: "(?im)Minimum\\s+Payment\\s+Due[:\\s]+\\$([\\d,]+\\.\\d{2})"
+
+  # Foreign transaction fee — universal "Foreign Transaction Fee N%" form.
+  foreign_tx_fee_percent:
+    - pattern: "(?i)[Ff]oreign\\s+[Tt]ransaction\\s+[Ff]ee[^%]*?(\\d{1,2}(?:\\.\\d{1,3})?)\\s*%"
+
+  # Billing days — either "Days in Billing Cycle: 30" or "30 Days in Billing
+  # Period". Issuers split roughly evenly between the two orderings.
+  billing_days:
+    - pattern: "(?i)Days?\\s+in\\s+Billing\\s+(?:Cycle|Period)[:\\s]+(\\d{1,3})"
+    - pattern: "(?i)(?<!\\d)(\\d{1,3})\\s+Days?\\s+in\\s+Billing\\s+(?:Period|Cycle)"

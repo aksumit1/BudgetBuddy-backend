@@ -22,11 +22,12 @@ card_detection:
         - "(?i)\\bdouble\\s+cash\\b"
         - "(?i)\\bThankYou\\s+Points\\b"
 
+  # Citi prints "Account number ending in: 1618" or "Account ending in 1618".
+  # We accept both spellings; filename fallback OFF for Citi because filenames
+  # like "April2026.pdf" would otherwise grab "2026" as the last 4.
   last_four:
-    - pattern: "(?i)Account\\s+(?:number|ending)\\s*(?:[#x*\\s-]+)?(\\d{4})\\b"
-      filename_fallback: true
-    - pattern: "(?i)Member\\s+ID[:\\s]+(\\d+)"   # Citi prints a long member ID; tail 4 digits = card
-      filename_fallback: true
+    - pattern: "(?i)Account\\s+(?:number\\s+)?ending\\s+in[\\s:]+(?:[#x*\\s-]+)?(\\d{4})\\b"
+    - pattern: "(?i)Account\\s+number(?:\\s+ending\\s+in)?[\\s:]+(?:[#x*\\s-]+)?(\\d{4})\\b"
 
   account_holder:
     - source: above_account_ending
@@ -61,15 +62,90 @@ metadata:
     - pattern: "(?im)^\\s*Purchases\\s+[-+]?\\$([\\d,]+\\.\\d{2})"
     - pattern: "(?im)^\\s*Standard\\s+Purchases\\s+[-+]?\\$([\\d,]+\\.\\d{2})"
 
+  # Citi prints "Payments -$4,784.23" AND "Credits -$319.45" as separate rows
+  # under the same "Payments, Credits and Adjustments" section. The total this
+  # app reports as payments_total is their SUM. payments_total_sum: true tells
+  # the evaluator to add all matching rule values instead of taking the first.
+  payments_total_sum: true
   payments_total:
     - pattern: "(?im)^\\s*Payments\\s+[-+]?\\$([\\d,]+\\.\\d{2})"
-    - pattern: "(?im)^\\s*Payments,?\\s+Credits(?:\\s+and\\s+Adjustments)?\\s+[-+]?\\$([\\d,]+\\.\\d{2})"
+    - pattern: "(?im)^\\s*Credits\\s+[-+]?\\$([\\d,]+\\.\\d{2})"
+    - pattern: "(?im)^\\s*Adjustments\\s+[-+]?\\$([\\d,]+\\.\\d{2})"
 
   fees_total:
     - pattern: "(?im)^\\s*Fees\\s+Charged\\s+[-+]?\\$([\\d,]+\\.\\d{2})"
 
   interest_total:
     - pattern: "(?im)^\\s*Interest\\s+Charged\\s+[-+]?\\$([\\d,]+\\.\\d{2})"
+
+  credit_limit:
+    - pattern: "(?im)^\\s*Credit\\s+Limit\\s+\\$([\\d,]+\\.\\d{2})"
+    - pattern: "(?im)^\\s*Total\\s+Credit\\s+Limit\\s+\\$([\\d,]+\\.\\d{2})"
+    # Citi Costco prints whole-dollar credit limits without cents: "Credit Limit  $15,000".
+    - pattern: "(?im)^\\s*Credit\\s+Limit\\s+\\$([\\d,]+)(?!\\.)\\s*$"
+  available_credit:
+    - pattern: "(?im)^\\s*Available\\s+Credit\\s+\\$([\\d,]+\\.\\d{2})"
+    # Citi Costco uses "Available Credit Limit" (extra "Limit" word) and prints
+    # whole dollars without cents.
+    - pattern: "(?im)^\\s*Available\\s+Credit\\s+Limit\\s+\\$([\\d,]+\\.\\d{2})"
+    - pattern: "(?im)^\\s*Available\\s+Credit\\s+Limit\\s+\\$([\\d,]+)(?!\\.)\\s*$"
+  minimum_payment_due:
+    - pattern: "(?im)^\\s*Minimum\\s+payment\\s+due[:\\s]+\\$([\\d,]+\\.\\d{2})"
+  payment_due_date:
+    - pattern: "(?im)^\\s*Payment\\s+due\\s+date[:\\s]+(\\d{1,2}/\\d{1,2}/\\d{2,4})"
+
+  purchase_apr:
+    - pattern: "(?im)^\\s*Standard\\s+Purch\\s+(\\d{1,2}\\.\\d{1,3})\\s*%"
+    - pattern: "(?im)^\\s*(?:Standard\\s+)?Purchases\\s+(\\d{1,2}\\.\\d{1,3})\\s*%"
+  cash_advance_apr:
+    - pattern: "(?im)^\\s*Standard\\s+Adv\\s+(\\d{1,2}\\.\\d{1,3})\\s*%"
+    - pattern: "(?im)^\\s*Cash\\s+Advances?\\s+(\\d{1,2}\\.\\d{1,3})\\s*%"
+  balance_transfer_apr:
+    - pattern: "(?im)^\\s*Balance\\s+Transfers?\\s+(\\d{1,2}\\.\\d{1,3})\\s*%"
+  penalty_apr:
+    - pattern: "(?i)Penalty\\s+APR(?:\\s+of)?\\s+(\\d{1,2}\\.\\d{1,3})\\s*%"
+
+  # Citi ThankYou Points balance + period earnings.
+  # Real statements print the balance on its own line below a bare label, so
+  # we use a label-with-next-line scan in addition to the inline form.
+  points_balance:
+    - label: "Total ThankYou Points Balance"
+    - pattern: "(?i)Total\\s+ThankYou\\s+Points\\s+Balance[:\\s]+(\\d{1,3}(?:,\\d{3})*|\\d+)"
+    - pattern: "(?i)ThankYou\\s+Points\\s+Balance[:\\s]+(\\d{1,3}(?:,\\d{3})*|\\d+)"
+  points_earned:
+    - pattern: "(?i)Total\\s+Earned\\s+this\\s+Period[:\\s]+(\\d{1,3}(?:,\\d{3})*|\\d+)"
+    - pattern: "(?i)ThankYou\\s+Points\\s+Earned[:\\s]*(\\d{1,3}(?:,\\d{3})*|\\d+)"
+
+  # Citi Costco cashback certificate balance
+  cashback_balance:
+    - pattern: "(?i)Reward\\s+(?:Center\\s+)?Balance\\s+\\$([\\d,]+\\.\\d{2})"
+    # Citi Costco Anywhere prints "Total Costco Cash Back Rewards Balance: $X.XX"
+    # on a single line. Earlier-month statements wrap the label onto two lines,
+    # so we also accept the label-only line and let the adjacent-dollar fallback
+    # find the value on the next non-blank line ("Year to Date :  $163.64").
+    - pattern: "(?i)Total\\s+Costco\\s+Cash\\s+Back\\s+Rewards\\s+Balance[:\\s]+\\$([\\d,]+\\.\\d{2})"
+    - label: "Total Costco Cash Back Rewards Balance"
+      adjacent: dollar
+
+  # Citi prints "Your next AutoPay payment of $X" ONLY when AutoPay is enrolled.
+  autopay_enabled:
+    - label: "Your next AutoPay payment of"
+  next_autopay_amount:
+    - pattern: "(?is)Your\\s+next\\s+AutoPay\\s+payment\\s+of\\s+\\$([\\d,]+\\.\\d{2})"
+
+  # Citi YTD totals — printed in the "totals year-to-date" sub-block.
+  ytd_fees:
+    - pattern: "(?i)Total\\s+fees\\s+charged\\s+in\\s+\\d{4}\\s+\\$([\\d,]+\\.\\d{2})"
+  ytd_interest:
+    - pattern: "(?i)Total\\s+interest\\s+charged\\s+in\\s+\\d{4}\\s+\\$([\\d,]+\\.\\d{2})"
+
+  annual_fee:
+    - pattern: "(?i)Annual\\s+(?:Membership\\s+)?Fee\\s+\\$([\\d,]+\\.\\d{2})"
+  foreign_tx_fee_percent:
+    - pattern: "(?i)[Ff]oreign\\s+[Tt]ransaction\\s+[Ff]ee[^%]*?(\\d{1,2}(?:\\.\\d{1,3})?)\\s*%"
+  billing_days:
+    - pattern: "(?i)Days?\\s+in\\s+billing\\s+(?:cycle|period)[:\\s]+(\\d{1,3})"
+    - pattern: "(?i)(?<!\\d)(\\d{1,3})\\s+Days?\\s+in\\s+Billing\\s+(?:Period|Cycle)"
 
 preprocessing:
   stitch:
@@ -95,6 +171,144 @@ preprocessing:
       - "Reward Center Balance"
       - "Other Bonus"
       - "Total Earned this Period"
+
+samples:
+  - name: double-cash-april-2026
+    input: |
+      TEST CARDHOLDER
+      Citi Double Cash Card
+      Member Since 2015. Account number ending in: 1111
+      Billing Period: 03/04/26-04/02/26
+      New balance as of 04/02/26:  $1,038.02
+      Minimum payment due:  $41.00
+      Payment due date:  04/28/26
+      Total Available  ThankYou  Points:
+      21,371  as of 03/31/26
+      Your next AutoPay payment of $1,038.02 will be
+       deducted from your bank account on 04/28/2026.
+      Account Summary
+      Previous Balance  $3,110.20
+      Payments -$3,110.20
+      Credits -$0.00
+      Purchases  +$1,038.02
+      Cash advances  +$0.00
+      Fees  +$0.00
+      Interest  +$0.00
+      New balance  $1,038.02
+      Credit Limit  $18,500.00
+      Available Credit  $17,461.00
+      Total fees charged in this billing period  $0.00
+      Total interest charged in this billing period  $0.00
+      2026 totals year-to-date
+      Total fees charged in 2026  $0.00
+      Total interest charged in 2026  $0.00
+      Days in billing cycle: 30
+       PURCHASES
+       Standard Purch 19.49% (V) $0.00 (D) $0.00
+       ADVANCES
+       Standard Adv 29.74% (V) $0.00 (D) $0.00
+      Total ThankYou Points Balance
+      21,371
+      ThankYou Points Earned:  1,038
+    expected:
+      new_balance: 1038.02
+      previous_balance: 3110.20
+      purchases_total: 1038.02
+      payments_total: 3110.20
+      credit_limit: 18500.00
+      available_credit: 17461.00
+      minimum_payment_due: 41.00
+      purchase_apr: 19.49
+      cash_advance_apr: 29.74
+      points_balance: 21371
+      points_earned: 1038
+      autopay_enabled: true
+      next_autopay_amount: 1038.02
+      ytd_fees: 0.00
+      ytd_interest: 0.00
+      billing_days: 30
+
+  - name: payments-plus-credits-sum
+    input: |
+      Account Summary
+      Previous Balance  $1,708.54
+      Payments -$1,670.03
+      Credits -$38.51
+      Purchases  +$5,103.68
+      Fees  +$0.00
+      Interest  +$0.00
+      New balance  $5,103.68
+    expected:
+      payments_total: 1708.54
+      previous_balance: 1708.54
+      purchases_total: 5103.68
+      new_balance: 5103.68
+
+  # Citi Costco Anywhere Visa — ports CitiCostcoStatementFixtureTest. The
+  # Costco variant shares most of the Double Cash layout but adds:
+  #   - whole-dollar credit limits ("Credit Limit  $15,000", no cents),
+  #   - "Available Credit Limit" wording (extra "Limit" word),
+  #   - single-line cashback balance ("Total Costco Cash Back Rewards
+  #     Balance: $262.04"), and
+  #   - a Penalty APR disclosure ("Penalty APR of 29.99%.").
+  - name: costco-anywhere-visa
+    input: |
+      TEST CARDHOLDER
+      Costco Anywhere Visa® Card by Citi
+      Member Since 2007. Account number ending in: 5050
+      www.citicards.com
+      APRIL STATEMENT
+      Billing Period: 03/21/26-04/21/26
+      New balance as of 04/21/26:  $1,958.02
+      Minimum payment due:  $41.00
+      Payment due date:  05/17/26
+      Penalty APR of 29.99%.
+      Costco Cash Back Rewards Summary
+      Total Cashback:
+      $262.04 as of 04/21/26
+      Your next AutoPay payment of $1,958.02 will be
+       deducted from your bank account on 05/17/2026.
+      Account Summary
+      Previous balance  $2,039.46
+      Payments -$2,039.46
+      Purchases  +$1,958.02
+      Cash advances  +$0.00
+      New balance  $1,958.02
+      Credit Limit
+      Credit Limit  $15,000
+      Available Credit Limit  $13,041
+      Interest charge calculation Days in billing cycle: 32
+       Standard Purch 18.74% (V) $0.00 (D) $0.00
+       Standard Adv 28.74% (V) $0.00 (D) $0.00
+      Total Costco Cash Back Rewards Balance: $262.04
+    expected:
+      new_balance: 1958.02
+      previous_balance: 2039.46
+      purchases_total: 1958.02
+      payments_total: 2039.46
+      credit_limit: 15000
+      available_credit: 13041
+      minimum_payment_due: 41.00
+      payment_due_date: 5/17/26
+      purchase_apr: 18.74
+      cash_advance_apr: 28.74
+      penalty_apr: 29.99
+      billing_days: 32
+      autopay_enabled: true
+      next_autopay_amount: 1958.02
+      cashback_balance: 262.04
+
+  # Earlier-month Costco statements wrap the cashback label onto two lines:
+  #   "Total Costco Cash Back Rewards Balance"
+  #   " Year to Date :  $163.64"
+  # Same cashback_balance field must populate from this layout (label-only
+  # rule + adjacent-dollar fallback handles it).
+  - name: costco-cashback-wrapped-label
+    input: |
+      Total Costco Cash Back Rewards Balance
+       Year to Date :  $163.64
+    expected:
+      cashback_balance: 163.64
 
 layouts:
   # Citi two-date row (Double Cash + Costco):

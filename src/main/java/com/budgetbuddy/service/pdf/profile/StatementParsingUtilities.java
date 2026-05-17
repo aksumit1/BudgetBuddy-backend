@@ -715,8 +715,8 @@ public static LocalDate extractStatementDate(
 }
 
 // U.S. Bank header line: "Open Date: 12/06/2025 Closing Date: 01/07/2026 ..." —
-// internal helper used only by USBankIssuerProfile's statement-date extraction and
-// the billing-day inference path here. Demoted to private during the migration so
+// internal helper used by the U.S. Bank statement-date extraction and the
+// billing-day inference path here. Demoted to private during the migration so
 // the public surface aligns with the IssuerProfile contract — this isn't a separate
 // extractor a caller would invoke; it's a helper for extractStatementDate.
 private static LocalDate[] extractUsbOpenClosingRange(

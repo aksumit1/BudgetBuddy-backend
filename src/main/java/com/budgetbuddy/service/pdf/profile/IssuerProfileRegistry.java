@@ -49,13 +49,12 @@ public final class IssuerProfileRegistry {
      * </ol>
      */
     public static IssuerProfileRegistry defaultRegistry() {
-        // v2 YAML owns the migrated issuers (US Bank, Chase, Amex, Citi, Wells
-        // Fargo). Only un-migrated issuers stay on the legacy chain.
-        return new IssuerProfileRegistry(
-                List.of(
-                        new AppleCardIssuerProfile(),
-                        new BankOfAmericaIssuerProfile(),
-                        new DiscoverIssuerProfile()));
+        // All 8 supported issuers migrated to YAML v2. The legacy chain is now
+        // empty — every detected statement routes through GenericFallbackProfile
+        // (which still handles fields not yet in v2 like APRs, points, autopay,
+        // annual fee). The 8 @Deprecated IssuerProfile classes remain in the
+        // tree because their own unit tests reference them.
+        return new IssuerProfileRegistry(List.of());
     }
 
     /** Returns the first profile whose {@code matches} predicate fires, or fallback. */

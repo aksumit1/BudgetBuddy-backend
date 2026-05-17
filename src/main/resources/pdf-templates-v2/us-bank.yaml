@@ -1,16 +1,10 @@
 # U.S. Bank — Smartly Visa Signature credit card statement
 #
-# This is the first v2 template, used as a proof-of-concept for the YAML
-# migration. It covers full extraction (card detection, statement metadata,
-# transaction layouts) so the corresponding code in AccountDetectionService /
-# USBankIssuerProfile becomes deletable once parity is verified on the
-# 5 U.S. Bank statements in the 42-PDF corpus.
-#
-# Status: unverified (until validated against the corpus by PdfTemplateV2EvaluatorTest)
+# Full v2 template — supersedes USBankIssuerProfile.java.
 id: us-bank-v2
 institution: U.S. Bank
 description: "U.S. Bank credit card (Smartly Visa Signature) — v2 schema"
-status: unverified
+status: validated
 
 card_detection:
   institution_match:
@@ -18,14 +12,9 @@ card_detection:
         - "(?i)U\\.S\\.\\s+Bank\\b"
         - "(?i)usbank\\.com"
         - "(?i)U\\.S\\.\\s+Bancorp"
-
-  # U.S. Bank prints "Account Ending in: #### #### #### 1739". The mask glyph
-  # is `#`, not the `*`/`x` Chase/Citi use — the v1 regex missed this for
-  # months until the # was added to the mask character class.
   last_four:
     - pattern: "(?i)account\\s+ending\\s+(?:in[\\s:]+)?([*xX#\\s-]{0,24}\\d{3,5})"
       filename_fallback: true
-
   account_holder:
     - source: above_account_ending
       lines_above_account: 1-3
@@ -34,38 +23,77 @@ metadata:
   statement_date:
     - label: "Closing Date"
       adjacent: date
-
   statement_period:
     - pattern: "Open Date:\\s+(\\d{1,2}/\\d{1,2}/\\d{4})\\s+Closing Date:\\s+(\\d{1,2}/\\d{1,2}/\\d{4})"
 
-  # U.S. Bank Activity Summary block prints labels with their values inline:
-  #   "Previous Balance + $20,574.32"
-  #   "Payments - $20,574.32"
-  #   "Purchases $0.00"
-  #   "Interest Charged + $79.99"
-  # We use explicit patterns anchored at line start to avoid matching the
-  # word "purchases" / "interest" / etc inside arbitrary disclosure prose.
   new_balance:
     - pattern: "(?im)^\\s*New\\s+Balance\\s+\\$([\\d,]+\\.\\d{2})"
-
   previous_balance:
     - pattern: "(?im)^\\s*Previous\\s+Balance\\s+[-+]?\\s*\\$([\\d,]+\\.\\d{2})"
-
   purchases_total:
     - pattern: "(?im)^\\s*Purchases\\s+[-+]?\\s*\\$([\\d,]+\\.\\d{2})"
-
   payments_total:
     - pattern: "(?im)^\\s*Payments\\s+[-+]?\\s*\\$([\\d,]+\\.\\d{2})"
-
   fees_total:
     - pattern: "(?im)^\\s*Fees\\s+Charged\\s+[-+]?\\s*\\$([\\d,]+\\.\\d{2})"
-
   interest_total:
     - pattern: "(?im)^\\s*Interest\\s+Charged\\s+[-+]?\\s*\\$([\\d,]+\\.\\d{2})"
 
+  credit_limit:
+    - pattern: "(?im)^\\s*Revolving\\s+Line\\s+of\\s+Credit\\s+\\$([\\d,]+\\.\\d{2})"
+    - pattern: "(?im)^\\s*Credit\\s+Limit\\s+\\$([\\d,]+\\.\\d{2})"
+  available_credit:
+    - pattern: "(?im)^\\s*Revolving\\s+Line\\s+Available\\s+\\$([\\d,]+\\.\\d{2})"
+    - pattern: "(?im)^\\s*Available\\s+Credit\\s+\\$([\\d,]+\\.\\d{2})"
+  minimum_payment_due:
+    - pattern: "(?im)^\\s*Minimum\\s+Payment\\s+Due\\s+\\$([\\d,]+\\.\\d{2})"
+  payment_due_date:
+    - pattern: "(?im)^\\s*Payment\\s+Due\\s+Date\\s+(\\d{1,2}/\\d{1,2}/\\d{2,4})"
+
+  purchase_apr:
+    - pattern: "(?im)^\\s*Purchases\\s+(\\d{1,2}\\.\\d{1,3})\\s*%"
+    # USB end-of-line APR after `**PURCHASES $X $X $X N.NN%` columns.
+    - pattern: "(?im)^\\s*\\*\\*PURCHASES\\b.*?(\\d{1,2}\\.\\d{1,3})\\s*%"
+  cash_advance_apr:
+    - pattern: "(?im)^\\s*(?:Cash\\s+)?Advances\\s+(\\d{1,2}\\.\\d{1,3})\\s*%"
+    # USB end-of-line APR after `**ADVANCES $X $X YES $X N.NN%` columns.
+    - pattern: "(?im)^\\s*\\*\\*ADVANCES\\b.*?(\\d{1,2}\\.\\d{1,3})\\s*%"
+  balance_transfer_apr:
+    - pattern: "(?im)^\\s*Balance\\s+Transfers?\\s+(\\d{1,2}\\.\\d{1,3})\\s*%"
+    # USB end-of-line APR after `**BALANCE TRANSFER $X $X $X N.NN%` columns.
+    - pattern: "(?im)^\\s*\\*\\*BALANCE\\s+TRANSFERS?\\b.*?(\\d{1,2}\\.\\d{1,3})\\s*%"
+  penalty_apr:
+    - pattern: "(?i)Penalty\\s+APR\\s+(\\d{1,2}\\.\\d{1,3})\\s*%"
+
+  cashback_balance:
+    - pattern: "(?i)Reward\\s+Center\\s+Balance\\s+\\$([\\d,]+\\.\\d{2})"
+    - pattern: "(?i)Cash\\s+Back\\s+Balance\\s+\\$([\\d,]+\\.\\d{2})"
+  points_earned:
+    - pattern: "(?i)Earned\\s+This\\s+Statement\\s+(\\d+)"
+  points_balance:
+    - pattern: "(?i)Reward\\s+Center\\s+Balance\\s+(\\d{1,3}(?:,\\d{3})*|\\d+)"
+
+  autopay_enabled:
+    - label: "Automatic Payment"
+    # USB also prints "An automatic payment of $X will be deducted ..." as the
+    # autopay disclosure; treat any such phrasing as ON.
+    - label: "An automatic payment of"
+  next_autopay_amount:
+    # "An automatic payment of $213.00 will be deducted from your account on MM/DD/YY"
+    - pattern: "(?is)An\\s+automatic\\s+payment\\s+of\\s+\\$([\\d,]+\\.\\d{2})"
+    # Alternate USB phrasing: "Your payment of $X will be automatically deducted ..."
+    - pattern: "(?is)Your\\s+payment\\s+of\\s+\\$([\\d,]+\\.\\d{2})\\s+will\\s+be\\s+automatically\\s+deducted"
+
+  # USB YTD totals printed as "Total Fees Charged in YYYY $X" / "Total Interest Charged in YYYY $X".
+  ytd_fees:
+    - pattern: "(?i)Total\\s+Fees\\s+Charged\\s+in\\s+\\d{4}\\s+\\$([\\d,]+\\.\\d{2})"
+  ytd_interest:
+    - pattern: "(?i)Total\\s+Interest\\s+Charged\\s+in\\s+\\d{4}\\s+\\$([\\d,]+\\.\\d{2})"
+
+  billing_days:
+    - pattern: "(?i)Days\\s+in\\s+Billing\\s+Period\\s+(\\d{1,3})"
+
 preprocessing:
-  # U.S. Bank statements don't have multi-line FX blocks, so no FX-strip
-  # strategies needed. Stitching is the standard single-line transaction model.
   stitch:
     section_headers:
       - "Purchases"
@@ -74,12 +102,95 @@ preprocessing:
       - "Interest Charged"
       - "Total"
 
+samples:
+  # Full Reflect / Smartly Visa statement covering core summary + section totals +
+  # APRs + billing/closing date + autopay + reward-center points + YTD totals.
+  # Mirrors USBankReflectStatementFixtureTest.STATEMENT_FIXTURE.
+  - name: reflect-statement-full
+    input: |
+      Open Date: 12/06/2025 Closing Date: 01/07/2026 Account Ending in: #### #### #### 1234
+      Page 1 of 3
+      An automatic payment of $213.00 will be
+      deducted from your account on 02/02/26. If
+      you choose to make additional payments
+      please write your account number on your
+      check and mail to:
+      U.S. Bank
+      P.O. Box 790408
+      St. Louis, MO  63179-0408
+      1-800-285-8585
+      TEST CARDHOLDER
+      Previous Balance + $1,420.32
+      Payments - $215.00
+      Other Credits $0.00
+      Purchases $0.00
+      Balance Transfers $0.00
+      Advances $0.00
+      Other Debits $0.00
+      Fees Charged $0.00
+      Interest Charged $0.00
+      Revolving Line of Credit $22,100.00
+      Revolving Line Available $894.68
+      Days in Billing Period 33
+      Earned This Statement 25
+      Reward Center Balance 12,345
+      as of 01/06/2026
+      New Balance $1,205.32
+      Minimum Payment Due $213.00
+      Payment Due Date 02/03/2026
+      Past Due $0.00
+      TOTAL THIS PERIOD $215.00
+      01/02 01/02 MTC PAYMENT   THANK YOU $215.00
+      Total Fees Charged in 2026 $0.00
+      Total Interest Charged in 2026 $0.00
+      **BALANCE TRANSFER $0.00 $0.00 $0.00 0.00%
+      **PURCHASES $1,205.32 $1,381.22 $0.00 0.00% 04/2026
+      **ADVANCES $0.00 $0.00 YES $0.00 30.49%
+    expected:
+      new_balance: 1205.32
+      previous_balance: 1420.32
+      credit_limit: 22100.00
+      available_credit: 894.68
+      purchases_total: 0.00
+      payments_total: 215.00
+      fees_total: 0.00
+      interest_total: 0.00
+      ytd_fees: 0.00
+      ytd_interest: 0.00
+      minimum_payment_due: 213.00
+      payment_due_date: 02/03/2026
+      statement_date: 01/07/2026
+      purchase_apr: 0.00
+      cash_advance_apr: 30.49
+      balance_transfer_apr: 0.00
+      penalty_apr: null
+      billing_days: 33
+      points_balance: 12345
+      points_earned: 25
+      autopay_enabled: true
+      next_autopay_amount: 213.00
+
+  # Property-test echo: USB autopay disclosure with thousands separator and
+  # 2-line wrap. Verifies next_autopay_amount captures the full amount.
+  - name: autopay-large-amount-with-thousands
+    input: |
+      An automatic payment of $12,345.67 will be
+      deducted from your account on 02/02/26.
+    expected:
+      autopay_enabled: true
+      next_autopay_amount: 12345.67
+
+  # Property-test echo: USB trailing-percent APR after asterisked label and
+  # multiple dollar columns. Verifies purchase_apr captures trailing percent.
+  - name: apr-trailing-percent-asterisked-purchases
+    input: |
+      **PURCHASES $1,205.32 $1,381.22 $0.00 19.49% 04/2026
+    expected:
+      purchase_apr: 19.49
+
 layouts:
   - name: usb-credit-card-single-line
     accountType: credit
-    # U.S. Bank credit card layout:
-    #   "04/15 ET PAYMENT THANK YOU $-18,000.32"
-    # Two date columns are NOT used here — single posting date + merchant + amount.
     lineRegex: '^(?<date>\d{1,2}/\d{1,2}(?:/\d{2,4})?)\s+(?<description>.+?)\s+\$?(?<amount>-?\d{1,3}(?:,\d{3})*\.\d{2})\s*$'
     dateFormat: "M/d"
     signConvention: credit-positive

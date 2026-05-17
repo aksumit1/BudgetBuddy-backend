@@ -1,0 +1,123 @@
+# Discover — Discover it Cash Back, it Miles, it Chrome, it Student, it
+# Secured, it Business, NHL Discover it.
+#
+# No Discover PDF in the corpus yet; patterns mirror legacy DiscoverIssuerProfile.
+# Status: unverified.
+id: discover-v2
+institution: Discover
+description: "Discover credit cards"
+status: unverified
+# Pull in shared Payment Due Date / Minimum Payment Due / FX fee / billing
+# days patterns from common.yaml as fallbacks. Discover's own rules below
+# take precedence — extends only fills gaps.
+extends: [common]
+
+card_detection:
+  institution_match:
+    - any_of:
+        - "(?i)\\bdiscover\\b\\s*(?:bank|card|it|financial|services)"
+        - "(?i)discover\\.com"
+        - "(?i)discover\\s+(?:credit\\s+card|cardmember\\s+services)"
+
+  last_four:
+    - pattern: "(?i)account\\s+(?:number|ending)(?:\\s+in)?[\\s:]+(?:[#x*\\s-]+)?(\\d{4})\\b"
+
+  account_holder:
+    - source: above_account_ending
+      lines_above_account: 1-3
+
+metadata:
+  statement_date:
+    - label: "Statement Closing Date"
+      adjacent: date
+    - label: "Closing Date"
+      adjacent: date
+
+  statement_period:
+    - pattern: "(?i)(?:open|opening)\\s+date[:\\s]+(\\d{1,2}/\\d{1,2}/\\d{2,4}).*?(?:close|closing)\\s+date[:\\s]+(\\d{1,2}/\\d{1,2}/\\d{2,4})"
+    - pattern: "(?i)statement\\s+period[:\\s]+(\\d{1,2}/\\d{1,2}/\\d{2,4})\\s*[-–to]+\\s*(\\d{1,2}/\\d{1,2}/\\d{2,4})"
+
+  new_balance:
+    - pattern: "(?im)^\\s*New\\s+Balance\\s+\\$([\\d,]+\\.\\d{2})"
+
+  previous_balance:
+    - pattern: "(?im)^\\s*Previous\\s+Balance\\s+\\$([\\d,]+\\.\\d{2})"
+
+  purchases_total:
+    - pattern: "(?im)^\\s*Purchases\\s+\\$([\\d,]+\\.\\d{2})"
+    - pattern: "(?im)^\\s*Total\\s+Purchases\\s+\\$([\\d,]+\\.\\d{2})"
+
+  payments_total:
+    - pattern: "(?im)^\\s*Payments\\s+and\\s+Credits\\s+-?\\$([\\d,]+\\.\\d{2})"
+    - pattern: "(?im)^\\s*Payments(?:\\s+/\\s+Credits)?\\s+-?\\$([\\d,]+\\.\\d{2})"
+
+  fees_total:
+    - pattern: "(?im)^\\s*Fees\\s+Charged\\s+\\$([\\d,]+\\.\\d{2})"
+
+  interest_total:
+    - pattern: "(?im)^\\s*Interest\\s+Charged\\s+\\$([\\d,]+\\.\\d{2})"
+
+  credit_limit:
+    - pattern: "(?im)^\\s*Credit\\s+Limit\\s+\\$([\\d,]+\\.\\d{2})"
+    - pattern: "(?im)^\\s*Total\\s+Credit\\s+Limit\\s+\\$([\\d,]+\\.\\d{2})"
+  available_credit:
+    - pattern: "(?im)^\\s*Available\\s+Credit\\s+\\$([\\d,]+\\.\\d{2})"
+  minimum_payment_due:
+    - pattern: "(?im)Minimum\\s+Payment\\s+Due\\s+\\$([\\d,]+\\.\\d{2})"
+  payment_due_date:
+    - pattern: "(?im)Payment\\s+Due\\s+Date\\s+(\\d{1,2}/\\d{1,2}/\\d{2,4})"
+
+  purchase_apr:
+    - pattern: "(?im)^\\s*Purchases?\\s+(\\d{1,2}\\.\\d{1,3})\\s*%"
+    - pattern: "(?im)^\\s*Standard\\s+Purchase\\s+APR\\s+(\\d{1,2}\\.\\d{1,3})\\s*%"
+  cash_advance_apr:
+    - pattern: "(?im)^\\s*Cash\\s+Advances?\\s+(\\d{1,2}\\.\\d{1,3})\\s*%"
+  balance_transfer_apr:
+    - pattern: "(?im)^\\s*Balance\\s+Transfers?\\s+(\\d{1,2}\\.\\d{1,3})\\s*%"
+  penalty_apr:
+    - pattern: "(?i)Penalty\\s+APR\\s+(\\d{1,2}\\.\\d{1,3})\\s*%"
+
+  # Discover Cashback Bonus: balance is a dollar value
+  cashback_balance:
+    - pattern: "(?i)Cashback\\s+Bonus\\s+(?:Balance|Available)\\s+\\$([\\d,]+\\.\\d{2})"
+    - pattern: "(?i)Total\\s+Cashback\\s+Bonus\\s+\\$([\\d,]+\\.\\d{2})"
+
+  autopay_enabled:
+    - label: "AUTOPAY IS ON"
+    - label: "AUTOPAY IS OFF"
+      pattern: "false"
+
+  foreign_tx_fee_percent:
+    - pattern: "(?i)[Ff]oreign\\s+[Tt]ransaction\\s+[Ff]ee[^%]*?(\\d{1,2}(?:\\.\\d{1,3})?)\\s*%"
+  # Discover only declares the "30 Days in Billing Period" form here. The
+  # "Days in Billing Cycle: 30" form is inherited from common.yaml. The
+  # sample below covers the inherited path so the extends: link is exercised
+  # by V2YamlSelfTest, not just unit-tested in TemplateMergerTest.
+  billing_days:
+    - pattern: "(?i)(?<!\\d)(\\d{1,3})\\s+Days?\\s+in\\s+Billing\\s+(?:Period|Cycle)"
+
+samples:
+  - name: extends-common-billing-days
+    input: |
+      Discover Cardmember Services
+      Days in Billing Cycle: 30
+    expected:
+      # This "Days in Billing Cycle: <N>" pattern is NOT declared on
+      # discover.yaml — it's inherited from common.yaml via
+      # `extends: [common]`. If extends resolution breaks, this sample fails
+      # and the test name points straight at the cause.
+      billing_days: 30
+
+layouts:
+  - name: discover-credit-two-date
+    accountType: credit
+    lineRegex: '^(?<date>\d{1,2}/\d{1,2})\s+\d{1,2}/\d{1,2}\s+(?<description>.+?)\s+\$?(?<amount>-?\d{1,3}(?:,\d{3})*\.\d{2})\s*$'
+    dateFormat: "M/d"
+    signConvention: credit-positive
+    minAmount: 0.01
+  - name: discover-credit-single-date
+    accountType: credit
+    lineRegex: '^(?<date>\d{1,2}/\d{1,2}(?:/\d{2,4})?)\s+(?<description>.+?)\s+\$?(?<amount>-?\d{1,3}(?:,\d{3})*\.\d{2})\s*$'
+    dateFormat: "M/d"
+    signConvention: credit-positive
+    minAmount: 0.01

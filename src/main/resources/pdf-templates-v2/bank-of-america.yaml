@@ -1,0 +1,103 @@
+# Bank of America — Customized Cash, Unlimited Cash, Travel Rewards, Premium
+# Rewards (+ Elite), Alaska Airlines Visa, Amtrak Guest Rewards, etc.
+#
+# We don't have a BoA PDF in the corpus yet; patterns mirror the legacy
+# BankOfAmericaIssuerProfile. Status: unverified.
+id: bank-of-america-v2
+institution: Bank of America
+description: "Bank of America credit cards"
+status: unverified
+
+card_detection:
+  institution_match:
+    - any_of:
+        - "(?i)bank\\s+of\\s+america"
+        - "(?i)bankofamerica\\.com"
+        - "(?i)\\bbofa\\b"
+
+  last_four:
+    - pattern: "(?i)account\\s+(?:number|ending)(?:\\s+in)?[\\s:]+(?:[#x*\\s-]+)?(\\d{4})\\b"
+    - pattern: "(?i)card\\s+ending\\s+in[\\s:]+(\\d{4})\\b"
+
+  account_holder:
+    - source: above_account_ending
+      lines_above_account: 1-3
+
+metadata:
+  statement_date:
+    - label: "Statement Closing Date"
+      adjacent: date
+    - label: "Closing Date"
+      adjacent: date
+
+  statement_period:
+    - pattern: "(?i)statement\\s+(?:period|date)[:\\s]+(\\d{1,2}/\\d{1,2}/\\d{2,4})\\s*[-–to]+\\s*(\\d{1,2}/\\d{1,2}/\\d{2,4})"
+    - pattern: "(?i)billing\\s+cycle[:\\s]+(\\d{1,2}/\\d{1,2}/\\d{2,4})\\s*[-–to]+\\s*(\\d{1,2}/\\d{1,2}/\\d{2,4})"
+
+  new_balance:
+    - pattern: "(?im)^\\s*New\\s+Balance\\s+(?:Total\\s+)?\\$([\\d,]+\\.\\d{2})"
+
+  previous_balance:
+    - pattern: "(?im)^\\s*Previous\\s+Balance\\s+\\$([\\d,]+\\.\\d{2})"
+
+  purchases_total:
+    - pattern: "(?im)^\\s*(?:Purchases|Transactions)\\s+(?:and\\s+Adjustments\\s+)?\\$?([\\d,]+\\.\\d{2})"
+    - pattern: "(?im)^\\s*Total\\s+Purchases\\s+\\$([\\d,]+\\.\\d{2})"
+
+  payments_total:
+    - pattern: "(?im)^\\s*Payments\\s+and\\s+Other\\s+Credits\\s+-?\\$([\\d,]+\\.\\d{2})"
+    - pattern: "(?im)^\\s*Payments(?:\\s+and\\s+Credits)?\\s+-?\\$([\\d,]+\\.\\d{2})"
+
+  fees_total:
+    - pattern: "(?im)^\\s*Fees\\s+Charged\\s+\\$([\\d,]+\\.\\d{2})"
+
+  interest_total:
+    - pattern: "(?im)^\\s*Interest\\s+Charged\\s+\\$([\\d,]+\\.\\d{2})"
+
+  credit_limit:
+    - pattern: "(?im)^\\s*Total\\s+Credit\\s+(?:Line|Limit)\\s+\\$([\\d,]+\\.\\d{2})"
+    - pattern: "(?im)^\\s*Credit\\s+(?:Line|Limit)\\s+\\$([\\d,]+\\.\\d{2})"
+  available_credit:
+    - pattern: "(?im)^\\s*Available\\s+Credit\\s+\\$([\\d,]+\\.\\d{2})"
+  minimum_payment_due:
+    - pattern: "(?im)Total\\s+Minimum\\s+Payment\\s+Due\\s+\\$([\\d,]+\\.\\d{2})"
+    - pattern: "(?im)Minimum\\s+Payment\\s+Due\\s+\\$([\\d,]+\\.\\d{2})"
+  payment_due_date:
+    - pattern: "(?im)Payment\\s+Due\\s+Date\\s+(\\d{1,2}/\\d{1,2}/\\d{2,4})"
+
+  purchase_apr:
+    - pattern: "(?im)^\\s*Purchases?\\s+(\\d{1,2}\\.\\d{1,3})\\s*%"
+  cash_advance_apr:
+    - pattern: "(?im)^\\s*Cash\\s+Advances?\\s+(\\d{1,2}\\.\\d{1,3})\\s*%"
+  balance_transfer_apr:
+    - pattern: "(?im)^\\s*Balance\\s+Transfers?\\s+(\\d{1,2}\\.\\d{1,3})\\s*%"
+  penalty_apr:
+    - pattern: "(?i)Penalty\\s+APR\\s+(\\d{1,2}\\.\\d{1,3})\\s*%"
+
+  points_balance:
+    - pattern: "(?i)(?:Total\\s+)?Points\\s+Balance[:\\s]+(\\d{1,3}(?:,\\d{3})*|\\d+)"
+  cashback_balance:
+    - pattern: "(?i)Cash\\s+Rewards?\\s+Balance\\s+\\$([\\d,]+\\.\\d{2})"
+
+  autopay_enabled:
+    - label: "AUTOMATIC PAYMENT"
+  annual_fee:
+    - pattern: "(?i)Annual\\s+Fee\\s+\\$([\\d,]+\\.\\d{2})"
+  foreign_tx_fee_percent:
+    - pattern: "(?i)[Ff]oreign\\s+[Tt]ransaction\\s+[Ff]ee[^%]*?(\\d{1,2}(?:\\.\\d{1,3})?)\\s*%"
+  billing_days:
+    - pattern: "(?i)(?<!\\d)(\\d{1,3})\\s+Days?\\s+in\\s+Billing\\s+(?:Period|Cycle)"
+
+layouts:
+  - name: boa-credit-two-date
+    accountType: credit
+    lineRegex: '^(?<date>\d{1,2}/\d{1,2})\s+\d{1,2}/\d{1,2}\s+(?<description>.+?)\s+\$?(?<amount>-?\d{1,3}(?:,\d{3})*\.\d{2})\s*$'
+    dateFormat: "M/d"
+    signConvention: credit-positive
+    minAmount: 0.01
+  - name: boa-credit-single-date
+    accountType: credit
+    lineRegex: '^(?<date>\d{1,2}/\d{1,2}(?:/\d{2,4})?)\s+(?<description>.+?)\s+\$?(?<amount>-?\d{1,3}(?:,\d{3})*\.\d{2})\s*$'
+    dateFormat: "M/d"
+    signConvention: credit-positive
+    minAmount: 0.01

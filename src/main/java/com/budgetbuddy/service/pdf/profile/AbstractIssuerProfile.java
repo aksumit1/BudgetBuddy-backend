@@ -24,8 +24,8 @@ import java.util.regex.Pattern;
  *   <li>{@link #detectBrand} — optional, returns the product family within the issuer.
  * </ul>
  *
- * <p>Subclasses are package-friendly to write — see {@link ChaseIssuerProfile} for a
- * minimal example.
+ * <p>Subclasses are package-friendly to write — see {@link GenericFallbackProfile}
+ * for a minimal example.
  */
 public abstract class AbstractIssuerProfile implements IssuerProfile {
 

@@ -1476,6 +1476,27 @@ public class PDFImportService {
             // un-migrated issuers (Apple Card, BoA, Discover), legacy values
             // remain in place because v2 has no template for them.
             applyV2FillMissing(fullText, fileName, result);
+
+            // v2 transaction-shape shadow pass. No-op unless the matched v2
+            // template declares `transactions:`. When present, runs the new
+            // TransactionExtractor and logs parity/delta vs the legacy
+            // result so we can build confidence per-issuer before the
+            // production cutover. Wrapped in try/catch — observability must
+            // never break an import.
+            try {
+                runV2TransactionShadow(fullText, fileName, result);
+            } catch (final RuntimeException e) {
+                LOGGER.warn("v2 tx shadow failed (non-fatal): {}", e.getMessage());
+            }
+
+            // Statement-date fallback. Many issuers (Citi, BoA, Wells Fargo)
+            // print only a "Billing Period: MM/DD - MM/DD/YY" range, no
+            // separate "Closing Date" label. For card statements,
+            // period-end == statement date, so use that when no explicit
+            // statementDate has been set after both legacy and v2 passes.
+            if (result.getStatementDate() == null && result.getStatementEndDate() != null) {
+                result.setStatementDate(result.getStatementEndDate());
+            }
             if (LOGGER.isInfoEnabled()) {
                 LOGGER.info(
                         "🔍 [PDF Parse] Completed credit card metadata extraction - paymentDueDate: {}, minimumPaymentDue: {}, rewardPoints: {}",
@@ -8319,34 +8340,42 @@ public class PDFImportService {
             LOGGER.warn("v2 card-detection failed: {}", e.getMessage());
         }
 
-        final com.budgetbuddy.service.pdf.v2.PdfTemplateV2.MetadataRules mr = tpl.getMetadata();
-        if (mr != null) {
-            if (!mr.getNewBalance().isEmpty()) result.setNewBalance(null);
-            if (!mr.getPreviousBalance().isEmpty()) result.setPreviousBalance(null);
-            if (!mr.getPurchasesTotal().isEmpty()) result.setPurchasesTotal(null);
-            if (!mr.getPaymentsTotal().isEmpty()) result.setPaymentsAndCreditsTotal(null);
-            if (!mr.getFeesTotal().isEmpty()) result.setFeesChargedTotal(null);
-            if (!mr.getInterestTotal().isEmpty()) result.setInterestChargedTotal(null);
-        }
-
+        // Field clear-then-fill is driven by a typed binding table — adding a
+        // new metadata field now requires ONE row in V2FieldBinder.BINDINGS,
+        // not two parallel edits here. See V2FieldBinder for the contract.
         try {
             final com.budgetbuddy.service.pdf.v2.PdfTemplateV2Evaluator.MetadataResult m =
                     pdfTemplateV2Evaluator.evaluateMetadata(tpl, fullText);
-            if (m != null) {
-                if (m.newBalance != null) result.setNewBalance(m.newBalance);
-                if (m.previousBalance != null) result.setPreviousBalance(m.previousBalance);
-                if (m.purchasesTotal != null) result.setPurchasesTotal(m.purchasesTotal);
-                if (m.paymentsAndCreditsTotal != null)
-                    result.setPaymentsAndCreditsTotal(m.paymentsAndCreditsTotal);
-                if (m.feesTotal != null) result.setFeesChargedTotal(m.feesTotal);
-                if (m.interestTotal != null) result.setInterestChargedTotal(m.interestTotal);
-                if (m.statementDate != null) result.setStatementDate(m.statementDate);
-                if (m.statementStart != null) result.setStatementStartDate(m.statementStart);
-                if (m.statementEnd != null) result.setStatementEndDate(m.statementEnd);
-            }
+            com.budgetbuddy.service.pdf.v2.V2FieldBinder.applyFillMissing(
+                    tpl.getMetadata(), m, result);
         } catch (final RuntimeException e) {
             LOGGER.warn("v2 metadata failed: {}", e.getMessage());
         }
+    }
+
+    /**
+     * Shadow comparison: run the v2 transaction extractor when the matched
+     * template declares {@code transactions:} and log parity/delta vs the
+     * legacy-extracted transactions. Side-effect only; the result list on
+     * {@code result} is not modified. See {@link V2TransactionShadow} for
+     * the policy.
+     */
+    private void runV2TransactionShadow(
+            final String fullText, final String fileName, final ImportResult result) {
+        if (pdfTemplateV2Registry == null || result == null) return;
+        final AccountDetectionService.DetectedAccount a = result.getDetectedAccount();
+        final String institution = a == null ? null : a.getInstitutionName();
+        final com.budgetbuddy.service.pdf.v2.PdfTemplateV2 tpl =
+                pdfTemplateV2Registry.findByInstitution(institution);
+        if (tpl == null || tpl.getTransactions().isEmpty()) return;
+        // Materialize legacy transaction amounts in a list — the shadow
+        // comparator doesn't need to know about ParsedTransaction internals.
+        final List<java.math.BigDecimal> legacyAmounts = new java.util.ArrayList<>();
+        for (final ParsedTransaction tx : result.getTransactions()) {
+            legacyAmounts.add(tx.getAmount());
+        }
+        com.budgetbuddy.service.pdf.v2.V2TransactionShadow.run(
+                tpl, fullText, legacyAmounts, fileName);
     }
 
     /**

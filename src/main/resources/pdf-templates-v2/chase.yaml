@@ -22,7 +22,10 @@ card_detection:
   last_four:
     - pattern: "(?i)account\\s+(?:number|ending)\\s*(?:in\\s+)?(?:[#x*\\s-]+)?(\\d{4})\\b"
       filename_fallback: true
-    - pattern: "(?i)(\\d{4})\\s*$"   # Chase often prints just "XXXX 4666" at the top of page 2
+    # Chase often prints just "XXXX 4666" at the top of page 2. The (?<!\d)
+    # lookbehind prevents matching the last 4 of a longer account number
+    # (e.g. "Account 1234567" must NOT yield "4567").
+    - pattern: "(?i)(?<!\\d)(\\d{4})\\s*$"
       filename_fallback: true
 
   account_holder:
@@ -54,12 +57,94 @@ metadata:
       adjacent: dollar
     - label: "Payments and Credits"
       adjacent: dollar
+    # Singular variant observed on Amazon Visa and Prime Visa statements:
+    # "Payment, Credits -$50.00". Without this label the v2 parser misses
+    # the payments-total row on every Amazon-co-branded Chase card.
+    - label: "Payment, Credits"
+      adjacent: dollar
   fees_total:
     - label: "Fees Charged"
       adjacent: dollar
   interest_total:
     - label: "Interest Charged"
       adjacent: dollar
+
+  credit_limit:
+    - pattern: "(?im)^\\s*Credit\\s+Access\\s+Line\\s+\\$([\\d,]+\\.\\d{2})"
+    - pattern: "(?im)^\\s*Credit\\s+Limit\\s+\\$([\\d,]+\\.\\d{2})"
+    # Some Chase statements (Prime Visa, Marriott Bonvoy) print the credit
+    # limit as a round dollar amount with NO cents, e.g. "Credit Access Line
+    # $20,000". The decimal-required variants above miss those rows, so we
+    # add a no-decimal fallback anchored to "Access Line" / "Credit Limit".
+    - pattern: "(?im)^\\s*Credit\\s+Access\\s+Line\\s+\\$([\\d,]+)\\s*$"
+    - pattern: "(?im)^\\s*Credit\\s+Limit\\s+\\$([\\d,]+)\\s*$"
+  available_credit:
+    - pattern: "(?im)^\\s*Available\\s+Credit\\s+\\$([\\d,]+\\.\\d{2})"
+    # Same no-decimal layout as credit_limit — must NOT match "Available for
+    # Cash $4,000" which is a distinct field; "Available Credit" anchor is
+    # specific.
+    - pattern: "(?im)^\\s*Available\\s+Credit\\s+\\$([\\d,]+)\\s*$"
+  minimum_payment_due:
+    # Chase prints both "Minimum Payment Due $35.00" (Account Summary block)
+    # and "Minimum Payment Due: $35.00" (account-messages block) — the colon
+    # form is what some Prime Visa / Amazon Visa statements use, so accept
+    # either separator.
+    - pattern: "(?im)Minimum\\s+Payment\\s+Due[:\\s]+\\$([\\d,]+\\.\\d{2})"
+  payment_due_date:
+    - pattern: "(?im)Payment\\s+Due\\s+Date[:\\s]+(\\d{1,2}/\\d{1,2}/\\d{2,4})"
+
+  # APR table: "Purchases 18.99%(v)(d) - 0 - - 0 -"
+  purchase_apr:
+    - pattern: "(?im)^\\s*Purchases\\s+(\\d{1,2}\\.\\d{1,3})\\s*%"
+  cash_advance_apr:
+    - pattern: "(?im)^\\s*Cash\\s+Advances\\s+(\\d{1,2}\\.\\d{1,3})\\s*%"
+  balance_transfer_apr:
+    - pattern: "(?im)^\\s*Balance\\s+Transfers?\\s+(\\d{1,2}\\.\\d{1,3})\\s*%"
+  penalty_apr:
+    - pattern: "(?i)Penalty\\s+APR(?:\\s+of)?\\s+(\\d{1,2}\\.\\d{1,3})\\s*%"
+
+  # Points: Chase prints "Points balance: NN,NNN" on Sapphire variants and
+  # "Total points available for redemption NN,NNN" on Prime Visa.
+  # The negative lookbehind on "Previous\\s+" is load-bearing — without it
+  # the "Previous points balance N,NNN" line on Prime Visa / Amazon Visa
+  # wins over the current-cycle balance, so every import returns the prior
+  # cycle's points instead of the current ones.
+  points_balance:
+    - pattern: "(?i)(?<!Previous\\s)(?:Total\\s+)?[Pp]oints?\\s+(?:balance|available\\s+for\\s+redemption)[:\\s]+(\\d{1,3}(?:,\\d{3})*|\\d+)"
+  points_earned:
+    - pattern: "(?i)[Pp]oints\\s+earned\\s+this\\s+period[:\\s]+(\\d{1,3}(?:,\\d{3})*|\\d+)"
+    # The "transferred to <Partner Name>" phrase needs to accept multi-word
+    # partner names: "Marriott Bonvoy", "Ritz-Carlton Rewards". The legacy
+    # single-\\w+ pattern silently missed every Marriott Bonvoy statement.
+    - pattern: "(?i)Total\\s+points\\s+(?:transferred\\s+to(?:\\s+\\w+){1,4}|earned)\\s+(\\d{1,3}(?:,\\d{3})*|\\d+)"
+  previous_points_balance:
+    - pattern: "(?i)Previous\\s+points\\s+balance\\s+(\\d{1,3}(?:,\\d{3})*|\\d+)"
+
+  autopay_enabled:
+    - label: "AUTOPAY IS ON"
+    - label: "AUTOPAY IS OFF"
+      pattern: "false"
+  next_autopay_amount:
+    - pattern: "(?i)next\\s+AutoPay\\s+payment\\s+for\\s+\\$([\\d,]+\\.\\d{2})"
+
+  # "Your annual membership fee in the amount of $NN.NN will be billed on MM/DD/YYYY."
+  annual_fee:
+    - pattern: "(?i)annual\\s+membership\\s+fee\\s+in\\s+the\\s+amount\\s+of\\s+\\$([\\d,]+\\.\\d{2})"
+    - pattern: "(?i)Annual\\s+Fee\\s+\\$([\\d,]+\\.\\d{2})"
+  annual_fee_due_date:
+    - pattern: "(?i)annual\\s+membership\\s+fee.*?will\\s+be\\s+billed\\s+on\\s+(\\d{1,2}/\\d{1,2}/\\d{2,4})"
+
+  foreign_tx_fee_percent:
+    - pattern: "(?i)[Ff]oreign\\s+[Tt]ransaction\\s+[Ff]ee.*?(\\d{1,2}\\.\\d{1,3})\\s*%"
+    - pattern: "(?i)(\\d{1,2}(?:\\.\\d{1,3})?)\\s*%\\s+(?:of\\s+)?(?:each\\s+)?foreign\\s+(?:transaction|purchase)"
+    # Chase disclosure prose commonly prints the fee as a bare integer:
+    # "There is a foreign transaction fee of 3% of the U.S. dollar amount".
+    # The decimal-required variants above miss this — must accept an
+    # integer percent when anchored to "fee of".
+    - pattern: "(?i)[Ff]oreign\\s+[Tt]ransaction\\s+[Ff]ee\\s+of\\s+(\\d{1,2})\\s*%"
+
+  billing_days:
+    - pattern: "(?i)(?<!\\d)(\\d{1,3})\\s+Days?\\s+in\\s+Billing\\s+(?:Period|Cycle)"
 
 preprocessing:
   fx_block_strip:
@@ -79,6 +164,252 @@ preprocessing:
       - "Total Purchases"
       - "Total Fees"
       - "Total Interest"
+
+# Ported from legacy *StatementFixtureTest classes. Each sample collapses
+# 16-28 @Test methods into a single synthetic-fixture round-trip:
+# input + asserted business field values. Notes:
+#   * Per-category-row rewards sums (Freedom tiers, Amazon "+N% back" rows)
+#     are NOT covered — the v2 evaluator does single-line regex extraction
+#     only; multi-line summing of rewards earnings stays in legacy parsing
+#     utilities.
+#   * The legacy parser preserved the sign of "Payment, Credits -$X" as
+#     negative; the v2 dollar regex drops the sign so payments_total here
+#     is the positive magnitude.
+samples:
+  - name: amazon-visa-june-2026
+    input: |
+      Mobile:  Download the
+      Chase Mobile app today
+      ACCOUNT SUMMARY
+      YOUR ACCOUNT MESSAGES
+      AUTOPAY IS ON
+      Payment Due Date: 07/09/26
+      New Balance: $250.00
+      Minimum Payment Due: $35.00
+      Manage your account online:  Customer Service:
+      www.chase.com/amazon 1-888-247-4080
+      Account Number:  XXXX XXXX XXXX 9876
+      New Balance $250.00
+      Past Due Amount $0.00
+      Balance over the Credit Access Line $0.00
+      AUTOPAY IS ON
+      Penalty APR of 29.99%.
+      Previous Balance $50.00
+      Payment, Credits -$50.00
+      Purchases +$250.00
+      Cash Advances $0.00
+      Balance Transfers $0.00
+      Fees Charged $0.00
+      Interest Charged $0.00
+      Opening/Closing Date 05/13/26 - 06/12/26
+      Credit Access Line $20,000
+      Available Credit $19,750
+      Cash Access Line $4,000
+      Available for Cash $4,000
+      Previous points balance 75,000
+      + 5% back on Amazon.com purchases 0
+      + 5% back on Whole Foods Market purchases 0
+      + 2% back at gas stations 0
+      + 2% back at restaurants 500
+      + 5% back on Chase Travel purchases 0
+      + 2% back on local transit/commuting 0
+      + 1% back on all other purchases 250
+      + 5% back at Amazon sites and stores 0
+      Reward your routine everywhere you shop with your Prime Visa.
+      YOUR PRIME VISA POINTS
+      Total points available for redemption 75,750
+      Purchases 21.74%(v)(d) - 0 -   - 0 -
+      Cash Advances 22.74%(v)(d) - 0 -   - 0 -
+      Balance Transfers 21.74%(v)(d) - 0 -   - 0 -
+      31 Days in Billing Period
+      Page 2 of 2 Statement Date: 06/12/26
+      Your next AutoPay payment for $250.00 will be deducted from your Pay From
+      There is a foreign transaction fee of 3% of the U.S. dollar amount
+    expected:
+      new_balance: 250.00
+      previous_balance: 50.00
+      credit_limit: 20000
+      available_credit: 19750
+      purchases_total: 250.00
+      payments_total: 50.00
+      fees_total: 0.00
+      interest_total: 0.00
+      purchase_apr: 21.74
+      cash_advance_apr: 22.74
+      balance_transfer_apr: 21.74
+      penalty_apr: 29.99
+      billing_days: 31
+      statement_date: 2026-06-12
+      autopay_enabled: true
+      next_autopay_amount: 250.00
+      foreign_tx_fee_percent: 3
+      points_balance: 75750
+      previous_points_balance: 75000
+      minimum_payment_due: 35.00
+      # points_earned (legacy sum across "+N% back" rows = 750) NOT asserted:
+      # v2 evaluator does single-line regex only and can't sum across the
+      # Amazon-style per-category lines. Legacy AmazonVisaStatementFixture
+      # still exercises that path.
+
+  - name: chase-prime-visa-may-2026
+    input: |
+      Manage your account online:  Customer Service: Mobile:  Download the
+      www.chase.com/amazon 1-888-247-4080 Chase Mobile app today
+      ACCOUNT SUMMARY
+      Account Number:  XXXX XXXX XXXX 9999
+      New Balance $321.45
+      Previous Balance $215.50
+      Payment, Credits -$215.50
+      Purchases +$321.45
+      Cash Advances $0.00
+      Balance Transfers $0.00
+      Fees Charged $0.00
+      Interest Charged $0.00
+      Opening/Closing Date 04/13/26 - 05/12/26
+      Credit Access Line $20,000
+      Available Credit $19,678
+      Cash Access Line $5,000
+      Available for Cash $5,000
+      Past Due Amount $0.00
+      Balance over the Credit Access Line $0.00
+      Previous points balance 11,727
+      + 5% back on Amazon.com purchases 0
+      + 5% back on Whole Foods Market purchases 0
+      + 2% back at gas stations 0
+      + 2% back at restaurants 618
+      + 5% back on Chase Travel purchases 0
+      + 2% back on local transit/commuting 0
+      + 1% back on all other purchases 0
+      + 5% back at Amazon sites and stores 0
+      Total points available for redemption 12,345
+      YOUR ACCOUNT MESSAGES
+      Your next AutoPay payment for $321.45 will be deducted from your Pay From
+      AUTOPAY IS ON Payment Due Date: 06/09/26
+      There is a foreign transaction fee of 3% of the U.S. dollar amount
+      Purchases 21.74%(v)(d) - 0 -   - 0 -
+      Cash Advances 22.74%(v)(d) - 0 -   - 0 -
+      Balance Transfers 21.74%(v)(d) - 0 -   - 0 -
+      30 Days in Billing Period
+      Penalty APR of 29.99%.
+      SYNTHETIC CARDHOLDER NAME Page 2 of 2 Statement Date: 05/12/26
+    expected:
+      new_balance: 321.45
+      previous_balance: 215.50
+      credit_limit: 20000
+      available_credit: 19678
+      purchases_total: 321.45
+      payments_total: 215.50
+      fees_total: 0.00
+      interest_total: 0.00
+      purchase_apr: 21.74
+      cash_advance_apr: 22.74
+      balance_transfer_apr: 21.74
+      penalty_apr: 29.99
+      billing_days: 30
+      statement_date: 2026-05-12
+      payment_due_date: 2026-06-09
+      autopay_enabled: true
+      next_autopay_amount: 321.45
+      foreign_tx_fee_percent: 3
+      points_balance: 12345
+      previous_points_balance: 11727
+
+  - name: marriott-bonvoy-june-2026
+    input: |
+      Manage your account online: Mobile:  Download the
+      Chase Mobile app today
+      ACCOUNT SUMMARY
+      YOUR ACCOUNT MESSAGES
+      AUTOPAY IS ON
+      Payment Due Date: 07/14/26
+      New Balance: $999.99
+      Minimum Payment Due: $25.00
+      Account Number:  XXXX XXXX XXXX 4242
+      New Balance $999.99
+      Past Due Amount $0.00
+      Balance over the Credit Access Line $0.00
+      Previous Balance $2,500.00
+      Payment, Credits -$2,500.00
+      Purchases +$999.99
+      Cash Advances $0.00
+      Balance Transfers $0.00
+      Fees Charged $0.00
+      Interest Charged $0.00
+      Opening/Closing Date 05/18/26 - 06/17/26
+      Credit Access Line $50,000
+      Available Credit $49,000
+      Cash Access Line $7,500
+      Available for Cash $7,500
+      + 5X Points on Marriott Bonvoy purchases 4,500
+      Total points transferred to Marriott Bonvoy 4,500
+      Thank you for using your Marriott Bonvoy Premier Credit Card.
+      MARRIOTT BONVOY PREMIER
+      Statement Date: 06/17/26
+      31 Days in Billing Period
+      Penalty APR of 29.99%.
+      Purchases 19.49%(v)(d) - 0 -   - 0 -
+      Cash Advances 28.49%(v)(d) - 0 -   - 0 -
+      Balance Transfers 19.49%(v)(d) - 0 -   - 0 -
+      My Chase Loan 19.49%(v)(d) - 0 -   - 0 -
+      Your annual membership fee in the amount of $99.00 will be billed on 07/01/2026.
+      There is a foreign transaction fee of 3% of the U.S. dollar amount
+      Your next AutoPay payment for $999.99 will be deducted from your Pay From
+    expected:
+      new_balance: 999.99
+      previous_balance: 2500.00
+      credit_limit: 50000
+      available_credit: 49000
+      purchases_total: 999.99
+      payments_total: 2500.00
+      fees_total: 0.00
+      interest_total: 0.00
+      purchase_apr: 19.49
+      cash_advance_apr: 28.49
+      balance_transfer_apr: 19.49
+      penalty_apr: 29.99
+      billing_days: 31
+      statement_date: 2026-06-17
+      payment_due_date: 2026-07-14
+      minimum_payment_due: 25.00
+      autopay_enabled: true
+      next_autopay_amount: 999.99
+      foreign_tx_fee_percent: 3
+      annual_fee: 99.00
+      annual_fee_due_date: 2026-07-01
+      points_earned: 4500
+      # points_balance intentionally omitted: Marriott Bonvoy is a transfer-
+      # partner card with NO cumulative balance on the statement.
+
+  - name: chase-freedom-unlimited-tiers
+    input: |
+      Cash Access Line $4,000
+      Available for Cash $4,000
+      Previous points balance 14,084
+      4%(4 Pts)/$1 addl on Chase Travel 0
+      + 2%(2 Pts)/$1 addl. on Dining purchases 0
+      + 2%(2 Pts)/$1 addl. on Drugstore purchases 0
+      + 1% (1 Pts)/$1 on all purchases 9
+      Total points available for redemption 14,093
+    expected:
+      points_balance: 14093
+      previous_points_balance: 14084
+      # points_earned (legacy sum across tiers = 9) NOT asserted:
+      # v2 evaluator can't sum across multi-tier "+N% (N Pts)/$1" lines.
+
+  - name: chase-freedom-classic-quarterly
+    input: |
+      Previous points balance 9,262
+      + 1% (1 Pt)/$1 earned on all purchases 37
+      + Bonus from 1Q 5% cat: Grocery Stores 148
+      Total points available for redemption 9,447
+      Get 5% cash back on up to $1,500 in combined purchases in
+      this quarter s bonus categories from 4/1/25 - 6/30/25.
+    expected:
+      points_balance: 9447
+      previous_points_balance: 9262
+      # points_earned (legacy sum = 185) and QuarterlyBonus / NextQuarterBonus
+      # records NOT asserted: v2 evaluator has no rules for the rotating-bonus
+      # tier shape; that logic stays in StatementParsingUtilities.
 
 layouts:
   # Chase two-date row (most common):
