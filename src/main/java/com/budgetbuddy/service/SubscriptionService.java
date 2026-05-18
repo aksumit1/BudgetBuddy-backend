@@ -80,10 +80,14 @@ public class SubscriptionService {
                     INSURANCE,
                     "education");
 
-    // HARD EXCLUSIONS — Plaid taxonomies that look RECURRING because the
-    // user pays them every month, but are NOT subscriptions in any
-    // user-facing sense (you can't cancel, downgrade, or substitute
-    // them). Detector skips these before any inclusion logic runs.
+    // HARD EXCLUSIONS — categories that are RECURRING (often monthly) but are
+    // NOT subscriptions in any user-facing sense (you can't cancel,
+    // downgrade, or substitute them). Detector skips these before any
+    // inclusion logic runs. Kept intentionally narrow: a category like
+    // "transportation" or "travel" can legitimately host a subscription
+    // (parking pass, transit pass, hotel-loyalty fee), so we filter on
+    // recurrence STRUCTURE — cadence + occurrence count + amount stability
+    // — rather than blanket-banning by category.
     private static final Set<String> NON_SUBSCRIPTION_PRIMARY =
             Set.of(
                     "loan_payments",
@@ -386,6 +390,48 @@ public class SubscriptionService {
                 final Subscription.SubscriptionFrequency frequency =
                         detectFrequency(sameAmountTransactions);
 
+                // Cadence-aware minimum-occurrence gate. A "subscription" must
+                // have repeated long enough on its own cadence to be a real
+                // pattern, not a coincidence. Thresholds:
+                //   DAILY      → 35+ occurrences  (>5 weeks of daily charges)
+                //   WEEKLY     → 6+  occurrences  (~6 weeks)
+                //   BI_WEEKLY  → 4+  occurrences  (~2 months)
+                //   MONTHLY    → 4+  occurrences  (~4 months)
+                //   QUARTERLY  → 3+  occurrences  (~9 months)
+                //   SEMI_ANNUAL→ 2+  occurrences  (~1 year)
+                //   ANNUAL     → 2+  occurrences  (2 years)
+                // Below threshold means the cadence might exist but isn't
+                // established yet — skip rather than mis-flag everyday
+                // recurring spend (weekly groceries, daily commute parking).
+                if (frequency != null
+                        && !meetsMinOccurrenceThreshold(frequency, sameAmountTransactions.size())) {
+                    if (LOGGER.isDebugEnabled()) {
+                        LOGGER.debug(
+                                "Skipping merchant '{}' amount {}: frequency {} requires more occurrences than {}",
+                                merchant,
+                                amount,
+                                frequency,
+                                sameAmountTransactions.size());
+                    }
+                    continue;
+                }
+
+                // Date-regularity gate: the SAME date/day/month must repeat
+                // for the detected cadence — otherwise an irregular gas-pump
+                // pattern can satisfy the count threshold without being a
+                // structured subscription.
+                if (frequency != null
+                        && !hasRegularDatePattern(frequency, sameAmountTransactions)) {
+                    if (LOGGER.isDebugEnabled()) {
+                        LOGGER.debug(
+                                "Skipping merchant '{}' amount {}: frequency {} occurrences are not date-regular",
+                                merchant,
+                                amount,
+                                frequency);
+                    }
+                    continue;
+                }
+
                 if (frequency != null) {
                     final TransactionTable firstTransaction = sameAmountTransactions.get(0);
                     final LocalDate startDate = parseDate(firstTransaction.getTransactionDate());
@@ -532,11 +578,181 @@ public class SubscriptionService {
             }
         }
 
+        // POST-PROCESSING: apply the three remaining rules that operate
+        // across amount-groups of the same merchant, not within one group:
+        //   1. Variable-but-bounded: same merchant, 2 amount-groups within
+        //      1.5× of each other → ONE subscription, history captures the
+        //      older price (Walmart+ $14.27 → $14.28).
+        //   2. Price-change chain: same merchant, same cadence, two
+        //      non-overlapping date ranges → ONE subscription, current
+        //      price is the most recent (Republic Services $116.59 →
+        //      $106.59).
+        //   3. Usage-billed exclusion: 3+ distinct same-cadence amounts
+        //      means this isn't a fixed subscription — drop the entries
+        //      (Bird scooter, Canteen Vending, Xfinity Mobile when usage-
+        //      driven).
+        // Done as a post-pass so the existing per-amount-group detection
+        // loop above stays untouched.
+        final List<Subscription> consolidated =
+                consolidateMultiPriceSubscriptions(detectedSubscriptions);
+
         if (LOGGER.isInfoEnabled()) {
             LOGGER.info(
-                    "Detected {} subscriptions for user: {}", detectedSubscriptions.size(), userId);
+                    "Detected {} subscriptions for user: {} (consolidated from {} amount-group entries)",
+                    consolidated.size(),
+                    userId,
+                    detectedSubscriptions.size());
         }
-        return detectedSubscriptions;
+        return consolidated;
+    }
+
+    // ------------------------------------------------------------------
+    // Multi-price consolidation: applies merchant aliases, variable-bounded
+    // collapsing, price-change merging, and the "3+ prices = usage" drop.
+    // ------------------------------------------------------------------
+
+    /**
+     * Maximum max/min amount ratio for which we still call a merchant's
+     * recurring spend "the same subscription with small variation"
+     * (e.g. cell bills that drift month-to-month). Above this we treat the
+     * merchant as variable-priced usage and exclude.
+     */
+    private static final double VARIABLE_SPREAD_LIMIT = 1.5;
+
+    /**
+     * Hardcoded merchant alias map. Different statement issuers spell the
+     * same merchant in incompatible ways ("WMT PLUS SEP 2025" vs
+     * "Walmart+ Member 05/26"); we collapse known variants to one canonical
+     * key so the per-merchant rules see them as one entity. Add new entries
+     * as merchant-name drift shows up in user reports.
+     */
+    private static final Map<String, String> MERCHANT_ALIASES = Map.ofEntries(
+            Map.entry("wmt", "walmart+"),
+            Map.entry("wmt plus", "walmart+"),
+            Map.entry("walmart+ member", "walmart+"),
+            Map.entry("d j*barrons", "barrons"),
+            Map.entry("dj*barrons", "barrons"),
+            Map.entry("hlu*huluplus", "hulu"),
+            Map.entry("huluplus", "hulu"),
+            Map.entry("uber one help.uber.com", "uber one"),
+            Map.entry("openai *chatgpt", "openai chatgpt"),
+            Map.entry("google *youtube music", "youtube music"),
+            Map.entry("comcast / xfinity", "comcast xfinity"),
+            Map.entry("comcast-xfinity cable svcs", "comcast xfinity"));
+
+    private String canonicalMerchantKey(final String rawName) {
+        if (rawName == null) {
+            return "";
+        }
+        final String lower = rawName.toLowerCase(Locale.ROOT).trim();
+        for (final Map.Entry<String, String> entry : MERCHANT_ALIASES.entrySet()) {
+            if (lower.startsWith(entry.getKey())) {
+                return entry.getValue();
+            }
+        }
+        return lower;
+    }
+
+    private List<Subscription> consolidateMultiPriceSubscriptions(
+            final List<Subscription> raw) {
+        if (raw == null || raw.size() < 2) {
+            return raw == null ? new ArrayList<>() : raw;
+        }
+
+        // Group by canonical merchant + frequency
+        final Map<String, List<Subscription>> byMerchantCadence = new HashMap<>();
+        for (final Subscription s : raw) {
+            final String key =
+                    canonicalMerchantKey(s.getMerchantName())
+                            + "|"
+                            + (s.getFrequency() == null ? "" : s.getFrequency().name());
+            byMerchantCadence.computeIfAbsent(key, k -> new ArrayList<>()).add(s);
+        }
+
+        final List<Subscription> result = new ArrayList<>();
+        for (final List<Subscription> group : byMerchantCadence.values()) {
+            if (group.size() == 1) {
+                result.add(group.get(0));
+                continue;
+            }
+            // Distinct amounts on this merchant + cadence
+            final List<BigDecimal> distinctAmounts = group.stream()
+                    .map(Subscription::getAmount)
+                    .filter(a -> a != null)
+                    .map(BigDecimal::abs)
+                    .distinct()
+                    .sorted()
+                    .collect(Collectors.toList());
+
+            // Compute amount spread (max/min ratio) — bounded variation
+            // distinguishes a real subscription with monthly drift (a cell
+            // bill at $172–$230) from per-use spend (Bird scooter rides at
+            // $2–$11). VARIABLE_SPREAD_LIMIT separates the two.
+            final BigDecimal min = distinctAmounts.get(0);
+            final BigDecimal max = distinctAmounts.get(distinctAmounts.size() - 1);
+            final double spread =
+                    min.signum() > 0
+                            ? max.divide(min, 4, java.math.RoundingMode.HALF_UP).doubleValue()
+                            : Double.MAX_VALUE;
+
+            // Usage-billed drop: 3+ distinct prices AND spread too wide.
+            // A cell bill with 3 prices in a tight 1.34× band is still ONE
+            // subscription. Dropping based on count alone was wrong.
+            if (distinctAmounts.size() >= 3 && spread > VARIABLE_SPREAD_LIMIT) {
+                if (LOGGER.isInfoEnabled()) {
+                    LOGGER.info(
+                            "Subscription dropped (variable usage billing): merchant='{}' had {} distinct prices, spread {}× exceeds {}×",
+                            group.get(0).getMerchantName(),
+                            distinctAmounts.size(),
+                            String.format("%.2f", spread),
+                            VARIABLE_SPREAD_LIMIT);
+                }
+                continue;
+            }
+
+            // Sort by start date (oldest → newest)
+            group.sort((a, b) -> {
+                if (a.getStartDate() == null && b.getStartDate() == null) return 0;
+                if (a.getStartDate() == null) return 1;
+                if (b.getStartDate() == null) return -1;
+                return a.getStartDate().compareTo(b.getStartDate());
+            });
+
+            // Rule 1 / 2: collapse same-cadence groups into ONE subscription
+            // whose `amount` is the latest price; older prices are
+            // reflected in the merchant description for now (a follow-up
+            // could add a structured priceHistory field on Subscription).
+            final Subscription latest = group.get(group.size() - 1);
+            final List<BigDecimal> history = new ArrayList<>();
+            for (int i = 0; i < group.size() - 1; i++) {
+                final BigDecimal older = group.get(i).getAmount();
+                if (older != null && older.compareTo(latest.getAmount()) != 0) {
+                    history.add(older);
+                }
+            }
+            if (!history.isEmpty()) {
+                final String historyNote =
+                        "price-change: "
+                                + history.stream()
+                                        .map(BigDecimal::abs)
+                                        .map(b -> "$" + b.toPlainString())
+                                        .collect(Collectors.joining(" → "))
+                                + " → $"
+                                + latest.getAmount().abs().toPlainString();
+                final String desc = latest.getDescription();
+                latest.setDescription(
+                        (desc == null || desc.isBlank()) ? historyNote : desc + " | " + historyNote);
+                if (LOGGER.isInfoEnabled()) {
+                    LOGGER.info(
+                            "Merged price-change subscription: merchant='{}' frequency={} {}",
+                            latest.getMerchantName(),
+                            latest.getFrequency(),
+                            historyNote);
+                }
+            }
+            result.add(latest);
+        }
+        return result;
     }
 
     /**
@@ -1052,6 +1268,118 @@ public class SubscriptionService {
         LOGGER.info("Deleted subscription: {}", subscriptionId);
     }
 
+    /**
+     * Minimum-occurrence thresholds per cadence to qualify as a subscription.
+     * A pattern below threshold is "could be recurring" but not yet enough
+     * evidence to flag — keeps everyday spend (weekly groceries, daily
+     * parking) out of the user's subscription list.
+     */
+    private boolean meetsMinOccurrenceThreshold(
+            final Subscription.SubscriptionFrequency frequency, final int count) {
+        if (frequency == null) {
+            return false;
+        }
+        switch (frequency) {
+            case DAILY:
+                return count >= 35;
+            case WEEKLY:
+                return count >= 6;
+            case BI_WEEKLY:
+                return count >= 4;
+            case MONTHLY:
+                return count >= 4;
+            case QUARTERLY:
+                return count >= 3;
+            case SEMI_ANNUAL:
+            case ANNUAL:
+                return count >= 2;
+            default:
+                return count >= 4;
+        }
+    }
+
+    /**
+     * Verifies that occurrences land on the SAME date / day-of-week /
+     * day-of-month / month-of-year for their cadence — the structural
+     * stability that distinguishes a subscription from a coincidentally
+     * recurring expense.
+     *
+     * <ul>
+     *   <li>DAILY → no extra check (the daily gap from {@link #detectFrequency} already establishes it)
+     *   <li>WEEKLY / BI_WEEKLY → same day-of-week for &ge;80% of occurrences
+     *   <li>MONTHLY / QUARTERLY / SEMI_ANNUAL → same day-of-month (±2 day window) for &ge;80%
+     *   <li>ANNUAL → same month-of-year (±1 month window) for &ge;80%
+     * </ul>
+     */
+    private boolean hasRegularDatePattern(
+            final Subscription.SubscriptionFrequency frequency,
+            final List<TransactionTable> transactions) {
+        if (frequency == null || transactions == null || transactions.size() < 2) {
+            return false;
+        }
+        final List<LocalDate> dates =
+                transactions.stream()
+                        .map(tx -> parseDate(tx.getTransactionDate()))
+                        .filter(d -> d != null)
+                        .sorted()
+                        .collect(Collectors.toList());
+        if (dates.size() < 2) {
+            return false;
+        }
+        final int total = dates.size();
+        final double minMatchRatio = 0.8;
+
+        switch (frequency) {
+            case DAILY:
+                return true; // daily cadence implicit in gap detection
+            case WEEKLY:
+            case BI_WEEKLY: {
+                final Map<java.time.DayOfWeek, Long> counts =
+                        dates.stream()
+                                .collect(
+                                        Collectors.groupingBy(
+                                                LocalDate::getDayOfWeek, Collectors.counting()));
+                final long maxOnSameDayOfWeek =
+                        counts.values().stream().mapToLong(Long::longValue).max().orElse(0);
+                return (double) maxOnSameDayOfWeek / total >= minMatchRatio;
+            }
+            case MONTHLY:
+            case QUARTERLY:
+            case SEMI_ANNUAL: {
+                int bestMatchCount = 0;
+                for (final LocalDate anchor : dates) {
+                    final int anchorDom = anchor.getDayOfMonth();
+                    int near = 0;
+                    for (final LocalDate d : dates) {
+                        if (Math.abs(d.getDayOfMonth() - anchorDom) <= 2) {
+                            near++;
+                        }
+                    }
+                    bestMatchCount = Math.max(bestMatchCount, near);
+                }
+                return (double) bestMatchCount / total >= minMatchRatio;
+            }
+            case ANNUAL: {
+                int bestMatchCount = 0;
+                for (final LocalDate anchor : dates) {
+                    final int anchorMonth = anchor.getMonthValue();
+                    int near = 0;
+                    for (final LocalDate d : dates) {
+                        final int diff = Math.abs(d.getMonthValue() - anchorMonth);
+                        // wrap-around (Dec/Jan)
+                        if (diff <= 1 || diff >= 11) {
+                            near++;
+                        }
+                    }
+                    bestMatchCount = Math.max(bestMatchCount, near);
+                }
+                return (double) bestMatchCount / total >= minMatchRatio;
+            }
+            default:
+                return true;
+        }
+    }
+
     /** Detects frequency from transaction dates */
     private Subscription.SubscriptionFrequency detectFrequency(
             final List<TransactionTable> transactions) {
@@ -1168,40 +1496,25 @@ public class SubscriptionService {
     }
 
     /** Groups transactions by amount (within 5% tolerance) */
+    /**
+     * Groups transactions by EXACT amount (compareTo == 0 on the BigDecimal,
+     * scaled to 2 decimal places to ignore representational quirks like
+     * "-15.99" vs "-15.990"). A subscription is by definition the SAME price
+     * each period — a price change is its own event (handled separately by
+     * the price-change detector), not a wider tolerance band. This prevents
+     * variable-amount recurring spend (groceries within 5% of each other,
+     * rent paid in slightly different installments) from being lumped into
+     * one "subscription" group.
+     */
     private Map<BigDecimal, List<TransactionTable>> groupByAmount(
             final List<TransactionTable> transactions) {
         final Map<BigDecimal, List<TransactionTable>> grouped = new HashMap<>();
-
         for (final TransactionTable tx : transactions) {
-            final BigDecimal amount = tx.getAmount() != null ? tx.getAmount() : BigDecimal.ZERO;
-
-            // Find existing group within 5% tolerance
-            BigDecimal matchingAmount = null;
-            for (final BigDecimal existingAmount : grouped.keySet()) {
-                BigDecimal difference = amount.subtract(existingAmount);
-                if (difference.compareTo(BigDecimal.ZERO) < 0) {
-                    difference = difference.negate();
-                }
-                // Use absolute value of existingAmount for tolerance calculation to handle negative
-                // amounts correctly
-                final BigDecimal absExistingAmount =
-                        existingAmount.compareTo(BigDecimal.ZERO) < 0
-                                ? existingAmount.negate()
-                                : existingAmount;
-                final BigDecimal tolerance = absExistingAmount.multiply(new BigDecimal("0.05"));
-                if (difference.compareTo(tolerance) <= 0) {
-                    matchingAmount = existingAmount;
-                    break;
-                }
-            }
-
-            if (matchingAmount != null) {
-                grouped.get(matchingAmount).add(tx);
-            } else {
-                grouped.put(amount, new ArrayList<>(List.of(tx)));
-            }
+            final BigDecimal raw = tx.getAmount() != null ? tx.getAmount() : BigDecimal.ZERO;
+            final BigDecimal key =
+                    raw.setScale(2, java.math.RoundingMode.HALF_UP).stripTrailingZeros();
+            grouped.computeIfAbsent(key, k -> new ArrayList<>()).add(tx);
         }
-
         return grouped;
     }
 

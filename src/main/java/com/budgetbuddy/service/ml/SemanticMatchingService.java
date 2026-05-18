@@ -1311,11 +1311,45 @@ public class SemanticMatchingService {
 
         /* default */ boolean accountMatchesAny(final java.util.Collection<String> keywords) {
             for (final String k : keywords) {
-                if (accountTypeLower.contains(k) || accountSubtypeLower.contains(k)) {
+                if (containsAsWord(accountTypeLower, k)
+                        || containsAsWord(accountSubtypeLower, k)) {
                     return true;
                 }
             }
             return false;
+        }
+
+        /**
+         * Whole-word substring check. Without this, short keys like "cd", "ira",
+         * "401k" can fire on accidental embeddings (a corrupted subtype, an
+         * exported PDF that smushed columns together, etc.) and re-route every
+         * transaction on the account to investment. We match a key only when
+         * it's flanked by non-alphanumeric characters or string boundaries.
+         */
+        private static boolean containsAsWord(final String haystack, final String needle) {
+            if (haystack == null || haystack.isEmpty() || needle == null || needle.isEmpty()) {
+                return false;
+            }
+            int from = 0;
+            while (from <= haystack.length() - needle.length()) {
+                final int idx = haystack.indexOf(needle, from);
+                if (idx < 0) {
+                    return false;
+                }
+                final boolean leftOk = idx == 0 || !isWordChar(haystack.charAt(idx - 1));
+                final int endIdx = idx + needle.length();
+                final boolean rightOk =
+                        endIdx == haystack.length() || !isWordChar(haystack.charAt(endIdx));
+                if (leftOk && rightOk) {
+                    return true;
+                }
+                from = idx + 1;
+            }
+            return false;
+        }
+
+        private static boolean isWordChar(final char c) {
+            return (c >= 'a' && c <= 'z') || (c >= '0' && c <= '9');
         }
     }
 

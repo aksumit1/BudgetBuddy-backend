@@ -64,12 +64,15 @@ class SubscriptionServiceTest {
 
     @Test
     void testDetectSubscriptionsMonthlySubscription() {
-        // Given: 3 monthly transactions from the same merchant with the same amount
+        // Given: 4 monthly transactions from the same merchant with the same amount.
+        // The detector requires 4+ monthly occurrences (user-specified threshold)
+        // before flagging as a subscription — fewer is "possibly recurring" but
+        // not established enough to claim.
         final String merchantName = NETFLIX;
         final BigDecimal amount = new BigDecimal("-15.99");
         final LocalDate startDate = LocalDate.of(2024, 1, 15);
 
-        for (int i = 0; i < 3; i++) {
+        for (int i = 0; i < 4; i++) {
             final TransactionTable tx =
                     createTransaction(merchantName, amount, startDate.plusMonths(i));
             testTransactions.add(tx);
@@ -172,14 +175,16 @@ class SubscriptionServiceTest {
 
     @Test
     void testDetectSubscriptionsFiltersByCategory() {
-        // Given: Transactions with subscription category
-        final TransactionTable tx1 =
-                createTransaction(NETFLIX, new BigDecimal("-15.99"), LocalDate.of(2024, 1, 15));
-        final TransactionTable tx2 =
-                createTransaction(NETFLIX, new BigDecimal("-15.99"), LocalDate.of(2024, 2, 15));
-
-        testTransactions.add(tx1);
-        testTransactions.add(tx2);
+        // Given: 4 monthly subscription-category transactions (clears the
+        // monthly-occurrence threshold).
+        for (int i = 0; i < 4; i++) {
+            final TransactionTable tx =
+                    createTransaction(
+                            NETFLIX,
+                            new BigDecimal("-15.99"),
+                            LocalDate.of(2024, 1, 15).plusMonths(i));
+            testTransactions.add(tx);
+        }
 
         when(transactionRepository.findByUserId(eq(testUserId), eq(0), eq(10_000)))
                 .thenReturn(testTransactions);
@@ -321,12 +326,12 @@ class SubscriptionServiceTest {
 
     @Test
     void testDetectSubscriptionsSubscriptionCategoryNetflixIsSubscription() {
-        // Given: Netflix transactions (known subscription merchant)
+        // Given: 4 monthly Netflix transactions (clears the monthly threshold).
         final String merchantName = NETFLIX;
         final BigDecimal amount = new BigDecimal("-15.99");
         final LocalDate startDate = LocalDate.of(2024, 1, 15);
 
-        for (int i = 0; i < 3; i++) {
+        for (int i = 0; i < 4; i++) {
             final TransactionTable tx =
                     createTransaction(merchantName, amount, startDate.plusMonths(i));
             tx.setCategoryPrimary("entertainment");
@@ -353,12 +358,12 @@ class SubscriptionServiceTest {
 
     @Test
     void testDetectSubscriptionsSubscriptionCategoryMortgageIsRecurring() {
-        // Given: Mortgage/loan transactions (recurring payment)
+        // Given: 4 monthly mortgage/loan transactions (clears monthly threshold).
         final String merchantName = "TD AUTO FINANCE";
         final BigDecimal amount = new BigDecimal("-355.17");
         final LocalDate startDate = LocalDate.of(2024, 1, 10);
 
-        for (int i = 0; i < 3; i++) {
+        for (int i = 0; i < 4; i++) {
             final TransactionTable tx =
                     createTransaction(merchantName, amount, startDate.plusMonths(i));
             tx.setCategoryPrimary("payment");
@@ -381,6 +386,99 @@ class SubscriptionServiceTest {
                 "recurring",
                 subscription.getSubscriptionCategory(),
                 "Mortgage/loan payment should be categorized as 'recurring'");
+    }
+
+    @Test
+    void testConsolidatePriceChangeMergesSameMerchant() {
+        // Walmart+ at $14.27 for 4 months, then price bumped to $14.28 for 4 more months.
+        // After consolidation: one subscription at the LATEST price with a price-change note.
+        final String merchantName = "Walmart+ Member";
+        final LocalDate firstDate = LocalDate.of(2025, 1, 4);
+        for (int i = 0; i < 4; i++) {
+            final TransactionTable tx =
+                    createTransaction(merchantName, new BigDecimal("-14.27"), firstDate.plusMonths(i));
+            testTransactions.add(tx);
+        }
+        for (int i = 4; i < 8; i++) {
+            final TransactionTable tx =
+                    createTransaction(merchantName, new BigDecimal("-14.28"), firstDate.plusMonths(i));
+            testTransactions.add(tx);
+        }
+        when(transactionRepository.findByUserId(eq(testUserId), eq(0), eq(10_000)))
+                .thenReturn(testTransactions);
+
+        final List<Subscription> subscriptions = subscriptionService.detectSubscriptions(testUserId);
+
+        // ONE consolidated subscription, not two.
+        assertEquals(1, subscriptions.size(),
+                "Same merchant with small price change should collapse into one subscription");
+        final Subscription sub = subscriptions.get(0);
+        assertEquals(new BigDecimal("-14.28"), sub.getAmount(),
+                "Current price should be the latest amount, not the older one");
+        assertNotNull(sub.getDescription(),
+                "Price-change history should be recorded in the description");
+        assertTrue(sub.getDescription().contains("price-change"),
+                "Description should mention the price change: was '" + sub.getDescription() + "'");
+    }
+
+    @Test
+    void testConsolidateKeepsBoundedVariableSubscription() {
+        // Cell-bill style: 3 distinct monthly prices but all within 1.5× of
+        // each other (Xfinity Mobile real-world data: $172.39 / $184.86 /
+        // $230.74, spread = 1.34×). This should NOT be dropped — it's one
+        // subscription that wobbles month-to-month.
+        final String merchantName = "Xfinity Mobile";
+        final LocalDate startDate = LocalDate.of(2025, 1, 1);
+        for (int i = 0; i < 4; i++) {
+            testTransactions.add(createTransaction(
+                    merchantName, new BigDecimal("-172.39"), startDate.plusMonths(i)));
+        }
+        for (int i = 4; i < 8; i++) {
+            testTransactions.add(createTransaction(
+                    merchantName, new BigDecimal("-184.86"), startDate.plusMonths(i)));
+        }
+        for (int i = 8; i < 12; i++) {
+            testTransactions.add(createTransaction(
+                    merchantName, new BigDecimal("-230.74"), startDate.plusMonths(i)));
+        }
+        when(transactionRepository.findByUserId(eq(testUserId), eq(0), eq(10_000)))
+                .thenReturn(testTransactions);
+
+        final List<Subscription> subscriptions = subscriptionService.detectSubscriptions(testUserId);
+
+        assertEquals(1, subscriptions.size(),
+                "Cell-bill style merchant with bounded variation (spread < 1.5×) should consolidate into one subscription");
+        // Current price should be the latest amount, not an average.
+        assertEquals(new BigDecimal("-230.74"), subscriptions.get(0).getAmount(),
+                "Latest amount should be the current price");
+    }
+
+    @Test
+    void testConsolidateDropsHighSpreadVariableMerchant() {
+        // Per-ride style: 3 prices with wide spread (>1.5×). Bird scooter
+        // real-world: $2.18 / $6.61 / $11.68 → spread 5.36×. Drop as usage,
+        // not a subscription.
+        final String merchantName = "Bird App*Ride";
+        final LocalDate startDate = LocalDate.of(2025, 1, 1);
+        for (int i = 0; i < 4; i++) {
+            testTransactions.add(createTransaction(
+                    merchantName, new BigDecimal("-2.18"), startDate.plusMonths(i)));
+        }
+        for (int i = 4; i < 8; i++) {
+            testTransactions.add(createTransaction(
+                    merchantName, new BigDecimal("-6.61"), startDate.plusMonths(i)));
+        }
+        for (int i = 8; i < 12; i++) {
+            testTransactions.add(createTransaction(
+                    merchantName, new BigDecimal("-11.68"), startDate.plusMonths(i)));
+        }
+        when(transactionRepository.findByUserId(eq(testUserId), eq(0), eq(10_000)))
+                .thenReturn(testTransactions);
+
+        final List<Subscription> subscriptions = subscriptionService.detectSubscriptions(testUserId);
+
+        assertTrue(subscriptions.isEmpty(),
+                "Merchant with 3+ prices AND wide spread (>1.5×) should be dropped as variable usage");
     }
 
     // Helper method to create test transactions

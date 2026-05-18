@@ -160,8 +160,8 @@ public class SubscriptionServicePopularServicesTest {
     @DisplayName("Should detect Hulu+ subscription")
     void testHuluPlusSubscription() {
         // Given: Hulu+ subscription - $14.99/month for 3 months
-        final LocalDate baseDate = LocalDate.now().minusMonths(2);
-        for (int i = 0; i < 3; i++) {
+        final LocalDate baseDate = LocalDate.now().minusMonths(3);
+        for (int i = 0; i < 4; i++) {
             final TransactionTable tx =
                     createTransaction(
                             "HULU",
@@ -209,8 +209,8 @@ public class SubscriptionServicePopularServicesTest {
     @DisplayName("Should detect Uber One subscription")
     void testUberOneSubscription() {
         // Given: Uber One subscription - $9.99/month for 3 months
-        final LocalDate baseDate = LocalDate.now().minusMonths(2);
-        for (int i = 0; i < 3; i++) {
+        final LocalDate baseDate = LocalDate.now().minusMonths(3);
+        for (int i = 0; i < 4; i++) {
             final TransactionTable tx =
                     createTransaction(
                             "UBER",
@@ -258,8 +258,8 @@ public class SubscriptionServicePopularServicesTest {
     @DisplayName("Should detect Netflix subscription")
     void testNetflixSubscription() {
         // Given: Netflix subscription - $15.99/month for 3 months
-        final LocalDate baseDate = LocalDate.now().minusMonths(2);
-        for (int i = 0; i < 3; i++) {
+        final LocalDate baseDate = LocalDate.now().minusMonths(3);
+        for (int i = 0; i < 4; i++) {
             final TransactionTable tx =
                     createTransaction(
                             "NETFLIX.COM",
@@ -296,8 +296,8 @@ public class SubscriptionServicePopularServicesTest {
     @DisplayName("Should detect Spotify subscription")
     void testSpotifySubscription() {
         // Given: Spotify subscription - $9.99/month for 3 months
-        final LocalDate baseDate = LocalDate.now().minusMonths(2);
-        for (int i = 0; i < 3; i++) {
+        final LocalDate baseDate = LocalDate.now().minusMonths(3);
+        for (int i = 0; i < 4; i++) {
             final TransactionTable tx =
                     createTransaction(
                             "SPOTIFY",
@@ -334,8 +334,8 @@ public class SubscriptionServicePopularServicesTest {
     @DisplayName("Should detect Amazon Prime subscription")
     void testAmazonPrimeSubscription() {
         // Given: Amazon Prime subscription - $14.99/month for 3 months
-        final LocalDate baseDate = LocalDate.now().minusMonths(2);
-        for (int i = 0; i < 3; i++) {
+        final LocalDate baseDate = LocalDate.now().minusMonths(3);
+        for (int i = 0; i < 4; i++) {
             final TransactionTable tx =
                     createTransaction(
                             "AMAZON PRIME",
@@ -374,8 +374,8 @@ public class SubscriptionServicePopularServicesTest {
     @DisplayName("Should detect Disney+ subscription")
     void testDisneyPlusSubscription() {
         // Given: Disney+ subscription - $10.99/month for 3 months
-        final LocalDate baseDate = LocalDate.now().minusMonths(2);
-        for (int i = 0; i < 3; i++) {
+        final LocalDate baseDate = LocalDate.now().minusMonths(3);
+        for (int i = 0; i < 4; i++) {
             final TransactionTable tx =
                     createTransaction(
                             "DISNEY PLUS",
@@ -416,8 +416,8 @@ public class SubscriptionServicePopularServicesTest {
     @DisplayName("Should detect Apple Music subscription")
     void testAppleMusicSubscription() {
         // Given: Apple Music subscription - $10.99/month for 3 months
-        final LocalDate baseDate = LocalDate.now().minusMonths(2);
-        for (int i = 0; i < 3; i++) {
+        final LocalDate baseDate = LocalDate.now().minusMonths(3);
+        for (int i = 0; i < 4; i++) {
             final TransactionTable tx =
                     createTransaction(
                             "APPLE.COM/BILL",
@@ -457,10 +457,10 @@ public class SubscriptionServicePopularServicesTest {
     @DisplayName("Should detect multiple subscriptions simultaneously")
     void testMultipleSubscriptions() {
         // Given: Multiple subscriptions (OpenAI, Hulu, Netflix)
-        final LocalDate baseDate = LocalDate.now().minusMonths(2);
+        final LocalDate baseDate = LocalDate.now().minusMonths(3);
 
         // OpenAI
-        for (int i = 0; i < 3; i++) {
+        for (int i = 0; i < 4; i++) {
             transactionRepository.save(
                     createTransaction(
                             "OPENAI *CHATGPT SUBSCR",
@@ -472,7 +472,7 @@ public class SubscriptionServicePopularServicesTest {
         }
 
         // Hulu
-        for (int i = 0; i < 3; i++) {
+        for (int i = 0; i < 4; i++) {
             transactionRepository.save(
                     createTransaction(
                             "HULU",
@@ -484,7 +484,7 @@ public class SubscriptionServicePopularServicesTest {
         }
 
         // Netflix
-        for (int i = 0; i < 3; i++) {
+        for (int i = 0; i < 4; i++) {
             transactionRepository.save(
                     createTransaction(
                             "NETFLIX.COM",

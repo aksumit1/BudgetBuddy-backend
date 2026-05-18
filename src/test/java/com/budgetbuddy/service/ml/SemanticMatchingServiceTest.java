@@ -263,4 +263,93 @@ class SemanticMatchingServiceTest {
                     semanticMatchingService.addSemanticCluster(null, null);
                 });
     }
+
+    // ========== Context-rule word-boundary regression tests ==========
+    //
+    // Background: the CONTEXT_INVESTMENT rule matches against keywords
+    // {"investment","brokerage","ira","401k","cd"}. With the old naive
+    // contains() match, an account whose type happened to embed those
+    // letters could falsely route everyday spend (a Trader Vic's dinner,
+    // a Republic Services trash bill) to category=investment. These tests
+    // pin the whole-word matching behaviour added in
+    // CategorizationContext.containsAsWord.
+
+    @Test
+    @DisplayName("CONTEXT_INVESTMENT does not fire on credit-card account types")
+    void testContextInvestmentDoesNotFireOnCreditCardAccount() {
+        // No clusters loaded → deriveFromContext is the only path that runs.
+        // A credit-card account with a dining or utility purchase must not
+        // be tagged as investment.
+        final SemanticMatchingService.SemanticMatchResult diningRow =
+                semanticMatchingService.findBestSemanticMatchWithContext(
+                        "Trader Vic's",
+                        "Trader Vic's Term B SJC San Jose",
+                        new java.math.BigDecimal("-42.50"),
+                        null,
+                        "credit",
+                        "credit card");
+        if (diningRow != null) {
+            assertFalse(
+                    "investment".equalsIgnoreCase(diningRow.category),
+                    "CC dining row must not be routed to investment (got "
+                            + diningRow.category
+                            + ")");
+        }
+
+        final SemanticMatchingService.SemanticMatchResult utilityRow =
+                semanticMatchingService.findBestSemanticMatchWithContext(
+                        "Republic Services",
+                        "Republic Services Trash",
+                        new java.math.BigDecimal("-65.00"),
+                        null,
+                        "credit_card",
+                        "credit_card");
+        if (utilityRow != null) {
+            assertFalse(
+                    "investment".equalsIgnoreCase(utilityRow.category),
+                    "CC utility row must not be routed to investment (got "
+                            + utilityRow.category
+                            + ")");
+        }
+    }
+
+    @Test
+    @DisplayName("CONTEXT_INVESTMENT still fires on bona-fide investment accounts")
+    void testContextInvestmentFiresOnRealInvestmentAccount() {
+        // Whole-word boundaries must still admit the legitimate cases.
+        for (final String[] accountSig :
+                new String[][] {
+                    {"investment", null},
+                    {"brokerage", null},
+                    {null, "ira"},
+                    {null, "401k"},
+                    {null, "cd"},
+                    {"investment account", "brokerage"}
+                }) {
+            final SemanticMatchingService.SemanticMatchResult res =
+                    semanticMatchingService.findBestSemanticMatchWithContext(
+                            "Vanguard",
+                            "Vanguard purchase",
+                            new java.math.BigDecimal("-500.00"),
+                            null,
+                            accountSig[0],
+                            accountSig[1]);
+            assertNotNull(
+                    res,
+                    "Expected a context match for type="
+                            + accountSig[0]
+                            + ",sub="
+                            + accountSig[1]);
+            assertEquals(
+                    "investment",
+                    res.category,
+                    "Expected investment for type="
+                            + accountSig[0]
+                            + ",sub="
+                            + accountSig[1]
+                            + " (got "
+                            + res.category
+                            + ")");
+        }
+    }
 }

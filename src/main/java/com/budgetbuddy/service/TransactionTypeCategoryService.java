@@ -1717,28 +1717,34 @@ public class TransactionTypeCategoryService {
                                     || typeLower.contains("charge card"))
                             || (!isCreditLine && typeLower.contains(CREDIT));
 
-            // Investment accounts (401k, IRA, HSA, 529, brokerage, CD, stocks, bonds, etc.)
+            // Investment accounts (401k, IRA, HSA, 529, brokerage, CD, stocks, bonds, etc.).
+            // We use whole-word matching for the short keys ("cd", "ira",
+            // "401k", "hsa", "529", "etf") so a corrupt subtype like
+            // "credit_card_cd_legacy" (or any string that happens to embed
+            // these letters) doesn't accidentally route everyday spend on a
+            // credit-card account to investment. Multi-word keys remain
+            // substring matches.
             this.isInvestment =
                     typeLower.contains(INVESTMENT)
-                            || typeLower.contains(N_401K)
-                            || typeLower.contains(IRA)
-                            || typeLower.contains("hsa")
-                            || typeLower.contains("529")
+                            || containsAsWord(typeLower, N_401K)
+                            || containsAsWord(typeLower, IRA)
+                            || containsAsWord(typeLower, "hsa")
+                            || containsAsWord(typeLower, "529")
                             || typeLower.contains("brokerage")
                             || typeLower.contains("stocks")
                             || typeLower.contains("bonds")
                             || typeLower.contains("mutual fund")
                             || typeLower.contains("mutualfund")
-                            || typeLower.contains("etf")
+                            || containsAsWord(typeLower, "etf")
                             || typeLower.contains("retirement")
                             || typeLower.contains("certificate")
-                            || typeLower.contains("cd")
-                            || subtypeLower.contains(N_401K)
-                            || subtypeLower.contains(IRA)
-                            || subtypeLower.contains("hsa")
-                            || subtypeLower.contains("529")
+                            || containsAsWord(typeLower, "cd")
+                            || containsAsWord(subtypeLower, N_401K)
+                            || containsAsWord(subtypeLower, IRA)
+                            || containsAsWord(subtypeLower, "hsa")
+                            || containsAsWord(subtypeLower, "529")
                             || subtypeLower.contains("brokerage")
-                            || subtypeLower.contains("cd")
+                            || containsAsWord(subtypeLower, "cd")
                             || subtypeLower.contains("certificate");
 
             // Loan accounts (mortgage, student loan, car loan, personal loan, etc.)
@@ -1757,6 +1763,38 @@ public class TransactionTypeCategoryService {
                             || typeLower.contains("homeloan")
                             || subtypeLower.contains(LOAN)
                             || subtypeLower.contains(MORTGAGE);
+        }
+
+        /**
+         * Whole-word substring check (alphanumeric boundary). Mirrors
+         * SemanticMatchingService.CategorizationContext.containsAsWord — used
+         * for short keys like "cd"/"ira"/"401k" that, under naive
+         * substring matching, falsely route credit-card spend to investment.
+         */
+        private static boolean containsAsWord(final String haystack, final String needle) {
+            if (haystack == null || haystack.isEmpty() || needle == null || needle.isEmpty()) {
+                return false;
+            }
+            int from = 0;
+            while (from <= haystack.length() - needle.length()) {
+                final int idx = haystack.indexOf(needle, from);
+                if (idx < 0) {
+                    return false;
+                }
+                final boolean leftOk = idx == 0 || !isWordChar(haystack.charAt(idx - 1));
+                final int endIdx = idx + needle.length();
+                final boolean rightOk =
+                        endIdx == haystack.length() || !isWordChar(haystack.charAt(endIdx));
+                if (leftOk && rightOk) {
+                    return true;
+                }
+                from = idx + 1;
+            }
+            return false;
+        }
+
+        private static boolean isWordChar(final char c) {
+            return (c >= 'a' && c <= 'z') || (c >= '0' && c <= '9');
         }
     }
 
