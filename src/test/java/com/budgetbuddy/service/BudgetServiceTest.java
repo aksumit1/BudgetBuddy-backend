@@ -64,7 +64,7 @@ class BudgetServiceTest {
 
         // When
         final BudgetTable result =
-                budgetService.createOrUpdateBudget(testUser, "FOOD", BigDecimal.valueOf(1000.00));
+                budgetService.createOrUpdateBudget(testUser, "FOOD", BigDecimal.valueOf(1000.00),null, null, null, null, null, null, null);
 
         // Then
         assertNotNull(result);
@@ -90,7 +90,7 @@ class BudgetServiceTest {
 
         // When
         final BudgetTable result =
-                budgetService.createOrUpdateBudget(testUser, "FOOD", BigDecimal.valueOf(1000.00));
+                budgetService.createOrUpdateBudget(testUser, "FOOD", BigDecimal.valueOf(1000.00),null, null, null, null, null, null, null);
 
         // Then
         assertNotNull(result);
@@ -106,7 +106,7 @@ class BudgetServiceTest {
                         AppException.class,
                         () ->
                                 budgetService.createOrUpdateBudget(
-                                        null, "FOOD", BigDecimal.valueOf(1000.00)));
+                                        null, "FOOD", BigDecimal.valueOf(1000.00),null, null, null, null, null, null, null));
         assertEquals(ErrorCode.INVALID_INPUT, exception.getErrorCode());
     }
 
@@ -122,7 +122,7 @@ class BudgetServiceTest {
                 .thenReturn(Collections.emptyList());
 
         final BudgetTable result =
-                budgetService.createOrUpdateBudget(testUser, "FOOD", BigDecimal.ZERO);
+                budgetService.createOrUpdateBudget(testUser, "FOOD", BigDecimal.ZERO,null, null, null, null, null, null, null);
         assertNotNull(result);
         assertEquals(BigDecimal.ZERO, result.getMonthlyLimit());
 
@@ -132,7 +132,7 @@ class BudgetServiceTest {
                         AppException.class,
                         () ->
                                 budgetService.createOrUpdateBudget(
-                                        testUser, "FOOD", BigDecimal.valueOf(-100)));
+                                        testUser, "FOOD", BigDecimal.valueOf(-100),null, null, null, null, null, null, null));
         assertEquals(ErrorCode.INVALID_INPUT, exception.getErrorCode());
     }
 

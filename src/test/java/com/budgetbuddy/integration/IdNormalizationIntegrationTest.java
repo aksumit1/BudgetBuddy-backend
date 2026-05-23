@@ -175,7 +175,7 @@ class IdNormalizationIntegrationTest {
         // When - Create budget with mixed case ID
         final BudgetTable budget =
                 budgetService.createOrUpdateBudget(
-                        testUser, "FOOD", BigDecimal.valueOf(500.00), mixedCaseBudgetId);
+                        testUser, "FOOD", BigDecimal.valueOf(500.00), mixedCaseBudgetId,null, null, null, null, null, null);
 
         // Then - ID should be normalized to lowercase
         assertEquals(
@@ -323,7 +323,7 @@ class IdNormalizationIntegrationTest {
         // When - Create budget without providing ID (will generate deterministic ID)
         final BudgetTable budget =
                 budgetService.createOrUpdateBudget(
-                        testUser, "TRANSPORTATION", BigDecimal.valueOf(300.00), null);
+                        testUser, "TRANSPORTATION", BigDecimal.valueOf(300.00), null,null, null, null, null, null, null);
 
         // Then - Generated ID should be lowercase
         final String budgetId = budget.getBudgetId();

@@ -37,14 +37,30 @@ public class BudgetService {
 
     private final BudgetRepository budgetRepository;
     private final com.budgetbuddy.repository.dynamodb.TransactionRepository transactionRepository;
+    /**
+     * Optional summary-cache so write paths can invalidate the per-user
+     * snapshot after mutating a budget. Optional to avoid a hard dep on
+     * the summary service for backwards-compat — when null, the summary
+     * cache TTL alone bounds staleness to 30s.
+     */
+    private final BudgetSummaryService summaryService;
 
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ISO_LOCAL_DATE;
 
     public BudgetService(
             final BudgetRepository budgetRepository,
-            final com.budgetbuddy.repository.dynamodb.TransactionRepository transactionRepository) {
+            final com.budgetbuddy.repository.dynamodb.TransactionRepository transactionRepository,
+            @org.springframework.beans.factory.annotation.Autowired(required = false)
+                    final BudgetSummaryService summaryService) {
         this.budgetRepository = budgetRepository;
         this.transactionRepository = transactionRepository;
+        this.summaryService = summaryService;
+    }
+
+    private void invalidateSummaryCache(final String userId) {
+        if (summaryService != null && userId != null) {
+            summaryService.invalidateUser(userId);
+        }
     }
 
     /**
@@ -58,31 +74,9 @@ public class BudgetService {
      * @param goalId Optional ID of the goal this budget is linked to. If null, budget is not linked
      *     to any goal.
      */
-    public BudgetTable createOrUpdateBudget(
-            final UserTable user,
-            final String category,
-            final BigDecimal monthlyLimit,
-            final String budgetId,
-            final Boolean rolloverEnabled,
-            final BigDecimal carriedAmount,
-            final String goalId) {
-        return createOrUpdateBudget(
-                user,
-                category,
-                monthlyLimit,
-                budgetId,
-                rolloverEnabled,
-                carriedAmount,
-                goalId,
-                null,
-                null,
-                null);
-    }
-
     /**
      * Flow 5 — full-surface create/update. Adds `goalAllocation` (portion of the limit earmarked
-     * for the linked goal), `period` (weekly/biweekly/monthly), and explicit `currencyCode`. Legacy
-     * callers keep working via the overload above.
+     * for the linked goal), `period` (weekly/biweekly/monthly), and explicit `currencyCode`.
      *
      * <p>Rejects {@code goalAllocation &gt; monthlyLimit} and {@code goalAllocation != null}
      * without a {@code goalId} — both are nonsensical and would silently drift the "remaining to
@@ -145,6 +139,15 @@ public class BudgetService {
                 budget.setCarriedAmount(carriedAmount);
             }
             if (goalId != null) {
+                // Switching which goal this budget feeds — clear the
+                // funded-bookmark so the BudgetToGoalFlowService doesn't
+                // keep crediting the PRIOR goal's "already funded" total
+                // against the NEW goal. The prior code only reset on
+                // allocation-amount change, missing the goal-switch case.
+                final String previousGoalId = budget.getGoalId();
+                if (previousGoalId == null || !previousGoalId.equals(goalId)) {
+                    budget.setLastGoalFunded(null);
+                }
                 budget.setGoalId(goalId);
             }
             if (goalAllocation != null) {
@@ -276,11 +279,16 @@ public class BudgetService {
             budget.setPeriod(period != null && !period.isBlank() ? period : "monthly");
         }
 
-        // Update current spent for current month
+        // Update current spent for the budget's cycle window. The prior
+        // implementation always used the calendar month, which over-counted
+        // for weekly/biweekly budgets (a weekly budget would show 4 weeks of
+        // spend in its current-spent bar). Use the shared cycleWindow.
         try {
-            final LocalDate startOfMonth = LocalDate.now().withDayOfMonth(1);
-            final String startDateStr = startOfMonth.format(DATE_FORMATTER);
-            final String endDateStr = LocalDate.now().format(DATE_FORMATTER);
+            final String windowPeriod = budget.getPeriod() == null ? "monthly" : budget.getPeriod();
+            final LocalDate[] window =
+                    BudgetSummaryService.cycleWindow(windowPeriod, LocalDate.now());
+            final String startDateStr = window[0].format(DATE_FORMATTER);
+            final String endDateStr = window[1].format(DATE_FORMATTER);
             final List<TransactionTable> transactions =
                     transactionRepository.findByUserIdAndDateRange(
                             user.getUserId(), startDateStr, endDateStr);
@@ -297,6 +305,12 @@ public class BudgetService {
                             .filter(amount -> amount != null)
                             .reduce(BigDecimal.ZERO, BigDecimal::add);
 
+            // BudgetTable.currentSpent is deprecated — no service reads it
+            // (BudgetSummaryService recomputes from transactions every
+            // request). Keep writing the value on create/update so that
+            // existing rows aren't silently zeroed out, but don't
+            // build new logic on top of this field — it would drift the
+            // moment the underlying transactions change between writes.
             budget.setCurrentSpent(currentSpent);
         } catch (Exception e) {
             if (LOGGER.isWarnEnabled()) {
@@ -335,25 +349,8 @@ public class BudgetService {
             budgetRepository.saveWithLock(fresh);
             budget = fresh;
         }
+        invalidateSummaryCache(user.getUserId());
         return budget;
-    }
-
-    /**
-     * Create or update budget (backward compatibility - generates deterministic ID, no rollover, no
-     * goalId)
-     */
-    public BudgetTable createOrUpdateBudget(
-            final UserTable user, final String category, final BigDecimal monthlyLimit) {
-        return createOrUpdateBudget(user, category, monthlyLimit, null, null, null, null);
-    }
-
-    /** Create or update budget (backward compatibility - generates deterministic ID, no goalId) */
-    public BudgetTable createOrUpdateBudget(
-            final UserTable user,
-            final String category,
-            final BigDecimal monthlyLimit,
-            final String budgetId) {
-        return createOrUpdateBudget(user, category, monthlyLimit, budgetId, null, null, null);
     }
 
     public List<BudgetTable> getBudgets(final UserTable user) {
@@ -407,5 +404,6 @@ public class BudgetService {
         }
 
         budgetRepository.delete(budgetId);
+        invalidateSummaryCache(user.getUserId());
     }
 }

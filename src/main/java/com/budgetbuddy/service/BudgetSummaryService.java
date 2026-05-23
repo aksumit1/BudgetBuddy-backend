@@ -39,11 +39,38 @@ import org.springframework.stereotype.Service;
 @Service
 public class BudgetSummaryService {
     private static final DateTimeFormatter DATE = DateTimeFormatter.ISO_LOCAL_DATE;
-    private static final Set<String> INCOME_OR_SAVINGS =
-            Set.of("income", "salary", "investment", "savings", "interest");
+    // Classification moved to BudgetCategoryClassifier so this and
+    // BudgetRolloverService share one source of truth.
 
     private final BudgetRepository budgetRepository;
     private final TransactionRepository transactionRepository;
+    /** Optional — drives B-AI-2 risk fields on the DTO when present. */
+    private com.budgetbuddy.service.budget.BudgetForecastService forecastService;
+
+    /**
+     * Per-user short-TTL cache for buildSummaries. The iOS Budgets screen
+     * hits this endpoint on every render — one call walks every budget
+     * and does a findByUserIdAndDateRange per row. 30s TTL is the same
+     * shape we used for SubscriptionInsightsService; it's short enough
+     * that fresh imports surface quickly but long enough to absorb
+     * back-to-back renders during navigation.
+     */
+    private static final long SUMMARY_CACHE_TTL_MS = 30_000;
+    /** Hard ceiling on cached users — same pattern as
+     *  SubscriptionInsightsService.TX_CACHE_MAX_USERS. */
+    private static final int SUMMARY_CACHE_MAX_USERS = 1_000;
+    private final java.util.concurrent.ConcurrentMap<String, SummaryCacheEntry> summaryCache =
+            new java.util.concurrent.ConcurrentHashMap<>();
+
+    private static final class SummaryCacheEntry {
+        final long expiresAt;
+        final List<BudgetSummaryDto> result;
+
+        SummaryCacheEntry(final long expiresAt, final List<BudgetSummaryDto> result) {
+            this.expiresAt = expiresAt;
+            this.result = result;
+        }
+    }
 
     public BudgetSummaryService(
             final BudgetRepository budgetRepository,
@@ -52,13 +79,49 @@ public class BudgetSummaryService {
         this.transactionRepository = transactionRepository;
     }
 
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    public void setForecastService(
+            final com.budgetbuddy.service.budget.BudgetForecastService forecastService) {
+        this.forecastService = forecastService;
+    }
+
     public List<BudgetSummaryDto> buildSummaries(final UserTable user) {
+        final SummaryCacheEntry hit = summaryCache.get(user.getUserId());
+        final long now = System.currentTimeMillis();
+        if (hit != null && hit.expiresAt > now) {
+            return hit.result;
+        }
         final List<BudgetTable> budgets = budgetRepository.findByUserId(user.getUserId());
         final List<BudgetSummaryDto> out = new ArrayList<>();
         for (final BudgetTable b : budgets) {
             out.add(buildOne(user, b, LocalDate.now()));
         }
+        ensureCacheCapacity();
+        summaryCache.put(user.getUserId(),
+                new SummaryCacheEntry(now + SUMMARY_CACHE_TTL_MS, out));
         return out;
+    }
+
+    private void ensureCacheCapacity() {
+        if (summaryCache.size() < SUMMARY_CACHE_MAX_USERS) return;
+        final long now = System.currentTimeMillis();
+        summaryCache.entrySet().removeIf(e -> e.getValue().expiresAt <= now);
+        if (summaryCache.size() < SUMMARY_CACHE_MAX_USERS) return;
+        summaryCache.entrySet().stream()
+                .min(java.util.Map.Entry.comparingByValue(
+                        java.util.Comparator.comparingLong(e -> e.expiresAt)))
+                .ifPresent(e -> summaryCache.remove(e.getKey(), e.getValue()));
+    }
+
+    /**
+     * Invalidate the cache for a user — call this after writes that change
+     * budget state ({@code createOrUpdateBudget}, {@code deleteBudget},
+     * rollover, transaction ingest that touches a budget category).
+     * Callers that don't bother will eventually see stale data for up to
+     * {@code SUMMARY_CACHE_TTL_MS}, which is the documented contract.
+     */
+    public void invalidateUser(final String userId) {
+        if (userId != null) summaryCache.remove(userId);
     }
 
     /**
@@ -94,9 +157,7 @@ public class BudgetSummaryService {
         final LocalDate[] window = cycleWindow(period, now);
         final LocalDate start = window[0], end = window[1];
 
-        final boolean isIncomeOrSavings =
-                b.getCategory() != null
-                        && INCOME_OR_SAVINGS.contains(b.getCategory().toLowerCase(Locale.ROOT));
+        final boolean isIncomeOrSavings = BudgetCategoryClassifier.isIncomeOrSavings(b.getCategory());
 
         BigDecimal spent = BigDecimal.ZERO;
         BigDecimal goalContribution = BigDecimal.ZERO;
@@ -145,10 +206,18 @@ public class BudgetSummaryService {
                     spent = spent.add(t.getAmount());
                 }
             } else {
+                // Same refund-netting fix as BudgetThresholdEvaluator:
+                // refunds (positive amounts on expense categories) decrement
+                // spend. A $200 charge + $200 refund must show 0 net spend.
                 if (t.getAmount().signum() < 0) {
                     spent = spent.add(t.getAmount().abs());
+                } else {
+                    spent = spent.subtract(t.getAmount());
                 }
             }
+        }
+        if (!isIncomeOrSavings && spent.signum() < 0) {
+            spent = BigDecimal.ZERO;
         }
 
         final BigDecimal limit =
@@ -185,6 +254,57 @@ public class BudgetSummaryService {
         // The DB query internally uses the inclusive form; the DTO exposes the
         // exclusive-end form so [start, end) is the canonical public interface.
         dto.cycleEnd = end.plusDays(1).format(DATE);
+
+        // B-OPP-1 / B-OPP-2: pace-based forecast fields. Income/savings budgets
+        // don't project an "overrun" — leave the forecast fields null so the
+        // client treats them as "not applicable" rather than mis-rendering.
+        if (!isIncomeOrSavings && effectiveLimit.signum() > 0) {
+            final LocalDate clampedNow = now.isBefore(start) ? start : (now.isAfter(end) ? end : now);
+            final long totalDays = java.time.temporal.ChronoUnit.DAYS.between(start, end) + 1;
+            final long daysElapsed = java.time.temporal.ChronoUnit.DAYS.between(start, clampedNow) + 1;
+            final long daysRemaining = Math.max(1L, totalDays - daysElapsed);
+
+            final BigDecimal elapsed = BigDecimal.valueOf(Math.max(1L, daysElapsed));
+            final BigDecimal totalDaysBd = BigDecimal.valueOf(totalDays);
+            final BigDecimal dailyBurn =
+                    spent.divide(elapsed, 2, java.math.RoundingMode.HALF_UP);
+            final BigDecimal projected =
+                    dailyBurn.multiply(totalDaysBd).setScale(2, java.math.RoundingMode.HALF_UP);
+            final BigDecimal remainingForAllowance = remaining.max(BigDecimal.ZERO);
+            final BigDecimal recommendedDaily =
+                    remainingForAllowance.divide(
+                            BigDecimal.valueOf(daysRemaining), 2, java.math.RoundingMode.HALF_UP);
+
+            dto.dailyBurnRate = dailyBurn;
+            dto.projectedSpend = projected;
+            dto.recommendedDailyAllowance = recommendedDaily;
+            dto.daysElapsedInCycle = (int) daysElapsed;
+            dto.daysRemainingInCycle = (int) Math.max(0L, totalDays - daysElapsed);
+
+            // B-AI-2: predictive overrun warning. Only populated when the
+            // forecast service is wired (it always is in the running app, but
+            // unit tests that construct this service directly may skip it).
+            if (forecastService != null) {
+                try {
+                    final com.budgetbuddy.service.budget.BudgetForecastService.Forecast f =
+                            forecastService.forecast(
+                                    user.getUserId(),
+                                    b.getCategory(),
+                                    effectiveLimit,
+                                    spent,
+                                    start,
+                                    end,
+                                    now);
+                    if (f != null) {
+                        dto.overrunRisk = f.risk == null ? null : f.risk.name();
+                        dto.overrunReason = f.reason;
+                        dto.forecastedSpend = f.predictedSpend;
+                    }
+                } catch (Exception ignored) {
+                    // Forecast failures must never break summary rendering.
+                }
+            }
+        }
         return dto;
     }
 
@@ -199,7 +319,12 @@ public class BudgetSummaryService {
         }
     }
 
-    private LocalDate[] cycleWindow(final String period, final LocalDate today) {
+    /**
+     * Package-visible + static so {@link BudgetService} and the threshold
+     * evaluator can share the same window math. Period-aware: weekly,
+     * biweekly, monthly. Anything else → monthly.
+     */
+    static LocalDate[] cycleWindow(final String period, final LocalDate today) {
         switch (period.toLowerCase(Locale.ROOT)) {
             case "weekly":
                 final LocalDate monday =
@@ -246,5 +371,19 @@ public class BudgetSummaryService {
         public BigDecimal goalContributedSoFar;
         public String cycleStart;
         public String cycleEnd;
+
+        // B-OPP-1 / B-OPP-2: forecast fields. Null on income/savings budgets
+        // and on rows with no limit configured.
+        public BigDecimal projectedSpend;
+        public BigDecimal dailyBurnRate;
+        public BigDecimal recommendedDailyAllowance;
+        public Integer daysElapsedInCycle;
+        public Integer daysRemainingInCycle;
+
+        // B-AI-2: predictive overrun risk. Null unless the forecast service is
+        // wired (which it is in production).
+        public String overrunRisk; // "LOW" | "MEDIUM" | "HIGH"
+        public String overrunReason;
+        public BigDecimal forecastedSpend;
     }
 }

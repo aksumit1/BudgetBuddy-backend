@@ -86,12 +86,15 @@ public class BudgetThresholdEvaluator {
             return;
         }
         try {
-            final List<BudgetTable> userBudgets = budgetRepository.findByUserId(userId);
-            for (final BudgetTable budget : userBudgets) {
-                if (!touchedCategories.contains(budget.getCategory())) {
-                    continue;
-                }
-                evaluateSingle(budget);
+            // Query directly by (userId, category) instead of scan-all-budgets
+            // + filter-in-loop. The prior shape walked every user budget
+            // even when only one category was touched. findByUserIdAndCategory
+            // hits the existing index for an O(1) lookup per touched category.
+            for (final String category : touchedCategories) {
+                if (category == null || category.isEmpty()) continue;
+                budgetRepository
+                        .findByUserIdAndCategory(userId, category)
+                        .ifPresent(this::evaluateSingle);
             }
         } catch (Exception e) {
             if (LOGGER.isWarnEnabled()) {
@@ -131,9 +134,22 @@ public class BudgetThresholdEvaluator {
             if (!BudgetRolloverService.countsTowardBudget(budget, t)) {
                 continue;
             }
+            // NET refunds against spend instead of ignoring them. A $200
+            // grocery charge followed by a $200 grocery refund used to leave
+            // the budget at 100% used because positive (refund) amounts
+            // were silently skipped. Now they decrement spend so the bar
+            // accurately reflects the user's actual outlay.
             if (t.getAmount().signum() < 0) {
                 spent = spent.add(t.getAmount().abs());
+            } else {
+                spent = spent.subtract(t.getAmount());
             }
+        }
+        // Refunds can push spend below zero in the rare case where last
+        // month's charges get refunded in this month. Clamp to zero so the
+        // threshold math doesn't compute a negative percent.
+        if (spent.signum() < 0) {
+            spent = BigDecimal.ZERO;
         }
         BigDecimal effectiveLimit = budget.getMonthlyLimit();
         if (budget.getCarriedAmount() != null) {
@@ -155,8 +171,31 @@ public class BudgetThresholdEvaluator {
                 highestCrossed = THRESHOLDS[i];
             }
         }
-        final int alreadyAlerted =
+        int alreadyAlerted =
                 budget.getLastAlertedThreshold() == null ? 0 : budget.getLastAlertedThreshold();
+
+        // DROP-THEN-RECROSS RESET: if spend dropped at least one full
+        // bracket BELOW the most recent alert (e.g. user got a refund and
+        // we're back under 75% after previously alerting at 90%), reset
+        // the bookmark so a future re-cross can alert again. Without this,
+        // a refund-then-respend cycle silently suppresses the second 90%
+        // alert. We pick "one full bracket below" rather than a soft
+        // hysteresis to avoid noisy re-firing on tiny back-and-forth.
+        if (alreadyAlerted > 0) {
+            int oneBelow = 0;
+            for (final int t : THRESHOLDS) {
+                if (t < alreadyAlerted) oneBelow = t;
+            }
+            if (percent.compareTo(BigDecimal.valueOf(oneBelow)) < 0) {
+                budget.setLastAlertedThreshold(highestCrossed > 0 ? highestCrossed : null);
+                alreadyAlerted = highestCrossed;
+                if (LOGGER.isInfoEnabled()) {
+                    LOGGER.info(
+                            "Budget {} bookmark reset (was {}%, now back below {}%); next re-cross will alert again",
+                            budget.getBudgetId(), budget.getLastAlertedThreshold(), oneBelow);
+                }
+            }
+        }
 
         if (highestCrossed > alreadyAlerted) {
             notificationService.notifyBudgetThresholdCrossed(

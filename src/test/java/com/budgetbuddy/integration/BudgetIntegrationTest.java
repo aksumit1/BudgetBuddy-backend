@@ -45,7 +45,7 @@ class BudgetIntegrationTest {
     void testCreateAndRetrieveBudget() {
         // Given
         final BudgetTable budget =
-                budgetService.createOrUpdateBudget(testUser, "FOOD", BigDecimal.valueOf(1000.00));
+                budgetService.createOrUpdateBudget(testUser, "FOOD", BigDecimal.valueOf(1000.00),null, null, null, null, null, null, null);
 
         // When
         final List<BudgetTable> budgets = budgetService.getBudgets(testUser);
@@ -59,11 +59,11 @@ class BudgetIntegrationTest {
     void testUpdateBudgetUpdatesMonthlyLimit() {
         // Given
         final BudgetTable budget =
-                budgetService.createOrUpdateBudget(testUser, "FOOD", BigDecimal.valueOf(1000.00));
+                budgetService.createOrUpdateBudget(testUser, "FOOD", BigDecimal.valueOf(1000.00),null, null, null, null, null, null, null);
 
         // When
         final BudgetTable updated =
-                budgetService.createOrUpdateBudget(testUser, "FOOD", BigDecimal.valueOf(1500.00));
+                budgetService.createOrUpdateBudget(testUser, "FOOD", BigDecimal.valueOf(1500.00),null, null, null, null, null, null, null);
 
         // Then
         assertEquals(BigDecimal.valueOf(1500.00), updated.getMonthlyLimit());

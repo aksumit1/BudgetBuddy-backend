@@ -173,7 +173,7 @@ class ApiCompatibilityIntegrationTest {
     void testBudgetResponseFormatMatchesIOS() throws Exception {
         // Given - Create a budget
         final BudgetTable budget =
-                budgetService.createOrUpdateBudget(testUser, GROCERIES, new BigDecimal("500.00"));
+                budgetService.createOrUpdateBudget(testUser, GROCERIES, new BigDecimal("500.00"),null, null, null, null, null, null, null);
 
         // When - Serialize to JSON
         final String json = objectMapper.writeValueAsString(budget);

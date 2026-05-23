@@ -79,9 +79,30 @@ public class BudgetRolloverService {
      */
     @Scheduled(cron = "0 30 0 1 * *", zone = "UTC")
     public void monthlyRollover() {
-        final LocalDate today = LocalDate.now(ZoneOffset.UTC);
-        final String lockKey = "budgetRollover:" + today;
-        distributedLock.runOnce(lockKey, 60, () -> runRollover(today));
+        runRolloverIfNeeded(LocalDate.now(ZoneOffset.UTC));
+    }
+
+    /**
+     * Catch-up cron: fires daily at 01:15 UTC. Idempotent — the
+     * {@link #runRolloverIfNeeded} guard uses a month-keyed distributed
+     * lock with a 35-day TTL, so the first successful run for a given
+     * prior-month wins and subsequent daily attempts no-op. This means
+     * if the pod is down at the regular 00:30-on-the-1st cron, the next
+     * day's catch-up will still roll for that month.
+     */
+    @Scheduled(cron = "0 15 1 * * *", zone = "UTC")
+    public void monthlyRolloverCatchUp() {
+        runRolloverIfNeeded(LocalDate.now(ZoneOffset.UTC));
+    }
+
+    private void runRolloverIfNeeded(final LocalDate anchor) {
+        // Key on the PRIOR month so the lock is unique-per-rollover-period.
+        // 35-day TTL > one month → any same-month catch-up firing finds
+        // the lock held and skips. Next month → key changes → runs again.
+        final LocalDate priorMonth = anchor.minusMonths(1).withDayOfMonth(1);
+        final String lockKey = "budgetRolloverMonth:" + priorMonth.getYear() + "-"
+                + String.format("%02d", priorMonth.getMonthValue());
+        distributedLock.runOnce(lockKey, 35 * 24 * 60 * 60, () -> runRollover(anchor));
     }
 
     /**
@@ -223,16 +244,11 @@ public class BudgetRolloverService {
         return matchesBudgetCurrency(budget, t) && isPosted(t);
     }
 
+    // isIncomeOrSavingsCategory removed — delegated to the shared
+    // {@link BudgetCategoryClassifier} so this service and
+    // BudgetSummaryService can't drift on the category list.
     private boolean isIncomeOrSavingsCategory(final String category) {
-        if (category == null) {
-            return false;
-        }
-        final String c = category.toLowerCase(Locale.ROOT);
-        return "income".equals(c)
-                || "salary".equals(c)
-                || "investment".equals(c)
-                || "savings".equals(c)
-                || "interest".equals(c);
+        return BudgetCategoryClassifier.isIncomeOrSavings(category);
     }
 
     public record RolloverResult(

@@ -92,11 +92,22 @@ public class BudgetTable {
         this.monthlyLimit = monthlyLimit;
     }
 
+    /**
+     * @deprecated The authoritative current-spend value is computed live in
+     *     {@link com.budgetbuddy.service.BudgetSummaryService#computeFromTransactions}
+     *     from transactions in the budget's cycle window. This persisted
+     *     value goes stale the moment a transaction is added/edited
+     *     without re-running createOrUpdate. Do NOT add new readers; treat
+     *     it as a write-only legacy column scheduled for migration.
+     */
+    @Deprecated
     @DynamoDbAttribute("currentSpent")
     public BigDecimal getCurrentSpent() {
         return currentSpent;
     }
 
+    /** @deprecated See getCurrentSpent. */
+    @Deprecated
     public void setCurrentSpent(final BigDecimal currentSpent) {
         this.currentSpent = currentSpent;
     }

@@ -48,6 +48,7 @@ public class BudgetController {
     private final com.budgetbuddy.notification.DataChangeNotificationService
             dataChangeNotificationService;
     private final com.budgetbuddy.service.BudgetSummaryService budgetSummaryService;
+    private final com.budgetbuddy.service.BudgetSuggestionService budgetSuggestionService;
     // Flow 7 / O4 — route mutations through the audit interceptor.
     private final com.budgetbuddy.compliance.MutationAuditInterceptor auditInterceptor;
     // Correctness: retry-safe POST so a dropped network response doesn't
@@ -64,12 +65,14 @@ public class BudgetController {
             final com.budgetbuddy.notification.DataChangeNotificationService
                     dataChangeNotificationService,
             final com.budgetbuddy.service.BudgetSummaryService budgetSummaryService,
+            final com.budgetbuddy.service.BudgetSuggestionService budgetSuggestionService,
             final com.budgetbuddy.compliance.MutationAuditInterceptor auditInterceptor,
             final com.budgetbuddy.service.correctness.IdempotencyService idempotencyService) {
         this.budgetService = budgetService;
         this.userService = userService;
         this.dataChangeNotificationService = dataChangeNotificationService;
         this.budgetSummaryService = budgetSummaryService;
+        this.budgetSuggestionService = budgetSuggestionService;
         this.auditInterceptor = auditInterceptor;
         this.idempotencyService = idempotencyService;
     }
@@ -111,6 +114,25 @@ public class BudgetController {
                         .orElseThrow(
                                 () -> new AppException(ErrorCode.USER_NOT_FOUND, USER_NOT_FOUND_1));
         return ResponseEntity.ok(budgetSummaryService.buildSummaries(user));
+    }
+
+    /**
+     * B-OPP-3: recommended monthly limits derived from the user's last 6
+     * months of spending. iOS calls this when opening the "Create budget"
+     * sheet to prefill the limit field.
+     */
+    @GetMapping("/suggestions")
+    public ResponseEntity<List<com.budgetbuddy.service.BudgetSuggestionService.BudgetSuggestion>>
+            getBudgetSuggestions(@AuthenticationPrincipal final UserDetails userDetails) {
+        if (userDetails == null || userDetails.getUsername() == null) {
+            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, USER_NOT_AUTHENTICATED);
+        }
+        final UserTable user =
+                userService
+                        .findByEmail(userDetails.getUsername())
+                        .orElseThrow(
+                                () -> new AppException(ErrorCode.USER_NOT_FOUND, USER_NOT_FOUND_1));
+        return ResponseEntity.ok(budgetSuggestionService.suggestForUser(user));
     }
 
     @PostMapping

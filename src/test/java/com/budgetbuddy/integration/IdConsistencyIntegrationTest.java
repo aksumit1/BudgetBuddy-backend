@@ -207,7 +207,7 @@ class IdConsistencyIntegrationTest {
                         category,
                         BigDecimal.valueOf(500.00),
                         expectedBudgetId // App-provided ID
-                        );
+                        ,null, null, null, null, null, null);
 
         // Then - Should use the provided ID
         assertEquals(expectedBudgetId, budget.getBudgetId(), "Budget should use provided ID");
@@ -225,7 +225,7 @@ class IdConsistencyIntegrationTest {
         final BudgetTable budget =
                 budgetService.createOrUpdateBudget(
                         testUser, category, BigDecimal.valueOf(300.00), null // Let backend generate
-                        );
+                        ,null, null, null, null, null, null);
 
         // Then - Should generate deterministic ID matching our expectation
         assertEquals(
@@ -374,7 +374,7 @@ class IdConsistencyIntegrationTest {
         // When - Create first budget with ID
         final BudgetTable budget1 =
                 budgetService.createOrUpdateBudget(
-                        testUser, category, BigDecimal.valueOf(200.00), budgetId);
+                        testUser, category, BigDecimal.valueOf(200.00), budgetId,null, null, null, null, null, null);
 
         // Then - Should succeed
         assertNotNull(budget1, "First budget should be created");
@@ -389,7 +389,7 @@ class IdConsistencyIntegrationTest {
                             // practice)
                             BigDecimal.valueOf(300.00),
                             budgetId // Same ID
-                            );
+                            ,null, null, null, null, null, null);
                 },
                 "Should throw exception when budget ID already exists");
     }
