@@ -63,6 +63,30 @@ public class MissedPaymentDetectionService {
         this.transactionRepository = transactionRepository;
     }
 
+    /**
+     * Context-aware overload for /summary. Reads everything from the
+     * snapshot: actions, transactions for the payment-window matching,
+     * and the recurring-pattern transactions — zero additional repo
+     * calls. {@link #checkPaymentMadeFrom} replaces the per-action ±7d
+     * fetch with an in-memory window slice of {@code ctx.transactions()}.
+     */
+    public List<MissedPaymentAlert> detectMissedPayments(
+            final com.budgetbuddy.service.insights.InsightsContext ctx) {
+        if (ctx == null) {
+            return new ArrayList<>();
+        }
+        final List<MissedPaymentAlert> alerts = new ArrayList<>();
+        alerts.addAll(checkTransactionActionsFrom(
+                ctx.transactionActions(), ctx.transactions(), ctx.asOf(), ctx.userId()));
+        alerts.addAll(detectRecurringPaymentPatternsFrom(ctx.transactions(), ctx.asOf()));
+        return alerts.stream()
+                .sorted(Comparator.comparing(
+                                (MissedPaymentAlert a) -> a.getSeverity().ordinal())
+                        .reversed()
+                        .thenComparing(MissedPaymentAlert::getDueDate))
+                .collect(Collectors.toList());
+    }
+
     /** Detect missed payments for a user */
     public List<MissedPaymentAlert> detectMissedPayments(final String userId) {
         if (userId == null || userId.isEmpty()) {
@@ -90,10 +114,27 @@ public class MissedPaymentDetectionService {
 
     /** Check TransactionActions for overdue or at-risk payments */
     private List<MissedPaymentAlert> checkTransactionActions(final String userId) {
-        final List<MissedPaymentAlert> alerts = new ArrayList<>();
-
+        // Fetch on the legacy path; the context path uses the
+        // From-variant below with pre-fetched data.
         final List<TransactionActionTable> actions = actionRepository.findByUserId(userId);
-        final LocalDate today = LocalDate.now();
+        return checkTransactionActionsFrom(actions, null, LocalDate.now(), userId);
+    }
+
+    /**
+     * Context-aware variant — works on pre-fetched actions + pre-fetched
+     * transactions. When {@code preFetchedTxs} is non-null it's used as
+     * the source for payment-matching (in-memory filtered to ±7d around
+     * each action's due date), skipping the per-action repo call that
+     * the legacy path issued. Pass null to fall back to the legacy
+     * per-action fetch (for backwards compat with {@link
+     * #checkTransactionActions(String)}).
+     */
+    private List<MissedPaymentAlert> checkTransactionActionsFrom(
+            final List<TransactionActionTable> actions,
+            final List<TransactionTable> preFetchedTxs,
+            final LocalDate today,
+            final String userId) {
+        final List<MissedPaymentAlert> alerts = new ArrayList<>();
 
         for (final TransactionActionTable action : actions) {
             // Skip if already completed
@@ -116,7 +157,8 @@ public class MissedPaymentDetectionService {
                     final Severity severity = daysOverdue > 7 ? Severity.HIGH : Severity.MEDIUM;
 
                     // Check if payment was made (look for matching transaction)
-                    final boolean paymentFound = checkPaymentMade(userId, action, dueDate);
+                    final boolean paymentFound =
+                            paymentMatched(action, dueDate, preFetchedTxs, userId);
 
                     if (!paymentFound) {
                         alerts.add(
@@ -136,7 +178,8 @@ public class MissedPaymentDetectionService {
                     }
                 } else if (daysUntilDue <= DAYS_BEFORE_OVERDUE && daysUntilDue >= 0) {
                     // At risk - due soon
-                    final boolean paymentFound = checkPaymentMade(userId, action, dueDate);
+                    final boolean paymentFound =
+                            paymentMatched(action, dueDate, preFetchedTxs, userId);
 
                     if (!paymentFound) {
                         alerts.add(
@@ -166,28 +209,53 @@ public class MissedPaymentDetectionService {
         return alerts;
     }
 
-    /** Check if payment was made by looking for matching transaction */
-    private boolean checkPaymentMade(
-            final String userId, final TransactionActionTable action, final LocalDate dueDate) {
-
-        // Look for transactions around due date (±7 days)
+    /**
+     * Dispatch helper used by both the legacy and context-aware paths.
+     * When {@code preFetchedTxs} is non-null, slice it in-memory for
+     * the ±7-day window around {@code dueDate} (no repo hit). When
+     * null, fall back to the legacy per-action repo fetch keyed by
+     * {@code userId}.
+     */
+    private boolean paymentMatched(
+            final TransactionActionTable action,
+            final LocalDate dueDate,
+            final List<TransactionTable> preFetchedTxs,
+            final String userId) {
         final LocalDate startDate = dueDate.minusDays(7);
         final LocalDate endDate = dueDate.plusDays(7);
+        final List<TransactionTable> windowed;
+        if (preFetchedTxs != null) {
+            final String startStr = startDate.format(DATE_FORMATTER);
+            final String endStr = endDate.format(DATE_FORMATTER);
+            windowed = preFetchedTxs.stream()
+                    .filter(tx -> tx.getTransactionDate() != null
+                            && tx.getTransactionDate().compareTo(startStr) >= 0
+                            && tx.getTransactionDate().compareTo(endStr) <= 0)
+                    .collect(Collectors.toList());
+        } else {
+            windowed = transactionRepository.findByUserIdAndDateRange(
+                    userId,
+                    startDate.format(DATE_FORMATTER),
+                    endDate.format(DATE_FORMATTER));
+        }
+        return matchPaymentAgainst(action, windowed);
+    }
 
-        final String startDateStr = startDate.format(DATE_FORMATTER);
-        final String endDateStr = endDate.format(DATE_FORMATTER);
+    /**
+     * Title/merchant/description substring match between an action and
+     * a window of candidate-payment transactions. Any blank action
+     * field is treated as no-signal rather than a wildcard match —
+     * otherwise a null description would match every transaction and
+     * silently suppress every overdue alert.
+     */
+    private boolean matchPaymentAgainst(
+            final TransactionActionTable action, final List<TransactionTable> transactions) {
+        final String actionTitle = lowerOrNull(action.getTitle());
+        final String actionDesc = lowerOrNull(action.getDescription());
 
-        final List<TransactionTable> transactions =
-                transactionRepository.findByUserIdAndDateRange(userId, startDateStr, endDateStr);
-
-        // Check if any transaction matches the action
-        final String actionTitle =
-                action.getTitle() != null ? action.getTitle().toLowerCase(Locale.ROOT) : "";
-        final String actionDesc =
-                action.getDescription() != null
-                        ? action.getDescription().toLowerCase(Locale.ROOT)
-                        : "";
-        final BigDecimal actionAmount = null; // Amount not available in TransactionActionTable
+        if (actionTitle == null && actionDesc == null) {
+            return false;
+        }
 
         for (final TransactionTable tx : transactions) {
             final String txDesc =
@@ -196,36 +264,29 @@ public class MissedPaymentDetectionService {
                     tx.getMerchantName() != null
                             ? tx.getMerchantName().toLowerCase(Locale.ROOT)
                             : "";
-            final BigDecimal txAmount = tx.getAmount() != null ? tx.getAmount().abs() : null;
 
-            // Check if description or merchant matches
-            final boolean descriptionMatches =
-                    txDesc.contains(actionTitle)
-                            || txDesc.contains(actionDesc)
-                            || txMerchant.contains(actionTitle);
+            final boolean titleInDesc = actionTitle != null && txDesc.contains(actionTitle);
+            final boolean descInDesc = actionDesc != null && txDesc.contains(actionDesc);
+            final boolean titleInMerchant =
+                    actionTitle != null && txMerchant.contains(actionTitle);
 
-            // Check if amount matches (within $5 tolerance)
-            final boolean amountMatches =
-                    actionAmount != null
-                            && txAmount != null
-                            && actionAmount
-                                            .subtract(txAmount)
-                                            .abs()
-                                            .compareTo(BigDecimal.valueOf(5))
-                                    <= 0;
-
-            if (descriptionMatches && (amountMatches || actionAmount == null)) {
-                return true; // Payment found
+            if (titleInDesc || descInDesc || titleInMerchant) {
+                return true;
             }
         }
+        return false;
+    }
 
-        return false; // Payment not found
+    private static String lowerOrNull(final String s) {
+        if (s == null) {
+            return null;
+        }
+        final String trimmed = s.trim();
+        return trimmed.isEmpty() ? null : trimmed.toLowerCase(Locale.ROOT);
     }
 
     /** Detect recurring payment patterns and check for missing payments */
     private List<MissedPaymentAlert> detectRecurringPaymentPatterns(final String userId) {
-        final List<MissedPaymentAlert> alerts = new ArrayList<>();
-
         final LocalDate endDate = LocalDate.now();
         final LocalDate startDate = endDate.minusDays(RECURRING_PATTERN_DAYS);
 
@@ -234,6 +295,26 @@ public class MissedPaymentDetectionService {
 
         final List<TransactionTable> transactions =
                 transactionRepository.findByUserIdAndDateRange(userId, startDateStr, endDateStr);
+        return detectRecurringPaymentPatternsFrom(transactions, endDate);
+    }
+
+    /**
+     * Same pattern detection as {@link #detectRecurringPaymentPatterns}
+     * but operates on a pre-supplied transaction list — used by the
+     * /summary path. The caller is responsible for windowing; we
+     * filter internally to the {@link #RECURRING_PATTERN_DAYS} window
+     * from {@code asOf} so passing a wider list (e.g. the full 365-day
+     * context snapshot) is safe.
+     */
+    private List<MissedPaymentAlert> detectRecurringPaymentPatternsFrom(
+            final List<TransactionTable> rawTransactions, final LocalDate asOf) {
+        final List<MissedPaymentAlert> alerts = new ArrayList<>();
+        final LocalDate cutoff = asOf.minusDays(RECURRING_PATTERN_DAYS);
+        final List<TransactionTable> transactions = rawTransactions.stream()
+                .filter(tx -> tx.getTransactionDate() != null
+                        && tx.getTransactionDate().compareTo(cutoff.toString()) >= 0)
+                .collect(Collectors.toList());
+        final LocalDate endDate = asOf;
 
         // Filter to expense transactions
         final List<TransactionTable> expenses =

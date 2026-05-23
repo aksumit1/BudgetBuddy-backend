@@ -68,7 +68,8 @@ public class GoalIngestEvaluator {
                         }
                     });
 
-    private record FailureInfo(Instant lastFailedAt, String lastMessage, int consecutiveFailures) {}
+    /** Package-visible so unit tests can assert against the snapshot. */
+    record FailureInfo(Instant lastFailedAt, String lastMessage, int consecutiveFailures) {}
 
     public GoalIngestEvaluator(
             final GoalRepository goalRepository,

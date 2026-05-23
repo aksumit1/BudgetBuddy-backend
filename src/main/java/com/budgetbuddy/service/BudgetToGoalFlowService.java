@@ -105,9 +105,19 @@ public class BudgetToGoalFlowService {
     }
 
     private void flowOne(final UserTable user, final BudgetTable budget) {
-        // Compute the month's spend for the budget's category.
-        final LocalDate start = LocalDate.now().withDayOfMonth(1);
-        final LocalDate end = LocalDate.now();
+        // B-BUG-7: use the budget's actual cycle window (weekly/biweekly/
+        // monthly) instead of a hardcoded calendar month. Without this, a
+        // weekly $50 grocery budget with a $20 goalAllocation funds the goal
+        // from MONTH-to-date under-spend, materially over-crediting (and
+        // double-crediting after the user's actual weekly cycle resets).
+        // The lastGoalFunded bookmark is per-cycle and reset by rollover —
+        // its semantics only make sense if the spend math respects the same
+        // cycle.
+        final String period = budget.getPeriod() == null ? "monthly" : budget.getPeriod();
+        final LocalDate[] window = BudgetSummaryService.cycleWindow(period, LocalDate.now());
+        final LocalDate start = window[0];
+        // Clamp end to today so we don't include future-dated transactions.
+        final LocalDate end = window[1].isAfter(LocalDate.now()) ? LocalDate.now() : window[1];
         final List<TransactionTable> rows =
                 transactionRepository.findByUserIdAndDateRange(
                         user.getUserId(), start.format(DATE), end.format(DATE));

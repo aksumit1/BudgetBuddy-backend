@@ -107,14 +107,22 @@ public class BudgetThresholdEvaluator {
         if (budget.getMonthlyLimit() == null || budget.getMonthlyLimit().signum() <= 0) {
             return;
         }
-        // Compute current month spend in this category using the *user's*
+        // Compute current cycle spend in this category using the *user's*
         // local day/month, not the server's. On a PT user the month boundary
         // is at midnight Pacific, not midnight UTC — without this an 11pm
         // grocery run on the last day of the month would land in next
         // month's budget and nuke the threshold evaluation.
+        //
+        // B-BUG-8: also use the budget's actual cycle window
+        // (weekly/biweekly/monthly) rather than a hardcoded calendar month.
+        // A weekly $50 budget should fire 50/75/90/100 alerts based on the
+        // 7-day window's spend, not the running month total — otherwise
+        // every threshold either never fires or fires permanently.
         final LocalDate today = userClock.today(budget.getUserId());
-        final LocalDate start = today.withDayOfMonth(1);
-        final LocalDate end = today;
+        final String period = budget.getPeriod() == null ? "monthly" : budget.getPeriod();
+        final LocalDate[] window = BudgetSummaryService.cycleWindow(period, today);
+        final LocalDate start = window[0];
+        final LocalDate end = window[1].isAfter(today) ? today : window[1];
         final List<TransactionTable> rows =
                 transactionRepository.findByUserIdAndDateRange(
                         budget.getUserId(), start.format(DATE), end.format(DATE));

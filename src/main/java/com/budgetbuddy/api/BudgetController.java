@@ -49,6 +49,7 @@ public class BudgetController {
             dataChangeNotificationService;
     private final com.budgetbuddy.service.BudgetSummaryService budgetSummaryService;
     private final com.budgetbuddy.service.BudgetSuggestionService budgetSuggestionService;
+    private final com.budgetbuddy.service.BudgetAllocationStatusService budgetAllocationStatusService;
     // Flow 7 / O4 — route mutations through the audit interceptor.
     private final com.budgetbuddy.compliance.MutationAuditInterceptor auditInterceptor;
     // Correctness: retry-safe POST so a dropped network response doesn't
@@ -66,6 +67,7 @@ public class BudgetController {
                     dataChangeNotificationService,
             final com.budgetbuddy.service.BudgetSummaryService budgetSummaryService,
             final com.budgetbuddy.service.BudgetSuggestionService budgetSuggestionService,
+            final com.budgetbuddy.service.BudgetAllocationStatusService budgetAllocationStatusService,
             final com.budgetbuddy.compliance.MutationAuditInterceptor auditInterceptor,
             final com.budgetbuddy.service.correctness.IdempotencyService idempotencyService) {
         this.budgetService = budgetService;
@@ -73,6 +75,7 @@ public class BudgetController {
         this.dataChangeNotificationService = dataChangeNotificationService;
         this.budgetSummaryService = budgetSummaryService;
         this.budgetSuggestionService = budgetSuggestionService;
+        this.budgetAllocationStatusService = budgetAllocationStatusService;
         this.auditInterceptor = auditInterceptor;
         this.idempotencyService = idempotencyService;
     }
@@ -133,6 +136,26 @@ public class BudgetController {
                         .orElseThrow(
                                 () -> new AppException(ErrorCode.USER_NOT_FOUND, USER_NOT_FOUND_1));
         return ResponseEntity.ok(budgetSuggestionService.suggestForUser(user));
+    }
+
+    /**
+     * B-ZBB-1: zero-based budgeting banner data. Returns the user's
+     * estimated monthly income, total allocated across all active
+     * budgets (period-normalised), the delta, and a status label the
+     * UI can colour-code.
+     */
+    @GetMapping("/allocation-status")
+    public ResponseEntity<com.budgetbuddy.service.BudgetAllocationStatusService.AllocationStatus>
+            getAllocationStatus(@AuthenticationPrincipal final UserDetails userDetails) {
+        if (userDetails == null || userDetails.getUsername() == null) {
+            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, USER_NOT_AUTHENTICATED);
+        }
+        final UserTable user =
+                userService
+                        .findByEmail(userDetails.getUsername())
+                        .orElseThrow(
+                                () -> new AppException(ErrorCode.USER_NOT_FOUND, USER_NOT_FOUND_1));
+        return ResponseEntity.ok(budgetAllocationStatusService.compute(user));
     }
 
     @PostMapping
