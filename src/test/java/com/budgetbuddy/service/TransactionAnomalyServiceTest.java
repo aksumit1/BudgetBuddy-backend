@@ -229,7 +229,7 @@ class TransactionAnomalyServiceTest {
     @Test
     void testDetectAnomaliesWithNullUserId() {
         // Act & Assert
-        assertThrows(Exception.class, () -> anomalyService.detectAnomalies(null));
+        assertThrows(Exception.class, () -> anomalyService.detectAnomalies((String) null));
     }
 
     @Test

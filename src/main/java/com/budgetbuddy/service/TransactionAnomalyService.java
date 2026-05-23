@@ -52,24 +52,53 @@ public class TransactionAnomalyService {
     private static final Logger LOGGER = LoggerFactory.getLogger(TransactionAnomalyService.class);
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ISO_LOCAL_DATE;
 
-    // Base thresholds. Effective values get multiplied by sensitivity at runtime.
-    private static final double Z_SCORE_THRESHOLD = 2.5;
-    private static final double CATEGORY_SPIKE_MULTIPLIER = 3.0;
-    private static final double AMOUNT_THRESHOLD_MULTIPLIER = 5.0;
-    private static final int MIN_TRANSACTIONS_FOR_ANALYSIS = 10;
-
-    private static final int ANALYSIS_WINDOW_DAYS = 90;
-    private static final int HISTORICAL_WINDOW_DAYS = 180;
-
     private final TransactionRepository transactionRepository;
+    private final com.budgetbuddy.config.InsightsThresholds thresholds;
+
+    // All values multiplied by per-request sensitivity at runtime.
+    private double zScoreThreshold() { return thresholds.getAnomaly().getZScoreThreshold(); }
+    private double categorySpikeMultiplier() {
+        return thresholds.getAnomaly().getCategorySpikeMultiplier();
+    }
+    private double amountThresholdMultiplier() {
+        return thresholds.getAnomaly().getAmountThresholdMultiplier();
+    }
+    private int minTransactionsForAnalysis() {
+        return thresholds.getAnomaly().getMinTransactionsForAnalysis();
+    }
+    private int analysisWindowDays() {
+        return thresholds.getAnomaly().getAnalysisWindowDays();
+    }
+    private int historicalWindowDays() {
+        return thresholds.getAnomaly().getHistoricalWindowDays();
+    }
 
     // Feedback + user services injected as Optional to keep tests that build the
-    // detector with only the transaction repo (the majority) working.
+    // detector with only the transaction repo (the majority) working. {@link
+    // #warnIfDependenciesMissing} surfaces a clear WARN on startup if these are
+    // null in a real Spring context so missing prod wiring doesn't degrade
+    // silently to "every user gets NORMAL sensitivity and no dismiss-suppression".
     @org.springframework.beans.factory.annotation.Autowired(required = false)
     private AnomalyFeedbackService feedbackService;
 
     @org.springframework.beans.factory.annotation.Autowired(required = false)
     private UserService userService;
+
+    @jakarta.annotation.PostConstruct
+    void warnIfDependenciesMissing() {
+        if (feedbackService == null) {
+            LOGGER.warn(
+                    "TransactionAnomalyService: AnomalyFeedbackService not wired — "
+                            + "dismissed anomalies will reappear on every detection pass. "
+                            + "Expected only in unit-test contexts.");
+        }
+        if (userService == null) {
+            LOGGER.warn(
+                    "TransactionAnomalyService: UserService not wired — every user will "
+                            + "be treated as NORMAL sensitivity regardless of their stored "
+                            + "preference. Expected only in unit-test contexts.");
+        }
+    }
 
     /**
      * Per-detection-pass sensitivity multiplier. ThreadLocal keeps concurrent web requests from
@@ -78,8 +107,26 @@ public class TransactionAnomalyService {
      */
     private final ThreadLocal<Double> activeSensitivity = ThreadLocal.withInitial(() -> 1.0);
 
-    public TransactionAnomalyService(final TransactionRepository transactionRepository) {
+    @org.springframework.beans.factory.annotation.Autowired
+    public TransactionAnomalyService(
+            final TransactionRepository transactionRepository,
+            final com.budgetbuddy.config.InsightsThresholds thresholds) {
         this.transactionRepository = transactionRepository;
+        // Defensive default lets Mockito @InjectMocks call this with a
+        // null thresholds (the common pattern in pre-existing tests)
+        // without each test having to add @Mock InsightsThresholds.
+        this.thresholds = thresholds != null
+                ? thresholds
+                : new com.budgetbuddy.config.InsightsThresholds();
+    }
+
+    /**
+     * Backwards-compat constructor for tests that don't wire the
+     * thresholds bean. Uses defaults that match the previously
+     * hardcoded constants exactly.
+     */
+    public TransactionAnomalyService(final TransactionRepository transactionRepository) {
+        this(transactionRepository, new com.budgetbuddy.config.InsightsThresholds());
     }
 
     /** Sensitivity knob used to scale the three headline thresholds. */
@@ -122,6 +169,46 @@ public class TransactionAnomalyService {
      * @param userId User ID
      * @return List of detected anomalies
      */
+    /**
+     * Context-aware overload for the /summary path. Eliminates the
+     * service's two transaction-repo fetches by reading both windows
+     * from the pre-fetched context.
+     */
+    public List<TransactionAnomaly> detectAnomalies(
+            final com.budgetbuddy.service.insights.InsightsContext ctx) {
+        if (ctx == null) {
+            return java.util.Collections.emptyList();
+        }
+        final Sensitivity sens = sensitivityFor(ctx.userId());
+        activeSensitivity.set(sens.multiplier);
+        try {
+            return detectAnomaliesFromContext(ctx);
+        } finally {
+            activeSensitivity.remove();
+        }
+    }
+
+    private List<TransactionAnomaly> detectAnomaliesFromContext(
+            final com.budgetbuddy.service.insights.InsightsContext ctx) {
+        final LocalDate today = ctx.asOf();
+        final LocalDate analysisStart = today.minusDays(analysisWindowDays());
+        final LocalDate historicalStart = today.minusDays(historicalWindowDays());
+
+        // Two windowed views over the same shared snapshot — no repo hits.
+        final List<TransactionTable> recent = ctx.transactions().stream()
+                .filter(tx -> tx.getTransactionDate() != null
+                        && tx.getTransactionDate().compareTo(analysisStart.toString()) >= 0
+                        && tx.getTransactionDate().compareTo(today.toString()) <= 0)
+                .collect(Collectors.toList());
+        final List<TransactionTable> historical = ctx.transactions().stream()
+                .filter(tx -> tx.getTransactionDate() != null
+                        && tx.getTransactionDate().compareTo(historicalStart.toString()) >= 0
+                        && tx.getTransactionDate().compareTo(analysisStart.toString()) < 0)
+                .collect(Collectors.toList());
+
+        return runDetection(ctx.userId(), recent, historical);
+    }
+
     public List<TransactionAnomaly> detectAnomalies(final String userId) {
         if (userId == null || userId.isEmpty()) {
             throw new AppException(ErrorCode.INVALID_INPUT, "User ID is required");
@@ -144,11 +231,10 @@ public class TransactionAnomalyService {
 
     /** Kept private so callers can't bypass the ThreadLocal cleanup in the public method. */
     private List<TransactionAnomaly> detectAnomaliesInternal(final String userId) {
-
         // Get transactions for analysis
         final LocalDate endDate = LocalDate.now();
-        final LocalDate analysisStartDate = endDate.minusDays(ANALYSIS_WINDOW_DAYS);
-        final LocalDate historicalStartDate = endDate.minusDays(HISTORICAL_WINDOW_DAYS);
+        final LocalDate analysisStartDate = endDate.minusDays(analysisWindowDays());
+        final LocalDate historicalStartDate = endDate.minusDays(historicalWindowDays());
 
         final String analysisStartStr = analysisStartDate.format(DATE_FORMATTER);
         final String endDateStr = endDate.format(DATE_FORMATTER);
@@ -162,7 +248,23 @@ public class TransactionAnomalyService {
                 transactionRepository.findByUserIdAndDateRange(
                         userId, historicalStartStr, analysisStartStr);
 
-        if (recentTransactions.size() < MIN_TRANSACTIONS_FOR_ANALYSIS) {
+        return runDetection(userId, recentTransactions, historicalTransactions);
+    }
+
+    /**
+     * Run the full detection pipeline on already-fetched transaction
+     * windows. Used by both the legacy {@code detectAnomalies(userId)}
+     * path (which fetches its own data) and the {@code detectAnomalies
+     * (ctx)} path (which slices windows from the shared snapshot). All
+     * the original filtering/scoring/suppression logic moved here
+     * verbatim so behaviour is identical.
+     */
+    private List<TransactionAnomaly> runDetection(
+            final String userId,
+            final List<TransactionTable> recentTransactions,
+            final List<TransactionTable> historicalTransactions) {
+
+        if (recentTransactions.size() < minTransactionsForAnalysis()) {
             if (LOGGER.isDebugEnabled()) {
                 LOGGER.debug(
                         "Insufficient transactions for anomaly detection: {}",
@@ -272,7 +374,7 @@ public class TransactionAnomalyService {
 
         final List<TransactionAnomaly> anomalies = new ArrayList<>();
 
-        if (historicalExpenses.size() < MIN_TRANSACTIONS_FOR_ANALYSIS) {
+        if (historicalExpenses.size() < minTransactionsForAnalysis()) {
             return anomalies;
         }
 
@@ -295,7 +397,7 @@ public class TransactionAnomalyService {
             final BigDecimal zScore = amount.subtract(mean).divide(stdDev, 4, RoundingMode.HALF_UP);
 
             // O12: scale the z-score threshold by the user's sensitivity multiplier.
-            final double scaledZ = Z_SCORE_THRESHOLD * activeSensitivity.get();
+            final double scaledZ = zScoreThreshold() * activeSensitivity.get();
             if (zScore.abs().compareTo(BigDecimal.valueOf(scaledZ)) > 0) {
                 final Severity severity =
                         amount.compareTo(BigDecimal.valueOf(500)) > 0
@@ -386,7 +488,7 @@ public class TransactionAnomalyService {
                             RoundingMode.HALF_UP);
 
             // Check if recent average is significantly higher
-            final double scaledSpike = CATEGORY_SPIKE_MULTIPLIER * activeSensitivity.get();
+            final double scaledSpike = categorySpikeMultiplier() * activeSensitivity.get();
             if (recentAverage.compareTo(historicalAverage.multiply(BigDecimal.valueOf(scaledSpike)))
                     > 0) {
                 // Find the largest transaction in this category
@@ -575,7 +677,7 @@ public class TransactionAnomalyService {
                         .collect(Collectors.toList());
 
         final BigDecimal median = calculateMedian(amounts);
-        final double scaledAmount = AMOUNT_THRESHOLD_MULTIPLIER * activeSensitivity.get();
+        final double scaledAmount = amountThresholdMultiplier() * activeSensitivity.get();
         final BigDecimal threshold = median.multiply(BigDecimal.valueOf(scaledAmount));
 
         // Check recent transactions

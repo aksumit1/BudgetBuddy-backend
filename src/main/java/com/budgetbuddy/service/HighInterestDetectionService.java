@@ -10,13 +10,16 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
+import java.time.YearMonth;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -44,22 +47,58 @@ public class HighInterestDetectionService {
     private static final Logger LOGGER =
             LoggerFactory.getLogger(HighInterestDetectionService.class);
 
-    // Interest rate thresholds
-    private static final double HIGH_INTEREST_RATE_THRESHOLD = 0.15; // 15% APR
-    private static final double VERY_HIGH_INTEREST_RATE_THRESHOLD = 0.25; // 25% APR
-    private static final BigDecimal MIN_INTEREST_PAYMENT =
-            BigDecimal.valueOf(50); // Minimum $50/month interest
-
-    private static final int ANALYSIS_WINDOW_DAYS = 90; // Analyze last 90 days
+    /**
+     * Whole-word match so we don't flag merchants whose name happens to
+     * contain "interest" (e.g. "INTERESTING TIMES CAFE"). Boundary-aware:
+     * "INTEREST CHARGED" matches, "INTERESTING" does not. Case-insensitive.
+     */
+    private static final Pattern INTEREST_CHARGE_KEYWORD =
+            Pattern.compile("\\b(interest|finance\\s*charge)\\b", Pattern.CASE_INSENSITIVE);
 
     private final AccountRepository accountRepository;
     private final TransactionRepository transactionRepository;
+    private final com.budgetbuddy.config.InsightsThresholds thresholds;
 
+    @org.springframework.beans.factory.annotation.Autowired
+    public HighInterestDetectionService(
+            final AccountRepository accountRepository,
+            final TransactionRepository transactionRepository,
+            final com.budgetbuddy.config.InsightsThresholds thresholds) {
+        this.accountRepository = accountRepository;
+        this.transactionRepository = transactionRepository;
+        // Defensive default for Mockito @InjectMocks paths — see
+        // TransactionAnomalyService for the full rationale.
+        this.thresholds = thresholds != null
+                ? thresholds
+                : new com.budgetbuddy.config.InsightsThresholds();
+    }
+
+    /**
+     * Backwards-compat constructor for tests that don't wire the
+     * thresholds bean. Uses default values that match the previously
+     * hardcoded constants exactly so behaviour is unchanged.
+     */
     public HighInterestDetectionService(
             final AccountRepository accountRepository,
             final TransactionRepository transactionRepository) {
-        this.accountRepository = accountRepository;
-        this.transactionRepository = transactionRepository;
+        this(accountRepository, transactionRepository,
+                new com.budgetbuddy.config.InsightsThresholds());
+    }
+
+    private double highRateThreshold() {
+        return thresholds.getHighInterest().getHighRateThreshold();
+    }
+
+    private double veryHighRateThreshold() {
+        return thresholds.getHighInterest().getVeryHighRateThreshold();
+    }
+
+    private BigDecimal minInterestPayment() {
+        return BigDecimal.valueOf(thresholds.getHighInterest().getMinMonthlyInterestPayment());
+    }
+
+    private int analysisWindowDays() {
+        return thresholds.getHighInterest().getAnalysisWindowDays();
     }
 
     /** Detect high interest payments and provide recommendations */
@@ -67,60 +106,83 @@ public class HighInterestDetectionService {
         if (userId == null || userId.isEmpty()) {
             throw new AppException(ErrorCode.INVALID_INPUT, "User ID is required");
         }
-
         LOGGER.info("Detecting high interest payments for user: {}", userId);
+        // Single-endpoint entry: do the per-request fetches, then run
+        // the shared core. The /summary path uses the context overload
+        // below so the same fetches don't happen 5 times in one request.
+        final LocalDate endDate = LocalDate.now();
+        final LocalDate startDate = endDate.minusDays(analysisWindowDays());
+        final java.time.format.DateTimeFormatter iso =
+                java.time.format.DateTimeFormatter.ISO_LOCAL_DATE;
+        final List<TransactionTable> txs = transactionRepository.findByUserIdAndDateRange(
+                userId, startDate.format(iso), endDate.format(iso));
+        final List<AccountTable> accounts = accountRepository.findByUserId(userId);
+        return detectFrom(txs, accounts);
+    }
 
+    /**
+     * Context-aware overload used by {@code /summary} (and any other
+     * batch surface). Operates entirely on the pre-fetched snapshot —
+     * zero additional repo calls. The context's transaction list is
+     * already wider than this service's window, so we filter in-memory.
+     */
+    public List<HighInterestAlert> detectHighInterest(
+            final com.budgetbuddy.service.insights.InsightsContext ctx) {
+        if (ctx == null) {
+            return new ArrayList<>();
+        }
+        final LocalDate cutoff = ctx.asOf().minusDays(analysisWindowDays());
+        final List<TransactionTable> windowed = ctx.transactions().stream()
+                .filter(tx -> tx.getTransactionDate() != null
+                        && tx.getTransactionDate().compareTo(cutoff.toString()) >= 0)
+                .collect(Collectors.toList());
+        return detectFrom(windowed, ctx.accounts());
+    }
+
+    /**
+     * Shared core: produces alerts given a pre-filtered tx window and
+     * the user's accounts. {@link #detectInterestCharges} still calls
+     * {@code accountRepository.findById(accountId)} for the per-alert
+     * account lookup; the supplied list is used for the CC/loan
+     * iterations to avoid the duplicate findByUserId.
+     */
+    private List<HighInterestAlert> detectFrom(
+            final List<TransactionTable> txs, final List<AccountTable> accounts) {
         final List<HighInterestAlert> alerts = new ArrayList<>();
-
-        // 1. Detect interest charges in transactions
-        alerts.addAll(detectInterestCharges(userId));
-
-        // 2. Analyze credit card accounts
-        alerts.addAll(analyzeCreditCards(userId));
-
-        // 3. Analyze loan accounts
-        alerts.addAll(analyzeLoans(userId));
-
-        // Sort by annual interest cost (descending)
+        alerts.addAll(detectInterestChargesFrom(txs));
+        alerts.addAll(analyzeCreditCardsFrom(accounts));
+        alerts.addAll(analyzeLoansFrom(accounts));
         return alerts.stream()
-                .sorted(
-                        Comparator.comparing(
-                                HighInterestAlert::getAnnualInterestCost,
-                                Comparator.reverseOrder()))
+                .sorted(Comparator.comparing(
+                        HighInterestAlert::getAnnualInterestCost, Comparator.reverseOrder()))
                 .collect(Collectors.toList());
     }
 
-    /** Detect interest charges from transactions */
-    private List<HighInterestAlert> detectInterestCharges(final String userId) {
+    /**
+     * Detect interest charges from a pre-supplied transaction list.
+     * Caller is responsible for windowing — the legacy path filters to
+     * 90 days; the context path uses whatever the context provided.
+     */
+    private List<HighInterestAlert> detectInterestChargesFrom(
+            final List<TransactionTable> transactions) {
         final List<HighInterestAlert> alerts = new ArrayList<>();
-
-        final LocalDate endDate = LocalDate.now();
-        final LocalDate startDate = endDate.minusDays(ANALYSIS_WINDOW_DAYS);
-
-        final String startDateStr =
-                startDate.format(java.time.format.DateTimeFormatter.ISO_LOCAL_DATE);
-        final String endDateStr = endDate.format(java.time.format.DateTimeFormatter.ISO_LOCAL_DATE);
-
-        final List<TransactionTable> transactions =
-                transactionRepository.findByUserIdAndDateRange(userId, startDateStr, endDateStr);
-
-        // Filter to interest charges
+        // Filter to interest charges. Word-boundary keyword match avoids
+        // matching merchants like "INTERESTING TIMES CAFE"; amount<0
+        // requirement excludes savings-account "interest earned" credits.
         final List<TransactionTable> interestCharges =
                 transactions.stream()
                         .filter(
                                 tx -> {
                                     final String desc =
-                                            tx.getDescription() != null
-                                                    ? tx.getDescription().toLowerCase(Locale.ROOT)
-                                                    : "";
+                                            tx.getDescription() == null
+                                                    ? ""
+                                                    : tx.getDescription();
                                     final String category =
-                                            tx.getCategoryPrimary() != null
-                                                    ? tx.getCategoryPrimary()
-                                                            .toLowerCase(Locale.ROOT)
-                                                    : "";
-                                    return desc.contains("interest")
-                                            || desc.contains("finance charge")
-                                            || category.contains("interest");
+                                            tx.getCategoryPrimary() == null
+                                                    ? ""
+                                                    : tx.getCategoryPrimary();
+                                    return INTEREST_CHARGE_KEYWORD.matcher(desc).find()
+                                            || INTEREST_CHARGE_KEYWORD.matcher(category).find();
                                 })
                         .filter(
                                 tx ->
@@ -143,12 +205,21 @@ public class HighInterestDetectionService {
                             .map(tx -> tx.getAmount().abs())
                             .reduce(BigDecimal.ZERO, BigDecimal::add);
 
+            // Divide by the number of distinct billing months actually
+            // observed, not the hardcoded 3. New accounts that have only
+            // produced one interest charge get a true monthly figure, not
+            // 1/3 of it; accounts with 4 charges (two charges in one
+            // bridging month) report on a 3-month base, not 4. Falls back
+            // to the window length in months only when transaction dates
+            // are missing (defensive — shouldn't happen with valid data).
+            final int billingMonths = countDistinctMonths(charges);
+            final BigDecimal monthsBase =
+                    BigDecimal.valueOf(billingMonths > 0 ? billingMonths : 3);
             final BigDecimal monthlyInterest =
-                    totalInterest.divide(
-                            BigDecimal.valueOf(3), 2, RoundingMode.HALF_UP); // 3 months
+                    totalInterest.divide(monthsBase, 2, RoundingMode.HALF_UP);
             final BigDecimal annualInterest = monthlyInterest.multiply(BigDecimal.valueOf(12));
 
-            if (monthlyInterest.compareTo(MIN_INTEREST_PAYMENT) > 0) {
+            if (monthlyInterest.compareTo(minInterestPayment()) > 0) {
                 // Get account details
                 final Optional<AccountTable> accountOpt = accountRepository.findById(accountId);
                 if (accountOpt.isPresent()) {
@@ -168,13 +239,13 @@ public class HighInterestDetectionService {
                     }
 
                     final Severity severity =
-                            estimatedRate >= VERY_HIGH_INTEREST_RATE_THRESHOLD
+                            estimatedRate >= veryHighRateThreshold()
                                     ? Severity.HIGH
-                                    : estimatedRate >= HIGH_INTEREST_RATE_THRESHOLD
+                                    : estimatedRate >= highRateThreshold()
                                             ? Severity.MEDIUM
                                             : Severity.LOW;
 
-                    if (estimatedRate >= HIGH_INTEREST_RATE_THRESHOLD) {
+                    if (estimatedRate >= highRateThreshold()) {
                         alerts.add(
                                 new HighInterestAlert(
                                         accountId,
@@ -196,12 +267,9 @@ public class HighInterestDetectionService {
         return alerts;
     }
 
-    /** Analyze credit card accounts */
-    private List<HighInterestAlert> analyzeCreditCards(final String userId) {
+    /** Analyze credit card accounts from a supplied account list. */
+    private List<HighInterestAlert> analyzeCreditCardsFrom(final List<AccountTable> accounts) {
         final List<HighInterestAlert> alerts = new ArrayList<>();
-
-        final List<AccountTable> accounts = accountRepository.findByUserId(userId);
-
         for (final AccountTable account : accounts) {
             if (account.getAccountType() == null
                     || !"creditCard".equals(account.getAccountType())) {
@@ -214,26 +282,30 @@ public class HighInterestDetectionService {
                 continue; // No balance, no interest
             }
 
-            // Prefer the real APR from the most-recent statement (Chase PDF parser
-            // surfaces this as account.aprPercent on a 0-100 scale). Falls back to
-            // the 20% industry estimate when the account has never been imported.
-            // A real APR makes the alert quantitative — the user sees "you're paying
-            // 28.49% × $X" instead of an averaged guess.
-            final double interestRate =
-                    account.getAprPercent() != null && account.getAprPercent().signum() > 0
-                            ? account.getAprPercent().doubleValue() / 100.0
-                            : 0.20;
+            // Only alert when we have the real APR from the most-recent
+            // statement (Chase / Amex / Citi PDF parsers surface this as
+            // account.aprPercent on a 0-100 scale). The prior behaviour
+            // — assuming 20% when no APR was known — fabricated a number
+            // and presented it as fact in the user-visible recommendation
+            // ("Credit card with 20.0% APR costing $X/year"). False
+            // positives on financial advice are worse than missing data:
+            // detectInterestCharges below still picks up the account when
+            // there are real interest transactions to back the alert.
+            if (account.getAprPercent() == null || account.getAprPercent().signum() <= 0) {
+                continue;
+            }
+            final double interestRate = account.getAprPercent().doubleValue() / 100.0;
 
             // Calculate interest if only making minimum payments
             final BigDecimal monthlyInterest =
                     balance.multiply(BigDecimal.valueOf(interestRate / 12));
             final BigDecimal annualInterest = monthlyInterest.multiply(BigDecimal.valueOf(12));
 
-            if (interestRate >= HIGH_INTEREST_RATE_THRESHOLD
+            if (interestRate >= highRateThreshold()
                     && annualInterest.compareTo(BigDecimal.valueOf(500)) > 0) {
 
                 final Severity severity =
-                        interestRate >= VERY_HIGH_INTEREST_RATE_THRESHOLD
+                        interestRate >= veryHighRateThreshold()
                                 ? Severity.HIGH
                                 : Severity.MEDIUM;
 
@@ -256,12 +328,9 @@ public class HighInterestDetectionService {
         return alerts;
     }
 
-    /** Analyze loan accounts */
-    private List<HighInterestAlert> analyzeLoans(final String userId) {
+    /** Analyze loan accounts from a supplied account list. */
+    private List<HighInterestAlert> analyzeLoansFrom(final List<AccountTable> accounts) {
         final List<HighInterestAlert> alerts = new ArrayList<>();
-
-        final List<AccountTable> accounts = accountRepository.findByUserId(userId);
-
         final Set<String> loanTypes = Set.of("autoLoan", "personalLoan", "studentLoan");
 
         for (final AccountTable account : accounts) {
@@ -275,19 +344,31 @@ public class HighInterestDetectionService {
                 continue;
             }
 
-            // Estimate interest rate based on loan type
-            final double interestRate = estimateLoanInterestRate(account.getAccountType());
+            // Prefer the real APR when stored; fall back to a type-based
+            // estimate only when truly absent. Severity is capped at
+            // MEDIUM when we're guessing — never tell the user they have
+            // a "HIGH" severity problem based on a fabricated rate.
+            final boolean haveRealApr =
+                    account.getAprPercent() != null && account.getAprPercent().signum() > 0;
+            final double interestRate =
+                    haveRealApr
+                            ? account.getAprPercent().doubleValue() / 100.0
+                            : estimateLoanInterestRate(account.getAccountType());
             final BigDecimal monthlyInterest =
                     balance.multiply(BigDecimal.valueOf(interestRate / 12));
             final BigDecimal annualInterest = monthlyInterest.multiply(BigDecimal.valueOf(12));
 
-            if (interestRate >= HIGH_INTEREST_RATE_THRESHOLD
+            if (interestRate >= highRateThreshold()
                     && annualInterest.compareTo(BigDecimal.valueOf(1000)) > 0) {
 
-                final Severity severity =
-                        interestRate >= VERY_HIGH_INTEREST_RATE_THRESHOLD
-                                ? Severity.HIGH
-                                : Severity.MEDIUM;
+                final Severity severity;
+                if (!haveRealApr) {
+                    severity = Severity.MEDIUM;
+                } else if (interestRate >= veryHighRateThreshold()) {
+                    severity = Severity.HIGH;
+                } else {
+                    severity = Severity.MEDIUM;
+                }
 
                 alerts.add(
                         new HighInterestAlert(
@@ -300,12 +381,35 @@ public class HighInterestDetectionService {
                                 monthlyInterest,
                                 annualInterest,
                                 severity,
-                                generateRecommendation(
-                                        account, balance, interestRate, annualInterest)));
+                                generateLoanRecommendation(
+                                        account, balance, interestRate, annualInterest,
+                                        haveRealApr)));
             }
         }
 
         return alerts;
+    }
+
+    /**
+     * @return number of distinct year-month buckets the given transactions
+     *         span, treating null dates as belonging to no bucket
+     */
+    private int countDistinctMonths(final List<TransactionTable> txs) {
+        final Set<YearMonth> months = new HashSet<>();
+        for (final TransactionTable tx : txs) {
+            if (tx.getTransactionDate() == null) {
+                continue;
+            }
+            try {
+                final LocalDate d = LocalDate.parse(tx.getTransactionDate());
+                months.add(YearMonth.from(d));
+            } catch (final java.time.format.DateTimeParseException ignored) {
+                // Tolerate parse failures rather than throwing — falling
+                // back to the conservative bucket count is preferable to
+                // emitting no alert at all on a single malformed date.
+            }
+        }
+        return months.size();
     }
 
     /** Estimate loan interest rate based on type */
@@ -342,7 +446,7 @@ public class HighInterestDetectionService {
                             "Credit card with %.1f%% APR costing $%.2f/year in interest. ",
                             interestRate * 100, annualInterest.doubleValue()));
 
-            if (interestRate >= VERY_HIGH_INTEREST_RATE_THRESHOLD) {
+            if (interestRate >= veryHighRateThreshold()) {
                 recommendation.append(
                         "Consider balance transfer to lower-rate card or debt consolidation loan.");
             } else {
@@ -354,7 +458,7 @@ public class HighInterestDetectionService {
                             "%s with %.1f%% APR costing $%.2f/year. ",
                             accountType, interestRate * 100, annualInterest.doubleValue()));
 
-            if (interestRate >= VERY_HIGH_INTEREST_RATE_THRESHOLD) {
+            if (interestRate >= veryHighRateThreshold()) {
                 recommendation.append("Consider refinancing to lower rate or accelerating payoff.");
             } else {
                 recommendation.append(
@@ -368,6 +472,38 @@ public class HighInterestDetectionService {
         }
 
         return recommendation.toString();
+    }
+
+    /**
+     * Loan-specific recommendation. Discloses when the APR is an estimate
+     * (rather than coming from a statement) so the user can sanity-check
+     * before acting on the advice.
+     */
+    private String generateLoanRecommendation(
+            final AccountTable account,
+            final BigDecimal balance,
+            final double interestRate,
+            final BigDecimal annualInterest,
+            final boolean aprFromStatement) {
+        final String accountType =
+                account.getAccountType() == null ? "Loan" : account.getAccountType();
+        final String aprQualifier = aprFromStatement ? "" : " (estimated)";
+        final StringBuilder rec = new StringBuilder();
+        rec.append(
+                String.format(
+                        "%s with %.1f%%%s APR costing $%.2f/year. ",
+                        accountType, interestRate * 100, aprQualifier,
+                        annualInterest.doubleValue()));
+        if (interestRate >= veryHighRateThreshold()) {
+            rec.append("Consider refinancing to lower rate or accelerating payoff.");
+        } else {
+            rec.append("Consider making extra payments to reduce total interest paid.");
+        }
+        if (!aprFromStatement) {
+            rec.append(
+                    " Add this account's actual APR for a precise calculation.");
+        }
+        return rec.toString();
     }
 
     // Model classes

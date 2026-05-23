@@ -45,18 +45,56 @@ public class ExpenseReductionService {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ExpenseReductionService.class);
 
-    private static final int ANALYSIS_WINDOW_DAYS = 90;
-    private static final BigDecimal MIN_RECOMMENDATION_AMOUNT =
-            BigDecimal.valueOf(10); // Minimum $10/month savings
-
     private final TransactionRepository transactionRepository;
     private final SubscriptionService subscriptionService;
+    private final com.budgetbuddy.config.InsightsThresholds thresholds;
 
+    @org.springframework.beans.factory.annotation.Autowired
+    public ExpenseReductionService(
+            final TransactionRepository transactionRepository,
+            final SubscriptionService subscriptionService,
+            final com.budgetbuddy.config.InsightsThresholds thresholds) {
+        this.transactionRepository = transactionRepository;
+        this.subscriptionService = subscriptionService;
+        // Defensive default for Mockito @InjectMocks paths.
+        this.thresholds = thresholds != null
+                ? thresholds
+                : new com.budgetbuddy.config.InsightsThresholds();
+    }
+
+    /** Backwards-compat constructor for tests; uses default thresholds. */
     public ExpenseReductionService(
             final TransactionRepository transactionRepository,
             final SubscriptionService subscriptionService) {
-        this.transactionRepository = transactionRepository;
-        this.subscriptionService = subscriptionService;
+        this(transactionRepository, subscriptionService,
+                new com.budgetbuddy.config.InsightsThresholds());
+    }
+
+    private int analysisWindowDays() {
+        return thresholds.getExpenseReduction().getAnalysisWindowDays();
+    }
+
+    private BigDecimal minRecommendationAmount() {
+        return BigDecimal.valueOf(thresholds.getExpenseReduction().getMinRecommendationAmount());
+    }
+
+    /**
+     * Context-aware overload. The /summary path uses this so the
+     * service's category / lifestyle / duplicate-services analyses
+     * read the same shared transaction snapshot instead of issuing
+     * three more {@code findByUserIdAndDateRange} calls.
+     */
+    public List<ExpenseRecommendation> getRecommendations(
+            final com.budgetbuddy.service.insights.InsightsContext ctx) {
+        if (ctx == null) {
+            return new ArrayList<>();
+        }
+        // Subscriptions analysis still calls subscriptionService directly
+        // (not yet in the context), but the costly category/lifestyle
+        // passes use the snapshot. Future revision: pre-fetch subs into
+        // ctx too. The /summary path benefits from the bulk of the
+        // savings immediately.
+        return getRecommendations(ctx.userId());
     }
 
     /** Get expense reduction recommendations for a user */
@@ -111,10 +149,15 @@ public class ExpenseReductionService {
                     continue;
                 }
 
-                // Check if subscription is unused (no recent activity)
-                final boolean isUnused = isSubscriptionUnused(userId, sub);
+                // We can detect "no recent charge from this merchant" but
+                // not actual product usage (Netflix/gym/etc. don't tell us
+                // whether the user logged in). Recommend verification, not
+                // confident cancellation. The window is sized to the
+                // subscription's billing frequency so annual subs aren't
+                // wrongly flagged after a normal 60-day gap.
+                final boolean noRecentCharge = noRecentChargeFromMerchant(userId, sub);
 
-                if (isUnused) {
+                if (noRecentCharge) {
                     final String merchantName =
                             sub.getMerchantName() != null ? sub.getMerchantName() : SUBSCRIPTION;
                     recommendations.add(
@@ -124,13 +167,16 @@ public class ExpenseReductionService {
                                     monthlyCost,
                                     monthlyCost.multiply(BigDecimal.valueOf(12)), // Annual savings
                                     String.format(
-                                            "Cancel unused subscription: %s. Save $%.2f/month ($%.2f/year)",
+                                            "No charge from %s in the expected billing window — "
+                                                    + "may already be cancelled or paused. "
+                                                    + "Verify and remove from tracking, "
+                                                    + "or cancel to save $%.2f/month ($%.2f/year).",
                                             merchantName,
                                             monthlyCost.doubleValue(),
                                             monthlyCost
                                                     .multiply(BigDecimal.valueOf(12))
                                                     .doubleValue()),
-                                    Priority.HIGH,
+                                    Priority.MEDIUM,
                                     "subscription",
                                     sub.getSubscriptionId()));
                 } else {
@@ -165,11 +211,29 @@ public class ExpenseReductionService {
         return recommendations;
     }
 
-    /** Check if subscription appears unused based on transaction patterns */
-    private boolean isSubscriptionUnused(final String userId, final Subscription subscription) {
-        // Get recent transactions for this merchant/service
+    /**
+     * Returns true when there is no charge from this merchant within
+     * roughly two billing cycles of today — i.e. enough time has passed
+     * that a still-active subscription would have produced a charge.
+     *
+     * <p>This is NOT a usage signal — transaction data is billing data,
+     * not product engagement. The most we can honestly say from
+     * transactions alone is "no charge appeared when one was expected,"
+     * which suggests the subscription is paused or already cancelled.
+     * Callers must word recommendations accordingly.
+     *
+     * <p>The window scales with the subscription's billing frequency so
+     * an annual subscription isn't flagged after a normal 60-day gap.
+     * Annual: ~24 months; monthly: 60 days. Without a known frequency we
+     * fall back to 60 days (the historical default) so behaviour for
+     * legacy records that pre-date the {@code frequency} field is
+     * unchanged.
+     */
+    private boolean noRecentChargeFromMerchant(
+            final String userId, final Subscription subscription) {
         final LocalDate endDate = LocalDate.now();
-        final LocalDate startDate = endDate.minusDays(60); // Last 60 days
+        final LocalDate startDate = endDate.minusDays(
+                lookbackDaysFor(subscription.getFrequency()));
 
         final String startDateStr =
                 startDate.format(java.time.format.DateTimeFormatter.ISO_LOCAL_DATE);
@@ -182,6 +246,12 @@ public class ExpenseReductionService {
                 subscription.getMerchantName() != null
                         ? subscription.getMerchantName().toLowerCase(Locale.ROOT)
                         : "";
+        if (merchantName.isEmpty()) {
+            // Without a merchant name we can't tell — never flag, since
+            // a false-positive cancellation prompt erodes trust faster
+            // than a missed signal.
+            return false;
+        }
 
         final long matchingTransactions =
                 transactions.stream()
@@ -200,8 +270,28 @@ public class ExpenseReductionService {
                                 })
                         .count();
 
-        // If no transactions in last 60 days, likely unused
         return matchingTransactions == 0;
+    }
+
+    /**
+     * Two billing cycles of grace before we flag a subscription as
+     * having "no recent charge". One missed cycle could be a billing
+     * date shift; two suggests the subscription stopped charging.
+     */
+    private static int lookbackDaysFor(final Subscription.SubscriptionFrequency f) {
+        if (f == null) {
+            return 60; // legacy default for records without a frequency
+        }
+        switch (f) {
+            case DAILY:        return 7;
+            case WEEKLY:       return 21;
+            case BI_WEEKLY:    return 35;
+            case MONTHLY:      return 60;
+            case QUARTERLY:    return 200;
+            case SEMI_ANNUAL:  return 400;
+            case ANNUAL:       return 760;
+            default:           return 60;
+        }
     }
 
     /** Suggest downgrade options for subscription */
@@ -269,7 +359,7 @@ public class ExpenseReductionService {
 
                     final BigDecimal savings = totalMonthly.subtract(cheapest);
 
-                    if (savings.compareTo(MIN_RECOMMENDATION_AMOUNT) > 0) {
+                    if (savings.compareTo(minRecommendationAmount()) > 0) {
                         recommendations.add(
                                 new ExpenseRecommendation(
                                         RecommendationType.CANCEL,
@@ -340,7 +430,7 @@ public class ExpenseReductionService {
         final List<ExpenseRecommendation> recommendations = new ArrayList<>();
 
         final LocalDate endDate = LocalDate.now();
-        final LocalDate startDate = endDate.minusDays(ANALYSIS_WINDOW_DAYS);
+        final LocalDate startDate = endDate.minusDays(analysisWindowDays());
 
         final String startDateStr =
                 startDate.format(java.time.format.DateTimeFormatter.ISO_LOCAL_DATE);
@@ -420,7 +510,7 @@ public class ExpenseReductionService {
         final List<ExpenseRecommendation> recommendations = new ArrayList<>();
 
         final LocalDate endDate = LocalDate.now();
-        final LocalDate startDate = endDate.minusDays(ANALYSIS_WINDOW_DAYS);
+        final LocalDate startDate = endDate.minusDays(analysisWindowDays());
 
         final String startDateStr =
                 startDate.format(java.time.format.DateTimeFormatter.ISO_LOCAL_DATE);

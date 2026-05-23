@@ -527,7 +527,7 @@ class FinancialInsightsRealWorldScenarioTest {
         assertThrows(
                 AppException.class,
                 () -> {
-                    anomalyService.detectAnomalies(null);
+                    anomalyService.detectAnomalies((String) null);
                 },
                 "Should throw exception for null user ID");
 

@@ -45,19 +45,35 @@ public class CreditCardInsightsService {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(CreditCardInsightsService.class);
 
-    /** Utilization above this fraction triggers a warning. */
-    private static final BigDecimal UTILIZATION_WARNING_THRESHOLD = new BigDecimal("0.30");
-
-    /** Utilization above this fraction escalates to high severity. */
-    private static final BigDecimal UTILIZATION_HIGH_THRESHOLD = new BigDecimal("0.70");
-
-    /** Annual-fee warning fires this many days before the billing date. */
-    private static final int ANNUAL_FEE_WARNING_WINDOW_DAYS = 30;
-
     private final AccountRepository accountRepository;
+    private final com.budgetbuddy.config.InsightsThresholds thresholds;
 
-    public CreditCardInsightsService(final AccountRepository accountRepository) {
+    @org.springframework.beans.factory.annotation.Autowired
+    public CreditCardInsightsService(
+            final AccountRepository accountRepository,
+            final com.budgetbuddy.config.InsightsThresholds thresholds) {
         this.accountRepository = accountRepository;
+        // Defensive default for Mockito @InjectMocks paths.
+        this.thresholds = thresholds != null
+                ? thresholds
+                : new com.budgetbuddy.config.InsightsThresholds();
+    }
+
+    /** Backwards-compat constructor for tests; uses default thresholds. */
+    public CreditCardInsightsService(final AccountRepository accountRepository) {
+        this(accountRepository, new com.budgetbuddy.config.InsightsThresholds());
+    }
+
+    private BigDecimal utilizationWarningThreshold() {
+        return BigDecimal.valueOf(thresholds.getCreditCard().getUtilizationWarningThreshold());
+    }
+
+    private BigDecimal utilizationHighThreshold() {
+        return BigDecimal.valueOf(thresholds.getCreditCard().getUtilizationHighThreshold());
+    }
+
+    private int annualFeeWarningWindowDays() {
+        return thresholds.getCreditCard().getAnnualFeeWarningWindowDays();
     }
 
     /** Severity ladder used across credit-card insights. Mirrors other services. */
@@ -132,7 +148,7 @@ public class CreditCardInsightsService {
 
     // ---------- utilization ----------
 
-    private static void collectHighUtilizationWarning(
+    private void collectHighUtilizationWarning(
             final AccountTable account, final List<CreditCardInsight> out) {
         final BigDecimal limit = account.getCreditLimit();
         final BigDecimal balance = account.getBalance();
@@ -146,11 +162,11 @@ public class CreditCardInsightsService {
         final BigDecimal absBalance = balance.abs();
         final BigDecimal utilization =
                 absBalance.divide(limit, 4, RoundingMode.HALF_UP);
-        if (utilization.compareTo(UTILIZATION_WARNING_THRESHOLD) <= 0) {
+        if (utilization.compareTo(utilizationWarningThreshold()) <= 0) {
             return;
         }
         final Severity severity =
-                utilization.compareTo(UTILIZATION_HIGH_THRESHOLD) > 0
+                utilization.compareTo(utilizationHighThreshold()) > 0
                         ? Severity.HIGH
                         : Severity.MEDIUM;
         out.add(
@@ -204,7 +220,7 @@ public class CreditCardInsightsService {
 
     // ---------- annual fee approaching ----------
 
-    private static void collectAnnualFeeApproaching(
+    private void collectAnnualFeeApproaching(
             final AccountTable account, final List<CreditCardInsight> out) {
         final BigDecimal fee = account.getAnnualMembershipFee();
         final LocalDate dueDate = account.getAnnualMembershipFeeDueDate();
@@ -214,7 +230,7 @@ public class CreditCardInsightsService {
             return;
         }
         final long daysUntil = ChronoUnit.DAYS.between(LocalDate.now(), dueDate);
-        if (daysUntil < 0 || daysUntil > ANNUAL_FEE_WARNING_WINDOW_DAYS) {
+        if (daysUntil < 0 || daysUntil > annualFeeWarningWindowDays()) {
             return; // outside the warning window — either already passed or too far
         }
         out.add(

@@ -853,10 +853,13 @@
                                      instrumentation pushes it further past the limit
                                      and the class fails to load (cascading into a
                                      broken Spring ApplicationContext for every test
-                                     using @SpringBootTest). Exclude until the method
-                                     is split. -->
+                                     using @SpringBootTest). The JaCoCo agent's
+                                     `excludes` option uses dot-separated VM-style
+                                     class names (NOT slash/.class form), so the
+                                     earlier slashed entry silently matched nothing
+                                     and the instrumentation still failed. -->
                                 <excludes>
-                                    <exclude>com/budgetbuddy/service/ml/MerchantCategoryDataService.class</exclude>
+                                    <exclude>com.budgetbuddy.service.ml.MerchantCategoryDataService</exclude>
                                 </excludes>
                             </configuration>
                         </execution>

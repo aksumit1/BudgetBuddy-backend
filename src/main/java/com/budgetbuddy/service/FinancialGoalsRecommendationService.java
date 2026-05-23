@@ -43,24 +43,65 @@ public class FinancialGoalsRecommendationService {
     private static final Logger LOGGER =
             LoggerFactory.getLogger(FinancialGoalsRecommendationService.class);
 
-    // Financial health thresholds
-    private static final int EMERGENCY_FUND_MONTHS = 6; // 6 months of expenses
-    private static final double MIN_SAVINGS_RATE = 0.15; // 15% minimum savings rate
-    private static final double IDEAL_SAVINGS_RATE = 0.20; // 20% ideal savings rate
-    private static final double WANTS_BUDGET_PERCENT = 0.20; // 20% for wants after essentials
-    private static final double DEBT_TO_INCOME_THRESHOLD = 0.36; // 36% debt-to-income ratio
-
     private final TransactionRepository transactionRepository;
     private final AccountRepository accountRepository;
     private final GoalRepository goalRepository;
+    private final com.budgetbuddy.config.InsightsThresholds thresholds;
 
+    @org.springframework.beans.factory.annotation.Autowired
+    public FinancialGoalsRecommendationService(
+            final TransactionRepository transactionRepository,
+            final AccountRepository accountRepository,
+            final GoalRepository goalRepository,
+            final com.budgetbuddy.config.InsightsThresholds thresholds) {
+        this.transactionRepository = transactionRepository;
+        this.accountRepository = accountRepository;
+        this.goalRepository = goalRepository;
+        // Defensive default for Mockito @InjectMocks paths.
+        this.thresholds = thresholds != null
+                ? thresholds
+                : new com.budgetbuddy.config.InsightsThresholds();
+    }
+
+    /** Backwards-compat constructor for tests; uses default thresholds. */
     public FinancialGoalsRecommendationService(
             final TransactionRepository transactionRepository,
             final AccountRepository accountRepository,
             final GoalRepository goalRepository) {
-        this.transactionRepository = transactionRepository;
-        this.accountRepository = accountRepository;
-        this.goalRepository = goalRepository;
+        this(transactionRepository, accountRepository, goalRepository,
+                new com.budgetbuddy.config.InsightsThresholds());
+    }
+
+    private int emergencyFundMonths() {
+        return thresholds.getFinancialGoals().getEmergencyFundMonths();
+    }
+    private double minSavingsRate() {
+        return thresholds.getFinancialGoals().getMinSavingsRate();
+    }
+    private double idealSavingsRate() {
+        return thresholds.getFinancialGoals().getIdealSavingsRate();
+    }
+    private double wantsBudgetPercent() {
+        return thresholds.getFinancialGoals().getWantsBudgetPercent();
+    }
+    private double debtToIncomeThreshold() {
+        return thresholds.getFinancialGoals().getDebtToIncomeThreshold();
+    }
+
+    /**
+     * Context-aware overload. Reads transactions and accounts from the
+     * shared snapshot instead of issuing fresh repo calls. Used by the
+     * /summary path; per-endpoint callers continue using the legacy
+     * {@code getRecommendations(userId)} method.
+     */
+    public List<FinancialGoalRecommendation> getRecommendations(
+            final com.budgetbuddy.service.insights.InsightsContext ctx) {
+        if (ctx == null) {
+            return new ArrayList<>();
+        }
+        return buildRecommendations(
+                ctx.userId(),
+                analyzeFinancialHealthFromContext(ctx));
     }
 
     /** Get financial goal recommendations for a user */
@@ -68,11 +109,13 @@ public class FinancialGoalsRecommendationService {
         if (userId == null || userId.isEmpty()) {
             throw new AppException(ErrorCode.INVALID_INPUT, "User ID is required");
         }
+        return buildRecommendations(userId, analyzeFinancialHealth(userId));
+    }
+
+    private List<FinancialGoalRecommendation> buildRecommendations(
+            final String userId, final FinancialAnalysis analysis) {
 
         LOGGER.info("Generating financial goal recommendations for user: {}", userId);
-
-        // Analyze user's financial situation
-        final FinancialAnalysis analysis = analyzeFinancialHealth(userId);
 
         final List<FinancialGoalRecommendation> recommendations = new ArrayList<>();
 
@@ -100,6 +143,21 @@ public class FinancialGoalsRecommendationService {
                 .collect(Collectors.toList());
     }
 
+    /**
+     * Variant of {@link #analyzeFinancialHealth(String)} that reads
+     * from a pre-fetched {@link com.budgetbuddy.service.insights.InsightsContext}
+     * — no transaction or account repo calls.
+     */
+    private FinancialAnalysis analyzeFinancialHealthFromContext(
+            final com.budgetbuddy.service.insights.InsightsContext ctx) {
+        final LocalDate cutoff = ctx.asOf().minusDays(90);
+        final List<TransactionTable> transactions = ctx.transactions().stream()
+                .filter(tx -> tx.getTransactionDate() != null
+                        && tx.getTransactionDate().compareTo(cutoff.toString()) >= 0)
+                .collect(Collectors.toList());
+        return analyzeFromData(transactions, ctx.accounts());
+    }
+
     /** Analyze user's financial health */
     private FinancialAnalysis analyzeFinancialHealth(final String userId) {
         final LocalDate endDate = LocalDate.now();
@@ -115,6 +173,13 @@ public class FinancialGoalsRecommendationService {
 
         // Get accounts
         final List<AccountTable> accounts = accountRepository.findByUserId(userId);
+
+        return analyzeFromData(transactions, accounts);
+    }
+
+    private FinancialAnalysis analyzeFromData(
+            final List<TransactionTable> transactions,
+            final List<AccountTable> accounts) {
 
         // Calculate income and expenses
         final BigDecimal monthlyIncome =
@@ -192,7 +257,7 @@ public class FinancialGoalsRecommendationService {
 
         // Calculate emergency fund adequacy
         final BigDecimal emergencyFundTarget =
-                monthlyExpenses.multiply(BigDecimal.valueOf(EMERGENCY_FUND_MONTHS));
+                monthlyExpenses.multiply(BigDecimal.valueOf(emergencyFundMonths()));
         final BigDecimal emergencyFundGap = emergencyFundTarget.subtract(liquidAssets);
         final double emergencyFundProgress =
                 emergencyFundTarget.compareTo(BigDecimal.ZERO) > 0
@@ -244,7 +309,7 @@ public class FinancialGoalsRecommendationService {
                             "Build Emergency Fund",
                             String.format(
                                     "Build a %d-month emergency fund to cover unexpected expenses",
-                                    EMERGENCY_FUND_MONTHS),
+                                    emergencyFundMonths()),
                             currentAmount,
                             targetAmount,
                             targetDate,
@@ -268,7 +333,7 @@ public class FinancialGoalsRecommendationService {
 
         if (analysis.totalDebt.compareTo(BigDecimal.ZERO) > 0) {
             // Check if debt-to-income ratio is high
-            if (analysis.debtToIncome > DEBT_TO_INCOME_THRESHOLD) {
+            if (analysis.debtToIncome > debtToIncomeThreshold()) {
                 final Priority priority =
                         analysis.debtToIncome > 0.5 ? Priority.HIGH : Priority.MEDIUM;
 
@@ -315,15 +380,15 @@ public class FinancialGoalsRecommendationService {
 
         final List<FinancialGoalRecommendation> recommendations = new ArrayList<>();
 
-        if (analysis.savingsRate < IDEAL_SAVINGS_RATE) {
+        if (analysis.savingsRate < idealSavingsRate()) {
             final BigDecimal targetMonthlySavings =
-                    analysis.monthlyIncome.multiply(BigDecimal.valueOf(IDEAL_SAVINGS_RATE));
+                    analysis.monthlyIncome.multiply(BigDecimal.valueOf(idealSavingsRate()));
             final BigDecimal currentSavings = analysis.monthlySavings;
             final BigDecimal gap = targetMonthlySavings.subtract(currentSavings);
 
             if (gap.compareTo(BigDecimal.ZERO) > 0) {
                 final Priority priority =
-                        analysis.savingsRate < MIN_SAVINGS_RATE ? Priority.HIGH : Priority.MEDIUM;
+                        analysis.savingsRate < minSavingsRate() ? Priority.HIGH : Priority.MEDIUM;
 
                 recommendations.add(
                         new FinancialGoalRecommendation(
@@ -331,14 +396,14 @@ public class FinancialGoalsRecommendationService {
                                 "Increase Savings Rate",
                                 String.format(
                                         "Increase savings rate from %.1f%% to %.1f%%",
-                                        analysis.savingsRate * 100, IDEAL_SAVINGS_RATE * 100),
+                                        analysis.savingsRate * 100, idealSavingsRate() * 100),
                                 currentSavings,
                                 targetMonthlySavings,
                                 LocalDate.now().plusMonths(6),
                                 priority,
                                 String.format(
                                         "Save an additional $%.2f/month to reach %.1f%% savings rate",
-                                        gap.doubleValue(), IDEAL_SAVINGS_RATE * 100),
+                                        gap.doubleValue(), idealSavingsRate() * 100),
                                 gap));
             }
         }
@@ -356,7 +421,7 @@ public class FinancialGoalsRecommendationService {
         final BigDecimal essentials =
                 analysis.monthlyExpenses.multiply(BigDecimal.valueOf(0.7)); // Assume 70% essentials
         final BigDecimal wantsBudget =
-                analysis.monthlyIncome.multiply(BigDecimal.valueOf(WANTS_BUDGET_PERCENT));
+                analysis.monthlyIncome.multiply(BigDecimal.valueOf(wantsBudgetPercent()));
         final BigDecimal remainingAfterEssentials = analysis.monthlyIncome.subtract(essentials);
 
         if (remainingAfterEssentials.compareTo(BigDecimal.ZERO) > 0) {
