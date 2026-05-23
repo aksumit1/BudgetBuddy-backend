@@ -36,6 +36,44 @@ public final class Subscription implements java.io.Serializable {
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
+    /**
+     * Structured price-change history. Populated by
+     * {@code SubscriptionService.consolidateMultiPriceSubscriptions} when a
+     * single merchant's amount-groups collapse into one subscription via
+     * the price-change merge rule. The current {@link #amount} is always
+     * the LATEST price; this list holds older amounts in chronological
+     * order so iOS can render a price chart without parsing the
+     * description text. Empty (not null) means "no observed price change".
+     */
+    private java.util.List<PriceHistoryEntry> priceHistory = new java.util.ArrayList<>();
+
+    /** One historical price observation. */
+    public static final class PriceHistoryEntry implements java.io.Serializable {
+        private static final long serialVersionUID = 1L;
+        private BigDecimal amount;
+        private LocalDate observedAt;
+
+        public PriceHistoryEntry() {}
+
+        public PriceHistoryEntry(final BigDecimal amount, final LocalDate observedAt) {
+            this.amount = amount;
+            this.observedAt = observedAt;
+        }
+
+        public BigDecimal getAmount() { return amount; }
+        public void setAmount(final BigDecimal v) { this.amount = v; }
+        public LocalDate getObservedAt() { return observedAt; }
+        public void setObservedAt(final LocalDate v) { this.observedAt = v; }
+    }
+
+    public java.util.List<PriceHistoryEntry> getPriceHistory() {
+        return priceHistory == null ? new java.util.ArrayList<>() : priceHistory;
+    }
+
+    public void setPriceHistory(final java.util.List<PriceHistoryEntry> v) {
+        this.priceHistory = v == null ? new java.util.ArrayList<>() : v;
+    }
+
     public enum SubscriptionFrequency {
         DAILY, // Every day
         WEEKLY, // Every week

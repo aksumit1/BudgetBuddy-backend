@@ -199,6 +199,65 @@ services:
       APP_FILE_UPLOAD_MAX_PER_HOUR: ${APP_FILE_UPLOAD_MAX_PER_HOUR:-500}
       APP_FILE_UPLOAD_MAX_BYTES_PER_HOUR: ${APP_FILE_UPLOAD_MAX_BYTES_PER_HOUR:-1073741824}
       APP_FILE_UPLOAD_MIN_INTERVAL_MS: ${APP_FILE_UPLOAD_MIN_INTERVAL_MS:-0}
+      # ===================================================================
+      # Category cascade — L6 external location sources
+      # ===================================================================
+      # Free, no API key, enabled by default. Each call is bounded by the
+      # per-source / per-request budget so a slow upstream can't stall the
+      # import. Setting any to "false" silently drops that source from the
+      # chain (the rest still run).
+      CATEGORY_OVERPASS_ENABLED: ${CATEGORY_OVERPASS_ENABLED:-true}
+      CATEGORY_NOMINATIM_ENABLED: ${CATEGORY_NOMINATIM_ENABLED:-true}
+      CATEGORY_WIKIDATA_ENABLED: ${CATEGORY_WIKIDATA_ENABLED:-true}
+      # Wall-clock budgets for the location-lookup chain. The 1500ms total
+      # request budget + 800ms per-source budget prevents the cascade from
+      # being held hostage by a single unresponsive external API.
+      APP_CATEGORY_LOCATION_PER_REQUEST_BUDGET_MS: ${APP_CATEGORY_LOCATION_PER_REQUEST_BUDGET_MS:-1500}
+      APP_CATEGORY_LOCATION_PER_SOURCE_BUDGET_MS: ${APP_CATEGORY_LOCATION_PER_SOURCE_BUDGET_MS:-800}
+      # Paid / API-key-required sources — off by default. To enable, set
+      # both *_ENABLED=true and the corresponding API_KEY in your .env.
+      CATEGORY_FOURSQUARE_ENABLED: ${CATEGORY_FOURSQUARE_ENABLED:-false}
+      CATEGORY_FOURSQUARE_API_KEY: ${CATEGORY_FOURSQUARE_API_KEY:-}
+      CATEGORY_OPENCORPORATES_ENABLED: ${CATEGORY_OPENCORPORATES_ENABLED:-false}
+      CATEGORY_OPENCORPORATES_API_TOKEN: ${CATEGORY_OPENCORPORATES_API_TOKEN:-}
+      # Anthropic LLM suggester — off by default. Drives the self-learning
+      # background loop only (never on the synchronous import path). Costs
+      # ≈ $0.001 / 25-merchant batch on Haiku. To enable in production,
+      # set both flags + API key in .env, and consider a daily-spend cap.
+      CATEGORY_ANTHROPIC_ENABLED: ${CATEGORY_ANTHROPIC_ENABLED:-false}
+      CATEGORY_ANTHROPIC_API_KEY: ${CATEGORY_ANTHROPIC_API_KEY:-}
+      CATEGORY_SELF_LEARNING_ENABLED: ${CATEGORY_SELF_LEARNING_ENABLED:-false}
+      CATEGORY_SELF_LEARNING_BATCH_SIZE: ${CATEGORY_SELF_LEARNING_BATCH_SIZE:-50}
+      # Daily exporter that promotes positive cache entries into a draft
+      # YAML rules file for human review + merge into category-rules-v2.yaml.
+      # Bundled with the self-learning loop so the daily augment runs as
+      # one job. Output path needs a writable directory inside the container;
+      # default lands in /tmp (lost on rebuild). For multi-pod prod, point
+      # this at an S3 path.
+      CATEGORY_RULE_EXPORT_ENABLED: ${CATEGORY_RULE_EXPORT_ENABLED:-false}
+      CATEGORY_RULE_EXPORT_CONFIDENCE_FLOOR: ${CATEGORY_RULE_EXPORT_CONFIDENCE_FLOOR:-0.85}
+      CATEGORY_RULE_EXPORT_OUTPUT_PATH: ${CATEGORY_RULE_EXPORT_OUTPUT_PATH:-/var/lib/rule-export/learned-rules-draft.yaml}
+      CATEGORY_RULE_EXPORT_CRON: ${CATEGORY_RULE_EXPORT_CRON:-0 30 3 * * *}
+      # ===================================================================
+      # PDF raw-archive — stores every uploaded statement so dev can
+      # reproduce parser issues. Enabled by default in local Docker because
+      # this IS the dev environment (privacy concern doesn't apply when the
+      # data is your own test PDFs). For production, see
+      # infrastructure/cloudformation/pdf-archive.yaml.
+      # ===================================================================
+      PDF_ARCHIVE_ENABLED: ${PDF_ARCHIVE_ENABLED:-true}
+      PDF_ARCHIVE_ROOT: ${PDF_ARCHIVE_ROOT:-/var/lib/pdf-archive}
+      PDF_ARCHIVE_MAX_BYTES: ${PDF_ARCHIVE_MAX_BYTES:-26214400}
+      # LocalStack S3 mirror. The bucket is created by the init-localstack
+      # script below; leave empty to disable the S3 path entirely.
+      PDF_ARCHIVE_S3_BUCKET: ${PDF_ARCHIVE_S3_BUCKET:-budgetbuddy-pdf-archive-local}
+      PDF_ARCHIVE_S3_PREFIX: ${PDF_ARCHIVE_S3_PREFIX:-pdf-archive/}
+      # Redacted-diagnostic store (lossy summary, complementary to the raw
+      # archive). Already wired by application.yml; env vars allow override.
+      PDF_DIAGNOSTICS_ENABLED: ${PDF_DIAGNOSTICS_ENABLED:-true}
+      PDF_DIAGNOSTICS_ROOT: ${PDF_DIAGNOSTICS_ROOT:-/var/lib/pdf-diagnostics}
+      PDF_DIAGNOSTICS_S3_BUCKET: ${PDF_DIAGNOSTICS_S3_BUCKET:-budgetbuddy-pdf-archive-local}
+      PDF_DIAGNOSTICS_S3_PREFIX: ${PDF_DIAGNOSTICS_S3_PREFIX:-pdf-diagnostics/}
       # Optimize DNS resolution
       # Docker's embedded DNS must be FIRST for service discovery (redis, localstack)
       # External DNS servers are used as fallback for external hostnames (like sandbox.plaid.com)
@@ -211,6 +270,18 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+    volumes:
+      # Persist the raw-PDF archive across container rebuilds so dev can
+      # grep through prior imports when debugging a parser issue. The S3
+      # mirror in LocalStack is wiped on docker-compose down; this local
+      # path is the durable copy for local dev.
+      - pdf_archive_data:/var/lib/pdf-archive
+      - pdf_diagnostics_data:/var/lib/pdf-diagnostics
+      # Rule-export draft YAML must survive container rebuilds so operators
+      # can grab the latest learned rules between deploys. Defaulted to a
+      # named volume mounted at /var/lib/rule-export; env override
+      # CATEGORY_RULE_EXPORT_OUTPUT_PATH points the worker at the same dir.
+      - rule_export_data:/var/lib/rule-export
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/actuator/health"]
       interval: 30s
@@ -256,3 +327,6 @@ volumes:
   localstack_test_data:  # Test LocalStack data (isolated from local development)
   redis_data:  # Local development Redis data
   redis_test_data:  # Test Redis data (isolated from local development)
+  pdf_archive_data:  # Raw uploaded PDFs (encrypted at rest in prod, plain in local dev)
+  pdf_diagnostics_data:  # Redacted JSON summaries for failed/anomalous parses
+  rule_export_data:  # MerchantRuleExportWorker draft YAML (survives container rebuilds)

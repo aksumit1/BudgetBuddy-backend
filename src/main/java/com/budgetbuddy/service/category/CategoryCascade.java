@@ -133,6 +133,17 @@ public class CategoryCascade {
             return r;
         }
 
+        // L2.5 — Issuer-provided category trailer (Amex "RESTAURANT",
+        // Discover "Restaurants", etc.). The card network already
+        // classified the transaction; we'd be foolish to ignore that.
+        // Sits BETWEEN MCC and merchant DB because the trailer text is a
+        // strong signal but slightly less canonical than a 4-digit MCC.
+        r = tryIssuerCategory(ctx);
+        if (r != null) {
+            log("L2_5_ISSUER", ctx, r);
+            return r;
+        }
+
         // L3 — Merchant DB (10K curated, exact + alias + prefix)
         r = tryMerchantDb(ctx);
         if (r != null) {
@@ -245,6 +256,75 @@ public class CategoryCascade {
                 m.getDetailedCategory(),
                 "MCC_CODE",
                 m.getConfidence());
+    }
+
+    /**
+     * L2.5: Map the issuer's own category trailer to an internal category.
+     *
+     * <h3>Field vs trailer-scan paths</h3>
+     *
+     * The Context exposes {@code importerCategoryPrimary/Detailed}, but
+     * historically the PDF parser writes our OWN cascade output back into
+     * those fields (after-classification snapshot), not the issuer's
+     * pre-classification trailer. So the {@code IssuerCategoryMapper.map}
+     * call against those fields is a near-no-op today — they don't carry
+     * the strings the mapper recognises (RESTAURANT, MISC/SPECIALTY RETAIL,
+     * etc.). The check is kept so the code is correct WHEN the parser
+     * eventually exposes a dedicated trailer field.
+     *
+     * <p>The path that actually fires today is the description-scan fallback:
+     * {@link IssuerCategoryMapper#scan(String)} looks for known trailer
+     * phrases in the (still-uncleaned) description. Amex and Discover
+     * concatenate "RESTAURANT", "LODGING", etc. onto the merchant line, so
+     * the scan finds them reliably.
+     *
+     * <p>See also: {@link com.budgetbuddy.service.ml.MerchantLocationSplitter}
+     * which is the canonical splitter for merchant vs location. It does NOT
+     * extract the trailer phrase — that remains in the description, which
+     * is what the scan path consumes.
+     */
+    private CategoryResult tryIssuerCategory(final Context ctx) {
+        if (ctx == null) return null;
+
+        // 1. PREFERRED: dedicated parsed trailer field. The parser captures
+        //    the issuer's raw trailer text BEFORE classification, so this is
+        //    a clean pre-classification signal — won't get polluted by the
+        //    cascade's own output the way importerCategory* fields do.
+        String mapped = IssuerCategoryMapper.map(ctx.parsedIssuerTrailer);
+        if (mapped != null) {
+            return new CategoryResult(
+                    mapped, mapped, "ISSUER_CATEGORY_FIELD",
+                    IssuerCategoryMapper.TRAILER_CONFIDENCE);
+        }
+
+        // 2. LEGACY: importer category fields (now ambiguous — see field
+        //    javadoc). Kept as a transitional fallback. New parsers should
+        //    populate parsedIssuerTrailer instead.
+        mapped = IssuerCategoryMapper.map(ctx.importerCategoryDetailed);
+        if (mapped == null) mapped = IssuerCategoryMapper.map(ctx.importerCategoryPrimary);
+        if (mapped != null) {
+            return new CategoryResult(
+                    mapped, mapped, "ISSUER_CATEGORY_FIELD_LEGACY",
+                    IssuerCategoryMapper.TRAILER_CONFIDENCE);
+        }
+
+        // 3. FALLBACK: scan the uncleaned description for an embedded
+        //    trailer. Amex/Discover concatenate the trailer onto the
+        //    merchant line; the scan catches that until the parser is
+        //    upgraded to emit parsedIssuerTrailer.
+        final String desc =
+                ctx.normalizedDescription != null
+                        ? ctx.normalizedDescription
+                        : ctx.description;
+        if (desc != null) {
+            mapped = IssuerCategoryMapper.scan(desc.toLowerCase(java.util.Locale.ROOT));
+            if (mapped != null) {
+                return new CategoryResult(
+                        mapped, mapped, "ISSUER_CATEGORY_TRAILER",
+                        IssuerCategoryMapper.TRAILER_CONFIDENCE);
+            }
+        }
+        return null;
     }
 
     private CategoryResult tryMerchantDb(final Context ctx) {
@@ -373,6 +453,26 @@ public class CategoryCascade {
         public final String city;
         public final String state;
         public final String country;
+        /**
+         * The issuer's own MCC-style category text, when the PDF parser
+         * extracted it (e.g., Amex "RESTAURANT", Discover "Restaurants").
+         * Consumed by L2.5 {@code tryIssuerCategory} — this is one of the
+         * highest-confidence signals in the cascade since it comes straight
+         * from the card network's classification.
+         */
+        public final String importerCategoryPrimary;
+        public final String importerCategoryDetailed;
+        /**
+         * Raw issuer-provided trailer text extracted by the parser BEFORE any
+         * categorisation step has run. e.g., Amex emits a line like
+         * "RESTAURANT" / "MISC/SPECIALTY RETAIL" between the date row and the
+         * amount; the parser captures it verbatim into this field. Strictly
+         * a pre-classification input — the cascade may then route it through
+         * {@link IssuerCategoryMapper}, but it MUST NOT be overwritten with
+         * the cascade's own output (the bug the importerCategory* fields
+         * used to have).
+         */
+        public final String parsedIssuerTrailer;
 
         private Context(final Builder b) {
             this.userId = b.userId;
@@ -385,6 +485,9 @@ public class CategoryCascade {
             this.city = b.city;
             this.state = b.state;
             this.country = b.country;
+            this.importerCategoryPrimary = b.importerCategoryPrimary;
+            this.importerCategoryDetailed = b.importerCategoryDetailed;
+            this.parsedIssuerTrailer = b.parsedIssuerTrailer;
         }
 
         public static Builder builder() {
@@ -402,6 +505,9 @@ public class CategoryCascade {
             private String city;
             private String state;
             private String country;
+            private String importerCategoryPrimary;
+            private String importerCategoryDetailed;
+            private String parsedIssuerTrailer;
 
             public Builder userId(final String v) { this.userId = v; return this; }
             public Builder merchantName(final String v) { this.merchantName = v; return this; }
@@ -417,13 +523,23 @@ public class CategoryCascade {
             public Builder city(final String v) { this.city = v; return this; }
             public Builder state(final String v) { this.state = v; return this; }
             public Builder country(final String v) { this.country = v; return this; }
+            public Builder importerCategoryPrimary(final String v) {
+                this.importerCategoryPrimary = v; return this;
+            }
+            public Builder importerCategoryDetailed(final String v) {
+                this.importerCategoryDetailed = v; return this;
+            }
+            public Builder parsedIssuerTrailer(final String v) {
+                this.parsedIssuerTrailer = v; return this;
+            }
             public Context build() { return new Context(this); }
         }
     }
 
     /** Layer names as returned in {@link CategoryResult#getSource()}. */
     public enum Layer {
-        L0_USER_OVERRIDE, L1_ORG_OVERRIDE, L2_MCC, L3_MERCHANT_DB, L4_PLAID,
+        L0_USER_OVERRIDE, L1_ORG_OVERRIDE, L2_MCC, L2_5_ISSUER,
+        L3_MERCHANT_DB, L4_PLAID,
         L5_CURATED, L6_LOCATION, L7_FUZZY, L8_ML, L9_KEYWORD_FALLBACK
     }
 }

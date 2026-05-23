@@ -146,6 +146,13 @@ public class PDFImportService {
     private final com.budgetbuddy.service.diagnostics.PdfImportDiagnosticBuilder diagnosticBuilder =
             new com.budgetbuddy.service.diagnostics.PdfImportDiagnosticBuilder();
     private final com.budgetbuddy.service.diagnostics.PdfImportMetrics importMetrics;
+    /**
+     * Raw-PDF archive. Wired via setter injection (NOT constructor) so the
+     * existing 39 test-construction sites don't need to grow another arg.
+     * Off-by-default — populated only when {@code pdf.archive.enabled=true}
+     * AND a Spring container is wiring it up.
+     */
+    private com.budgetbuddy.service.diagnostics.PdfRawArchive pdfRawArchive;
     private final com.budgetbuddy.service.pdf.v2.PdfTemplateV2Registry pdfTemplateV2Registry;
     private final com.budgetbuddy.service.pdf.v2.PdfTemplateV2Evaluator pdfTemplateV2Evaluator =
             new com.budgetbuddy.service.pdf.v2.PdfTemplateV2Evaluator();
@@ -187,6 +194,46 @@ public class PDFImportService {
     private static final Map<String, Pattern> COMPANY_NAME_PATTERN_CACHE =
             new ConcurrentHashMap<>();
 
+    // ---- DoS / oversize defenses ------------------------------------------
+    // Hard caps on PDF input to keep a single malicious upload from
+    // exhausting heap or CPU. Sized for real bank statements + 2x
+    // headroom; values must be raised together with the Spring multipart
+    // max-file-size config when tuned. Tested by V2PdfSizeLimitsTest.
+
+    /** Hard cap on PDF byte length. 30 MB covers Amex Platinum annual summaries. */
+    private static final int MAX_PDF_BYTES = 30 * 1024 * 1024;
+
+    /** Hard cap on PDF page count. 500 covers a tax-time consolidated statement. */
+    private static final int MAX_PDF_PAGES = 500;
+
+    /** Hard cap on extracted text length (UTF-16 chars). 5 MB == roughly 1.5 M words. */
+    private static final int MAX_TEXT_CHARS = 5 * 1024 * 1024;
+
+    /**
+     * Read at most {@code maxBytes} from {@code in}. Returns a byte[] sized
+     * to the actual data read (not maxBytes). Throws when the stream's
+     * length exceeds maxBytes — caller treats this as "file too large".
+     */
+    private static byte[] readBoundedBytes(final java.io.InputStream in, final int maxBytes)
+            throws IOException {
+        final java.io.ByteArrayOutputStream buf = new java.io.ByteArrayOutputStream(
+                Math.min(maxBytes, 8 * 1024 * 1024));
+        final byte[] block = new byte[64 * 1024];
+        int total = 0;
+        int n;
+        while ((n = in.read(block)) > 0) {
+            total += n;
+            if (total > maxBytes) {
+                // Return a buffer of exactly maxBytes so the caller's
+                // length check fires the friendly "too large" error.
+                buf.write(block, 0, n - (total - maxBytes));
+                return buf.toByteArray();
+            }
+            buf.write(block, 0, n);
+        }
+        return buf.toByteArray();
+    }
+
     @Autowired
     public PDFImportService(
             final AccountDetectionService accountDetectionService,
@@ -219,6 +266,18 @@ public class PDFImportService {
         this.diagnosticStore = diagnosticStore;
         this.importMetrics = importMetrics;
         this.pdfTemplateV2Registry = pdfTemplateV2Registry;
+    }
+
+    /**
+     * Setter injection for the raw-PDF archive. Kept separate from the
+     * constructor so all 39 test-construction sites don't need to grow
+     * another null. Spring auto-wires this when a {@code PdfRawArchive}
+     * bean is available; tests can set it manually.
+     */
+    @Autowired(required = false)
+    public void setPdfRawArchive(
+            final com.budgetbuddy.service.diagnostics.PdfRawArchive pdfRawArchive) {
+        this.pdfRawArchive = pdfRawArchive;
     }
 
     /**
@@ -815,6 +874,15 @@ public class PDFImportService {
         private String categoryDetailed; // Internal category (for display)
         private String importerCategoryPrimary; // Importer's original category (from parser)
         private String importerCategoryDetailed; // Importer's original category (from parser)
+        /**
+         * Raw issuer-provided trailer text captured by the PDF parser BEFORE
+         * any classification. e.g. Amex emits "RESTAURANT" / "MISC/SPECIALTY
+         * RETAIL" between the date row and the amount. The cascade's L2.5
+         * layer consumes this via {@code IssuerCategoryMapper.map(...)}.
+         * Distinct from importerCategory* which historically got overwritten
+         * with the cascade's own output (post-classification snapshot).
+         */
+        private String parsedIssuerTrailer;
         private String paymentChannel;
         private String transactionType;
         private String transactionId;
@@ -938,6 +1006,14 @@ public class PDFImportService {
             this.importerCategoryDetailed = importerCategoryDetailed;
         }
 
+        public String getParsedIssuerTrailer() {
+            return parsedIssuerTrailer;
+        }
+
+        public void setParsedIssuerTrailer(final String parsedIssuerTrailer) {
+            this.parsedIssuerTrailer = parsedIssuerTrailer;
+        }
+
         public String getPaymentChannel() {
             return paymentChannel;
         }
@@ -1035,6 +1111,90 @@ public class PDFImportService {
         public void setWalletProvider(final String v) {
             this.walletProvider = v;
         }
+
+        /**
+         * Per-statement row index. Threaded through to the idempotency key
+         * so two real same-day same-amount rows (e.g. two Uber trips, two
+         * Starbucks visits) both persist. Pre-fix the deterministic UUID
+         * collapsed them and one was silently dropped. Set by the parser
+         * when emitting transactions in PDF order; null for non-PDF imports
+         * which fall back to the legacy (collision-prone) keying.
+         */
+        private Integer rowIndex;
+
+        public Integer getRowIndex() {
+            return rowIndex;
+        }
+
+        public void setRowIndex(final Integer v) {
+            this.rowIndex = v;
+        }
+
+        // ---- Structured geo enrichment (v2 cutover) ----
+        //
+        // Today {@code location} carries a single human-readable string like
+        // "Bellevue, WA" or "London GB". For downstream consumers (analytics,
+        // map view, "trips abroad" detection, suggesting merchants by city)
+        // we want the components split into stable fields. Populated by
+        // {@code geoEnrichV2Transaction}; null when the parser can't infer
+        // that component.
+        private String city;
+        private String state;        // US state code or CA province (2 letters)
+        private String country;      // ISO 3166 alpha-2 country code (US, GB, PT, CA, ...)
+        private String postalCode;   // US ZIP (5 or 9) or international postal code
+        private String phoneNumber;  // digits-only, normalized
+        // Street address line — captured when the PDF row preserves enough
+        // detail (e.g. "1500 Bellevue Way NE" before "Bellevue WA US"). Stored
+        // verbatim, title-cased; null when the row only carried city/state.
+        private String streetAddress;
+
+        public String getCity() {
+            return city;
+        }
+
+        public void setCity(final String city) {
+            this.city = city;
+        }
+
+        public String getState() {
+            return state;
+        }
+
+        public void setState(final String state) {
+            this.state = state;
+        }
+
+        public String getCountry() {
+            return country;
+        }
+
+        public void setCountry(final String country) {
+            this.country = country;
+        }
+
+        public String getPostalCode() {
+            return postalCode;
+        }
+
+        public void setPostalCode(final String postalCode) {
+            this.postalCode = postalCode;
+        }
+
+        public String getPhoneNumber() {
+            return phoneNumber;
+        }
+
+        public void setPhoneNumber(final String phoneNumber) {
+            this.phoneNumber = phoneNumber;
+        }
+
+        public String getStreetAddress() {
+            return streetAddress;
+        }
+
+        public void setStreetAddress(final String streetAddress) {
+            this.streetAddress = streetAddress;
+        }
     }
 
     /**
@@ -1073,13 +1233,24 @@ public class PDFImportService {
             final String password) {
         final ImportResult result = new ImportResult();
 
-        // Read all bytes from input stream
+        // Read all bytes from input stream, capped at MAX_PDF_BYTES.
+        // Using a bounded read prevents an attacker from forcing us to
+        // allocate hundreds of MB of heap by streaming a giant payload
+        // through a single multipart upload. The cap mirrors the Spring
+        // multipart `max-file-size` config but enforced server-side so a
+        // misconfigured edge layer can't bypass it.
         final byte[] pdfBytes;
         try {
-            pdfBytes = inputStream.readAllBytes();
-        } catch (IOException e) {
+            pdfBytes = readBoundedBytes(inputStream, MAX_PDF_BYTES);
+        } catch (final IOException e) {
             throw new AppException(
                     ErrorCode.INVALID_INPUT, "Failed to read PDF file: " + e.getMessage());
+        }
+        if (pdfBytes.length >= MAX_PDF_BYTES) {
+            throw new AppException(
+                    ErrorCode.INVALID_INPUT,
+                    "PDF too large. Maximum supported size is "
+                            + (MAX_PDF_BYTES / (1024 * 1024)) + " MB.");
         }
 
         // Validate PDF file format before attempting to parse
@@ -1091,9 +1262,27 @@ public class PDFImportService {
         }
 
         try (PDDocument document = Loader.loadPDF(pdfBytes, password)) {
+            // Page-count cap. A "page bomb" — a few KB of PDF source that
+            // declares 50,000 logical pages — would cause PDFTextStripper
+            // to spend minutes producing megabytes of text. Reject early.
+            if (document.getNumberOfPages() > MAX_PDF_PAGES) {
+                throw new AppException(
+                        ErrorCode.INVALID_INPUT,
+                        "PDF too long. Maximum supported page count is "
+                                + MAX_PDF_PAGES + " pages.");
+            }
             // Extract text from all pages
             final PDFTextStripper stripper = new PDFTextStripper();
             String fullText = stripper.getText(document);
+            // Extracted-text cap. A PDF can declare unbounded text streams
+            // that the page-count check doesn't catch. Hard cap to keep
+            // memory + downstream regex CPU under control.
+            if (fullText != null && fullText.length() > MAX_TEXT_CHARS) {
+                throw new AppException(
+                        ErrorCode.INVALID_INPUT,
+                        "PDF text content exceeds the supported size of "
+                                + (MAX_TEXT_CHARS / 1024) + " KB extracted.");
+            }
 
             // When PDFBox returns nothing, the PDF is almost certainly scanned
             // or image-only. Attempt OCR if available; the service is opt-in
@@ -1423,6 +1612,9 @@ public class PDFImportService {
                         // original currency, original amount, rate). Match by (date, USD
                         // amount) so we don't depend on description-string equality.
                         applyFxAnnotationIfPresent(transaction, fxAnnotationsByAnchor);
+                        // Stamp per-statement rowIndex for idempotency
+                        // distinguishability. See ParsedTransaction.rowIndex.
+                        transaction.setRowIndex(result.getTransactions().size());
                         result.addTransaction(transaction);
                     } else {
                         result.addError(
@@ -1489,6 +1681,68 @@ public class PDFImportService {
                 LOGGER.warn("v2 tx shadow failed (non-fatal): {}", e.getMessage());
             }
 
+            // v2 transaction PRODUCTION cutover. For issuers in the cutover
+            // allow-list whose v2 template declares `transactions:`, REPLACE
+            // the legacy-extracted transactions with v2's section-aware
+            // output. This is the path that lets v2 fix bugs the legacy
+            // parser carries (e.g. WF Other Credits refunds being miscoded
+            // as purchases on 081825/111725 WellsFargo.pdf). Same try/catch
+            // discipline — a v2 failure falls back to legacy silently.
+            try {
+                applyV2TransactionCutover(
+                        fullText, fileName, result, inferredYear, pdfBytes, password);
+            } catch (final RuntimeException e) {
+                LOGGER.warn("v2 tx cutover failed (falling back to legacy): {}", e.getMessage());
+            }
+
+            // Year-rollover correction — MUST run after the v2 cutover. The
+            // earlier pass at line ~1503 corrected the LEGACY transaction
+            // list which v2 then replaced. Two-sided correction: shift
+            // FORWARD when tx falls more than 6 months before reference,
+            // shift BACKWARD when tx falls more than 1 day after reference.
+            // The asymmetry (>1 day after vs >6 months before) handles the
+            // posting-vs-transaction-date subtlety (Wells Fargo and others
+            // print txdate one day before the cycle's first posting date,
+            // so a 1-day-before-stmt-start case is NOT a year-graft bug).
+            final java.time.LocalDate refEnd = result.getStatementEndDate() != null
+                    ? result.getStatementEndDate()
+                    : result.getStatementDate();
+            final java.time.LocalDate refStart = result.getStatementStartDate() != null
+                    ? result.getStatementStartDate()
+                    : refEnd != null ? refEnd.minusMonths(1).minusDays(2) : null;
+            int yearRolloverCorrections = 0;
+            if (refEnd != null && refStart != null) {
+                for (final ParsedTransaction tx : result.getTransactions()) {
+                    if (tx.getDate() == null) continue;
+                    // > 30 days after end → must be from prior year
+                    if (tx.getDate().isAfter(refEnd.plusDays(30))) {
+                        tx.setDate(tx.getDate().minusYears(1));
+                        yearRolloverCorrections++;
+                    } else if (tx.getDate().isBefore(refStart.minusDays(30))) {
+                        // > 30 days before start → must be from following year
+                        tx.setDate(tx.getDate().plusYears(1));
+                        yearRolloverCorrections++;
+                    }
+                }
+            } else if (refEnd != null) {
+                for (final ParsedTransaction tx : result.getTransactions()) {
+                    if (tx.getDate() != null
+                            && tx.getDate().isAfter(refEnd.plusDays(30))) {
+                        tx.setDate(tx.getDate().minusYears(1));
+                        yearRolloverCorrections++;
+                    }
+                }
+            }
+            // Emit the corrector counter so dashboards can spot a sudden
+            // spike (corrector over-firing usually means a statement-period
+            // extraction regression). Tagged by institution so we can see
+            // which issuer suddenly started returning bad statementEndDates.
+            if (yearRolloverCorrections > 0 && importMetrics != null) {
+                final String inst = result.getDetectedAccount() != null
+                        ? result.getDetectedAccount().getInstitutionName() : null;
+                importMetrics.recordYearRolloverCorrections(inst, yearRolloverCorrections);
+            }
+
             // Statement-date fallback. Many issuers (Citi, BoA, Wells Fargo)
             // print only a "Billing Period: MM/DD - MM/DD/YY" range, no
             // separate "Closing Date" label. For card statements,
@@ -1522,6 +1776,15 @@ public class PDFImportService {
             // the store and never breaks the import.
             captureDiagnosticIfInteresting(result, pdfBytes, fullText, document.getNumberOfPages());
 
+            // Layer 3: archive the RAW PDF bytes for every successful parse.
+            // The diagnostic JSON above is redacted and lossy — useful for
+            // analytics but insufficient for re-parsing with a future fix.
+            // The raw archive (off-by-default, opt-in via pdf.archive.enabled)
+            // gives us the original bytes so any extraction regression found
+            // weeks later can be reproduced exactly. SHA-256 dedup ensures
+            // re-imports of the same statement don't cost extra storage.
+            archiveRawPdfIfEnabled(pdfBytes, result, fileName);
+
             if (LOGGER.isInfoEnabled()) {
                 LOGGER.info(
                         "Parsed PDF: {} successful, {} failed",
@@ -1530,8 +1793,13 @@ public class PDFImportService {
             }
 
         } catch (AppException e) {
+            // Parse-failure archive: a PDF that throws is exactly what we want
+            // to look at later. Archive only when the bytes look like a real
+            // PDF (header check) so we don't fill storage with random uploads.
+            archiveRawPdfOnFailure(pdfBytes, fileName, e);
             throw e;
         } catch (IOException e) {
+            archiveRawPdfOnFailure(pdfBytes, fileName, e);
             // Handle PDF parsing errors (invalid format, corrupted file, etc.)
             final String errorMessage = e.getMessage();
             if (errorMessage != null
@@ -1547,6 +1815,7 @@ public class PDFImportService {
             throw new AppException(
                     ErrorCode.INVALID_INPUT, "Failed to read PDF file: " + errorMessage);
         } catch (Exception e) {
+            archiveRawPdfOnFailure(pdfBytes, fileName, e);
             if (LOGGER.isErrorEnabled()) {
                 LOGGER.error("Error parsing PDF file: {}", e.getMessage(), e);
             }
@@ -2141,6 +2410,7 @@ public class PDFImportService {
             return null;
         }
 
+        // Try the word-boundary YYYY form first ("statement-2025-06-09.pdf").
         final Pattern filenameYearPattern = Pattern.compile("\\b(20\\d{2})\\b");
         final Matcher filenameMatcher = filenameYearPattern.matcher(fileName);
         if (filenameMatcher.find()) {
@@ -2152,6 +2422,39 @@ public class PDFImportService {
             } catch (NumberFormatException e) {
                 // Ignore
             }
+        }
+
+        // Compact YYYYMMDD form (Discover-Statement-20251116-2364.pdf,
+        // 011826 WellsFargo.pdf, 20251204-statements-3100-.pdf etc.). No
+        // word boundary after the year because the next character is a
+        // digit (month). Anchor on non-digit-or-start before, validate the
+        // MMDD portion to filter out 8-digit account numbers.
+        final Pattern compactDate = Pattern.compile("(?:^|[^\\d])(20\\d{2})(\\d{2})(\\d{2})(?:[^\\d]|$)");
+        final Matcher cm = compactDate.matcher(fileName);
+        while (cm.find()) {
+            try {
+                final int year = Integer.parseInt(cm.group(1));
+                final int month = Integer.parseInt(cm.group(2));
+                final int day = Integer.parseInt(cm.group(3));
+                if (isValidYear(year) && month >= 1 && month <= 12
+                        && day >= 1 && day <= 31) {
+                    return year;
+                }
+            } catch (NumberFormatException ignored) { /* try next */ }
+        }
+
+        // MMDDYY form ("011826 WellsFargo.pdf" → closing date 01/18/26).
+        final Pattern mmddyy = Pattern.compile("(?:^|[^\\d])(\\d{2})(\\d{2})(\\d{2})(?:\\s|_|[^\\d]|$)");
+        final Matcher mm = mmddyy.matcher(fileName);
+        while (mm.find()) {
+            try {
+                final int month = Integer.parseInt(mm.group(1));
+                final int day = Integer.parseInt(mm.group(2));
+                final int yy = Integer.parseInt(mm.group(3));
+                if (month >= 1 && month <= 12 && day >= 1 && day <= 31) {
+                    return convert2DigitYearTo4Digit(yy);
+                }
+            } catch (NumberFormatException ignored) { /* try next */ }
         }
 
         return null;
@@ -7755,9 +8058,17 @@ public class PDFImportService {
         final String currencyCode = detectCurrency(amountString, fileName);
         transaction.setCurrencyCode(currencyCode);
 
-        // Parse payment channel
-        final String paymentChannel =
+        // Parse payment channel. Bank statements almost never print this as
+        // a labeled field — so the findField() lookup will return null on
+        // every real statement. Fall back to deriving from the descriptor
+        // (ACH/PPD ID → "ach", AplPay/APL* → "online_wallet", ATM → "atm",
+        // CHECK PAID → "check", etc.). The per-product audit showed
+        // paymentChannel 0% on every product before this change.
+        String paymentChannel =
                 findField(row, "payment channel", "payment method", "channel");
+        if (paymentChannel == null || paymentChannel.isBlank()) {
+            paymentChannel = derivePaymentChannel(transaction);
+        }
         transaction.setPaymentChannel(paymentChannel);
 
         // Category detection - use import parser (determination happens on creation)
@@ -8379,6 +8690,1058 @@ public class PDFImportService {
     }
 
     /**
+     * Issuers whose v2 transaction shapes have been verified at shadow
+     * parity AND whose YAML declares section-aware shapes that fix at least
+     * one legacy bug. For each such issuer, this method REPLACES the
+     * legacy-extracted transaction list with v2's output.
+     *
+     * <p>The list is conservative — only add an issuer here AFTER its v2
+     * shapes have been verified to produce strictly equal-or-better
+     * extractions than legacy on the corpus audit. Removal during regression
+     * is also safe: drop the entry and behavior reverts to legacy.
+     */
+    private static final java.util.Set<String> V2_TX_PRODUCTION_ISSUERS = java.util.Set.of(
+            "Wells Fargo", "Chase", "Chase Checking", "Citibank", "American Express",
+            "U.S. Bank", "Mastercard", "Synchrony", "Discover");
+
+    /**
+     * Issuers whose transaction-shape extraction REQUIRES the PDF text to be
+     * re-rendered with {@code PDFTextStripper.setSortByPosition(true)}. Chase
+     * Total Checking is the lone entry: its statement layout places each
+     * transaction's amount + balance in two right-aligned columns that, in
+     * the default (left-to-right reading-order) extraction, get pulled apart
+     * — deposit amounts end up in a separate left-aligned cluster with no
+     * way to pair them back to their dated rows. Sort-by-position renders
+     * each row as {@code MM/DD <desc> <amount> <balance>} on one line, which
+     * the YAML shapes can match cleanly. Other issuers' YAML shapes are tuned
+     * to the default (unsorted) extraction and would regress if forced into
+     * sort-mode, so this is opt-in per institution.
+     */
+    private static final java.util.Set<String> V2_TX_REQUIRES_SORTED_TEXT = java.util.Set.of(
+            "Chase Checking");
+
+    private static final com.budgetbuddy.service.pdf.v2.TransactionExtractor V2_TX_EXTRACTOR =
+            new com.budgetbuddy.service.pdf.v2.TransactionExtractor();
+
+    /**
+     * Cutover step: when the matched v2 template's institution is in
+     * {@link #V2_TX_PRODUCTION_ISSUERS}, replace {@code result.transactions}
+     * with the v2 extractor's output. The replaced list carries the same
+     * date/description/amount semantics as legacy but with v2's section-aware
+     * sign classification (e.g. WF Other Credits → CREDIT, not DEBIT).
+     */
+    private void applyV2TransactionCutover(
+            final String fullText, final String fileName, final ImportResult result,
+            final Integer inferredYear, final byte[] pdfBytes, final String password) {
+        if (pdfTemplateV2Registry == null || result == null) return;
+        final AccountDetectionService.DetectedAccount a = result.getDetectedAccount();
+        final String institution = a == null ? null : a.getInstitutionName();
+        if (institution == null || !V2_TX_PRODUCTION_ISSUERS.contains(institution)) {
+            if (importMetrics != null) {
+                importMetrics.recordV2CutoverPath(institution, "legacy");
+            }
+            return;
+        }
+        final com.budgetbuddy.service.pdf.v2.PdfTemplateV2 tpl =
+                pdfTemplateV2Registry.findByInstitution(institution);
+        if (tpl == null || tpl.getTransactions().isEmpty()) {
+            if (importMetrics != null) {
+                importMetrics.recordV2CutoverPath(institution, "legacy_no_template");
+            }
+            return;
+        }
+
+        // Sort-by-position extraction opt-in. Chase Total Checking's amount +
+        // balance columns get torn apart by the default extractor; re-render
+        // with setSortByPosition(true) here so every transaction row arrives
+        // as `MM/DD <desc> <amount> <balance>` on a single line. Failures
+        // (corrupt PDF, OOM, etc.) silently fall back to the default fullText
+        // so the cutover degrades to legacy behavior rather than blowing up.
+        String txText = fullText;
+        if (V2_TX_REQUIRES_SORTED_TEXT.contains(institution) && pdfBytes != null) {
+            try (PDDocument document = Loader.loadPDF(pdfBytes, password)) {
+                final PDFTextStripper sorted = new PDFTextStripper();
+                sorted.setSortByPosition(true);
+                final String reExtracted = sorted.getText(document);
+                if (reExtracted != null && !reExtracted.isBlank()) {
+                    txText = reExtracted;
+                }
+            } catch (final IOException e) {
+                LOGGER.warn("v2 tx cutover: sort-by-position re-extract failed for {} ({}); "
+                        + "falling back to default text", institution, e.getMessage());
+            }
+        }
+
+        // FX-capture opt-in: when ANY shape in this template declares
+        // `fx_lines:`, re-extract the PDF text WITHOUT the Java-level FX
+        // strip passes (stripAmexFxBlocks / stripFxAnnotations) so the
+        // foreign-amount and EXCHG-RATE detail lines are still present for
+        // the extractor to capture. Without this the production fullText
+        // has already had those lines removed and capture has nothing to
+        // find. We still run stitchContinuationLines so the parent-tx line
+        // shape matches as usual.
+        if (pdfBytes != null && templateHasFxCapture(tpl)) {
+            final String fxText = reExtractTextWithoutFxStrip(pdfBytes, password);
+            if (fxText != null && !fxText.isBlank()) {
+                txText = fxText;
+            }
+        }
+
+        final java.util.List<com.budgetbuddy.service.pdf.v2.TransactionExtractor.ExtractedTransaction> v2 =
+                V2_TX_EXTRACTOR.extract(tpl, txText, inferredYear);
+        if (v2.isEmpty()) {
+            LOGGER.info("v2 tx cutover: {} declared but extracted 0 — keeping legacy",
+                    institution);
+            if (importMetrics != null) {
+                importMetrics.recordV2CutoverPath(institution, "legacy_v2_empty");
+            }
+            return;
+        }
+        if (importMetrics != null) {
+            importMetrics.recordV2CutoverPath(institution, "v2");
+        }
+
+        // Resolve account context for enrichment (category parsing wants the
+        // account type). Default to credit_card when detection is silent;
+        // the cutover allow-list is currently credit-card-only.
+        final String accountTypeString = a != null && a.getAccountType() != null
+                ? a.getAccountType().toLowerCase(Locale.ROOT) : "credit_card";
+        final String accountSubtypeString = a != null && a.getAccountSubtype() != null
+                ? a.getAccountSubtype().toLowerCase(Locale.ROOT) : null;
+        final String accountHolderName = a == null ? null : a.getAccountHolderName();
+
+        final java.util.List<ParsedTransaction> converted = new java.util.ArrayList<>(v2.size());
+        for (final var ex : v2) {
+            final ParsedTransaction p = new ParsedTransaction();
+            p.setDate(ex.date);
+            p.setDescription(ex.description);
+            final FlowDirection direction = decideV2FlowDirection(ex);
+            // Align the sign with the direction. Credit-card storage convention:
+            // payments/refunds are POSITIVE (credit), purchases are NEGATIVE
+            // (debit). v2's raw amount comes in as the PDF prints it (typically
+            // positive) — we flip when classifying as DEBIT, leave as-is for
+            // CREDIT, and respect explicit signs (rare credit-balance rows).
+            java.math.BigDecimal amount = ex.amount;
+            if (amount != null) {
+                if (direction == FlowDirection.DEBIT && amount.signum() > 0) {
+                    amount = amount.negate();
+                } else if (direction == FlowDirection.CREDIT && amount.signum() < 0) {
+                    amount = amount.negate();
+                }
+            }
+            p.setAmount(amount);
+            p.setFlowDirection(direction);
+            enrichV2Transaction(p, accountTypeString, accountSubtypeString, accountHolderName);
+            // Family-card / authorized-user statements (Amex Blue Business
+            // Cash with additional employee cards) carry per-section cardholder
+            // headers in the source PDF. The TransactionExtractor tracks that
+            // context via the YAML `card_holders:` block and stamps each
+            // ExtractedTransaction with the active cardholder name + card
+            // last-four. Forward both to the ParsedTransaction so downstream
+            // analytics can split spend per family member / per card.
+            // Family-card patterns only fire on multi-cardholder statements
+            // (Amex Blue Business Cash). For single-cardholder accounts —
+            // most credit cards, all checking — default the per-transaction
+            // user + card last4 to the account-level fields so downstream
+            // analytics get 100% coverage (was ~41% Amex-only pre-fix).
+            final String resolvedUser = ex.userName != null && !ex.userName.isBlank()
+                    ? ex.userName : accountHolderName;
+            if (resolvedUser != null && !resolvedUser.isBlank()) {
+                p.setUserName(resolvedUser);
+            }
+            final String accountLast4 = a == null ? null : a.getAccountNumber();
+            final String resolvedCardLast4 = ex.cardLastFour != null && !ex.cardLastFour.isBlank()
+                    ? ex.cardLastFour : accountLast4;
+            if (resolvedCardLast4 != null && !resolvedCardLast4.isBlank()) {
+                p.setCardLastFour(resolvedCardLast4);
+            }
+            // Foreign-currency context. The extractor scanned the 1-5 lines
+            // after the parent tx for fx_lines matches and populated these
+            // fields on the ExtractedTransaction. Forward them onto the
+            // ParsedTransaction so the audit CSV's fx_orig_code /
+            // fx_orig_amount / fx_rate columns surface the FX data.
+            if (ex.fxOriginalCurrency != null && !ex.fxOriginalCurrency.isBlank()) {
+                p.setOriginalCurrencyCode(canonicalizeFxCurrencyCode(ex.fxOriginalCurrency));
+                p.setOriginalCurrencyDisplay(ex.fxOriginalCurrency);
+            }
+            if (ex.fxOriginalAmount != null) {
+                p.setOriginalAmount(ex.fxOriginalAmount);
+            }
+            if (ex.fxRate != null) {
+                p.setExchangeRate(ex.fxRate);
+            }
+            converted.add(p);
+        }
+        // Stamp per-statement rowIndex so the deterministic-id key in
+        // TransactionService distinguishes two identical-looking rows
+        // (e.g. two same-day same-amount Uber trips). Without this they
+        // collapsed to one UUID and the second was silently dropped.
+        for (int i = 0; i < converted.size(); i++) {
+            converted.get(i).setRowIndex(i);
+        }
+        result.getTransactions().clear();
+        result.getTransactions().addAll(converted);
+        LOGGER.info("v2 tx cutover: {} file={} replaced {} legacy tx with {} v2 tx",
+                institution, fileName, v2.size(), converted.size());
+    }
+
+    /**
+     * True iff any transaction shape in {@code tpl} declares non-empty
+     * {@code fx_lines}. Drives the FX-capture re-extract decision in the
+     * cutover.
+     */
+    private static boolean templateHasFxCapture(
+            final com.budgetbuddy.service.pdf.v2.PdfTemplateV2 tpl) {
+        if (tpl == null) return false;
+        for (final var s : tpl.getTransactions()) {
+            if (s.getFxLines() != null && !s.getFxLines().isEmpty()) return true;
+        }
+        return false;
+    }
+
+    /**
+     * Re-extract PDF text WITHOUT the Java-level FX-strip passes, so the
+     * v2 extractor's fx_lines patterns can capture the foreign-amount,
+     * currency-name, and exchange-rate detail lines. Mirrors the production
+     * preprocessing in {@link #parsePdfInternal} (stitchContinuationLines)
+     * MINUS the strip steps. Returns null on any failure so the caller can
+     * fall back to the standard fullText.
+     */
+    private String reExtractTextWithoutFxStrip(
+            final byte[] pdfBytes, final String password) {
+        try (PDDocument document = Loader.loadPDF(pdfBytes, password)) {
+            final String raw = new PDFTextStripper().getText(document);
+            if (raw == null || raw.isBlank()) return null;
+            // Keep FX header / detail lines intact (we want the extractor to
+            // capture them). We DO strip the Chase fx-fee parent-reference
+            // line — it's a duplicate "merchant + $amount" tail that gets
+            // glued onto the FOREIGN TRANSACTION FEE row, causing the fee to
+            // double-count as the parent purchase amount. Removing it keeps
+            // the totals consistent without losing any FX context (the
+            // parent purchase row is unaffected).
+            String text = stripChaseFxFeeParentRef(raw);
+            return stitchContinuationLines(text);
+        } catch (final IOException e) {
+            LOGGER.warn("v2 tx cutover: FX-capture re-extract failed: {}", e.getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * Map an FX currency display name (e.g. "Japanese Yen", "Swiss Franc",
+     * "EURO") to its ISO 4217 code via the existing CURRENCY_DISPLAY_TO_CODE
+     * table. Falls back to the raw input (uppercased) when no mapping exists
+     * so the field still carries SOMETHING useful for the audit CSV.
+     */
+    private static String canonicalizeFxCurrencyCode(final String raw) {
+        if (raw == null || raw.isBlank()) return null;
+        final String upper = raw.trim().toUpperCase(Locale.ROOT);
+        // First try exact match against the CURRENCY_DISPLAY_TO_CODE table
+        // (entries are keyed singular: "INDIAN RUPEE", "POUND STERLING").
+        final String code = CURRENCY_DISPLAY_TO_CODE.get(upper);
+        if (code != null) return code;
+        // Singular fallback: Amex emits "Indian Rupees", "Canadian Dollars",
+        // "Pounds Sterling" (plural-leading). Drop a trailing 'S' on the
+        // FIRST word so "POUNDS STERLING" → "POUND STERLING" matches the
+        // table entry, and "INDIAN RUPEES" → "INDIAN RUPEE" likewise.
+        final String[] parts = upper.split("\\s+", 2);
+        if (parts.length == 2 && parts[0].endsWith("S") && parts[0].length() > 3) {
+            final String singularFirst = parts[0].substring(0, parts[0].length() - 1)
+                    + " " + parts[1];
+            final String c2 = CURRENCY_DISPLAY_TO_CODE.get(singularFirst);
+            if (c2 != null) return c2;
+        }
+        // Last-word singular fallback: "INDIAN RUPEES" / "CANADIAN DOLLARS"
+        // have a plural trailing word; strip the final 'S' to match the
+        // singular table key.
+        if (upper.endsWith("S") && upper.length() > 4) {
+            final String singularLast = upper.substring(0, upper.length() - 1);
+            final String c3 = CURRENCY_DISPLAY_TO_CODE.get(singularLast);
+            if (c3 != null) return c3;
+        }
+        return upper;
+    }
+
+    /**
+     * Run the description-derived enrichment pipeline on a freshly-built v2
+     * transaction so the produced ParsedTransaction has the same downstream
+     * fields the legacy parser would have set: wallet provider (Apple
+     * Pay/Google Pay/PayPal prefix), merchant + location split, currency,
+     * category. Mirrors the relevant blocks of
+     * {@code parseTransactionFromRow} (~line 7700) but driven purely from
+     * the v2-extracted description — no Pattern-7 row fields available.
+     */
+    private void enrichV2Transaction(
+            final ParsedTransaction tx, final String accountTypeString,
+            final String accountSubtypeString, final String accountHolderName) {
+        if (tx == null) return;
+        final String desc = tx.getDescription();
+        if (desc != null && !desc.isBlank()) {
+            // Wallet provider: detect from prefix before any cleaning.
+            final String wallet = com.budgetbuddy.service.pdf.profile.WalletProviderDetector
+                    .detectName(desc);
+            if (wallet != null) tx.setWalletProvider(wallet);
+            // Merchant + location split. The legacy path runs this on a
+            // cleaned description; v2's description is already trimmed of
+            // dates/amounts so feed it as-is.
+            String merchant = desc;
+            final com.budgetbuddy.service.ml.MerchantLocationSplitter.Split split =
+                    com.budgetbuddy.service.ml.MerchantLocationSplitter.split(merchant);
+            if (split.location() != null && split.merchant() != null
+                    && !split.merchant().isBlank()) {
+                merchant = split.merchant();
+                tx.setLocation(split.location());
+            }
+            // Strip the cardholder/family name from the merchant so a card
+            // family statement doesn't leave "AGARWAL SUMIT" attached.
+            final String cleaned = removeNamesFromText(merchant, null, accountHolderName);
+            tx.setMerchantName(cleaned != null && !cleaned.isBlank() ? cleaned : merchant);
+        }
+        // Currency: v2 amount comes in as a plain BigDecimal — caller hasn't
+        // preserved the original amount string with currency hint, so
+        // default to USD (the only currency the YAML shapes capture today).
+        // FX-block stripping has already removed foreign-currency rows from
+        // the description by the time v2 sees them.
+        tx.setCurrencyCode("USD");
+        // Category: run the import parser with the enriched context. This is
+        // the same call legacy makes at parseTransactionFromRow line ~7780.
+        if (importCategoryParser != null) {
+            final String parsedCategory = importCategoryParser.parseCategory(
+                    null,                       // raw category field — v2 doesn't have one
+                    tx.getDescription(),
+                    tx.getMerchantName(),
+                    tx.getAmount(),
+                    null,                       // payment channel
+                    null, null,
+                    accountTypeString,
+                    accountSubtypeString);
+            tx.setCategoryPrimary(parsedCategory);
+            tx.setCategoryDetailed(parsedCategory);
+            tx.setImporterCategoryPrimary(parsedCategory);
+            tx.setImporterCategoryDetailed(parsedCategory);
+        }
+        // Transaction type taxonomy: derive from direction + description so
+        // downstream consumers (categorization rules, insights) can branch
+        // on it without re-running keyword matching. Mirrors the categories
+        // the legacy parser surfaces via the row map's `type` field.
+        tx.setTransactionType(deriveTransactionType(tx));
+        // Payment-channel derivation. Banks don't print this as a labeled
+        // field, but the descriptor patterns reliably identify the rail:
+        // ACH / wallet / ATM / check / wire / online / in_store. Pre-fix
+        // every product showed paymentChannel 0% in the audit; this fills
+        // it from the same descriptor we already classify for type.
+        if (tx.getPaymentChannel() == null || tx.getPaymentChannel().isBlank()) {
+            tx.setPaymentChannel(derivePaymentChannel(tx));
+        }
+        // Structured geo enrichment: break the single `location` string (and
+        // any phone / postal hints still in the description) into city /
+        // state / country / postalCode / phoneNumber. Runs after the split
+        // above so it sees the cleanest possible inputs.
+        geoEnrichV2Transaction(tx);
+    }
+
+    // ---- Geo enrichment ----------------------------------------------------
+    //
+    // Canonical US-state + DC + territory codes. Anything else two-letter
+    // that we recognize is treated as an ISO 3166 alpha-2 country code.
+    private static final Set<String> US_STATE_CODES = Set.of(
+            "AL", "AK", "AZ", "AR", "CA", "CO", "CT", "DE", "FL", "GA", "HI", "ID", "IL",
+            "IN", "IA", "KS", "KY", "LA", "ME", "MD", "MA", "MI", "MN", "MS", "MO", "MT",
+            "NE", "NV", "NH", "NJ", "NM", "NY", "NC", "ND", "OH", "OK", "OR", "PA", "RI",
+            "SC", "SD", "TN", "TX", "UT", "VT", "VA", "WA", "WV", "WI", "WY",
+            "DC", "AS", "GU", "MP", "PR", "VI");
+
+    // Canadian province codes — treated as "state" when paired with a CA
+    // country signal in the description, otherwise still set as state.
+    private static final Set<String> CA_PROVINCE_CODES = Set.of(
+            "AB", "BC", "MB", "NB", "NL", "NS", "NT", "NU", "ON", "PE", "QC", "SK", "YT");
+
+    // Two-letter ISO 3166 alpha-2 country codes we expect to actually show up
+    // on a North-America-issuer statement. Kept tight — adding everything ISO
+    // knows about would catch random 2-letter merchant codes as countries.
+    private static final Set<String> ISO_ALPHA2_COUNTRIES = Set.of(
+            "US", "GB", "UK", "CA", "AU", "NZ", "DE", "FR", "IT", "ES", "NL", "BE",
+            "PT", "IE", "CH", "AT", "SE", "NO", "DK", "FI", "PL", "CZ", "GR", "TR",
+            "IN", "JP", "CN", "KR", "HK", "TW", "TH", "VN", "ID", "MY", "PH", "SG",
+            "AE", "SA", "QA", "IL", "ZA", "BR", "MX", "AR", "CL", "CO", "PE");
+
+    // Three-letter ISO 3166 alpha-3 codes — collapsed to their alpha-2 form so
+    // the stored `country` value is consistently 2 letters.
+    private static final Map<String, String> ISO_ALPHA3_TO_ALPHA2 = Map.ofEntries(
+            Map.entry("USA", "US"), Map.entry("GBR", "GB"), Map.entry("CAN", "CA"),
+            Map.entry("AUS", "AU"), Map.entry("NZL", "NZ"), Map.entry("DEU", "DE"),
+            Map.entry("FRA", "FR"), Map.entry("ITA", "IT"), Map.entry("ESP", "ES"),
+            Map.entry("NLD", "NL"), Map.entry("BEL", "BE"), Map.entry("PRT", "PT"),
+            Map.entry("IRL", "IE"), Map.entry("CHE", "CH"), Map.entry("AUT", "AT"),
+            Map.entry("SWE", "SE"), Map.entry("NOR", "NO"), Map.entry("DNK", "DK"),
+            Map.entry("FIN", "FI"), Map.entry("POL", "PL"), Map.entry("CZE", "CZ"),
+            Map.entry("GRC", "GR"), Map.entry("TUR", "TR"), Map.entry("IND", "IN"),
+            Map.entry("JPN", "JP"), Map.entry("CHN", "CN"), Map.entry("KOR", "KR"),
+            Map.entry("HKG", "HK"), Map.entry("TWN", "TW"), Map.entry("THA", "TH"),
+            Map.entry("VNM", "VN"), Map.entry("IDN", "ID"), Map.entry("MYS", "MY"),
+            Map.entry("PHL", "PH"), Map.entry("SGP", "SG"), Map.entry("ARE", "AE"),
+            Map.entry("SAU", "SA"), Map.entry("QAT", "QA"), Map.entry("ISR", "IL"),
+            Map.entry("ZAF", "ZA"), Map.entry("BRA", "BR"), Map.entry("MEX", "MX"),
+            Map.entry("ARG", "AR"), Map.entry("CHL", "CL"), Map.entry("COL", "CO"),
+            Map.entry("PER", "PE"));
+
+    // Spelled-out country names → alpha-2. Catches rows like "LISBON PORTUGAL".
+    // Keys are uppercased.
+    private static final Map<String, String> COUNTRY_NAME_TO_ALPHA2 = Map.ofEntries(
+            Map.entry("UNITED STATES", "US"), Map.entry("USA", "US"),
+            Map.entry("UNITED KINGDOM", "GB"), Map.entry("ENGLAND", "GB"),
+            Map.entry("SCOTLAND", "GB"), Map.entry("WALES", "GB"),
+            Map.entry("CANADA", "CA"), Map.entry("AUSTRALIA", "AU"),
+            Map.entry("NEW ZEALAND", "NZ"), Map.entry("GERMANY", "DE"),
+            Map.entry("FRANCE", "FR"), Map.entry("ITALY", "IT"),
+            Map.entry("SPAIN", "ES"), Map.entry("NETHERLANDS", "NL"),
+            Map.entry("BELGIUM", "BE"), Map.entry("PORTUGAL", "PT"),
+            Map.entry("IRELAND", "IE"), Map.entry("SWITZERLAND", "CH"),
+            Map.entry("AUSTRIA", "AT"), Map.entry("SWEDEN", "SE"),
+            Map.entry("NORWAY", "NO"), Map.entry("DENMARK", "DK"),
+            Map.entry("FINLAND", "FI"), Map.entry("POLAND", "PL"),
+            Map.entry("CZECH REPUBLIC", "CZ"), Map.entry("GREECE", "GR"),
+            Map.entry("TURKEY", "TR"), Map.entry("INDIA", "IN"),
+            Map.entry("JAPAN", "JP"), Map.entry("CHINA", "CN"),
+            Map.entry("KOREA", "KR"), Map.entry("SOUTH KOREA", "KR"),
+            Map.entry("HONG KONG", "HK"), Map.entry("TAIWAN", "TW"),
+            Map.entry("THAILAND", "TH"), Map.entry("VIETNAM", "VN"),
+            Map.entry("INDONESIA", "ID"), Map.entry("MALAYSIA", "MY"),
+            Map.entry("PHILIPPINES", "PH"), Map.entry("SINGAPORE", "SG"),
+            Map.entry("UAE", "AE"), Map.entry("SAUDI ARABIA", "SA"),
+            Map.entry("QATAR", "QA"), Map.entry("ISRAEL", "IL"),
+            Map.entry("SOUTH AFRICA", "ZA"), Map.entry("BRAZIL", "BR"),
+            Map.entry("MEXICO", "MX"), Map.entry("ARGENTINA", "AR"),
+            Map.entry("CHILE", "CL"), Map.entry("COLOMBIA", "CO"),
+            Map.entry("PERU", "PE"));
+
+    // US phone with optional area-code separators. Anchored on word
+    // boundaries so it doesn't fire on bare 10-digit transaction ids.
+    private static final Pattern PHONE_US = Pattern.compile(
+            "\\b(\\d{3}[\\-.\\s]?\\d{3}[\\-.\\s]?\\d{4})\\b");
+
+    // Bare 10-digit phone (e.g. "6046424286"). Looser; we only consult this
+    // when PHONE_US doesn't fire, to avoid eating order-numbers.
+    private static final Pattern PHONE_BARE10 = Pattern.compile("\\b(\\d{10})\\b");
+
+    // US ZIP (5 digits or ZIP+4). UK postal patterns ("SW1A 1AA") are highly
+    // varied; we capture a generic alphanumeric postal trailer.
+    private static final Pattern US_ZIP = Pattern.compile("\\b(\\d{5}(?:-\\d{4})?)\\b");
+
+    // ZIP-after-state pattern. The "SUBWAY 16245 NASHVILLE TN" trap: a bare
+    // 5-digit run mid-description is usually a merchant store number, not a
+    // postal code. We only trust a ZIP from description when it sits right
+    // after a recognized US state code — the standard "<city> <state> <zip>"
+    // trailer banks print.
+    private static final Pattern US_ZIP_AFTER_STATE = Pattern.compile(
+            "\\b([A-Z]{2})\\s+(\\d{5}(?:-\\d{4})?)\\b");
+
+    // Street-address suffix tokens (USPS-style). When a leading "<number>
+    // <words> <SUFFIX>" run shows up at the start of a tx description or
+    // location it's a strong signal that we've got a real street address
+    // (e.g. "1500 BELLEVUE WAY NE BELLEVUE WA US"). Order doesn't matter —
+    // matched as a whole-word alternation.
+    // Standalone street-suffix tokens that should never appear as a leading
+    // city token. When the geo parser walks right-to-left and the remaining
+    // "city" prefix begins with one of these (e.g. "St Nashville"), it's a
+    // sign the upstream location extractor included a dangling street
+    // suffix from "<num> <name> ST CITY ST/PROV" — strip the leading suffix.
+    private static final Set<String> STREET_SUFFIX_TOKENS = Set.of(
+            "ST", "STREET", "AVE", "AVENUE", "BLVD", "BOULEVARD",
+            "RD", "ROAD", "DR", "DRIVE", "LN", "LANE", "WAY",
+            "CT", "COURT", "PL", "PLACE", "PKWY", "PARKWAY",
+            "HWY", "HIGHWAY", "TER", "TERRACE", "TRL", "TRAIL",
+            "SQ", "SQUARE", "CIR", "CIRCLE", "PLZ", "PLAZA",
+            "ALY", "ALLEY", "RTE", "ROUTE", "XING", "CROSSING",
+            "FWY", "FREEWAY");
+
+    private static final Pattern STREET_ADDRESS = Pattern.compile(
+            "(?i)\\b(\\d{1,6}\\s+(?:[A-Z0-9][A-Z0-9 .'\\-]*?\\s+)?"
+                    + "(?:ST|STREET|AVE|AVENUE|BLVD|BOULEVARD|RD|ROAD|DR|DRIVE|"
+                    + "LN|LANE|WAY|CT|COURT|PL|PLACE|PKWY|PARKWAY|HWY|HIGHWAY|"
+                    + "TER|TERRACE|TRL|TRAIL|SQ|SQUARE|CIR|CIRCLE|PLZ|PLAZA|"
+                    + "ALY|ALLEY|RTE|ROUTE|XING|CROSSING|FWY|FREEWAY)"
+                    + "(?:\\s+\\d+)?"                       // route number after RTE/HWY
+                    + "(?:\\s+(?:N|S|E|W|NE|NW|SE|SW|NORTH|SOUTH|EAST|WEST))?"
+                    + "(?:\\s+(?:STE|SUITE|APT|APARTMENT|UNIT|#)\\s*[A-Z0-9\\-]+)?)\\b");
+
+    /**
+     * Break {@code tx.location} (and any phone/postal hints in the
+     * description) into structured city / state / country / postalCode /
+     * phoneNumber. Runs from {@link #enrichV2Transaction}; safe to call with
+     * a tx whose location is null (it'll still try the description for
+     * phone-only rows like "XFINITY MOBILE 888-936-4968 PA").
+     */
+    private void geoEnrichV2Transaction(final ParsedTransaction tx) {
+        if (tx == null) {
+            return;
+        }
+        // Phone first — it can be in the description OR the location, and
+        // peeling it out cleans up the location string for the city/state
+        // parse below.
+        final String descPhone = extractPhone(tx.getDescription());
+        if (descPhone != null) {
+            tx.setPhoneNumber(descPhone);
+        }
+        String location = tx.getLocation();
+        if (location != null) {
+            final String locPhone = extractPhone(location);
+            if (locPhone != null) {
+                if (tx.getPhoneNumber() == null) {
+                    tx.setPhoneNumber(locPhone);
+                }
+                location = location.replaceAll(
+                        "\\b\\d{3}[\\-.\\s]?\\d{3}[\\-.\\s]?\\d{4}\\b", " ");
+                location = location.replaceAll("\\b\\d{10}\\b", " ");
+            }
+        }
+        // Street address: look in BOTH description + location. Description
+        // wins because PDF rows typically read "MERCHANT NAME 1500 BELLEVUE
+        // WAY NE BELLEVUE WA" — the address is mid-row before the geo tail.
+        // Strip whatever matched out of the location string so the city/state
+        // parse downstream doesn't try to interpret "Way NE" as a state code.
+        final String descAddr = extractStreetAddress(tx.getDescription());
+        if (descAddr != null) {
+            tx.setStreetAddress(titleCaseGeo(descAddr));
+        }
+        if (location != null && tx.getStreetAddress() == null) {
+            final String locAddr = extractStreetAddress(location);
+            if (locAddr != null) {
+                tx.setStreetAddress(titleCaseGeo(locAddr));
+            }
+        }
+        if (location != null && tx.getStreetAddress() != null) {
+            // Remove the captured street tokens so they don't pollute the
+            // city/state parse below.
+            location = STREET_ADDRESS.matcher(location).replaceAll(" ").trim();
+        }
+        // Postal code (US ZIP first; anything left after stripping is a
+        // candidate for international postal codes, but we only persist the
+        // captured US form for now to keep precision high).
+        if (location != null) {
+            final Matcher zip = US_ZIP.matcher(location);
+            if (zip.find()) {
+                tx.setPostalCode(zip.group(1));
+                location = zip.replaceAll(" ");
+            }
+        }
+        if (tx.getPostalCode() == null && tx.getDescription() != null) {
+            // Description-mined ZIPs are noisy (merchant store numbers look
+            // identical). Only trust them when the description ALSO contains
+            // a US state / CA province trailer somewhere — the standard
+            // "<city> <state> ... <zip>" pattern banks print, possibly with
+            // a transaction-id between the state and ZIP. This drops false
+            // positives like "SUBWAY 16245 NASHVILLE TN" (16245 is a store
+            // number, but the description has no state-before-ZIP — TN
+            // appears AFTER 16245, not the other way).
+            tx.setPostalCode(extractZipFromDescription(tx.getDescription()));
+        }
+        if (location == null) {
+            return;
+        }
+        final String cleaned = location.replaceAll("[,]+", " ").trim().replaceAll("\\s+", " ");
+        if (cleaned.isEmpty()) {
+            return;
+        }
+        final String[] tokens = cleaned.split("\\s+");
+        if (tokens.length == 0) {
+            return;
+        }
+
+        // Walk right-to-left. Last token can be a country (alpha-2 / alpha-3
+        // / spelled out), a US state, or a CA province.
+        int idx = tokens.length - 1;
+        String country = null;
+        String state = null;
+
+        final String lastUpper = tokens[idx].toUpperCase(Locale.ROOT);
+        // alpha-3 → alpha-2
+        if (ISO_ALPHA3_TO_ALPHA2.containsKey(lastUpper)) {
+            country = ISO_ALPHA3_TO_ALPHA2.get(lastUpper);
+            idx--;
+        } else if (US_STATE_CODES.contains(lastUpper)) {
+            state = lastUpper;
+            country = "US";
+            idx--;
+        } else if (CA_PROVINCE_CODES.contains(lastUpper)) {
+            state = lastUpper;
+            country = "CA";
+            idx--;
+        } else if (lastUpper.length() == 2 && ISO_ALPHA2_COUNTRIES.contains(lastUpper)) {
+            country = "UK".equals(lastUpper) ? "GB" : lastUpper;
+            idx--;
+        } else {
+            // Spelled-out country names can be multi-word ("NEW ZEALAND",
+            // "SOUTH KOREA", "UNITED KINGDOM"). Try last 1..3 tokens.
+            for (int span = Math.min(3, tokens.length); span >= 1; span--) {
+                final String tail = joinTokens(tokens, tokens.length - span, tokens.length)
+                        .toUpperCase(Locale.ROOT);
+                if (COUNTRY_NAME_TO_ALPHA2.containsKey(tail)) {
+                    country = COUNTRY_NAME_TO_ALPHA2.get(tail);
+                    idx = tokens.length - span - 1;
+                    break;
+                }
+            }
+        }
+
+        // After consuming the country, the prior token might still be a
+        // US state ("VANCOUVER WA US") or a Canadian province ("VANCOUVER BC CA").
+        if (state == null && idx >= 0) {
+            final String prevUpper = tokens[idx].toUpperCase(Locale.ROOT);
+            if (US_STATE_CODES.contains(prevUpper)
+                    && (country == null || "US".equals(country))) {
+                state = prevUpper;
+                if (country == null) {
+                    country = "US";
+                }
+                idx--;
+            } else if (CA_PROVINCE_CODES.contains(prevUpper)
+                    && (country == null || "CA".equals(country))) {
+                state = prevUpper;
+                if (country == null) {
+                    country = "CA";
+                }
+                idx--;
+            }
+        }
+
+        // Whatever is left (idx>=0) is the city. Title-case it for display.
+        // Strip a leading street-suffix token ("St", "Ave", "Rd", "Dr",
+        // "Way", "Blvd") if it bled through from a "<num> <st> <city>"
+        // description where the address part was extracted upstream but the
+        // dangling suffix landed in the location field (Chase combined-tx
+        // statements emit this shape on some rows).
+        if (idx >= 0) {
+            final String firstUpper = tokens[0].toUpperCase(Locale.ROOT);
+            if (STREET_SUFFIX_TOKENS.contains(firstUpper) && idx >= 1) {
+                final String cityRaw = joinTokens(tokens, 1, idx + 1).trim();
+                if (!cityRaw.isEmpty() && looksLikeCityName(cityRaw)) {
+                    tx.setCity(titleCaseGeo(cityRaw));
+                }
+            } else {
+                final String cityRaw = joinTokens(tokens, 0, idx + 1).trim();
+                if (!cityRaw.isEmpty() && looksLikeCityName(cityRaw)) {
+                    tx.setCity(titleCaseGeo(cityRaw));
+                }
+            }
+        }
+        if (state != null) {
+            tx.setState(state);
+        }
+        if (country != null) {
+            tx.setCountry(country);
+        }
+    }
+
+    // ACH / banking-system identifier markers. Rows containing any of these
+    // tokens have a 10-digit RUN that LOOKS like a phone but is actually a
+    // PPD ID, Web ID, Tel ID, ACH trace number, or similar — these are NOT
+    // phone numbers and must not be extracted as such. Discovered when the
+    // per-product audit showed phoneNumber 60% on Chase Checking ACH rows
+    // (always wrong — bank-to-bank transfers have no merchant phone).
+    private static final java.util.regex.Pattern ACH_IDENTIFIER_TOKEN =
+            java.util.regex.Pattern.compile(
+                    "(?i)\\b(PPD\\s+ID|WEB\\s+ID|TEL\\s+ID|CCD\\s+ID|"
+                            + "ACH\\s+(?:Credit|Debit|Pmt|Trace)|"
+                            + "TRACE\\s+ID|REFERENCE\\s+ID|TRANSACTION\\s+ID|"
+                            + "CONFIRMATION\\s+(?:NUMBER|#))");
+
+    /**
+     * Extract a phone number from {@code text} and return it as a digits-only
+     * string (e.g. "8889364968"). Returns null when no plausible phone is
+     * present. Prefers the formatted US pattern over a bare 10-digit run to
+     * minimize false positives on transaction ids.
+     *
+     * <p>ACH / banking-rails rows ("PPD ID: 6427014001") are explicitly
+     * excluded — those identifiers happen to be 10 digits but aren't phones.
+     */
+    private static String extractPhone(final String text) {
+        if (text == null || text.isBlank()) {
+            return null;
+        }
+        // Hard skip when the row carries an ACH-system identifier label.
+        // These transfers have no merchant phone by definition.
+        if (ACH_IDENTIFIER_TOKEN.matcher(text).find()) {
+            return null;
+        }
+        final Matcher m = PHONE_US.matcher(text);
+        if (m.find()) {
+            return m.group(1).replaceAll("[^0-9]", "");
+        }
+        // Only fall back to the bare 10-digit form when the text looks like
+        // a "phone in location" row — otherwise long order ids will match.
+        // Heuristic: there's a 2-letter state/country trailer in the text.
+        final Matcher m2 = PHONE_BARE10.matcher(text);
+        if (m2.find()) {
+            final String digits = m2.group(1);
+            // Reject digit runs that are clearly card-like (start with 0) or
+            // look like a unix timestamp prefix.
+            if (!digits.startsWith("0")) {
+                return digits;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Extract a ZIP from a transaction description, but only when the
+     * description has a 2-letter state/province trailer preceding the ZIP.
+     * Returns the ZIP digits or null. The bank-printed pattern is "<city>
+     * <state> <maybe-txn-id> <zip>", so we require that some state code
+     * appears at an earlier position than the ZIP we accept.
+     */
+    private static String extractZipFromDescription(final String description) {
+        if (description == null) return null;
+        final Matcher zip = US_ZIP.matcher(description);
+        while (zip.find()) {
+            final int zipStart = zip.start(1);
+            // Walk left looking for a 2-letter state/province token that
+            // appears BEFORE this ZIP. Cap at 80 chars of look-back to keep
+            // false-positive risk low (most legit "state zip" pairs fit).
+            final int from = Math.max(0, zipStart - 80);
+            final String prefix = description.substring(from, zipStart);
+            final Matcher state = Pattern.compile("\\b([A-Z]{2})\\b").matcher(prefix);
+            boolean foundState = false;
+            while (state.find()) {
+                final String tok = state.group(1);
+                if (US_STATE_CODES.contains(tok)
+                        || CA_PROVINCE_CODES.contains(tok)
+                        || ISO_ALPHA2_COUNTRIES.contains(tok)) {
+                    foundState = true;
+                }
+            }
+            if (foundState) {
+                return zip.group(1);
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Pull the first street-address run out of {@code text}. Returns the
+     * captured substring verbatim (uppercase or as-is, depending on source)
+     * so callers can title-case it before persisting. Null when no candidate
+     * is present.
+     *
+     * <p>Heuristic: must start with 1-6 digits, contain at least one suffix
+     * token (ST/AVE/RD/etc.), and not begin with "0000" or other obviously
+     * non-address numeric prefixes.
+     */
+    private static String extractStreetAddress(final String text) {
+        if (text == null || text.isBlank()) {
+            return null;
+        }
+        final Matcher m = STREET_ADDRESS.matcher(text);
+        if (!m.find()) {
+            return null;
+        }
+        final String captured = m.group(1).trim().replaceAll("\\s+", " ");
+        // Reject clearly bogus numeric prefixes (transaction-id leakage).
+        if (captured.startsWith("0000") || captured.length() > 80) {
+            return null;
+        }
+        return captured;
+    }
+
+    private static String joinTokens(
+            final String[] tokens, final int fromInclusive, final int toExclusive) {
+        final StringBuilder sb = new StringBuilder();
+        for (int i = fromInclusive; i < toExclusive; i++) {
+            if (i > fromInclusive) {
+                sb.append(' ');
+            }
+            sb.append(tokens[i]);
+        }
+        return sb.toString();
+    }
+
+    /**
+     * Reject things that obviously aren't city names — purely numeric runs,
+     * very long blobs, 1-character noise, or URL/email fragments. The URL
+     * filter is important: Wells Fargo and others sometimes print the
+     * merchant's support URL in the location slot ("Uber Trip help.uber.com
+     * CA"), which our right-to-left parser would otherwise classify as
+     * "city=Help.uber.com state=CA". Catches: dots, slashes, colons, @ —
+     * all illegal in real city names.
+     */
+    private static boolean looksLikeCityName(final String candidate) {
+        final String c = candidate.trim();
+        if (c.length() < 2 || c.length() > 40) {
+            return false;
+        }
+        // URL / email / path fragment — any of these chars means this isn't a city.
+        if (c.indexOf('.') >= 0 || c.indexOf('/') >= 0
+                || c.indexOf(':') >= 0 || c.indexOf('@') >= 0) {
+            return false;
+        }
+        boolean hasLetter = false;
+        for (final char ch : c.toCharArray()) {
+            if (Character.isLetter(ch)) {
+                hasLetter = true;
+                break;
+            }
+        }
+        return hasLetter;
+    }
+
+    private static String titleCaseGeo(final String raw) {
+        if (raw == null || raw.isEmpty()) {
+            return raw;
+        }
+        final String[] parts = raw.toLowerCase(Locale.ROOT).split("\\s+");
+        final StringBuilder sb = new StringBuilder(raw.length());
+        for (int i = 0; i < parts.length; i++) {
+            if (i > 0) {
+                sb.append(' ');
+            }
+            final String p = parts[i];
+            if (p.isEmpty()) {
+                continue;
+            }
+            sb.append(Character.toUpperCase(p.charAt(0)));
+            if (p.length() > 1) {
+                sb.append(p.substring(1));
+            }
+        }
+        return sb.toString();
+    }
+
+    /**
+     * Derive a {@code paymentChannel} value from the transaction descriptor
+     * + wallet hints. Bank statements don't print this as a labeled field;
+     * we classify by descriptor pattern instead. Output values track the
+     * Plaid taxonomy where possible so iOS analytics can join across
+     * Plaid + PDF imports without a translation table.
+     *
+     * <p>Priority order: ACH/banking-rails markers → wallet → ATM → check →
+     * wire → online (URL in descriptor) → in_store (default for credit-card
+     * purchase with a city/state trailer) → null.
+     */
+    /**
+     * Detect the "No Annual Fee" disclosure phrase. Cards like Active Cash,
+     * Citi Double Cash, and Prime Visa explicitly print this on every
+     * statement. When the profile-driven extractor returns null we default
+     * to BigDecimal.ZERO so a downstream "fee-free card" check doesn't
+     * have to guess from null.
+     */
+    private static boolean statementMentionsNoAnnualFee(final String[] lines) {
+        if (lines == null) return false;
+        for (final String line : lines) {
+            if (line == null) continue;
+            final String upper = line.toUpperCase(Locale.ROOT);
+            if (upper.contains("NO ANNUAL FEE")
+                    || upper.matches(".*ANNUAL\\s+(MEMBERSHIP\\s+)?FEE\\s*[:\\s]\\s*\\$?0(?:\\.0{2})?\\b.*")
+                    || upper.contains("ANNUAL FEE: $0")
+                    || upper.contains("ANNUAL FEE $0")) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private String derivePaymentChannel(final ParsedTransaction tx) {
+        if (tx == null) return null;
+        final String desc = tx.getDescription();
+        if (desc == null || desc.isBlank()) return null;
+        // Collapse multi-space runs ("MTC PAYMENT   THANK YOU" → "MTC
+        // PAYMENT THANK YOU") so substring matches work consistently.
+        final String upper = desc.toUpperCase(Locale.ROOT).replaceAll("\\s+", " ").trim();
+        if (upper.isEmpty()) return null;
+
+        // Banking rails — these are non-merchant flows. Detected first so
+        // an "AplPay PPD ID: ..." row (unlikely but possible) doesn't get
+        // misclassified as a wallet.
+        if (upper.contains("PPD ID") || upper.contains("WEB ID")
+                || upper.contains("TEL ID") || upper.contains("CCD ID")
+                || upper.contains("ACH CREDIT") || upper.contains("ACH PMT")
+                || upper.contains("ACH DEBIT") || upper.matches(".*\\bACH\\b.*")
+                || upper.contains("DIRECTPAY") || upper.contains("DIRECT PAY")
+                || upper.contains("E-PAYMENT") || upper.contains("EPAYMENT")) {
+            return "ach";
+        }
+        // Issuer-side payments / statement credits.
+        // "PAYMENT THANK YOU" (USB / Citi / Amex) = credit-card payment posted.
+        // "Platinum * Credit" (Amex MR) = statement credit from rewards.
+        if (upper.contains("PAYMENT THANK YOU") || upper.contains("PAYMENT - THANK YOU")
+                || upper.contains("PAYMENT/THANK YOU") || upper.contains("MTC PAYMENT")
+                || upper.contains("THANK YOU FOR YOUR PAYMENT")) {
+            return "issuer_payment";
+        }
+        if (upper.matches(".*\\bPLATINUM\\s+[A-Z].*\\bCREDIT\\b.*")
+                || upper.contains("STATEMENT CREDIT") || upper.contains("REWARDS CREDIT")
+                || upper.contains("MEMBERSHIP REWARDS")) {
+            return "issuer_credit";
+        }
+        if (upper.contains("WIRE TRANSFER") || upper.contains("WIRE PMT")
+                || upper.contains("WIRE TXN")) {
+            return "wire";
+        }
+        if (upper.contains("ZELLE") || upper.contains("VENMO")
+                || upper.contains("CASHAPP") || upper.contains("CASH APP")
+                || upper.contains("PAYPAL ") || upper.contains("PYPL ")) {
+            return "p2p_transfer";
+        }
+
+        // Wallet — when the WalletProviderDetector tagged the row, we know
+        // it went through a tokenized rail.
+        if (tx.getWalletProvider() != null && !tx.getWalletProvider().isBlank()) {
+            return "online_wallet";
+        }
+        if (upper.startsWith("APLPAY ") || upper.startsWith("APL*")
+                || upper.contains("GOOGLE PAY ") || upper.startsWith("SQ *")
+                || upper.startsWith("TST*")) {
+            return "online_wallet";
+        }
+
+        // ATM / cash flows.
+        if (upper.contains("ATM WITHDRAWAL") || upper.contains("ATM DEPOSIT")
+                || upper.contains("CASH WITHDRAWAL")) {
+            return "atm";
+        }
+        if (upper.contains("CHECK") && (upper.contains("PAID") || upper.contains("#"))) {
+            return "check";
+        }
+        if (upper.contains("AUTOPAY") || upper.contains("AUTO PAY")
+                || upper.contains("AUTOMATIC PAYMENT")
+                || upper.contains("BILLPAY") || upper.contains("BILL PAY")) {
+            return "ach"; // autopay is an ACH pull
+        }
+        if (upper.contains("ONLINE TRANSFER") || upper.contains("EXTRNLTFR")) {
+            return "transfer";
+        }
+
+        // Online — descriptor has a URL or "AMZN" / online-only marker.
+        if (upper.contains(".COM") || upper.contains(".NET")
+                || upper.contains("HTTP://") || upper.contains("HTTPS://")
+                || upper.contains("WWW.") || upper.startsWith("AMZN ")
+                || upper.startsWith("AMAZON ") || upper.startsWith("NETFLIX")
+                || upper.startsWith("APPLE.COM/")) {
+            return "online";
+        }
+
+        // Default for credit-card purchases with a city/state trailer — the
+        // most common case for real merchant transactions.
+        if (tx.getFlowDirection() == FlowDirection.DEBIT
+                && (tx.getLocation() != null || tx.getCity() != null)) {
+            return "in_store";
+        }
+        // Fee / interest / annual-membership rows have no merchant-rail
+        // context — they're issuer-internal. Classify as "issuer_internal"
+        // so the contract "every tx has a paymentChannel" holds and
+        // analytics can clearly distinguish them from purchases.
+        final String txType = tx.getTransactionType();
+        if (txType != null
+                && (txType.equals("FEE") || txType.equals("INTEREST")
+                        || txType.equals("REFUND") || txType.equals("CREDIT")
+                        || txType.equals("PAYMENT"))) {
+            return "issuer_internal";
+        }
+        // True last-ditch fallback when no signal at all. Better than null
+        // so downstream consumers don't have to handle two "no info" cases
+        // (null vs "unknown").
+        return "unknown";
+    }
+
+    private String deriveTransactionType(final ParsedTransaction tx) {
+        if (tx == null) return null;
+        final String desc = tx.getDescription();
+        final String upper = desc == null ? "" : desc.toUpperCase(Locale.ROOT);
+        if (tx.getFlowDirection() == FlowDirection.CREDIT) {
+            if (upper.contains("REFUND") || upper.contains("RETURN")
+                    || upper.contains("CREDIT ADJUSTMENT")
+                    || upper.contains("CASHBACK") || upper.contains("CASH BACK")) {
+                return "REFUND";
+            }
+            if (isWellsFargoPaymentPattern(desc) || isGenericCreditCardPaymentPattern(desc)) {
+                return "PAYMENT";
+            }
+            if (upper.contains("DEPOSIT")) return "DEPOSIT";
+            return "CREDIT";
+        }
+        if (upper.contains("ANNUAL MEMBERSHIP FEE") || upper.contains("ANNUAL FEE")
+                || upper.contains("LATE FEE") || upper.contains("FOREIGN TRANSACTION FEE")
+                || upper.contains("OVERLIMIT FEE") || upper.contains("RETURNED PAYMENT FEE")
+                || upper.contains("CASH ADVANCE FEE") || upper.contains("BALANCE TRANSFER FEE")
+                || upper.contains("SERVICE FEE")) {
+            return "FEE";
+        }
+        if (upper.contains("INTEREST CHARGE") || upper.contains("INTEREST CHARGED")
+                || upper.contains("INTEREST ASSESSED")) {
+            return "INTEREST";
+        }
+        if (upper.contains("CASH ADVANCE") || upper.contains("ATM WITHDRAWAL")) {
+            return "CASH_ADVANCE";
+        }
+        if (upper.contains("BALANCE TRANSFER")) return "BALANCE_TRANSFER";
+        if (upper.contains("WITHDRAWAL")) return "WITHDRAWAL";
+        if (upper.contains("CHECK") && upper.contains("PAID")) return "CHECK";
+        return "PURCHASE";
+    }
+
+    /**
+     * Decide a v2 transaction's FlowDirection by combining the YAML shape's
+     * explicit hint with the legacy description-based payment-pattern
+     * detectors.
+     *
+     * <ul>
+     *   <li>If the shape opted into {@code credit-card-credit} via
+     *       sign_convention, trust it (CREDIT).</li>
+     *   <li>If the shape opted into {@code credit-card-purchase}, trust it
+     *       (DEBIT) — UNLESS the description matches a generic payment
+     *       pattern, in which case the description wins (a payment row that
+     *       happened to fall under a "purchases" section in PDFBox's
+     *       extraction ordering should still be a CREDIT).</li>
+     *   <li>For the {@code preserve} default and any other case, run the
+     *       legacy description detectors:
+     *       {@link #isWellsFargoPaymentPattern} +
+     *       {@link #isGenericCreditCardPaymentPattern}. Match → CREDIT,
+     *       otherwise DEBIT (the credit-card default).</li>
+     * </ul>
+     */
+    private FlowDirection decideV2FlowDirection(
+            final com.budgetbuddy.service.pdf.v2.TransactionExtractor.ExtractedTransaction ex) {
+        // If the YAML shape opted in explicitly, trust it. CREDIT means the
+        // shape carries credit-card-credit sign_convention (payments,
+        // refunds, Other Credits); DEBIT means credit-card-purchase.
+        if (ex.direction == com.budgetbuddy.service.pdf.v2.TransactionExtractor.Direction.CREDIT) {
+            return FlowDirection.CREDIT;
+        }
+        if (ex.direction == com.budgetbuddy.service.pdf.v2.TransactionExtractor.Direction.DEBIT) {
+            // Checking / savings shapes opt out of the payment-pattern flip.
+            // On a deposit-account statement an "AUTOPAY" / "ACH Pmt" line is
+            // money LEAVING the account (a DEBIT) — the flip would mark them
+            // as CREDIT, breaking math reconciliation on both sides. The
+            // YAML shape name carries the account-type prefix (e.g.
+            // chase-checking-withdrawal); when present, trust the explicit
+            // DEBIT direction as-is.
+            if (ex.shapeName != null
+                    && (ex.shapeName.contains("-checking-")
+                        || ex.shapeName.contains("-savings-"))) {
+                return FlowDirection.DEBIT;
+            }
+            // Even on an explicit DEBIT opt-in, override to CREDIT when the
+            // description matches a known payment pattern. Handles the case
+            // where PDFBox extraction order puts a payment row in a section
+            // the YAML author thought was purchases-only.
+            if (isWellsFargoPaymentPattern(ex.description)
+                    || isGenericCreditCardPaymentPattern(ex.description)) {
+                return FlowDirection.CREDIT;
+            }
+            return FlowDirection.DEBIT;
+        }
+        // Direction.UNKNOWN — shape used the PRESERVE default. Fall back to
+        // the legacy description-based payment detectors. This is the same
+        // logic the legacy parser applies at line ~7641, ported here so v2
+        // transactions get equivalent classification without per-shape
+        // YAML opt-in. Default is DEBIT (the credit-card-purchase case).
+        if (isWellsFargoPaymentPattern(ex.description)
+                || isGenericCreditCardPaymentPattern(ex.description)) {
+            return FlowDirection.CREDIT;
+        }
+        return FlowDirection.DEBIT;
+    }
+
+    /**
      * Capture a redacted diagnostic blob for an interesting parse (reconciliation
      * fail, parse errors, or other anomaly). Wrapped in a try/catch so any failure
      * here is a logged warning — diagnostics must never break an import.
@@ -8405,6 +9768,59 @@ public class PDFImportService {
             LOGGER.warn(
                     "Diagnostic capture failed for PDF import (non-fatal): {}",
                     e.getMessage());
+        }
+    }
+
+    /**
+     * Archive raw PDF bytes (if {@link com.budgetbuddy.service.diagnostics.PdfRawArchive}
+     * is enabled) so the original document can be re-parsed later when a
+     * fix to the extractor needs verification. Off-by-default for privacy;
+     * operators must opt in. Storage failure is logged WARN inside the
+     * archive and never breaks the import.
+     */
+    private void archiveRawPdfIfEnabled(
+            final byte[] pdfBytes,
+            final ImportResult result,
+            final String fileName) {
+        if (pdfRawArchive == null || pdfBytes == null) return;
+        try {
+            final String institution = result != null && result.getDetectedAccount() != null
+                    ? result.getDetectedAccount().getInstitutionName() : null;
+            pdfRawArchive.archive(pdfBytes, institution, fileName);
+        } catch (final RuntimeException e) {
+            // Archive must never break the import. Defensive catch around
+            // PdfRawArchive — the archive itself already catches IO errors,
+            // this protects against unexpected runtime exceptions.
+            LOGGER.warn(
+                    "Raw PDF archive failed (non-fatal): {}", e.getMessage());
+        }
+    }
+
+    /**
+     * Archive the PDF on a parse-failure path. Uses institution "_unparseable"
+     * so failed files cluster in a dedicated bucket the dev team can review.
+     * Failure mode is silent — we're already in a catch block, the archive
+     * must not double-throw.
+     */
+    private void archiveRawPdfOnFailure(
+            final byte[] pdfBytes, final String fileName, final Throwable cause) {
+        if (pdfRawArchive == null || pdfBytes == null || pdfBytes.length < 4) return;
+        try {
+            // Only archive when the bytes start with %PDF — a random binary
+            // upload isn't worth keeping.
+            final boolean looksLikePdf = pdfBytes[0] == '%'
+                    && pdfBytes[1] == 'P' && pdfBytes[2] == 'D' && pdfBytes[3] == 'F';
+            if (!looksLikePdf) return;
+            pdfRawArchive.archive(pdfBytes, "_unparseable", fileName);
+            if (LOGGER.isInfoEnabled()) {
+                LOGGER.info(
+                        "Archived unparseable PDF for diagnostic review: file={} cause={}",
+                        fileName, cause == null ? "null" : cause.getMessage());
+            }
+        } catch (final RuntimeException archiveErr) {
+            // We're already throwing — swallow archive error.
+            LOGGER.debug(
+                    "Failure-path archive also failed: {}", archiveErr.getMessage());
         }
     }
 
@@ -8599,6 +10015,12 @@ public class PDFImportService {
         if (feeBlock != null) {
             result.setAnnualMembershipFee((BigDecimal) feeBlock[0]);
             result.setAnnualMembershipFeeDueDate((LocalDate) feeBlock[1]);
+        } else if (statementMentionsNoAnnualFee(lines)) {
+            // Cards with no annual fee (Active Cash, Citi Double Cash,
+            // Prime Visa, etc.) usually print "No Annual Fee" somewhere on
+            // the disclosure page. Default to BigDecimal.ZERO so analytics
+            // can distinguish "card has no fee" from "we failed to extract".
+            result.setAnnualMembershipFee(BigDecimal.ZERO);
         }
 
         // Cash advance sub-limits + billing days + statement date.

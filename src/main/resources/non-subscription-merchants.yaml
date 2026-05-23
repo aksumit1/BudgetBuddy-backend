@@ -1,0 +1,48 @@
+# Merchants that look subscription-shaped in the detector (same amount on a
+# regular cadence) but are NOT recurring services the user can cancel.
+# Loaded by SubscriptionService.consolidateMultiPriceSubscriptions and used
+# as a post-filter — any subscription whose merchantName matches one of
+# these patterns is dropped.
+#
+# Match rules:
+#   - patterns are lowercase substrings; merchant.toLowerCase().contains(p)
+#   - one pattern per line under `patterns:`
+#   - explanatory `reason:` is logged when a drop fires (helps audits)
+#
+# Add entries here when a coincidental annual / quarterly hit keeps showing
+# up in user reports. Do NOT use this file to drop borderline legitimate
+# subscriptions (e.g. utility bills with steady prices) — use the spread
+# heuristics instead.
+
+drops:
+  - patterns:
+      - "us treas tax pymt"
+      - "irs usataxpymt"
+      - "irs gov"
+      - "internal revenue"
+    reason: "federal/state tax payment, not a recurring service"
+
+  - patterns:
+      - "service fee-"
+      - "annual service fee"
+      - "card service fee"
+    reason: "credit-card service / annual fee, billed by the issuer not a merchant"
+
+  - patterns:
+      - "principal payment"
+      - "escrow payment"
+      - "property tax"
+    reason: "mortgage component, recurring but not a 'subscription' surface"
+
+  - patterns:
+      - "wire fee"
+      - "intl wire"
+      - "international wire"
+    reason: "wire-transfer fee, not a service"
+
+  - patterns:
+      - "wsdot-goodtogo"
+      - "good to go pass"
+      - "ezpass refill"
+      - "fastrak refill"
+    reason: "toll-account auto-refill; amount varies, sometimes triggers as annual coincidence"

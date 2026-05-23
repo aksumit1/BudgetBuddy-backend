@@ -73,6 +73,14 @@ public class BertCategoryMatcher {
 
     // category -> normalized prototype embedding. Populated once in @PostConstruct.
     private Map<String, float[]> categoryPrototypes = Collections.emptyMap();
+    /**
+     * Stable hash over (categoryName + prototypeText) for every prototype in
+     * insertion order. Recomputed on each {@link #init()}. Surfaces via
+     * {@link #getPrototypesVersion()} for the health indicator. A drift
+     * between deploys means clusters changed and prior match boundaries
+     * shifted — useful signal during ML regression investigations.
+     */
+    private String prototypesVersion = "uninitialized";
 
     public BertCategoryMatcher(
             final BertEmbeddingService embeddingService,
@@ -99,6 +107,7 @@ public class BertCategoryMatcher {
         final Map<String, String> overrides = parseOverrides(prototypeOverrides);
 
         final Map<String, float[]> built = new LinkedHashMap<>();
+        final StringBuilder versionMaterial = new StringBuilder(2048);
         int skipped = 0;
         for (final Map.Entry<String, Set<String>> entry : clusters.entrySet()) {
             final String category = entry.getKey();
@@ -114,15 +123,43 @@ public class BertCategoryMatcher {
                 continue;
             }
             built.put(category, embedding);
+            versionMaterial.append(category).append('').append(prototypeText).append('');
         }
 
         this.categoryPrototypes = Collections.unmodifiableMap(built);
+        this.prototypesVersion = hashShort(versionMaterial.toString());
         if (LOGGER.isInfoEnabled()) {
             LOGGER.info(
-                    "BertCategoryMatcher: built {} category prototypes (skipped={}, embeddingDim={})",
+                    "BertCategoryMatcher: built {} category prototypes (skipped={}, embeddingDim={}, prototypesVersion={})",
                     built.size(),
                     skipped,
-                    embeddingService.getEmbeddingDim());
+                    embeddingService.getEmbeddingDim(),
+                    prototypesVersion);
+        }
+    }
+
+    /**
+     * Short content-hash of the loaded prototype set. Surfaced via
+     * /actuator/health so operators can detect silent prototype drift
+     * across deploys.
+     */
+    public String getPrototypesVersion() {
+        return prototypesVersion;
+    }
+
+    private static String hashShort(final String s) {
+        try {
+            final java.security.MessageDigest md =
+                    java.security.MessageDigest.getInstance("SHA-256");
+            final byte[] hash =
+                    md.digest(s.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            final StringBuilder hex = new StringBuilder(16);
+            for (int i = 0; i < 8 && i < hash.length; i++) {
+                hex.append(String.format("%02x", hash[i]));
+            }
+            return hex.toString();
+        } catch (java.security.NoSuchAlgorithmException ex) {
+            return "n/a";
         }
     }
 

@@ -92,7 +92,11 @@ public class PlaidCategoryMapper {
         PRIMARY_CATEGORY_MAP.put("TRAVEL", TRAVEL);
         PRIMARY_CATEGORY_MAP.put("RENT_AND_UTILITIES", "rent");
         PRIMARY_CATEGORY_MAP.put("ENTERTAINMENT", ENTERTAINMENT);
-        PRIMARY_CATEGORY_MAP.put("GENERAL_SERVICES", UTILITIES);
+        // GENERAL_SERVICES is already mapped to OTHER above (line 86).
+        // The prior duplicate `put("GENERAL_SERVICES", UTILITIES)` here was a
+        // bug — Plaid's GENERAL_SERVICES is the catch-all (laundry, photo,
+        // copying, etc.), NOT utilities. The utilities bucket is
+        // RENT_AND_UTILITIES (handled separately above).
         PRIMARY_CATEGORY_MAP.put("INCOME", INCOME);
         PRIMARY_CATEGORY_MAP.put("TRANSFER_IN", INCOME);
         PRIMARY_CATEGORY_MAP.put("TRANSFER_OUT", OTHER);

@@ -41,7 +41,8 @@ import org.springframework.stereotype.Service;
  *
  * <h3>TTL</h3>
  *
- * Entries get a 365-day TTL on write. The table has DynamoDB TTL
+ * Positive entries are written with NO TTL (kept forever). Negative
+ * entries get a 5-year (1825-day) TTL. The table has DynamoDB TTL
  * configured to auto-delete expired entries; we set the field, AWS
  * handles eviction.
  */
@@ -52,10 +53,28 @@ public class DynamoDbMerchantEnrichmentStore implements MerchantEnrichmentStore 
     private static final Logger LOGGER =
             LoggerFactory.getLogger(DynamoDbMerchantEnrichmentStore.class);
 
-    private static final long TTL_DAYS = 365;
+    /**
+     * Positive cache: NO TTL — confirmed merchant→category mappings are
+     * effectively permanent. A cafe stays a cafe. We rely on the L0
+     * user-override layer for the rare merchant that genuinely needs
+     * re-categorisation; nothing else should invalidate a confirmed match.
+     *
+     * Negative cache: 90-day TTL — the 5-year value used here previously was
+     * a "set and forget" choice that turned out to be too aggressive: stores
+     * close, chains rebrand, OSM/Wikidata gain coverage in months, not
+     * years. 90 days re-burns the chain budget at most quarterly per
+     * missing merchant, which is acceptable cost for letting newly-indexed
+     * merchants resolve naturally.
+     */
+    private static final long NEGATIVE_TTL_DAYS = 90;
+    /** Sentinel category written for negative cache rows. Never returned to callers. */
+    private static final String NEGATIVE_SENTINEL = "__L6_NEGATIVE__";
 
     private final MerchantEnrichmentCacheRepository repo;
     private final ConcurrentMap<String, CategoryResult> hot = new ConcurrentHashMap<>();
+    /** Process-local negative-cache mirror so we don't hit Dynamo for every miss. */
+    private final java.util.Set<String> hotNegative =
+            java.util.Collections.newSetFromMap(new ConcurrentHashMap<>());
 
     public DynamoDbMerchantEnrichmentStore(final MerchantEnrichmentCacheRepository repo) {
         this.repo = repo;
@@ -74,10 +93,18 @@ public class DynamoDbMerchantEnrichmentStore implements MerchantEnrichmentStore 
             return Optional.of(fromMemory);
         }
         try {
-            return repo.get(key).map(this::fromRow).map(r -> {
+            final var row = repo.get(key);
+            if (row.isPresent()) {
+                final CategoryResult r = fromRow(row.get());
+                // Filter out negative-sentinel rows from the positive-result API.
+                if (NEGATIVE_SENTINEL.equals(r.getCategoryPrimary())) {
+                    hotNegative.add(key);
+                    return Optional.empty();
+                }
                 hot.put(key, r);
-                return r;
-            });
+                return Optional.of(r);
+            }
+            return Optional.empty();
         } catch (RuntimeException ex) {
             // DynamoDB hiccup must never break categorisation. Fall back
             // to "no learned entry" — the cascade then tries the next layer.
@@ -87,6 +114,63 @@ public class DynamoDbMerchantEnrichmentStore implements MerchantEnrichmentStore 
                         key, ex.getMessage());
             }
             return Optional.empty();
+        }
+    }
+
+    @Override
+    public boolean isKnownNegative(
+            final String merchantName, final String city, final String state,
+            final String country) {
+        if (merchantName == null || merchantName.isBlank()) {
+            return false;
+        }
+        final String key = MerchantEnrichmentStore.key(merchantName, city, state, country);
+        if (hotNegative.contains(key)) {
+            return true;
+        }
+        try {
+            final var row = repo.get(key);
+            if (row.isPresent() && NEGATIVE_SENTINEL.equals(row.get().getCategoryPrimary())) {
+                hotNegative.add(key);
+                return true;
+            }
+        } catch (RuntimeException ex) {
+            if (LOGGER.isDebugEnabled()) {
+                LOGGER.debug(
+                        "isKnownNegative lookup failed for '{}': {}", key, ex.getMessage());
+            }
+        }
+        return false;
+    }
+
+    @Override
+    public void putNegative(
+            final String merchantName, final String city, final String state,
+            final String country) {
+        if (merchantName == null || merchantName.isBlank()) {
+            return;
+        }
+        final String key = MerchantEnrichmentStore.key(merchantName, city, state, country);
+        hotNegative.add(key);
+        try {
+            final Instant now = Instant.now();
+            final MerchantEnrichmentCacheTable row = new MerchantEnrichmentCacheTable();
+            row.setCacheKey(key);
+            row.setCategoryPrimary(NEGATIVE_SENTINEL);
+            row.setCategoryDetailed(NEGATIVE_SENTINEL);
+            row.setSource("L6_CHAIN_NULL");
+            row.setConfidence(0.0);
+            row.setMatchedKeyword(NEGATIVE_SENTINEL);
+            row.setCreatedAt(now);
+            row.setUpdatedAt(now);
+            row.setTtl(now.plus(NEGATIVE_TTL_DAYS, ChronoUnit.DAYS).getEpochSecond());
+            repo.put(row);
+        } catch (RuntimeException ex) {
+            if (LOGGER.isDebugEnabled()) {
+                LOGGER.debug(
+                        "putNegative failed for '{}': {} (hot-only)",
+                        key, ex.getMessage());
+            }
         }
     }
 
@@ -110,7 +194,10 @@ public class DynamoDbMerchantEnrichmentStore implements MerchantEnrichmentStore 
             row.setMatchedKeyword(result.getCategoryPrimary());
             row.setCreatedAt(now);
             row.setUpdatedAt(now);
-            row.setTtl(now.plus(TTL_DAYS, ChronoUnit.DAYS).getEpochSecond());
+            // No TTL on positive rows — confirmed merchant→category is permanent.
+            // DynamoDB only auto-deletes rows with a TTL value set; leaving
+            // the field null keeps the row indefinitely.
+            row.setTtl(null);
             repo.put(row);
             if (LOGGER.isDebugEnabled()) {
                 LOGGER.debug(

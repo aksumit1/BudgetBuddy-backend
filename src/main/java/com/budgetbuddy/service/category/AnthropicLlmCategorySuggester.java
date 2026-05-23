@@ -98,6 +98,40 @@ public class AnthropicLlmCategorySuggester implements LlmCategorySuggester {
     private final HttpClient http;
     private final ObjectMapper jsonMapper = new ObjectMapper();
 
+    /**
+     * Hallucination telemetry. The LLM is asked to return one of
+     * {@link #ALLOWED_CATEGORIES}; anything else is silently dropped. These
+     * counters surface the silent-drop rate so operators can spot prompt
+     * drift, model regressions, or category-set updates that left the
+     * prompt stale. Read via {@link #getMetricsSnapshot()}; surfaced through
+     * the health indicator + actuator metrics layer.
+     */
+    private final java.util.concurrent.atomic.AtomicLong totalCalls =
+            new java.util.concurrent.atomic.AtomicLong();
+    private final java.util.concurrent.atomic.AtomicLong rejectedHallucinations =
+            new java.util.concurrent.atomic.AtomicLong();
+    private final java.util.concurrent.atomic.AtomicLong rejectedLowConfidence =
+            new java.util.concurrent.atomic.AtomicLong();
+    private final java.util.concurrent.atomic.AtomicLong rejectedParseError =
+            new java.util.concurrent.atomic.AtomicLong();
+    private final java.util.concurrent.ConcurrentHashMap<String, java.util.concurrent.atomic.AtomicLong>
+            unknownCategoryCounts = new java.util.concurrent.ConcurrentHashMap<>();
+
+    public java.util.Map<String, Long> getMetricsSnapshot() {
+        final java.util.Map<String, Long> m = new java.util.LinkedHashMap<>();
+        m.put("anthropic.calls.total", totalCalls.get());
+        m.put("anthropic.rejected.hallucinated_category", rejectedHallucinations.get());
+        m.put("anthropic.rejected.low_confidence", rejectedLowConfidence.get());
+        m.put("anthropic.rejected.parse_error", rejectedParseError.get());
+        // Top-5 hallucinated category names for context
+        unknownCategoryCounts.entrySet().stream()
+                .sorted((a, b) -> Long.compare(b.getValue().get(), a.getValue().get()))
+                .limit(5)
+                .forEach(e -> m.put("anthropic.rejected.unknown[" + e.getKey() + "]",
+                        e.getValue().get()));
+        return m;
+    }
+
     public AnthropicLlmCategorySuggester(
             @Value("${app.category.anthropic.url:https://api.anthropic.com/v1/messages}")
                     final String apiUrl,
@@ -126,6 +160,7 @@ public class AnthropicLlmCategorySuggester implements LlmCategorySuggester {
         if (context.merchantName == null && context.description == null) {
             return null;
         }
+        totalCalls.incrementAndGet();
         try {
             final String body = buildRequestBody(context);
             final HttpRequest req = HttpRequest.newBuilder()
@@ -238,14 +273,20 @@ public class AnthropicLlmCategorySuggester implements LlmCategorySuggester {
             final double confidence = obj.path("confidence").asDouble(0);
             final String reasoning = obj.path("reasoning").asText("");
             if (category == null || !ALLOWED_CATEGORIES.contains(category)) {
-                if (LOGGER.isDebugEnabled()) {
-                    LOGGER.debug(
-                            "Rejecting LLM category for '{}': '{}' not in allowed set",
-                            merchantName, category);
+                rejectedHallucinations.incrementAndGet();
+                final String key = category == null ? "<null>" : category;
+                unknownCategoryCounts
+                        .computeIfAbsent(key, k -> new java.util.concurrent.atomic.AtomicLong())
+                        .incrementAndGet();
+                if (LOGGER.isWarnEnabled()) {
+                    LOGGER.warn(
+                            "Rejecting LLM category for '{}': '{}' not in allowed set (rejection count: {})",
+                            merchantName, category, rejectedHallucinations.get());
                 }
                 return null;
             }
             if (confidence <= 0 || confidence > 1) {
+                rejectedLowConfidence.incrementAndGet();
                 return null;
             }
             return new CategoryResult(
@@ -254,6 +295,7 @@ public class AnthropicLlmCategorySuggester implements LlmCategorySuggester {
                     "LLM_ANTHROPIC: " + truncate(reasoning, 100),
                     confidence);
         } catch (Exception ex) {
+            rejectedParseError.incrementAndGet();
             if (LOGGER.isDebugEnabled()) {
                 LOGGER.debug(
                         "Failed to parse Anthropic response for '{}': {}",

@@ -620,6 +620,53 @@ public class SubscriptionService {
     private static final double VARIABLE_SPREAD_LIMIT = 1.5;
 
     /**
+     * Lowercase substring patterns of merchants that should NEVER appear
+     * as a subscription, no matter how regular their cadence. Loaded
+     * lazily from {@code non-subscription-merchants.yaml} on the classpath.
+     * See that file for entries + reasoning.
+     */
+    private static final java.util.List<String> NON_SUBSCRIPTION_MERCHANT_PATTERNS =
+            loadNonSubscriptionMerchantPatterns();
+
+    @SuppressWarnings("unchecked")
+    private static java.util.List<String> loadNonSubscriptionMerchantPatterns() {
+        final java.util.List<String> out = new java.util.ArrayList<>();
+        try (java.io.InputStream in =
+                SubscriptionService.class.getResourceAsStream("/non-subscription-merchants.yaml")) {
+            if (in == null) return out;
+            final Object root = new org.yaml.snakeyaml.Yaml().load(in);
+            if (!(root instanceof java.util.Map)) return out;
+            final Object drops = ((java.util.Map<String, Object>) root).get("drops");
+            if (!(drops instanceof java.util.List)) return out;
+            for (final Object dropObj : (java.util.List<Object>) drops) {
+                if (!(dropObj instanceof java.util.Map)) continue;
+                final Object pats = ((java.util.Map<String, Object>) dropObj).get("patterns");
+                if (!(pats instanceof java.util.List)) continue;
+                for (final Object p : (java.util.List<Object>) pats) {
+                    if (p == null) continue;
+                    out.add(p.toString().toLowerCase(java.util.Locale.ROOT));
+                }
+            }
+        } catch (Exception ex) {
+            LOGGER.warn("Failed to load non-subscription-merchants.yaml: {}", ex.getMessage());
+        }
+        return out;
+    }
+
+    private boolean isNonSubscriptionMerchant(final String merchantName) {
+        if (merchantName == null || NON_SUBSCRIPTION_MERCHANT_PATTERNS.isEmpty()) {
+            return false;
+        }
+        final String lower = merchantName.toLowerCase(java.util.Locale.ROOT);
+        for (final String p : NON_SUBSCRIPTION_MERCHANT_PATTERNS) {
+            if (lower.contains(p)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
      * Hardcoded merchant alias map. Different statement issuers spell the
      * same merchant in incompatible ways ("WMT PLUS SEP 2025" vs
      * "Walmart+ Member 05/26"); we collapse known variants to one canonical
@@ -655,13 +702,32 @@ public class SubscriptionService {
 
     private List<Subscription> consolidateMultiPriceSubscriptions(
             final List<Subscription> raw) {
-        if (raw == null || raw.size() < 2) {
-            return raw == null ? new ArrayList<>() : raw;
+        if (raw == null) {
+            return new ArrayList<>();
+        }
+        // Phase 0 — drop allowlisted non-subscription merchants (tax
+        // filings, CC service fees, toll-account refills, etc.). Runs
+        // even on size==1 input so a single annual tax payment doesn't
+        // slip through.
+        final List<Subscription> filtered = new ArrayList<>(raw.size());
+        for (final Subscription s : raw) {
+            if (isNonSubscriptionMerchant(s.getMerchantName())) {
+                if (LOGGER.isInfoEnabled()) {
+                    LOGGER.info(
+                            "Subscription dropped (non-subscription-merchants allowlist): merchant='{}'",
+                            s.getMerchantName());
+                }
+                continue;
+            }
+            filtered.add(s);
+        }
+        if (filtered.size() < 2) {
+            return filtered;
         }
 
         // Group by canonical merchant + frequency
         final Map<String, List<Subscription>> byMerchantCadence = new HashMap<>();
-        for (final Subscription s : raw) {
+        for (final Subscription s : filtered) {
             final String key =
                     canonicalMerchantKey(s.getMerchantName())
                             + "|"
@@ -719,21 +785,30 @@ public class SubscriptionService {
             });
 
             // Rule 1 / 2: collapse same-cadence groups into ONE subscription
-            // whose `amount` is the latest price; older prices are
-            // reflected in the merchant description for now (a follow-up
-            // could add a structured priceHistory field on Subscription).
+            // whose `amount` is the latest price. Older amounts go into the
+            // structured `priceHistory` list — iOS can render a chart
+            // without parsing free-text. The description still gets the
+            // human-readable summary for backward compat with the existing
+            // UI surface; can be removed once the iOS migration ships.
             final Subscription latest = group.get(group.size() - 1);
-            final List<BigDecimal> history = new ArrayList<>();
+            final java.util.List<Subscription.PriceHistoryEntry> history = new java.util.ArrayList<>();
             for (int i = 0; i < group.size() - 1; i++) {
-                final BigDecimal older = group.get(i).getAmount();
-                if (older != null && older.compareTo(latest.getAmount()) != 0) {
-                    history.add(older);
+                final Subscription older = group.get(i);
+                if (older.getAmount() != null
+                        && older.getAmount().compareTo(latest.getAmount()) != 0) {
+                    history.add(new Subscription.PriceHistoryEntry(
+                            older.getAmount(),
+                            older.getLastPaymentDate() != null
+                                    ? older.getLastPaymentDate()
+                                    : older.getStartDate()));
                 }
             }
             if (!history.isEmpty()) {
+                latest.setPriceHistory(history);
                 final String historyNote =
                         "price-change: "
                                 + history.stream()
+                                        .map(Subscription.PriceHistoryEntry::getAmount)
                                         .map(BigDecimal::abs)
                                         .map(b -> "$" + b.toPlainString())
                                         .collect(Collectors.joining(" → "))

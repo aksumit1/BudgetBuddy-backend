@@ -568,6 +568,40 @@ public class CSVImportService {
     // optimization)
     private static final Map<String, String> CATEGORY_MAP = initializeCategoryMap();
 
+    /**
+     * Whole-word substring match for category-string tokens. Treats
+     * alphanumeric runs as words — short keys like "cd"/"buy"/"sale" only
+     * match when surrounded by non-word characters (or start/end of string).
+     * Prevents the false "Sales & Marketing" → investment routing the prior
+     * raw `contains()` produced.
+     */
+    private static boolean containsAsWordCategoryToken(final String haystack, final String needle) {
+        if (haystack == null || haystack.isEmpty() || needle == null || needle.isEmpty()) {
+            return false;
+        }
+        // Multi-word keys (e.g. "transfer in") are matched as substrings —
+        // their length already disambiguates.
+        if (needle.contains(" ")) {
+            return haystack.contains(needle);
+        }
+        int from = 0;
+        while (from <= haystack.length() - needle.length()) {
+            final int idx = haystack.indexOf(needle, from);
+            if (idx < 0) return false;
+            final boolean leftOk =
+                    idx == 0 || !Character.isLetterOrDigit(haystack.charAt(idx - 1));
+            final int endIdx = idx + needle.length();
+            final boolean rightOk =
+                    endIdx == haystack.length()
+                            || !Character.isLetterOrDigit(haystack.charAt(endIdx));
+            if (leftOk && rightOk) {
+                return true;
+            }
+            from = idx + 1;
+        }
+        return false;
+    }
+
     private static Map<String, String> initializeCategoryMap() {
         final Map<String, String> map = new HashMap<>();
         // Expenses - Common
@@ -5551,10 +5585,15 @@ public class CSVImportService {
                         continue; // Skip CREDIT → INCOME mapping for ACH_CREDIT
                     }
                 }
-                if (lower.contains(key)) {
+                // Whole-word boundary check. The prior `lower.contains(key)`
+                // misfired on short keys like "cd"/"buy"/"sale" — a category
+                // column reading "Sales & Marketing" would match the "sale"
+                // → investment rule, mis-routing it. Word-boundary match
+                // keeps "sales" out unless the column is literally "sale".
+                if (containsAsWordCategoryToken(lower, key)) {
                     if (LOGGER.isDebugEnabled()) {
                         LOGGER.debug(
-                                "parseCategory: Matched category string '{}' → '{}' (substring match)",
+                                "parseCategory: Matched category string '{}' → '{}' (whole-word match)",
                                 safeCategoryString,
                                 entry.getValue());
                     }

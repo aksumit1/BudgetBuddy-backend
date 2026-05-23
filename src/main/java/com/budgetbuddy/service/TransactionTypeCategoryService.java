@@ -144,6 +144,60 @@ public class TransactionTypeCategoryService {
         this.learningService = learningService;
     }
 
+    /**
+     * Build the cache key for {@link #determineCategory(...)} as a SHA-256
+     * hash of a length-delimited concatenation of all 12 inputs.
+     *
+     * <p>Why hashing: the prior SpEL inline expression joined fields with a
+     * literal underscore — collision-vulnerable ("foo_bar" + "baz" looks
+     * identical to "foo" + "bar_baz") and unbounded length (a long
+     * description spent unbounded bytes in the cache key). A fixed-length
+     * SHA-256 hex string solves both. Length-delimited (each field is
+     * prefixed with its byte-length) prevents the same collision class on
+     * the input side before hashing.
+     *
+     * <p>Referenced from SpEL via T(...).buildCategoryCacheKey(...) — must
+     * stay public + static for SpEL to find it.
+     */
+    public static String buildCategoryCacheKey(
+            final Object importerCategoryPrimary,
+            final Object importerCategoryDetailed,
+            final Object accountType,
+            final Object merchantName,
+            final Object description,
+            final Object amount,
+            final Object paymentChannel,
+            final Object transactionTypeIndicator,
+            final Object importSource,
+            final Object currencyCode,
+            final Object userId,
+            final Object transactionTypeHint) {
+        final Object[] fields = {
+            importerCategoryPrimary, importerCategoryDetailed, accountType,
+            merchantName, description, amount, paymentChannel,
+            transactionTypeIndicator, importSource, currencyCode,
+            userId, transactionTypeHint
+        };
+        final StringBuilder buf = new StringBuilder(256);
+        for (final Object f : fields) {
+            final String s = f == null ? "" : f.toString();
+            buf.append(s.length()).append(':').append(s).append('|');
+        }
+        try {
+            final java.security.MessageDigest md = java.security.MessageDigest.getInstance("SHA-256");
+            final byte[] hash = md.digest(buf.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            final StringBuilder hex = new StringBuilder(2 * hash.length);
+            for (final byte b : hash) {
+                hex.append(String.format("%02x", b));
+            }
+            return hex.toString();
+        } catch (java.security.NoSuchAlgorithmException ex) {
+            // SHA-256 is required by every JRE; impossible in practice.
+            // Fall back to the raw string so caching still works.
+            return buf.toString();
+        }
+    }
+
     /** Result of category determination */
     public static class CategoryResult {
         private final String categoryPrimary;
@@ -280,18 +334,22 @@ public class TransactionTypeCategoryService {
                 // Check if it's a fee or purchase (simplified - full logic in
                 // determineTransactionType)
 
+                // Specific fee tokens only. The prior set included "other"
+                // and "cost" — both too generic. "other" matched "OTHER FUND
+                // DISTRIBUTION" (a legitimate INVESTMENT inflow) and "cost"
+                // matched any string containing the substring (e.g.
+                // "Costco-routed brokerage purchase"). Stick to terms that
+                // actually mean "this is a fee/charge against the account".
                 final boolean isFee =
                         descLower.contains("fee")
                                 || descLower.contains("charge")
                                 || descLower.contains("commission")
                                 || descLower.contains(TAX)
-                                || descLower.contains("expense")
                                 || descLower.contains("custodial")
                                 || descLower.contains("maintenance")
                                 || descLower.contains("service charge")
-                                || descLower.contains(OTHER)
-                                || descLower.contains("cost")
-                                || descLower.contains("sales load");
+                                || descLower.contains("sales load")
+                                || descLower.contains("expense ratio");
 
                 if (isFee) {
                     LOGGER.debug(
@@ -1051,7 +1109,7 @@ public class TransactionTypeCategoryService {
     @Cacheable(
             value = "categoryDetermination",
             key =
-                    "#importerCategoryPrimary + '_' + #importerCategoryDetailed + '_' + (#account?.accountType ?: 'null') + '_' + (#merchantName ?: 'null') + '_' + (#description ?: 'null') + '_' + (#amount ?: 'null') + '_' + (#paymentChannel ?: 'null') + '_' + (#transactionTypeIndicator ?: 'null') + '_' + (#importSource ?: 'null') + '_' + (#account?.currencyCode ?: 'null') + '_' + (#account?.userId ?: 'null') + '_' + (#transactionTypeHint ?: 'null')")
+                    "T(com.budgetbuddy.service.TransactionTypeCategoryService).buildCategoryCacheKey(#importerCategoryPrimary, #importerCategoryDetailed, #account?.accountType, #merchantName, #description, #amount, #paymentChannel, #transactionTypeIndicator, #importSource, #account?.currencyCode, #account?.userId, #transactionTypeHint)")
     public CategoryResult determineCategory(
             final String importerCategoryPrimary,
             final String importerCategoryDetailed,
@@ -1097,12 +1155,21 @@ public class TransactionTypeCategoryService {
                             LOGGER.debug("Failed to update usage count: {}", e.getMessage());
                         }
                     }
+                    // Confidence ramp: a brand-new override (usageCount<2)
+                    // stays at 0.95 — high enough to win the cascade, but
+                    // BELOW the 1.0 ceiling so an undo / second correction
+                    // can still cleanly override it. A mapping that's been
+                    // applied 2+ times has been implicitly confirmed by the
+                    // user, so it's promoted to 1.0. Avoids the "fat-finger
+                    // forever" bug where one accidental category override
+                    // persisted with absolute weight.
+                    final long usageCount = customMapping.getUsageCount();
+                    final double mappingConfidence = usageCount >= 2 ? 1.0 : 0.95;
                     return new CategoryResult(
                             customMapping.getCategoryPrimary(),
                             customMapping.getCategoryDetailed(),
                             "CUSTOM_MAPPING",
-                            1.0 // 100% confidence for user-defined mappings
-                            );
+                            mappingConfidence);
                 }
             } catch (Exception e) {
                 if (LOGGER.isDebugEnabled()) {
@@ -1630,6 +1697,18 @@ public class TransactionTypeCategoryService {
         return null;
     }
 
+    /**
+     * @deprecated Test-only shim. Production callers (TransactionService,
+     *     PlaidDataExtractor) use the 10-argument canonical
+     *     {@link #determineCategory(String, String, AccountTable, String, String, BigDecimal, String, String, String, TransactionType)}
+     *     form, which lets the type hint participate in category alignment
+     *     (alignCategoryToType). This wrapper exists because ~109 test
+     *     mock-call sites still call the 9-arg form via Mockito — they
+     *     should be migrated to the 10-arg form (with an `any()` for the
+     *     hint), after which this overload can be deleted. MUST stay a thin
+     *     pass-through — putting any non-trivial logic here re-creates the
+     *     behavior-drift risk the consolidation was meant to eliminate.
+     */
     @Deprecated
     public CategoryResult determineCategory(
             final String importerCategoryPrimary,
