@@ -10,6 +10,7 @@ import com.budgetbuddy.repository.dynamodb.GoalRepository;
 import com.budgetbuddy.repository.dynamodb.TransactionRepository;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.math.BigDecimal;
+import java.time.temporal.ChronoUnit;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
@@ -139,27 +140,31 @@ public class WeeklyDigestService {
                 income = income.add(t.getAmount());
             }
         }
-        // Over-budget count: a budget is over-budget when month-to-date spend in its category
-        // already exceeds the proportional slice of monthlyLimit (e.g. on day 21 of a 30-day
-        // month, expecting <= 70% of the limit). The previous version had `overBudget += 0`
-        // as a placeholder which made the digest always report zero regardless of state.
+        // Over-budget count: a budget is over-budget when cycle-to-date spend in its category
+        // already exceeds the proportional slice of its period limit (e.g. on day 5 of a 7-day
+        // weekly budget, expecting <= 71% of the limit). The previous version was hardcoded to
+        // calendar-month and silently mis-classified every weekly/biweekly budget.
         int overBudget = 0;
         final LocalDate today = LocalDate.now(java.time.ZoneOffset.UTC);
-        final LocalDate monthStart = today.withDayOfMonth(1);
-        final int daysElapsed = today.getDayOfMonth();
-        final int daysInMonth = today.lengthOfMonth();
-        final BigDecimal proportionalShare =
-                BigDecimal.valueOf(daysElapsed)
-                        .divide(BigDecimal.valueOf(daysInMonth), 4, java.math.RoundingMode.HALF_UP);
-        final List<TransactionTable> mtd =
-                transactionRepository.findByUserIdAndDateRange(
-                        user.getUserId(), monthStart.format(DATE), today.format(DATE));
         for (final BudgetTable b : budgetRepository.findByUserId(user.getUserId())) {
             if (b.getMonthlyLimit() == null || b.getCategory() == null) {
                 continue;
             }
+            // B-BUG-9: per-budget cycle window via the shared helper.
+            final LocalDate[] window = BudgetCycleMath.cycleWindow(b, today);
+            final LocalDate cycleStart = window[0];
+            final LocalDate cycleEnd = window[1].isAfter(today) ? today : window[1];
+            final long totalDays = ChronoUnit.DAYS.between(window[0], window[1]) + 1;
+            final long elapsed = ChronoUnit.DAYS.between(cycleStart, today) + 1;
+            final BigDecimal proportionalShare =
+                    BigDecimal.valueOf(Math.max(1, Math.min(totalDays, elapsed)))
+                            .divide(BigDecimal.valueOf(totalDays), 4, java.math.RoundingMode.HALF_UP);
+
+            final List<TransactionTable> cycleTx =
+                    transactionRepository.findByUserIdAndDateRange(
+                            user.getUserId(), cycleStart.format(DATE), cycleEnd.format(DATE));
             BigDecimal categorySpend = BigDecimal.ZERO;
-            for (final TransactionTable t : mtd) {
+            for (final TransactionTable t : cycleTx) {
                 if (t == null || t.getAmount() == null || t.getDeletedAt() != null) {
                     continue;
                 }

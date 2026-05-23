@@ -43,11 +43,6 @@ import org.springframework.stereotype.Service;
 public class BudgetAllocationStatusService {
 
     private static final DateTimeFormatter DATE = DateTimeFormatter.ISO_LOCAL_DATE;
-    /** Approximate days per month — same constant the iOS BudgetEngine uses. */
-    private static final BigDecimal DAYS_PER_MONTH = new BigDecimal("30.4375");
-    private static final BigDecimal WEEK_DAYS = new BigDecimal("7");
-    private static final BigDecimal BIWEEK_DAYS = new BigDecimal("14");
-
     private final BudgetRepository budgetRepository;
     private final TransactionRepository transactionRepository;
 
@@ -98,15 +93,10 @@ public class BudgetAllocationStatusService {
     }
 
     private BigDecimal normaliseToMonthly(final BigDecimal limit, final String period) {
-        if (limit == null) return BigDecimal.ZERO;
-        if (period == null) return limit;
-        return switch (period.toLowerCase(java.util.Locale.ROOT)) {
-            case "weekly" ->
-                    limit.multiply(DAYS_PER_MONTH).divide(WEEK_DAYS, 2, RoundingMode.HALF_UP);
-            case "biweekly" ->
-                    limit.multiply(DAYS_PER_MONTH).divide(BIWEEK_DAYS, 2, RoundingMode.HALF_UP);
-            default -> limit;
-        };
+        // Delegate to the canonical helper so weekly/biweekly conversion is
+        // computed in exactly one place — drift here would mean the ZBB
+        // banner and the period-spend math disagree.
+        return BudgetCycleMath.monthlyEquivalent(limit, period);
     }
 
     private BigDecimal medianMonthlyIncome(final String userId, final LocalDate today) {

@@ -323,26 +323,12 @@ public class BudgetSummaryService {
      * Package-visible + static so {@link BudgetService} and the threshold
      * evaluator can share the same window math. Period-aware: weekly,
      * biweekly, monthly. Anything else → monthly.
+     *
+     * <p>Delegates to {@link BudgetCycleMath} — that class is the
+     * canonical source of truth and what new code should depend on.
      */
     static LocalDate[] cycleWindow(final String period, final LocalDate today) {
-        switch (period.toLowerCase(Locale.ROOT)) {
-            case "weekly":
-                final LocalDate monday =
-                        today.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
-                return new LocalDate[] {monday, monday.plusDays(6)};
-            case "biweekly":
-                // Fixed epoch Monday so every client and the server agree on the window.
-                final LocalDate epoch = LocalDate.of(2024, 1, 1);
-                final long days = java.time.temporal.ChronoUnit.DAYS.between(epoch, today);
-                final long cycles = days / 14;
-                final LocalDate start = epoch.plusDays(cycles * 14);
-                return new LocalDate[] {start, start.plusDays(13)};
-            case "monthly":
-            default:
-                final LocalDate start2 = today.withDayOfMonth(1);
-                final LocalDate end2 = start2.plusMonths(1).minusDays(1);
-                return new LocalDate[] {start2, end2};
-        }
+        return BudgetCycleMath.cycleWindow(period, today);
     }
 
     /** Matches the shape of iOS {@code BudgetSummary}. */

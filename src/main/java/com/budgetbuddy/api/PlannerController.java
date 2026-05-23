@@ -162,17 +162,23 @@ public class PlannerController {
                 }
             }
         }
-        // Subtract remaining-month budget commitment (rough: sum of monthlyLimits minus MTD spend).
+        // B-BUG-10: subtract remaining commitment in EACH budget's own cycle window.
+        // For weekly/biweekly budgets the prior code summed the full monthlyLimit, badly
+        // over-stating cash committed (a $50 weekly budget reads "$50 committed for the
+        // rest of the month" — but should commit only what's left in this 7-day window).
         final LocalDate now = LocalDate.now();
-        final LocalDate monthStart = now.withDayOfMonth(1);
         BigDecimal remainingBudget = BigDecimal.ZERO;
-        final Map<String, BigDecimal> mtdSpend =
-                monthToDateSpendByCategory(user.getUserId(), monthStart, now);
         for (final BudgetTable b : budgetRepository.findByUserId(user.getUserId())) {
             if (b.getMonthlyLimit() == null) {
                 continue;
             }
-            final BigDecimal spent = mtdSpend.getOrDefault(b.getCategory(), BigDecimal.ZERO);
+            final LocalDate[] window =
+                    com.budgetbuddy.service.BudgetCycleMath.cycleWindow(b, now);
+            final LocalDate cycleStart = window[0];
+            final LocalDate cycleEnd = window[1].isAfter(now) ? now : window[1];
+            final Map<String, BigDecimal> cycleSpend =
+                    monthToDateSpendByCategory(user.getUserId(), cycleStart, cycleEnd);
+            final BigDecimal spent = cycleSpend.getOrDefault(b.getCategory(), BigDecimal.ZERO);
             final BigDecimal remainingInBudget =
                     b.getMonthlyLimit().subtract(spent).max(BigDecimal.ZERO);
             remainingBudget = remainingBudget.add(remainingInBudget);
