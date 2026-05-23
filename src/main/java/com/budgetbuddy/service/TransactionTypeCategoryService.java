@@ -121,6 +121,15 @@ public class TransactionTypeCategoryService {
             globalFinancialConfig; // Global scale: Region-specific config
     private final CircuitBreakerService circuitBreakerService; // P2: Circuit breaker for ML service
     private final CategoryLearningService learningService; // User corrections and custom mappings
+    /**
+     * Optional LLM type-classifier used as a fallback when the rule-based
+     * type derivation returns low confidence. Null in dev or when the
+     * Anthropic suggester isn't configured.
+     */
+    private final com.budgetbuddy.service.category.LlmTypeSuggester llmTypeSuggester;
+
+    /** Confidence floor below which we'll try the LLM fallback. */
+    private static final double LLM_TYPE_FALLBACK_THRESHOLD = 0.7;
 
     // Note: fuzzyMatchingService is used via enhancedCategoryDetection, not directly
 
@@ -133,7 +142,9 @@ public class TransactionTypeCategoryService {
             final CircuitBreakerService circuitBreakerService,
             final com.budgetbuddy.service.ml.MerchantCategoryDataService
                     merchantCategoryDataService,
-            final CategoryLearningService learningService) {
+            final CategoryLearningService learningService,
+            @org.springframework.beans.factory.annotation.Autowired(required = false)
+                    final com.budgetbuddy.service.category.LlmTypeSuggester llmTypeSuggester) {
         this.plaidCategoryMapper = plaidCategoryMapper;
         this.importCategoryParser = importCategoryParser;
         this.enhancedCategoryDetection = enhancedCategoryDetection;
@@ -142,6 +153,55 @@ public class TransactionTypeCategoryService {
         this.circuitBreakerService = circuitBreakerService;
         this.merchantCategoryDataService = merchantCategoryDataService;
         this.learningService = learningService;
+        this.llmTypeSuggester = llmTypeSuggester;
+    }
+
+    /**
+     * Optional LLM fallback for type determination. If the base classifier
+     * returned a low-confidence result AND the LLM is configured AND its
+     * answer is high-confidence, swap. Returns the original when LLM is
+     * absent, fails, or disagrees with low confidence. NEVER lowers
+     * confidence — only upgrades the answer when the LLM is sure.
+     */
+    private TypeResult maybeLlmTypeFallback(
+            final TypeResult base,
+            final String merchantName,
+            final String description,
+            final String accountType,
+            final String accountSubtype,
+            final BigDecimal amount,
+            final String paymentChannel) {
+        if (llmTypeSuggester == null) return base;
+        if (base != null && base.getConfidence() >= LLM_TYPE_FALLBACK_THRESHOLD) return base;
+        try {
+            final com.budgetbuddy.service.category.LlmTypeSuggester.TypeContext ctx =
+                    new com.budgetbuddy.service.category.LlmTypeSuggester.TypeContext(
+                            merchantName, description, accountType, accountSubtype,
+                            amount, paymentChannel);
+            final com.budgetbuddy.service.category.LlmTypeSuggester.TypeSuggestion s =
+                    llmTypeSuggester.suggest(ctx);
+            if (s == null || s.confidence < LLM_TYPE_FALLBACK_THRESHOLD) return base;
+            final TransactionType mapped;
+            switch (s.type) {
+                case PAYMENT:    mapped = TransactionType.PAYMENT; break;
+                case EXPENSE:    mapped = TransactionType.EXPENSE; break;
+                case INVESTMENT: mapped = TransactionType.INVESTMENT; break;
+                case INCOME:     mapped = TransactionType.INCOME; break;
+                default: return base;
+            }
+            if (LOGGER.isInfoEnabled()) {
+                LOGGER.info(
+                        "LLM type fallback: merchant='{}' base={}@{} → llm={}@{} ({})",
+                        merchantName,
+                        base == null ? "null" : base.getTransactionType(),
+                        base == null ? "?" : base.getConfidence(),
+                        mapped, s.confidence, s.reasoning);
+            }
+            return new TypeResult(mapped, "LLM_FALLBACK", s.confidence);
+        } catch (RuntimeException ex) {
+            LOGGER.debug("LLM type fallback failed: {}", ex.getMessage());
+            return base;
+        }
     }
 
     /**
@@ -435,6 +495,30 @@ public class TransactionTypeCategoryService {
             key =
                     "'TYPE_' + (#account?.accountType ?: 'null') + '_' + (#categoryPrimary ?: 'null') + '_' + (#amount ?: 'null') + '_' + (#transactionTypeIndicator ?: 'null') + '_' + (#description ?: 'null')")
     public TypeResult determineTransactionType(
+            final AccountTable account,
+            final String categoryPrimary,
+            final String categoryDetailed,
+            final BigDecimal amount,
+            final String transactionTypeIndicator,
+            final String description,
+            final String paymentChannel) {
+        final TypeResult base = determineTransactionTypeInternal(
+                account, categoryPrimary, categoryDetailed, amount,
+                transactionTypeIndicator, description, paymentChannel);
+        // LLM fallback for low-confidence base results. No-op when the
+        // suggester bean isn't present (default: app.type-classifier.anthropic.enabled=false).
+        return maybeLlmTypeFallback(
+                base,
+                /* merchantName */ null,  // public method doesn't take merchantName today;
+                                          // description is the closest substitute
+                description,
+                account == null ? null : account.getAccountType(),
+                account == null ? null : account.getAccountSubtype(),
+                amount,
+                paymentChannel);
+    }
+
+    private TypeResult determineTransactionTypeInternal(
             final AccountTable account,
             final String categoryPrimary,
             final String categoryDetailed,

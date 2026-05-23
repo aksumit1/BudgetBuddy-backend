@@ -169,19 +169,16 @@ public class SubscriptionInsightsService {
             LOGGER.info("Detected {} unused subscriptions for user: {}", insights.size(), userId);
         }
 
-        // LIFECYCLE STATE + AUTO-DEACTIVATION. Insights are derived data;
-        // we ALSO update the subscription's lifecycleState so iOS can
-        // render badges (UNUSED_1_CYCLE / UNUSED_2_CYCLES / PRESUMED_
-        // CANCELLED) without re-doing this date math client-side.
-        // PRESUMED_CANCELLED also flips active=false so it falls out of
-        // the user's "Active Subscriptions" list automatically; the
-        // insight remains so they can see WHY.
-        for (final UnusedSubscriptionInsight insight : insights) {
-            final Subscription s = insight.getSubscription();
+        // LIFECYCLE STATE + AUTO-DEACTIVATION. Runs over ALL active subs
+        // (not just those producing an insight) so the state badge stays
+        // accurate even before the "unused" insight criteria fires. The
+        // insight criteria measures days PAST expected payment; lifecycle
+        // measures days SINCE last payment — different definitions, both
+        // useful. PRESUMED_CANCELLED also flips active=false.
+        for (final Subscription s : subscriptions) {
             if (s == null || s.getLastPaymentDate() == null) continue;
             if (s.getLifecycleState() == Subscription.LifecycleState.USER_CANCELLED) {
-                // Explicit user action wins over auto-detection.
-                continue;
+                continue; // Explicit user action wins.
             }
             final long daysSince = ChronoUnit.DAYS.between(s.getLastPaymentDate(), LocalDate.now());
             final long baseThreshold = unusedThresholdDays(s.getFrequency());
@@ -198,7 +195,7 @@ public class SubscriptionInsightsService {
             if (newState == s.getLifecycleState()
                     && (newState != Subscription.LifecycleState.PRESUMED_CANCELLED
                             || Boolean.FALSE.equals(s.getActive()))) {
-                continue; // No-op write avoidance
+                continue;
             }
             s.setLifecycleState(newState);
             if (newState == Subscription.LifecycleState.PRESUMED_CANCELLED) {

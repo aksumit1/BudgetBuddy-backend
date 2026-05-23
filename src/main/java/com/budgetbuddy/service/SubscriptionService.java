@@ -65,6 +65,12 @@ public class SubscriptionService {
     private final TransactionRepository transactionRepository;
     private final EnhancedCategoryDetectionService enhancedCategoryDetectionService;
     private final FuzzyMatchingService fuzzyMatchingService;
+    /**
+     * Optional LLM verdict used to override the "3+ prices = drop"
+     * heuristic during consolidation. Null when the Anthropic classifier
+     * bean isn't configured (default behavior is the existing heuristic).
+     */
+    private final com.budgetbuddy.service.category.LlmSubscriptionClassifier llmSubscriptionClassifier;
 
     // Subscription-related categories from merchant database
     private static final Set<String> SUBSCRIPTION_CATEGORIES =
@@ -184,11 +190,15 @@ public class SubscriptionService {
             final SubscriptionRepository subscriptionRepository,
             final TransactionRepository transactionRepository,
             final EnhancedCategoryDetectionService enhancedCategoryDetectionService,
-            final FuzzyMatchingService fuzzyMatchingService) {
+            final FuzzyMatchingService fuzzyMatchingService,
+            @org.springframework.beans.factory.annotation.Autowired(required = false)
+                    final com.budgetbuddy.service.category.LlmSubscriptionClassifier
+                            llmSubscriptionClassifier) {
         this.subscriptionRepository = subscriptionRepository;
         this.transactionRepository = transactionRepository;
         this.enhancedCategoryDetectionService = enhancedCategoryDetectionService;
         this.fuzzyMatchingService = fuzzyMatchingService;
+        this.llmSubscriptionClassifier = llmSubscriptionClassifier;
     }
 
     /*
@@ -737,6 +747,38 @@ public class SubscriptionService {
         return out;
     }
 
+    /**
+     * Ask the optional LlmSubscriptionClassifier whether this is a real
+     * subscription or per-use spend. Returns null when classifier absent
+     * or call fails — callers fall back to the heuristic.
+     */
+    private com.budgetbuddy.service.category.LlmSubscriptionClassifier.Decision
+            askLlmSubscriptionVerdict(final List<Subscription> group) {
+        if (llmSubscriptionClassifier == null || group == null || group.isEmpty()) return null;
+        try {
+            final java.util.List<BigDecimal> amounts = new java.util.ArrayList<>();
+            final java.util.List<java.time.LocalDate> dates = new java.util.ArrayList<>();
+            for (final Subscription s : group) {
+                if (s.getAmount() != null) amounts.add(s.getAmount());
+                if (s.getLastPaymentDate() != null) dates.add(s.getLastPaymentDate());
+                else if (s.getStartDate() != null) dates.add(s.getStartDate());
+            }
+            final Subscription head = group.get(0);
+            return llmSubscriptionClassifier.classify(
+                    new com.budgetbuddy.service.category.LlmSubscriptionClassifier.Series(
+                            head.getMerchantName(),
+                            amounts,
+                            dates,
+                            head.getFrequency() == null
+                                    ? null
+                                    : head.getFrequency().name().toLowerCase(Locale.ROOT),
+                            head.getCategory()));
+        } catch (RuntimeException ex) {
+            LOGGER.debug("LLM subscription classify failed: {}", ex.getMessage());
+            return null;
+        }
+    }
+
     private boolean isNonSubscriptionMerchant(final String merchantName) {
         if (merchantName == null || NON_SUBSCRIPTION_MERCHANT_PATTERNS.isEmpty()) {
             return false;
@@ -878,15 +920,48 @@ public class SubscriptionService {
             // A cell bill with 3 prices in a tight 1.34× band is still ONE
             // subscription. Dropping based on count alone was wrong.
             if (distinctAmounts.size() >= 3 && spread > VARIABLE_SPREAD_LIMIT) {
-                if (LOGGER.isInfoEnabled()) {
-                    LOGGER.info(
-                            "Subscription dropped (variable usage billing): merchant='{}' had {} distinct prices, spread {}× exceeds {}×",
-                            group.get(0).getMerchantName(),
-                            distinctAmounts.size(),
-                            String.format("%.2f", spread),
-                            VARIABLE_SPREAD_LIMIT);
+                // LLM second-opinion before dropping. The heuristic mis-
+                // categorises a Verizon Wireless bill ($80–$220 month over
+                // month, spread 2.75×) as usage spend, when it's actually
+                // a real subscription. If the LLM says SUBSCRIPTION or
+                // VARIABLE_BILL with high confidence, keep it. UNCERTAIN
+                // or REPEAT_SPEND → drop as before.
+                if (llmSubscriptionClassifier != null) {
+                    final var verdict = askLlmSubscriptionVerdict(group);
+                    if (verdict != null
+                            && verdict.confidence >= 0.7
+                            && (verdict.verdict
+                                            == com.budgetbuddy.service.category
+                                                    .LlmSubscriptionClassifier.Verdict.SUBSCRIPTION
+                                    || verdict.verdict
+                                            == com.budgetbuddy.service.category
+                                                    .LlmSubscriptionClassifier.Verdict
+                                                    .VARIABLE_BILL)) {
+                        LOGGER.info(
+                                "LLM kept subscription that heuristic would have dropped: "
+                                        + "merchant='{}' verdict={} confidence={} reason='{}'",
+                                group.get(0).getMerchantName(),
+                                verdict.verdict, verdict.confidence, verdict.reasoning);
+                        // Fall through to consolidation (don't drop).
+                    } else {
+                        LOGGER.info(
+                                "Subscription dropped (LLM/heuristic agreed): merchant='{}' had {} distinct prices, spread {}×",
+                                group.get(0).getMerchantName(),
+                                distinctAmounts.size(),
+                                String.format("%.2f", spread));
+                        continue;
+                    }
+                } else {
+                    if (LOGGER.isInfoEnabled()) {
+                        LOGGER.info(
+                                "Subscription dropped (variable usage billing): merchant='{}' had {} distinct prices, spread {}× exceeds {}×",
+                                group.get(0).getMerchantName(),
+                                distinctAmounts.size(),
+                                String.format("%.2f", spread),
+                                VARIABLE_SPREAD_LIMIT);
+                    }
+                    continue;
                 }
-                continue;
             }
 
             // Sort by start date (oldest → newest)

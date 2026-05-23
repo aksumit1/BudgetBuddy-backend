@@ -51,14 +51,19 @@ public class SubscriptionAdvancedService {
     private final TransactionRepository transactionRepository;
     private final SubscriptionService subscriptionService;
     private final SubscriptionInsightsService insightsService;
+    /** Optional LLM augmentation for {@link #suggestAlternatives}. Null when disabled. */
+    private final LlmAlternativeSubscriptionSuggester llmAlternativeSuggester;
 
     public SubscriptionAdvancedService(
             final TransactionRepository transactionRepository,
             final SubscriptionService subscriptionService,
-            final SubscriptionInsightsService insightsService) {
+            final SubscriptionInsightsService insightsService,
+            @org.springframework.beans.factory.annotation.Autowired(required = false)
+                    final LlmAlternativeSubscriptionSuggester llmAlternativeSuggester) {
         this.transactionRepository = transactionRepository;
         this.subscriptionService = subscriptionService;
         this.insightsService = insightsService;
+        this.llmAlternativeSuggester = llmAlternativeSuggester;
     }
 
     /**
@@ -159,6 +164,20 @@ public class SubscriptionAdvancedService {
         final List<TrialExpirationAlert> alerts = new ArrayList<>();
 
         for (final Subscription subscription : subscriptions) {
+            // FAST PATH: structured trialEndsAt field populated by the LLM
+            // extractor at import time. If present + upcoming, surface
+            // immediately without rescanning transactions.
+            final LocalDate structuredEnd = subscription.getTrialEndsAt();
+            if (structuredEnd != null) {
+                final long daysUntil = ChronoUnit.DAYS.between(LocalDate.now(), structuredEnd);
+                if (daysUntil >= 0 && daysUntil <= 14) {
+                    alerts.add(new TrialExpirationAlert(
+                            subscription, structuredEnd, (int) daysUntil,
+                            subscription.getAmount()));
+                    continue;
+                }
+            }
+
             // Check if this might be a trial (first payment, low amount, or "trial" in description)
             final List<TransactionTable> subTransactions =
                     findSubscriptionTransactions(transactions, subscription);
@@ -324,11 +343,48 @@ public class SubscriptionAdvancedService {
             }
         }
 
+        // LLM AUGMENT: for subscriptions the hardcoded map didn't match,
+        // ask the LLM for credible alternatives. Long-tail merchants
+        // (Substack, niche SaaS) finally get coverage. Capped at 3 per
+        // sub to keep cost bounded. No-op when the suggester bean isn't
+        // configured.
+        if (llmAlternativeSuggester != null) {
+            final java.util.Set<String> alreadyCovered = new java.util.HashSet<>();
+            for (final AlternativeRecommendation r : recommendations) {
+                alreadyCovered.add(
+                        r.getCurrentSubscription().getMerchantName().toLowerCase(Locale.ROOT));
+            }
+            for (final Subscription subscription : subscriptions) {
+                if (subscription.getAmount() == null) continue;
+                if (alreadyCovered.contains(
+                        subscription.getMerchantName().toLowerCase(Locale.ROOT))) {
+                    continue;
+                }
+                try {
+                    final List<LlmAlternativeSubscriptionSuggester.Alternative> llm =
+                            llmAlternativeSuggester.suggest(subscription, 2);
+                    final BigDecimal current = subscription.getAmount().abs();
+                    for (final var alt : llm) {
+                        if (alt.monthlyPrice == null
+                                || alt.monthlyPrice.compareTo(current) >= 0) continue;
+                        final BigDecimal savings = current.subtract(alt.monthlyPrice);
+                        recommendations.add(new AlternativeRecommendation(
+                                subscription, alt.name, alt.monthlyPrice, savings,
+                                alt.pitch == null ? "LLM-suggested alternative" : alt.pitch));
+                    }
+                } catch (RuntimeException ex) {
+                    LOGGER.debug("LLM alternative suggest failed for '{}': {}",
+                            subscription.getMerchantName(), ex.getMessage());
+                }
+            }
+        }
+
         if (LOGGER.isInfoEnabled()) {
             LOGGER.info(
-                    "Generated {} alternative recommendations for user: {}",
+                    "Generated {} alternative recommendations for user: {} (LLM-augment: {})",
                     recommendations.size(),
-                    userId);
+                    userId,
+                    llmAlternativeSuggester != null);
         }
         return recommendations;
     }

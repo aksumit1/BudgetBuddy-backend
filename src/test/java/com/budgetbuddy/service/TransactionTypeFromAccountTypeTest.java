@@ -88,7 +88,8 @@ class TransactionTypeFromAccountTypeTest {
                         globalFinancialConfig,
                         circuitBreakerService,
                         merchantCategoryDataService,
-                        learningService);
+                        learningService,
+                        /*llmTypeSuggester=*/null);
     }
 
     // ========== CHECKING/SAVINGS ACCOUNTS ==========

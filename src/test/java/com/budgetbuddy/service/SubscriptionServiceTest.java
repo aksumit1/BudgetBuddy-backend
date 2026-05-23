@@ -22,6 +22,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -60,7 +61,8 @@ class SubscriptionServiceTest {
                         subscriptionRepository,
                         transactionRepository,
                         enhancedCategoryDetectionService,
-                        fuzzyMatchingService);
+                        fuzzyMatchingService,
+                        /*llmSubscriptionClassifier=*/null);
     }
 
     @Test
@@ -567,6 +569,39 @@ class SubscriptionServiceTest {
                         && s.getPredictedNextAmount().compareTo(new BigDecimal("235")) <= 0,
                 "Predicted next amount should fall within observed range, got "
                         + s.getPredictedNextAmount());
+    }
+
+    @Test
+    void testDeletionTelemetryCountsTotalAndMerchant() {
+        // RISK-1: deleteSubscription should bump total + per-merchant counters.
+        // Seed a single subscription to delete.
+        final String merchantName = NETFLIX;
+        for (int i = 0; i < 4; i++) {
+            testTransactions.add(createTransaction(merchantName,
+                    new BigDecimal("-15.99"), LocalDate.of(2026, 1, 15).plusMonths(i)));
+        }
+        when(transactionRepository.findByUserId(eq(testUserId), eq(0), eq(10_000)))
+                .thenReturn(testTransactions);
+        final List<Subscription> subs = subscriptionService.detectSubscriptions(testUserId);
+        assertEquals(1, subs.size());
+        final String id = subs.get(0).getSubscriptionId();
+        // Mock the repository delete + a findById that returns the sub so the
+        // telemetry code can record the merchant name.
+        final com.budgetbuddy.model.dynamodb.SubscriptionTable row =
+                new com.budgetbuddy.model.dynamodb.SubscriptionTable();
+        row.setMerchantName(merchantName);
+        when(subscriptionRepository.findById(eq(id)))
+                .thenReturn(java.util.Optional.of(row));
+
+        subscriptionService.deleteSubscription(id);
+
+        final var telemetry = subscriptionService.getDetectionTelemetry();
+        assertEquals(1L, telemetry.get("subscriptions.deletes.total"),
+                "Total deletes counter should bump");
+        // The per-merchant key uses lowercased merchant name.
+        assertEquals(1L,
+                telemetry.get("subscriptions.deletes.byMerchant[" + merchantName.toLowerCase(Locale.ROOT) + "]"),
+                "Per-merchant deletes counter should bump");
     }
 
     @Test

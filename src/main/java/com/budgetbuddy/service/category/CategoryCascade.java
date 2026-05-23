@@ -82,6 +82,12 @@ public class CategoryCascade {
     private final LocationBasedMerchantLookup locationLookup;
     private final EnhancedCategoryDetectionService mlDetector;
     private final UncategorisedReviewQueue reviewQueue;
+    /**
+     * Optional per-merchant BERT-embedding index. When present, slots in
+     * as L7 between L5 (curated YAML) and L6 (location lookup). Null when
+     * {@code app.category.merchant-embedding-index.enabled=false}.
+     */
+    private final com.budgetbuddy.service.ml.MerchantEmbeddingIndex merchantEmbeddingIndex;
 
     @Autowired
     public CategoryCascade(
@@ -92,6 +98,8 @@ public class CategoryCascade {
             final LocationBasedMerchantLookup locationLookup,
             final EnhancedCategoryDetectionService mlDetector,
             @org.springframework.beans.factory.annotation.Autowired(required = false)
+                    final com.budgetbuddy.service.ml.MerchantEmbeddingIndex merchantEmbeddingIndex,
+            @org.springframework.beans.factory.annotation.Autowired(required = false)
                     final UncategorisedReviewQueue reviewQueue) {
         this.learningService = learningService;
         this.mccMapper = mccMapper;
@@ -100,6 +108,7 @@ public class CategoryCascade {
         this.curatedRules = new MerchantCategoryRules("category-rules-v2.yaml");
         this.locationLookup = locationLookup;
         this.mlDetector = mlDetector;
+        this.merchantEmbeddingIndex = merchantEmbeddingIndex;
         this.reviewQueue = reviewQueue;
     }
 
@@ -162,6 +171,17 @@ public class CategoryCascade {
         r = tryCuratedRules(ctx);
         if (r != null) {
             log("L5_CURATED", ctx, r);
+            return r;
+        }
+
+        // L5.5 — Per-merchant BERT embedding nearest-neighbor. Catches
+        // long-tail spelling variants (e.g. "WMT PLUS SEP" ≈ "Walmart+
+        // Member") without hardcoded aliases. Only fires when the
+        // embedding-index bean is configured (opt-in via
+        // app.category.merchant-embedding-index.enabled).
+        r = tryMerchantEmbedding(ctx);
+        if (r != null) {
+            log("L5_5_EMBEDDING", ctx, r);
             return r;
         }
 
@@ -367,6 +387,25 @@ public class CategoryCascade {
             return null;
         }
         return new CategoryResult(m.category, m.category, "CURATED_RULES", m.confidence);
+    }
+
+    /**
+     * L5.5 — per-merchant embedding nearest-neighbor. Returns null when
+     * the index isn't configured, when no merchant name is available, or
+     * when no neighbor clears the similarity threshold.
+     */
+    private CategoryResult tryMerchantEmbedding(final Context ctx) {
+        if (merchantEmbeddingIndex == null
+                || !merchantEmbeddingIndex.isAvailable()
+                || ctx.merchantName == null
+                || ctx.merchantName.isBlank()) {
+            return null;
+        }
+        final com.budgetbuddy.service.ml.MerchantEmbeddingIndex.Match match =
+                merchantEmbeddingIndex.match(ctx.merchantName);
+        if (match == null || match.category == null) return null;
+        return new CategoryResult(
+                match.category, match.category, "MERCHANT_EMBEDDING", match.similarity);
     }
 
     private CategoryResult tryLocationLookup(final Context ctx) {

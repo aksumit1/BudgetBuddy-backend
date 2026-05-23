@@ -62,7 +62,8 @@ public class TransactionTypeCategoryServiceNewLogicTest {
                         globalFinancialConfig,
                         circuitBreakerService,
                         merchantCategoryDataService,
-                        learningService);
+                        learningService,
+                        /*llmTypeSuggester=*/null);
     }
 
     /**

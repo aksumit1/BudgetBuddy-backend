@@ -95,6 +95,24 @@ public final class Subscription implements java.io.Serializable {
         this.predictedNextAmount = v;
     }
 
+    /**
+     * When this subscription's free trial converts to paid billing.
+     * Populated by {@link com.budgetbuddy.service.LlmTrialEndExtractor}
+     * during transaction import when the description carries "FREE TRIAL
+     * ENDS …" / "first charge …" phrasing. Null when no trial signal.
+     * iOS renders a "Trial ending in N days" banner when this is within
+     * the next ~14 days.
+     */
+    private LocalDate trialEndsAt;
+
+    public LocalDate getTrialEndsAt() {
+        return trialEndsAt;
+    }
+
+    public void setTrialEndsAt(final LocalDate v) {
+        this.trialEndsAt = v;
+    }
+
     /** One historical price observation. */
     public static final class PriceHistoryEntry implements java.io.Serializable {
         private static final long serialVersionUID = 1L;

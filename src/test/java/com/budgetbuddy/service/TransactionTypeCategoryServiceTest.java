@@ -102,7 +102,8 @@ class TransactionTypeCategoryServiceTest {
                         globalFinancialConfig,
                         circuitBreakerService,
                         merchantCategoryDataService,
-                        learningService);
+                        learningService,
+                        /*llmTypeSuggester=*/null);
         // Setup checking account
         checkingAccount = new AccountTable();
         checkingAccount.setAccountId("checking-account-id");
