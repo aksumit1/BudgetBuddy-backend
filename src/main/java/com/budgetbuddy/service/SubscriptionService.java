@@ -206,10 +206,26 @@ public class SubscriptionService {
      * returns the cached result instead. 60s is short enough that new
      * imports become visible quickly; long enough that screen-refresh
      * loops don't cause harm.
+     *
+     * <p>Capacity is bounded to avoid an unbounded heap when many users
+     * cycle through (e.g. integration tests, churn): a synchronizedMap
+     * around a LinkedHashMap in access-order evicts the LRU entry once
+     * the cap is reached. Cap of 10_000 = ~1MB of references at one
+     * Subscription per slot, fine for one pod.
      */
     private static final long DETECT_COOLDOWN_MS = 60_000;
-    private final java.util.concurrent.ConcurrentHashMap<String, DetectCacheEntry>
-            detectionCache = new java.util.concurrent.ConcurrentHashMap<>();
+    private static final int DETECT_CACHE_CAPACITY = 10_000;
+    private final java.util.Map<String, DetectCacheEntry> detectionCache =
+            java.util.Collections.synchronizedMap(
+                    new java.util.LinkedHashMap<String, DetectCacheEntry>(
+                            16, 0.75f, /*accessOrder=*/true) {
+                        private static final long serialVersionUID = 1L;
+                        @Override
+                        protected boolean removeEldestEntry(
+                                final java.util.Map.Entry<String, DetectCacheEntry> eldest) {
+                            return size() > DETECT_CACHE_CAPACITY;
+                        }
+                    });
 
     private static final class DetectCacheEntry {
         final long expiresAt;
@@ -678,11 +694,24 @@ public class SubscriptionService {
         final java.util.List<String> out = new java.util.ArrayList<>();
         try (java.io.InputStream in =
                 SubscriptionService.class.getResourceAsStream("/non-subscription-merchants.yaml")) {
-            if (in == null) return out;
+            if (in == null) {
+                // Absent file = "no allowlist configured", which is a valid
+                // state (the filter is opt-in). Distinct from a malformed
+                // file, which is a bug we want to surface loudly.
+                LOGGER.info("non-subscription-merchants.yaml not on classpath; allowlist disabled");
+                return out;
+            }
             final Object root = new org.yaml.snakeyaml.Yaml().load(in);
-            if (!(root instanceof java.util.Map)) return out;
+            if (!(root instanceof java.util.Map)) {
+                throw new IllegalStateException(
+                        "non-subscription-merchants.yaml: top-level must be a mapping, got "
+                                + (root == null ? "null" : root.getClass().getSimpleName()));
+            }
             final Object drops = ((java.util.Map<String, Object>) root).get("drops");
-            if (!(drops instanceof java.util.List)) return out;
+            if (!(drops instanceof java.util.List)) {
+                throw new IllegalStateException(
+                        "non-subscription-merchants.yaml: 'drops' key must be a list");
+            }
             for (final Object dropObj : (java.util.List<Object>) drops) {
                 if (!(dropObj instanceof java.util.Map)) continue;
                 final Object pats = ((java.util.Map<String, Object>) dropObj).get("patterns");
@@ -692,9 +721,19 @@ public class SubscriptionService {
                     out.add(p.toString().toLowerCase(java.util.Locale.ROOT));
                 }
             }
-        } catch (Exception ex) {
-            LOGGER.warn("Failed to load non-subscription-merchants.yaml: {}", ex.getMessage());
+            LOGGER.info(
+                    "non-subscription-merchants.yaml: loaded {} drop patterns",
+                    out.size());
+        } catch (java.io.IOException ex) {
+            // I/O errors during file read are non-fatal — log and continue
+            // with empty allowlist.
+            LOGGER.error(
+                    "I/O error reading non-subscription-merchants.yaml: {}", ex.getMessage());
         }
+        // Note: parse errors (the IllegalStateExceptions above) propagate
+        // and abort startup. That's intentional — a typo in the YAML
+        // would otherwise silently disable the filter and let bad
+        // subscriptions ship.
         return out;
     }
 
@@ -725,11 +764,21 @@ public class SubscriptionService {
         final java.util.LinkedHashMap<String, String> out = new java.util.LinkedHashMap<>();
         try (java.io.InputStream in =
                 SubscriptionService.class.getResourceAsStream("/merchant-aliases.yaml")) {
-            if (in == null) return out;
+            if (in == null) {
+                LOGGER.info("merchant-aliases.yaml not on classpath; alias map empty");
+                return out;
+            }
             final Object root = new org.yaml.snakeyaml.Yaml().load(in);
-            if (!(root instanceof Map)) return out;
+            if (!(root instanceof Map)) {
+                throw new IllegalStateException(
+                        "merchant-aliases.yaml: top-level must be a mapping, got "
+                                + (root == null ? "null" : root.getClass().getSimpleName()));
+            }
             final Object aliases = ((Map<String, Object>) root).get("aliases");
-            if (!(aliases instanceof java.util.List)) return out;
+            if (!(aliases instanceof java.util.List)) {
+                throw new IllegalStateException(
+                        "merchant-aliases.yaml: 'aliases' key must be a list");
+            }
             for (final Object groupObj : (java.util.List<Object>) aliases) {
                 if (!(groupObj instanceof Map)) continue;
                 final Map<String, Object> group = (Map<String, Object>) groupObj;
@@ -741,9 +790,13 @@ public class SubscriptionService {
                     out.put(pre.toString().toLowerCase(Locale.ROOT), canonical.toString());
                 }
             }
-        } catch (Exception ex) {
-            LOGGER.warn("Failed to load merchant-aliases.yaml: {}", ex.getMessage());
+            LOGGER.info(
+                    "merchant-aliases.yaml: loaded {} prefix mappings", out.size());
+        } catch (java.io.IOException ex) {
+            LOGGER.error("I/O error reading merchant-aliases.yaml: {}", ex.getMessage());
         }
+        // Parse errors propagate and abort startup — a typo here would
+        // silently break the price-change-merge consolidation otherwise.
         return out;
     }
 

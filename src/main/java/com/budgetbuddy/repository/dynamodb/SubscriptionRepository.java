@@ -111,4 +111,24 @@ public class SubscriptionRepository {
     public String getTableName() {
         return tableName;
     }
+
+    /**
+     * Full table scan returning every subscription row. Used by the
+     * nightly precompute worker to collect the set of distinct user-ids
+     * that have any subscriptions. Intentionally NOT @Cacheable —
+     * the caller pages through this once per night, caching would just
+     * blow heap. DynamoDB scan IS expensive at large scale; for now the
+     * subscriptions table is small (one row per user-merchant) so this
+     * is fine. If it gets large, switch to a paginated scan with a
+     * resume token.
+     */
+    public java.util.stream.Stream<SubscriptionTable> scanAll() {
+        try {
+            return StreamSupport.stream(
+                            subscriptionTable.scan().items().spliterator(), false);
+        } catch (software.amazon.awssdk.services.dynamodb.model.ResourceNotFoundException e) {
+            LOGGER.warn("Subscriptions table not found during scanAll: {}", e.getMessage());
+            return java.util.stream.Stream.empty();
+        }
+    }
 }

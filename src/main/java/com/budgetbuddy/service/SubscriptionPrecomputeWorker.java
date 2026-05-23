@@ -70,27 +70,24 @@ public class SubscriptionPrecomputeWorker {
     @Scheduled(cron = "${app.subscription.precompute.cron:0 0 2 * * *}")
     public void precomputeAll() {
         final long t0 = System.currentTimeMillis();
-        // SubscriptionRepository.findAll-equivalent: scan all rows, collect
-        // distinct user-ids. For the production scale this is fine
-        // (subscriptions table is one row per user-merchant, not per tx).
+        // scanAll the subscriptions table to discover distinct user-ids
+        // with at least one existing subscription. We use these as the
+        // precompute set because users with zero subs can wait until they
+        // explicitly hit /detect — the cooldown will then keep that fast.
         final Set<String> userIds = new HashSet<>();
-        subscriptionRepository.findByUserId("").forEach(s -> userIds.add(s.getUserId()));
-        // Note: passing "" relies on findByUserId returning empty — the
-        // repository doesn't currently expose a true scanAll. As a no-op
-        // discovery this is wrong; we need a real iterator. Mark TODO and
-        // skip the run rather than crash. Replace once the repository
-        // grows a scan API.
+        try (var stream = subscriptionRepository.scanAll()) {
+            stream.forEach(s -> {
+                if (s.getUserId() != null) userIds.add(s.getUserId());
+            });
+        }
+
         if (userIds.isEmpty()) {
-            LOGGER.info(
-                    "SubscriptionPrecomputeWorker: no user iterator available "
-                            + "(SubscriptionRepository lacks scanAll). Skipping run. "
-                            + "Add a scan method to enable.");
+            LOGGER.info("SubscriptionPrecomputeWorker: no users with subscriptions; nothing to precompute");
             return;
         }
 
         int succeeded = 0, failed = 0;
         for (final String userId : userIds) {
-            if (userId == null) continue;
             try {
                 final List<Subscription> result =
                         subscriptionService.detectSubscriptions(userId);

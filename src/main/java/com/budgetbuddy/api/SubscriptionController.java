@@ -876,6 +876,48 @@ public class SubscriptionController {
         }
     }
 
+    /**
+     * Per-category density summary — "you have 5 streaming subs totaling
+     * $87/mo". Lightweight surface for iOS to render concentration
+     * insights without re-doing the math client-side.
+     */
+    @GetMapping("/insights/category-density")
+    @Operation(
+            summary = "Per-category subscription density",
+            description =
+                    "Returns the count and combined monthly spend of subscriptions grouped by category, sorted by spend desc")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Density summary retrieved"),
+        @ApiResponse(responseCode = "401", description = UNAUTHORIZED_USER_NOT_AUTHENTICATED),
+        @ApiResponse(responseCode = "500", description = INTERNAL_SERVER_ERROR)
+    })
+    public ResponseEntity<List<Map<String, Object>>> getCategoryDensity(
+            @AuthenticationPrincipal final UserDetails userDetails) {
+        if (userDetails == null || userDetails.getUsername() == null) {
+            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, USER_NOT_AUTHENTICATED);
+        }
+        final UserTable user =
+                userService
+                        .findByEmail(userDetails.getUsername())
+                        .orElseThrow(
+                                () -> new AppException(ErrorCode.USER_NOT_FOUND, USER_NOT_FOUND_1));
+        try {
+            final List<Map<String, Object>> response =
+                    advancedService.getCategoryDensity(user.getUserId()).stream()
+                            .map(d -> {
+                                final Map<String, Object> row = new java.util.LinkedHashMap<>();
+                                row.put("category", d.getCategory());
+                                row.put("count", d.getCount());
+                                row.put("monthlySpend", d.getMonthlySpend());
+                                return row;
+                            })
+                            .collect(Collectors.toList());
+            return ResponseEntity.ok(response);
+        } catch (RuntimeException ex) {
+            throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to compute density: " + ex.getMessage());
+        }
+    }
+
     /** Get comprehensive subscription optimization GET /api/subscriptions/insights/optimization */
     @GetMapping("/insights/optimization")
     @Operation(

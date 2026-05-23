@@ -1,6 +1,7 @@
 package com.budgetbuddy.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -479,6 +480,122 @@ class SubscriptionServiceTest {
 
         assertTrue(subscriptions.isEmpty(),
                 "Merchant with 3+ prices AND wide spread (>1.5×) should be dropped as variable usage");
+    }
+
+    @Test
+    void testMedianCadenceSurvivesOneMissedMonth() {
+        // Netflix monthly except one missed month — a mean-of-gaps would
+        // skew the cadence into the QUARTERLY-or-no-match band; median
+        // keeps it MONTHLY so the sub is detected.
+        // Months: Jan, Feb, Mar (gap), May, Jun, Jul, Aug → gaps
+        // [31, 28, 61, 30, 30, 31] → median 30 (MONTHLY) vs mean 35.
+        final String merchantName = NETFLIX;
+        final BigDecimal amt = new BigDecimal("-15.99");
+        for (final LocalDate d : new LocalDate[] {
+                LocalDate.of(2026, 1, 15),
+                LocalDate.of(2026, 2, 15),
+                LocalDate.of(2026, 3, 15),
+                LocalDate.of(2026, 5, 15),  // one missed cycle
+                LocalDate.of(2026, 6, 15),
+                LocalDate.of(2026, 7, 15),
+                LocalDate.of(2026, 8, 15),
+        }) {
+            testTransactions.add(createTransaction(merchantName, amt, d));
+        }
+        when(transactionRepository.findByUserId(eq(testUserId), eq(0), eq(10_000)))
+                .thenReturn(testTransactions);
+
+        final List<Subscription> subs = subscriptionService.detectSubscriptions(testUserId);
+
+        assertEquals(1, subs.size(), "Sub should survive one missed month via median-gap detection");
+        assertEquals(Subscription.SubscriptionFrequency.MONTHLY, subs.get(0).getFrequency());
+    }
+
+    @Test
+    void testDetectCooldownReturnsCachedResult() {
+        // Two back-to-back calls with the same data — the second should
+        // return the cached set without calling the repository again.
+        final String merchantName = NETFLIX;
+        for (int i = 0; i < 4; i++) {
+            testTransactions.add(createTransaction(
+                    merchantName, new BigDecimal("-15.99"),
+                    LocalDate.of(2026, 1, 15).plusMonths(i)));
+        }
+        when(transactionRepository.findByUserId(eq(testUserId), eq(0), eq(10_000)))
+                .thenReturn(testTransactions);
+
+        final List<Subscription> first = subscriptionService.detectSubscriptions(testUserId);
+        final List<Subscription> second = subscriptionService.detectSubscriptions(testUserId);
+
+        assertEquals(first.size(), second.size(), "Cached result should match");
+        // Verify the repository was only consulted once (cooldown short-circuits the 2nd call).
+        verify(transactionRepository, times(1)).findByUserId(eq(testUserId), eq(0), eq(10_000));
+    }
+
+    @Test
+    void testPredictedNextAmountForVariableSubscription() {
+        // Xfinity Mobile style: 4 months at $172, 4 at $185, 4 at $230.
+        // Spread is 1.34× (under VARIABLE_SPREAD_LIMIT) so it collapses to
+        // one variable sub. predictedNextAmount = median of all 12 amounts.
+        final String merchantName = "Xfinity Mobile";
+        final LocalDate startDate = LocalDate.of(2025, 1, 1);
+        for (int i = 0; i < 4; i++) {
+            testTransactions.add(createTransaction(
+                    merchantName, new BigDecimal("-172.00"), startDate.plusMonths(i)));
+        }
+        for (int i = 4; i < 8; i++) {
+            testTransactions.add(createTransaction(
+                    merchantName, new BigDecimal("-185.00"), startDate.plusMonths(i)));
+        }
+        for (int i = 8; i < 12; i++) {
+            testTransactions.add(createTransaction(
+                    merchantName, new BigDecimal("-230.00"), startDate.plusMonths(i)));
+        }
+        when(transactionRepository.findByUserId(eq(testUserId), eq(0), eq(10_000)))
+                .thenReturn(testTransactions);
+
+        final List<Subscription> subs = subscriptionService.detectSubscriptions(testUserId);
+
+        assertEquals(1, subs.size());
+        final Subscription s = subs.get(0);
+        assertNotNull(s.getPredictedNextAmount(),
+                "Variable sub should have a predictedNextAmount populated");
+        // Median of [172, 185, 230] is 185 (one of each unique amount appears as the median candidate)
+        // — Subscription objects collapse to one entry per unique amount, so 3 distinct values total.
+        // Acceptable range covers either flavor of median computation.
+        assertTrue(s.getPredictedNextAmount().compareTo(new BigDecimal("170")) >= 0
+                        && s.getPredictedNextAmount().compareTo(new BigDecimal("235")) <= 0,
+                "Predicted next amount should fall within observed range, got "
+                        + s.getPredictedNextAmount());
+    }
+
+    @Test
+    void testPriceChangePopulatesStructuredHistory() {
+        // Walmart+ $14.27 → $14.28: consolidation merges into one sub with
+        // structured priceHistory carrying the older amount.
+        final String merchantName = "Walmart+ Member";
+        final LocalDate first = LocalDate.of(2025, 1, 4);
+        for (int i = 0; i < 4; i++) {
+            testTransactions.add(createTransaction(merchantName,
+                    new BigDecimal("-14.27"), first.plusMonths(i)));
+        }
+        for (int i = 4; i < 8; i++) {
+            testTransactions.add(createTransaction(merchantName,
+                    new BigDecimal("-14.28"), first.plusMonths(i)));
+        }
+        when(transactionRepository.findByUserId(eq(testUserId), eq(0), eq(10_000)))
+                .thenReturn(testTransactions);
+
+        final List<Subscription> subs = subscriptionService.detectSubscriptions(testUserId);
+
+        assertEquals(1, subs.size(), "Price change should collapse into one sub");
+        final Subscription s = subs.get(0);
+        assertEquals(new BigDecimal("-14.28"), s.getAmount(), "Current amount = latest price");
+        assertNotNull(s.getPriceHistory(), "priceHistory must not be null after consolidation");
+        assertFalse(s.getPriceHistory().isEmpty(),
+                "priceHistory should contain the older $14.27 entry");
+        assertEquals(new BigDecimal("-14.27"), s.getPriceHistory().get(0).getAmount(),
+                "First history entry should be the prior price");
     }
 
     // Helper method to create test transactions
