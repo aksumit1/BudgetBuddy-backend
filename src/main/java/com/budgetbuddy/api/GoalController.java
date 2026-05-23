@@ -415,6 +415,40 @@ public class GoalController {
         return ResponseEntity.noContent().build();
     }
 
+    /**
+     * G-OPP-3: undo a soft-delete (iOS Undo-toast surface). Returns the
+     * restored goal so the client can re-render without re-fetching the
+     * whole list.
+     */
+    @PostMapping("/{id}/restore")
+    public ResponseEntity<GoalTable> restoreGoal(
+            @AuthenticationPrincipal final UserDetails userDetails,
+            @PathVariable final String id) {
+        if (userDetails == null || userDetails.getUsername() == null) {
+            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, USER_NOT_AUTHENTICATED);
+        }
+        if (id == null || id.isEmpty()) {
+            throw new AppException(ErrorCode.INVALID_INPUT, GOAL_ID_IS_REQUIRED);
+        }
+        final UserTable user =
+                userService
+                        .findByEmail(userDetails.getUsername())
+                        .orElseThrow(
+                                () -> new AppException(ErrorCode.USER_NOT_FOUND, USER_NOT_FOUND_1));
+        final GoalTable restored = goalService.restoreGoal(user, id);
+        try {
+            dataChangeNotificationService.notifyGoalChanged(user.getUserId(), id);
+        } catch (Exception e) {
+            if (LOGGER.isWarnEnabled()) {
+                LOGGER.warn(
+                        "Failed to send data change notification for goal restore: {}",
+                        e.getMessage());
+            }
+        }
+        auditInterceptor.goalChanged(user.getUserId(), id, "RESTORE", "Goal restored from soft-delete");
+        return ResponseEntity.ok(restored);
+    }
+
     public static class CreateGoalRequest {
         private String goalId; // Optional: ID from app for consistency
         private String name;

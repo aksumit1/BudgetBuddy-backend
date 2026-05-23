@@ -51,6 +51,25 @@ public class GoalIngestEvaluator {
     private final GoalProgressService goalProgressService;
     private final DataChangeNotificationService notificationService;
 
+    /**
+     * G-RISK-3: track goals that failed evaluation on the last pass so the
+     * /actuator/health surface and any ops alerting can see consistently
+     * failing goals. Bounded so a flood of bad ids can't grow the set
+     * unbounded; LRU-style eviction trims the oldest entry once full.
+     */
+    private static final int MAX_TRACKED_FAILURES = 500;
+    private final java.util.Map<String, FailureInfo> recentFailures =
+            java.util.Collections.synchronizedMap(
+                    new java.util.LinkedHashMap<>(64, 0.75f, /*accessOrder=*/false) {
+                        @Override
+                        protected boolean removeEldestEntry(
+                                final java.util.Map.Entry<String, FailureInfo> eldest) {
+                            return size() > MAX_TRACKED_FAILURES;
+                        }
+                    });
+
+    private record FailureInfo(Instant lastFailedAt, String lastMessage, int consecutiveFailures) {}
+
     public GoalIngestEvaluator(
             final GoalRepository goalRepository,
             final GoalProgressService goalProgressService,
@@ -58,6 +77,16 @@ public class GoalIngestEvaluator {
         this.goalRepository = goalRepository;
         this.goalProgressService = goalProgressService;
         this.notificationService = notificationService;
+    }
+
+    /**
+     * Visible for ops/health surfaces. Snapshot of goals whose most-recent
+     * evaluate() call threw, with consecutive-failure count.
+     */
+    public java.util.Map<String, FailureInfo> failingGoalsSnapshot() {
+        synchronized (recentFailures) {
+            return new java.util.LinkedHashMap<>(recentFailures);
+        }
     }
 
     /**
@@ -85,11 +114,22 @@ public class GoalIngestEvaluator {
                     final GoalTable updated =
                             goalProgressService.calculateAndUpdateProgress(user, goal.getGoalId());
                     emitMilestoneIfCrossed(updated);
+                    // Success — clear any prior failure entry for this goal.
+                    recentFailures.remove(goal.getGoalId());
                 } catch (Exception e) {
+                    // G-RISK-3: record the failure with a consecutive-count
+                    // so a goal that has been broken across many ingest
+                    // passes can be surfaced (vs. a one-off transient).
+                    final FailureInfo prior = recentFailures.get(goal.getGoalId());
+                    final int streak = prior == null ? 1 : prior.consecutiveFailures + 1;
+                    recentFailures.put(
+                            goal.getGoalId(),
+                            new FailureInfo(Instant.now(), e.getMessage(), streak));
                     if (LOGGER.isWarnEnabled()) {
                         LOGGER.warn(
-                                "Goal evaluate failed for goal {}: {}",
+                                "Goal evaluate failed for goal {} (streak={}): {}",
                                 goal.getGoalId(),
+                                streak,
                                 e.getMessage());
                     }
                 }

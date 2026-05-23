@@ -47,6 +47,8 @@ public class FinancialGoalsRecommendationService {
     private final AccountRepository accountRepository;
     private final GoalRepository goalRepository;
     private final com.budgetbuddy.config.InsightsThresholds thresholds;
+    /** Optional — present only when app.goal-suggestions.anthropic.enabled=true. */
+    private com.budgetbuddy.service.goal.GoalLlmSuggestionAdvisor llmAdvisor;
 
     @org.springframework.beans.factory.annotation.Autowired
     public FinancialGoalsRecommendationService(
@@ -70,6 +72,37 @@ public class FinancialGoalsRecommendationService {
             final GoalRepository goalRepository) {
         this(transactionRepository, accountRepository, goalRepository,
                 new com.budgetbuddy.config.InsightsThresholds());
+    }
+
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    public void setLlmAdvisor(final com.budgetbuddy.service.goal.GoalLlmSuggestionAdvisor advisor) {
+        this.llmAdvisor = advisor;
+    }
+
+    /**
+     * G-AI-1: hand the user's spend snapshot to the LLM advisor and
+     * return its suggestions. Returns empty list when the advisor isn't
+     * wired or when the LLM degrades — never throws, so the caller's
+     * fallback path stays simple.
+     */
+    public List<com.budgetbuddy.service.goal.GoalLlmSuggestionAdvisor.SuggestedGoal>
+            suggestGoals(final String userId) {
+        if (llmAdvisor == null || userId == null || userId.isEmpty()) return List.of();
+        try {
+            final FinancialAnalysis a = analyzeFinancialHealth(userId);
+            final BigDecimal disposable = a.monthlyIncome.subtract(a.monthlyExpenses);
+            return llmAdvisor.suggest(
+                    new com.budgetbuddy.service.goal.GoalLlmSuggestionAdvisor.SpendSnapshot(
+                            userId,
+                            a.monthlyIncome,
+                            a.monthlyExpenses,
+                            a.liquidAssets,
+                            a.totalDebt,
+                            disposable.signum() < 0 ? BigDecimal.ZERO : disposable));
+        } catch (Exception e) {
+            LOGGER.debug("Goal suggestion advisor degraded for user {}: {}", userId, e.getMessage());
+            return List.of();
+        }
     }
 
     private int emergencyFundMonths() {

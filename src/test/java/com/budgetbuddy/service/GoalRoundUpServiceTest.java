@@ -127,11 +127,13 @@ class GoalRoundUpServiceTest {
     @Test
     void testEnableRoundUp() {
         when(goalRepository.findById(TEST_GOAL_ID)).thenReturn(Optional.of(testGoal));
-        doNothing().when(goalRepository).save(any(GoalTable.class));
+        when(goalRepository.saveWithLock(any(GoalTable.class))).thenReturn(testGoal);
 
         assertDoesNotThrow(() -> roundUpService.enableRoundUp(TEST_GOAL_ID));
 
-        verify(goalRepository).save(any(GoalTable.class));
+        // G-RISK-1: flag mutations must use saveWithLock so a concurrent
+        // progress credit cannot silently overwrite the toggle.
+        verify(goalRepository).saveWithLock(any(GoalTable.class));
     }
 
     @Test
@@ -145,11 +147,11 @@ class GoalRoundUpServiceTest {
     @Test
     void testDisableRoundUp() {
         when(goalRepository.findById(TEST_GOAL_ID)).thenReturn(Optional.of(testGoal));
-        doNothing().when(goalRepository).save(any(GoalTable.class));
+        when(goalRepository.saveWithLock(any(GoalTable.class))).thenReturn(testGoal);
 
         assertDoesNotThrow(() -> roundUpService.disableRoundUp(TEST_GOAL_ID));
 
-        verify(goalRepository).save(any(GoalTable.class));
+        verify(goalRepository).saveWithLock(any(GoalTable.class));
     }
 
     @Test

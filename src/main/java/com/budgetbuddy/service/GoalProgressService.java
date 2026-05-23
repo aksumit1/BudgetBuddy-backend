@@ -43,6 +43,8 @@ public class GoalProgressService {
     private final GoalService goalService;
     private final TransactionRepository transactionRepository;
     private final AccountRepository accountRepository;
+    /** Optional — set via setter so existing tests that pass 4 args still work. */
+    private UserService userService;
 
     public GoalProgressService(
             final GoalRepository goalRepository,
@@ -53,6 +55,11 @@ public class GoalProgressService {
         this.goalService = goalService;
         this.transactionRepository = transactionRepository;
         this.accountRepository = accountRepository;
+    }
+
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    public void setUserService(final UserService userService) {
+        this.userService = userService;
     }
 
     /**
@@ -259,9 +266,28 @@ public class GoalProgressService {
         }
 
         try {
-            // Get user (simplified - in production might want to cache or pass UserTable)
-            final UserTable user = new UserTable();
-            user.setUserId(userId);
+            // G-BUG-2: never fabricate a partial UserTable. Fetch the
+            // real one when UserService is wired (production); fall back
+            // to a userId-only stub only in unit-test contexts where the
+            // user service isn't injected, and log it so any production
+            // miswiring surfaces in logs rather than silently masking.
+            final UserTable user;
+            if (userService != null) {
+                final java.util.Optional<UserTable> resolved = userService.findById(userId);
+                if (resolved.isEmpty()) {
+                    LOGGER.warn(
+                            "Skipping goal progress recalc — user {} not found", userId);
+                    return;
+                }
+                user = resolved.get();
+            } else {
+                LOGGER.warn(
+                        "UserService not wired into GoalProgressService — falling back to "
+                                + "userId-only UserTable for goal {}. Expected only in tests.",
+                        goalId);
+                user = new UserTable();
+                user.setUserId(userId);
+            }
 
             calculateAndUpdateProgress(user, goalId);
         } catch (Exception e) {

@@ -53,6 +53,11 @@ public class GoalAnalyticsService {
         private final BigDecimal recommendedMonthlyContribution;
         private final int monthsRemaining;
         private final String message;
+        /** G-OPP-1: p50 / p90 confidence-interval bands and the EMA-weighted rate. */
+        private LocalDate projectedCompletionDateP50;
+        private LocalDate projectedCompletionDateP90;
+        private BigDecimal emaMonthlyContribution;
+        private String trend; // "ACCELERATING" | "STEADY" | "DECELERATING"
 
         public GoalProjection(
                 final LocalDate projectedCompletionDate,
@@ -91,6 +96,33 @@ public class GoalAnalyticsService {
 
         public String getMessage() {
             return message;
+        }
+
+        public LocalDate getProjectedCompletionDateP50() {
+            return projectedCompletionDateP50;
+        }
+
+        public LocalDate getProjectedCompletionDateP90() {
+            return projectedCompletionDateP90;
+        }
+
+        public BigDecimal getEmaMonthlyContribution() {
+            return emaMonthlyContribution;
+        }
+
+        public String getTrend() {
+            return trend;
+        }
+
+        void attachForecastBands(
+                final LocalDate p50,
+                final LocalDate p90,
+                final BigDecimal emaRate,
+                final String trend) {
+            this.projectedCompletionDateP50 = p50;
+            this.projectedCompletionDateP90 = p90;
+            this.emaMonthlyContribution = emaRate;
+            this.trend = trend;
         }
     }
 
@@ -160,10 +192,39 @@ public class GoalAnalyticsService {
                         .map(TransactionTable::getAmount)
                         .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        final BigDecimal averageMonthlyContribution =
-                recentTransactions.isEmpty()
-                        ? BigDecimal.ZERO
-                        : totalContributions.divide(new BigDecimal("3"), 2, RoundingMode.HALF_UP);
+        // G-RISK-2: divide by the actual span of contributions, not a
+        // hardcoded 3. A user who started saving 4 weeks ago shouldn't have
+        // their pace deflated to a third of reality. Span is rounded UP to
+        // the next whole month so a 6-week run still divides by 2 months,
+        // matching how users mentally bucket "how much per month."
+        final BigDecimal averageMonthlyContribution;
+        if (recentTransactions.isEmpty()) {
+            averageMonthlyContribution = BigDecimal.ZERO;
+        } else {
+            final LocalDate earliest =
+                    recentTransactions.stream()
+                            .map(TransactionTable::getTransactionDate)
+                            .filter(java.util.Objects::nonNull)
+                            .map(
+                                    d -> {
+                                        try {
+                                            return LocalDate.parse(d);
+                                        } catch (Exception ex) {
+                                            return null;
+                                        }
+                                    })
+                            .filter(java.util.Objects::nonNull)
+                            .min(LocalDate::compareTo)
+                            .orElse(threeMonthsAgo);
+            final long days = Math.max(1, ChronoUnit.DAYS.between(earliest, LocalDate.now()) + 1);
+            // Round up to the next whole month, clamped to the 3-month window
+            // we actually pulled. Floor at 1 month to avoid division by tiny
+            // fractions that would inflate the projected monthly rate.
+            final long months = Math.max(1, Math.min(3, (days + 29) / 30));
+            averageMonthlyContribution =
+                    totalContributions.divide(
+                            BigDecimal.valueOf(months), 2, RoundingMode.HALF_UP);
+        }
 
         // Calculate projected completion date
         final LocalDate projectedDate;
@@ -234,13 +295,95 @@ public class GoalAnalyticsService {
                                             - monthsRemaining));
         }
 
-        return new GoalProjection(
-                projectedDate,
-                averageMonthlyContribution,
-                onTrackStatus,
-                recommendedMonthlyContribution,
-                monthsRemaining,
-                message);
+        final GoalProjection projection =
+                new GoalProjection(
+                        projectedDate,
+                        averageMonthlyContribution,
+                        onTrackStatus,
+                        recommendedMonthlyContribution,
+                        monthsRemaining,
+                        message);
+
+        // G-OPP-1: EMA-weighted contribution rate + p50/p90 ETA bands.
+        // p50 uses the EMA rate; p90 uses one-stddev pessimism. Trend label
+        // compares the EMA rate to the flat average to surface acceleration.
+        attachForecastBands(projection, recentTransactions, remainingAmount, averageMonthlyContribution);
+        return projection;
+    }
+
+    /**
+     * Per-month aggregation → exponentially-weighted recent-bias rate +
+     * standard-deviation-based pessimistic band. Skips silently if there
+     * aren't at least two months of data.
+     */
+    private static void attachForecastBands(
+            final GoalProjection projection,
+            final List<TransactionTable> recentTransactions,
+            final BigDecimal remainingAmount,
+            final BigDecimal flatAvg) {
+        if (recentTransactions.size() < 2) return;
+        final java.util.Map<String, BigDecimal> perMonth = new java.util.LinkedHashMap<>();
+        for (final TransactionTable t : recentTransactions) {
+            if (t.getTransactionDate() == null) continue;
+            try {
+                final LocalDate d = LocalDate.parse(t.getTransactionDate());
+                final String key = String.format("%04d-%02d", d.getYear(), d.getMonthValue());
+                perMonth.merge(key, t.getAmount(), BigDecimal::add);
+            } catch (java.time.format.DateTimeParseException ignored) {
+                // skip
+            }
+        }
+        if (perMonth.size() < 2) return;
+
+        // Older → newer. EMA with alpha=0.5 — recent months count double.
+        final java.util.List<BigDecimal> ordered =
+                perMonth.values().stream()
+                        .map(v -> v == null ? BigDecimal.ZERO : v)
+                        .collect(Collectors.toList());
+        final java.util.List<BigDecimal> oldestFirst = new java.util.ArrayList<>(ordered);
+        // perMonth is insertion-ordered by parse sequence; sort the keys
+        // explicitly to be safe in case data is out-of-order.
+        oldestFirst.clear();
+        new java.util.TreeMap<>(perMonth).values().forEach(oldestFirst::add);
+
+        final double alpha = 0.5;
+        double ema = oldestFirst.get(0).doubleValue();
+        for (int i = 1; i < oldestFirst.size(); i++) {
+            ema = alpha * oldestFirst.get(i).doubleValue() + (1 - alpha) * ema;
+        }
+        final BigDecimal emaRate = BigDecimal.valueOf(ema).setScale(2, RoundingMode.HALF_UP);
+
+        // Sample std-dev for pessimistic band.
+        final double mean =
+                oldestFirst.stream().mapToDouble(BigDecimal::doubleValue).average().orElse(0);
+        final double variance =
+                oldestFirst.stream()
+                                .mapToDouble(v -> Math.pow(v.doubleValue() - mean, 2))
+                                .sum()
+                        / Math.max(1, oldestFirst.size() - 1);
+        final double stddev = Math.sqrt(variance);
+        // p90 assumes the slower side of one stddev. Floor at 1 month/$1 to
+        // avoid runaway timelines on zero/near-zero rates.
+        final double p90Rate = Math.max(1.0, ema - stddev);
+
+        if (ema > 0) {
+            final long p50Months = Math.max(1, (long) Math.ceil(remainingAmount.doubleValue() / ema));
+            final long p90Months =
+                    Math.max(p50Months, (long) Math.ceil(remainingAmount.doubleValue() / p90Rate));
+            final LocalDate p50 = LocalDate.now().plusMonths(p50Months);
+            final LocalDate p90 = LocalDate.now().plusMonths(p90Months);
+
+            final String trend;
+            final double flatAvgD = flatAvg == null ? 0.0 : flatAvg.doubleValue();
+            if (flatAvgD <= 0 || Math.abs(ema - flatAvgD) / Math.max(1, flatAvgD) < 0.10) {
+                trend = "STEADY";
+            } else if (ema > flatAvgD) {
+                trend = "ACCELERATING";
+            } else {
+                trend = "DECELERATING";
+            }
+            projection.attachForecastBands(p50, p90, emaRate, trend);
+        }
     }
 
     /** Get contribution insights */
@@ -250,6 +393,8 @@ public class GoalAnalyticsService {
         private final BigDecimal largestContribution;
         private final int contributionCount;
         private final String bestContributionSource; // "ROUND_UP", "MANUAL", "INCOME"
+        /** G-OPP-2: per-source breakdown so callers can render a chart. */
+        private java.util.Map<String, BigDecimal> contributionsBySource;
 
         public ContributionInsights(
                 final BigDecimal totalContributions,
@@ -283,6 +428,14 @@ public class GoalAnalyticsService {
         public String getBestContributionSource() {
             return bestContributionSource;
         }
+
+        public java.util.Map<String, BigDecimal> getContributionsBySource() {
+            return contributionsBySource;
+        }
+
+        void setContributionsBySource(final java.util.Map<String, BigDecimal> v) {
+            this.contributionsBySource = v;
+        }
     }
 
     /** Calculate contribution insights */
@@ -296,8 +449,11 @@ public class GoalAnalyticsService {
                         .collect(Collectors.toList());
 
         if (goalTransactions.isEmpty()) {
-            return new ContributionInsights(
-                    BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, 0, "NONE");
+            final ContributionInsights empty =
+                    new ContributionInsights(
+                            BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, 0, "NONE");
+            empty.setContributionsBySource(java.util.Map.of());
+            return empty;
         }
 
         final BigDecimal total =
@@ -314,11 +470,47 @@ public class GoalAnalyticsService {
                         .max(BigDecimal::compareTo)
                         .orElse(BigDecimal.ZERO);
 
-        // Determine best contribution source (simplified - can be enhanced)
-        final String bestSource = "MANUAL"; // Default
-        // Could analyze transaction descriptions to detect round-ups, income, etc.
+        // G-OPP-2: bucket each contribution by source so the UI can show
+        // "round-ups: $43, manual: $200, recurring: $500." Round-ups are
+        // identified by the same stamp GoalRoundUpService writes. Recurring
+        // is heuristically detected by checking the source-transaction's
+        // category for income markers. Everything else falls into MANUAL.
+        final java.util.Map<String, BigDecimal> bySource = new java.util.LinkedHashMap<>();
+        for (final TransactionTable tx : goalTransactions) {
+            final String src = classifyContributionSource(tx);
+            bySource.merge(src, tx.getAmount(), BigDecimal::add);
+        }
 
-        return new ContributionInsights(
-                total, average, largest, goalTransactions.size(), bestSource);
+        // Best source = the one that contributed the most.
+        final String bestSource =
+                bySource.entrySet().stream()
+                        .max(java.util.Map.Entry.comparingByValue())
+                        .map(java.util.Map.Entry::getKey)
+                        .orElse("MANUAL");
+
+        final ContributionInsights insights =
+                new ContributionInsights(
+                        total, average, largest, goalTransactions.size(), bestSource);
+        insights.setContributionsBySource(bySource);
+        return insights;
+    }
+
+    private static String classifyContributionSource(final TransactionTable tx) {
+        if (tx.getRoundUpSourceTransactionId() != null) return "ROUND_UP";
+        final String cat =
+                tx.getCategoryPrimary() != null
+                        ? tx.getCategoryPrimary().toLowerCase(java.util.Locale.ROOT)
+                        : "";
+        if (cat.contains("income") || cat.contains("salary") || cat.contains("interest")) {
+            return "INCOME";
+        }
+        final String detailed =
+                tx.getCategoryDetailed() != null
+                        ? tx.getCategoryDetailed().toLowerCase(java.util.Locale.ROOT)
+                        : "";
+        if (detailed.contains("transfer") || detailed.contains("recurring")) {
+            return "RECURRING_TRANSFER";
+        }
+        return "MANUAL";
     }
 }

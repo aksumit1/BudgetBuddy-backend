@@ -61,18 +61,28 @@ public class GoalEnhancementController {
     private final GoalAnalyticsService analyticsService;
     private final GoalRoundUpService roundUpService;
     private final UserService userService;
+    private final com.budgetbuddy.service.FinancialGoalsRecommendationService goalRecommendationService;
+    /** Optional — only present when app.goal-nlp.anthropic.enabled=true. */
+    private com.budgetbuddy.service.goal.GoalNaturalLanguageParser nlpParser;
 
     public GoalEnhancementController(
             final GoalService goalService,
             final GoalMilestoneService milestoneService,
             final GoalAnalyticsService analyticsService,
             final GoalRoundUpService roundUpService,
-            final UserService userService) {
+            final UserService userService,
+            final com.budgetbuddy.service.FinancialGoalsRecommendationService goalRecommendationService) {
         this.goalService = goalService;
         this.milestoneService = milestoneService;
         this.analyticsService = analyticsService;
         this.roundUpService = roundUpService;
         this.userService = userService;
+        this.goalRecommendationService = goalRecommendationService;
+    }
+
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    public void setNlpParser(final com.budgetbuddy.service.goal.GoalNaturalLanguageParser parser) {
+        this.nlpParser = parser;
     }
 
     /** Get milestones for a goal GET /api/goals/{id}/milestones */
@@ -219,6 +229,57 @@ public class GoalEnhancementController {
         } catch (Exception e) {
             if (LOGGER.isErrorEnabled()) {
                 LOGGER.error("Error getting round-up total for goal {}: {}", id, e.getMessage(), e);
+            }
+            return ResponseEntity.internalServerError().body(Map.of(ERROR, INTERNAL_ERROR_MSG));
+        }
+    }
+
+    /**
+     * G-AI-2: parse natural-language goal text into structured fields.
+     * Returns the parsed fields under {@code parsed} so the client can
+     * surface a confirmation dialog before calling POST /api/goals. A
+     * null parsed field means the parser declined (text too vague,
+     * advisor not enabled, or LLM degraded).
+     */
+    @org.springframework.web.bind.annotation.PostMapping("/parse")
+    public ResponseEntity<?> parseNaturalLanguageGoal(
+            @AuthenticationPrincipal final UserDetails userDetails,
+            @org.springframework.web.bind.annotation.RequestBody final Map<String, String> body) {
+        try {
+            userService
+                    .findByEmail(userDetails.getUsername())
+                    .orElseThrow(() -> new RuntimeException(USER_NOT_FOUND));
+            final String text = body == null ? null : body.get("text");
+            if (nlpParser == null || text == null || text.isBlank()) {
+                return ResponseEntity.ok(Map.of("parsed", (Object) null));
+            }
+            return ResponseEntity.ok(
+                    Map.of("parsed", nlpParser.parse(text).orElse(null)));
+        } catch (Exception e) {
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error("Error parsing goal text: {}", e.getMessage(), e);
+            }
+            return ResponseEntity.internalServerError().body(Map.of(ERROR, INTERNAL_ERROR_MSG));
+        }
+    }
+
+    /**
+     * G-AI-1: LLM-suggested goals driven by the user's spending snapshot.
+     * Returns an empty list when the advisor isn't enabled — the iOS
+     * surface can hide the section in that case.
+     */
+    @GetMapping("/suggestions")
+    public ResponseEntity<?> getGoalSuggestions(
+            @AuthenticationPrincipal final UserDetails userDetails) {
+        try {
+            final UserTable user =
+                    userService
+                            .findByEmail(userDetails.getUsername())
+                            .orElseThrow(() -> new RuntimeException(USER_NOT_FOUND));
+            return ResponseEntity.ok(goalRecommendationService.suggestGoals(user.getUserId()));
+        } catch (Exception e) {
+            if (LOGGER.isErrorEnabled()) {
+                LOGGER.error("Error getting goal suggestions: {}", e.getMessage(), e);
             }
             return ResponseEntity.internalServerError().body(Map.of(ERROR, INTERNAL_ERROR_MSG));
         }

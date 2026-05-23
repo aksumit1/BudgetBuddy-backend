@@ -459,14 +459,20 @@ public class GoalService {
      * see). Sets currentAmount to targetAmount so the progress display reflects the user's intent.
      */
     public GoalTable manualMarkComplete(final UserTable user, final String goalId) {
+        // Capture the moment the user requested completion — preserve this
+        // timestamp through a retry rather than minting a new "now" on the
+        // second attempt, so the audit trail reflects when the user actually
+        // clicked Complete, not when a contention loop happened to win.
+        final Instant requestedAt = Instant.now();
+
         GoalTable goal = getGoal(user, goalId);
         goal.setCompleted(true);
-        goal.setCompletedAt(Instant.now());
+        goal.setCompletedAt(requestedAt);
         if (goal.getTargetAmount() != null) {
             goal.setCurrentAmount(goal.getTargetAmount());
         }
         goal.setLastMilestoneReached(100);
-        goal.setUpdatedAt(Instant.now());
+        goal.setUpdatedAt(requestedAt);
         // Under lock: if the budget→goal flow just credited $X, we still want
         // the "completed" decision to stick — but we want to preserve the
         // fresher currentAmount (user sees correct progress history). One
@@ -484,7 +490,14 @@ public class GoalService {
                                             new AppException(
                                                     ErrorCode.GOAL_NOT_FOUND, GOAL_DISAPPEARED));
             fresh.setCompleted(true);
-            fresh.setCompletedAt(Instant.now());
+            // G-BUG-3: keep the original requestedAt, not a fresh Instant.now().
+            // If the fresh row already carries an earlier completedAt (auto-recalc
+            // raced us to "complete"), keep that earlier one so the audit log
+            // doesn't move backwards. Otherwise stamp the user's request time.
+            final Instant freshCompletedAt = fresh.getCompletedAt();
+            if (freshCompletedAt == null || freshCompletedAt.isAfter(requestedAt)) {
+                fresh.setCompletedAt(requestedAt);
+            }
             if (fresh.getTargetAmount() != null
                     && (fresh.getCurrentAmount() == null
                             || fresh.getCurrentAmount().compareTo(fresh.getTargetAmount()) < 0)) {
@@ -705,26 +718,37 @@ public class GoalService {
         // 1. Soft-delete stamp. Under lock so a concurrent budget→goal flow
         // doesn't see a goal as still-live, credit it, and then lose both
         // writes (the delete retries, the credit is orphaned).
-        goal.setDeletedAt(Instant.now());
-        goal.setUpdatedAt(Instant.now());
-        try {
-            goalRepository.saveWithLock(goal);
-        } catch (
-                com.budgetbuddy.repository.dynamodb.OptimisticLockHelper.OptimisticLockException
-                        e) {
-            final GoalTable fresh =
-                    goalRepository
-                            .findById(goalId)
-                            .orElseThrow(
-                                    () ->
-                                            new AppException(
-                                                    ErrorCode.GOAL_NOT_FOUND,
-                                                    "Goal disappeared mid-delete"));
-            fresh.setDeletedAt(Instant.now());
-            fresh.setUpdatedAt(Instant.now());
-            goalRepository.saveWithLock(fresh);
-            // The retry succeeds on the freshly-read row; `goal` isn't read
-            // after this block, so no need to re-assign it.
+        //
+        // G-RISK-4 idempotency: if a prior delete already stamped deletedAt
+        // but cascades only partially completed, the client's retry must
+        // not overwrite the original deletion timestamp — that timestamp
+        // drives audit log + the "deleted N days ago" purge. Re-run the
+        // cascades below regardless; they're already idempotent because
+        // they filter to rows still pointing at this goalId.
+        if (goal.getDeletedAt() == null) {
+            goal.setDeletedAt(Instant.now());
+            goal.setUpdatedAt(Instant.now());
+            try {
+                goalRepository.saveWithLock(goal);
+            } catch (
+                    com.budgetbuddy.repository.dynamodb.OptimisticLockHelper.OptimisticLockException
+                            e) {
+                final GoalTable fresh =
+                        goalRepository
+                                .findById(goalId)
+                                .orElseThrow(
+                                        () ->
+                                                new AppException(
+                                                        ErrorCode.GOAL_NOT_FOUND,
+                                                        "Goal disappeared mid-delete"));
+                if (fresh.getDeletedAt() == null) {
+                    fresh.setDeletedAt(Instant.now());
+                    fresh.setUpdatedAt(Instant.now());
+                    goalRepository.saveWithLock(fresh);
+                }
+                // If fresh already has deletedAt set, another caller won the
+                // race — let their timestamp stand and proceed to cascades.
+            }
         }
         if (LOGGER.isInfoEnabled()) {
             LOGGER.info("Soft-deleted goal {} for user {}", goalId, user.getUserId());
@@ -793,6 +817,55 @@ public class GoalService {
                             e.getMessage());
                 }
             }
+        }
+    }
+
+    /**
+     * G-OPP-3: undo for an iOS Undo-toast soft-delete. Clears the
+     * deletedAt stamp under lock so the goal becomes live again. Does
+     * NOT replay the transaction/budget cascade — those rows had their
+     * goalId pointers nulled at delete time and re-linking is the user's
+     * job (they should re-tag transactions intentionally). Idempotent:
+     * restoring an already-live goal is a no-op.
+     */
+    public GoalTable restoreGoal(final UserTable user, final String goalId) {
+        if (user == null || user.getUserId() == null || user.getUserId().isEmpty()) {
+            throw new AppException(ErrorCode.INVALID_INPUT, USER_IS_REQUIRED);
+        }
+        if (goalId == null || goalId.isEmpty()) {
+            throw new AppException(ErrorCode.INVALID_INPUT, GOAL_ID_IS_REQUIRED);
+        }
+        final GoalTable goal =
+                goalRepository
+                        .findById(goalId)
+                        .orElseThrow(
+                                () -> new AppException(ErrorCode.GOAL_NOT_FOUND, GOAL_NOT_FOUND_1));
+        if (goal.getUserId() == null || !goal.getUserId().equals(user.getUserId())) {
+            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, GOAL_DOES_NOT_BELONG_TO_USER);
+        }
+        if (goal.getDeletedAt() == null) {
+            return goal; // already live
+        }
+        goal.setDeletedAt(null);
+        goal.setUpdatedAt(Instant.now());
+        try {
+            return goalRepository.saveWithLock(goal);
+        } catch (
+                com.budgetbuddy.repository.dynamodb.OptimisticLockHelper.OptimisticLockException
+                        e) {
+            final GoalTable fresh =
+                    goalRepository
+                            .findById(goalId)
+                            .orElseThrow(
+                                    () ->
+                                            new AppException(
+                                                    ErrorCode.GOAL_NOT_FOUND, GOAL_DISAPPEARED));
+            if (fresh.getDeletedAt() != null) {
+                fresh.setDeletedAt(null);
+                fresh.setUpdatedAt(Instant.now());
+                return goalRepository.saveWithLock(fresh);
+            }
+            return fresh;
         }
     }
 }

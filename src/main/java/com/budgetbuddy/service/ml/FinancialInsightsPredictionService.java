@@ -1,5 +1,6 @@
 package com.budgetbuddy.service.ml;
 
+import com.budgetbuddy.config.FinancialInsightsPredictionProperties;
 import com.budgetbuddy.model.dynamodb.TransactionTable;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -36,24 +37,60 @@ public class FinancialInsightsPredictionService {
     private static final Logger LOGGER =
             LoggerFactory.getLogger(FinancialInsightsPredictionService.class);
 
-    // Prediction confidence thresholds
-    private static final double MEDIUM_CONFIDENCE = 0.50;
-
-    // Minimum data points for reliable predictions
-    private static final int MIN_DATA_POINTS = 6; // 6 months of data
+    private final FinancialInsightsPredictionProperties props;
 
     /**
-     * Predict future transaction anomalies Uses pattern recognition to identify likely anomalies
-     * before they occur
+     * Phase 1 monolith split: predictAnomalies now delegates to the
+     * extracted {@link com.budgetbuddy.service.insights.forecast.AnomalyForecaster}
+     * bean. The remaining four predict* methods still own their
+     * implementations here; their thin-wrapper beans in the forecast
+     * package delegate back to this class until Phase 2 inverts that
+     * direction. Nullable for tests that don't wire it — the legacy
+     * implementation below is used as a fallback.
+     */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private com.budgetbuddy.service.insights.forecast.AnomalyForecaster anomalyForecaster;
+
+    public FinancialInsightsPredictionService(final FinancialInsightsPredictionProperties props) {
+        this.props = props;
+    }
+
+    /**
+     * Backwards-compatibility constructor for callers (mostly tests) that
+     * don't depend on Spring property binding. Uses defaults that match
+     * the original hardcoded constants exactly.
+     */
+    public FinancialInsightsPredictionService() {
+        this(new FinancialInsightsPredictionProperties());
+    }
+
+    // Cached reads — accessed in tight loops, no need to re-call the
+    // getter every iteration.
+    private double mediumConfidence() {
+        return props.getMediumConfidence();
+    }
+
+    private int minDataPoints() {
+        return props.getMinDataPoints();
+    }
+
+    /**
+     * Predict future transaction anomalies. Phase 1 of the monolith
+     * split: when the {@link com.budgetbuddy.service.insights.forecast.AnomalyForecaster}
+     * bean is wired (Spring context), the call delegates there. The
+     * inline implementation below is preserved as the fallback for
+     * tests that construct this service directly (no Spring context).
      */
     public List<PredictedAnomaly> predictAnomalies(
             final List<TransactionTable> historicalTransactions, final int daysAhead) {
-
-        LOGGER.info("Predicting anomalies for next {} days", daysAhead);
+        if (anomalyForecaster != null) {
+            return anomalyForecaster.forecast(historicalTransactions, daysAhead);
+        }
+        LOGGER.info("Predicting anomalies for next {} days (legacy path)", daysAhead);
 
         final List<PredictedAnomaly> predictions = new ArrayList<>();
 
-        if (historicalTransactions.size() < MIN_DATA_POINTS) {
+        if (historicalTransactions.size() < minDataPoints()) {
             if (LOGGER.isDebugEnabled()) {
                 LOGGER.debug(
                         "Insufficient data for anomaly prediction: {} transactions",
@@ -88,12 +125,14 @@ public class FinancialInsightsPredictionService {
             final TrendAnalysis trend = analyzeTrend(categoryTx);
 
             // Predict if category will spike
-            if (trend.slope > 0 && trend.confidence > MEDIUM_CONFIDENCE) {
+            if (trend.slope > 0 && trend.confidence > mediumConfidence()) {
                 final BigDecimal predictedAmount = predictNextAmount(categoryTx, daysAhead);
                 final BigDecimal historicalAverage = calculateAverage(categoryTx);
 
                 // If predicted amount is significantly higher than average
-                if (predictedAmount.compareTo(historicalAverage.multiply(BigDecimal.valueOf(2)))
+                if (predictedAmount.compareTo(
+                                historicalAverage.multiply(
+                                        BigDecimal.valueOf(props.getCategorySpikeMultiplier())))
                         > 0) {
                     final double confidence = Math.min(0.9, trend.confidence * 1.1);
                     predictions.add(
@@ -119,15 +158,16 @@ public class FinancialInsightsPredictionService {
                         .sorted()
                         .collect(Collectors.toList());
 
-        if (amounts.size() >= MIN_DATA_POINTS) {
+        if (amounts.size() >= minDataPoints()) {
             final BigDecimal median = calculateMedian(amounts);
             final BigDecimal q3 = calculatePercentile(amounts, 0.75);
             final BigDecimal iqr = q3.subtract(calculatePercentile(amounts, 0.25));
-            final BigDecimal threshold = q3.add(iqr.multiply(BigDecimal.valueOf(1.5)));
+            final BigDecimal threshold =
+                    q3.add(iqr.multiply(BigDecimal.valueOf(props.getIqrMultiplier())));
 
             // Predict if next transaction might exceed threshold
             final TrendAnalysis amountTrend = analyzeAmountTrend(amounts);
-            if (amountTrend.slope > 0 && amountTrend.confidence > MEDIUM_CONFIDENCE) {
+            if (amountTrend.slope > 0 && amountTrend.confidence > mediumConfidence()) {
                 final BigDecimal predictedNext = predictNextAmountFromTrend(amounts, amountTrend);
                 if (predictedNext.compareTo(threshold) > 0) {
                     predictions.add(
@@ -197,7 +237,7 @@ public class FinancialInsightsPredictionService {
             final TrendAnalysis usageTrend = analyzeUsageFrequency(subscriptionTx);
 
             // Predict cancellation if usage is decreasing
-            if (usageTrend.slope < -0.1 && usageTrend.confidence > MEDIUM_CONFIDENCE) {
+            if (usageTrend.slope < -0.1 && usageTrend.confidence > mediumConfidence()) {
                 final double cancellationProbability =
                         Math.min(0.9, (Math.abs(usageTrend.slope) * 10) * usageTrend.confidence);
 
@@ -229,14 +269,14 @@ public class FinancialInsightsPredictionService {
             final String category = entry.getKey();
             final List<TransactionTable> categoryTx = entry.getValue();
 
-            if (categoryTx.size() < MIN_DATA_POINTS) {
+            if (categoryTx.size() < minDataPoints()) {
                 continue;
             }
 
             final TrendAnalysis trend = analyzeTrend(categoryTx);
 
             // Predict if category will exceed budget
-            if (trend.slope > 0 && trend.confidence > MEDIUM_CONFIDENCE) {
+            if (trend.slope > 0 && trend.confidence > mediumConfidence()) {
                 final BigDecimal predictedNextMonth = predictNextAmount(categoryTx, 30);
                 final BigDecimal currentAverage = calculateAverage(categoryTx);
 
@@ -456,7 +496,7 @@ public class FinancialInsightsPredictionService {
             final BigDecimal potentialSavings = currentAnnualInterest.subtract(annualInterest);
 
             double confidence = balanceTrend.confidence;
-            if (balances.size() < MIN_DATA_POINTS) {
+            if (balances.size() < minDataPoints()) {
                 confidence *= 0.7; // Lower confidence with less data
             }
 
@@ -592,14 +632,7 @@ public class FinancialInsightsPredictionService {
             final List<TransactionTable> transactions, final int daysAhead) {
         final TrendAnalysis trend = analyzeTrend(transactions);
         final BigDecimal average = calculateAverage(transactions);
-
-        // Predict based on trend
-        final int nextIndex = transactions.size();
-        final double predicted =
-                trend.slope * nextIndex
-                        + (average.doubleValue() - trend.slope * (transactions.size() / 2.0));
-
-        return BigDecimal.valueOf(Math.max(0, predicted));
+        return linearRegressionPrediction(transactions.size(), average.doubleValue(), trend.slope);
     }
 
     /** Predict next amount from trend */
@@ -608,14 +641,27 @@ public class FinancialInsightsPredictionService {
         if (amounts.isEmpty()) {
             return BigDecimal.ZERO;
         }
-
         final BigDecimal average = calculateAverageFromList(amounts);
-        final int nextIndex = amounts.size();
-        final double predicted =
-                trend.slope * nextIndex
-                        + (average.doubleValue() - trend.slope * (amounts.size() / 2.0));
+        return linearRegressionPrediction(amounts.size(), average.doubleValue(), trend.slope);
+    }
 
-        return BigDecimal.valueOf(Math.max(0, predicted));
+    /**
+     * Forecasts the next observation y(n) from a fitted regression line
+     * through observations at indices 0..n-1.
+     *
+     * <p>Bug previously here: the intercept was computed as
+     * {@code mean_y - slope * (n / 2.0)} but the mean of indices
+     * 0..n-1 is {@code (n - 1) / 2.0}, not {@code n / 2.0}. Off-by-0.5
+     * units of slope meant rising-trend forecasts were systematically
+     * understated and falling-trend forecasts overstated, which produced
+     * false-negative spike alerts (the user was under-warned).
+     */
+    public static BigDecimal linearRegressionPrediction(
+            final int observationCount, final double meanY, final double slope) {
+        final double meanX = (observationCount - 1) / 2.0;
+        final double intercept = meanY - slope * meanX;
+        final double predicted = slope * observationCount + intercept;
+        return BigDecimal.valueOf(Math.max(0.0, predicted));
     }
 
     /** Calculate average transaction amount */
@@ -867,11 +913,16 @@ public class FinancialInsightsPredictionService {
 
     // MARK: - Model Classes
 
+    /**
+     * Visibility opened up to {@code public} so the extracted forecasters
+     * in {@code com.budgetbuddy.service.insights.forecast} can construct
+     * and read instances. Behaviour and shape unchanged.
+     */
     public static class TrendAnalysis {
-        /* default */ final double slope; // Positive = increasing, Negative = decreasing
-        /* default */ final double confidence; // 0.0 to 1.0
+        public final double slope; // Positive = increasing, Negative = decreasing
+        public final double confidence; // 0.0 to 1.0
 
-        /* default */ TrendAnalysis(final double slope, final double confidence) {
+        public TrendAnalysis(final double slope, final double confidence) {
             this.slope = slope;
             this.confidence = confidence;
         }

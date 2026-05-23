@@ -160,40 +160,65 @@ public class GoalRoundUpService {
         }
     }
 
-    /** Get total round-up contributions for a goal in a time period */
+    /**
+     * Sum of round-up contribution amounts for a goal over the last
+     * {@code days} days. Round-up contributions are identified by the
+     * non-null {@code roundUpSourceTransactionId} stamped on them in
+     * {@link #processRoundUp}. Soft-deleted contributions are excluded.
+     */
     public BigDecimal getRoundUpTotal(final GoalTable goal, final String userId, final int days) {
-        // Get all transactions assigned to goal
-        transactionRepository.findByUserIdAndGoalId(userId, goal.getGoalId());
-
-        // Calculate total round-ups (simplified - would need to track round-up transactions
-        // separately)
-        // For now, return zero - actual implementation would sum round-up contributions
-        return BigDecimal.ZERO;
+        if (goal == null || userId == null || userId.isEmpty()) return BigDecimal.ZERO;
+        final java.time.LocalDate cutoff =
+                java.time.LocalDate.now().minusDays(Math.max(0, days));
+        final java.time.format.DateTimeFormatter iso =
+                java.time.format.DateTimeFormatter.ISO_LOCAL_DATE;
+        BigDecimal total = BigDecimal.ZERO;
+        for (final TransactionTable t :
+                transactionRepository.findByUserIdAndGoalId(userId, goal.getGoalId())) {
+            if (t == null || t.getAmount() == null) continue;
+            if (t.getDeletedAt() != null) continue;
+            // Round-up contributions are the *generated* rows — their source
+            // transaction id is stamped on them. Non-round-up goal contributions
+            // (manual transfers, recurring income) are excluded so the
+            // "total round-ups" number reflects only the round-up feature.
+            if (t.getRoundUpSourceTransactionId() == null) continue;
+            if (t.getTransactionDate() != null) {
+                try {
+                    if (java.time.LocalDate.parse(t.getTransactionDate(), iso).isBefore(cutoff)) {
+                        continue;
+                    }
+                } catch (java.time.format.DateTimeParseException e) {
+                    continue;
+                }
+            }
+            total = total.add(t.getAmount().abs());
+        }
+        return total.setScale(2, RoundingMode.HALF_UP);
     }
 
-    /** Enable round-up for a goal */
+    /** Enable round-up for a goal. */
     public void enableRoundUp(final String goalId) {
-        final Optional<GoalTable> goalOpt = goalRepository.findById(goalId);
-        if (goalOpt.isEmpty()) {
-            throw new IllegalArgumentException("Goal not found: " + goalId);
-        }
-
-        final GoalTable goal = goalOpt.get();
-        goal.setRoundUpEnabled(true);
-        goalRepository.save(goal);
-        LOGGER.info("Round-up enabled for goal: {}", goalId);
+        setRoundUpFlag(goalId, true);
     }
 
-    /** Disable round-up for a goal */
+    /** Disable round-up for a goal. */
     public void disableRoundUp(final String goalId) {
+        setRoundUpFlag(goalId, false);
+    }
+
+    /**
+     * G-RISK-1: the flag mutation must go through saveWithLock so a
+     * concurrent progress credit (which reads-modifies-writes the same
+     * row) can't silently overwrite the toggle the user just made.
+     */
+    private void setRoundUpFlag(final String goalId, final boolean enabled) {
         final Optional<GoalTable> goalOpt = goalRepository.findById(goalId);
         if (goalOpt.isEmpty()) {
             throw new IllegalArgumentException("Goal not found: " + goalId);
         }
-
         final GoalTable goal = goalOpt.get();
-        goal.setRoundUpEnabled(false);
-        goalRepository.save(goal);
-        LOGGER.info("Round-up disabled for goal: {}", goalId);
+        goal.setRoundUpEnabled(enabled);
+        goalRepository.saveWithLock(goal);
+        LOGGER.info("Round-up {} for goal: {}", enabled ? "enabled" : "disabled", goalId);
     }
 }
