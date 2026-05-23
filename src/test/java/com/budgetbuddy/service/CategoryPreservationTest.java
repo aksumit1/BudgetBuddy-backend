@@ -87,7 +87,7 @@ class CategoryPreservationTest {
         lenient()
                 .when(
                         transactionTypeCategoryService.determineCategory(
-                                any(), any(), any(), any(), any(), any(), any(), any(), any()))
+                                any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
                 .thenReturn(defaultCategoryResult);
 
         // ImportCategoryParser - mock to return a default category

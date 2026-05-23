@@ -242,7 +242,7 @@ class TransactionTypeCategoryServiceTest {
                         BigDecimal.valueOf(-50),
                         null,
                         null,
-                        "PLAID");
+                        "PLAID", null);
 
         // Then: Should use mapped Plaid category. Source is "IMPORTER"
         // (the unified label used after the Plaid mapping step — raw
@@ -281,7 +281,7 @@ class TransactionTypeCategoryServiceTest {
                         BigDecimal.valueOf(-200),
                         null,
                         null,
-                        "CSV");
+                        "CSV", null);
 
         // Then: Should use importer category (Rule 8: IMPORTER with confidence 0.7)
         assertNotNull(result);
@@ -320,7 +320,7 @@ class TransactionTypeCategoryServiceTest {
                         BigDecimal.valueOf(-50),
                         null,
                         null,
-                        "CSV");
+                        "CSV", null);
 
         // Then: Should use hybrid result (Rule 2: parser matches importer → HYBRID)
         assertNotNull(result);
@@ -399,7 +399,7 @@ class TransactionTypeCategoryServiceTest {
                         BigDecimal.valueOf(-5),
                         null,
                         null,
-                        "CSV");
+                        "CSV", null);
 
         // Then: Should use ML result (Rule 3 or Rule 6: ML with high confidence)
         // Note: If ML detection fails or circuit breaker doesn't execute supplier,
@@ -445,7 +445,7 @@ class TransactionTypeCategoryServiceTest {
                         BigDecimal.valueOf(1000),
                         null,
                         null,
-                        "CSV");
+                        "CSV", null);
 
         // Then: Should use account hint. The source label changed from
         // "ACCOUNT" to "ACCOUNT_HINT" when the tiered fallback chain was
@@ -470,7 +470,7 @@ class TransactionTypeCategoryServiceTest {
 
         // When: Determine category with nulls
         final TransactionTypeCategoryService.CategoryResult result =
-                service.determineCategory(null, null, null, null, null, null, null, null, "CSV");
+                service.determineCategory(null, null, null, null, null, null, null, null, "CSV", null);
 
         // Then: Should return default category
         assertNotNull(result);
@@ -522,7 +522,7 @@ class TransactionTypeCategoryServiceTest {
                         BigDecimal.valueOf(-500), // INR amount
                         null,
                         null,
-                        "CSV");
+                        "CSV", null);
 
         // Then: Should handle international merchant names
         assertNotNull(result);
@@ -552,7 +552,7 @@ class TransactionTypeCategoryServiceTest {
                         BigDecimal.valueOf(1_000_000),
                         null,
                         null,
-                        "CSV");
+                        "CSV", null);
 
         // Then: Should handle large amounts
         assertNotNull(result);
@@ -582,7 +582,7 @@ class TransactionTypeCategoryServiceTest {
                         BigDecimal.ZERO,
                         null,
                         null,
-                        "CSV");
+                        "CSV", null);
 
         // Then: Should handle zero amounts
         assertNotNull(result);
@@ -622,7 +622,7 @@ class TransactionTypeCategoryServiceTest {
                                                 BigDecimal.valueOf(-50),
                                                 null,
                                                 null,
-                                                "CSV");
+                                                "CSV", null);
                             });
             threads[i].start();
         }
@@ -680,7 +680,7 @@ class TransactionTypeCategoryServiceTest {
                         BigDecimal.valueOf(450.00),
                         null,
                         null,
-                        "CSV");
+                        "CSV", null);
 
         // Then: Should be EXPENSE type and TRAVEL category
         assertNotNull(typeResult);
@@ -726,7 +726,7 @@ class TransactionTypeCategoryServiceTest {
                         BigDecimal.valueOf(-4.20),
                         null,
                         null,
-                        "CSV");
+                        "CSV", null);
 
         // Then: Should be dining (not other)
         assertNotNull(result);
@@ -766,7 +766,7 @@ class TransactionTypeCategoryServiceTest {
                         BigDecimal.valueOf(-14.00),
                         null,
                         null,
-                        "CSV");
+                        "CSV", null);
 
         // Then: Should be transportation (not other)
         assertNotNull(result);

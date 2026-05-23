@@ -1781,41 +1781,12 @@ public class TransactionTypeCategoryService {
         return null;
     }
 
-    /**
-     * @deprecated Test-only shim. Production callers (TransactionService,
-     *     PlaidDataExtractor) use the 10-argument canonical
-     *     {@link #determineCategory(String, String, AccountTable, String, String, BigDecimal, String, String, String, TransactionType)}
-     *     form, which lets the type hint participate in category alignment
-     *     (alignCategoryToType). This wrapper exists because ~109 test
-     *     mock-call sites still call the 9-arg form via Mockito — they
-     *     should be migrated to the 10-arg form (with an `any()` for the
-     *     hint), after which this overload can be deleted. MUST stay a thin
-     *     pass-through — putting any non-trivial logic here re-creates the
-     *     behavior-drift risk the consolidation was meant to eliminate.
-     */
-    @Deprecated
-    public CategoryResult determineCategory(
-            final String importerCategoryPrimary,
-            final String importerCategoryDetailed,
-            final AccountTable account,
-            final String merchantName,
-            final String description,
-            final BigDecimal amount,
-            final String paymentChannel,
-            final String transactionTypeIndicator,
-            final String importSource) {
-        return determineCategory(
-                importerCategoryPrimary,
-                importerCategoryDetailed,
-                account,
-                merchantName,
-                description,
-                amount,
-                paymentChannel,
-                transactionTypeIndicator,
-                importSource,
-                null);
-    }
+    // 9-argument determineCategory wrapper removed — all 103 test call
+    // sites migrated to the 10-arg canonical form via a one-shot script.
+    // The canonical overload below is the single source of truth; the type
+    // hint participates in alignCategoryToType. If you're tempted to add
+    // a thin shim here, don't — it reintroduces the behavior-drift risk
+    // the consolidation was meant to eliminate.
 
     /*
      * Applies iOS fallback logic for ACH credits, interest payments, and income category

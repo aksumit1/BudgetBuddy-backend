@@ -106,8 +106,8 @@ class TransactionTypeAndCategoryComprehensiveTest {
                         amount,
                         null,
                         null,
-                        "PLAID" // Import source = PLAID triggers PlaidCategoryMapper
-                        );
+                        "PLAID", // Import source = PLAID triggers PlaidCategoryMapper
+                        null);
 
         // Then - Should be dining (PlaidCategoryMapper should map FOOD_AND_DRINK/RESTAURANTS to
         // dining)
@@ -137,8 +137,8 @@ class TransactionTypeAndCategoryComprehensiveTest {
                         amount,
                         null,
                         null,
-                        "PLAID" // Import source = PLAID triggers PlaidCategoryMapper
-                        );
+                        "PLAID", // Import source = PLAID triggers PlaidCategoryMapper
+                        null);
 
         // Then - Should be dining
         assertEquals(
@@ -167,7 +167,7 @@ class TransactionTypeAndCategoryComprehensiveTest {
                         amount,
                         null,
                         null,
-                        null);
+                        null, null);
 
         // Then - Should NOT be income
         assertNotEquals(
@@ -206,7 +206,7 @@ class TransactionTypeAndCategoryComprehensiveTest {
                             new BigDecimal("50.00"),
                             null,
                             null,
-                            null);
+                            null, null);
 
             // Then - Should NOT be income
             assertNotEquals(
@@ -239,8 +239,8 @@ class TransactionTypeAndCategoryComprehensiveTest {
                         amount,
                         null,
                         null,
-                        "PLAID" // Import source = PLAID triggers PlaidCategoryMapper
-                        );
+                        "PLAID", // Import source = PLAID triggers PlaidCategoryMapper
+                        null);
 
         // Then - Should be income (PlaidCategoryMapper maps TRANSFER_IN/DEPOSIT to income)
         // The backend should also detect SALARY keywords from description
@@ -309,8 +309,8 @@ class TransactionTypeAndCategoryComprehensiveTest {
                         amount,
                         null,
                         null,
-                        "PLAID" // Import source = PLAID triggers PlaidCategoryMapper
-                        );
+                        "PLAID", // Import source = PLAID triggers PlaidCategoryMapper
+                        null);
 
         // Then - Should be dining
         assertEquals(
@@ -511,7 +511,7 @@ class TransactionTypeAndCategoryComprehensiveTest {
                         amount,
                         null,
                         null,
-                        null);
+                        null, null);
 
         // Then - Should be cd (may be in primary or detailed)
         assertTrue(
@@ -543,7 +543,7 @@ class TransactionTypeAndCategoryComprehensiveTest {
                         amount,
                         null,
                         null,
-                        null);
+                        null, null);
 
         // Then - Should be bonds (may be in primary or detailed)
         assertTrue(
@@ -575,7 +575,7 @@ class TransactionTypeAndCategoryComprehensiveTest {
                         amount,
                         null,
                         null,
-                        null);
+                        null, null);
 
         // Then - Should be stocks (may be in primary or detailed)
         assertTrue(
@@ -607,7 +607,7 @@ class TransactionTypeAndCategoryComprehensiveTest {
                         amount,
                         null,
                         null,
-                        null);
+                        null, null);
 
         // Then - Should be fourZeroOneK (may be in primary or detailed)
         assertTrue(
@@ -639,7 +639,7 @@ class TransactionTypeAndCategoryComprehensiveTest {
                         amount,
                         null,
                         null,
-                        null);
+                        null, null);
 
         // Then - Should be ira (may be in primary or detailed)
         assertTrue(
@@ -671,7 +671,7 @@ class TransactionTypeAndCategoryComprehensiveTest {
                         amount,
                         null,
                         null,
-                        null);
+                        null, null);
 
         // Then - Should be mutualFunds (may be in primary or detailed)
         assertTrue(
@@ -703,7 +703,7 @@ class TransactionTypeAndCategoryComprehensiveTest {
                         amount,
                         null,
                         null,
-                        null);
+                        null, null);
 
         // Then - Should be etf or investment (backend may return investment as primary)
         assertTrue(
@@ -736,7 +736,7 @@ class TransactionTypeAndCategoryComprehensiveTest {
                         amount,
                         "ach",
                         null,
-                        null);
+                        null, null);
 
         // Then - Should be salary (may be in primary or detailed, or income if not detected)
         assertTrue(
@@ -767,8 +767,8 @@ class TransactionTypeAndCategoryComprehensiveTest {
                         amount,
                         "ach",
                         null,
-                        "CSV" // CSV import source
-                        );
+                        "CSV", // CSV import source
+                        null);
 
         // Then - Should be salary (description contains "payroll" which should trigger salary
         // detection)
@@ -800,7 +800,7 @@ class TransactionTypeAndCategoryComprehensiveTest {
                         amount,
                         null,
                         null,
-                        null);
+                        null, null);
 
         // Then - Should be interest (may be in primary or detailed, or income if not detected)
         assertTrue(
@@ -831,7 +831,7 @@ class TransactionTypeAndCategoryComprehensiveTest {
                         amount,
                         null,
                         null,
-                        null);
+                        null, null);
 
         // Then - Should be interest (may be in primary or detailed, or income if not detected)
         assertTrue(
@@ -862,7 +862,7 @@ class TransactionTypeAndCategoryComprehensiveTest {
                         amount,
                         null,
                         null,
-                        null);
+                        null, null);
 
         // Then - Should be interest (may be in primary or detailed, or income if not detected)
         assertTrue(

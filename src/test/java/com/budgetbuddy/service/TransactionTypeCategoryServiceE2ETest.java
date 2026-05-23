@@ -66,7 +66,7 @@ class TransactionTypeCategoryServiceE2ETest {
                         BigDecimal.valueOf(-50),
                         null,
                         null,
-                        "PLAID");
+                        "PLAID", null);
 
         final TransactionTypeCategoryService.TypeResult typeResult =
                 service.determineTransactionType(
@@ -99,7 +99,7 @@ class TransactionTypeCategoryServiceE2ETest {
                         BigDecimal.valueOf(-200),
                         null,
                         "DEBIT",
-                        "CSV");
+                        "CSV", null);
 
         final TransactionTypeCategoryService.TypeResult typeResult =
                 service.determineTransactionType(
@@ -132,7 +132,7 @@ class TransactionTypeCategoryServiceE2ETest {
                         BigDecimal.valueOf(-2681.98),
                         null,
                         "DEBIT",
-                        "CSV");
+                        "CSV", null);
 
         final TransactionTypeCategoryService.TypeResult typeResult =
                 service.determineTransactionType(
@@ -165,7 +165,7 @@ class TransactionTypeCategoryServiceE2ETest {
                         BigDecimal.valueOf(5000),
                         null,
                         "CREDIT",
-                        "CSV");
+                        "CSV", null);
 
         final TransactionTypeCategoryService.TypeResult typeResult =
                 service.determineTransactionType(
@@ -198,7 +198,7 @@ class TransactionTypeCategoryServiceE2ETest {
                         BigDecimal.valueOf(3415.31),
                         "ach",
                         "CREDIT",
-                        "CSV");
+                        "CSV", null);
 
         final TransactionTypeCategoryService.TypeResult typeResult =
                 service.determineTransactionType(
@@ -236,7 +236,7 @@ class TransactionTypeCategoryServiceE2ETest {
                         BigDecimal.valueOf(-500), // INR amount
                         null,
                         "DEBIT",
-                        "CSV");
+                        "CSV", null);
 
         // Then: Should handle international merchant names
         assertNotNull(categoryResult);
@@ -258,7 +258,7 @@ class TransactionTypeCategoryServiceE2ETest {
                         BigDecimal.valueOf(-25.50), // EUR amount
                         null,
                         "DEBIT",
-                        "CSV");
+                        "CSV", null);
 
         // Then: Should handle international merchant names
         assertNotNull(categoryResult);
@@ -271,7 +271,7 @@ class TransactionTypeCategoryServiceE2ETest {
         // Given: All null inputs
         // When: Determine category
         final TransactionTypeCategoryService.CategoryResult categoryResult =
-                service.determineCategory(null, null, null, null, null, null, null, null, "CSV");
+                service.determineCategory(null, null, null, null, null, null, null, null, "CSV", null);
 
         // Then: Should return default category without throwing
         assertNotNull(categoryResult);
@@ -293,7 +293,7 @@ class TransactionTypeCategoryServiceE2ETest {
                         BigDecimal.valueOf(1_000_000_000_000L), // Very large amount
                         null,
                         null,
-                        "CSV");
+                        "CSV", null);
 
         // Then: Should handle gracefully
         assertNotNull(categoryResult);
@@ -317,7 +317,7 @@ class TransactionTypeCategoryServiceE2ETest {
                     BigDecimal.valueOf(-50),
                     null,
                     null,
-                    "CSV");
+                    "CSV", null);
         }
 
         final long endTime = System.currentTimeMillis();

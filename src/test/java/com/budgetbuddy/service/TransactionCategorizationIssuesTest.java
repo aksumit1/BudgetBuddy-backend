@@ -87,7 +87,7 @@ class TransactionCategorizationIssuesTest {
                         BigDecimal.valueOf(-447.54),
                         null,
                         null,
-                        "CSV");
+                        "CSV", null);
 
         final TransactionTypeCategoryService.TypeResult typeResult =
                 service.determineTransactionType(
@@ -125,7 +125,8 @@ class TransactionCategorizationIssuesTest {
                         BigDecimal.valueOf(4.41),
                         null,
                         null,
-                        "PDF");
+                        "PDF",
+                        null);
 
         // Then: Should be education (financial education publication), not subscriptions or credit
         assertNotNull(categoryResult);
@@ -149,7 +150,7 @@ class TransactionCategorizationIssuesTest {
                         BigDecimal.valueOf(14.27),
                         null,
                         null,
-                        "PDF");
+                        "PDF", null);
 
         // Then: Should be groceries, not credit
         assertNotNull(categoryResult);
@@ -170,7 +171,7 @@ class TransactionCategorizationIssuesTest {
                         BigDecimal.valueOf(117.17),
                         null,
                         null,
-                        "PDF");
+                        "PDF", null);
 
         // Then: Should be groceries, not credit
         assertNotNull(categoryResult);
@@ -192,7 +193,7 @@ class TransactionCategorizationIssuesTest {
                         BigDecimal.valueOf(-101),
                         null,
                         null,
-                        "PDF");
+                        "PDF", null);
 
         final TransactionTypeCategoryService.TypeResult typeResult =
                 service.determineTransactionType(
@@ -224,7 +225,7 @@ class TransactionCategorizationIssuesTest {
                         BigDecimal.valueOf(-51.03),
                         null,
                         null,
-                        "PDF");
+                        "PDF", null);
 
         // Then: Should be education, not other
         assertNotNull(categoryResult);
@@ -244,7 +245,7 @@ class TransactionCategorizationIssuesTest {
                         BigDecimal.valueOf(170),
                         null,
                         null,
-                        "PDF");
+                        "PDF", null);
 
         // Then: Should be education, not entertainment
         assertNotNull(categoryResult);
@@ -264,7 +265,7 @@ class TransactionCategorizationIssuesTest {
                         BigDecimal.valueOf(-400),
                         null,
                         null,
-                        "PDF");
+                        "PDF", null);
 
         // Then: Should be education, not other
         assertNotNull(categoryResult);
@@ -284,7 +285,7 @@ class TransactionCategorizationIssuesTest {
                         BigDecimal.valueOf(-100),
                         null,
                         null,
-                        "PDF");
+                        "PDF", null);
 
         // Then: Should be education, not charity
         assertNotNull(categoryResult);
@@ -304,7 +305,7 @@ class TransactionCategorizationIssuesTest {
                         BigDecimal.valueOf(-66.24),
                         null,
                         null,
-                        "PDF");
+                        "PDF", null);
 
         // Then: Should be education, not utilities
         assertNotNull(categoryResult);
@@ -326,7 +327,7 @@ class TransactionCategorizationIssuesTest {
                         BigDecimal.valueOf(-30),
                         null,
                         null,
-                        "PDF");
+                        "PDF", null);
 
         // Then: Should be travel, not utilities
         assertNotNull(categoryResult);
@@ -348,7 +349,7 @@ class TransactionCategorizationIssuesTest {
                         BigDecimal.valueOf(-67.7),
                         null,
                         null,
-                        "PDF");
+                        "PDF", null);
 
         // Then: Should be transportation, not subscriptions
         assertNotNull(categoryResult);
@@ -368,7 +369,7 @@ class TransactionCategorizationIssuesTest {
                         BigDecimal.valueOf(-17.68),
                         null,
                         null,
-                        "PDF");
+                        "PDF", null);
 
         // Then: Should be transportation, not subscriptions
         assertNotNull(categoryResult);
@@ -388,7 +389,7 @@ class TransactionCategorizationIssuesTest {
                         BigDecimal.valueOf(-21),
                         null,
                         null,
-                        "PDF");
+                        "PDF", null);
 
         // Then: Should be transportation, not utilities
         assertNotNull(categoryResult);
@@ -410,7 +411,7 @@ class TransactionCategorizationIssuesTest {
                         BigDecimal.valueOf(-50),
                         null,
                         null,
-                        "PDF");
+                        "PDF", null);
 
         final TransactionTypeCategoryService.TypeResult typeResult =
                 service.determineTransactionType(
@@ -442,7 +443,7 @@ class TransactionCategorizationIssuesTest {
                         BigDecimal.valueOf(-54.89),
                         null,
                         null,
-                        "PDF");
+                        "PDF", null);
 
         // Then: Should be dining, not utilities
         assertNotNull(categoryResult);
@@ -462,7 +463,7 @@ class TransactionCategorizationIssuesTest {
                         BigDecimal.valueOf(-5),
                         null,
                         null,
-                        "PDF");
+                        "PDF", null);
 
         // Then: Should be dining, not utilities
         assertNotNull(categoryResult);
@@ -482,7 +483,7 @@ class TransactionCategorizationIssuesTest {
                         BigDecimal.valueOf(-57.46),
                         null,
                         null,
-                        "PDF");
+                        "PDF", null);
 
         // Then: Should be dining, not utilities
         assertNotNull(categoryResult);
@@ -504,7 +505,7 @@ class TransactionCategorizationIssuesTest {
                         BigDecimal.valueOf(-22.06),
                         null,
                         null,
-                        "PDF");
+                        "PDF", null);
 
         // Then: Should be health, not utilities
         assertNotNull(categoryResult);
@@ -526,7 +527,7 @@ class TransactionCategorizationIssuesTest {
                         BigDecimal.valueOf(-113.92),
                         null,
                         null,
-                        "PDF");
+                        "PDF", null);
 
         // Then: Should be pet, not healthcare
         assertNotNull(categoryResult);
@@ -548,7 +549,7 @@ class TransactionCategorizationIssuesTest {
                         BigDecimal.valueOf(-6),
                         null,
                         null,
-                        "PDF");
+                        "PDF", null);
 
         // Then: Should be groceries, not other
         assertNotNull(categoryResult);
@@ -572,7 +573,7 @@ class TransactionCategorizationIssuesTest {
                         BigDecimal.valueOf(-129.26),
                         null,
                         null,
-                        "PDF");
+                        "PDF", null);
 
         final TransactionTypeCategoryService.TypeResult typeResult =
                 service.determineTransactionType(
@@ -610,7 +611,7 @@ class TransactionCategorizationIssuesTest {
                         BigDecimal.valueOf(-129.26),
                         null,
                         null,
-                        "PDF");
+                        "PDF", null);
 
         final TransactionTypeCategoryService.TypeResult typeResult =
                 service.determineTransactionType(
@@ -647,7 +648,7 @@ class TransactionCategorizationIssuesTest {
                         BigDecimal.valueOf(-158.03),
                         null,
                         null,
-                        "PDF");
+                        "PDF", null);
 
         final TransactionTypeCategoryService.TypeResult typeResult =
                 service.determineTransactionType(
@@ -685,7 +686,7 @@ class TransactionCategorizationIssuesTest {
                         BigDecimal.valueOf(-89.99),
                         null,
                         null,
-                        "PDF");
+                        "PDF", null);
 
         final TransactionTypeCategoryService.TypeResult typeResult =
                 service.determineTransactionType(
@@ -717,7 +718,7 @@ class TransactionCategorizationIssuesTest {
                         BigDecimal.valueOf(-79.99),
                         null,
                         null,
-                        "PDF");
+                        "PDF", null);
 
         final TransactionTypeCategoryService.TypeResult typeResult =
                 service.determineTransactionType(
@@ -753,7 +754,7 @@ class TransactionCategorizationIssuesTest {
                         BigDecimal.valueOf(-150.00),
                         null,
                         null,
-                        "PDF");
+                        "PDF", null);
 
         final TransactionTypeCategoryService.TypeResult typeResult =
                 service.determineTransactionType(
@@ -791,7 +792,7 @@ class TransactionCategorizationIssuesTest {
                         BigDecimal.valueOf(-200.00),
                         null,
                         null,
-                        "PDF");
+                        "PDF", null);
 
         // Then: Should be travel category
         assertNotNull(categoryResult);
@@ -814,7 +815,7 @@ class TransactionCategorizationIssuesTest {
                         BigDecimal.valueOf(-100.00),
                         null,
                         null,
-                        "PDF");
+                        "PDF", null);
 
         // Then: Should be travel category
         assertNotNull(categoryResult);
@@ -837,7 +838,7 @@ class TransactionCategorizationIssuesTest {
                         BigDecimal.valueOf(-78.00),
                         null,
                         null,
-                        "PDF");
+                        "PDF", null);
 
         // Then: Should be travel category
         assertNotNull(categoryResult);
@@ -865,7 +866,7 @@ class TransactionCategorizationIssuesTest {
                         BigDecimal.valueOf(-20_000),
                         null,
                         null,
-                        "CSV");
+                        "CSV", null);
 
         final TransactionTypeCategoryService.TypeResult typeResult =
                 service.determineTransactionType(
@@ -903,7 +904,7 @@ class TransactionCategorizationIssuesTest {
                         BigDecimal.valueOf(-500.00),
                         null,
                         null,
-                        "PDF");
+                        "PDF", null);
 
         // Then: Should be transfer category
         assertNotNull(categoryResult);
@@ -926,7 +927,7 @@ class TransactionCategorizationIssuesTest {
                         BigDecimal.valueOf(-1000.00),
                         null,
                         null,
-                        "PDF");
+                        "PDF", null);
 
         // Then: Should be transfer category
         assertNotNull(categoryResult);
@@ -953,7 +954,7 @@ class TransactionCategorizationIssuesTest {
                         BigDecimal.valueOf(-0.00), // Could be any amount
                         null,
                         null,
-                        "CSV");
+                        "CSV", null);
 
         // Then: Should be other category (not travel, despite potential keyword matches)
         assertNotNull(categoryResult);
@@ -976,7 +977,7 @@ class TransactionCategorizationIssuesTest {
                         BigDecimal.valueOf(-0.00),
                         null,
                         null,
-                        "PDF");
+                        "PDF", null);
 
         // Then: Should be other category (not travel)
         assertNotNull(categoryResult);
@@ -1003,7 +1004,7 @@ class TransactionCategorizationIssuesTest {
                         BigDecimal.valueOf(-0.00),
                         null,
                         null,
-                        "CSV");
+                        "CSV", null);
 
         // Then: Should be other category (not healthcare)
         assertNotNull(categoryResult);
@@ -1028,7 +1029,7 @@ class TransactionCategorizationIssuesTest {
                         BigDecimal.valueOf(-13.46),
                         null,
                         null,
-                        "CSV");
+                        "CSV", null);
 
         // Then: Should be other or dining category (not healthcare)
         assertNotNull(categoryResult);
@@ -1054,7 +1055,7 @@ class TransactionCategorizationIssuesTest {
                         BigDecimal.valueOf(1000),
                         null,
                         null,
-                        "CSV");
+                        "CSV", null);
 
         final TransactionTypeCategoryService.TypeResult typeResult =
                 service.determineTransactionType(
@@ -1094,7 +1095,7 @@ class TransactionCategorizationIssuesTest {
                         BigDecimal.valueOf(-10.00),
                         null,
                         null,
-                        "CSV");
+                        "CSV", null);
 
         // Then: Should be other category (not healthcare)
         assertNotNull(categoryResult);
@@ -1119,7 +1120,7 @@ class TransactionCategorizationIssuesTest {
                         BigDecimal.valueOf(-135),
                         null,
                         null,
-                        "CSV");
+                        "CSV", null);
 
         // Then: Should be entertainment or other category (not healthcare)
         assertNotNull(categoryResult);
@@ -1147,7 +1148,7 @@ class TransactionCategorizationIssuesTest {
                         BigDecimal.valueOf(-18.43),
                         null,
                         null,
-                        "CSV");
+                        "CSV", null);
 
         final TransactionTypeCategoryService.TypeResult typeResult =
                 service.determineTransactionType(
@@ -1190,7 +1191,7 @@ class TransactionCategorizationIssuesTest {
                         BigDecimal.valueOf(-4.41),
                         null,
                         null,
-                        "PDF");
+                        "PDF", null);
 
         final TransactionTypeCategoryService.TypeResult typeResult =
                 service.determineTransactionType(
@@ -1231,7 +1232,7 @@ class TransactionCategorizationIssuesTest {
                         BigDecimal.valueOf(4.41),
                         null,
                         null,
-                        "PDF");
+                        "PDF", null);
 
         final TransactionTypeCategoryService.TypeResult typeResult =
                 service.determineTransactionType(
@@ -1273,7 +1274,7 @@ class TransactionCategorizationIssuesTest {
                         BigDecimal.valueOf(-50.00),
                         null,
                         null,
-                        "PDF");
+                        "PDF", null);
 
         final TransactionTypeCategoryService.TypeResult typeResult1 =
                 service.determineTransactionType(
@@ -1296,7 +1297,7 @@ class TransactionCategorizationIssuesTest {
                         BigDecimal.valueOf(10.00),
                         null,
                         null,
-                        "PDF");
+                        "PDF", null);
 
         final TransactionTypeCategoryService.TypeResult typeResult2 =
                 service.determineTransactionType(
@@ -1347,7 +1348,7 @@ class TransactionCategorizationIssuesTest {
                         BigDecimal.valueOf(15),
                         null,
                         null,
-                        "PDF");
+                        "PDF", null);
 
         final TransactionTypeCategoryService.TypeResult typeResult =
                 service.determineTransactionType(
@@ -1387,7 +1388,7 @@ class TransactionCategorizationIssuesTest {
                         BigDecimal.valueOf(-30),
                         null,
                         null,
-                        "PDF");
+                        "PDF", null);
 
         final TransactionTypeCategoryService.TypeResult typeResult =
                 service.determineTransactionType(
@@ -1428,7 +1429,7 @@ class TransactionCategorizationIssuesTest {
                         BigDecimal.valueOf(-600),
                         null,
                         null,
-                        "PDF");
+                        "PDF", null);
 
         final TransactionTypeCategoryService.TypeResult typeResult =
                 service.determineTransactionType(
@@ -1465,7 +1466,7 @@ class TransactionCategorizationIssuesTest {
                         BigDecimal.valueOf(10_000),
                         null,
                         null,
-                        "PDF");
+                        "PDF", null);
 
         final TransactionTypeCategoryService.TypeResult typeResult =
                 service.determineTransactionType(
@@ -1502,7 +1503,7 @@ class TransactionCategorizationIssuesTest {
                         BigDecimal.valueOf(-25.27),
                         null,
                         null,
-                        "PDF");
+                        "PDF", null);
 
         // Then: Should be travel category (not education)
         assertNotNull(categoryResult);
@@ -1526,7 +1527,7 @@ class TransactionCategorizationIssuesTest {
                         BigDecimal.valueOf(80),
                         null,
                         null,
-                        "PDF");
+                        "PDF", null);
 
         // Then: Should be travel category (not education)
         assertNotNull(categoryResult);
@@ -1550,7 +1551,7 @@ class TransactionCategorizationIssuesTest {
                         BigDecimal.valueOf(-113),
                         null,
                         null,
-                        "PDF");
+                        "PDF", null);
 
         // Then: Should be pet category (not education)
         assertNotNull(categoryResult);
@@ -1574,7 +1575,7 @@ class TransactionCategorizationIssuesTest {
                         BigDecimal.valueOf(-523.73),
                         null,
                         null,
-                        "PDF");
+                        "PDF", null);
 
         // Then: Should be pet category (not education)
         assertNotNull(categoryResult);
@@ -1598,7 +1599,7 @@ class TransactionCategorizationIssuesTest {
                         BigDecimal.valueOf(-0.4),
                         null,
                         null,
-                        "PDF");
+                        "PDF", null);
 
         final TransactionTypeCategoryService.TypeResult typeResult =
                 service.determineTransactionType(
@@ -1637,7 +1638,7 @@ class TransactionCategorizationIssuesTest {
                         BigDecimal.valueOf(-138.04),
                         null,
                         null,
-                        "PDF");
+                        "PDF", null);
 
         final TransactionTypeCategoryService.TypeResult typeResult =
                 service.determineTransactionType(
@@ -1676,7 +1677,7 @@ class TransactionCategorizationIssuesTest {
                         BigDecimal.valueOf(-1.21),
                         null,
                         null,
-                        "PDF");
+                        "PDF", null);
 
         // Then: Should be dining category (not education)
         assertNotNull(categoryResult);
@@ -1700,7 +1701,7 @@ class TransactionCategorizationIssuesTest {
                         BigDecimal.valueOf(-7.95),
                         null,
                         null,
-                        "PDF");
+                        "PDF", null);
 
         // Then: Should be transportation category (not education)
         assertNotNull(categoryResult);
@@ -1724,7 +1725,7 @@ class TransactionCategorizationIssuesTest {
                         BigDecimal.valueOf(-100),
                         null,
                         null,
-                        "PDF");
+                        "PDF", null);
 
         final TransactionTypeCategoryService.TypeResult typeResult =
                 service.determineTransactionType(
@@ -1765,8 +1766,8 @@ class TransactionCategorizationIssuesTest {
                         BigDecimal.valueOf(-5.50),
                         null,
                         null,
-                        "PLAID" // High-confidence Plaid source
-                        );
+                        "PLAID", // High-confidence Plaid source
+                        null);
 
         // Then: Should trust Plaid category DINING (not override unless merchant confirms)
         assertNotNull(categoryResult);
@@ -1792,8 +1793,8 @@ class TransactionCategorizationIssuesTest {
                         BigDecimal.valueOf(-45.00),
                         null,
                         null,
-                        "PDF" // Non-Plaid source, less reliable
-                        );
+                        "PDF", // Non-Plaid source, less reliable
+                        null);
 
         // Then: Should override UTILITIES with DINING (merchant detection is clearly better)
         assertNotNull(categoryResult);
@@ -1819,8 +1820,8 @@ class TransactionCategorizationIssuesTest {
                         BigDecimal.valueOf(-85.50),
                         null,
                         null,
-                        "PLAID" // High-confidence Plaid source
-                        );
+                        "PLAID", // High-confidence Plaid source
+                        null);
 
         // Then: Should trust or confirm GROCERIES (not override with SHOPPING or other)
         assertNotNull(categoryResult);
@@ -1846,7 +1847,7 @@ class TransactionCategorizationIssuesTest {
                         BigDecimal.valueOf(15),
                         null,
                         null,
-                        "PDF");
+                        "PDF", null);
 
         // Then: Should override "other" with SHOPPING (merchant detection is better)
         assertNotNull(categoryResult);
@@ -1872,8 +1873,8 @@ class TransactionCategorizationIssuesTest {
                         BigDecimal.valueOf(-600),
                         null,
                         null,
-                        "PDF" // Non-Plaid source
-                        );
+                        "PDF", // Non-Plaid source
+                        null);
 
         // Then: Should override EDUCATION with "transfer" (merchant detection is clearly correct)
         assertNotNull(categoryResult);
