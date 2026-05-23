@@ -39,26 +39,29 @@ public class AWSTestConfiguration {
     private static final AwsBasicCredentials TEST_CREDENTIALS =
             AwsBasicCredentials.create("test", "test");
 
+    static {
+        // Resolve the LocalStack endpoint NOW, at class-load time, so the
+        // system-property overrides it sets are visible to every other
+        // @Configuration class that binds @Value("${app.aws.dynamodb.endpoint:}")
+        // before its own bean is instantiated. Without this eager call,
+        // DynamoDBConfig might be processed first and capture the
+        // application-test.yml default (localhost:4567) before AWSTestConfiguration's
+        // bean methods run.
+        LocalStackTestBootstrap.endpoint();
+    }
+
     /**
      * Get DynamoDB endpoint from environment variable, system property, or default Called at
      * runtime (not class load time) to ensure environment variables are available
      */
     private static String getDynamoDbEndpoint() {
-        // Check system property first (can be set via -Daws.dynamodb.endpoint=...)
-        String endpoint = System.getProperty("aws.dynamodb.endpoint");
-        if (endpoint != null && !endpoint.isEmpty()) {
-            return endpoint;
-        }
-        // Check environment variable
-        endpoint = System.getenv("DYNAMODB_ENDPOINT");
-        if (endpoint != null && !endpoint.isEmpty()) {
-            return endpoint;
-        }
-        // Default to LocalStack instance on port 4566 (can be overridden via environment variable
-        // or system property)
-        // For tests, use the same LocalStack instance as the main app to avoid needing separate
-        // instances
-        return "http://localhost:4566";
+        // Delegate to the JVM-singleton bootstrap. The bootstrap:
+        //   1. honours -Daws.dynamodb.endpoint / DYNAMODB_ENDPOINT overrides
+        //   2. otherwise starts a Testcontainers LocalStack the first time
+        //      any @SpringBootTest needs DynamoDB (Docker required)
+        //   3. falls back to http://localhost:4566 when Docker is absent,
+        //      preserving the legacy docker-compose-based workflow.
+        return LocalStackTestBootstrap.endpoint();
     }
 
     /**
