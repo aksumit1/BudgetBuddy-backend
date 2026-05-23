@@ -384,6 +384,63 @@ public class SubscriptionAdvancedService {
      * Optimizes subscription portfolio Provides comprehensive recommendations for subscription
      * management
      */
+    /**
+     * Per-category density summary — "you have 5 streaming subs totaling
+     * $87/mo, that's more than your entire dining budget". Surfaces actionable
+     * concentration before the user has to reason about it themselves.
+     * Sorted by monthly-spend descending.
+     */
+    public List<CategoryDensity> getCategoryDensity(final String userId) {
+        LOGGER.info("Computing subscription category density for user: {}", userId);
+        final List<Subscription> subs = subscriptionService.getActiveSubscriptions(userId);
+        final java.util.Map<String, java.util.List<Subscription>> byCategory = new java.util.HashMap<>();
+        for (final Subscription s : subs) {
+            final String key = s.getCategory() == null ? "uncategorised" : s.getCategory().toLowerCase(java.util.Locale.ROOT);
+            byCategory.computeIfAbsent(key, k -> new java.util.ArrayList<>()).add(s);
+        }
+        final List<CategoryDensity> out = new java.util.ArrayList<>(byCategory.size());
+        for (final var entry : byCategory.entrySet()) {
+            BigDecimal monthlyTotal = BigDecimal.ZERO;
+            for (final Subscription s : entry.getValue()) {
+                monthlyTotal = monthlyTotal.add(monthlyEquivalent(s));
+            }
+            out.add(new CategoryDensity(entry.getKey(), entry.getValue().size(), monthlyTotal));
+        }
+        out.sort((a, b) -> b.monthlySpend.compareTo(a.monthlySpend));
+        return out;
+    }
+
+    private BigDecimal monthlyEquivalent(final Subscription s) {
+        if (s.getAmount() == null || s.getFrequency() == null) return BigDecimal.ZERO;
+        final BigDecimal abs = s.getAmount().abs();
+        switch (s.getFrequency()) {
+            case DAILY: return abs.multiply(new BigDecimal("30"));
+            case WEEKLY: return abs.multiply(new BigDecimal("4.333"));
+            case BI_WEEKLY: return abs.multiply(new BigDecimal("2.167"));
+            case MONTHLY: return abs;
+            case QUARTERLY: return abs.divide(new BigDecimal("3"), 2, RoundingMode.HALF_UP);
+            case SEMI_ANNUAL: return abs.divide(new BigDecimal("6"), 2, RoundingMode.HALF_UP);
+            case ANNUAL: return abs.divide(new BigDecimal("12"), 2, RoundingMode.HALF_UP);
+            default: return abs;
+        }
+    }
+
+    public static final class CategoryDensity {
+        public final String category;
+        public final int count;
+        public final BigDecimal monthlySpend;
+
+        public CategoryDensity(final String category, final int count, final BigDecimal monthlySpend) {
+            this.category = category;
+            this.count = count;
+            this.monthlySpend = monthlySpend;
+        }
+
+        public String getCategory() { return category; }
+        public int getCount() { return count; }
+        public BigDecimal getMonthlySpend() { return monthlySpend; }
+    }
+
     public SubscriptionOptimization optimizePortfolio(final String userId) {
         LOGGER.info("Optimizing subscription portfolio for user: {}", userId);
 

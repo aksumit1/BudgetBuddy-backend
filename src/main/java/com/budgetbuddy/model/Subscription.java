@@ -47,6 +47,54 @@ public final class Subscription implements java.io.Serializable {
      */
     private java.util.List<PriceHistoryEntry> priceHistory = new java.util.ArrayList<>();
 
+    /**
+     * Coarse-grained lifecycle state used by iOS for badge rendering.
+     * Derived from billing history, NOT the user's manual action. Distinct
+     * from {@link #active} (which is a hard cancelled vs not-cancelled
+     * boolean) — lifecycle conveys "what's the health" without the user
+     * having to read date math themselves.
+     */
+    private LifecycleState lifecycleState = LifecycleState.ACTIVE;
+
+    public enum LifecycleState {
+        /** Within expected billing cadence; no concern. */
+        ACTIVE,
+        /** No payment since one expected cycle ago. UI: yellow badge. */
+        UNUSED_1_CYCLE,
+        /** No payment since two expected cycles ago. UI: orange badge. */
+        UNUSED_2_CYCLES,
+        /** Stale enough that we treat it as cancelled. {@link #active} is also flipped to false. */
+        PRESUMED_CANCELLED,
+        /** Explicit user action — won't auto-reactivate on a new payment. */
+        USER_CANCELLED
+    }
+
+    public LifecycleState getLifecycleState() {
+        return lifecycleState == null ? LifecycleState.ACTIVE : lifecycleState;
+    }
+
+    public void setLifecycleState(final LifecycleState v) {
+        this.lifecycleState = v == null ? LifecycleState.ACTIVE : v;
+    }
+
+    /**
+     * For variable-priced subscriptions (cell bills, electric, water),
+     * the expected next-bill amount. Computed as the median of the
+     * recent 3-6 charges. Null for fixed-price subscriptions where
+     * {@link #amount} is exact. iOS uses this to render "expected:
+     * $187 / range: $172–$230" instead of pretending the last-seen
+     * price will repeat.
+     */
+    private BigDecimal predictedNextAmount;
+
+    public BigDecimal getPredictedNextAmount() {
+        return predictedNextAmount;
+    }
+
+    public void setPredictedNextAmount(final BigDecimal v) {
+        this.predictedNextAmount = v;
+    }
+
     /** One historical price observation. */
     public static final class PriceHistoryEntry implements java.io.Serializable {
         private static final long serialVersionUID = 1L;

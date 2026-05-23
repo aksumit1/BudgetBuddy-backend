@@ -1,0 +1,48 @@
+# Merchant alias map used by SubscriptionService.canonicalMerchantKey
+# to collapse cross-issuer spelling variants into one logical merchant.
+#
+# Match rule:
+#   - the keys here are lowercase substrings; a transaction's merchant name
+#     (lowercased) is matched via startsWith(key); first match wins
+#   - the value is the canonical merchant identifier used as the
+#     consolidation grouping key
+#
+# Add entries here when statement-level spelling drift causes the same
+# real merchant to appear as multiple subscriptions in user reports.
+# Order matters within a single canonical group: list the longest /
+# most-specific prefix FIRST so it wins over a shorter one (e.g. put
+# "walmart+ member" before "wmt").
+
+aliases:
+  - canonical: "walmart+"
+    prefixes:
+      - "walmart+ member"
+      - "wmt plus"
+      - "wmt"
+
+  - canonical: "barrons"
+    prefixes:
+      - "d j*barrons"
+      - "dj*barrons"
+
+  - canonical: "hulu"
+    prefixes:
+      - "hlu*huluplus"
+      - "huluplus"
+
+  - canonical: "uber one"
+    prefixes:
+      - "uber one help.uber.com"
+
+  - canonical: "openai chatgpt"
+    prefixes:
+      - "openai *chatgpt"
+
+  - canonical: "youtube music"
+    prefixes:
+      - "google *youtube music"
+
+  - canonical: "comcast xfinity"
+    prefixes:
+      - "comcast / xfinity"
+      - "comcast-xfinity cable svcs"

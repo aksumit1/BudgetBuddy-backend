@@ -43,12 +43,60 @@ public class SubscriptionInsightsService {
 
     private final TransactionRepository transactionRepository;
     private final SubscriptionService subscriptionService;
+    /**
+     * Percent-change threshold above which a price drift counts as a real
+     * "price change" worth alerting on. Was hardcoded 5%. Externalized so
+     * ops can tune (e.g. lower it for users who want every penny tracked,
+     * raise it for users buried in noisy alerts). Per-user override would
+     * be the next step.
+     */
+    private final java.math.BigDecimal priceChangeAlertThresholdPct;
 
     public SubscriptionInsightsService(
             final TransactionRepository transactionRepository,
-            final SubscriptionService subscriptionService) {
+            final SubscriptionService subscriptionService,
+            @org.springframework.beans.factory.annotation.Value(
+                    "${app.subscription.price-change-alert-threshold-pct:5.0}")
+                    final double priceChangeAlertThresholdPct) {
         this.transactionRepository = transactionRepository;
         this.subscriptionService = subscriptionService;
+        this.priceChangeAlertThresholdPct =
+                java.math.BigDecimal.valueOf(priceChangeAlertThresholdPct);
+    }
+
+    /**
+     * Short-lived per-user transaction snapshot. The iOS client typically
+     * calls /insights/unused, /insights/price-changes, /insights/cancel-
+     * recommendations back-to-back within a single screen render. Each one
+     * used to do its own full findByUserId — now they all share this cache
+     * window. TTL is deliberately small (30s) so corrections and new imports
+     * surface quickly; bigger TTL would mean the user has to wait for a
+     * refresh to see what they just edited.
+     */
+    private static final long TX_CACHE_TTL_MS = 30_000;
+    private final java.util.concurrent.ConcurrentMap<String, TxCacheEntry> txCache =
+            new java.util.concurrent.ConcurrentHashMap<>();
+
+    private static final class TxCacheEntry {
+        final long expiresAt;
+        final List<TransactionTable> transactions;
+
+        TxCacheEntry(final long expiresAt, final List<TransactionTable> transactions) {
+            this.expiresAt = expiresAt;
+            this.transactions = transactions;
+        }
+    }
+
+    private List<TransactionTable> getCachedUserTransactions(final String userId) {
+        final TxCacheEntry hit = txCache.get(userId);
+        final long now = System.currentTimeMillis();
+        if (hit != null && hit.expiresAt > now) {
+            return hit.transactions;
+        }
+        final List<TransactionTable> fresh =
+                transactionRepository.findByUserId(userId, 0, 10_000);
+        txCache.put(userId, new TxCacheEntry(now + TX_CACHE_TTL_MS, fresh));
+        return fresh;
     }
 
     /**
@@ -60,8 +108,7 @@ public class SubscriptionInsightsService {
         LOGGER.info("Detecting unused subscriptions for user: {}", userId);
 
         final List<Subscription> subscriptions = subscriptionService.getActiveSubscriptions(userId);
-        final List<TransactionTable> transactions =
-                transactionRepository.findByUserId(userId, 0, 10_000);
+        final List<TransactionTable> transactions = getCachedUserTransactions(userId);
 
         final List<UnusedSubscriptionInsight> insights = new ArrayList<>();
 
@@ -88,10 +135,20 @@ public class SubscriptionInsightsService {
                         calculateExpectedNextPayment(lastPaymentDate, subscription.getFrequency());
                 final LocalDate now = LocalDate.now();
 
-                // If expected next payment was more than 2 cycles ago, likely unused
-                if (now.isAfter(
-                        expectedNextPayment.plusDays(
-                                getDaysForFrequency(subscription.getFrequency()) * 2))) {
+                // "Unused" threshold: 1.5× cadence with a sane CEILING per
+                // frequency. The prior `cadence * 2` rule meant an ANNUAL
+                // sub had to be ~2 years late before flagging — the user
+                // would have moved on by then. Per-frequency caps:
+                //   DAILY      -> 14 days late
+                //   WEEKLY     -> 21 days late
+                //   BI_WEEKLY  -> 35 days late
+                //   MONTHLY    -> 60 days late
+                //   QUARTERLY  -> 150 days late
+                //   SEMI_ANNUAL-> 250 days late
+                //   ANNUAL     -> 90 days late (cap; long subs flag fast)
+                final long unusedThresholdDays =
+                        unusedThresholdDays(subscription.getFrequency());
+                if (now.isAfter(expectedNextPayment.plusDays(unusedThresholdDays))) {
                     insights.add(
                             new UnusedSubscriptionInsight(
                                     subscription,
@@ -111,6 +168,56 @@ public class SubscriptionInsightsService {
         if (LOGGER.isInfoEnabled()) {
             LOGGER.info("Detected {} unused subscriptions for user: {}", insights.size(), userId);
         }
+
+        // LIFECYCLE STATE + AUTO-DEACTIVATION. Insights are derived data;
+        // we ALSO update the subscription's lifecycleState so iOS can
+        // render badges (UNUSED_1_CYCLE / UNUSED_2_CYCLES / PRESUMED_
+        // CANCELLED) without re-doing this date math client-side.
+        // PRESUMED_CANCELLED also flips active=false so it falls out of
+        // the user's "Active Subscriptions" list automatically; the
+        // insight remains so they can see WHY.
+        for (final UnusedSubscriptionInsight insight : insights) {
+            final Subscription s = insight.getSubscription();
+            if (s == null || s.getLastPaymentDate() == null) continue;
+            if (s.getLifecycleState() == Subscription.LifecycleState.USER_CANCELLED) {
+                // Explicit user action wins over auto-detection.
+                continue;
+            }
+            final long daysSince = ChronoUnit.DAYS.between(s.getLastPaymentDate(), LocalDate.now());
+            final long baseThreshold = unusedThresholdDays(s.getFrequency());
+            final Subscription.LifecycleState newState;
+            if (daysSince >= baseThreshold * 2) {
+                newState = Subscription.LifecycleState.PRESUMED_CANCELLED;
+            } else if (daysSince >= (baseThreshold * 3) / 2) {
+                newState = Subscription.LifecycleState.UNUSED_2_CYCLES;
+            } else if (daysSince >= baseThreshold) {
+                newState = Subscription.LifecycleState.UNUSED_1_CYCLE;
+            } else {
+                continue;
+            }
+            if (newState == s.getLifecycleState()
+                    && (newState != Subscription.LifecycleState.PRESUMED_CANCELLED
+                            || Boolean.FALSE.equals(s.getActive()))) {
+                continue; // No-op write avoidance
+            }
+            s.setLifecycleState(newState);
+            if (newState == Subscription.LifecycleState.PRESUMED_CANCELLED) {
+                s.setActive(false);
+            }
+            try {
+                subscriptionService.saveSubscriptions(userId, List.of(s));
+                if (LOGGER.isInfoEnabled()) {
+                    LOGGER.info(
+                            "Lifecycle state {} for subscription {} ({}) — {} days since last payment (base threshold {})",
+                            newState, s.getMerchantName(), s.getSubscriptionId(),
+                            daysSince, baseThreshold);
+                }
+            } catch (RuntimeException ex) {
+                LOGGER.warn("Lifecycle persist failed for {}: {}",
+                        s.getSubscriptionId(), ex.getMessage());
+            }
+        }
+
         return insights;
     }
 
@@ -122,65 +229,77 @@ public class SubscriptionInsightsService {
         LOGGER.info("Detecting price changes for user: {}", userId);
 
         final List<Subscription> subscriptions = subscriptionService.getActiveSubscriptions(userId);
-        final List<TransactionTable> transactions =
-                transactionRepository.findByUserId(userId, 0, 10_000);
-
         final List<PriceChangeAlert> alerts = new ArrayList<>();
 
+        // FAST PATH — read price changes off the structured priceHistory
+        // field the consolidation already populated. Avoids re-fetching
+        // and re-computing the avg-of-3 from raw transactions. If history
+        // is empty (older subscription written before consolidation
+        // existed, or no price change observed), fall through to the
+        // legacy transaction-scan path below per subscription.
+        final List<Subscription> needsLegacyScan = new ArrayList<>();
         for (final Subscription subscription : subscriptions) {
-            // Find recent transactions (last 3 payments)
-            final List<TransactionTable> recentTransactions =
-                    findSubscriptionTransactions(transactions, subscription).stream()
-                            .sorted(
-                                    (a, b) -> {
-                                        final LocalDate dateA = parseDate(a.getTransactionDate());
-                                        final LocalDate dateB = parseDate(b.getTransactionDate());
-                                        if (dateA == null || dateB == null) {
-                                            return 0;
-                                        }
-                                        return dateB.compareTo(dateA); // Most recent first
-                                    })
-                            .limit(3)
-                            .collect(Collectors.toList());
-
-            if (recentTransactions.size() < 2) {
-                continue; // Need at least 2 transactions to detect price change
+            final List<Subscription.PriceHistoryEntry> hist = subscription.getPriceHistory();
+            if (hist == null || hist.isEmpty()) {
+                needsLegacyScan.add(subscription);
+                continue;
             }
+            // The latest entry in history is the prior price; subscription.amount is current.
+            final Subscription.PriceHistoryEntry last = hist.get(hist.size() - 1);
+            final BigDecimal prior = last.getAmount() == null ? null : last.getAmount().abs();
+            final BigDecimal current = subscription.getAmount() == null
+                    ? null : subscription.getAmount().abs();
+            if (prior == null || current == null || prior.signum() == 0) continue;
+            final BigDecimal pct = current.subtract(prior)
+                    .divide(prior, 4, RoundingMode.HALF_UP)
+                    .multiply(new BigDecimal("100"));
+            if (pct.abs().compareTo(priceChangeAlertThresholdPct) > 0) {
+                alerts.add(new PriceChangeAlert(
+                        subscription, current, prior, pct,
+                        last.getObservedAt() == null ? null : last.getObservedAt().toString()));
+            }
+        }
 
-            // Calculate average recent amount
-            final BigDecimal averageRecentAmount =
-                    recentTransactions.stream()
-                            .map(TransactionTable::getAmount)
-                            .filter(amount -> amount != null)
-                            .map(amount -> amount.abs()) // Make positive for comparison
-                            .reduce(BigDecimal.ZERO, BigDecimal::add)
-                            .divide(
-                                    new BigDecimal(recentTransactions.size()),
-                                    2,
-                                    RoundingMode.HALF_UP);
-
-            // Compare with subscription amount
-            final BigDecimal subscriptionAmount = subscription.getAmount().abs();
-            final BigDecimal difference = averageRecentAmount.subtract(subscriptionAmount);
-            final BigDecimal percentChange =
-                    difference
-                            .divide(subscriptionAmount, 4, RoundingMode.HALF_UP)
-                            .multiply(new BigDecimal("100"));
-
-            // Alert if price changed by more than 5%
-            if (percentChange.abs().compareTo(new BigDecimal("5")) > 0) {
-                alerts.add(
-                        new PriceChangeAlert(
-                                subscription,
-                                averageRecentAmount,
-                                subscriptionAmount,
-                                percentChange,
-                                recentTransactions.get(0).getTransactionDate()));
+        // LEGACY PATH for subscriptions with no priceHistory. Only fetch
+        // transactions if we actually have any subs that need it.
+        if (!needsLegacyScan.isEmpty()) {
+            final List<TransactionTable> transactions = getCachedUserTransactions(userId);
+            for (final Subscription subscription : needsLegacyScan) {
+                final List<TransactionTable> recentTransactions =
+                        findSubscriptionTransactions(transactions, subscription).stream()
+                                .sorted((a, b) -> {
+                                    final LocalDate dateA = parseDate(a.getTransactionDate());
+                                    final LocalDate dateB = parseDate(b.getTransactionDate());
+                                    if (dateA == null || dateB == null) return 0;
+                                    return dateB.compareTo(dateA);
+                                })
+                                .limit(3)
+                                .collect(Collectors.toList());
+                if (recentTransactions.size() < 2) continue;
+                final BigDecimal averageRecentAmount = recentTransactions.stream()
+                        .map(TransactionTable::getAmount)
+                        .filter(amount -> amount != null)
+                        .map(amount -> amount.abs())
+                        .reduce(BigDecimal.ZERO, BigDecimal::add)
+                        .divide(new BigDecimal(recentTransactions.size()), 2, RoundingMode.HALF_UP);
+                final BigDecimal subscriptionAmount = subscription.getAmount().abs();
+                if (subscriptionAmount.signum() == 0) continue;
+                final BigDecimal pct = averageRecentAmount.subtract(subscriptionAmount)
+                        .divide(subscriptionAmount, 4, RoundingMode.HALF_UP)
+                        .multiply(new BigDecimal("100"));
+                if (pct.abs().compareTo(priceChangeAlertThresholdPct) > 0) {
+                    alerts.add(new PriceChangeAlert(
+                            subscription, averageRecentAmount, subscriptionAmount, pct,
+                            recentTransactions.get(0).getTransactionDate()));
+                }
             }
         }
 
         if (LOGGER.isInfoEnabled()) {
-            LOGGER.info("Detected {} price changes for user: {}", alerts.size(), userId);
+            LOGGER.info("Detected {} price changes for user: {} (fast-path={}, legacy-scan={})",
+                    alerts.size(), userId,
+                    subscriptions.size() - needsLegacyScan.size(),
+                    needsLegacyScan.size());
         }
         return alerts;
     }
@@ -387,6 +506,24 @@ public class SubscriptionInsightsService {
                 return lastPayment.plusYears(1);
             default:
                 return lastPayment.plusMonths(1);
+        }
+    }
+
+    /**
+     * Per-cadence "we'd expect another charge by now" cutoff. Caps avoid
+     * the previous "annual sub has to be 2 years late" failure mode.
+     */
+    private long unusedThresholdDays(final Subscription.SubscriptionFrequency frequency) {
+        if (frequency == null) return 60;
+        switch (frequency) {
+            case DAILY:        return 14;
+            case WEEKLY:       return 21;
+            case BI_WEEKLY:    return 35;
+            case MONTHLY:      return 60;
+            case QUARTERLY:    return 150;
+            case SEMI_ANNUAL:  return 250;
+            case ANNUAL:       return 90;
+            default:           return 60;
         }
     }
 

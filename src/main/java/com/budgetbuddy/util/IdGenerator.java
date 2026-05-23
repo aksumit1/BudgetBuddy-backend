@@ -154,19 +154,18 @@ public final class IdGenerator {
         if (merchantName == null || merchantName.isBlank()) {
             throw new IllegalArgumentException("Merchant name is required");
         }
-        if (amount == null) {
-            throw new IllegalArgumentException("Amount is required");
-        }
-
-        // Create composite key: userId:merchantName:amount
-        // Round amount to 2 decimal places for consistency
-        final String amountStr = amount.setScale(2, java.math.RoundingMode.HALF_UP).toString();
+        // amount is INTENTIONALLY no longer part of the hash. Including it
+        // meant a $14.27 -> $14.28 price change produced a fresh subscription
+        // ID, orphaning the prior $14.27 row in DynamoDB. The consolidation
+        // pass in SubscriptionService.consolidateMultiPriceSubscriptions
+        // already merges price-change history into one logical subscription
+        // — the stable ID lets the merged row UPDATE the existing record
+        // instead of inserting a sibling. amount is kept in the signature
+        // (rather than removed) to preserve callers; it's just ignored.
         final String compositeKey =
                 userId.trim().toLowerCase(Locale.ROOT)
                         + ":"
-                        + merchantName.trim().toLowerCase(Locale.ROOT)
-                        + ":"
-                        + amountStr;
+                        + merchantName.trim().toLowerCase(Locale.ROOT);
         return generateDeterministicUUID(SUBSCRIPTION_NAMESPACE, compositeKey);
     }
 

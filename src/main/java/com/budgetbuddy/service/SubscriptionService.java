@@ -199,12 +199,52 @@ public class SubscriptionService {
      * Detects subscriptions using existing merchant database, fuzzy matching, and pattern detection
      * Rule: 3+ transactions with same amount pattern and recurring frequency = subscription
      */
+    /**
+     * Per-user cooldown for /detect. The endpoint runs a full transaction
+     * scan, frequency detection, and consolidation — it's NOT cheap. A
+     * chatty client hitting it 5x per second would pin CPU. The cooldown
+     * returns the cached result instead. 60s is short enough that new
+     * imports become visible quickly; long enough that screen-refresh
+     * loops don't cause harm.
+     */
+    private static final long DETECT_COOLDOWN_MS = 60_000;
+    private final java.util.concurrent.ConcurrentHashMap<String, DetectCacheEntry>
+            detectionCache = new java.util.concurrent.ConcurrentHashMap<>();
+
+    private static final class DetectCacheEntry {
+        final long expiresAt;
+        final List<Subscription> result;
+        DetectCacheEntry(final long expiresAt, final List<Subscription> result) {
+            this.expiresAt = expiresAt;
+            this.result = result;
+        }
+    }
+
     public List<Subscription> detectSubscriptions(final String userId) {
+        final DetectCacheEntry hit = detectionCache.get(userId);
+        final long now = System.currentTimeMillis();
+        if (hit != null && hit.expiresAt > now) {
+            LOGGER.debug("Subscription detection cooldown hit for user {} (cached {}ms ago)",
+                    userId, DETECT_COOLDOWN_MS - (hit.expiresAt - now));
+            return hit.result;
+        }
         LOGGER.info("Detecting subscriptions for user: {}", userId);
 
-        // Get all expense transactions
+        // Get all expense transactions. The 10_000 cap is a safety brake
+        // — for any user who's hit it, the detection set is incomplete and
+        // we WARN so the accuracy regression is visible. The right fix is
+        // pagination + streaming, tracked separately. For now: surface the
+        // truncation so on-call doesn't debug "why didn't my Hulu show up"
+        // for two days before noticing the cap.
+        final List<TransactionTable> rawTransactions =
+                transactionRepository.findByUserId(userId, 0, 10_000);
+        if (rawTransactions.size() >= 10_000) {
+            LOGGER.warn(
+                    "Subscription detection truncated: user={} has 10_000+ transactions and we read only the first page — detection accuracy will be incomplete. Implement pagination.",
+                    userId);
+        }
         final List<TransactionTable> allExpenses =
-                transactionRepository.findByUserId(userId, 0, 10_000).stream()
+                rawTransactions.stream()
                         .filter(
                                 tx ->
                                         tx.getAmount() != null
@@ -251,10 +291,12 @@ public class SubscriptionService {
                                         return true;
                                     }
 
-                                    // 3. Known subscription merchant (from merchant database)
-                                    if (isKnownSubscriptionMerchant(merchantName, description)) {
-                                        return true;
-                                    }
+                                    // (the old "Known subscription merchant" check was deleted
+                                    // — its implementation was a hardcoded `return false` stub
+                                    // marked deprecated. The real "known subscription" signal
+                                    // now comes from L3_MERCHANT_DB during cascade
+                                    // categorisation, which writes `categoryPrimary=subscriptions`
+                                    // for these merchants, caught by checks 1+2 above.)
 
                                     // 4. Category detailed contains subscription keywords
                                     if (categoryDetailed != null) {
@@ -603,6 +645,9 @@ public class SubscriptionService {
                     userId,
                     detectedSubscriptions.size());
         }
+        // Cache for the per-user cooldown window.
+        detectionCache.put(userId,
+                new DetectCacheEntry(System.currentTimeMillis() + DETECT_COOLDOWN_MS, consolidated));
         return consolidated;
     }
 
@@ -667,25 +712,40 @@ public class SubscriptionService {
     }
 
     /**
-     * Hardcoded merchant alias map. Different statement issuers spell the
-     * same merchant in incompatible ways ("WMT PLUS SEP 2025" vs
-     * "Walmart+ Member 05/26"); we collapse known variants to one canonical
-     * key so the per-merchant rules see them as one entity. Add new entries
-     * as merchant-name drift shows up in user reports.
+     * Merchant alias map loaded from {@code merchant-aliases.yaml} on the
+     * classpath. Externalized so ops can extend / fix without code change
+     * or re-deploy. {@link LinkedHashMap} preserves insertion order so
+     * the YAML can place longest-prefix entries first to win
+     * startsWith() against shorter overlaps.
      */
-    private static final Map<String, String> MERCHANT_ALIASES = Map.ofEntries(
-            Map.entry("wmt", "walmart+"),
-            Map.entry("wmt plus", "walmart+"),
-            Map.entry("walmart+ member", "walmart+"),
-            Map.entry("d j*barrons", "barrons"),
-            Map.entry("dj*barrons", "barrons"),
-            Map.entry("hlu*huluplus", "hulu"),
-            Map.entry("huluplus", "hulu"),
-            Map.entry("uber one help.uber.com", "uber one"),
-            Map.entry("openai *chatgpt", "openai chatgpt"),
-            Map.entry("google *youtube music", "youtube music"),
-            Map.entry("comcast / xfinity", "comcast xfinity"),
-            Map.entry("comcast-xfinity cable svcs", "comcast xfinity"));
+    private static final Map<String, String> MERCHANT_ALIASES = loadMerchantAliases();
+
+    @SuppressWarnings("unchecked")
+    private static Map<String, String> loadMerchantAliases() {
+        final java.util.LinkedHashMap<String, String> out = new java.util.LinkedHashMap<>();
+        try (java.io.InputStream in =
+                SubscriptionService.class.getResourceAsStream("/merchant-aliases.yaml")) {
+            if (in == null) return out;
+            final Object root = new org.yaml.snakeyaml.Yaml().load(in);
+            if (!(root instanceof Map)) return out;
+            final Object aliases = ((Map<String, Object>) root).get("aliases");
+            if (!(aliases instanceof java.util.List)) return out;
+            for (final Object groupObj : (java.util.List<Object>) aliases) {
+                if (!(groupObj instanceof Map)) continue;
+                final Map<String, Object> group = (Map<String, Object>) groupObj;
+                final Object canonical = group.get("canonical");
+                final Object prefixes = group.get("prefixes");
+                if (!(canonical instanceof String) || !(prefixes instanceof java.util.List)) continue;
+                for (final Object pre : (java.util.List<Object>) prefixes) {
+                    if (pre == null) continue;
+                    out.put(pre.toString().toLowerCase(Locale.ROOT), canonical.toString());
+                }
+            }
+        } catch (Exception ex) {
+            LOGGER.warn("Failed to load merchant-aliases.yaml: {}", ex.getMessage());
+        }
+        return out;
+    }
 
     private String canonicalMerchantKey(final String rawName) {
         if (rawName == null) {
@@ -823,6 +883,28 @@ public class SubscriptionService {
                             latest.getMerchantName(),
                             latest.getFrequency(),
                             historyNote);
+                }
+
+                // PREDICTED NEXT AMOUNT for variable subs. Median of all
+                // observed amounts (history + current) is robust against
+                // outliers — a single high overage month won't shift the
+                // prediction. iOS shows this as "expected: $X".
+                final java.util.List<BigDecimal> allAmounts = new java.util.ArrayList<>();
+                for (final Subscription.PriceHistoryEntry h : history) {
+                    if (h.getAmount() != null) allAmounts.add(h.getAmount().abs());
+                }
+                if (latest.getAmount() != null) allAmounts.add(latest.getAmount().abs());
+                if (allAmounts.size() >= 2) {
+                    java.util.Collections.sort(allAmounts);
+                    final BigDecimal median;
+                    final int mid = allAmounts.size() / 2;
+                    if (allAmounts.size() % 2 == 1) {
+                        median = allAmounts.get(mid);
+                    } else {
+                        median = allAmounts.get(mid - 1).add(allAmounts.get(mid))
+                                .divide(BigDecimal.valueOf(2), 2, java.math.RoundingMode.HALF_UP);
+                    }
+                    latest.setPredictedNextAmount(median);
                 }
             }
             result.add(latest);
@@ -1337,10 +1419,48 @@ public class SubscriptionService {
                 .collect(Collectors.toList());
     }
 
+    /**
+     * Telemetry: when a user deletes a subscription that the detector
+     * created, that's a vote of "false positive". Count both total
+     * deletes and per-merchant deletes so detection-accuracy regressions
+     * are visible. Read via {@link #getDetectionTelemetry()}.
+     */
+    private final java.util.concurrent.atomic.AtomicLong totalDeletes =
+            new java.util.concurrent.atomic.AtomicLong();
+    private final java.util.concurrent.ConcurrentHashMap<String, java.util.concurrent.atomic.AtomicLong>
+            deletesByMerchant = new java.util.concurrent.ConcurrentHashMap<>();
+
+    public java.util.Map<String, Long> getDetectionTelemetry() {
+        final java.util.Map<String, Long> m = new java.util.LinkedHashMap<>();
+        m.put("subscriptions.deletes.total", totalDeletes.get());
+        deletesByMerchant.entrySet().stream()
+                .sorted((a, b) -> Long.compare(b.getValue().get(), a.getValue().get()))
+                .limit(10)
+                .forEach(e -> m.put("subscriptions.deletes.byMerchant[" + e.getKey() + "]",
+                        e.getValue().get()));
+        return m;
+    }
+
     /** Deletes a subscription */
     public void deleteSubscription(final String subscriptionId) {
+        // Record telemetry BEFORE delete so we can capture the merchant name
+        // even on retry / re-delete paths.
+        try {
+            final SubscriptionTable t = subscriptionRepository.findById(subscriptionId).orElse(null);
+            if (t != null && t.getMerchantName() != null) {
+                deletesByMerchant
+                        .computeIfAbsent(
+                                t.getMerchantName().toLowerCase(Locale.ROOT),
+                                k -> new java.util.concurrent.atomic.AtomicLong())
+                        .incrementAndGet();
+            }
+        } catch (Exception ignore) {
+            // Telemetry is best-effort; never fail a delete because of it.
+        }
+        totalDeletes.incrementAndGet();
         subscriptionRepository.delete(subscriptionId);
-        LOGGER.info("Deleted subscription: {}", subscriptionId);
+        LOGGER.info("Deleted subscription: {} (total-deletes={})",
+                subscriptionId, totalDeletes.get());
     }
 
     /**
@@ -1473,21 +1593,27 @@ public class SubscriptionService {
             return null;
         }
 
-        // Calculate average days between transactions
-        long totalDays = 0;
-        int intervals = 0;
+        // MEDIAN gap between transactions, not mean. One missed billing
+        // cycle (a 60-day gap in an otherwise 30-day series) would skew
+        // the mean upward by 6+ days and kick a real MONTHLY into the
+        // QUARTERLY-or-no-match band. The median is unaffected by single
+        // outliers, which is exactly the right behavior for "is this a
+        // regular cadence?".
+        final java.util.List<Long> gaps = new java.util.ArrayList<>(dates.size());
         for (int i = 1; i < dates.size(); i++) {
-            final long days =
-                    java.time.temporal.ChronoUnit.DAYS.between(dates.get(i - 1), dates.get(i));
-            totalDays += days;
-            intervals++;
+            gaps.add(java.time.temporal.ChronoUnit.DAYS.between(dates.get(i - 1), dates.get(i)));
         }
-
-        if (intervals == 0) {
+        if (gaps.isEmpty()) {
             return null;
         }
-
-        final double averageDays = (double) totalDays / intervals;
+        java.util.Collections.sort(gaps);
+        final double averageDays;
+        final int mid = gaps.size() / 2;
+        if (gaps.size() % 2 == 1) {
+            averageDays = gaps.get(mid);
+        } else {
+            averageDays = (gaps.get(mid - 1) + gaps.get(mid)) / 2.0;
+        }
 
         // ENHANCED: Determine frequency based on average days with expanded patterns
         // Daily subscriptions (1-2 days)
@@ -1593,15 +1719,11 @@ public class SubscriptionService {
         return grouped;
     }
 
-    /**
-     * @deprecated Use merchant database instead via isSubscriptionTransaction Checks if merchant is
-     *     a known subscription service using merchant database
-     */
-    @Deprecated
-    private boolean isKnownSubscriptionMerchant(
-            final String merchantName, final String description) {
-        return false;
-    }
+    // isKnownSubscriptionMerchant removed — was a @Deprecated stub
+    // returning false. All callers are now gone. Known-subscription
+    // detection lives in the cascade's L3_MERCHANT_DB, which writes the
+    // `subscriptions` categoryPrimary; the candidate-filter checks for
+    // that string directly.
 
     /** Infers subscription type from transaction category and merchant */
     // ---- inferSubscriptionType: keyword tables, one per detector ----
@@ -1853,10 +1975,10 @@ public class SubscriptionService {
                                 + (description != null ? description : ""))
                         .toLowerCase(Locale.ROOT);
 
-        // 1. Known subscription merchants (Netflix, Spotify, etc.) = SUBSCRIPTION
-        if (isKnownSubscriptionMerchant(merchantName, description)) {
-            return SUBSCRIPTION;
-        }
+        // (Old check 1 — isKnownSubscriptionMerchant — was a deprecated
+        //  stub returning false. Removed. Known subscription merchants now
+        //  arrive here with categoryPrimary=subscriptions from L3 of the
+        //  cascade, caught by check 2 below.)
 
         // 2. Subscription-related categories = SUBSCRIPTION
         if (SUBSCRIPTIONS.equalsIgnoreCase(categoryDetailed)) {
