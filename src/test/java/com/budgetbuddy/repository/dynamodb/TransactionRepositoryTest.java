@@ -73,7 +73,7 @@ class TransactionRepositoryTest {
         when(transactionTable.index("UserIdUpdatedAtIndex")).thenReturn(userIdUpdatedAtIndex);
 
         transactionRepository =
-                new TransactionRepository(enhancedClient, dynamoDbClient, "BudgetBuddy");
+                new TransactionRepository(enhancedClient, dynamoDbClient, "BudgetBuddy", 50_000);
 
         testTransaction = new TransactionTable();
         testTransaction.setTransactionId(testTransactionId);

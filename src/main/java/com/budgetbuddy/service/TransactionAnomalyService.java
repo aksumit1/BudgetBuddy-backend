@@ -111,10 +111,33 @@ public class TransactionAnomalyService {
 
     /**
      * Per-detection-pass sensitivity multiplier. ThreadLocal keeps concurrent web requests from
-     * stomping each other since Spring MVC handlers run on different threads. Reset at the end of
-     * {@link #detectAnomalies}.
+     * stomping each other since Spring MVC handlers run on different threads.
+     *
+     * <p>DRIFT-1 hardening: every public entrypoint calls {@link #beginPass(double)} which clears
+     * the slot before setting it, and pairs with {@link #endPass()} in a finally block. The "clear
+     * first" step defends against a prior request that crashed after {@code set()} but before
+     * {@code remove()} — without it, the next request on the same Spring MVC worker thread would
+     * inherit the leftover multiplier. The {@code withInitial(() -> 1.0)} default still applies
+     * for any code path that hits {@link #currentSensitivity()} outside a pass.
      */
     private final ThreadLocal<Double> activeSensitivity = ThreadLocal.withInitial(() -> 1.0);
+
+    /** Read the current sensitivity multiplier with a defensive default. */
+    private double currentSensitivity() {
+        final Double v = activeSensitivity.get();
+        return v == null ? 1.0 : v;
+    }
+
+    private void beginPass(final double multiplier) {
+        // Defensive remove() so a leaked value from a previous (crashed) pass
+        // on this thread can't bleed into the new one.
+        activeSensitivity.remove();
+        activeSensitivity.set(multiplier);
+    }
+
+    private void endPass() {
+        activeSensitivity.remove();
+    }
 
     @org.springframework.beans.factory.annotation.Autowired
     public TransactionAnomalyService(
@@ -189,11 +212,11 @@ public class TransactionAnomalyService {
             return java.util.Collections.emptyList();
         }
         final Sensitivity sens = sensitivityFor(ctx.userId());
-        activeSensitivity.set(sens.multiplier);
+        beginPass(sens.multiplier);
         try {
             return detectAnomaliesFromContext(ctx);
         } finally {
-            activeSensitivity.remove();
+            endPass();
         }
     }
 
@@ -228,13 +251,13 @@ public class TransactionAnomalyService {
         // clear, a thread reused by Spring MVC for a different user's request would
         // inherit the previous user's sensitivity — a state leak.
         final Sensitivity sens = sensitivityFor(userId);
-        activeSensitivity.set(sens.multiplier);
+        beginPass(sens.multiplier);
         LOGGER.info("Detecting transaction anomalies for user: {} (sensitivity={})", userId, sens);
 
         try {
             return detectAnomaliesInternal(userId);
         } finally {
-            activeSensitivity.remove();
+            endPass();
         }
     }
 
@@ -451,7 +474,7 @@ public class TransactionAnomalyService {
             final BigDecimal zScore = amount.subtract(mean).divide(stdDev, 4, RoundingMode.HALF_UP);
 
             // O12: scale the z-score threshold by the user's sensitivity multiplier.
-            final double scaledZ = zScoreThreshold() * activeSensitivity.get();
+            final double scaledZ = zScoreThreshold() * currentSensitivity();
             if (zScore.abs().compareTo(BigDecimal.valueOf(scaledZ)) > 0) {
                 final Severity severity =
                         amount.compareTo(BigDecimal.valueOf(500)) > 0
@@ -542,7 +565,7 @@ public class TransactionAnomalyService {
                             RoundingMode.HALF_UP);
 
             // Check if recent average is significantly higher
-            final double scaledSpike = categorySpikeMultiplier() * activeSensitivity.get();
+            final double scaledSpike = categorySpikeMultiplier() * currentSensitivity();
             if (recentAverage.compareTo(historicalAverage.multiply(BigDecimal.valueOf(scaledSpike)))
                     > 0) {
                 // Find the largest transaction in this category
@@ -731,7 +754,7 @@ public class TransactionAnomalyService {
                         .collect(Collectors.toList());
 
         final BigDecimal median = calculateMedian(amounts);
-        final double scaledAmount = amountThresholdMultiplier() * activeSensitivity.get();
+        final double scaledAmount = amountThresholdMultiplier() * currentSensitivity();
         final BigDecimal threshold = median.multiply(BigDecimal.valueOf(scaledAmount));
 
         // Check recent transactions

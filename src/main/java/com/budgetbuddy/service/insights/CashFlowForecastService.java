@@ -65,14 +65,34 @@ public class CashFlowForecastService {
         return forecast(userId, LocalDate.now());
     }
 
+    /**
+     * RISK-1 context-aware overload: reads liquidAssets + income/expense
+     * out of the pre-fetched {@link InsightsContext} snapshot, so a
+     * /summary request that already paid for those reads doesn't pay
+     * again. Filters the context's transactions list to the same 3-month
+     * window the userId path would have queried.
+     */
+    public Forecast forecast(final InsightsContext ctx) {
+        if (ctx == null) return new Forecast();
+        final LocalDate today = ctx.asOf();
+        final BigDecimal liquidAssets = sumLiquidAssetsFromAccounts(ctx.accounts());
+        final BigDecimal[] incomeExpense =
+                medianMonthlyIncomeAndExpenseFromTransactions(ctx.transactions(), today);
+        return forecastFromInputs(liquidAssets, incomeExpense[0], incomeExpense[1]);
+    }
+
     public Forecast forecast(final String userId, final LocalDate today) {
         if (userId == null || userId.isEmpty()) {
             return new Forecast();
         }
-        final BigDecimal liquidAssets = sumLiquidAssets(userId);
         final BigDecimal[] incomeExpense = medianMonthlyIncomeAndExpense(userId, today);
-        final BigDecimal monthlyIncome = incomeExpense[0];
-        final BigDecimal monthlyExpenses = incomeExpense[1];
+        return forecastFromInputs(sumLiquidAssets(userId), incomeExpense[0], incomeExpense[1]);
+    }
+
+    private Forecast forecastFromInputs(
+            final BigDecimal liquidAssets,
+            final BigDecimal monthlyIncome,
+            final BigDecimal monthlyExpenses) {
         final BigDecimal netMonthly = monthlyIncome.subtract(monthlyExpenses);
 
         final Forecast f = new Forecast();
@@ -157,19 +177,24 @@ public class CashFlowForecastService {
     }
 
     private BigDecimal sumLiquidAssets(final String userId) {
-        BigDecimal sum = BigDecimal.ZERO;
         try {
-            for (final AccountTable a : accountRepository.findByUserId(userId)) {
-                if (a == null || a.getBalance() == null) continue;
-                if (a.getAccountType() == null) continue;
-                final String t = a.getAccountType().toLowerCase(java.util.Locale.ROOT);
-                if (!("checking".equals(t) || "savings".equals(t))) continue;
-                if (a.getBalance().signum() > 0) {
-                    sum = sum.add(a.getBalance());
-                }
-            }
+            return sumLiquidAssetsFromAccounts(accountRepository.findByUserId(userId));
         } catch (Exception ignored) {
-            // Treat repo failures as "no visible assets" rather than fail the forecast.
+            return BigDecimal.ZERO.setScale(2);
+        }
+    }
+
+    private static BigDecimal sumLiquidAssetsFromAccounts(final List<AccountTable> accounts) {
+        BigDecimal sum = BigDecimal.ZERO;
+        if (accounts == null) return sum.setScale(2, RoundingMode.HALF_UP);
+        for (final AccountTable a : accounts) {
+            if (a == null || a.getBalance() == null) continue;
+            if (a.getAccountType() == null) continue;
+            final String t = a.getAccountType().toLowerCase(java.util.Locale.ROOT);
+            if (!("checking".equals(t) || "savings".equals(t))) continue;
+            if (a.getBalance().signum() > 0) {
+                sum = sum.add(a.getBalance());
+            }
         }
         return sum.setScale(2, RoundingMode.HALF_UP);
     }
@@ -184,6 +209,18 @@ public class CashFlowForecastService {
         } catch (Exception ignored) {
             return new BigDecimal[] {BigDecimal.ZERO, BigDecimal.ZERO};
         }
+        return medianMonthlyIncomeAndExpenseFromTransactions(rows, today);
+    }
+
+    private static BigDecimal[] medianMonthlyIncomeAndExpenseFromTransactions(
+            final List<TransactionTable> rows, final LocalDate today) {
+        if (rows == null || rows.isEmpty()) {
+            return new BigDecimal[] {BigDecimal.ZERO, BigDecimal.ZERO};
+        }
+        // Clamp to the same 3-month window the userId path would have queried,
+        // so context-provided rows that extend further back don't widen the
+        // sample and change the median.
+        final LocalDate cutoff = today.minusMonths(3).withDayOfMonth(1);
         final Map<YearMonth, BigDecimal> incomePerMonth = new HashMap<>();
         final Map<YearMonth, BigDecimal> expensePerMonth = new HashMap<>();
         for (final TransactionTable t : rows) {
@@ -194,6 +231,7 @@ public class CashFlowForecastService {
             } catch (Exception e) {
                 continue;
             }
+            if (d.isBefore(cutoff) || d.isAfter(today)) continue;
             final YearMonth ym = YearMonth.from(d);
             final String cat = t.getCategoryPrimary();
             if (t.getAmount().signum() > 0 && BudgetCategoryClassifier.isIncomeOrSavings(cat)) {

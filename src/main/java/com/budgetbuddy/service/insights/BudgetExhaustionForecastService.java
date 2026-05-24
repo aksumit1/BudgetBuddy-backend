@@ -64,6 +64,20 @@ public class BudgetExhaustionForecastService {
         return forecast(userId, LocalDate.now());
     }
 
+    /**
+     * RISK-1 context-aware overload: reuses the budget list + transaction
+     * window the {@link InsightsContext} already fetched. Falls back to
+     * the repo-fetch path when budgets aren't in the context (which
+     * happens in unit tests that build an InsightsContext directly).
+     */
+    public List<ExhaustionAlert> forecast(final InsightsContext ctx) {
+        if (ctx == null) return List.of();
+        if (ctx.budgets() == null || ctx.budgets().isEmpty()) {
+            return forecast(ctx.userId(), ctx.asOf());
+        }
+        return forecastFromInputs(ctx.budgets(), ctx.transactions(), ctx.asOf());
+    }
+
     public List<ExhaustionAlert> forecast(final String userId, final LocalDate today) {
         if (userId == null || userId.isEmpty()) return List.of();
         final List<BudgetTable> budgets;
@@ -72,6 +86,13 @@ public class BudgetExhaustionForecastService {
         } catch (Exception e) {
             return List.of();
         }
+        return forecastFromInputs(budgets, /*preFetchedTransactions=*/null, today);
+    }
+
+    private List<ExhaustionAlert> forecastFromInputs(
+            final List<BudgetTable> budgets,
+            final List<TransactionTable> preFetchedTransactions,
+            final LocalDate today) {
         final List<ExhaustionAlert> alerts = new ArrayList<>();
         for (final BudgetTable b : budgets) {
             if (b == null || b.getMonthlyLimit() == null || b.getMonthlyLimit().signum() <= 0)
@@ -92,12 +113,30 @@ public class BudgetExhaustionForecastService {
 
             BigDecimal spent = BigDecimal.ZERO;
             final List<TransactionTable> cycleTx;
-            try {
+            if (preFetchedTransactions != null) {
+                // Context path: filter the shared snapshot down to this
+                // budget's cycle window in-memory. No DDB call.
+                final String startStr = cycleStart.format(DATE);
+                final String endStr = endForQuery.format(DATE);
                 cycleTx =
-                        transactionRepository.findByUserIdAndDateRange(
-                                userId, cycleStart.format(DATE), endForQuery.format(DATE));
-            } catch (Exception e) {
-                continue;
+                        preFetchedTransactions.stream()
+                                .filter(
+                                        tx ->
+                                                tx != null
+                                                        && tx.getTransactionDate() != null
+                                                        && tx.getTransactionDate().compareTo(startStr) >= 0
+                                                        && tx.getTransactionDate().compareTo(endStr) <= 0)
+                                .toList();
+            } else {
+                try {
+                    cycleTx =
+                            transactionRepository.findByUserIdAndDateRange(
+                                    b.getUserId(),
+                                    cycleStart.format(DATE),
+                                    endForQuery.format(DATE));
+                } catch (Exception e) {
+                    continue;
+                }
             }
             for (final TransactionTable t : cycleTx) {
                 if (t == null || t.getAmount() == null || t.getDeletedAt() != null) continue;

@@ -655,21 +655,23 @@ public class FinancialInsightsController {
                 "highPriorityCount",
                 highPriorityAnomalies + highPriorityMissedPayments + highPriorityHighInterest);
 
-        // Forecast tile counts so iOS can render a "Forecasts" card row.
+        // Forecast tile counts — use the context overloads so /summary
+        // doesn't re-hit DDB. The ctx already carries every list each
+        // forecaster needs (transactions, accounts, subscriptions, budgets).
         com.budgetbuddy.service.insights.CashFlowForecastService.Forecast cashFlow = null;
         if (cashFlowForecastService != null) {
-            cashFlow = cashFlowForecastService.forecast(user.getUserId());
+            cashFlow = cashFlowForecastService.forecast(ctx);
             summary.put("cashFlowForecast", cashFlow);
         }
         com.budgetbuddy.service.insights.SubscriptionCreepForecastService.CreepForecast creep = null;
         if (subscriptionCreepForecastService != null) {
-            creep = subscriptionCreepForecastService.forecast(user.getUserId());
+            creep = subscriptionCreepForecastService.forecast(ctx);
             summary.put("subscriptionCreep", creep);
         }
         List<com.budgetbuddy.service.insights.BudgetExhaustionForecastService.ExhaustionAlert>
                 exhaustion = List.of();
         if (budgetExhaustionForecastService != null) {
-            exhaustion = budgetExhaustionForecastService.forecast(user.getUserId());
+            exhaustion = budgetExhaustionForecastService.forecast(ctx);
             summary.put("budgetsExhaustingSoon", exhaustion);
         }
 

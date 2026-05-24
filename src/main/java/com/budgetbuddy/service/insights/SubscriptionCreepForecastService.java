@@ -59,6 +59,17 @@ public class SubscriptionCreepForecastService {
         return forecast(userId, LocalDate.now());
     }
 
+    /**
+     * RISK-1 context-aware overload: reads the subscriptions list from the
+     * pre-fetched {@link InsightsContext} snapshot instead of issuing a
+     * fresh {@code subscriptionService.getSubscriptions(...)} call on
+     * every /summary request.
+     */
+    public CreepForecast forecast(final InsightsContext ctx) {
+        if (ctx == null) return new CreepForecast();
+        return computeFromSubs(ctx.subscriptions(), ctx.asOf());
+    }
+
     public CreepForecast forecast(final String userId, final LocalDate today) {
         final CreepForecast f = new CreepForecast();
         if (userId == null || userId.isEmpty()) return f;
@@ -70,6 +81,11 @@ public class SubscriptionCreepForecastService {
             f.message = "Subscription data unavailable.";
             return f;
         }
+        return computeFromSubs(subs, today);
+    }
+
+    private static CreepForecast computeFromSubs(final List<Subscription> subs, final LocalDate today) {
+        final CreepForecast f = new CreepForecast();
         if (subs == null || subs.isEmpty()) {
             f.status = "STABLE";
             f.message = "No active subscriptions tracked.";

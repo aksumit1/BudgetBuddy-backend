@@ -76,7 +76,13 @@ public class TransactionRepository {
      * transaction history into JVM heap — at this ceiling a user with 50k+ transactions stops
      * silently OOM'ing the worker and instead surfaces a WARN log so the GSI gap is visible.
      */
-    private static final int MAX_FALLBACK_FETCH = 50_000;
+    /**
+     * Default ceiling for the GSI-fallback path. Externalised via
+     * {@code app.dynamodb.max-fallback-fetch} so ops can tighten or
+     * loosen it without redeploying. See the constructor for the
+     * binding logic.
+     */
+    private static final int MAX_FALLBACK_FETCH_DEFAULT = 50_000;
 
     private final DynamoDbTable<TransactionTable> transactionTable;
     private final DynamoDbIndex<TransactionTable> userIdDateIndex;
@@ -85,14 +91,22 @@ public class TransactionRepository {
     private final DynamoDbIndex<TransactionTable> userIdGoalIdIndex;
     private final DynamoDbClient dynamoDbClient;
     private final String tableName;
+    private final int maxFallbackFetch;
 
+    @org.springframework.beans.factory.annotation.Autowired
     public TransactionRepository(
             final DynamoDbEnhancedClient enhancedClient,
             final DynamoDbClient dynamoDbClient,
             @org.springframework.beans.factory.annotation.Value(
                             "${app.aws.dynamodb.table-prefix:BudgetBuddy}")
-                    final String tablePrefix) {
+                    final String tablePrefix,
+            @org.springframework.beans.factory.annotation.Value(
+                            "${app.dynamodb.max-fallback-fetch:50000}")
+                    final int maxFallbackFetch) {
         this.tableName = tablePrefix + "-Transactions";
+        this.maxFallbackFetch = maxFallbackFetch > 0
+                ? maxFallbackFetch
+                : MAX_FALLBACK_FETCH_DEFAULT;
         this.transactionTable =
                 enhancedClient.table(this.tableName, TableSchema.fromBean(TransactionTable.class));
         this.userIdDateIndex = transactionTable.index("UserIdDateIndex");
@@ -100,6 +114,17 @@ public class TransactionRepository {
         this.userIdUpdatedAtIndex = transactionTable.index("UserIdUpdatedAtIndex");
         this.userIdGoalIdIndex = transactionTable.index("UserIdGoalIdIndex");
         this.dynamoDbClient = dynamoDbClient;
+    }
+
+    /**
+     * Backwards-compat constructor for tests that pre-date the
+     * configurable fallback ceiling. Uses {@link #MAX_FALLBACK_FETCH_DEFAULT}.
+     */
+    public TransactionRepository(
+            final DynamoDbEnhancedClient enhancedClient,
+            final DynamoDbClient dynamoDbClient,
+            final String tablePrefix) {
+        this(enhancedClient, dynamoDbClient, tablePrefix, MAX_FALLBACK_FETCH_DEFAULT);
     }
 
     @CacheEvict(value = TRANSACTIONS, allEntries = true)
@@ -169,12 +194,12 @@ public class TransactionRepository {
             for (final software.amazon.awssdk.enhanced.dynamodb.model.Page<TransactionTable> page :
                     pages) {
                 for (final TransactionTable item : page.items()) {
-                    if (out.size() >= MAX_FALLBACK_FETCH) {
+                    if (out.size() >= maxFallbackFetch) {
                         LOGGER.warn(
                                 "findByUserIdCapped hit ceiling of {} rows for userId {} —"
                                         + " result is truncated. Provision the missing GSI"
                                         + " or call a paginating method instead.",
-                                MAX_FALLBACK_FETCH,
+                                maxFallbackFetch,
                                 userId);
                         return out;
                     }
@@ -221,7 +246,7 @@ public class TransactionRepository {
                     if (item == null || !userId.equals(item.getUserId())) {
                         continue;
                     }
-                    if (out.size() >= MAX_FALLBACK_FETCH) {
+                    if (out.size() >= maxFallbackFetch) {
                         return out;
                     }
                     out.add(item);
@@ -1133,8 +1158,20 @@ public class TransactionRepository {
     }
 
     /**
-     * Batch save transactions using BatchWriteItem (cost-optimized) DynamoDB allows up to 25 items
-     * per batch
+     * Batch save transactions using BatchWriteItem (cost-optimized). DynamoDB
+     * allows up to 25 items per batch.
+     *
+     * <p>Persists EVERY {@code @DynamoDbAttribute}-annotated field via the
+     * enhanced-client schema mapping — including FX, wallet, geo, and all
+     * other side fields added after the original {@code batchSave} was
+     * written. Pre-fix this method silently persisted only
+     * {transactionId, userId, transactionDate, amount} which is exactly
+     * the bug the per-product audit surfaced for the PDF import path.
+     *
+     * <p>Used by {@code TransactionController.processPDFBatchImport} to
+     * drop a 100-tx import from ~200 DDB calls (createTransaction +
+     * updateTransaction per row) to 8 calls (25-tx batches). Retries
+     * unprocessed items with exponential backoff via {@code RetryHelper}.
      */
     @CacheEvict(value = TRANSACTIONS, allEntries = true)
     public void batchSave(final List<TransactionTable> transactions) {
@@ -1142,50 +1179,31 @@ public class TransactionRepository {
             return;
         }
 
-        // DynamoDB batch write limit is 25 items per request
+        // DynamoDB batch write limit is 25 items per request.
         final int batchSize = 25;
-        final List<List<TransactionTable>> batches = new ArrayList<>();
-        for (int i = 0; i < transactions.size(); i += batchSize) {
-            batches.add(transactions.subList(i, Math.min(i + batchSize, transactions.size())));
-        }
+        final software.amazon.awssdk.enhanced.dynamodb.TableSchema<TransactionTable> schema =
+                software.amazon.awssdk.enhanced.dynamodb.TableSchema.fromBean(
+                        TransactionTable.class);
 
-        for (final List<TransactionTable> batch : batches) {
+        for (int i = 0; i < transactions.size(); i += batchSize) {
+            final List<TransactionTable> batch =
+                    transactions.subList(i, Math.min(i + batchSize, transactions.size()));
             final List<WriteRequest> writeRequests =
                     batch.stream()
-                            .map(
-                                    transaction -> {
-                                        final Map<String, AttributeValue> item = new HashMap<>();
-                                        item.put(
-                                                TRANSACTIONID,
-                                                AttributeValue.builder()
-                                                        .s(transaction.getTransactionId())
-                                                        .build());
-                                        if (transaction.getUserId() != null) {
-                                            item.put(
-                                                    "userId",
-                                                    AttributeValue.builder()
-                                                            .s(transaction.getUserId())
-                                                            .build());
-                                        }
-                                        if (transaction.getTransactionDate() != null) {
-                                            item.put(
-                                                    "transactionDate",
-                                                    AttributeValue.builder()
-                                                            .s(transaction.getTransactionDate())
-                                                            .build());
-                                        }
-                                        if (transaction.getAmount() != null) {
-                                            item.put(
-                                                    "amount",
-                                                    AttributeValue.builder()
-                                                            .n(transaction.getAmount().toString())
-                                                            .build());
-                                        }
-                                        // Add other attributes as needed
-                                        return WriteRequest.builder()
-                                                .putRequest(PutRequest.builder().item(item).build())
-                                                .build();
-                                    })
+                            .map(t -> WriteRequest.builder()
+                                    .putRequest(PutRequest.builder()
+                                            // itemToMap(t, true) = ignore null
+                                            // attributes. Optional fields
+                                            // (FX context, geo, wallet) that
+                                            // are unset on this tx won't get
+                                            // written, which preserves any
+                                            // prior value if a re-import
+                                            // ever races (today's main path
+                                            // is first-write-only so this is
+                                            // mostly cosmetic).
+                                            .item(schema.itemToMap(t, true))
+                                            .build())
+                                    .build())
                             .collect(Collectors.toList());
 
             final Map<String, List<WriteRequest>> requestItems = new HashMap<>();
@@ -1198,18 +1216,18 @@ public class TransactionRepository {
                     () -> {
                         final BatchWriteItemResponse resp =
                                 dynamoDbClient.batchWriteItem(batchRequest);
-
-                        // Retry if there are unprocessed items
                         if (!resp.unprocessedItems().isEmpty()) {
+                            // BatchWriteItem returns unprocessed items on
+                            // throttling. Throwing here triggers RetryHelper's
+                            // exponential backoff. Anything still unprocessed
+                            // after the retry budget is a real failure.
                             throw new AppException(
                                     ErrorCode.INTERNAL_SERVER_ERROR,
-                                    "Unprocessed items in batch write");
+                                    "Unprocessed items in batch write: "
+                                            + resp.unprocessedItems().size());
                         }
-
                         return resp;
                     });
-
-            // All items processed successfully
         }
     }
 
