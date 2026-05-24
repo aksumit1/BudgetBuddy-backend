@@ -72,7 +72,11 @@ public class BudgetExhaustionForecastService {
      */
     public List<ExhaustionAlert> forecast(final InsightsContext ctx) {
         if (ctx == null) return List.of();
-        if (ctx.budgets() == null || ctx.budgets().isEmpty()) {
+        // Only fall back to a repo fetch when budgets WEREN'T authoritatively
+        // loaded (legacy InsightsContext construction in tests). An empty
+        // list from the factory means "user has no budgets" — refetching
+        // would be a bug, and SummaryRepoFanOutTest catches it.
+        if (!ctx.budgetsAvailable()) {
             return forecast(ctx.userId(), ctx.asOf());
         }
         return forecastFromInputs(ctx.budgets(), ctx.transactions(), ctx.asOf());

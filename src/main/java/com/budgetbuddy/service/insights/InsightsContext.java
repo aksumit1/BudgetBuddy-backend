@@ -38,7 +38,15 @@ public final class InsightsContext {
     private final List<AccountTable> accounts;
     private final List<Subscription> subscriptions;
     private final List<TransactionActionTable> transactionActions;
+    /**
+     * Null when the context was built by a caller that doesn't know
+     * about budgets (typical for unit tests that pre-date the field).
+     * Empty list when the context WAS built with budgets but the user
+     * just has none. Forecasters use this distinction to decide
+     * whether to fall back to a repo fetch.
+     */
     private final List<BudgetTable> budgets;
+    private final boolean budgetsAvailable;
 
     public InsightsContext(
             final String userId,
@@ -58,15 +66,17 @@ public final class InsightsContext {
                 Objects.requireNonNullElse(subscriptions, List.of()));
         this.transactionActions = Collections.unmodifiableList(
                 Objects.requireNonNullElse(transactionActions, List.of()));
-        this.budgets = Collections.unmodifiableList(
-                Objects.requireNonNullElse(budgets, List.of()));
+        this.budgets = budgets == null
+                ? List.of()
+                : Collections.unmodifiableList(budgets);
+        this.budgetsAvailable = budgets != null;
     }
 
     /**
      * Backwards-compat constructor for callers (mostly tests) that
-     * pre-date the {@code budgets} field. Defaults to an empty list —
-     * the budget-exhaustion forecaster falls back to a repo fetch when
-     * it sees an empty budget list, so old tests keep working.
+     * pre-date the {@code budgets} field. {@code budgetsAvailable}
+     * stays false, so consumers know to fall back to their own repo
+     * fetch rather than assume "user has no budgets".
      */
     public InsightsContext(
             final String userId,
@@ -75,7 +85,7 @@ public final class InsightsContext {
             final List<AccountTable> accounts,
             final List<Subscription> subscriptions,
             final List<TransactionActionTable> transactionActions) {
-        this(userId, asOf, transactions, accounts, subscriptions, transactionActions, List.of());
+        this(userId, asOf, transactions, accounts, subscriptions, transactionActions, null);
     }
 
     /**
@@ -98,4 +108,6 @@ public final class InsightsContext {
     public List<Subscription> subscriptions() { return subscriptions; }
     public List<TransactionActionTable> transactionActions() { return transactionActions; }
     public List<BudgetTable> budgets() { return budgets; }
+    /** True when {@link #budgets()} was authoritatively supplied — see field doc. */
+    public boolean budgetsAvailable() { return budgetsAvailable; }
 }

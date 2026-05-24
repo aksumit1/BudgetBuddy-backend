@@ -96,21 +96,39 @@ final class ForecastContextOverloadTest {
     }
 
     @Test
-    void budgetExhaustionContextFallsBackWhenBudgetsAreEmpty() {
-        // Empty ctx.budgets() → fall back to repo. Existing tests already
-        // cover the legitimate empty-budget case; this just verifies the
-        // fallback wire is intact.
+    void budgetExhaustionContextFallsBackWhenContextLacksBudgets() {
+        // Ctx built via the 6-arg ctor (no budgets passed) → budgetsAvailable=false
+        // → forecaster must fall back to a repo fetch. The factory always
+        // passes budgets (even an empty list), so this fallback only ever
+        // fires for tests / legacy callers.
         final BudgetRepository budgets = mock(BudgetRepository.class);
         final TransactionRepository tx = mock(TransactionRepository.class);
         org.mockito.Mockito.when(budgets.findByUserId(USER)).thenReturn(List.of());
 
+        // 6-arg constructor — leaves budgetsAvailable=false.
         final InsightsContext ctx = new InsightsContext(
-                USER, NOW, List.of(), List.of(), List.of(), List.of(), List.of());
+                USER, NOW, List.of(), List.of(), List.of(), List.of());
 
         final List<BudgetExhaustionForecastService.ExhaustionAlert> result =
                 new BudgetExhaustionForecastService(budgets, tx).forecast(ctx);
         assertTrue(result.isEmpty());
         verify(budgets).findByUserId(USER);
+    }
+
+    @Test
+    void budgetExhaustionContextWithEmptyBudgetsListDoesNotFallBack() {
+        // The factory's typical empty-result case: ctx was built with an
+        // empty budgets list (user has no budgets). Forecaster must NOT
+        // refetch — that's the perf regression SummaryRepoFanOutTest pins.
+        final BudgetRepository budgets = mock(BudgetRepository.class);
+        final TransactionRepository tx = mock(TransactionRepository.class);
+
+        final InsightsContext ctx = new InsightsContext(
+                USER, NOW, List.of(), List.of(), List.of(), List.of(), List.of());
+        // budgetsAvailable=true (empty list passed authoritatively).
+
+        new BudgetExhaustionForecastService(budgets, tx).forecast(ctx);
+        verify(budgets, never()).findByUserId(USER);
     }
 
     @Test
