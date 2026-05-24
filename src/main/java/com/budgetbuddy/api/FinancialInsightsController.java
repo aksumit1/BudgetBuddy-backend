@@ -112,15 +112,24 @@ public class FinancialInsightsController {
     // predictions; previously the controller had TODOs feeding empty maps.
     private final com.budgetbuddy.repository.dynamodb.GoalRepository goalRepository;
 
-    // JTBD #4 — cross-account anomaly patterns (same merchant on 2 cards, rapid burst, etc.).
-    @org.springframework.beans.factory.annotation.Autowired(required = false)
-    private com.budgetbuddy.service.CrossAccountAnomalyDetector crossAccountDetector;
+    // Both services below are @Service-annotated and present in every
+    // production wiring. They used to be @Autowired(required=false) with
+    // null-guards at every call site purely to accommodate test wiring
+    // that didn't @Mock them — that defensive pattern hid real wiring
+    // failures (a misconfigured prod environment would silently return
+    // empty lists). Required constructor injection forces both the test
+    // and the prod wiring to be honest.
+    private final com.budgetbuddy.service.CrossAccountAnomalyDetector crossAccountDetector;
+    private final com.budgetbuddy.service.CreditCardInsightsService creditCardInsightsService;
+    private final com.budgetbuddy.service.insights.InsightsContextFactory insightsContextFactory;
 
-    // Credit-card specific insights powered by the new statement-summary fields on
-    // AccountTable. Optional because the service is new and not every test wiring
-    // injects it — guard at the call site.
-    @org.springframework.beans.factory.annotation.Autowired(required = false)
-    private com.budgetbuddy.service.CreditCardInsightsService creditCardInsightsService;
+    // New forecast services — setter-injected so the heavy existing
+    // constructor stays untouched and old tests don't need to thread three
+    // more args.
+    private com.budgetbuddy.service.insights.CashFlowForecastService cashFlowForecastService;
+    private com.budgetbuddy.service.insights.SubscriptionCreepForecastService subscriptionCreepForecastService;
+    private com.budgetbuddy.service.insights.BudgetExhaustionForecastService budgetExhaustionForecastService;
+    private com.budgetbuddy.service.insights.FinancialNarrativeAdvisor financialNarrativeAdvisor;
 
     public FinancialInsightsController(
             final TransactionAnomalyService anomalyService,
@@ -134,7 +143,10 @@ public class FinancialInsightsController {
             final AccountRepository accountRepository,
             final SubscriptionRepository subscriptionRepository,
             final com.budgetbuddy.service.AnomalyFeedbackService anomalyFeedbackService,
-            final com.budgetbuddy.repository.dynamodb.GoalRepository goalRepository) {
+            final com.budgetbuddy.repository.dynamodb.GoalRepository goalRepository,
+            final com.budgetbuddy.service.CrossAccountAnomalyDetector crossAccountDetector,
+            final com.budgetbuddy.service.CreditCardInsightsService creditCardInsightsService,
+            final com.budgetbuddy.service.insights.InsightsContextFactory insightsContextFactory) {
         this.anomalyService = anomalyService;
         this.expenseReductionService = expenseReductionService;
         this.goalsService = goalsService;
@@ -147,6 +159,33 @@ public class FinancialInsightsController {
         this.subscriptionRepository = subscriptionRepository;
         this.anomalyFeedbackService = anomalyFeedbackService;
         this.goalRepository = goalRepository;
+        this.crossAccountDetector = crossAccountDetector;
+        this.creditCardInsightsService = creditCardInsightsService;
+        this.insightsContextFactory = insightsContextFactory;
+    }
+
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    public void setCashFlowForecastService(
+            final com.budgetbuddy.service.insights.CashFlowForecastService svc) {
+        this.cashFlowForecastService = svc;
+    }
+
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    public void setSubscriptionCreepForecastService(
+            final com.budgetbuddy.service.insights.SubscriptionCreepForecastService svc) {
+        this.subscriptionCreepForecastService = svc;
+    }
+
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    public void setBudgetExhaustionForecastService(
+            final com.budgetbuddy.service.insights.BudgetExhaustionForecastService svc) {
+        this.budgetExhaustionForecastService = svc;
+    }
+
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    public void setFinancialNarrativeAdvisor(
+            final com.budgetbuddy.service.insights.FinancialNarrativeAdvisor advisor) {
+        this.financialNarrativeAdvisor = advisor;
     }
 
     /**
@@ -167,11 +206,6 @@ public class FinancialInsightsController {
                         .orElseThrow(
                                 () -> new AppException(ErrorCode.USER_NOT_FOUND, USER_NOT_FOUND_1));
 
-        if (creditCardInsightsService == null) {
-            // Service not on the classpath / not auto-wired — degrade to empty list
-            // rather than 500. iOS just renders nothing for this section.
-            return ResponseEntity.ok(List.of());
-        }
         final List<com.budgetbuddy.service.CreditCardInsightsService.CreditCardInsight> insights =
                 creditCardInsightsService.detect(user.getUserId());
 
@@ -310,9 +344,6 @@ public class FinancialInsightsController {
                         .findByEmail(userDetails.getUsername())
                         .orElseThrow(
                                 () -> new AppException(ErrorCode.USER_NOT_FOUND, USER_NOT_FOUND_1));
-        if (crossAccountDetector == null) {
-            return ResponseEntity.ok(List.of());
-        }
         return ResponseEntity.ok(crossAccountDetector.detect(user.getUserId()));
     }
 
@@ -501,6 +532,66 @@ public class FinancialInsightsController {
         return ResponseEntity.ok(response);
     }
 
+    /**
+     * FORECAST-1: cash-flow runway endpoint. Surfaces the user's liquid
+     * assets, monthly burn, runway days, and 30/60/90-day projections.
+     */
+    @GetMapping("/cash-flow-forecast")
+    public ResponseEntity<?> getCashFlowForecast(
+            @AuthenticationPrincipal final UserDetails userDetails) {
+        if (userDetails == null || userDetails.getUsername() == null) {
+            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "User not authenticated");
+        }
+        final UserTable user =
+                userService
+                        .findByEmail(userDetails.getUsername())
+                        .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
+        if (cashFlowForecastService == null) {
+            return ResponseEntity.ok(Map.of("status", "UNAVAILABLE"));
+        }
+        return ResponseEntity.ok(cashFlowForecastService.forecast(user.getUserId()));
+    }
+
+    /**
+     * FORECAST-2: aggregate subscription portfolio creep. Surfaces
+     * month-over-month delta + the list of subs added in the last 30 days.
+     */
+    @GetMapping("/subscription-creep")
+    public ResponseEntity<?> getSubscriptionCreep(
+            @AuthenticationPrincipal final UserDetails userDetails) {
+        if (userDetails == null || userDetails.getUsername() == null) {
+            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "User not authenticated");
+        }
+        final UserTable user =
+                userService
+                        .findByEmail(userDetails.getUsername())
+                        .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
+        if (subscriptionCreepForecastService == null) {
+            return ResponseEntity.ok(Map.of("status", "UNAVAILABLE"));
+        }
+        return ResponseEntity.ok(subscriptionCreepForecastService.forecast(user.getUserId()));
+    }
+
+    /**
+     * FORECAST-3: which budgets are projected to exhaust before their
+     * cycle ends, ranked by days-until.
+     */
+    @GetMapping("/budget-exhaustion")
+    public ResponseEntity<?> getBudgetExhaustion(
+            @AuthenticationPrincipal final UserDetails userDetails) {
+        if (userDetails == null || userDetails.getUsername() == null) {
+            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "User not authenticated");
+        }
+        final UserTable user =
+                userService
+                        .findByEmail(userDetails.getUsername())
+                        .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
+        if (budgetExhaustionForecastService == null) {
+            return ResponseEntity.ok(List.of());
+        }
+        return ResponseEntity.ok(budgetExhaustionForecastService.forecast(user.getUserId()));
+    }
+
     /** Get all insights summary GET /api/insights/summary */
     @GetMapping("/summary")
     public ResponseEntity<Map<String, Object>> getInsightsSummary(
@@ -517,16 +608,21 @@ public class FinancialInsightsController {
 
         final Map<String, Object> summary = new HashMap<>();
 
-        // Get counts for each insight type
-        final List<TransactionAnomaly> anomalies = anomalyService.detectAnomalies(user.getUserId());
+        // Build a single per-request snapshot and pass it to every
+        // detector. Previously each call below issued its own
+        // findByUserIdAndDateRange (5+ DDB scans per /summary request);
+        // now the snapshot is built ONCE and reused.
+        final com.budgetbuddy.service.insights.InsightsContext ctx =
+                insightsContextFactory.buildFor(user.getUserId());
+        final List<TransactionAnomaly> anomalies = anomalyService.detectAnomalies(ctx);
         final List<ExpenseRecommendation> expenseReductions =
-                expenseReductionService.getRecommendations(user.getUserId());
+                expenseReductionService.getRecommendations(ctx);
         final List<FinancialGoalRecommendation> goalRecommendations =
-                goalsService.getRecommendations(user.getUserId());
+                goalsService.getRecommendations(ctx);
         final List<MissedPaymentAlert> missedPayments =
-                missedPaymentService.detectMissedPayments(user.getUserId());
+                missedPaymentService.detectMissedPayments(ctx);
         final List<HighInterestAlert> highInterest =
-                highInterestService.detectHighInterest(user.getUserId());
+                highInterestService.detectHighInterest(ctx);
 
         summary.put("anomaliesCount", anomalies.size());
         summary.put("expenseReductionsCount", expenseReductions.size());
@@ -558,6 +654,54 @@ public class FinancialInsightsController {
         summary.put(
                 "highPriorityCount",
                 highPriorityAnomalies + highPriorityMissedPayments + highPriorityHighInterest);
+
+        // Forecast tile counts so iOS can render a "Forecasts" card row.
+        com.budgetbuddy.service.insights.CashFlowForecastService.Forecast cashFlow = null;
+        if (cashFlowForecastService != null) {
+            cashFlow = cashFlowForecastService.forecast(user.getUserId());
+            summary.put("cashFlowForecast", cashFlow);
+        }
+        com.budgetbuddy.service.insights.SubscriptionCreepForecastService.CreepForecast creep = null;
+        if (subscriptionCreepForecastService != null) {
+            creep = subscriptionCreepForecastService.forecast(user.getUserId());
+            summary.put("subscriptionCreep", creep);
+        }
+        List<com.budgetbuddy.service.insights.BudgetExhaustionForecastService.ExhaustionAlert>
+                exhaustion = List.of();
+        if (budgetExhaustionForecastService != null) {
+            exhaustion = budgetExhaustionForecastService.forecast(user.getUserId());
+            summary.put("budgetsExhaustingSoon", exhaustion);
+        }
+
+        // AI-4: optional narrative — only fire when the advisor is wired
+        // AND the user has enough data for a meaningful sentence. The
+        // narrative MUST stay null when advisor is off so iOS falls back
+        // to the deterministic card stack.
+        if (financialNarrativeAdvisor != null) {
+            final com.budgetbuddy.service.insights.FinancialNarrativeAdvisor.SummarySnapshot snap =
+                    new com.budgetbuddy.service.insights.FinancialNarrativeAdvisor.SummarySnapshot();
+            snap.userId = user.getUserId();
+            snap.anomalyCount = anomalies.size();
+            snap.expenseReductionCount = expenseReductions.size();
+            snap.missedPaymentCount = missedPayments.size();
+            snap.highInterestCount = highInterest.size();
+            if (cashFlow != null) {
+                snap.liquidAssets = cashFlow.liquidAssets;
+                snap.monthlyIncome = cashFlow.monthlyIncome;
+                snap.monthlyExpenses = cashFlow.monthlyExpenses;
+                snap.cashRunwayDays = cashFlow.runwayDays;
+                snap.cashFlowStatus = cashFlow.status;
+            }
+            if (creep != null) snap.subscriptionCreepStatus = creep.status;
+            snap.budgetsExhaustingSoonCount = exhaustion.size();
+            try {
+                final com.budgetbuddy.service.insights.FinancialNarrativeAdvisor.Narrative n =
+                        financialNarrativeAdvisor.narrate(snap);
+                if (n != null) summary.put("narrative", n);
+            } catch (Exception ignored) {
+                // Narrative is purely additive — never block the summary.
+            }
+        }
 
         return ResponseEntity.ok(summary);
     }

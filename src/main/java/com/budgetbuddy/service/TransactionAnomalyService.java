@@ -84,6 +84,15 @@ public class TransactionAnomalyService {
     @org.springframework.beans.factory.annotation.Autowired(required = false)
     private UserService userService;
 
+    /**
+     * AI-3: optional LLM-driven personaliser for the static anomaly reason
+     * strings. Null in unit-test contexts AND when the Anthropic advisor
+     * is feature-flagged off — the detector still produces the
+     * deterministic reason in both cases.
+     */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private com.budgetbuddy.service.insights.AnomalyMessageAdvisor messageAdvisor;
+
     @jakarta.annotation.PostConstruct
     void warnIfDependenciesMissing() {
         if (feedbackService == null) {
@@ -347,7 +356,7 @@ public class TransactionAnomalyService {
         // pipeline lands, this detector relies on the amount/merchant/category signals above.
 
         // Remove duplicates and sort by severity
-        return anomalies.stream()
+        final List<TransactionAnomaly> deduped = anomalies.stream()
                 .collect(
                         Collectors.toMap(
                                 TransactionAnomaly::getTransactionId,
@@ -365,6 +374,51 @@ public class TransactionAnomalyService {
                                         (TransactionAnomaly a) -> a.getAmount().abs(),
                                         Comparator.reverseOrder()))
                 .collect(Collectors.toList());
+        // AI-3: optionally let the LLM advisor personalise reason strings.
+        // Wrapped in try/catch — any failure leaves the deterministic reason
+        // unchanged so the user always sees *something*.
+        if (messageAdvisor != null && !deduped.isEmpty()) {
+            try {
+                final List<com.budgetbuddy.service.insights.AnomalyMessageAdvisor.AnomalyContext>
+                        ctxList = new ArrayList<>(deduped.size());
+                for (final TransactionAnomaly a : deduped) {
+                    final com.budgetbuddy.service.insights.AnomalyMessageAdvisor.AnomalyContext c =
+                            new com.budgetbuddy.service.insights.AnomalyMessageAdvisor.AnomalyContext();
+                    c.anomalyId = a.getTransactionId();
+                    c.type = a.getType() == null ? null : a.getType().name();
+                    c.severity = a.getSeverity() == null ? null : a.getSeverity().name();
+                    c.category = a.getCategory();
+                    c.merchantName = a.getMerchantName();
+                    c.amount = a.getAmount();
+                    c.deterministicReason = a.getReason();
+                    if (a.getTransactionDate() != null) {
+                        try {
+                            c.transactionDate =
+                                    java.time.LocalDate.parse(a.getTransactionDate());
+                        } catch (java.time.format.DateTimeParseException e) {
+                            // leave null
+                        }
+                    }
+                    ctxList.add(c);
+                }
+                final List<com.budgetbuddy.service.insights.AnomalyMessageAdvisor.AnomalyContext>
+                        annotated = messageAdvisor.annotate(ctxList);
+                if (annotated != null) {
+                    final java.util.Map<String, String> byId = new java.util.HashMap<>();
+                    for (final com.budgetbuddy.service.insights.AnomalyMessageAdvisor.AnomalyContext
+                            c : annotated) {
+                        if (c.humanMessage != null) byId.put(c.anomalyId, c.humanMessage);
+                    }
+                    for (final TransactionAnomaly a : deduped) {
+                        final String m = byId.get(a.getTransactionId());
+                        if (m != null) a.setHumanMessage(m);
+                    }
+                }
+            } catch (Exception ignored) {
+                // Never let the personaliser break the response.
+            }
+        }
+        return deduped;
     }
 
     /** Detect statistical outliers using Z-score */
@@ -783,6 +837,12 @@ public class TransactionAnomalyService {
         private final AnomalyType type;
         private final Severity severity;
         private final String reason;
+        /**
+         * AI-3: optional LLM-personalised message. Mutable so the
+         * advisor can populate it after construction; null when the
+         * advisor is disabled — clients fall back to `reason`.
+         */
+        private String humanMessage;
 
         public TransactionAnomaly(
                 final String transactionId,
@@ -839,6 +899,14 @@ public class TransactionAnomalyService {
 
         public String getReason() {
             return reason;
+        }
+
+        public String getHumanMessage() {
+            return humanMessage;
+        }
+
+        public void setHumanMessage(final String humanMessage) {
+            this.humanMessage = humanMessage;
         }
     }
 
