@@ -113,6 +113,33 @@ public class SubscriptionController {
         this.merchantSpendTrendService = svc;
     }
 
+    /** Tax-deductibility classifier for business-mode users. */
+    private com.budgetbuddy.service.subscription.TaxDeductibilityClassifier taxClassifier;
+
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    public void setTaxClassifier(
+            final com.budgetbuddy.service.subscription.TaxDeductibilityClassifier svc) {
+        this.taxClassifier = svc;
+    }
+
+    /** Composite engagement scorer (per-sub engagement tier). */
+    private com.budgetbuddy.service.subscription.SubscriptionEngagementScorer engagementScorer;
+
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    public void setEngagementScorer(
+            final com.budgetbuddy.service.subscription.SubscriptionEngagementScorer svc) {
+        this.engagementScorer = svc;
+    }
+
+    /** Brand asset directory (logo / official domain lookup). */
+    private com.budgetbuddy.service.subscription.MerchantBrandAssetService brandAssetService;
+
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    public void setBrandAssetService(
+            final com.budgetbuddy.service.subscription.MerchantBrandAssetService svc) {
+        this.brandAssetService = svc;
+    }
+
     /**
      * Detect subscriptions from user's transactions POST /api/subscriptions/detect
      *
@@ -1027,6 +1054,108 @@ public class SubscriptionController {
         }
         return ResponseEntity.ok(
                 merchantSpendTrendService.trend(user.getUserId(), merchant, weeks));
+    }
+
+    /**
+     * Composite engagement score per active subscription. Each row
+     * carries score (0-100), tier (ACTIVE / AT_RISK / DORMANT), and
+     * per-signal breakdown (recency, frequency, price-stability,
+     * active-flag).
+     */
+    @GetMapping("/insights/engagement")
+    @Operation(
+            summary = "Per-subscription engagement score",
+            description =
+                    "Composite score across recency, frequency, price stability, and active flag")
+    public ResponseEntity<?> getEngagementScores(
+            @AuthenticationPrincipal final UserDetails userDetails) {
+        if (userDetails == null || userDetails.getUsername() == null) {
+            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, USER_NOT_AUTHENTICATED);
+        }
+        final UserTable user =
+                userService
+                        .findByEmail(userDetails.getUsername())
+                        .orElseThrow(
+                                () -> new AppException(ErrorCode.USER_NOT_FOUND, USER_NOT_FOUND_1));
+        if (engagementScorer == null) return ResponseEntity.ok(java.util.List.of());
+        final java.util.List<
+                        com.budgetbuddy.service.subscription.SubscriptionEngagementScorer
+                                .EngagementScore>
+                out = new java.util.ArrayList<>();
+        for (final com.budgetbuddy.model.Subscription s :
+                subscriptionService.getActiveSubscriptions(user.getUserId())) {
+            if (s == null) continue;
+            out.add(engagementScorer.score(s));
+        }
+        return ResponseEntity.ok(out);
+    }
+
+    /**
+     * Brand-asset lookup. iOS resolves an unknown merchant name to a
+     * canonical display + domain for brand-mark rendering. Empty body
+     * when the merchant isn't in the curated directory.
+     */
+    @GetMapping("/insights/brand-asset")
+    @Operation(
+            summary = "Merchant brand asset lookup",
+            description = "Canonical display + official domain for known merchants")
+    public ResponseEntity<?> getBrandAsset(
+            @AuthenticationPrincipal final UserDetails userDetails,
+            @org.springframework.web.bind.annotation.RequestParam("merchant")
+                    final String merchant) {
+        if (userDetails == null || userDetails.getUsername() == null) {
+            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, USER_NOT_AUTHENTICATED);
+        }
+        if (brandAssetService == null) {
+            return ResponseEntity.ok(java.util.Map.of());
+        }
+        final com.budgetbuddy.service.subscription.MerchantBrandAssetService.BrandAsset b =
+                brandAssetService.lookupOrNull(merchant);
+        if (b == null) return ResponseEntity.ok(java.util.Map.of());
+        return ResponseEntity.ok(
+                java.util.Map.of(
+                        "domain", b.domain == null ? "" : b.domain,
+                        "displayName", b.displayName == null ? "" : b.displayName));
+    }
+
+    /**
+     * Tax-deductibility estimate per active subscription. Business-mode
+     * users (or freelancers exporting year-end totals) get a per-sub
+     * chip telling them which subs are typically deductible. iOS gates
+     * this on a user setting; the endpoint always returns the data.
+     */
+    @GetMapping("/insights/tax-deductibility")
+    @Operation(
+            summary = "Per-subscription tax-deductibility estimate",
+            description =
+                    "Heuristic classification (FULL/PARTIAL/NONE/UNKNOWN) — not tax advice")
+    public ResponseEntity<?> getTaxDeductibility(
+            @AuthenticationPrincipal final UserDetails userDetails) {
+        if (userDetails == null || userDetails.getUsername() == null) {
+            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, USER_NOT_AUTHENTICATED);
+        }
+        final UserTable user =
+                userService
+                        .findByEmail(userDetails.getUsername())
+                        .orElseThrow(
+                                () -> new AppException(ErrorCode.USER_NOT_FOUND, USER_NOT_FOUND_1));
+        if (taxClassifier == null) return ResponseEntity.ok(java.util.List.of());
+        final java.util.List<java.util.Map<String, Object>> out = new java.util.ArrayList<>();
+        for (final com.budgetbuddy.model.Subscription s :
+                subscriptionService.getActiveSubscriptions(user.getUserId())) {
+            if (s == null) continue;
+            final com.budgetbuddy.service.subscription.TaxDeductibilityClassifier.Deductibility d =
+                    taxClassifier.classify(s);
+            out.add(
+                    java.util.Map.of(
+                            "subscriptionId",
+                            s.getSubscriptionId(),
+                            "merchantName",
+                            s.getMerchantName() == null ? "" : s.getMerchantName(),
+                            "deductibility",
+                            d.name()));
+        }
+        return ResponseEntity.ok(out);
     }
 
     /** Get comprehensive subscription optimization GET /api/subscriptions/insights/optimization */

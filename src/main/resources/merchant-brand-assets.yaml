@@ -1,0 +1,125 @@
+# Merchant brand asset directory.
+#
+# Maps a merchant-name substring (matched case-insensitively against
+# the lowercased merchant name) to its official domain. iOS uses the
+# domain to render a brand mark via a logo service the client controls
+# — no server-side logo fetch needed.
+#
+# Add a new merchant by appending an entry. Keep the match key short
+# enough to be unique but specific enough not to alias unrelated
+# merchants (e.g. "apple music" not "apple", "apple tv" not "apple").
+#
+# Convention: the more specific the key, the higher the match priority.
+
+brands:
+  netflix:
+    domain: netflix.com
+    displayName: Netflix
+  hulu:
+    domain: hulu.com
+    displayName: Hulu
+  disney+:
+    domain: disneyplus.com
+    displayName: Disney+
+  disneyplus:
+    domain: disneyplus.com
+    displayName: Disney+
+  hbo max:
+    domain: max.com
+    displayName: HBO Max
+  hbo:
+    domain: hbo.com
+    displayName: HBO
+  paramount+:
+    domain: paramountplus.com
+    displayName: Paramount+
+  paramount:
+    domain: paramount.com
+    displayName: Paramount
+  peacock:
+    domain: peacocktv.com
+    displayName: Peacock
+  apple tv+:
+    domain: tv.apple.com
+    displayName: Apple TV+
+  apple tv:
+    domain: tv.apple.com
+    displayName: Apple TV+
+  apple music:
+    domain: music.apple.com
+    displayName: Apple Music
+  apple fitness:
+    domain: fitness.apple.com
+    displayName: Apple Fitness+
+  spotify:
+    domain: spotify.com
+    displayName: Spotify
+  youtube music:
+    domain: music.youtube.com
+    displayName: YouTube Music
+  amazon prime:
+    domain: amazon.com
+    displayName: Amazon Prime
+  amazon music:
+    domain: music.amazon.com
+    displayName: Amazon Music
+  audible:
+    domain: audible.com
+    displayName: Audible
+  adobe creative:
+    domain: adobe.com
+    displayName: Adobe Creative Cloud
+  adobe:
+    domain: adobe.com
+    displayName: Adobe
+  microsoft 365:
+    domain: microsoft.com
+    displayName: Microsoft 365
+  office 365:
+    domain: microsoft.com
+    displayName: Microsoft 365
+  notion:
+    domain: notion.so
+    displayName: Notion
+  figma:
+    domain: figma.com
+    displayName: Figma
+  github:
+    domain: github.com
+    displayName: GitHub
+  linkedin premium:
+    domain: linkedin.com
+    displayName: LinkedIn Premium
+  linkedin:
+    domain: linkedin.com
+    displayName: LinkedIn
+  google one:
+    domain: one.google.com
+    displayName: Google One
+  google drive:
+    domain: drive.google.com
+    displayName: Google Drive
+  google workspace:
+    domain: workspace.google.com
+    displayName: Google Workspace
+  icloud:
+    domain: icloud.com
+    displayName: iCloud+
+  onedrive:
+    domain: onedrive.live.com
+    displayName: OneDrive
+  dropbox:
+    domain: dropbox.com
+    displayName: Dropbox
+  1password:
+    domain: 1password.com
+    displayName: 1Password
+  peloton:
+    domain: onepeloton.com
+    displayName: Peloton
+  strava:
+    domain: strava.com
+    displayName: Strava
+  classpass:
+    domain: classpass.com
+    displayName: ClassPass

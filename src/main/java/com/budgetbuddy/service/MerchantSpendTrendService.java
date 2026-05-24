@@ -56,9 +56,26 @@ public class MerchantSpendTrendService {
     private static final int MAX_WEEKS = 156; // 3 years cap
 
     private final TransactionRepository transactionRepository;
+    /** Setter-injected so legacy tests with the 1-arg ctor keep compiling. */
+    private com.budgetbuddy.service.subscription.MerchantCanonicalisationService canonicalisation;
 
     public MerchantSpendTrendService(final TransactionRepository transactionRepository) {
         this.transactionRepository = transactionRepository;
+    }
+
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    public void setCanonicalisation(
+            final com.budgetbuddy.service.subscription.MerchantCanonicalisationService svc) {
+        this.canonicalisation = svc;
+    }
+
+    /** Brand-asset directory; attaches official-domain hints to the trend result. */
+    private com.budgetbuddy.service.subscription.MerchantBrandAssetService brandAssetService;
+
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    public void setBrandAssetService(
+            final com.budgetbuddy.service.subscription.MerchantBrandAssetService svc) {
+        this.brandAssetService = svc;
     }
 
     public TrendResult trend(final String userId, final String merchantName, final int weeks) {
@@ -143,6 +160,24 @@ public class MerchantSpendTrendService {
 
         out.merchant = merchantName;
         out.normalisedMerchant = normalisedTarget;
+        // Canonical display lookup — if the user has a higher-quality
+        // spelling for this merchant (e.g. "Netflix" vs "NETFLIX*MONTHLY"),
+        // surface it so iOS renders the human-friendly form.
+        if (canonicalisation != null) {
+            out.canonicalDisplayName = canonicalisation.canonicalFor(userId, merchantName);
+        } else {
+            out.canonicalDisplayName = merchantName;
+        }
+        if (brandAssetService != null) {
+            final com.budgetbuddy.service.subscription.MerchantBrandAssetService.BrandAsset b =
+                    brandAssetService.lookupOrNull(merchantName);
+            if (b != null) {
+                out.brandDomain = b.domain;
+                if (b.displayName != null && !b.displayName.isBlank()) {
+                    out.canonicalDisplayName = b.displayName;
+                }
+            }
+        }
         out.weeklySeries = series;
         out.totalSpend = total.setScale(2, RoundingMode.HALF_UP);
         out.weeksObserved = windowWeeks;
@@ -205,6 +240,19 @@ public class MerchantSpendTrendService {
     public static class TrendResult {
         public String merchant;
         public String normalisedMerchant;
+        /**
+         * Canonical display name resolved from the user's transaction
+         * history — e.g. "Netflix" when the raw input was
+         * "NETFLIX*MONTHLY*US". Equals the input when the user hasn't
+         * transacted with this merchant before.
+         */
+        public String canonicalDisplayName;
+        /**
+         * Official-brand domain (e.g. "netflix.com") when the merchant
+         * is in the curated brand directory. iOS uses it to render a
+         * brand mark via a client-side logo service.
+         */
+        public String brandDomain;
         public List<WeekBucket> weeklySeries = List.of();
         public BigDecimal totalSpend = BigDecimal.ZERO;
         public BigDecimal averageWeeklySpend = BigDecimal.ZERO;

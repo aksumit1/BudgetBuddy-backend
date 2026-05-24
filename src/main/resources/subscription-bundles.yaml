@@ -1,0 +1,73 @@
+# Subscription bundling groups
+#
+# Ops contract: keep names lowercase; the matcher uses
+# `merchant.toLowerCase().contains(name)`, so "netflix" matches
+# "Netflix" or "NETFLIX*MONTHLY".
+#
+# Add a new group by appending a top-level key + its services list.
+# discountPercent is an estimate of typical bundle savings (10-25%
+# in the real market). The matcher requires >= 2 user subs in the
+# same group before it recommends bundling.
+#
+# Updates take effect on container restart. Hot-reload TBD.
+
+groups:
+  - id: streaming
+    label: Streaming
+    discountPercent: 15
+    services:
+      - netflix
+      - hulu
+      - disney
+      - disney+
+      - hbo
+      - hbo max
+      - max
+      - paramount
+      - paramount+
+      - peacock
+      - apple tv
+      - apple tv+
+      - crunchyroll
+
+  - id: cloud_storage
+    label: Cloud Storage
+    discountPercent: 20
+    services:
+      - dropbox
+      - icloud
+      - google drive
+      - google one
+      - onedrive
+      - box
+
+  - id: software
+    label: Productivity & Software
+    discountPercent: 15
+    services:
+      - adobe
+      - adobe creative
+      - microsoft 365
+      - office 365
+      - notion
+      - figma
+
+  - id: music
+    label: Music
+    discountPercent: 12
+    services:
+      - spotify
+      - apple music
+      - tidal
+      - youtube music
+      - amazon music
+
+  - id: fitness
+    label: Fitness
+    discountPercent: 10
+    services:
+      - peloton
+      - apple fitness
+      - strava
+      - whoop
+      - classpass

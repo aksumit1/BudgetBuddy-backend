@@ -53,6 +53,13 @@ public class SubscriptionAdvancedService {
     private final SubscriptionInsightsService insightsService;
     /** Optional LLM augmentation for {@link #suggestAlternatives}. Null when disabled. */
     private final LlmAlternativeSubscriptionSuggester llmAlternativeSuggester;
+    /**
+     * YAML-driven bundling groups. Setter-injected so legacy tests that
+     * construct the service with the prior 4-arg ctor keep working —
+     * a null config means {@link #suggestBundling} falls back to the
+     * built-in defaults inside the helper.
+     */
+    private com.budgetbuddy.service.subscription.BundleGroupConfig bundleGroupConfig;
 
     public SubscriptionAdvancedService(
             final TransactionRepository transactionRepository,
@@ -64,6 +71,12 @@ public class SubscriptionAdvancedService {
         this.subscriptionService = subscriptionService;
         this.insightsService = insightsService;
         this.llmAlternativeSuggester = llmAlternativeSuggester;
+    }
+
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    public void setBundleGroupConfig(
+            final com.budgetbuddy.service.subscription.BundleGroupConfig config) {
+        this.bundleGroupConfig = config;
     }
 
     /**
@@ -234,19 +247,22 @@ public class SubscriptionAdvancedService {
 
         final List<Subscription> subscriptions = subscriptionService.getActiveSubscriptions(userId);
 
-        // Known bundling opportunities
-        final Map<String, List<String>> bundlingGroups = new HashMap<>();
-        bundlingGroups.put(
-                "streaming", List.of("netflix", "hulu", "disney", "hbo", "paramount", "peacock"));
-        bundlingGroups.put(
-                "cloud_storage", List.of("dropbox", "icloud", "google drive", "onedrive"));
-        bundlingGroups.put("software", List.of("adobe", "microsoft 365", "office 365"));
+        // Bundling groups now come from subscription-bundles.yaml so ops
+        // can extend categories (music, fitness, …) and adjust per-group
+        // discount estimates without a Java change. The config bean
+        // falls back to the prior hardcoded shape on parse failure.
+        final List<com.budgetbuddy.service.subscription.BundleGroupConfig.BundleGroup> groups =
+                bundleGroupConfig == null
+                        ? defaultBundleGroups()
+                        : bundleGroupConfig.groups();
 
         final List<BundlingRecommendation> recommendations = new ArrayList<>();
 
-        for (final Map.Entry<String, List<String>> group : bundlingGroups.entrySet()) {
-            final String groupType = group.getKey();
-            final List<String> services = group.getValue();
+        for (final com.budgetbuddy.service.subscription.BundleGroupConfig.BundleGroup group :
+                groups) {
+            final List<String> services = group.services == null ? List.of() : group.services;
+            final String groupType = group.id;
+            final String label = group.label == null ? groupType : group.label;
 
             // Find user's subscriptions in this group
             final List<Subscription> userSubscriptions =
@@ -260,15 +276,16 @@ public class SubscriptionAdvancedService {
                             .collect(Collectors.toList());
 
             if (userSubscriptions.size() >= 2) {
-                // Calculate potential savings from bundling
                 final BigDecimal currentTotal =
                         userSubscriptions.stream()
                                 .map(Subscription::getAmount)
                                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-                // Estimate bundling discount (typically 10-20%)
-                final BigDecimal estimatedBundlePrice =
-                        currentTotal.multiply(new BigDecimal("0.85")); // 15% discount
+                final BigDecimal discountFactor =
+                        bundleGroupConfig == null
+                                ? new BigDecimal("0.85")
+                                : bundleGroupConfig.discountFactor(group);
+                final BigDecimal estimatedBundlePrice = currentTotal.multiply(discountFactor);
                 final BigDecimal potentialSavings = currentTotal.subtract(estimatedBundlePrice);
 
                 if (potentialSavings.compareTo(BigDecimal.ZERO) > 0) {
@@ -281,7 +298,7 @@ public class SubscriptionAdvancedService {
                                     "Bundle "
                                             + userSubscriptions.size()
                                             + " "
-                                            + groupType
+                                            + label
                                             + " services for "
                                             + formatCurrency(potentialSavings)
                                             + "/month savings"));
@@ -296,6 +313,36 @@ public class SubscriptionAdvancedService {
                     userId);
         }
         return recommendations;
+    }
+
+    /**
+     * Hardcoded fallback bundle groups used only when no
+     * {@link com.budgetbuddy.service.subscription.BundleGroupConfig}
+     * bean is wired — preserves the pre-config behaviour exactly so
+     * tests that build this service standalone keep working.
+     */
+    private static List<com.budgetbuddy.service.subscription.BundleGroupConfig.BundleGroup>
+            defaultBundleGroups() {
+        final List<com.budgetbuddy.service.subscription.BundleGroupConfig.BundleGroup> out =
+                new ArrayList<>();
+        out.add(make("streaming", "Streaming", 15,
+                List.of("netflix", "hulu", "disney", "hbo", "paramount", "peacock")));
+        out.add(make("cloud_storage", "Cloud Storage", 20,
+                List.of("dropbox", "icloud", "google drive", "onedrive")));
+        out.add(make("software", "Productivity & Software", 15,
+                List.of("adobe", "microsoft 365", "office 365")));
+        return out;
+    }
+
+    private static com.budgetbuddy.service.subscription.BundleGroupConfig.BundleGroup make(
+            final String id, final String label, final int pct, final List<String> services) {
+        final com.budgetbuddy.service.subscription.BundleGroupConfig.BundleGroup g =
+                new com.budgetbuddy.service.subscription.BundleGroupConfig.BundleGroup();
+        g.id = id;
+        g.label = label;
+        g.discountPercent = pct;
+        g.services = new ArrayList<>(services);
+        return g;
     }
 
     /**
