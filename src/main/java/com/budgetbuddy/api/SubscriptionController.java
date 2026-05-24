@@ -80,6 +80,12 @@ public class SubscriptionController {
     private final SubscriptionInsightsService insightsService;
     private final SubscriptionAdvancedService advancedService;
     private final UserService userService;
+    /**
+     * Forward-looking renewal calendar. Setter-injected so existing
+     * test constructors don't grow another required arg, and so the
+     * field is null in tests that don't exercise the renewal endpoints.
+     */
+    private com.budgetbuddy.service.SubscriptionRenewalForecastService renewalForecastService;
 
     public SubscriptionController(
             final SubscriptionService subscriptionService,
@@ -90,6 +96,21 @@ public class SubscriptionController {
         this.insightsService = insightsService;
         this.advancedService = advancedService;
         this.userService = userService;
+    }
+
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    public void setRenewalForecastService(
+            final com.budgetbuddy.service.SubscriptionRenewalForecastService svc) {
+        this.renewalForecastService = svc;
+    }
+
+    /** Per-merchant spend trend (sparkline data). */
+    private com.budgetbuddy.service.MerchantSpendTrendService merchantSpendTrendService;
+
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    public void setMerchantSpendTrendService(
+            final com.budgetbuddy.service.MerchantSpendTrendService svc) {
+        this.merchantSpendTrendService = svc;
     }
 
     /**
@@ -916,6 +937,96 @@ public class SubscriptionController {
         } catch (RuntimeException ex) {
             throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to compute density: " + ex.getMessage());
         }
+    }
+
+    /**
+     * Forward-looking renewal calendar. Returns the active subscriptions
+     * whose next billing date falls within {@code windowDays} of today,
+     * sorted by daysUntilRenewal ascending.
+     */
+    @GetMapping("/insights/renewals")
+    @Operation(
+            summary = "Upcoming subscription renewals",
+            description = "Lists active subscriptions billing within the next N days")
+    public ResponseEntity<?> getUpcomingRenewals(
+            @AuthenticationPrincipal final UserDetails userDetails,
+            @org.springframework.web.bind.annotation.RequestParam(
+                            value = "windowDays",
+                            defaultValue = "30")
+                    final int windowDays) {
+        if (userDetails == null || userDetails.getUsername() == null) {
+            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, USER_NOT_AUTHENTICATED);
+        }
+        final UserTable user =
+                userService
+                        .findByEmail(userDetails.getUsername())
+                        .orElseThrow(
+                                () -> new AppException(ErrorCode.USER_NOT_FOUND, USER_NOT_FOUND_1));
+        if (renewalForecastService == null) {
+            return ResponseEntity.ok(java.util.List.of());
+        }
+        return ResponseEntity.ok(
+                renewalForecastService.renewalCalendar(
+                        user.getUserId(), windowDays, java.time.LocalDate.now()));
+    }
+
+    /**
+     * "Review before renewal" — long-cycle (annual + semi-annual)
+     * subscriptions about to renew within the next 14 days. These are
+     * the ones users forget about and get surprised by; the endpoint
+     * exists so iOS can drive a proactive reminder banner.
+     */
+    @GetMapping("/insights/renewals/review-window")
+    @Operation(
+            summary = "Annual subscriptions renewing soon",
+            description = "Annual + semi-annual subs renewing within the next 14 days")
+    public ResponseEntity<?> getAnnualReviewWindow(
+            @AuthenticationPrincipal final UserDetails userDetails) {
+        if (userDetails == null || userDetails.getUsername() == null) {
+            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, USER_NOT_AUTHENTICATED);
+        }
+        final UserTable user =
+                userService
+                        .findByEmail(userDetails.getUsername())
+                        .orElseThrow(
+                                () -> new AppException(ErrorCode.USER_NOT_FOUND, USER_NOT_FOUND_1));
+        if (renewalForecastService == null) {
+            return ResponseEntity.ok(java.util.List.of());
+        }
+        return ResponseEntity.ok(renewalForecastService.annualReviewWindow(user.getUserId()));
+    }
+
+    /**
+     * Per-merchant spend trend (sparkline data). Returns a contiguous
+     * weekly series suitable for rendering a sparkline next to a
+     * subscription or merchant card. Empty series when the service
+     * isn't wired or the merchant has no transactions in the window.
+     */
+    @GetMapping("/insights/merchant-trend")
+    @Operation(
+            summary = "Per-merchant spend trend",
+            description = "Weekly spend series for a merchant over the last N weeks")
+    public ResponseEntity<?> getMerchantSpendTrend(
+            @AuthenticationPrincipal final UserDetails userDetails,
+            @org.springframework.web.bind.annotation.RequestParam("merchant") final String merchant,
+            @org.springframework.web.bind.annotation.RequestParam(
+                            value = "weeks",
+                            defaultValue = "52")
+                    final int weeks) {
+        if (userDetails == null || userDetails.getUsername() == null) {
+            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, USER_NOT_AUTHENTICATED);
+        }
+        final UserTable user =
+                userService
+                        .findByEmail(userDetails.getUsername())
+                        .orElseThrow(
+                                () -> new AppException(ErrorCode.USER_NOT_FOUND, USER_NOT_FOUND_1));
+        if (merchantSpendTrendService == null) {
+            return ResponseEntity.ok(
+                    new com.budgetbuddy.service.MerchantSpendTrendService.TrendResult());
+        }
+        return ResponseEntity.ok(
+                merchantSpendTrendService.trend(user.getUserId(), merchant, weeks));
     }
 
     /** Get comprehensive subscription optimization GET /api/subscriptions/insights/optimization */

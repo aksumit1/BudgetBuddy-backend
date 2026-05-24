@@ -44,6 +44,13 @@ public class SubscriptionInsightsService {
     private final TransactionRepository transactionRepository;
     private final SubscriptionService subscriptionService;
     /**
+     * AI-5: optional LLM personaliser for cancellation reasons. Null in
+     * tests and when the feature flag is off; null path leaves every
+     * recommendation's deterministic reason as authoritative.
+     */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private com.budgetbuddy.service.subscription.CancellationReasonAdvisor cancellationReasonAdvisor;
+    /**
      * Percent-change threshold above which a price drift counts as a real
      * "price change" worth alerting on. Was hardcoded 5%. Externalized so
      * ops can tune (e.g. lower it for users who want every penny tracked,
@@ -74,6 +81,15 @@ public class SubscriptionInsightsService {
      * refresh to see what they just edited.
      */
     private static final long TX_CACHE_TTL_MS = 30_000;
+    /**
+     * Hard ceiling on cached users — protects against unbounded growth
+     * if the service is hit by many distinct user IDs in a short window
+     * (load test, batch sync, an attacker probing). When the cap is
+     * reached we evict expired entries first, then fall back to evicting
+     * the oldest entry by expiry. The cache is an optimization, not a
+     * correctness layer, so eviction is safe at any time.
+     */
+    private static final int TX_CACHE_MAX_USERS = 1_000;
     private final java.util.concurrent.ConcurrentMap<String, TxCacheEntry> txCache =
             new java.util.concurrent.ConcurrentHashMap<>();
 
@@ -95,8 +111,40 @@ public class SubscriptionInsightsService {
         }
         final List<TransactionTable> fresh =
                 transactionRepository.findByUserId(userId, 0, 10_000);
+        ensureCacheCapacity();
         txCache.put(userId, new TxCacheEntry(now + TX_CACHE_TTL_MS, fresh));
         return fresh;
+    }
+
+    private void ensureCacheCapacity() {
+        if (txCache.size() < TX_CACHE_MAX_USERS) {
+            return;
+        }
+        final long now = System.currentTimeMillis();
+        // First pass: drop everything expired (cheap and usually enough).
+        txCache.entrySet().removeIf(e -> e.getValue().expiresAt <= now);
+        if (txCache.size() < TX_CACHE_MAX_USERS) {
+            return;
+        }
+        // Still over the cap → evict the entry expiring soonest. Linear
+        // scan of <=1000 entries is fine; this only runs at the cap.
+        txCache.entrySet().stream()
+                .min(java.util.Map.Entry.comparingByValue(
+                        java.util.Comparator.comparingLong(e -> e.expiresAt)))
+                .ifPresent(e -> txCache.remove(e.getKey(), e.getValue()));
+    }
+
+    /**
+     * Drop the cached transactions for one user. Call from any service
+     * that mutates a user's transactions or subscriptions if the caller
+     * needs the next insights request to reflect the mutation
+     * immediately instead of waiting up to {@value #TX_CACHE_TTL_MS}ms.
+     * Safe to call when no cache entry exists.
+     */
+    public void invalidateUser(final String userId) {
+        if (userId != null) {
+            txCache.remove(userId);
+        }
     }
 
     /**
@@ -359,6 +407,16 @@ public class SubscriptionInsightsService {
                     "Generated {} cancellation recommendations for user: {}",
                     recommendations.size(),
                     userId);
+        }
+        // AI-5: optionally personalise each reason via the LLM advisor.
+        // Wrapped in try/catch — any failure leaves the deterministic
+        // reason unchanged so users always see *something*.
+        if (cancellationReasonAdvisor != null && !recommendations.isEmpty()) {
+            try {
+                cancellationReasonAdvisor.annotate(recommendations);
+            } catch (Exception ignored) {
+                // never let the personaliser break the response
+            }
         }
         return recommendations;
     }
@@ -669,6 +727,13 @@ public class SubscriptionInsightsService {
         private final String reason;
         private final BigDecimal potentialSavings;
         private final Priority priority;
+        /**
+         * AI-5: optional LLM-personalised rewrite of {@code reason}.
+         * Populated by {@link CancellationReasonAdvisor} when the
+         * Anthropic advisor is enabled. {@code reason} stays as the
+         * deterministic source of truth for tests + accessibility.
+         */
+        private String humanMessage;
 
         public CancellationRecommendation(
                 final Subscription subscription,
@@ -695,6 +760,14 @@ public class SubscriptionInsightsService {
 
         public Priority getPriority() {
             return priority;
+        }
+
+        public String getHumanMessage() {
+            return humanMessage;
+        }
+
+        public void setHumanMessage(final String humanMessage) {
+            this.humanMessage = humanMessage;
         }
 
         public enum Priority {

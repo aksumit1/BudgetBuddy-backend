@@ -146,7 +146,36 @@ public class WeeklyDigestService {
         // calendar-month and silently mis-classified every weekly/biweekly budget.
         int overBudget = 0;
         final LocalDate today = LocalDate.now(java.time.ZoneOffset.UTC);
-        for (final BudgetTable b : budgetRepository.findByUserId(user.getUserId())) {
+        final List<BudgetTable> budgets = budgetRepository.findByUserId(user.getUserId());
+
+        // Pre-fetch ONCE across the union window of every budget's
+        // cycle. Previously this loop hit findByUserIdAndDateRange per
+        // budget — a user with 10 budgets paid for 10 DDB queries.
+        // Now we issue one query and filter in-memory per-budget.
+        LocalDate earliestStart = null;
+        LocalDate latestEnd = null;
+        for (final BudgetTable b : budgets) {
+            if (b.getMonthlyLimit() == null || b.getCategory() == null) {
+                continue;
+            }
+            final LocalDate[] window = BudgetCycleMath.cycleWindow(b, today);
+            if (earliestStart == null || window[0].isBefore(earliestStart)) {
+                earliestStart = window[0];
+            }
+            final LocalDate end = window[1].isAfter(today) ? today : window[1];
+            if (latestEnd == null || end.isAfter(latestEnd)) {
+                latestEnd = end;
+            }
+        }
+        final List<TransactionTable> allCycleTx;
+        if (earliestStart == null || latestEnd == null) {
+            allCycleTx = java.util.Collections.emptyList();
+        } else {
+            allCycleTx = transactionRepository.findByUserIdAndDateRange(
+                    user.getUserId(), earliestStart.format(DATE), latestEnd.format(DATE));
+        }
+
+        for (final BudgetTable b : budgets) {
             if (b.getMonthlyLimit() == null || b.getCategory() == null) {
                 continue;
             }
@@ -160,12 +189,17 @@ public class WeeklyDigestService {
                     BigDecimal.valueOf(Math.max(1, Math.min(totalDays, elapsed)))
                             .divide(BigDecimal.valueOf(totalDays), 4, java.math.RoundingMode.HALF_UP);
 
-            final List<TransactionTable> cycleTx =
-                    transactionRepository.findByUserIdAndDateRange(
-                            user.getUserId(), cycleStart.format(DATE), cycleEnd.format(DATE));
+            // Filter the pre-fetched list to this budget's window.
+            final String cycleStartStr = cycleStart.format(DATE);
+            final String cycleEndStr = cycleEnd.format(DATE);
             BigDecimal categorySpend = BigDecimal.ZERO;
-            for (final TransactionTable t : cycleTx) {
-                if (t == null || t.getAmount() == null || t.getDeletedAt() != null) {
+            for (final TransactionTable t : allCycleTx) {
+                if (t == null || t.getAmount() == null || t.getDeletedAt() != null
+                        || t.getTransactionDate() == null) {
+                    continue;
+                }
+                if (t.getTransactionDate().compareTo(cycleStartStr) < 0
+                        || t.getTransactionDate().compareTo(cycleEndStr) > 0) {
                     continue;
                 }
                 if (!(b.getCategory().equals(t.getCategoryPrimary())
