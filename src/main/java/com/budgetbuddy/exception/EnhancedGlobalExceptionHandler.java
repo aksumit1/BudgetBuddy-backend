@@ -518,7 +518,9 @@ public class EnhancedGlobalExceptionHandler {
             case SERVICE_UNAVAILABLE -> HttpStatus.SERVICE_UNAVAILABLE;
             // Flow 4: O2 optimistic-lock collision → 409; O11 goal already closed → 422.
             case CONFLICT -> HttpStatus.CONFLICT;
-            case GOAL_ALREADY_COMPLETED -> HttpStatus.UNPROCESSABLE_ENTITY;
+            // Spring 7 renamed UNPROCESSABLE_ENTITY → UNPROCESSABLE_CONTENT
+            // (RFC 9110 reason phrase). Same 422 status code, new symbol.
+            case GOAL_ALREADY_COMPLETED -> HttpStatus.UNPROCESSABLE_CONTENT;
             default -> HttpStatus.INTERNAL_SERVER_ERROR;
         };
     }

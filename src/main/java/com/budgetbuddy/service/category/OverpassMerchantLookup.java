@@ -174,9 +174,8 @@ public class OverpassMerchantLookup implements ChainedLocationLookup.ExternalCat
                 continue;
             }
             final Map<String, String> tagMap = new HashMap<>();
-            final Iterator<Map.Entry<String, JsonNode>> it = tags.fields();
-            while (it.hasNext()) {
-                final Map.Entry<String, JsonNode> e = it.next();
+            // Jackson 2.21 deprecated JsonNode.fields() in favour of properties().
+            for (final Map.Entry<String, JsonNode> e : tags.properties()) {
                 tagMap.put(e.getKey().toLowerCase(Locale.ROOT), e.getValue().asText());
             }
             final CategoryResult mapped = OsmTagMapper.fromTags(tagMap);

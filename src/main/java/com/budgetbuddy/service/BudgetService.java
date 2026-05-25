@@ -82,6 +82,12 @@ public class BudgetService {
      * without a {@code goalId} — both are nonsensical and would silently drift the "remaining to
      * allocate" math on the ZBB banner.
      */
+    // BudgetTable.setCurrentSpent is @Deprecated to discourage NEW readers
+    // of the persisted column; this writer survives so DDB rows stay
+    // backward-compatible with the legacy schema. The deprecation is the
+    // migration tracker — suppress at method scope so the warning stops
+    // bleeding into every build but the intent is documented here.
+    @SuppressWarnings("deprecation")
     public BudgetTable createOrUpdateBudget(
             final UserTable user,
             final String category,

@@ -589,9 +589,17 @@
             
             <!-- commons-compress: POI 5.5.x needs >= 1.27 because
                  ZipArchiveInputStream.getNextEntry()'s return type changed;
-                 Testcontainers 1.21 still pulls 1.24, which causes
-                 NoSuchMethodError on POI's OPCPackage path. Pin to a
-                 version POI 5.5.1 was built against. -->
+                 Testcontainers 2.0.5 still pulls an older commons-compress
+                 transitively, which causes NoSuchMethodError on POI's
+                 OPCPackage path. Pin to a version POI 5.5.1 was built
+                 against.
+
+                 Pinned 2026-05; revisit and drop when Testcontainers
+                 ships a release whose transitive commons-compress is
+                 >= 1.27 (check via `mvn dependency:tree -Dincludes=
+                 org.apache.commons:commons-compress` — if Testcontainers
+                 already brings it at the right version, this override
+                 is redundant). -->
             <dependency>
                 <groupId>org.apache.commons</groupId>
                 <artifactId>commons-compress</artifactId>

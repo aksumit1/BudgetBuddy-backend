@@ -180,9 +180,9 @@ public class NominatimMerchantLookup implements ChainedLocationLookup.ExternalCa
             // Fold extratags in too — Nominatim sometimes returns extra OSM tags.
             final JsonNode extra = result.path("extratags");
             if (extra.isObject()) {
-                final Iterator<Map.Entry<String, JsonNode>> it = extra.fields();
-                while (it.hasNext()) {
-                    final Map.Entry<String, JsonNode> e = it.next();
+                // Jackson 2.21 deprecated JsonNode.fields() in favour of
+                // properties() (Set<Map.Entry> rather than Iterator).
+                for (final Map.Entry<String, JsonNode> e : extra.properties()) {
                     tags.put(
                             e.getKey().toLowerCase(Locale.ROOT),
                             e.getValue().asText().toLowerCase(Locale.ROOT));

@@ -63,7 +63,8 @@ public class PdfImportJobWorker {
     public void init() {
         this.executor = Executors.newFixedThreadPool(workerThreads, r -> {
             final Thread t = new Thread(r);
-            t.setName("pdf-import-worker-" + t.getId());
+            // Thread.getId() was deprecated in JDK 21; threadId() is the replacement.
+            t.setName("pdf-import-worker-" + t.threadId());
             t.setDaemon(true);
             return t;
         });

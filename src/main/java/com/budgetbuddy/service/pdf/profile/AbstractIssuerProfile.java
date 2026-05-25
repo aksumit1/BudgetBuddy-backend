@@ -26,7 +26,18 @@ import java.util.regex.Pattern;
  *
  * <p>Subclasses are package-friendly to write — see {@link GenericFallbackProfile}
  * for a minimal example.
+ *
+ * <p><b>Deprecation note:</b> {@link StatementParsingUtilities}'s
+ * {@code extractCreditLimit}, {@code extractAvailableCredit},
+ * {@code extractStatementDate(String[], Integer, boolean)} and
+ * {@code extractNextAutoPayAmount} are marked {@code @Deprecated}. Their
+ * migration target is per-issuer overrides on this class — the deprecation
+ * is the migration tracker, not a bug. This base class intentionally
+ * routes through them so issuers that haven't yet been ported to
+ * issuer-specific logic still parse correctly. Suppress the warning at
+ * the class level so the build stays quiet without losing the signal.
  */
+@SuppressWarnings("deprecation")
 public abstract class AbstractIssuerProfile implements IssuerProfile {
 
     private final String issuerId;
