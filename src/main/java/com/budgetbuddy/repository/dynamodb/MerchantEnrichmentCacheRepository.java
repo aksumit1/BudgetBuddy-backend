@@ -91,4 +91,23 @@ public class MerchantEnrichmentCacheRepository {
             // table missing → nothing to delete
         }
     }
+
+    /**
+     * Stream every row in the cache. Used by {@link
+     * com.budgetbuddy.service.category.MerchantRuleExportWorker} to
+     * promote stable positive entries into a draft YAML rules file. This
+     * is a full table scan and SHOULD only run on the daily export
+     * schedule, never on the hot path.
+     */
+    public java.util.stream.Stream<MerchantEnrichmentCacheTable> scanAll() {
+        try {
+            return java.util.stream.StreamSupport.stream(
+                    table.scan().items().spliterator(), false);
+        } catch (ResourceNotFoundException notProvisioned) {
+            if (LOGGER.isDebugEnabled()) {
+                LOGGER.debug("MerchantEnrichmentCache table not provisioned; scan returns empty");
+            }
+            return java.util.stream.Stream.empty();
+        }
+    }
 }

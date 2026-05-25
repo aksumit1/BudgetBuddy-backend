@@ -122,7 +122,7 @@ public class AuthService {
         if (user.getPasswordHash() == null || user.getPasswordHash().isEmpty()) {
             if (LOGGER.isWarnEnabled()) {
                 LOGGER.warn(
-                        "User {} has no password hash stored. Legacy account?", request.getEmail());
+                        "User {} has no password hash stored. Legacy account?", PrivacyRedaction.maskEmail(request.getEmail()));
             }
             throw new AppException(ErrorCode.INVALID_CREDENTIALS, INVALID_EMAIL_OR_PASSWORD);
         }
@@ -131,13 +131,13 @@ public class AuthService {
             if (LOGGER.isWarnEnabled()) {
                 LOGGER.warn(
                         "User {} has no server salt. Account may need password reset.",
-                        request.getEmail());
+                        PrivacyRedaction.maskEmail(request.getEmail()));
             }
             throw new AppException(ErrorCode.INVALID_CREDENTIALS, INVALID_EMAIL_OR_PASSWORD);
         }
         if (request.getPasswordHash() == null || request.getPasswordHash().isEmpty()) {
             if (LOGGER.isWarnEnabled()) {
-                LOGGER.warn("Login request for user {} missing password_hash", request.getEmail());
+                LOGGER.warn("Login request for user {} missing password_hash", PrivacyRedaction.maskEmail(request.getEmail()));
             }
             throw new AppException(ErrorCode.INVALID_INPUT, "password_hash is required");
         }
@@ -145,7 +145,7 @@ public class AuthService {
         if (LOGGER.isDebugEnabled()) {
             LOGGER.debug(
                     "Authenticating user {}: clientHash length={}, serverHash length={}, serverSalt length={}",
-                    request.getEmail(),
+                    PrivacyRedaction.maskEmail(request.getEmail()),
                     request.getPasswordHash().length(),
                     user.getPasswordHash().length(),
                     serverSalt.length());
@@ -158,12 +158,12 @@ public class AuthService {
             if (LOGGER.isWarnEnabled()) {
                 LOGGER.warn(
                         "Password verification failed for user {}: hash/salt mismatch",
-                        request.getEmail());
+                        PrivacyRedaction.maskEmail(request.getEmail()));
             }
             throw new AppException(ErrorCode.INVALID_CREDENTIALS, INVALID_EMAIL_OR_PASSWORD);
         }
         if (LOGGER.isDebugEnabled()) {
-            LOGGER.debug("Password verification succeeded for user: {}", request.getEmail());
+            LOGGER.debug("Password verification succeeded for user: {}", PrivacyRedaction.maskEmail(request.getEmail()));
         }
     }
 
@@ -195,7 +195,7 @@ public class AuthService {
             if (LOGGER.isErrorEnabled()) {
                 LOGGER.error(
                         "User {} has no password hash during authentication. This should not happen.",
-                        user.getEmail());
+                        PrivacyRedaction.maskEmail(user.getEmail()));
             }
             throw new AppException(
                     ErrorCode.INTERNAL_SERVER_ERROR, "User account configuration error");
@@ -240,7 +240,7 @@ public class AuthService {
                         user.getFirstName() != null ? user.getFirstName() : "",
                         user.getLastName() != null ? user.getLastName() : "");
         if (LOGGER.isInfoEnabled()) {
-            LOGGER.info("{}{}", logPrefix, user.getEmail());
+            LOGGER.info("{}{}", logPrefix, PrivacyRedaction.maskEmail(user.getEmail()));
         }
         return new AuthResponse(accessToken, refreshToken, expiresAt, userInfo);
     }

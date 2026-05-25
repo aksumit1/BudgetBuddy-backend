@@ -46,14 +46,30 @@ public class McpProtocolHandler {
     private final McpToolRegistry registry;
     private final McpSessionRegistry sessionRegistry;
     private final ObjectMapper mapper;
+    private final McpPromptRegistry promptRegistry;
+    private final McpResourceRegistry resourceRegistry;
 
     public McpProtocolHandler(
             final McpToolRegistry registry,
             final McpSessionRegistry sessionRegistry,
             final ObjectMapper mapper) {
+        // Back-compat constructor for tests that don't care about
+        // prompts / resources — they still see a working tools surface.
+        this(registry, sessionRegistry, mapper, null, null);
+    }
+
+    @org.springframework.beans.factory.annotation.Autowired
+    public McpProtocolHandler(
+            final McpToolRegistry registry,
+            final McpSessionRegistry sessionRegistry,
+            final ObjectMapper mapper,
+            final McpPromptRegistry promptRegistry,
+            final McpResourceRegistry resourceRegistry) {
         this.registry = registry;
         this.sessionRegistry = sessionRegistry;
         this.mapper = mapper;
+        this.promptRegistry = promptRegistry;
+        this.resourceRegistry = resourceRegistry;
     }
 
     /**
@@ -85,6 +101,18 @@ public class McpProtocolHandler {
                 case "tools/call":
                     requireSession(session);
                     return handleToolsCall(request, user, session, id);
+                case "prompts/list":
+                    requireSession(session);
+                    return handlePromptsList(id);
+                case "prompts/get":
+                    requireSession(session);
+                    return handlePromptsGet(request, user, id);
+                case "resources/list":
+                    requireSession(session);
+                    return handleResourcesList(id);
+                case "resources/read":
+                    requireSession(session);
+                    return handleResourcesRead(request, user, id);
                 case "ping":
                     return McpJsonRpc.success(mapper, id, mapper.createObjectNode());
                 case "notifications/initialized":
@@ -112,22 +140,47 @@ public class McpProtocolHandler {
 
     private ObjectNode handleInitialize(
             final JsonNode request, final UserTable user, final JsonNode id) {
-        final McpSession session = sessionRegistry.create(user.getUserId());
+        // Honour the user's persistent money-moving consent flag, set
+        // from the iOS Settings → MCP screen. When true, the new
+        // session starts with consent already granted so AI clients
+        // that reconnect don't bug the user every time.
+        final boolean persistentConsent = Boolean.TRUE.equals(user.getMcpMoneyMovingConsent());
+        final McpSession session = sessionRegistry.create(user.getUserId(), persistentConsent);
+
+        // Per MCP spec, the client identifies itself in
+        // params.clientInfo.{name,version}. We capture it so the iOS
+        // Settings screen can render "Claude Desktop" instead of a
+        // raw session UUID.
+        final JsonNode clientInfo = request.path("params").path("clientInfo");
+        if (clientInfo.isObject()) {
+            session.setClientInfo(
+                    clientInfo.path("name").asText(""),
+                    clientInfo.path("version").asText(""));
+        }
+
         final ObjectNode result = mapper.createObjectNode();
         result.put("protocolVersion", PROTOCOL_VERSION);
 
-        // Capabilities — we advertise tools only (no resources/prompts in v1).
+        // Capabilities — tools + prompts + resources.
         final ObjectNode capabilities = result.putObject("capabilities");
         final ObjectNode tools = capabilities.putObject("tools");
         tools.put("listChanged", false);
+        final ObjectNode prompts = capabilities.putObject("prompts");
+        prompts.put("listChanged", false);
+        final ObjectNode resources = capabilities.putObject("resources");
+        resources.put("subscribe", false);
+        resources.put("listChanged", false);
 
         // Server info — identifies us to the client.
         final ObjectNode serverInfo = result.putObject("serverInfo");
         serverInfo.put("name", "budgetbuddy-mcp");
-        serverInfo.put("version", "1.0.0");
+        serverInfo.put("version", "1.1.0");
 
         // Session id — client echoes this in `Mcp-Session-Id` header.
         result.put("sessionId", session.sessionId());
+        // Surface persistent-consent state so iOS can render an
+        // accurate "consent already granted" badge on first connect.
+        result.put("persistentMoneyMovingConsent", persistentConsent);
         return McpJsonRpc.success(mapper, id, result);
     }
 
@@ -174,17 +227,136 @@ public class McpProtocolHandler {
         final JsonNode args = params.has("arguments")
                 ? params.get("arguments")
                 : mapper.createObjectNode();
-        final JsonNode toolResult = tool.call(args, user, session);
 
-        // Wrap result per MCP spec: tools/call returns {content: [...]}.
+        // Audit: log every tool dispatch with a structured payload so
+        // ops can answer "what did the AI just do for user X?" without
+        // grepping. MONEY_MOVING tools log at INFO so they show up in
+        // default-prod log ingest; READ tools log at DEBUG to avoid
+        // drowning the stream. Underlying services still write their
+        // own audit-trail rows via MutationAuditInterceptor — this is
+        // the access-surface log, not the data-mutation log.
+        final long startNanos = System.nanoTime();
+        final boolean isMoneyMoving = tool.category() == McpTool.Category.MONEY_MOVING;
+        try {
+            final JsonNode toolResult = tool.call(args, user, session);
+            logToolCall(name, tool.category(), session, user, startNanos, /*ok=*/true,
+                    isMoneyMoving);
+
+            final ObjectNode result = mapper.createObjectNode();
+            final ArrayNode content = result.putArray("content");
+            final ObjectNode block = content.addObject();
+            block.put("type", "text");
+            block.put("text", toolResult == null ? "{}" : toolResult.toString());
+            result.set("structuredContent", toolResult);
+            return McpJsonRpc.success(mapper, id, result);
+        } catch (final Exception e) {
+            logToolCall(name, tool.category(), session, user, startNanos, /*ok=*/false,
+                    isMoneyMoving);
+            throw e;
+        }
+    }
+
+    private void logToolCall(
+            final String toolName,
+            final McpTool.Category category,
+            final McpSession session,
+            final UserTable user,
+            final long startNanos,
+            final boolean ok,
+            final boolean isMoneyMoving) {
+        final long elapsedMs = (System.nanoTime() - startNanos) / 1_000_000L;
+        // sessionId is logged in full because it's a per-session UUID,
+        // not a credential; userId is the same id already in app logs.
+        if (isMoneyMoving) {
+            LOGGER.info(
+                    "MCP tools/call audit | tool={} category={} sessionId={} userId={} "
+                            + "ok={} elapsedMs={}",
+                    toolName, category, session.sessionId(), user.getUserId(),
+                    ok, elapsedMs);
+        } else if (LOGGER.isDebugEnabled()) {
+            LOGGER.debug(
+                    "MCP tools/call audit | tool={} category={} sessionId={} userId={} "
+                            + "ok={} elapsedMs={}",
+                    toolName, category, session.sessionId(), user.getUserId(),
+                    ok, elapsedMs);
+        }
+    }
+
+    private ObjectNode handlePromptsList(final JsonNode id) {
         final ObjectNode result = mapper.createObjectNode();
-        final ArrayNode content = result.putArray("content");
-        final ObjectNode block = content.addObject();
-        block.put("type", "text");
-        block.put("text", toolResult == null ? "{}" : toolResult.toString());
-        // Also include the structured object so clients that prefer
-        // typed access don't have to re-parse the embedded JSON string.
-        result.set("structuredContent", toolResult);
+        final ArrayNode list = result.putArray("prompts");
+        if (promptRegistry != null) {
+            for (final McpPrompt p : promptRegistry.all()) {
+                final ObjectNode entry = list.addObject();
+                entry.put("name", p.name());
+                entry.put("description", p.description());
+                final ArrayNode argsNode = entry.putArray("arguments");
+                for (final McpPrompt.Argument arg : p.arguments()) {
+                    final ObjectNode a = argsNode.addObject();
+                    a.put("name", arg.name());
+                    a.put("description", arg.description());
+                    a.put("required", arg.required());
+                }
+            }
+        }
+        return McpJsonRpc.success(mapper, id, result);
+    }
+
+    private ObjectNode handlePromptsGet(
+            final JsonNode request, final UserTable user, final JsonNode id) {
+        if (promptRegistry == null) {
+            throw new InvalidParamsException("prompts capability is not available");
+        }
+        final JsonNode params = request.path("params");
+        final String name = params.path("name").asText("");
+        if (name.isEmpty()) throw new InvalidParamsException("missing prompt name");
+        final McpPrompt prompt = promptRegistry.get(name)
+                .orElseThrow(() -> new InvalidParamsException("unknown prompt: " + name));
+        final JsonNode args = params.has("arguments")
+                ? params.get("arguments") : mapper.createObjectNode();
+
+        final ObjectNode result = mapper.createObjectNode();
+        result.put("description", prompt.description());
+        final ArrayNode messages = result.putArray("messages");
+        for (final ObjectNode msg : prompt.render(args, user)) {
+            messages.add(msg);
+        }
+        return McpJsonRpc.success(mapper, id, result);
+    }
+
+    private ObjectNode handleResourcesList(final JsonNode id) {
+        final ObjectNode result = mapper.createObjectNode();
+        final ArrayNode list = result.putArray("resources");
+        if (resourceRegistry != null) {
+            for (final McpResource r : resourceRegistry.all()) {
+                final ObjectNode entry = list.addObject();
+                entry.put("uri", r.uri());
+                entry.put("name", r.name());
+                entry.put("description", r.description());
+                entry.put("mimeType", r.mimeType());
+            }
+        }
+        return McpJsonRpc.success(mapper, id, result);
+    }
+
+    private ObjectNode handleResourcesRead(
+            final JsonNode request, final UserTable user, final JsonNode id) throws Exception {
+        if (resourceRegistry == null) {
+            throw new InvalidParamsException("resources capability is not available");
+        }
+        final JsonNode params = request.path("params");
+        final String uri = params.path("uri").asText("");
+        if (uri.isEmpty()) throw new InvalidParamsException("missing resource uri");
+        final McpResource resource = resourceRegistry.get(uri)
+                .orElseThrow(() -> new InvalidParamsException("unknown resource: " + uri));
+
+        final ObjectNode result = mapper.createObjectNode();
+        final ArrayNode contents = result.putArray("contents");
+        final ObjectNode entry = contents.addObject();
+        entry.put("uri", resource.uri());
+        entry.put("mimeType", resource.mimeType());
+        final JsonNode body = resource.read(user);
+        entry.put("text", body == null ? "{}" : body.toString());
         return McpJsonRpc.success(mapper, id, result);
     }
 

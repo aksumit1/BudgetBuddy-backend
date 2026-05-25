@@ -165,6 +165,25 @@ public class JwtTokenProvider {
         return createToken(claims, username, refreshExpiration);
     }
 
+    /**
+     * Generate a short-lived connection token scoped for the MCP
+     * server. Issued by {@code POST /mcp/connection-token} so the
+     * user can paste it into Claude Desktop / Cursor / any MCP-aware
+     * client without exposing their long-lived session JWT. Uses the
+     * same signing key + subject so the existing JWT filter accepts
+     * it; the {@code scope=mcp} claim is informational for downstream
+     * audit + future scope-narrowing.
+     *
+     * @param username the authenticated user's email
+     * @param ttlMillis token lifetime in ms — caller picks; the
+     *     controller defaults to 24h.
+     */
+    public String generateMcpConnectionToken(final String username, final long ttlMillis) {
+        final Map<String, Object> claims = new HashMap<>();
+        claims.put("scope", "mcp");
+        return createToken(claims, username, ttlMillis);
+    }
+
     /** Create JWT token */
     private String createToken(
             final Map<String, Object> claims, final String subject, final long expiration) {

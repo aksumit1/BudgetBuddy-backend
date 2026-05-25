@@ -10,6 +10,7 @@ id: chase-v2
 institution: Chase
 description: "Chase credit cards (Marriott Bonvoy, Amazon Prime Visa, Freedom, Sapphire)"
 status: unverified
+extends: [common]
 
 card_detection:
   institution_match:
@@ -62,12 +63,24 @@ metadata:
     # the payments-total row on every Amazon-co-branded Chase card.
     - label: "Payment, Credits"
       adjacent: dollar
+  # Chase prints TWO "fees charged" lines: the period total ("Fees Charged
+  # $0.00") AND the YTD total ("Total fees charged in 2025 $85.00"). A bare
+  # label match catches both and the "last non-zero" tiebreaker picks the
+  # YTD amount — wrong, because the audit's expected_debit includes fees
+  # as a period bucket. Tighten to line-anchored pattern so only the
+  # period-summary line matches; the YTD bucket lives in ytd_fees.
+  # When the period-fees value is NON-ZERO Chase prefixes a "+" sign
+  # ("Fees Charged +$85.00", "Fees Charged +$0.40") — without the optional
+  # `[+-]?` allowance the regex misses the non-zero line and the audit's
+  # expected_debit drops the fees bucket, producing a +fees-amount delta.
   fees_total:
-    - label: "Fees Charged"
-      adjacent: dollar
+    - pattern: "(?im)^\\s*Fees\\s+Charged\\s+[+-]?\\$([\\d,]+\\.\\d{2})"
   interest_total:
-    - label: "Interest Charged"
-      adjacent: dollar
+    - pattern: "(?im)^\\s*Interest\\s+Charged\\s+[+-]?\\$([\\d,]+\\.\\d{2})"
+  ytd_fees:
+    - pattern: "(?i)Total\\s+fees\\s+charged\\s+in\\s+\\d{4}\\s+\\$([\\d,]+\\.\\d{2})"
+  ytd_interest:
+    - pattern: "(?i)Total\\s+interest\\s+charged\\s+in\\s+\\d{4}\\s+\\$([\\d,]+\\.\\d{2})"
 
   credit_limit:
     - pattern: "(?im)^\\s*Credit\\s+Access\\s+Line\\s+\\$([\\d,]+\\.\\d{2})"
@@ -145,6 +158,23 @@ metadata:
 
   billing_days:
     - pattern: "(?i)(?<!\\d)(\\d{1,3})\\s+Days?\\s+in\\s+Billing\\s+(?:Period|Cycle)"
+
+# Family-card / authorized-user cardholder anchors.
+# No Chase family-card statements appear in the current corpus, so these
+# patterns are scaffolding for the layouts Chase prints when an account has
+# multiple cardholders:
+#  (a) Per-cardholder header introduced by "Transactions for <Name>" or
+#      "Charges Made By <Name>" above an authorized-user block, followed by
+#      "Card ending in NNNN" / "ending in NNNN" on the same or next line.
+#  (b) Primary-holder card-ending line "<NAME> account ending in NNNN" on
+#      summary pages.
+# Both anchors are conservative — they won't fire on the single-cardholder
+# Chase statements that dominate today's corpus, so adding them is a no-op
+# for current PDFs while enabling future family-card support without code
+# changes.
+card_holders:
+  - pattern: "(?im)^\\s*(?:Transactions\\s+for|Charges\\s+Made\\s+By)\\s+(?<userName>[A-Z][A-Za-z'\\.\\- ]+?)\\s+(?:ending\\s+in\\s+|card\\s+ending\\s+in\\s+|-\\s+)(?<cardLastFour>\\d{4})\\b"
+  - pattern: "(?im)^\\s*(?<userName>[A-Z][A-Za-z'\\.\\- ]+?)\\s+(?:account|card)\\s+ending\\s+in\\s+(?<cardLastFour>\\d{4})\\b"
 
 preprocessing:
   fx_block_strip:
@@ -410,6 +440,64 @@ samples:
       # points_earned (legacy sum = 185) and QuarterlyBonus / NextQuarterBonus
       # records NOT asserted: v2 evaluator has no rules for the rotating-bonus
       # tier shape; that logic stays in StatementParsingUtilities.
+
+# v2 transaction-shape declarations — validated against the 16 Chase PDFs in the
+# corpus. Shadow comparison reports PARITY on every Chase statement (matching
+# count and sum vs the legacy extractor) — safe to promote to production
+# source-of-truth in a future cutover.
+#
+# Chase rows arrive post-preprocessing (after stripFxAnnotations +
+# stripChaseFxFeeParentRef + stitchContinuationLines) in the canonical form:
+#   "MM/DD     MERCHANT AND LOCATION  AMOUNT"
+# with the amount either:
+#   - signed/unsigned dollars-and-cents:        20.34   -94.24   2,143.23
+#   - cents-only with no leading dollar digit:  .40     (Chase FX-fee row)
+# No two-date format appears in the current Chase corpus (the legacy
+# `chase-credit-card-two-date` layout below predates a Chase statement
+# redesign and is retained for historical-fixture parity only).
+#
+# The ACCOUNT ACTIVITY block in Chase statements is unscoped — PDFBox
+# extraction produces one virtually-flat list mixing payments, purchases,
+# refunds, and fees. There are no usable section headers (the "PAYMENTS AND
+# OTHER CREDITS" / "PURCHASE" / "FEES CHARGED" anchors get pushed to the
+# footer by PDFBox layout extraction). Instead we split by AMOUNT SIGN:
+#
+#  (a) Rows with a leading minus ("06/13 AUTOMATIC PAYMENT -1,691.77",
+#      "07/30 SONDER.COM SAN FRANCISCO CA -1,873.26") are payments or
+#      refunds → credit-card-credit (CREDIT).
+#  (b) Rows with a positive amount ("05/17 FIGUREHEAD STONE WAY 4.41",
+#      "06/01 ANNUAL MEMBERSHIP FEE 85.00", "08/10 FOREIGN TRANSACTION
+#      FEE .40") are purchases or fees → credit-card-purchase (DEBIT).
+#
+# This is what fixes the SONDER/TRANSPARENT LABS refund delta (was
+# +amount/+-amount on the 0817/0912/1012 statements when both rows were
+# classified as DEBIT under the old single-shape "credit-positive"
+# convention). Payments are caught by the credit shape directly — they no
+# longer rely on description-based payment-pattern overrides.
+transactions:
+  - name: chase-refund-or-payment
+    line_regex: '^(?<date>\d{1,2}/\d{1,2})\s+(?<description>.+?)\s+(?<amount>-\$?(?:\d{1,3}(?:,\d{3})*)?\.\d{2})\s*$'
+    date_format: "M/d"
+    account_type: credit
+    sign_convention: credit-card-credit
+    min_amount: 0.01
+  - name: chase-purchase-or-fee
+    line_regex: '^(?<date>\d{1,2}/\d{1,2})\s+(?<description>.+?)\s+(?<amount>\$?(?:\d{1,3}(?:,\d{3})*)?\.\d{2})\s*$'
+    date_format: "M/d"
+    account_type: credit
+    sign_convention: credit-card-purchase
+    min_amount: 0.01
+    # Chase FX detail follows the parent tx as a 2-line block (post-stitch
+    # collapses to a single line):
+    #   "06/04 SWISS FRANC 192.50 X 1.096493506 (EXCHG RATE)"
+    # The first pattern captures original amount + currency name + rate from
+    # the post-stitch single-line form. The fallback patterns handle the
+    # split-line case where the FX header and detail arrive on separate
+    # lines (rare but observed when stitching declines to glue them).
+    fx_lines:
+      - '(?i)^\s*\d{1,2}/\d{1,2}\s+(?<fxOrigCode>[A-Z][A-Z\s]{2,}[A-Z])\s+(?<fxOrigAmount>[\d,]+(?:\.\d{1,4})?)\s+X\s+(?<fxRate>\d{0,3}\.\d{1,12})\s*\(EXCHG\s+RATE\)'
+      - '(?i)^\s*\d{1,2}/\d{1,2}\s+(?<fxOrigCode>[A-Z][A-Z\s]{2,}[A-Z])\s*$'
+      - '(?i)^\s*(?<fxOrigAmount>[\d,]+(?:\.\d{1,4})?)\s+X\s+(?<fxRate>\d{0,3}\.\d{1,12})\s*\(EXCHG\s+RATE\)'
 
 layouts:
   # Chase two-date row (most common):

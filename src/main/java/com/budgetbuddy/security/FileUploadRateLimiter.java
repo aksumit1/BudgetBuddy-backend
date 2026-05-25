@@ -135,6 +135,37 @@ public class FileUploadRateLimiter {
         }
     }
 
+    /**
+     * Reject re-uploads of the exact same file (SHA-256) by the same user
+     * within the rate-limit window. Catches the "scripted retry" abuse
+     * pattern where the same PDF is POSTed in a loop. The legitimate
+     * "user uploaded the wrong file, re-uploaded the correct one" flow is
+     * unaffected because the hash differs. Returns true when the upload
+     * is a duplicate (caller should respond 429 / 409); false when fresh.
+     */
+    public boolean isDuplicateUpload(final String userId, final String sha256) {
+        if (!rateLimitEnabled || userId == null || sha256 == null || sha256.isBlank()) {
+            return false;
+        }
+        final UploadStats stats = userStats.computeIfAbsent(userId, k -> new UploadStats());
+        final long currentTime = System.currentTimeMillis();
+        // Window-reset clears the hash log too so a user can re-upload an
+        // hour later (legitimate "retry after fix to the PDF" case).
+        if (currentTime - stats.windowStartTime > 3600 * 1000) {
+            stats.reset();
+        }
+        return !stats.seenHashes.add(sha256);
+    }
+
+    /** Record an upload's SHA so subsequent identical uploads are detected. */
+    public void recordHash(final String userId, final String sha256) {
+        if (!rateLimitEnabled || userId == null || sha256 == null || sha256.isBlank()) {
+            return;
+        }
+        final UploadStats stats = userStats.computeIfAbsent(userId, k -> new UploadStats());
+        stats.seenHashes.add(sha256);
+    }
+
     /** Clean up old entries to prevent memory leaks */
     private void cleanupOldEntries() {
         final long currentTime = System.currentTimeMillis();
@@ -170,12 +201,19 @@ public class FileUploadRateLimiter {
         private final AtomicLong totalSize = new AtomicLong(0);
         private long windowStartTime = System.currentTimeMillis();
         private long lastUploadTime = 0;
+        // SHA-256 hashes seen in the current window. Bounded by upload-count
+        // cap (default 500/hour) so worst-case memory is ~500 × 64 bytes ≈
+        // 32 KB per active user. ConcurrentHashMap.newKeySet() for thread
+        // safety under parallel uploads from the same iOS client.
+        private final java.util.Set<String> seenHashes =
+                java.util.concurrent.ConcurrentHashMap.newKeySet();
 
         public void reset() {
             uploadCount.set(0);
             totalSize.set(0);
             windowStartTime = System.currentTimeMillis();
             lastUploadTime = 0;
+            seenHashes.clear();
         }
 
         public int getUploadCount() {

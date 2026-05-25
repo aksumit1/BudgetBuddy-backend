@@ -5,6 +5,7 @@ id: us-bank-v2
 institution: U.S. Bank
 description: "U.S. Bank credit card (Smartly Visa Signature) — v2 schema"
 status: validated
+extends: [common]
 
 card_detection:
   institution_match:
@@ -38,6 +39,13 @@ metadata:
     - pattern: "(?im)^\\s*Fees\\s+Charged\\s+[-+]?\\s*\\$([\\d,]+\\.\\d{2})"
   interest_total:
     - pattern: "(?im)^\\s*Interest\\s+Charged\\s+[-+]?\\s*\\$([\\d,]+\\.\\d{2})"
+
+  # USB summary block prints "Other Credits $0.00" as a discrete line. When
+  # non-zero, V2FieldBinder.applyOtherCreditsRollup folds this into the
+  # paymentsAndCreditsTotal so the audit's credit-side reconciliation matches
+  # the section-aware transactions extracted below.
+  other_credits_total:
+    - pattern: "(?im)^\\s*Other\\s+Credits\\s+[-+]?\\s*\\$([\\d,]+\\.\\d{2})"
 
   credit_limit:
     - pattern: "(?im)^\\s*Revolving\\s+Line\\s+of\\s+Credit\\s+\\$([\\d,]+\\.\\d{2})"
@@ -195,3 +203,67 @@ layouts:
     dateFormat: "M/d"
     signConvention: credit-positive
     minAmount: 0.01
+
+# v2 transaction-shape declarations — section-aware, validated against the
+# 5-PDF USB corpus. Production source-of-truth via PDFImportService
+# V2_TX_PRODUCTION_ISSUERS (cutover gated on institution name).
+#
+# USB statement layout quirk: section *headers* are stacked together at the
+# top of the transactions block (e.g. lines L150 "Payments and Other
+# Credits" / L151 "Interest Charged"), followed by stacked TOTAL markers,
+# followed by the actual transactions in section order. A naive
+# section_anchor approach (track most-recently-seen header) breaks here
+# because by the time we reach the payment rows, currentSection is
+# whichever header appeared LAST. Instead we discriminate by line shape
+# because, in this issuer, line *shape* is a reliable proxy for section:
+#
+#  (1) Two-date format — ALWAYS a payment row in USB ("THANK YOU" rows in
+#      the "Payments and Other Credits" section). Direction → CREDIT.
+#      "04/15 04/15 ET PAYMENT   THANK YOU $18,000.32"
+#  (2) Single-date with "INTEREST CHARGE" — interest row in the "Interest
+#      Charged" section. Direction → DEBIT (purchases-like sign).
+#      "05/06 INTEREST CHARGE ON PURCHASES $79.99"
+#  (3) Single-date with FEE / MEMBERSHIP keyword — fee row in the "Fees"
+#      section. Direction → DEBIT.
+#      "04/06 ANNUAL MEMBERSHIP FEE $0.00"
+#  (4) Single-date generic — purchase fallback (USB "Purchases" section).
+#      Section-anchored to "Purchases" so it only fires when a Purchases
+#      header has been seen — protects against the date-stamped marketing
+#      lines that appear elsewhere in USB statements.
+#
+# Order matters: more-specific shapes (INTEREST CHARGE / FEE) must come
+# BEFORE the generic single-date fallback, otherwise the fallback greedily
+# absorbs them. Two-date shape runs first; otherwise the single-date shape
+# would absorb "01/02" as the date and treat the rest (including the
+# second date) as the description.
+transactions:
+  # Unscoped (no section_anchor): USB stacks all section headers BEFORE the
+  # transactions, so by the time we reach a payment row the most-recent
+  # header may not be "Payments and Other Credits". Two-date shape is a
+  # reliable proxy in this issuer — every two-date row in the 5-PDF corpus
+  # is a payment ("THANK YOU" rows from the Payments section).
+  - name: us-bank-payments
+    line_regex: '^(?<date>\d{1,2}/\d{1,2})\s+\d{1,2}/\d{1,2}\s+(?<description>.+?)\s+\$(?<amount>-?\d{1,3}(?:,\d{3})*\.\d{2})\s*$'
+    date_format: "M/d"
+    account_type: credit
+    sign_convention: credit-card-credit
+    min_amount: 0.01
+  - name: us-bank-interest
+    line_regex: '^(?<date>\d{1,2}/\d{1,2})\s+(?<description>INTEREST\s+CHARGE\b.+?)\s+\$(?<amount>-?\d{1,3}(?:,\d{3})*\.\d{2})\s*$'
+    date_format: "M/d"
+    account_type: credit
+    sign_convention: credit-card-purchase
+    min_amount: 0.00
+  - name: us-bank-fees
+    line_regex: '^(?<date>\d{1,2}/\d{1,2})\s+(?<description>.*(?:ANNUAL\s+MEMBERSHIP\s+FEE|LATE\s+FEE|FOREIGN\s+TRANSACTION\s+FEE|OVERLIMIT\s+FEE|RETURNED\s+PAYMENT\s+FEE|CASH\s+ADVANCE\s+FEE|BALANCE\s+TRANSFER\s+FEE).*?)\s+\$(?<amount>-?\d{1,3}(?:,\d{3})*\.\d{2})\s*$'
+    date_format: "M/d"
+    account_type: credit
+    sign_convention: credit-card-purchase
+    min_amount: 0.00
+  - name: us-bank-purchases
+    section_anchor: "Purchases"
+    line_regex: '^(?<date>\d{1,2}/\d{1,2})\s+(?<description>.+?)\s+\$(?<amount>-?\d{1,3}(?:,\d{3})*\.\d{2})\s*$'
+    date_format: "M/d"
+    account_type: credit
+    sign_convention: credit-card-purchase
+    min_amount: 0.01

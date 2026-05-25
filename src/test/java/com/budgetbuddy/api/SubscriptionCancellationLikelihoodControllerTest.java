@@ -68,11 +68,11 @@ class SubscriptionCancellationLikelihoodControllerTest {
 
         mockMvc.perform(get("/api/subscriptions/insights/cancellation-likelihood"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].subscriptionId").value("sub-1"))
-                .andExpect(jsonPath("$[0].likelihood").value(0.81))
-                .andExpect(jsonPath("$[0].shouldFlag").value(true))
-                .andExpect(jsonPath("$[1].subscriptionId").value("sub-2"))
-                .andExpect(jsonPath("$[1].shouldFlag").value(false));
+                .andExpect(jsonPath("$.data[0].subscriptionId").value("sub-1"))
+                .andExpect(jsonPath("$.data[0].likelihood").value(0.81))
+                .andExpect(jsonPath("$.data[0].shouldFlag").value(true))
+                .andExpect(jsonPath("$.data[1].subscriptionId").value("sub-2"))
+                .andExpect(jsonPath("$.data[1].shouldFlag").value(false));
     }
 
     @Test
@@ -85,8 +85,8 @@ class SubscriptionCancellationLikelihoodControllerTest {
 
         mockMvc.perform(get("/api/subscriptions/insights/cancellation-likelihood"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$").isArray())
-                .andExpect(jsonPath("$.length()").value(0));
+                .andExpect(jsonPath("$.data").isArray())
+                .andExpect(jsonPath("$.data.length()").value(0));
     }
 
     @Test
@@ -101,8 +101,8 @@ class SubscriptionCancellationLikelihoodControllerTest {
 
         mockMvc.perform(get("/api/subscriptions/insights/cancellation-likelihood"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].likelihood").value(-1.0))
-                .andExpect(jsonPath("$[0].shouldFlag").value(false));
+                .andExpect(jsonPath("$.data[0].likelihood").value(-1.0))
+                .andExpect(jsonPath("$.data[0].shouldFlag").value(false));
     }
 
     private static UserTable userWithId(final String id) {

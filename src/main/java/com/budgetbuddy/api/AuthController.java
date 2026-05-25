@@ -180,7 +180,9 @@ public class AuthController {
         // Validate and rotate tokens (same as refresh, but explicit for Zero Trust flow)
         final AuthResponse response = authService.refreshToken(request.getRefreshToken());
         if (LOGGER.isInfoEnabled()) {
-            LOGGER.info("Token validated and rotated for user: {}", response.getUser().getEmail());
+            LOGGER.info("Token validated and rotated for user: {}",
+                    com.budgetbuddy.service.PrivacyRedaction.maskEmail(
+                            response.getUser().getEmail()));
         }
         return ResponseEntity.ok(response);
     }
@@ -245,7 +247,8 @@ public class AuthController {
         userService.resetPasswordByEmail(request.getEmail(), request.getPasswordHash());
 
         if (LOGGER.isInfoEnabled()) {
-            LOGGER.info("Password reset successful for email: {}", request.getEmail());
+            LOGGER.info("Password reset successful for email: {}",
+                    com.budgetbuddy.service.PrivacyRedaction.maskEmail(request.getEmail()));
         }
         return ResponseEntity.ok(new PasswordResetResponse(true, "Password reset successful"));
     }
@@ -319,7 +322,8 @@ public class AuthController {
         userService.changePasswordSecure(user.getUserId(), request.getNewPasswordHash());
 
         if (LOGGER.isInfoEnabled()) {
-            LOGGER.info("Password changed successfully for user: {}", user.getEmail());
+            LOGGER.info("Password changed successfully for user: {}",
+                    com.budgetbuddy.service.PrivacyRedaction.maskEmail(user.getEmail()));
         }
         return ResponseEntity.ok(new PasswordChangeResponse(true, "Password changed successfully"));
     }

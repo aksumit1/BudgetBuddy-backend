@@ -213,6 +213,11 @@ public class Transaction implements java.io.Serializable {
         CASH, // Cash withdrawals, ATM transactions
         SAVINGS, // Savings allocation for zero-based budgeting
         EMERGENCY_FUND, // Emergency fund allocation for zero-based budgeting
+        // Categories added 2026-05-17 — wired through cascade L2.5 + L5 rules
+        HOUSING, // Mortgage, HOA dues, property tax (distinct from RENT which is rent paid)
+        CHILDCARE, // Daycare, preschool, after-school, kids' activities
+        REFUND, // CC rewards credit / statement-credit / fee reimbursement (spending offset)
+        CHECK, // Paper check paid (no merchant identity)
         OTHER,
 
         // Income categories

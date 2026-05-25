@@ -10,6 +10,7 @@ id: apple-card-v2
 institution: Apple Card
 description: "Apple Card — issued by Goldman Sachs"
 status: unverified
+extends: [common]
 
 card_detection:
   institution_match:

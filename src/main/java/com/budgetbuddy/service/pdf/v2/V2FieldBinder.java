@@ -164,6 +164,25 @@ public final class V2FieldBinder {
             }
         }
         applyStatementDates(rules, extracted, target);
+        applyOtherCreditsRollup(extracted, target);
+    }
+
+    /**
+     * When a template extracts {@code other_credits_total} separately from
+     * {@code payments_total}, ImportResult.paymentsAndCreditsTotal should
+     * reflect their SUM — that's the value the reconciliation audit expects
+     * as the credit-side total. Without this rollup, v2's correct
+     * classification of refunds as CREDIT transactions over-counts the
+     * credit sum vs the audit's expected, producing a paymentsDelta
+     * false-positive.
+     */
+    private static void applyOtherCreditsRollup(
+            final PdfTemplateV2Evaluator.MetadataResult m, final ImportResult target) {
+        if (m == null || m.otherCreditsTotal == null) return;
+        final java.math.BigDecimal cur = target.getPaymentsAndCreditsTotal();
+        final java.math.BigDecimal base = cur == null
+                ? java.math.BigDecimal.ZERO : cur.abs();
+        target.setPaymentsAndCreditsTotal(base.add(m.otherCreditsTotal.abs()));
     }
 
     /**

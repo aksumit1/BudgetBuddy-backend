@@ -67,6 +67,13 @@ public class PdfTemplateV2 {
     // asserts the evaluator returns those values — so adding a new issuer is a
     // single-file change that automatically gets regression coverage.
     private List<Sample> samples = Collections.emptyList();
+    // Family-card / authorized-user cardholder anchors. Each anchor declares a
+    // regex that, when matched on a line during transaction extraction, sets
+    // the "current cardholder" context. Every subsequent ExtractedTransaction
+    // until the next matching header carries that cardholder's name +
+    // cardLastFour. Optional — single-cardholder statements (most of the
+    // corpus) leave this empty and the fields stay null.
+    @JsonProperty("card_holders") private List<CardHolderAnchor> cardHolders = Collections.emptyList();
 
     @JsonIgnoreProperties(ignoreUnknown = true)
     public static class CardDetection {
@@ -134,10 +141,24 @@ public class PdfTemplateV2 {
         @JsonProperty("minimum_payment_due") private List<LabelRule> minimumPaymentDue = Collections.emptyList();
         @JsonProperty("payment_due_date") private List<LabelRule> paymentDueDate = Collections.emptyList();
         @JsonProperty("purchases_total") private List<LabelRule> purchasesTotal = Collections.emptyList();
+        // Statements that segregate debits into multiple printed buckets (Chase
+        // Total Checking prints "Checks Paid", "Electronic Withdrawals" and
+        // "Other Withdrawals" as separate rows under the summary) carry this
+        // flag. When true the evaluator SUMS every matching purchases_total
+        // rule instead of returning the first match — mirrors how
+        // paymentsTotalSum works for Citi's "Payments + Credits + Adjustments"
+        // multi-bucket layout. See PdfTemplateV2Evaluator.evaluateMetadata.
+        @JsonProperty("purchases_total_sum") private boolean purchasesTotalSum;
         @JsonProperty("payments_total") private List<LabelRule> paymentsTotal = Collections.emptyList();
         @JsonProperty("payments_total_sum") private boolean paymentsTotalSum;
         @JsonProperty("fees_total") private List<LabelRule> feesTotal = Collections.emptyList();
         @JsonProperty("interest_total") private List<LabelRule> interestTotal = Collections.emptyList();
+        // Statements that segregate refunds/adjustments from payments (WF
+        // prints "TOTAL OTHER CREDITS FOR THIS PERIOD $X" as a separate
+        // bucket) carry this field. The reconciliation audit adds it to the
+        // expected credits side so v2's correct refund-as-CREDIT
+        // classification doesn't trip a paymentsDelta false-positive.
+        @JsonProperty("other_credits_total") private List<LabelRule> otherCreditsTotal = Collections.emptyList();
         @JsonProperty("ytd_fees") private List<LabelRule> ytdFees = Collections.emptyList();
         @JsonProperty("ytd_interest") private List<LabelRule> ytdInterest = Collections.emptyList();
         @JsonProperty("purchase_apr") private List<LabelRule> purchaseApr = Collections.emptyList();
@@ -157,6 +178,8 @@ public class PdfTemplateV2 {
 
         public boolean isPaymentsTotalSum() { return paymentsTotalSum; }
         public void setPaymentsTotalSum(final boolean v) { this.paymentsTotalSum = v; }
+        public boolean isPurchasesTotalSum() { return purchasesTotalSum; }
+        public void setPurchasesTotalSum(final boolean v) { this.purchasesTotalSum = v; }
         public List<LabelRule> getCreditLimit() { return creditLimit; }
         public void setCreditLimit(final List<LabelRule> v) { this.creditLimit = v == null ? Collections.emptyList() : v; }
         public List<LabelRule> getAvailableCredit() { return availableCredit; }
@@ -229,6 +252,10 @@ public class PdfTemplateV2 {
         public List<LabelRule> getInterestTotal() { return interestTotal; }
         public void setInterestTotal(final List<LabelRule> v) {
             this.interestTotal = v == null ? Collections.emptyList() : v;
+        }
+        public List<LabelRule> getOtherCreditsTotal() { return otherCreditsTotal; }
+        public void setOtherCreditsTotal(final List<LabelRule> v) {
+            this.otherCreditsTotal = v == null ? Collections.emptyList() : v;
         }
     }
 
@@ -363,6 +390,10 @@ public class PdfTemplateV2 {
     public void setSamples(final List<Sample> v) {
         this.samples = v == null ? Collections.emptyList() : v;
     }
+    public List<CardHolderAnchor> getCardHolders() { return cardHolders; }
+    public void setCardHolders(final List<CardHolderAnchor> v) {
+        this.cardHolders = v == null ? Collections.emptyList() : v;
+    }
 
     public boolean isV2() {
         return cardDetection != null || metadata != null || preprocessing != null;
@@ -419,6 +450,27 @@ public class PdfTemplateV2 {
         // discarded BEFORE shape matching. Lets Amex's foreign-tx info
         // block be removed without each shape having to anticipate it.
         @JsonProperty("strip_lines_matching") private List<String> stripLinesMatching = Collections.emptyList();
+        // FX-detail capture. List of regex patterns evaluated against the
+        // 1-5 lines immediately following a successfully-extracted tx. Java
+        // regex forbids '_' in named groups, so capture-group names are
+        // camelCase here even though the YAML field stays snake_case:
+        //   fxOrigAmount  — original foreign-currency amount (BigDecimal)
+        //   fxOrigCode    — currency code or human name (string)
+        //   fxRate        — exchange rate (BigDecimal)
+        // Different lines in the same FX block typically capture different
+        // fields (e.g. the original-amount line captures amount+code, the
+        // exchange-rate line captures rate). Captured fields attach to the
+        // just-extracted ExtractedTransaction. Lines that match a capture
+        // pattern are consumed (skipped on the next iteration of the outer
+        // walk) so they are NOT additionally re-parsed as transactions —
+        // capture wins over the legacy strip_lines_matching approach.
+        // Scanning stops at the next transaction-line match (any shape's
+        // line_regex or start_regex) or after 5 lines of no match.
+        // The same fxOrig*/fxRate named groups may ALSO appear inline in a
+        // shape's line_regex / end_regex — when stitchContinuationLines glues
+        // the FX block INTO the parent tx line (Amex), capturing happens
+        // directly off the parent matcher and fx_lines can stay empty.
+        @JsonProperty("fx_lines") private List<String> fxLines = Collections.emptyList();
 
         public String getName() { return name; }
         public void setName(final String v) { this.name = v; }
@@ -444,6 +496,67 @@ public class PdfTemplateV2 {
         public void setStripLinesMatching(final List<String> v) {
             this.stripLinesMatching = v == null ? Collections.emptyList() : v;
         }
+        public List<String> getFxLines() { return fxLines; }
+        public void setFxLines(final List<String> v) {
+            this.fxLines = v == null ? Collections.emptyList() : v;
+        }
+    }
+
+    /**
+     * One cardholder-section anchor for multi-cardholder (family-card) PDFs.
+     *
+     * <p>Two equivalent capture-group styles are supported:
+     *
+     * <ol>
+     *   <li><b>Named captures</b>: the regex carries {@code (?<userName>...)}
+     *       and {@code (?<cardLastFour>\\d+)} groups. Easiest to read. Java's
+     *       regex named-group syntax requires the name to match
+     *       {@code [A-Za-z][A-Za-z0-9]*} — no underscores — hence the
+     *       camelCase spelling.</li>
+     *   <li><b>Indexed captures</b>: a plain regex with two unnamed groups
+     *       plus explicit {@code user_name_group} / {@code card_last_four_group}
+     *       integer indices that pick which group is which.</li>
+     * </ol>
+     *
+     * <p>The extractor checks every anchor against each non-blank line during
+     * its line-walking loop. When ANY anchor matches the line becomes a
+     * "cardholder section header" and the matched name/last-four become the
+     * current per-transaction context for all subsequent rows until the next
+     * matching header.
+     */
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public static class CardHolderAnchor {
+        private String pattern;
+        @JsonProperty("user_name_group") private Integer userNameGroup;
+        @JsonProperty("card_last_four_group") private Integer cardLastFourGroup;
+        // Optional: when set, the anchor only carries the matched name across
+        // lines until the next blank line. Defaults to "until next anchor".
+        @JsonProperty("name_only") private boolean nameOnly;
+        // When true, the anchor's regex matches the "card-ending" line but
+        // the cardholder name is read from the IMMEDIATELY-PREVIOUS non-blank
+        // line. Lets you express Amex's two-line authorized-user header
+        // (line N: "MUDIT AGARWAL"; line N+1: "Card Ending 1-21010") without
+        // a multi-line regex. The previous line must match
+        // {@link #namePattern} (when set) or look like a plausible all-caps
+        // name (default).
+        @JsonProperty("name_from_prev_line") private boolean nameFromPrevLine;
+        // Optional regex applied to the previous line when
+        // {@code name_from_prev_line} is on. The whole line must match. Group
+        // 1 (or named group {@code userName}) carries the name.
+        @JsonProperty("name_pattern") private String namePattern;
+
+        public String getPattern() { return pattern; }
+        public void setPattern(final String v) { this.pattern = v; }
+        public Integer getUserNameGroup() { return userNameGroup; }
+        public void setUserNameGroup(final Integer v) { this.userNameGroup = v; }
+        public Integer getCardLastFourGroup() { return cardLastFourGroup; }
+        public void setCardLastFourGroup(final Integer v) { this.cardLastFourGroup = v; }
+        public boolean isNameOnly() { return nameOnly; }
+        public void setNameOnly(final boolean v) { this.nameOnly = v; }
+        public boolean isNameFromPrevLine() { return nameFromPrevLine; }
+        public void setNameFromPrevLine(final boolean v) { this.nameFromPrevLine = v; }
+        public String getNamePattern() { return namePattern; }
+        public void setNamePattern(final String v) { this.namePattern = v; }
     }
 
     @JsonIgnoreProperties(ignoreUnknown = true)

@@ -1,21 +1,26 @@
-# American Express — Platinum, Morgan Stanley Platinum, Gold, Blue Cash, etc.
+# American Express — Morgan Stanley Platinum (charge) + Blue Business Cash
+# (credit), plus Platinum / Gold / Blue Cash where the same layout applies.
 #
-# Covers 9 statements in the corpus (5 Morgan Stanley Platinum + 4 regular
-# Platinum/Gold). The Amex layout has two flavours:
+# Covers 19 statements in the corpus (mix of Morgan Stanley Platinum and
+# Blue Business Cash). After PDFImportService.stitchContinuationLines runs,
+# transactions in both flavours land on a single line:
 #
-#   - Single-line transactions (Morgan Stanley Platinum, FX-marked with ⧫)
-#   - Multi-line three-line transactions (regular Platinum, no ⧫):
-#       date+desc / phone-or-detail / amount
+#   - Morgan Stanley Platinum — terminated with a ⧫ marker, e.g.:
+#       "04/19/26 GOOGLE *YOUTUBE MUSIC G.CO/HELPPAY# CA $18.74 ⧫"
+#   - Blue Business Cash — no marker, e.g.:
+#       "01/19/26 AplPay TST* OMO THAI TEA - NRO ... $19.71"
 #
-# The transaction-shape parsing is handled by PDFImportService's Pattern 7 (a
-# stateful multi-line matcher) — not by these YAML layouts. v2 here only
-# expresses the single-line compact rows + the card / metadata extraction.
+# The v2 `transactions:` block declares a single-line shape that matches both
+# and reaches PARITY (count + sum) with the legacy Pattern 7 extractor on
+# every Amex PDF in the corpus. See the comment above `transactions:` below
+# for the regex breakdown.
 #
 # Status: unverified
 id: amex-v2
 institution: American Express
 description: "American Express credit and charge cards"
 status: unverified
+extends: [common]
 
 card_detection:
   institution_match:
@@ -178,6 +183,38 @@ metadata:
     - pattern: "(?i)Days?\\s+in\\s+Billing\\s+(?:Period|Cycle)[:\\s]+(\\d{1,3})"
     - pattern: "(?i)(?<!\\d)(\\d{1,3})\\s+Days?\\s+in\\s+Billing\\s+(?:Period|Cycle)"
 
+# Family-card / authorized-user cardholder anchors.
+# Amex Blue Business Cash (and other Amex multi-card products) prints a
+# per-cardholder section header above each transaction block:
+#  (a) Primary cardholder — single line:
+#        "AGARWAL SUMIT KUMAR Account Ending 1-21002"
+#      (also occurs as "<NAME> Closing Date <date> Account Ending <X-NNNNN>"
+#      on the back-cover footer; same regex catches both.)
+#  (b) Authorized-user cardholder — two lines:
+#        "MUDIT AGARWAL"
+#        "Card Ending 1-21010"
+#      The first line is the bare name in all-caps; the second is the
+#      card-ending marker.
+#
+# The "X-" prefix on Amex card-endings is a check digit and not part of the
+# user-visible last 4. Each pattern strips it via "\\d+-?" before the
+# captured 4-5 digit tail.
+card_holders:
+  # Primary-holder one-liner. The named groups (userName, cardLastFour) are
+  # picked up by the extractor automatically. Amex prints the account number
+  # as "Account Ending 1-21002" where "1" is a check digit and the
+  # user-visible last-4 is the trailing 4 digits ("1002"); the
+  # "\\d+-(?:\\d{0,2})(\\d{4})\\b" pattern eats the prefix + check digit so
+  # cardLastFour captures exactly those 4 digits, matching the format used
+  # by card_detection.last_four above.
+  - pattern: "(?m)^\\s*(?<userName>[A-Z][A-Z]+(?:\\s+[A-Z][A-Z]+){1,4})\\s+(?:Closing\\s+Date\\s+\\d{1,2}/\\d{1,2}/\\d{2,4}\\s+)?Account\\s+Ending\\s+\\d+-(?:\\d{0,2})(?<cardLastFour>\\d{4})\\b.*$"
+  # Authorized-user two-line block. The regex matches the "Card Ending" line;
+  # the name comes from the immediately-previous non-blank line (the bare
+  # all-caps name — DEFAULT_PREV_NAME_PATTERN in TransactionExtractor matches
+  # 2-5 ALL-CAPS tokens).
+  - pattern: "(?m)^\\s*Card\\s+Ending\\s+\\d+-(?:\\d{0,2})(?<cardLastFour>\\d{4})\\s*$"
+    name_from_prev_line: true
+
 preprocessing:
   fx_block_strip:
     - kind: amex-three-line
@@ -196,6 +233,74 @@ preprocessing:
       - "Interest Charged"
       - "Total Fees in"
       - "Total Interest in"
+
+# v2 transaction-shape declarations — section-aware, validated against the
+# 19-PDF Amex corpus. This is the source of truth when v2 cutover is enabled
+# (see PDFImportService V2_TX_PRODUCTION_ISSUERS).
+#
+# Amex layouts in this corpus are post-stitch SINGLE-LINE (PDFImportService's
+# stitchContinuationLines glues the legacy 3-line "date+desc / detail /
+# amount" shape into one line). Two flavours coexist:
+#  (1) Morgan Stanley Platinum (charge card): every transaction terminated
+#      by a ⧫ marker:
+#        "04/19/26 GOOGLE *YOUTUBE MUSIC G.CO/HELPPAY# CA $18.74 ⧫"
+#  (2) Blue Business Cash (credit card): no ⧫ marker:
+#        "01/19/26 AplPay TST* OMO THAI TEA - NRO ... $19.71"
+# Foreign-currency rows carry the source currency inline before the USD
+# amount; the description naturally absorbs it:
+#   "04/13/26 BLUE SKY NARITA ... 1,925 Japanese Yen $12.07 ⧫"
+#
+# Amex statements organize transactions into named sections (matching the
+# top-line headers Amex prints between Payment block and per-section detail):
+#  (1) "Payments and Credits" — both autopay rows and refund/credit rows.
+#      Every amount in this section is printed with a leading minus ("-$").
+#      Sign: credit-card-credit (decreases card balance → CREDIT).
+#      THIS is the section that breaks the audit when mis-classified — refunds
+#      like "AMEX Airline Fee Reimbursement -$35.00" must NOT count as
+#      purchases. The single-shape "credit-positive" predecessor mapped every
+#      row to CREDIT_CARD_PURCHASE and inverted to DEBIT, producing $980+
+#      deltas on Morgan Stanley statements with large refund/credit totals.
+#  (2) "New Charges" — purchases. Amounts printed without minus sign.
+#      Sign: credit-card-purchase (debits).
+#
+# Both shapes share the same line_regex (the layout is identical, only the
+# section header differs). The trailing-text guard `(?:\s+[^$\n]*)?$` permits
+# stray card-name suffix that PDFBox occasionally appends ("$31.94 American
+# Express Blue Business Cashº AGARWAL SUMIT KUMAR ...") while still rejecting
+# the AutoPay-disclosure prose line that begins with a date and contains
+# MULTIPLE $-figures.
+transactions:
+  - name: amex-payments-credits
+    section_anchor: "Payments and Credits"
+    # Optional FX block inline before the USD amount. When stitching glues
+    # the Amex 3-line FX block into the parent tx line, the parent looks like
+    # "04/13/26 BLUE SKY NARITA ... 1,925 Japanese Yen $12.07 ⧫". The
+    # `(?:\s+(?<fxOrigAmount>...)\s+(?<fxOrigCode>...))?` segment is
+    # optional — non-FX rows match exactly as before. The currency-name
+    # alternation covers every display name in Amex's CURRENCY_DISPLAY_TO_CODE
+    # plus the singular/plural variants Amex actually emits.
+    line_regex: '^(?<date>\d{1,2}/\d{1,2}/\d{2,4})\*?\s+(?<description>.+?)(?:\s+(?<fxOrigAmount>[\d,]+(?:\.\d{1,4})?)\s+(?<fxOrigCode>(?:Japanese\s+Yen|Indian\s+Rupees?|Mexican\s+Pesos?|Canadian\s+Dollars?|Australian\s+Dollars?|Singapore\s+Dollars?|Hong\s+Kong\s+Dollars?|New\s+Taiwan\s+Dollars?|British\s+Pounds?|Pounds?\s+Sterling|Chinese\s+(?:Yuan|Renminbi)|Korean\s+Won|Thai\s+Baht|Swiss\s+Francs?|Brazilian\s+Reals?|South\s+African\s+Rands?|Moroccan\s+Dirhams?|UAE\s+Dirhams?|Euros?|Danish\s+Krone|Swedish\s+Krona|Norwegian\s+Krone)))?\s+(?<amount>-?\$[\d,]+\.\d{2})\s*⧫?(?:\s+[^$\n]*)?\s*$'
+    date_format: "M/d/yy"
+    account_type: credit
+    sign_convention: credit-card-credit
+    min_amount: 0.01
+    strip_lines_matching:
+      - "^\\d{1,2}/\\d{1,2}/\\d{2,4}\\s+New\\s+Balance\\s+\\$"
+  - name: amex-new-charges
+    section_anchor: "New Charges"
+    line_regex: '^(?<date>\d{1,2}/\d{1,2}/\d{2,4})\*?\s+(?<description>.+?)(?:\s+(?<fxOrigAmount>[\d,]+(?:\.\d{1,4})?)\s+(?<fxOrigCode>(?:Japanese\s+Yen|Indian\s+Rupees?|Mexican\s+Pesos?|Canadian\s+Dollars?|Australian\s+Dollars?|Singapore\s+Dollars?|Hong\s+Kong\s+Dollars?|New\s+Taiwan\s+Dollars?|British\s+Pounds?|Pounds?\s+Sterling|Chinese\s+(?:Yuan|Renminbi)|Korean\s+Won|Thai\s+Baht|Swiss\s+Francs?|Brazilian\s+Reals?|South\s+African\s+Rands?|Moroccan\s+Dirhams?|UAE\s+Dirhams?|Euros?|Danish\s+Krone|Swedish\s+Krona|Norwegian\s+Krone)))?\s+(?<amount>-?\$[\d,]+\.\d{2})\s*⧫?(?:\s+[^$\n]*)?\s*$'
+    date_format: "M/d/yy"
+    account_type: credit
+    sign_convention: credit-card-purchase
+    min_amount: 0.01
+    strip_lines_matching:
+      - "^\\d{1,2}/\\d{1,2}/\\d{2,4}\\s+New\\s+Balance\\s+\\$"
+    # Amex FX detail can also arrive AFTER the tx line as a separate Exchange
+    # Rate / Commission disclosure (less common but observed on some Platinum
+    # variants). When present, capture rate via the post-tx scan.
+    fx_lines:
+      - '(?i)^\s*Exchange\s+Rate\s+(?<fxRate>\d+\.\d+)'
+      - '(?i)^\s*Commission\s+(?<fxRate>\d+\.\d+)'
 
 layouts:
   # Compact single-line (Morgan Stanley Platinum + some MS variants):

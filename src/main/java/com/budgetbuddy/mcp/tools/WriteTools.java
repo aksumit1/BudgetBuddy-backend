@@ -6,6 +6,8 @@ import com.budgetbuddy.model.dynamodb.UserTable;
 import com.budgetbuddy.service.BudgetService;
 import com.budgetbuddy.service.GoalService;
 import com.budgetbuddy.service.SubscriptionService;
+import com.budgetbuddy.service.UserService;
+import java.time.Instant;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -51,7 +53,7 @@ public class WriteTools {
      * never auto-grant — explicit confirmation per session.
      */
     @Bean
-    public McpTool enableMoneyMovingConsentTool() {
+    public McpTool enableMoneyMovingConsentTool(final UserService userService) {
         final ObjectNode schema = mapper.createObjectNode();
         schema.put("type", "object");
         final ObjectNode props = schema.putObject("properties");
@@ -61,19 +63,24 @@ public class WriteTools {
                 "description",
                 "Must be true. Caller should have obtained explicit user "
                         + "confirmation via the iOS app before setting this.");
+        final ObjectNode persistent = props.putObject("persistent");
+        persistent.put("type", "boolean");
+        persistent.put(
+                "description",
+                "Optional. When true the consent is saved on the user "
+                        + "record so future sessions don't have to re-grant. "
+                        + "Defaults to false (per-session consent).");
         schema.putArray("required").add("confirmation");
         // Category is WRITE so it doesn't recursively require consent
-        // to grant consent (chicken-and-egg).
-        //
-        // Read tools are READ. Consent tools are WRITE because they
-        // legitimately mutate session state, but the protocol handler
+        // to grant consent (chicken-and-egg). The protocol handler
         // special-cases this tool name in the consent gate so the
         // first call to it goes through even with consent=false.
         return new SimpleTool(
                 "enable_money_moving_consent",
                 "Grant the session permission to call money-moving tools. "
                         + "Pass confirmation=true after the iOS app has shown "
-                        + "the user a confirmation dialog.",
+                        + "the user a confirmation dialog. Pass persistent=true "
+                        + "to save consent on the user record for future sessions.",
                 schema,
                 McpTool.Category.WRITE,
                 (args, user, session) -> {
@@ -85,8 +92,15 @@ public class WriteTools {
                         return result;
                     }
                     session.grantMoneyMovingConsent();
+                    final boolean persistentFlag = args.path("persistent").asBoolean(false);
+                    if (persistentFlag) {
+                        user.setMcpMoneyMovingConsent(Boolean.TRUE);
+                        user.setMcpConsentGrantedAt(Instant.now());
+                        userService.updateUser(user);
+                    }
                     final ObjectNode result = mapper.createObjectNode();
                     result.put("granted", true);
+                    result.put("persistent", persistentFlag);
                     return result;
                 });
     }

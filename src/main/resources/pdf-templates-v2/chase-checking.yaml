@@ -1,0 +1,186 @@
+# Chase Total Checking + Savings (combined statement)
+#
+# Covers 11 unique Chase combined-checking statements in the corpus. The same
+# physical statement is downloaded with two filenames: `-3100-` (checking
+# member account) and `-0359-` (linked savings). Both filenames carry the
+# IDENTICAL PDF content (a single combined statement that lists both accounts).
+#
+# Field-mapping strategy — REUSE existing credit-card schema with checking
+# semantics so v2 doesn't need a new field set per account-type:
+#   previousBalance        ← "Beginning Balance"        (Total Checking section)
+#   newBalance             ← "Ending Balance"           (Total Checking section)
+#   paymentsAndCreditsTotal ← "Deposits and Additions"   (money in)
+#   purchasesTotal         ← Checks Paid + Electronic Withdrawals + Other
+#                            Withdrawals (money out — summed via
+#                            purchases_total_sum: true)
+# With those bindings, the audit reconciliation math
+#   expectedDebit  = purchasesTotal + fees + interest
+#   expectedCredit = paymentsAndCreditsTotal
+# matches Chase's printed totals exactly (Chase Checking has no fees/interest
+# in this corpus).
+#
+# Transaction extraction operates on text re-rendered with
+# PDFTextStripper.setSortByPosition(true) — see PDFImportService
+# applyV2TransactionCutover. That mode preserves the amount + balance columns
+# inline so every row (deposit AND withdrawal) ends with `<amount> <balance>`.
+# In default extraction the deposit amounts are pulled into a separate
+# left-aligned column cluster and cannot be paired back to their rows.
+#
+# Status: validated against the 11-PDF -3100- corpus (math deltas 0.00).
+id: chase-checking-v2
+institution: Chase Checking
+description: "Chase Total Checking + Savings combined statements (checking account)"
+status: validated
+extends: [common]
+
+card_detection:
+  # Anchor on the "Chase Total Checking" headline so this template's institution
+  # match is more specific than the generic chase.yaml "Chase" alias. The
+  # AccountDetectionService normalizes the institution to "Chase Checking" when
+  # this phrase is present (see detectFromPDFContent), which is what makes
+  # findByInstitution route correctly to this template.
+  institution_match:
+    - any_of:
+        - "(?i)Chase\\s+Total\\s+Checking"
+        - "(?i)CHASE\\s+TOTAL\\s+CHECKING"
+
+  # Chase prints "Chase Total Checking 000000611923100 $X $Y" — capture the
+  # last 4 digits of the masked account number. Filename fallback ON because
+  # the filename `20251204-statements-3100-.pdf` also carries the last 4.
+  last_four:
+    - pattern: "(?i)Chase\\s+Total\\s+Checking\\s+\\d+(\\d{4})\\b"
+      filename_fallback: true
+    - pattern: "(?im)^\\s*Primary\\s+Account[:\\s]+\\d+(\\d{4})\\b"
+      filename_fallback: true
+
+  account_holder:
+    - source: above_account_ending
+      lines_above_account: 1-5
+
+metadata:
+  # Chase prints "November 07, 2025 through December 04, 2025" on every page.
+  # Use the END date as the statement date.
+  statement_date:
+    - pattern: "(?i)through\\s+([A-Z][a-z]+\\s+\\d{1,2},\\s+\\d{4})"
+
+  statement_period:
+    - pattern: "(?i)([A-Z][a-z]+\\s+\\d{1,2},\\s+\\d{4})\\s+through\\s+([A-Z][a-z]+\\s+\\d{1,2},\\s+\\d{4})"
+
+  # Beginning / Ending balance for the CHECKING section. These labels appear
+  # multiple times (summary block, transaction-detail block, and again for the
+  # Savings sub-account). The first occurrence wins via firstLabelAmount —
+  # and the first one in the PDF text is the Total Checking summary, which is
+  # what we want.
+  previous_balance:
+    - pattern: "(?im)^\\s*Beginning\\s+Balance\\s+\\$([\\d,]+\\.\\d{2})"
+  new_balance:
+    - pattern: "(?im)^\\s*Ending\\s+Balance\\s+\\$([\\d,]+\\.\\d{2})"
+
+  # Deposits and Additions — money IN. Reused as paymentsAndCreditsTotal so
+  # the audit's credit-side reconciliation works without a new schema field.
+  payments_total:
+    - pattern: "(?im)^\\s*Deposits\\s+and\\s+Additions\\s+([\\d,]+\\.\\d{2})"
+
+  # Purchases total = SUM of every printed withdrawal bucket — money OUT.
+  # Chase Total Checking prints these as signed lines under the CHECKING
+  # SUMMARY block. Different bucket combinations appear depending on the
+  # period's activity; an absent bucket simply contributes 0 to the sum.
+  # purchases_total_sum: true tells the evaluator to add all matching rule
+  # values instead of taking the first (mirrors payments_total_sum used by
+  # Citi for its "Payments + Credits + Adjustments" multi-row layout).
+  #
+  # Observed bucket labels in the corpus:
+  #   - "Checks Paid -X.XX"
+  #   - "Electronic Withdrawals -X.XX"
+  #   - "ATM & Debit Card Withdrawals -X.XX"
+  #   - "Other Withdrawals -X.XX"  (teller / cash withdrawals)
+  #   - "Fees -X.XX"               (Safe Deposit Box rent, etc.)
+  purchases_total_sum: true
+  purchases_total:
+    - pattern: "(?im)^\\s*Checks\\s+Paid\\s+-([\\d,]+\\.\\d{2})"
+    - pattern: "(?im)^\\s*Electronic\\s+Withdrawals\\s+-([\\d,]+\\.\\d{2})"
+    - pattern: "(?im)^\\s*ATM\\s+&\\s+Debit\\s+Card\\s+Withdrawals\\s+-([\\d,]+\\.\\d{2})"
+    - pattern: "(?im)^\\s*Other\\s+Withdrawals\\s+-([\\d,]+\\.\\d{2})"
+    - pattern: "(?im)^\\s*Fees\\s+-([\\d,]+\\.\\d{2})"
+
+# Transaction-shape rules. Operate on sort-by-position text (re-extracted by
+# PDFImportService.applyV2TransactionCutover when the institution is
+# "Chase Checking"). In that text, every transaction row ends with
+# `<amount> <balance>` on a single line.
+#
+# Two shapes — withdrawal first so the leading-minus amount matches before the
+# unsigned-amount deposit shape gets a chance to misinterpret "-X.XX Y.YY" as
+# "X.XX = amount, Y.YY = balance" with the minus consumed into the description.
+#
+# Both shapes tolerate an optional second MM/DD on transfer rows ("11/18 11/18
+# Online Transfer To Chk ...9994 ..."), and require a trailing balance to
+# avoid false-matching non-transaction lines that happen to start with MM/DD.
+transactions:
+  # WITHDRAWAL — DEBIT. Amount carries a leading minus. Section-anchored on
+  # "CHASE TOTAL CHECKING" so the savings sub-account's transaction detail
+  # (intra-statement transfers, monthly interest credits) is NOT pulled into
+  # the checking-account math.
+  #  "11/07 Discover ... Web ID: 3510020270 -5.66 13,949.46"
+  #  "11/18 11/18 Online Transfer To Chk ...9994 ... -1,000.00 13,939.63"
+  #  "11/25 Check                         # 97 -10,500.00 2,658.02"
+  - name: chase-checking-withdrawal
+    section_anchor: "CHASE TOTAL CHECKING"
+    line_regex: '^(?<date>\d{1,2}/\d{1,2})(?:\s+\d{1,2}/\d{1,2})?\s+(?<description>.+?)\s+(?<amount>-[\d,]+\.\d{2})\s+[\d,]+\.\d{2}\s*$'
+    date_format: "M/d"
+    account_type: checking
+    sign_convention: credit-card-purchase
+    min_amount: 0.01
+
+  # DEPOSIT — CREDIT. Amount has no leading minus. Only fires on lines where
+  # the withdrawal shape did not match.
+  #  "11/12 Online Transfer 26912726248 From Morganstanley ... 5,000.00 18,443.05"
+  #  "11/28 Amazon.Com Svcs Payroll PPD ID: 9111111103 17,157.40 19,815.42"
+  #  "12/04 Grisalin Managem Sigonfile PPD ID: 9000281206 3,415.31 11,489.65"
+  - name: chase-checking-deposit
+    section_anchor: "CHASE TOTAL CHECKING"
+    line_regex: '^(?<date>\d{1,2}/\d{1,2})(?:\s+\d{1,2}/\d{1,2})?\s+(?<description>.+?)\s+(?<amount>[\d,]+\.\d{2})\s+[\d,]+\.\d{2}\s*$'
+    date_format: "M/d"
+    account_type: checking
+    sign_convention: credit-card-credit
+    min_amount: 0.01
+
+  # Dummy savings-section anchor — registers "CHASE SAVINGS" as a recognized
+  # section header so the TransactionExtractor flips currentSection away from
+  # "CHASE TOTAL CHECKING" when the page break into the Savings sub-account
+  # is encountered. The line_regex is intentionally non-matching (the
+  # placeholder pattern starts with `__NEVER_MATCH__` which is not a date)
+  # so this shape never actually emits a transaction. Without this anchor
+  # the checking shapes above continue firing on savings rows.
+  - name: chase-savings-section-marker
+    section_anchor: "CHASE SAVINGS"
+    line_regex: '^__NEVER_MATCH__$'
+    date_format: "M/d"
+    account_type: savings
+    sign_convention: preserve
+    min_amount: 99999999
+
+# Inline self-test sample — locks in the metadata extraction against a synthetic
+# fixture that mirrors the layout of the 12/04/2025 statement.
+samples:
+  - name: chase-total-checking-dec-2025
+    input: |
+      JPMorgan Chase Bank, N.A.
+      November 07, 2025 through December 04, 2025
+        Primary Account: 000000611923100
+      Chase Total Checking 000000611923100 $13,955.12 $11,489.65
+      Chase Savings 000003829150359 590.19 590.19
+      Beginning Balance $13,955.12
+      Ending Balance $11,489.65
+      Deposits and Additions 25,586.89
+      Checks Paid -10,500.00
+      Electronic Withdrawals -14,052.36
+      Other Withdrawals -3,500.00
+      Beginning Balance $590.19
+      Ending Balance $590.19
+    expected:
+      previous_balance: 13955.12
+      new_balance: 11489.65
+      payments_total: 25586.89
+      # purchases_total = 10500 + 14052.36 + 3500 = 28052.36
+      purchases_total: 28052.36
+      statement_date: 2025-12-04

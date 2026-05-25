@@ -114,9 +114,25 @@ public final class LocalStackTestBootstrap {
         }
     }
 
-    /** True when {@link #endpoint()} resolved to a running embedded container or a reachable endpoint. */
+    /**
+     * True when LocalStack is reachable: either {@link #endpoint()}
+     * brought up an embedded Testcontainer, OR an external endpoint
+     * (via {@code DYNAMODB_ENDPOINT} / {@code aws.dynamodb.endpoint})
+     * was supplied. Returns false when {@code endpoint()} fell back to
+     * the hardcoded localhost stub — that means tests requiring
+     * LocalStack would fail with a connection error, so we'd rather
+     * skip them via {@link RequiresLocalStack}.
+     */
     public static boolean isAvailable() {
-        return container != null && container.isRunning();
+        if (container != null && container.isRunning()) {
+            return true;
+        }
+        // Externally-managed endpoint (real LocalStack running on host).
+        if (System.getProperty("aws.dynamodb.endpoint") != null
+                || System.getenv("DYNAMODB_ENDPOINT") != null) {
+            return true;
+        }
+        return false;
     }
 
     private static boolean isDockerAvailable() {

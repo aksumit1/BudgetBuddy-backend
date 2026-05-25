@@ -104,7 +104,17 @@ public final class TemplateMerger {
                 ? parent.getLayouts() : child.getLayouts());
         out.setPreprocessing(child.getPreprocessing() != null
                 ? child.getPreprocessing() : parent.getPreprocessing());
-        out.setSamples(child.getSamples());
+        // Inherit transactions: from parent when child has none. Pre-fix this
+        // silently dropped a parent's transaction-shape list — agents working
+        // on issuer templates had to inline shapes that should have lived
+        // in common.yaml as fallbacks. Same rule for card_holders and
+        // samples: child wins when populated, parent fills the gap.
+        out.setTransactions(child.getTransactions().isEmpty()
+                ? parent.getTransactions() : child.getTransactions());
+        out.setCardHolders(child.getCardHolders().isEmpty()
+                ? parent.getCardHolders() : child.getCardHolders());
+        out.setSamples(child.getSamples().isEmpty()
+                ? parent.getSamples() : child.getSamples());
         return out;
     }
 
@@ -112,61 +122,70 @@ public final class TemplateMerger {
             final PdfTemplateV2.MetadataRules c, final PdfTemplateV2.MetadataRules p) {
         if (p == null) return c;
         if (c == null) return p;
+        // OVERRIDE SEMANTICS: when child declares ANY rule for a field, the
+        // child's list wins entirely (no concat with parent). Parent only
+        // fills fields the child omits completely. This prevents
+        // common.yaml's generic patterns from polluting issuer-tuned ones —
+        // for example, common's "AUTOPAY IS ON" label firing after Wells
+        // Fargo's sentence-anchored autopay flag is already set, doubling
+        // the next-autopay roll-up. The semantic matches author intuition:
+        // "extends pulls in patterns I haven't bothered to define myself,
+        // not patterns to run alongside mine."
         final PdfTemplateV2.MetadataRules out = new PdfTemplateV2.MetadataRules();
-        out.setStatementDate(concat(c.getStatementDate(), p.getStatementDate()));
-        out.setStatementPeriod(concatPeriods(c.getStatementPeriod(), p.getStatementPeriod()));
-        out.setNewBalance(concat(c.getNewBalance(), p.getNewBalance()));
-        out.setPreviousBalance(concat(c.getPreviousBalance(), p.getPreviousBalance()));
-        out.setCreditLimit(concat(c.getCreditLimit(), p.getCreditLimit()));
-        out.setAvailableCredit(concat(c.getAvailableCredit(), p.getAvailableCredit()));
-        out.setMinimumPaymentDue(concat(c.getMinimumPaymentDue(), p.getMinimumPaymentDue()));
-        out.setPaymentDueDate(concat(c.getPaymentDueDate(), p.getPaymentDueDate()));
-        out.setPurchasesTotal(concat(c.getPurchasesTotal(), p.getPurchasesTotal()));
-        out.setPaymentsTotal(concat(c.getPaymentsTotal(), p.getPaymentsTotal()));
+        out.setStatementDate(override(c.getStatementDate(), p.getStatementDate()));
+        out.setStatementPeriod(overridePeriods(c.getStatementPeriod(), p.getStatementPeriod()));
+        out.setNewBalance(override(c.getNewBalance(), p.getNewBalance()));
+        out.setPreviousBalance(override(c.getPreviousBalance(), p.getPreviousBalance()));
+        out.setCreditLimit(override(c.getCreditLimit(), p.getCreditLimit()));
+        out.setAvailableCredit(override(c.getAvailableCredit(), p.getAvailableCredit()));
+        out.setMinimumPaymentDue(override(c.getMinimumPaymentDue(), p.getMinimumPaymentDue()));
+        out.setPaymentDueDate(override(c.getPaymentDueDate(), p.getPaymentDueDate()));
+        out.setPurchasesTotal(override(c.getPurchasesTotal(), p.getPurchasesTotal()));
+        out.setPaymentsTotal(override(c.getPaymentsTotal(), p.getPaymentsTotal()));
         out.setPaymentsTotalSum(c.isPaymentsTotalSum() || p.isPaymentsTotalSum());
-        out.setFeesTotal(concat(c.getFeesTotal(), p.getFeesTotal()));
-        out.setInterestTotal(concat(c.getInterestTotal(), p.getInterestTotal()));
-        out.setYtdFees(concat(c.getYtdFees(), p.getYtdFees()));
-        out.setYtdInterest(concat(c.getYtdInterest(), p.getYtdInterest()));
-        out.setPurchaseApr(concat(c.getPurchaseApr(), p.getPurchaseApr()));
-        out.setCashAdvanceApr(concat(c.getCashAdvanceApr(), p.getCashAdvanceApr()));
-        out.setBalanceTransferApr(concat(c.getBalanceTransferApr(), p.getBalanceTransferApr()));
-        out.setPenaltyApr(concat(c.getPenaltyApr(), p.getPenaltyApr()));
-        out.setPointsBalance(concat(c.getPointsBalance(), p.getPointsBalance()));
-        out.setPointsEarned(concat(c.getPointsEarned(), p.getPointsEarned()));
+        out.setPurchasesTotalSum(c.isPurchasesTotalSum() || p.isPurchasesTotalSum());
+        out.setFeesTotal(override(c.getFeesTotal(), p.getFeesTotal()));
+        out.setInterestTotal(override(c.getInterestTotal(), p.getInterestTotal()));
+        out.setOtherCreditsTotal(
+                override(c.getOtherCreditsTotal(), p.getOtherCreditsTotal()));
+        out.setYtdFees(override(c.getYtdFees(), p.getYtdFees()));
+        out.setYtdInterest(override(c.getYtdInterest(), p.getYtdInterest()));
+        out.setPurchaseApr(override(c.getPurchaseApr(), p.getPurchaseApr()));
+        out.setCashAdvanceApr(override(c.getCashAdvanceApr(), p.getCashAdvanceApr()));
+        out.setBalanceTransferApr(override(c.getBalanceTransferApr(), p.getBalanceTransferApr()));
+        out.setPenaltyApr(override(c.getPenaltyApr(), p.getPenaltyApr()));
+        out.setPointsBalance(override(c.getPointsBalance(), p.getPointsBalance()));
+        out.setPointsEarned(override(c.getPointsEarned(), p.getPointsEarned()));
         out.setPreviousPointsBalance(
-                concat(c.getPreviousPointsBalance(), p.getPreviousPointsBalance()));
-        out.setCashbackBalance(concat(c.getCashbackBalance(), p.getCashbackBalance()));
-        out.setAutopayEnabled(concat(c.getAutopayEnabled(), p.getAutopayEnabled()));
-        out.setNextAutopayAmount(concat(c.getNextAutopayAmount(), p.getNextAutopayAmount()));
-        out.setAnnualFee(concat(c.getAnnualFee(), p.getAnnualFee()));
-        out.setAnnualFeeDueDate(concat(c.getAnnualFeeDueDate(), p.getAnnualFeeDueDate()));
+                override(c.getPreviousPointsBalance(), p.getPreviousPointsBalance()));
+        out.setCashbackBalance(override(c.getCashbackBalance(), p.getCashbackBalance()));
+        out.setAutopayEnabled(override(c.getAutopayEnabled(), p.getAutopayEnabled()));
+        out.setNextAutopayAmount(override(c.getNextAutopayAmount(), p.getNextAutopayAmount()));
+        out.setAnnualFee(override(c.getAnnualFee(), p.getAnnualFee()));
+        out.setAnnualFeeDueDate(override(c.getAnnualFeeDueDate(), p.getAnnualFeeDueDate()));
         out.setForeignTxFeePercent(
-                concat(c.getForeignTxFeePercent(), p.getForeignTxFeePercent()));
-        out.setBillingDays(concat(c.getBillingDays(), p.getBillingDays()));
+                override(c.getForeignTxFeePercent(), p.getForeignTxFeePercent()));
+        out.setBillingDays(override(c.getBillingDays(), p.getBillingDays()));
         return out;
     }
 
-    /** Child rules first, parent rules appended. Both lists may be empty. */
-    private static List<PdfTemplateV2.LabelRule> concat(
+    /**
+     * Override semantics: when child declares ANY rule, the child's list is
+     * the final list — parent's rules are ignored entirely for that field.
+     * The parent only contributes when the child has nothing declared
+     * (empty/null list). Matches author intuition for {@code extends:}.
+     */
+    private static List<PdfTemplateV2.LabelRule> override(
             final List<PdfTemplateV2.LabelRule> child,
             final List<PdfTemplateV2.LabelRule> parent) {
         if (child == null || child.isEmpty()) return parent == null ? List.of() : parent;
-        if (parent == null || parent.isEmpty()) return child;
-        final List<PdfTemplateV2.LabelRule> out = new ArrayList<>(child.size() + parent.size());
-        out.addAll(child);
-        out.addAll(parent);
-        return out;
+        return child;
     }
 
-    private static List<PdfTemplateV2.PeriodRule> concatPeriods(
+    private static List<PdfTemplateV2.PeriodRule> overridePeriods(
             final List<PdfTemplateV2.PeriodRule> child,
             final List<PdfTemplateV2.PeriodRule> parent) {
         if (child == null || child.isEmpty()) return parent == null ? List.of() : parent;
-        if (parent == null || parent.isEmpty()) return child;
-        final List<PdfTemplateV2.PeriodRule> out = new ArrayList<>(child.size() + parent.size());
-        out.addAll(child);
-        out.addAll(parent);
-        return out;
+        return child;
     }
 }

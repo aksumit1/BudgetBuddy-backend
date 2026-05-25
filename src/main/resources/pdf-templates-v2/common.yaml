@@ -7,6 +7,24 @@
 # Status note: this template has no `card_detection` and no `samples:` so
 # nothing dispatches to it directly; it's only meaningful when another
 # template extends it.
+#
+# What lives here (survey across the 11 issuer YAMLs):
+#   - payment_due_date        — universal "Payment Due Date <date>" form
+#                               (varying separator between label and value,
+#                               covered by the [:\s]+ permissive class).
+#   - minimum_payment_due     — universal "Minimum Payment Due $X.XX" form.
+#   - foreign_tx_fee_percent  — universal "Foreign Transaction Fee N%" form,
+#                               accepts integer or decimal percent.
+#   - billing_days            — both "Days in Billing Cycle: N" and "N Days
+#                               in Billing Period" orderings.
+#   - annual_fee              — "Annual [Membership] Fee $X.XX" form (Citi,
+#                               Wells Fargo, Amex, BoA, Chase fallback).
+#   - ytd_fees / ytd_interest — "Total fees/interest charged in YYYY $X.XX"
+#                               (Chase, Citi, U.S. Bank exact match; Wells,
+#                               Synchrony, Amex, Mastercard override with
+#                               own forms in their child YAMLs).
+#   - autopay_enabled         — generic "AUTOPAY IS ON" / "AUTOPAY IS OFF"
+#                               labels (Chase, Discover, Wells, Synchrony).
 id: common
 institution: Common Fragment
 description: "Shared metadata rules for credit-card statements"
@@ -14,6 +32,8 @@ status: validated
 
 metadata:
   # Payment Due Date — most issuers print "Payment Due Date 06/12/26" inline.
+  # The [:\s]+ accepts colon, space, or both as separator (Chase/Synchrony/
+  # Citi use a colon variant; Wells/USB/Discover/Amex/BoA/Apple use whitespace).
   payment_due_date:
     - pattern: "(?im)Payment\\s+Due\\s+Date[:\\s]+(\\d{1,2}/\\d{1,2}/\\d{2,4})"
 
@@ -22,11 +42,43 @@ metadata:
     - pattern: "(?im)Minimum\\s+Payment\\s+Due[:\\s]+\\$([\\d,]+\\.\\d{2})"
 
   # Foreign transaction fee — universal "Foreign Transaction Fee N%" form.
+  # Accepts integer or decimal percent. The [^%]*? laziness lets the regex
+  # span the disclosure prose between the label and the numeric percent.
   foreign_tx_fee_percent:
     - pattern: "(?i)[Ff]oreign\\s+[Tt]ransaction\\s+[Ff]ee[^%]*?(\\d{1,2}(?:\\.\\d{1,3})?)\\s*%"
 
   # Billing days — either "Days in Billing Cycle: 30" or "30 Days in Billing
   # Period". Issuers split roughly evenly between the two orderings.
+  # The (?<!\d) lookbehind on the "N Days in Billing" form prevents matching
+  # the last digits of a longer numeric token (e.g. account numbers).
   billing_days:
     - pattern: "(?i)Days?\\s+in\\s+Billing\\s+(?:Cycle|Period)[:\\s]+(\\d{1,3})"
     - pattern: "(?i)(?<!\\d)(\\d{1,3})\\s+Days?\\s+in\\s+Billing\\s+(?:Period|Cycle)"
+
+  # Annual fee — "Annual [Membership] Fee $X.XX" inline form. Citi, Wells
+  # Fargo, Amex, BoA all use this exact pattern; Chase has it as a fallback
+  # behind its "annual membership fee in the amount of $X.XX" disclosure form.
+  annual_fee:
+    - pattern: "(?i)Annual\\s+(?:Membership\\s+)?Fee\\s+\\$([\\d,]+\\.\\d{2})"
+
+  # Year-to-Date totals — "Total fees charged in YYYY $X.XX" /
+  # "Total interest charged in YYYY $X.XX". Chase, Citi, and U.S. Bank
+  # use this exact form; Wells Fargo (stacked label/value layout), Amex
+  # ("Total Fees in YYYY"), Mastercard ("Total fees charged $X" without
+  # year), and Synchrony ("Year-to-Date Fees and Interest ... Total Fees
+  # Charged $X") override with their own forms first in their child YAMLs.
+  ytd_fees:
+    - pattern: "(?i)Total\\s+fees\\s+charged\\s+in\\s+\\d{4}\\s+\\$([\\d,]+\\.\\d{2})"
+  ytd_interest:
+    - pattern: "(?i)Total\\s+interest\\s+charged\\s+in\\s+\\d{4}\\s+\\$([\\d,]+\\.\\d{2})"
+
+  # Autopay on/off — the simple "AUTOPAY IS ON" / "AUTOPAY IS OFF" label form
+  # Chase, Discover, Wells Fargo, and Synchrony print on their statements.
+  # Issuers with a sentence-form autopay disclosure (Amex "debit your bank
+  # account", Citi "Your next AutoPay payment of", USB "An automatic payment
+  # of", BoA "AUTOMATIC PAYMENT", Mastercard "Autopay of $", Apple) override
+  # with their own labels first.
+  autopay_enabled:
+    - label: "AUTOPAY IS ON"
+    - label: "AUTOPAY IS OFF"
+      pattern: "false"

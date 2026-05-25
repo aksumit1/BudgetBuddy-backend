@@ -137,7 +137,7 @@ public class SubscriptionControllerIntegrationTest {
                                 withAuth(post("/api/subscriptions/detect"))
                                         .contentType(MediaType.APPLICATION_JSON))
                         .andExpect(status().isOk())
-                        .andExpect(jsonPath("$").isArray())
+                        .andExpect(jsonPath("$.data").isArray())
                         .andReturn();
 
         // Debug: Check if subscriptions were detected
@@ -176,10 +176,10 @@ public class SubscriptionControllerIntegrationTest {
                                 withAuth(get("/api/subscriptions"))
                                         .contentType(MediaType.APPLICATION_JSON))
                         .andExpect(status().isOk())
-                        .andExpect(jsonPath("$").isArray())
-                        .andExpect(jsonPath("$[0]").exists())
-                        .andExpect(jsonPath("$[0].merchantName").exists())
-                        .andExpect(jsonPath("$[0].frequency").exists())
+                        .andExpect(jsonPath("$.data").isArray())
+                        .andExpect(jsonPath("$.data[0]").exists())
+                        .andExpect(jsonPath("$.data[0].merchantName").exists())
+                        .andExpect(jsonPath("$.data[0].frequency").exists())
                         .andReturn();
 
         // Debug: Print response
@@ -209,9 +209,9 @@ public class SubscriptionControllerIntegrationTest {
                         withAuth(get("/api/subscriptions/active"))
                                 .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$").isArray())
-                .andExpect(jsonPath("$.length()").value(1))
-                .andExpect(jsonPath("$[0].merchantName").exists());
+                .andExpect(jsonPath("$.data").isArray())
+                .andExpect(jsonPath("$.data.length()").value(1))
+                .andExpect(jsonPath("$.data[0].merchantName").exists());
 
         // Verify via service
         final var activeSubscriptions = subscriptionService.getActiveSubscriptions(testUserId);
@@ -265,7 +265,7 @@ public class SubscriptionControllerIntegrationTest {
                                 withAuth(post("/api/subscriptions/detect"))
                                         .contentType(MediaType.APPLICATION_JSON))
                         .andExpect(status().isOk())
-                        .andExpect(jsonPath("$").isArray())
+                        .andExpect(jsonPath("$.data").isArray())
                         .andReturn();
 
         // Debug: Print response

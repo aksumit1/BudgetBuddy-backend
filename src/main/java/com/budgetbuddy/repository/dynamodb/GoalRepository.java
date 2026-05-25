@@ -126,7 +126,9 @@ public class GoalRepository {
             }
         }
         results.sort((g1, g2) -> g1.getTargetDate().compareTo(g2.getTargetDate()));
-        return results;
+        // Belt-and-suspenders IDOR guard — see UserOwnershipGuard javadoc.
+        return com.budgetbuddy.security.UserOwnershipGuard.filter(
+                results, userId, GoalTable::getUserId);
     }
 
     /*

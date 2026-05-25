@@ -1,0 +1,301 @@
+# Synchrony — Amazon Store Card / Prime Store Card (issuer: Synchrony Bank).
+# Also covers Lowe's, Care Credit, JCPenney, and the broader retail-co-branded
+# Synchrony portfolio (all share the same statement layout printed by the
+# Synchrony processing center).
+#
+# Corpus: 3 PDFs (StatementMar.pdf, StatementNov.pdf, Statementapr.pdf), all
+# Amazon Store Card. Header tokens that identify the issuer:
+#   "amazon.syf.com", "Synchrony Bank", "SYNCHRONY BANK/AMAZON",
+#   "Manage your account online at amazon.syf.com"
+#
+# Synchrony statements lay out transactions in three sub-blocks:
+#   (1) "Payments"                — autopay / web payments, amounts printed
+#                                   with a leading minus ("-$23.76").
+#   (2) "Other Credits"           — refunds / returns, also leading minus.
+#                                   May be absent on statements with no
+#                                   refunds (e.g. Nov).
+#   (3) "Purchases and Other Debits" — positive amounts.
+# We discriminate the rows by AMOUNT SIGN at the first amount on the line,
+# not by section_anchor — Synchrony PDFs glue the next section's header
+# onto the prior section's last row (e.g. "...-$23.76 Other Credits
+# -$227.46"), and section_anchor would mis-classify those rows because the
+# extractor flips the active section BEFORE evaluating shapes.
+#
+# The "Other Credits" section is reported separately from "Payments" on the
+# Account Summary block, so we capture it with other_credits_total and let
+# V2FieldBinder roll it into paymentsAndCreditsTotal for the audit's credit-
+# side reconciliation. Without this, the credit-side delta would miss the
+# refunds entirely (audit credit-side breaks by $227.46 on StatementMar).
+#
+# Status: unverified (gated on PdfFullAuditTest against the 3 Synchrony PDFs).
+id: synchrony-v2
+institution: Synchrony
+description: "Synchrony Bank retail credit cards (Amazon Store Card, Lowe's, Care Credit, JCPenney)"
+status: unverified
+# NOTE: deliberately NOT using `extends: [common]`. TemplateMerger.mergePair
+# does not propagate the child's `transactions:` list when the child extends
+# a parent (the merged output drops it), and Synchrony's section-anchored
+# shapes are load-bearing for the audit's reconciliation. The few common
+# fallbacks (payment_due_date / minimum_payment_due / billing_days) are
+# inlined directly below.
+
+card_detection:
+  institution_match:
+    - any_of:
+        - "(?i)amazon\\.syf\\.com"
+        - "(?i)\\bSynchrony\\s+Bank\\b"
+        - "(?i)\\bSynchrony\\b"
+        - "(?i)www\\.syncbank\\.com"
+        - "(?i)SYNCHRONY\\s+BANK/(?:AMAZON|LOWES|CARECREDIT|JCPENNEY)"
+        - "(?i)1-866-634-8379"
+
+  last_four:
+    - pattern: "(?i)account\\s+number\\s+ending\\s+in\\s+(\\d{4})\\b"
+      filename_fallback: true
+    - pattern: "(?i)account\\s+number[\\s:]+[*xX\\s-]*(\\d{4})\\b"
+      filename_fallback: true
+
+  account_holder:
+    - source: above_account_ending
+      lines_above_account: 1-3
+
+metadata:
+  # Synchrony does not print a discrete "Statement Date" label — the closing
+  # date is embedded in "New Balance as of MM/DD/YYYY" and in the billing-
+  # cycle line "NN Day Billing Cycle from MM/DD/YYYY to MM/DD/YYYY".
+  statement_date:
+    - pattern: "(?i)New\\s+Balance\\s+as\\s+of\\s+(\\d{1,2}/\\d{1,2}/\\d{2,4})"
+
+  statement_period:
+    - pattern: "(?i)\\d{1,3}\\s+Day\\s+Billing\\s+Cycle\\s+from\\s+(\\d{1,2}/\\d{1,2}/\\d{2,4})\\s+to\\s+(\\d{1,2}/\\d{1,2}/\\d{2,4})"
+
+  # "New Balance: $33.07" (top-of-statement) and "New Balance as of 03/16/2026
+  # $33.07" (Account Summary). The colon variant wins on order; the "as of"
+  # variant is the second fallback.
+  new_balance:
+    - pattern: "(?im)^\\s*New\\s+Balance[:\\s]+\\$([\\d,]+\\.\\d{2})"
+    - pattern: "(?i)New\\s+Balance\\s+as\\s+of\\s+\\d{1,2}/\\d{1,2}/\\d{2,4}\\s+\\$([\\d,]+\\.\\d{2})"
+
+  previous_balance:
+    - pattern: "(?i)Previous\\s+Balance\\s+as\\s+of\\s+\\d{1,2}/\\d{1,2}/\\d{2,4}\\s+\\$([\\d,]+\\.\\d{2})"
+    - pattern: "(?im)^\\s*Previous\\s+Balance\\s+\\$([\\d,]+\\.\\d{2})"
+
+  # "Purchases/Debits + 212.34" — bare-number form with no $ sigil. The
+  # leading "+ " is decorative; capture just the magnitude.
+  purchases_total:
+    - pattern: "(?im)^\\s*Purchases/Debits\\s*\\+?\\s*([\\d,]+\\.\\d{2})"
+
+  # "Payments - 23.76" — bare-number form. Note the trailing "Payments and
+  # Other Debits $124.93" line is the SECTION TOTAL (debit side) on
+  # statements with no Other Credits, so we anchor strictly to "Payments -"
+  # in the Account Summary.
+  payments_total:
+    - pattern: "(?im)^\\s*Payments\\s*-\\s*([\\d,]+\\.\\d{2})"
+
+  # "Other Credits - 227.46" — only present when the cycle has refunds.
+  # V2FieldBinder folds this into paymentsAndCreditsTotal so the audit's
+  # credit-side reconciliation lines up.
+  other_credits_total:
+    - pattern: "(?im)^\\s*Other\\s+Credits\\s*-\\s*([\\d,]+\\.\\d{2})"
+
+  # "Total Fees Charged This Period $0.00" — period total (NOT the YTD
+  # "Total Fees Charged $0.00" further down). Tighten to "This Period" so
+  # the YTD line doesn't shadow it.
+  fees_total:
+    - pattern: "(?i)Total\\s+Fees\\s+Charged\\s+This\\s+Period\\s+\\$([\\d,]+\\.\\d{2})"
+
+  interest_total:
+    - pattern: "(?i)Total\\s+Interest\\s+Charged\\s+This\\s+Period\\s+\\$([\\d,]+\\.\\d{2})"
+
+  # YTD totals appear under "2025 Year-to-Date Fees and Interest" / "2026
+  # Year-to-Date Fees and Interest" — bare "Total Fees Charged $X.XX" with
+  # no "This Period" qualifier.
+  ytd_fees:
+    - pattern: "(?i)Year-to-Date\\s+Fees\\s+and\\s+Interest\\s+Total\\s+Fees\\s+Charged\\s+\\$([\\d,]+\\.\\d{2})"
+    - pattern: "(?im)^\\s*Total\\s+Fees\\s+Charged\\s+\\$([\\d,]+\\.\\d{2})\\s*$"
+  ytd_interest:
+    - pattern: "(?is)Year-to-Date\\s+Fees\\s+and\\s+Interest.*?Total\\s+Interest\\s+Charged\\s+\\$([\\d,]+\\.\\d{2})"
+    - pattern: "(?im)^\\s*Total\\s+Interest\\s+Charged\\s+\\$([\\d,]+\\.\\d{2})\\s*$"
+
+  # Synchrony prints credit-limit and available-credit as integer dollars
+  # ("Credit Limit $4,700") — no cents.
+  credit_limit:
+    - pattern: "(?im)^\\s*Credit\\s+Limit\\s+\\$([\\d,]+(?:\\.\\d{2})?)"
+  available_credit:
+    - pattern: "(?im)^\\s*Available\\s+Credit\\s+\\$([\\d,]+(?:\\.\\d{2})?)"
+
+  # "Total Minimum Payment Due: $29.00" (top block) and "Total Minimum
+  # Payment Due $29.00" (remittance slip). Both accepted.
+  minimum_payment_due:
+    - pattern: "(?im)Total\\s+Minimum\\s+Payment\\s+Due[:\\s]+\\$([\\d,]+\\.\\d{2})"
+
+  payment_due_date:
+    - pattern: "(?im)Payment\\s+Due\\s+Date[:\\s]+(\\d{1,2}/\\d{1,2}/\\d{2,4})"
+
+  # APR table layout:
+  #   "Purchases N/A 29.49% (v) $0.00 $0.00"
+  # Synchrony only declares Purchases APR (no Cash Advances / Balance
+  # Transfers on retail store cards).
+  purchase_apr:
+    - pattern: "(?im)^\\s*Purchases\\s+N/A\\s+(\\d{1,2}\\.\\d{1,3})\\s*%"
+    - pattern: "(?im)^\\s*Purchases\\s+(\\d{1,2}\\.\\d{1,3})\\s*%"
+
+  # "AUTOPAY OF $33.07 SET FOR 04/08/26" — presence implies autopay on.
+  autopay_enabled:
+    - label: "AUTOPAY OF"
+    - label: "AUTOPAY IS ON"
+
+  next_autopay_amount:
+    - pattern: "(?i)AUTOPAY\\s+OF\\s+\\$([\\d,]+\\.\\d{2})\\s+SET\\s+FOR"
+
+  # "NN Day Billing Cycle from MM/DD/YYYY to MM/DD/YYYY"
+  billing_days:
+    - pattern: "(?i)(\\d{1,3})\\s+Day\\s+Billing\\s+Cycle"
+
+  # Synchrony Amazon Store Card prints rewards-as-dollars under "Rewards
+  # Earned YTD". The current statement-period rewards balance is "Rewards
+  # as of statement date $X" on a single stitched line.
+  cashback_balance:
+    - pattern: "(?i)Rewards\\s+as\\s+of\\s+statement\\s+date\\s+\\$([\\d,]+\\.\\d{2})"
+    - pattern: "(?i)Rewards\\s+Earned\\s+YTD\\s+\\$([\\d,]+\\.\\d{2})"
+
+samples:
+  # Mirror of StatementMar.pdf — exercises the full three-section layout
+  # (Payments + Other Credits + Purchases) and the integer-dollar credit-
+  # limit form. The Account Summary line ordering is the Synchrony default.
+  - name: amazon-store-card-march-2026
+    input: |
+      AGARWAL SUMIT KUMAR
+      Account Number ending in 6127
+      Payment Information AUTOPAY OF $33.07 SET FOR 04/08/26
+      New Balance: $33.07
+      Total Minimum Payment Due: $29.00
+      Payment Due Date: 04/08/2026
+      Visit us at amazon.syf.com or Call 1-866-634-8379.
+      Account Summary
+      Previous Balance as of 02/14/2026 $71.95
+      Payments - 23.76
+      Other Credits - 227.46
+      Purchases/Debits + 212.34
+      New Balance as of 03/16/2026 $33.07
+      31 Day Billing Cycle from 02/14/2026 to 03/16/2026
+      Credit Limit $4,700
+      Available Credit $4,666
+      Total Fees Charged This Period $0.00
+      Total Interest Charged This Period $0.00
+      Purchases N/A 29.49% (v) $0.00 $0.00
+    expected:
+      new_balance: 33.07
+      previous_balance: 71.95
+      credit_limit: 4700
+      available_credit: 4666
+      purchases_total: 212.34
+      payments_total: 23.76
+      # other_credits_total (227.46) is rolled into paymentsAndCreditsTotal by
+      # V2FieldBinder; V2YamlSelfTest exercises the raw evaluator so the rolled
+      # value is not asserted here. Audit reconciliation against the live PDF
+      # validates the rollup math.
+      fees_total: 0.00
+      interest_total: 0.00
+      purchase_apr: 29.49
+      billing_days: 31
+      statement_date: 2026-03-16
+      payment_due_date: 2026-04-08
+      minimum_payment_due: 29.00
+      autopay_enabled: true
+      next_autopay_amount: 33.07
+
+  # Mirror of StatementNov.pdf — only Payments + Purchases (no Other
+  # Credits subsection). Verifies other_credits_total is correctly null
+  # when the section is absent.
+  - name: amazon-store-card-nov-2025
+    input: |
+      AGARWAL SUMIT KUMAR
+      Account Number ending in 6127
+      AUTOPAY OF $124.93 SET FOR 12/08/25
+      New Balance: $124.93
+      Total Minimum Payment Due: $29.00
+      Payment Due Date: 12/08/2025
+      Visit us at amazon.syf.com
+      Account Summary
+      Previous Balance as of 10/17/2025 $48.01
+      Payments - 48.01
+      Purchases/Debits + 124.93
+      New Balance as of 11/14/2025 $124.93
+      29 Day Billing Cycle from 10/17/2025 to 11/14/2025
+      Credit Limit $4,700
+      Available Credit $4,575
+      Total Fees Charged This Period $0.00
+      Total Interest Charged This Period $0.00
+      Purchases N/A 29.99% (v) $0.00 $0.00
+    expected:
+      new_balance: 124.93
+      previous_balance: 48.01
+      credit_limit: 4700
+      available_credit: 4575
+      purchases_total: 124.93
+      payments_total: 48.01
+      fees_total: 0.00
+      interest_total: 0.00
+      purchase_apr: 29.99
+      billing_days: 29
+      statement_date: 2025-11-14
+      payment_due_date: 2025-12-08
+      minimum_payment_due: 29.00
+      autopay_enabled: true
+      next_autopay_amount: 124.93
+
+preprocessing:
+  stitch:
+    section_headers:
+      - "Account Summary"
+      - "Transaction Detail"
+      - "Payments"
+      - "Other Credits"
+      - "Purchases and Other Debits"
+
+# v2 transaction-shape declarations — sign-anchored (not section-anchored).
+# The section_anchor approach is unsafe on Synchrony because PDFBox stitches
+# the next section's header onto the last row of the prior section (e.g.
+# the last Payments row ends "...-$23.76 Other Credits -$227.46"), and the
+# extractor flips the active section BEFORE evaluating shapes — so the
+# Payments row would be miscategorised as Other Credits / Purchases.
+#
+# Instead we discriminate by AMOUNT SIGN at the FIRST amount on the row:
+#  • leading "-$" → payment OR refund (sign_convention: credit-card-credit)
+#  • bare "$"      → purchase / fee   (sign_convention: credit-card-purchase)
+# This matches the Chase template's approach. Both Payments and Other Credits
+# end up under one shape, both with credit-card-credit semantics — so the
+# accounting tally is identical to a section-aware split.
+#
+# Description-based payment-pattern override in PDFImportService.decideV2-
+# FlowDirection keeps any payment row that slips into a purchase regex (none
+# in this corpus) classified correctly. Without these shapes the legacy
+# fallback miscategorises every refund as a purchase (rows look identical
+# apart from the leading minus sign), inflating the debit-side by 2x and
+# breaking the audit's reconciliation on StatementMar.
+transactions:
+  - name: synchrony-payment-or-refund
+    line_regex: '^(?<date>\d{1,2}/\d{1,2})\s+\S+\s+(?<description>.+?)\s+-\$(?<amount>\d{1,3}(?:,\d{3})*\.\d{2})(?:\s+\S.*)?\s*$'
+    date_format: "M/d"
+    account_type: credit
+    sign_convention: credit-card-credit
+    min_amount: 0.01
+  - name: synchrony-purchase
+    line_regex: '^(?<date>\d{1,2}/\d{1,2})\s+\S+\s+(?<description>.+?)\s+\$(?<amount>\d{1,3}(?:,\d{3})*\.\d{2})(?:\s+\S.*)?\s*$'
+    date_format: "M/d"
+    account_type: credit
+    sign_convention: credit-card-purchase
+    min_amount: 0.01
+
+layouts:
+  # Synchrony single-date row:
+  #   "02/12 P934200DYEHMBLX7W AMAZON MARKETPLACE SEATTLE WA $24.99"
+  # The reference number after the date is the Synchrony trace ID
+  # (P/F-prefixed) — capture as part of leading whitespace.
+  - name: synchrony-credit-single-date
+    accountType: credit
+    lineRegex: '^(?<date>\d{1,2}/\d{1,2}(?:/\d{2,4})?)\s+\S+\s+(?<description>.+?)\s+-?\$?(?<amount>-?\d{1,3}(?:,\d{3})*\.\d{2})\s*$'
+    dateFormat: "M/d"
+    signConvention: credit-positive
+    minAmount: 0.01

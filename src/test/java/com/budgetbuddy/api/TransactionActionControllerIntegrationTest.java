@@ -154,10 +154,10 @@ class TransactionActionControllerIntegrationTest {
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.title").value("Review transaction"))
-                .andExpect(jsonPath("$.description").value("Check if correct"))
-                .andExpect(jsonPath("$.priority").value("HIGH"))
-                .andExpect(jsonPath("$.isCompleted").value(false));
+                .andExpect(jsonPath("$.data.title").value("Review transaction"))
+                .andExpect(jsonPath("$.data.description").value("Check if correct"))
+                .andExpect(jsonPath("$.data.priority").value("HIGH"))
+                .andExpect(jsonPath("$.data.isCompleted").value(false));
     }
 
     @Test
@@ -203,8 +203,8 @@ class TransactionActionControllerIntegrationTest {
                                 .header(AUTHORIZATION, "Bearer " + accessToken)
                                 .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$").isArray())
-                .andExpect(jsonPath("$[0].title").value("Test Action"));
+                .andExpect(jsonPath("$.data").isArray())
+                .andExpect(jsonPath("$.data[0].title").value("Test Action"));
     }
 
     @Test
@@ -248,9 +248,9 @@ class TransactionActionControllerIntegrationTest {
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(updateRequest)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.title").value("Updated Title"))
-                .andExpect(jsonPath("$.isCompleted").value(true))
-                .andExpect(jsonPath("$.priority").value("HIGH"));
+                .andExpect(jsonPath("$.data.title").value("Updated Title"))
+                .andExpect(jsonPath("$.data.isCompleted").value(true))
+                .andExpect(jsonPath("$.data.priority").value("HIGH"));
     }
 
     @Test
@@ -294,8 +294,8 @@ class TransactionActionControllerIntegrationTest {
                                 .header(AUTHORIZATION, "Bearer " + accessToken)
                                 .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$").isArray())
-                .andExpect(jsonPath("$").isEmpty());
+                .andExpect(jsonPath("$.data").isArray())
+                .andExpect(jsonPath("$.data").isEmpty());
     }
 
     @Test

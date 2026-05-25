@@ -98,12 +98,12 @@ class UserControllerIntegrationTest {
         // When/Then - Should return user info if authenticated
         mockMvc.perform(withAuth(get("/api/users/me")).contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.userId").exists())
-                .andExpect(jsonPath("$.email").exists())
-                .andExpect(jsonPath("$.firstName").exists())
-                .andExpect(jsonPath("$.lastName").exists())
-                .andExpect(jsonPath("$.emailVerified").exists())
-                .andExpect(jsonPath("$.enabled").exists());
+                .andExpect(jsonPath("$.data.userId").exists())
+                .andExpect(jsonPath("$.data.email").exists())
+                .andExpect(jsonPath("$.data.firstName").exists())
+                .andExpect(jsonPath("$.data.lastName").exists())
+                .andExpect(jsonPath("$.data.emailVerified").exists())
+                .andExpect(jsonPath("$.data.enabled").exists());
     }
 
     @Test

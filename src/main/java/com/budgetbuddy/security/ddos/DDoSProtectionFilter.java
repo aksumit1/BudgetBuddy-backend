@@ -1,6 +1,6 @@
 package com.budgetbuddy.security.ddos;
 
-import com.budgetbuddy.exception.EnhancedGlobalExceptionHandler;
+import com.budgetbuddy.api.response.ApiResponse;
 import com.budgetbuddy.exception.ErrorCode;
 import com.budgetbuddy.security.rate.RateLimitService;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -10,7 +10,6 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
-import java.time.Instant;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
@@ -282,8 +281,10 @@ public class DDoSProtectionFilter extends OncePerRequestFilter {
     }
 
     /**
-     * Send rate limit error response in standard format Matches
-     * EnhancedGlobalExceptionHandler.ErrorResponse format
+     * Send rate-limit error response in the standard envelope. Bypasses
+     * Spring's @ExceptionHandler chain because filters run earlier, so
+     * we write the {@link ApiResponse} envelope directly to the
+     * servlet response.
      */
     private void sendRateLimitError(
             final HttpServletResponse response,
@@ -292,20 +293,14 @@ public class DDoSProtectionFilter extends OncePerRequestFilter {
             final int retryAfter,
             final String path)
             throws IOException {
-        final EnhancedGlobalExceptionHandler.ErrorResponse errorResponse =
-                EnhancedGlobalExceptionHandler.ErrorResponse.builder()
-                        .errorCode(ErrorCode.RATE_LIMIT_EXCEEDED.name())
-                        .message(message)
-                        .correlationId(correlationId)
-                        .timestamp(Instant.now())
-                        .path(path != null ? path : "")
-                        .build();
+        final ApiResponse<Void> body = ApiResponse.error(
+                ErrorCode.RATE_LIMIT_EXCEEDED.name(), message, correlationId);
 
         response.setStatus(429); // SC_TOO_MANY_REQUESTS
         response.setHeader("Retry-After", String.valueOf(retryAfter));
         response.setContentType(APPLICATION_JSON);
         response.setCharacterEncoding("UTF-8");
 
-        objectMapper.writeValue(response.getWriter(), errorResponse);
+        objectMapper.writeValue(response.getWriter(), body);
     }
 }

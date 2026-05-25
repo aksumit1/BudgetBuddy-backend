@@ -362,7 +362,7 @@ public class SubscriptionDetectionTriggersIntegrationTest {
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(batchRequest)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.created").value(3));
+                .andExpect(jsonPath("$.data.created").value(3));
 
         // Wait for async subscription detection with retry
         waitForSubscriptionDetection();

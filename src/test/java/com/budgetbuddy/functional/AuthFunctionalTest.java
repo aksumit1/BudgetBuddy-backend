@@ -121,7 +121,10 @@ class AuthFunctionalTest {
         final String challengeResponse = challengeResult.getResponse().getContentAsString();
         final com.fasterxml.jackson.databind.JsonNode challengeNode =
                 getObjectMapper().readTree(challengeResponse);
-        final String challenge = challengeNode.get("challenge").asText();
+        // Universal envelope wraps the body under `data`; extract from there.
+        final com.fasterxml.jackson.databind.JsonNode challengePayload =
+                challengeNode.has("data") ? challengeNode.get("data") : challengeNode;
+        final String challenge = challengePayload.get("challenge").asText();
 
         // Step 2: Register with challenge and password_hash
         final String requestBody =
@@ -184,7 +187,10 @@ class AuthFunctionalTest {
         final String challengeResponse = challengeResult.getResponse().getContentAsString();
         final com.fasterxml.jackson.databind.JsonNode challengeNode =
                 getObjectMapper().readTree(challengeResponse);
-        final String challenge = challengeNode.get("challenge").asText();
+        // Universal envelope wraps the body under `data`; extract from there.
+        final com.fasterxml.jackson.databind.JsonNode challengePayload =
+                challengeNode.has("data") ? challengeNode.get("data") : challengeNode;
+        final String challenge = challengePayload.get("challenge").asText();
 
         // Step 2: Login with challenge and password_hash
         final String requestBody =
@@ -198,7 +204,7 @@ class AuthFunctionalTest {
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(requestBody))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.accessToken").exists());
+                .andExpect(jsonPath("$.data.accessToken").exists());
     }
 
     @Test

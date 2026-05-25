@@ -248,6 +248,22 @@ class PdfFullAuditTest {
                         org.mockito.ArgumentMatchers.any(),
                         org.mockito.ArgumentMatchers.any()))
                 .thenReturn("Uncategorized");
+        // Both production parseCategory call-sites use the 9-arg overload —
+        // legacy parseTransactionFromRow and v2 enrichV2Transaction. Without
+        // stubbing the 9-arg form the mock returns null and the audit shows
+        // category=missing for every transaction, masking the real coverage.
+        org.mockito.Mockito.when(
+                categoryParser.parseCategory(
+                        org.mockito.ArgumentMatchers.any(),
+                        org.mockito.ArgumentMatchers.any(),
+                        org.mockito.ArgumentMatchers.any(),
+                        org.mockito.ArgumentMatchers.any(),
+                        org.mockito.ArgumentMatchers.any(),
+                        org.mockito.ArgumentMatchers.any(),
+                        org.mockito.ArgumentMatchers.any(),
+                        org.mockito.ArgumentMatchers.any(),
+                        org.mockito.ArgumentMatchers.any()))
+                .thenReturn("Uncategorized");
         final EnhancedPatternMatcher patternMatcher = new EnhancedPatternMatcher();
 
         final com.budgetbuddy.service.pdf.PdfTemplateRegistry registry =

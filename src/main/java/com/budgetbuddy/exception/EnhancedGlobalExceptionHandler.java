@@ -1,8 +1,9 @@
 package com.budgetbuddy.exception;
 
+import com.budgetbuddy.api.response.ApiResponse;
 import com.budgetbuddy.util.MessageUtil;
+import edu.umd.cs.findbugs.annotations.Nullable;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import java.time.Instant;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
@@ -55,46 +56,31 @@ public class EnhancedGlobalExceptionHandler {
     }
 
     @ExceptionHandler(AppException.class)
-    public ResponseEntity<ErrorResponse> handleAppException(
+    public ResponseEntity<ApiResponse<Void>> handleAppException(
             final AppException ex, final WebRequest request) {
         final String correlationId = MDC.get(CORRELATION_ID);
 
         String localizedMessage = messageUtil.getErrorMessage(ex.getErrorCode().name());
         if (localizedMessage.equals(
                 "error." + ex.getErrorCode().name().toLowerCase(Locale.ROOT).replace("_", "."))) {
-            localizedMessage =
-                    sanitizeErrorMessage(
-                            ex.getMessage()); // Fallback to original message (sanitized)
+            // Fallback to original message (sanitized).
+            localizedMessage = sanitizeErrorMessage(ex.getMessage());
         } else {
             localizedMessage = sanitizeErrorMessage(localizedMessage);
         }
 
-        // Sanitize technical details to prevent information leakage
-        final Map<String, Object> technicalDetails =
-                ex.getCause() != null
-                        ? Map.of(
-                                "cause",
-                                ex.getCause().getClass().getSimpleName(),
-                                "message",
-                                ex.getCause().getMessage())
-                        : Map.of();
-        final Map<String, Object> sanitizedTechnicalDetails =
-                sanitizeTechnicalDetails(technicalDetails);
-
-        final ErrorResponse errorResponse =
-                ErrorResponse.builder()
-                        .errorCode(ex.getErrorCode().name())
-                        .message(localizedMessage)
-                        .technicalDetails(sanitizedTechnicalDetails)
-                        .correlationId(correlationId)
-                        .timestamp(Instant.now())
-                        .path(request.getDescription(false).replace(URI, ""))
-                        .build();
+        // Cause info is logged server-side; not surfaced in the wire envelope.
+        if (ex.getCause() != null && LOGGER.isWarnEnabled()) {
+            LOGGER.warn(
+                    "AppException cause | CorrelationId: {} | cause={} message={}",
+                    correlationId,
+                    ex.getCause().getClass().getSimpleName(),
+                    ex.getCause().getMessage());
+        }
 
         final HttpStatus status = mapErrorCodeToHttpStatus(ex.getErrorCode());
 
-        // Log based on error severity - business logic errors (like USER_ALREADY_EXISTS) should be
-        // WARN, not ERROR
+        // Business logic errors (USER_ALREADY_EXISTS etc.) log at WARN; system errors at ERROR.
         if (isBusinessLogicError(ex.getErrorCode())) {
             if (LOGGER.isWarnEnabled()) {
                 LOGGER.warn(
@@ -103,26 +89,21 @@ public class EnhancedGlobalExceptionHandler {
                         ex.getMessage(),
                         correlationId);
             }
-        } else {
-            // System errors, unexpected errors should be logged as ERROR
-            if (LOGGER.isErrorEnabled()) {
-                LOGGER.error(
-                        "Application error: {} - {} | CorrelationId: {}",
-                        ex.getErrorCode(),
-                        ex.getMessage(),
-                        correlationId,
-                        ex);
-            }
+        } else if (LOGGER.isErrorEnabled()) {
+            LOGGER.error(
+                    "Application error: {} - {} | CorrelationId: {}",
+                    ex.getErrorCode(),
+                    ex.getMessage(),
+                    correlationId,
+                    ex);
         }
 
-        return ResponseEntity.status(status).body(errorResponse);
+        return respond(status, ex.getErrorCode().name(), localizedMessage, null);
     }
 
     @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
-    public ResponseEntity<ErrorResponse> handleMethodNotSupportedException(
+    public ResponseEntity<ApiResponse<Void>> handleMethodNotSupportedException(
             final HttpRequestMethodNotSupportedException ex, final WebRequest request) {
-        final String correlationId = MDC.get(CORRELATION_ID);
-
         // getSupportedHttpMethods() is @Nullable per Spring's API contract.
         final var supported = ex.getSupportedHttpMethods();
         final String supportedList =
@@ -131,35 +112,27 @@ public class EnhancedGlobalExceptionHandler {
                         : String.join(
                                 ", ", supported.stream().map(method -> method.name()).toList());
 
-        final ErrorResponse errorResponse =
-                ErrorResponse.builder()
-                        .errorCode("METHOD_NOT_ALLOWED")
-                        .message(
-                                "Request method '"
-                                        + ex.getMethod()
-                                        + "' is not supported for this endpoint. Supported methods: "
-                                        + supportedList)
-                        .correlationId(correlationId)
-                        .timestamp(Instant.now())
-                        .path(request.getDescription(false).replace(URI, ""))
-                        .build();
-
         if (LOGGER.isWarnEnabled()) {
             LOGGER.warn(
                     "Method not supported: {} for path {} | CorrelationId: {}",
                     ex.getMethod(),
                     request.getDescription(false),
-                    correlationId);
+                    MDC.get(CORRELATION_ID));
         }
 
-        return ResponseEntity.status(HttpStatus.METHOD_NOT_ALLOWED).body(errorResponse);
+        return respond(
+                HttpStatus.METHOD_NOT_ALLOWED,
+                "METHOD_NOT_ALLOWED",
+                "Request method '"
+                        + ex.getMethod()
+                        + "' is not supported for this endpoint. Supported methods: "
+                        + supportedList,
+                null);
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<ErrorResponse> handleValidationException(
+    public ResponseEntity<ApiResponse<Void>> handleValidationException(
             final MethodArgumentNotValidException ex, final WebRequest request) {
-        final String correlationId = MDC.get(CORRELATION_ID);
-
         final Map<String, String> validationErrors = new HashMap<>();
         ex.getBindingResult()
                 .getAllErrors()
@@ -174,7 +147,6 @@ public class EnhancedGlobalExceptionHandler {
                                                 + fieldName
                                                         .toLowerCase(Locale.ROOT)
                                                         .replace("_", ".");
-                                // Check if errorMessage is null before calling equals()
                                 if (errorMessage != null && errorMessage.equals(validationKey)) {
                                     errorMessage = error.getDefaultMessage();
                                 }
@@ -190,81 +162,51 @@ public class EnhancedGlobalExceptionHandler {
                             }
                         });
 
-        final ErrorResponse errorResponse =
-                ErrorResponse.builder()
-                        .errorCode("VALIDATION_FAILED")
-                        .message(messageUtil.getValidationMessage("validation.failed"))
-                        .validationErrors(validationErrors)
-                        .correlationId(correlationId)
-                        .timestamp(Instant.now())
-                        .path(request.getDescription(false).replace(URI, ""))
-                        .build();
-
         LOGGER.warn("Validation error: {}", validationErrors);
 
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
+        return respond(
+                HttpStatus.BAD_REQUEST,
+                "VALIDATION_FAILED",
+                messageUtil.getValidationMessage("validation.failed"),
+                validationErrors);
     }
 
     @ExceptionHandler(org.springframework.web.bind.MissingServletRequestParameterException.class)
-    public ResponseEntity<ErrorResponse> handleMissingServletRequestParameterException(
+    public ResponseEntity<ApiResponse<Void>> handleMissingServletRequestParameterException(
             final org.springframework.web.bind.MissingServletRequestParameterException ex,
             final WebRequest request) {
-        final String correlationId = MDC.get(CORRELATION_ID);
-
-        final ErrorResponse errorResponse =
-                ErrorResponse.builder()
-                        .errorCode("MISSING_REQUIRED_FIELD")
-                        .message(
-                                "Required request parameter '"
-                                        + ex.getParameterName()
-                                        + "' is missing")
-                        .validationErrors(
-                                Map.of(
-                                        ex.getParameterName(),
-                                        "Required parameter '"
-                                                + ex.getParameterName()
-                                                + "' is missing"))
-                        .correlationId(correlationId)
-                        .timestamp(Instant.now())
-                        .path(request.getDescription(false).replace(URI, ""))
-                        .build();
-
         if (LOGGER.isWarnEnabled()) {
             LOGGER.warn(
                     "Missing request parameter: {} | CorrelationId: {}",
                     ex.getParameterName(),
-                    correlationId);
+                    MDC.get(CORRELATION_ID));
         }
-
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
+        return respond(
+                HttpStatus.BAD_REQUEST,
+                "MISSING_REQUIRED_FIELD",
+                "Required request parameter '" + ex.getParameterName() + "' is missing",
+                Map.of(
+                        ex.getParameterName(),
+                        "Required parameter '" + ex.getParameterName() + "' is missing"));
     }
 
     @ExceptionHandler(org.springframework.http.converter.HttpMessageNotReadableException.class)
-    public ResponseEntity<ErrorResponse> handleHttpMessageNotReadableException(
+    public ResponseEntity<ApiResponse<Void>> handleHttpMessageNotReadableException(
             final org.springframework.http.converter.HttpMessageNotReadableException ex,
             final WebRequest request) {
-        final String correlationId = MDC.get(CORRELATION_ID);
-
-        final ErrorResponse errorResponse =
-                ErrorResponse.builder()
-                        .errorCode("INVALID_INPUT")
-                        .message("Invalid request body format. Please check your JSON syntax.")
-                        .correlationId(correlationId)
-                        .timestamp(Instant.now())
-                        .path(request.getDescription(false).replace(URI, ""))
-                        .build();
-
-        LOGGER.warn("Invalid request body format | CorrelationId: {}", correlationId);
-
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
+        LOGGER.warn(
+                "Invalid request body format | CorrelationId: {}", MDC.get(CORRELATION_ID));
+        return respond(
+                HttpStatus.BAD_REQUEST,
+                "INVALID_INPUT",
+                "Invalid request body format. Please check your JSON syntax.",
+                null);
     }
 
     @ExceptionHandler(HttpMediaTypeNotSupportedException.class)
-    public ResponseEntity<ErrorResponse> handleHttpMediaTypeNotSupportedException(
+    public ResponseEntity<ApiResponse<Void>> handleHttpMediaTypeNotSupportedException(
             final HttpMediaTypeNotSupportedException ex, final WebRequest request) {
-        final String correlationId = MDC.get(CORRELATION_ID);
-
-        // Store getContentType() once — calling it twice can race a non-null
+        // Store getContentType() once — double-call races a non-null
         // check vs a null deref (SpotBugs flagged this).
         final org.springframework.http.MediaType ct = ex.getContentType();
         final String contentType = ct != null ? ct.toString() : UNKNOWN;
@@ -276,47 +218,30 @@ public class EnhancedGlobalExceptionHandler {
                                         .map(mediaType -> mediaType.toString())
                                         .toList())
                         : "application/json";
-
-        final ErrorResponse errorResponse =
-                ErrorResponse.builder()
-                        .errorCode("UNSUPPORTED_MEDIA_TYPE")
-                        .message(
-                                "Content-Type '"
-                                        + contentType
-                                        + "' is not supported. Supported types: "
-                                        + supportedTypes)
-                        .correlationId(correlationId)
-                        .timestamp(Instant.now())
-                        .path(request.getDescription(false).replace(URI, ""))
-                        .build();
-
         LOGGER.warn(
                 "Unsupported media type: {} | Supported types: {} | CorrelationId: {}",
                 contentType,
                 supportedTypes,
-                correlationId);
-
-        // Return 415 Unsupported Media Type (4xx client error, not 500 server error)
-        return ResponseEntity.status(HttpStatus.UNSUPPORTED_MEDIA_TYPE).body(errorResponse);
+                MDC.get(CORRELATION_ID));
+        return respond(
+                HttpStatus.UNSUPPORTED_MEDIA_TYPE,
+                "UNSUPPORTED_MEDIA_TYPE",
+                "Content-Type '"
+                        + contentType
+                        + "' is not supported. Supported types: "
+                        + supportedTypes,
+                null);
     }
 
     @ExceptionHandler(com.fasterxml.jackson.core.JsonParseException.class)
-    public ResponseEntity<ErrorResponse> handleJsonParseException(
+    public ResponseEntity<ApiResponse<Void>> handleJsonParseException(
             final com.fasterxml.jackson.core.JsonParseException ex, final WebRequest request) {
-        final String correlationId = MDC.get(CORRELATION_ID);
-
-        final ErrorResponse errorResponse =
-                ErrorResponse.builder()
-                        .errorCode("INVALID_INPUT")
-                        .message("Invalid JSON format. Please check your request body.")
-                        .correlationId(correlationId)
-                        .timestamp(Instant.now())
-                        .path(request.getDescription(false).replace(URI, ""))
-                        .build();
-
-        LOGGER.warn("JSON parse error | CorrelationId: {}", correlationId);
-
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
+        LOGGER.warn("JSON parse error | CorrelationId: {}", MDC.get(CORRELATION_ID));
+        return respond(
+                HttpStatus.BAD_REQUEST,
+                "INVALID_INPUT",
+                "Invalid JSON format. Please check your request body.",
+                null);
     }
 
     /**
@@ -324,12 +249,11 @@ public class EnhancedGlobalExceptionHandler {
      * client-side issue (network timeout, user cancellation, etc.), not a server error
      */
     @ExceptionHandler(org.springframework.web.multipart.MultipartException.class)
-    public ResponseEntity<ErrorResponse> handleMultipartException(
+    public ResponseEntity<ApiResponse<Void>> handleMultipartException(
             final org.springframework.web.multipart.MultipartException ex,
             final WebRequest request) {
         final String correlationId = MDC.get(CORRELATION_ID);
 
-        // Check if this is caused by a client abort
         final Throwable rootCause = ex.getRootCause();
         final boolean isClientAbort =
                 rootCause instanceof org.apache.catalina.connector.ClientAbortException
@@ -345,34 +269,18 @@ public class EnhancedGlobalExceptionHandler {
                         ? "File upload was interrupted. This may be due to network issues or the upload being cancelled."
                         : "File upload failed. Please check the file size and format, then try again.";
 
-        final ErrorResponse errorResponse =
-                ErrorResponse.builder()
-                        .errorCode(errorCode)
-                        .message(message)
-                        .correlationId(correlationId)
-                        .timestamp(Instant.now())
-                        .path(request.getDescription(false).replace(URI, ""))
-                        .build();
-
-        // Log at WARN level since this is typically a client-side issue, not a server error
-        if (isClientAbort) {
-            if (LOGGER.isWarnEnabled()) {
-                LOGGER.warn(
-                        "Client aborted file upload request | CorrelationId: {} | Root cause: {}",
-                        correlationId,
-                        rootCause != null ? rootCause.getClass().getSimpleName() : UNKNOWN);
-            }
-        } else {
-            if (LOGGER.isWarnEnabled()) {
-                LOGGER.warn(
-                        "Multipart file upload failed | CorrelationId: {} | Root cause: {}",
-                        correlationId,
-                        rootCause != null ? rootCause.getClass().getSimpleName() : UNKNOWN);
-            }
+        // Client-side issue regardless of root cause — log WARN, not ERROR.
+        if (LOGGER.isWarnEnabled()) {
+            LOGGER.warn(
+                    "{} | CorrelationId: {} | Root cause: {}",
+                    isClientAbort
+                            ? "Client aborted file upload request"
+                            : "Multipart file upload failed",
+                    correlationId,
+                    rootCause != null ? rootCause.getClass().getSimpleName() : UNKNOWN);
         }
 
-        // Return 400 Bad Request for client-side issues (not 500 Internal Server Error)
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
+        return respond(HttpStatus.BAD_REQUEST, errorCode, message, null);
     }
 
     /**
@@ -380,75 +288,153 @@ public class EnhancedGlobalExceptionHandler {
      * client-side issue (network timeout, user cancellation, etc.), not a server error
      */
     @ExceptionHandler(org.apache.catalina.connector.ClientAbortException.class)
-    public ResponseEntity<ErrorResponse> handleClientAbortException(
+    public ResponseEntity<ApiResponse<Void>> handleClientAbortException(
             final org.apache.catalina.connector.ClientAbortException ex, final WebRequest request) {
-        final String correlationId = MDC.get(CORRELATION_ID);
-
-        final ErrorResponse errorResponse =
-                ErrorResponse.builder()
-                        .errorCode("CLIENT_ABORTED_REQUEST")
-                        .message(
-                                "Request was cancelled or connection was closed before completion. This may be due to network issues.")
-                        .correlationId(correlationId)
-                        .timestamp(Instant.now())
-                        .path(request.getDescription(false).replace(URI, ""))
-                        .build();
-
-        // Log at WARN level since this is a client-side issue, not a server error
         if (LOGGER.isWarnEnabled()) {
             LOGGER.warn(
                     "Client aborted request | CorrelationId: {} | Message: {}",
-                    correlationId,
+                    MDC.get(CORRELATION_ID),
                     ex.getMessage());
         }
+        return respond(
+                HttpStatus.BAD_REQUEST,
+                "CLIENT_ABORTED_REQUEST",
+                "Request was cancelled or connection was closed before completion. "
+                        + "This may be due to network issues.",
+                null);
+    }
 
-        // Return 400 Bad Request for client-side issues (not 500 Internal Server Error)
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
+    /**
+     * AWS SDK conditional-check failures (optimistic concurrency loss
+     * on conditional writes) should surface as 409 CONFLICT, not 500.
+     * The client likely needs to refresh and retry, not file a
+     * server-error ticket.
+     */
+    @ExceptionHandler(
+            software.amazon.awssdk.services.dynamodb.model.ConditionalCheckFailedException.class)
+    public ResponseEntity<ApiResponse<Void>> handleConditionalCheckFailed(
+            final software.amazon.awssdk.services.dynamodb.model.ConditionalCheckFailedException ex,
+            final WebRequest request) {
+        if (LOGGER.isWarnEnabled()) {
+            LOGGER.warn(
+                    "DynamoDB conditional-check failed (likely concurrent write) | "
+                            + "CorrelationId: {} | Message: {}",
+                    MDC.get(CORRELATION_ID), ex.getMessage());
+        }
+        return respond(
+                HttpStatus.CONFLICT,
+                "CONFLICT",
+                "The resource was modified by another request. Please retry.",
+                null);
+    }
+
+    /**
+     * AWS SDK ResourceNotFoundException — usually means a GSI is
+     * missing or an entity was deleted between fetch and follow-up.
+     * Map to 404 instead of 500.
+     */
+    @ExceptionHandler(
+            software.amazon.awssdk.services.dynamodb.model.ResourceNotFoundException.class)
+    public ResponseEntity<ApiResponse<Void>> handleAwsResourceNotFound(
+            final software.amazon.awssdk.services.dynamodb.model.ResourceNotFoundException ex,
+            final WebRequest request) {
+        if (LOGGER.isWarnEnabled()) {
+            LOGGER.warn(
+                    "DynamoDB resource not found | CorrelationId: {} | Message: {}",
+                    MDC.get(CORRELATION_ID), ex.getMessage());
+        }
+        return respond(
+                HttpStatus.NOT_FOUND, "NOT_FOUND", "The requested resource was not found.", null);
+    }
+
+    /**
+     * AWS SDK ProvisionedThroughputExceededException — DynamoDB is
+     * throttling. Surface as 503 with a Retry-After header so clients
+     * back off instead of retrying immediately.
+     */
+    @ExceptionHandler(
+            software.amazon.awssdk.services.dynamodb.model
+                    .ProvisionedThroughputExceededException.class)
+    public ResponseEntity<ApiResponse<Void>> handleThroughputExceeded(
+            final software.amazon.awssdk.services.dynamodb.model
+                    .ProvisionedThroughputExceededException ex,
+            final WebRequest request) {
+        final String correlationId = MDC.get(CORRELATION_ID);
+        if (LOGGER.isWarnEnabled()) {
+            LOGGER.warn(
+                    "DynamoDB throttling | CorrelationId: {} | Message: {}",
+                    correlationId, ex.getMessage());
+        }
+        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+                .header("Retry-After", "5")
+                .body(ApiResponse.error(
+                        "SERVICE_UNAVAILABLE",
+                        "The service is temporarily overloaded. Please retry shortly.",
+                        correlationId));
+    }
+
+    /**
+     * AWS SDK ValidationException — bad input to DynamoDB (illegal
+     * key, attribute size, etc.). Almost always a backend bug, but
+     * map to 400 so the iOS client doesn't display a generic 500.
+     */
+    @ExceptionHandler(
+            software.amazon.awssdk.services.dynamodb.model.DynamoDbException.class)
+    public ResponseEntity<ApiResponse<Void>> handleDynamoDbException(
+            final software.amazon.awssdk.services.dynamodb.model.DynamoDbException ex,
+            final WebRequest request) {
+        final int sdkStatus = ex.statusCode();
+        final HttpStatus status;
+        if (sdkStatus == 400) {
+            status = HttpStatus.BAD_REQUEST;
+        } else if (sdkStatus >= 500 || sdkStatus == 0) {
+            status = HttpStatus.BAD_GATEWAY;
+        } else {
+            status = HttpStatus.valueOf(sdkStatus);
+        }
+        if (LOGGER.isWarnEnabled()) {
+            LOGGER.warn(
+                    "DynamoDB exception (sdkStatus={}) | CorrelationId: {} | Message: {}",
+                    sdkStatus, MDC.get(CORRELATION_ID), ex.getMessage());
+        }
+        return respond(
+                status,
+                "DYNAMODB_ERROR",
+                "Storage error: " + ex.awsErrorDetails().errorCode(),
+                null);
     }
 
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<ErrorResponse> handleGenericException(
+    public ResponseEntity<ApiResponse<Void>> handleGenericException(
             final Exception ex, final WebRequest request) {
         final String correlationId = MDC.get(CORRELATION_ID);
 
-        // Check if this is a method not supported exception that wasn't caught by the specific
-        // handler
+        // Delegate to specific handlers when applicable.
         if (ex instanceof HttpRequestMethodNotSupportedException methodEx) {
             return handleMethodNotSupportedException(methodEx, request);
         }
-
-        // Check if this is an HTTP message not readable exception (malformed JSON)
         if (ex instanceof org.springframework.http.converter.HttpMessageNotReadableException) {
             return handleHttpMessageNotReadableException(
                     (org.springframework.http.converter.HttpMessageNotReadableException) ex,
                     request);
         }
-
-        // Check if this is a JSON parse exception
         if (ex instanceof com.fasterxml.jackson.core.JsonParseException) {
             return handleJsonParseException(
                     (com.fasterxml.jackson.core.JsonParseException) ex, request);
         }
-
-        // Check if this is a multipart exception (client abort, etc.)
         if (ex instanceof org.springframework.web.multipart.MultipartException) {
             return handleMultipartException(
                     (org.springframework.web.multipart.MultipartException) ex, request);
         }
-
-        // Check if this is a client abort exception
         if (ex instanceof org.apache.catalina.connector.ClientAbortException) {
             return handleClientAbortException(
                     (org.apache.catalina.connector.ClientAbortException) ex, request);
         }
-
-        // Check if this is an unsupported media type exception
         if (ex instanceof HttpMediaTypeNotSupportedException) {
             return handleHttpMediaTypeNotSupportedException(
                     (HttpMediaTypeNotSupportedException) ex, request);
         }
 
-        // Sanitize error message - never expose internal details
         String sanitizedMessage = messageUtil.getErrorMessage("internal.server.error");
         if (sanitizedMessage == null || sanitizedMessage.isEmpty()) {
             sanitizedMessage =
@@ -456,19 +442,29 @@ public class EnhancedGlobalExceptionHandler {
                             + correlationId;
         }
 
-        final ErrorResponse errorResponse =
-                ErrorResponse.builder()
-                        .errorCode("INTERNAL_SERVER_ERROR")
-                        .message(sanitizedMessage)
-                        .correlationId(correlationId)
-                        .timestamp(Instant.now())
-                        .path(request.getDescription(false).replace(URI, ""))
-                        .build();
-
-        // Log full details internally, but never expose to client
+        // Log full details internally; the wire body never exposes them.
         LOGGER.error("Unexpected error | CorrelationId: {}", correlationId, ex);
 
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
+        return respond(
+                HttpStatus.INTERNAL_SERVER_ERROR,
+                "INTERNAL_SERVER_ERROR",
+                sanitizedMessage,
+                null);
+    }
+
+    /**
+     * Single funnel for every error response — every handler ends here.
+     * Reads {@code correlationId} from MDC and stamps it into the
+     * envelope so iOS can quote it back in a support ticket.
+     */
+    private ResponseEntity<ApiResponse<Void>> respond(
+            final HttpStatus status,
+            final String code,
+            final String message,
+            @Nullable final Map<String, String> validationErrors) {
+        final String correlationId = MDC.get(CORRELATION_ID);
+        return ResponseEntity.status(status).body(
+                ApiResponse.error(code, message, correlationId, validationErrors, null));
     }
 
     /** Sanitize error messages to prevent information leakage */
@@ -498,29 +494,6 @@ public class EnhancedGlobalExceptionHandler {
         sanitized = sanitized.replaceAll("jdbc:[^\\s]+", "[database connection]");
 
         return sanitized;
-    }
-
-    /** Sanitize technical details map */
-    private Map<String, Object> sanitizeTechnicalDetails(
-            final Map<String, Object> technicalDetails) {
-        if (technicalDetails == null || technicalDetails.isEmpty()) {
-            return null;
-        }
-
-        final Map<String, Object> sanitized = new HashMap<>();
-        technicalDetails.forEach(
-                (key, value) -> {
-                    // Only include safe technical details
-                    if (key != null
-                            && !key.toLowerCase(Locale.ROOT).contains("password")
-                            && !key.toLowerCase(Locale.ROOT).contains("secret")
-                            && !key.toLowerCase(Locale.ROOT).contains("token")
-                            && !key.toLowerCase(Locale.ROOT).contains("key")) {
-                        sanitized.put(key, sanitizeErrorMessage(String.valueOf(value)));
-                    }
-                });
-
-        return sanitized.isEmpty() ? null : sanitized;
     }
 
     private HttpStatus mapErrorCodeToHttpStatus(final ErrorCode errorCode) {
@@ -585,135 +558,4 @@ public class EnhancedGlobalExceptionHandler {
         };
     }
 
-    /** Enhanced Error Response DTO */
-    public static class ErrorResponse {
-        private String errorCode;
-        private String message;
-        private Map<String, Object> technicalDetails;
-        private Map<String, String> validationErrors;
-        private String correlationId;
-        private Instant timestamp;
-        private String path;
-
-        // Builder pattern
-        public static ErrorResponseBuilder builder() {
-            return new ErrorResponseBuilder();
-        }
-
-        // Getters and setters
-        public String getErrorCode() {
-            return errorCode;
-        }
-
-        public void setErrorCode(final String errorCode) {
-            this.errorCode = errorCode;
-        }
-
-        public String getMessage() {
-            return message;
-        }
-
-        public void setMessage(final String message) {
-            this.message = message;
-        }
-
-        public Map<String, Object> getTechnicalDetails() {
-            return technicalDetails;
-        }
-
-        public void setTechnicalDetails(final Map<String, Object> technicalDetails) {
-            this.technicalDetails = technicalDetails;
-        }
-
-        public Map<String, String> getValidationErrors() {
-            return validationErrors;
-        }
-
-        public void setValidationErrors(final Map<String, String> validationErrors) {
-            this.validationErrors = validationErrors;
-        }
-
-        public String getCorrelationId() {
-            return correlationId;
-        }
-
-        public void setCorrelationId(final String correlationId) {
-            this.correlationId = correlationId;
-        }
-
-        public Instant getTimestamp() {
-            return timestamp;
-        }
-
-        public void setTimestamp(final Instant timestamp) {
-            this.timestamp = timestamp;
-        }
-
-        public String getPath() {
-            return path;
-        }
-
-        public void setPath(final String path) {
-            this.path = path;
-        }
-
-        public static class ErrorResponseBuilder {
-            private String errorCode;
-            private String message;
-            private Map<String, Object> technicalDetails;
-            private Map<String, String> validationErrors;
-            private String correlationId;
-            private Instant timestamp;
-            private String path;
-
-            public ErrorResponseBuilder errorCode(final String errorCode) {
-                this.errorCode = errorCode;
-                return this;
-            }
-
-            public ErrorResponseBuilder message(final String message) {
-                this.message = message;
-                return this;
-            }
-
-            public ErrorResponseBuilder technicalDetails(
-                    final Map<String, Object> technicalDetails) {
-                this.technicalDetails = technicalDetails;
-                return this;
-            }
-
-            public ErrorResponseBuilder validationErrors(
-                    final Map<String, String> validationErrors) {
-                this.validationErrors = validationErrors;
-                return this;
-            }
-
-            public ErrorResponseBuilder correlationId(final String correlationId) {
-                this.correlationId = correlationId;
-                return this;
-            }
-
-            public ErrorResponseBuilder timestamp(final Instant timestamp) {
-                this.timestamp = timestamp;
-                return this;
-            }
-
-            public ErrorResponseBuilder path(final String path) {
-                this.path = path;
-                return this;
-            }
-
-            public ErrorResponse build() {
-                final ErrorResponse response = new ErrorResponse();
-                response.setErrorCode(errorCode);
-                response.setMessage(message);
-                response.setTechnicalDetails(technicalDetails);
-                response.setValidationErrors(validationErrors);
-                response.setCorrelationId(correlationId);
-                response.setTimestamp(timestamp);
-                response.setPath(path);
-                return response;
-            }
-        }
-    }
 }

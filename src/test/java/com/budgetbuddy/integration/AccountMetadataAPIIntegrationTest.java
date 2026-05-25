@@ -121,7 +121,7 @@ class AccountMetadataAPIIntegrationTest {
                                 withAuth(get("/api/accounts"))
                                         .contentType(MediaType.APPLICATION_JSON))
                         .andExpect(status().isOk())
-                        .andExpect(jsonPath("$").isArray())
+                        .andExpect(jsonPath("$.data").isArray())
                         .andReturn();
 
         // Then - Verify response contains metadata fields
@@ -150,10 +150,10 @@ class AccountMetadataAPIIntegrationTest {
                                 withAuth(get("/api/accounts/{id}", testAccount.getAccountId()))
                                         .contentType(MediaType.APPLICATION_JSON))
                         .andExpect(status().isOk())
-                        .andExpect(jsonPath("$.accountId").value(testAccount.getAccountId()))
-                        .andExpect(jsonPath("$.paymentDueDate").value("2024-12-15"))
-                        .andExpect(jsonPath("$.minimumPaymentDue").value(25.00))
-                        .andExpect(jsonPath("$.rewardPoints").value(12_345))
+                        .andExpect(jsonPath("$.data.accountId").value(testAccount.getAccountId()))
+                        .andExpect(jsonPath("$.data.paymentDueDate").value("2024-12-15"))
+                        .andExpect(jsonPath("$.data.minimumPaymentDue").value(25.00))
+                        .andExpect(jsonPath("$.data.rewardPoints").value(12_345))
                         .andReturn();
 
         // Then - Verify JSON structure
@@ -261,7 +261,7 @@ class AccountMetadataAPIIntegrationTest {
                         withAuth(get("/api/accounts/{id}", accountWithMaxPoints.getAccountId()))
                                 .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.rewardPoints").value(10_000_000));
+                .andExpect(jsonPath("$.data.rewardPoints").value(10_000_000));
     }
 
     @Test
@@ -288,7 +288,7 @@ class AccountMetadataAPIIntegrationTest {
                         withAuth(get("/api/accounts/{id}", accountWithZeroPoints.getAccountId()))
                                 .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.rewardPoints").value(0));
+                .andExpect(jsonPath("$.data.rewardPoints").value(0));
     }
 
     @Test
@@ -315,7 +315,7 @@ class AccountMetadataAPIIntegrationTest {
                         withAuth(get("/api/accounts/{id}", accountWithLargePayment.getAccountId()))
                                 .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.minimumPaymentDue").value(9999.99));
+                .andExpect(jsonPath("$.data.minimumPaymentDue").value(9999.99));
     }
 
     @Test
@@ -342,7 +342,7 @@ class AccountMetadataAPIIntegrationTest {
                         withAuth(get("/api/accounts/{id}", accountWithSmallPayment.getAccountId()))
                                 .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.minimumPaymentDue").value(0.01));
+                .andExpect(jsonPath("$.data.minimumPaymentDue").value(0.01));
     }
 
     @Test
@@ -370,7 +370,7 @@ class AccountMetadataAPIIntegrationTest {
                         withAuth(get("/api/accounts/{id}", accountWithFutureDate.getAccountId()))
                                 .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.paymentDueDate").value(futureDate.toString()));
+                .andExpect(jsonPath("$.data.paymentDueDate").value(futureDate.toString()));
     }
 
     @Test
@@ -398,6 +398,6 @@ class AccountMetadataAPIIntegrationTest {
                         withAuth(get("/api/accounts/{id}", accountWithPastDate.getAccountId()))
                                 .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.paymentDueDate").value(pastDate.toString()));
+                .andExpect(jsonPath("$.data.paymentDueDate").value(pastDate.toString()));
     }
 }

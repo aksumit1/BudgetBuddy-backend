@@ -23,6 +23,14 @@ public final class McpSession {
     private final String userId;
     private final Instant createdAt;
     /**
+     * Client identity reported on {@code initialize.params.clientInfo}.
+     * Defaulted to "unknown" so an MCP client that omits it still
+     * renders a sensible row in the iOS session list. Mutable so the
+     * controller can set it after the registry hands out the session.
+     */
+    private volatile String clientName = "unknown";
+    private volatile String clientVersion = "";
+    /**
      * Money-moving consent: starts false. The
      * {@code enable_money_moving_consent} tool flips it true after the
      * AI surfaces the request to the user and the user explicitly
@@ -68,5 +76,22 @@ public final class McpSession {
 
     public long toolCallCount() {
         return toolCallCount.get();
+    }
+
+    public String clientName() {
+        return clientName;
+    }
+
+    public String clientVersion() {
+        return clientVersion;
+    }
+
+    public void setClientInfo(final String name, final String version) {
+        if (name != null && !name.isBlank()) {
+            this.clientName = name;
+        }
+        if (version != null) {
+            this.clientVersion = version;
+        }
     }
 }

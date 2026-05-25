@@ -95,6 +95,28 @@ class AuthControllerIntegrationTest {
         }
     }
 
+    /**
+     * Fetches a fresh PAKE2 challenge nonce for the given email from the
+     * specified challenge endpoint. The backend consumes the nonce on
+     * use, so each register/login attempt needs its own challenge.
+     */
+    private String fetchChallenge(final String challengePath, final String email)
+            throws Exception {
+        final AuthController.ChallengeRequest req = new AuthController.ChallengeRequest();
+        req.setEmail(email);
+        final String body =
+                mockMvc.perform(
+                                post(challengePath)
+                                        .contentType(MediaType.APPLICATION_JSON)
+                                        .content(objectMapper.writeValueAsString(req)))
+                        .andExpect(status().isOk())
+                        .andReturn()
+                        .getResponse()
+                        .getContentAsString();
+        // Envelope: {status:"ok", data:{challenge:"..."}, ...}
+        return objectMapper.readTree(body).get("data").get("challenge").asText();
+    }
+
     @Test
     void testRegisterSuccess() throws Exception {
         // Use unique email for each test run to avoid conflicts
@@ -105,16 +127,15 @@ class AuthControllerIntegrationTest {
         request.setPasswordHash(
                 java.util.Base64.getEncoder()
                         .encodeToString(HASHED_PASSWORD.getBytes(StandardCharsets.UTF_8)));
-        // BREAKING CHANGE: Client salt removed - backend handles salt management
-        // request.setSalt(java.util.Base64.getEncoder().encodeToString("client-salt".getBytes(StandardCharsets.UTF_8)));
+        request.setChallenge(fetchChallenge("/api/auth/register/challenge", uniqueEmail));
 
         mockMvc.perform(
                         post("/api/auth/register")
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.accessToken").exists())
-                .andExpect(jsonPath("$.user.id").exists());
+                .andExpect(jsonPath("$.data.accessToken").exists())
+                .andExpect(jsonPath("$.data.user.id").exists());
     }
 
     @Test
@@ -139,17 +160,15 @@ class AuthControllerIntegrationTest {
     void testLoginSuccess() throws Exception {
         // Use unique email for each test run to avoid conflicts
         final String uniqueEmail = "loginuser" + System.currentTimeMillis() + "@example.com";
-        // First register a user
+        // First register a user (needs its own challenge).
         final String passwordHash =
                 java.util.Base64.getEncoder()
                         .encodeToString(HASHED_PASSWORD.getBytes(StandardCharsets.UTF_8));
-        final String clientSalt =
-                java.util.Base64.getEncoder()
-                        .encodeToString("client-salt".getBytes(StandardCharsets.UTF_8));
 
         final AuthRequest registerRequest = new AuthRequest();
         registerRequest.setEmail(uniqueEmail);
         registerRequest.setPasswordHash(passwordHash);
+        registerRequest.setChallenge(fetchChallenge("/api/auth/register/challenge", uniqueEmail));
 
         mockMvc.perform(
                         post("/api/auth/register")
@@ -157,30 +176,32 @@ class AuthControllerIntegrationTest {
                                 .content(objectMapper.writeValueAsString(registerRequest)))
                 .andExpect(status().isCreated());
 
-        // Then login
+        // Then login (needs its own login-challenge nonce).
         final AuthRequest loginRequest = new AuthRequest();
         loginRequest.setEmail(uniqueEmail);
         loginRequest.setPasswordHash(passwordHash);
+        loginRequest.setChallenge(fetchChallenge("/api/auth/login/challenge", uniqueEmail));
 
         mockMvc.perform(
                         post("/api/auth/login")
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(loginRequest)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.accessToken").exists())
-                .andExpect(jsonPath("$.user.id").exists());
+                .andExpect(jsonPath("$.data.accessToken").exists())
+                .andExpect(jsonPath("$.data.user.id").exists());
     }
 
     @Test
     void testLoginInvalidCredentials() throws Exception {
         final AuthRequest request = new AuthRequest();
         request.setEmail("nonexistent@example.com");
-        // Use proper base64-encoded strings
         request.setPasswordHash(
                 java.util.Base64.getEncoder()
                         .encodeToString("wrong-hash".getBytes(StandardCharsets.UTF_8)));
-        // BREAKING CHANGE: Client salt removed - backend handles salt management
-        // request.setSalt(java.util.Base64.getEncoder().encodeToString("client-salt".getBytes(StandardCharsets.UTF_8)));
+        // PAKE2 requires a fresh challenge even for failed credential
+        // attempts — without it the login endpoint short-circuits to 400.
+        request.setChallenge(
+                fetchChallenge("/api/auth/login/challenge", "nonexistent@example.com"));
 
         mockMvc.perform(
                         post("/api/auth/login")
@@ -191,18 +212,15 @@ class AuthControllerIntegrationTest {
 
     @Test
     void testChangePasswordSuccess() throws Exception {
-        // Register and login to get auth token
         final String uniqueEmail = "changepwd" + System.currentTimeMillis() + "@example.com";
         final String passwordHash =
                 java.util.Base64.getEncoder()
                         .encodeToString(HASHED_PASSWORD.getBytes(StandardCharsets.UTF_8));
-        final String clientSalt =
-                java.util.Base64.getEncoder()
-                        .encodeToString("client-salt".getBytes(StandardCharsets.UTF_8));
 
         final AuthRequest registerRequest = new AuthRequest();
         registerRequest.setEmail(uniqueEmail);
         registerRequest.setPasswordHash(passwordHash);
+        registerRequest.setChallenge(fetchChallenge("/api/auth/register/challenge", uniqueEmail));
 
         final String registerResponse =
                 mockMvc.perform(
@@ -214,47 +232,47 @@ class AuthControllerIntegrationTest {
                         .getResponse()
                         .getContentAsString();
 
-        // Extract access token from response
+        // Extract access token from envelope.
         final String accessToken =
-                objectMapper.readTree(registerResponse).get("accessToken").asText();
+                objectMapper.readTree(registerResponse).get("data").get("accessToken").asText();
 
-        // Prepare password change request
         final String newPasswordHash =
                 java.util.Base64.getEncoder()
                         .encodeToString("new-hashed-password".getBytes(StandardCharsets.UTF_8));
-        final String newClientSalt =
-                java.util.Base64.getEncoder()
-                        .encodeToString("new-client-salt".getBytes(StandardCharsets.UTF_8));
 
-        // BREAKING CHANGE: Client salt removed
         final AuthController.ChangePasswordRequest changeRequest =
                 new AuthController.ChangePasswordRequest();
         changeRequest.setCurrentPasswordHash(passwordHash);
-        // BREAKING CHANGE: Client salt removed - backend handles salt management
         changeRequest.setNewPasswordHash(newPasswordHash);
-        // BREAKING CHANGE: Client salt removed
+        // PAKE2: change-password verifies BOTH the current password
+        // (authenticate flow) and the new password — each needs its own
+        // challenge nonce.
+        changeRequest.setCurrentPasswordChallenge(
+                fetchChallenge("/api/auth/login/challenge", uniqueEmail));
+        changeRequest.setNewPasswordChallenge(
+                fetchChallenge("/api/auth/login/challenge", uniqueEmail));
 
-        // Change password
         mockMvc.perform(
                         post("/api/auth/change-password")
                                 .header("Authorization", "Bearer " + accessToken)
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(changeRequest)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.success").value(true))
-                .andExpect(jsonPath("$.message").exists());
+                .andExpect(jsonPath("$.data.success").value(true))
+                .andExpect(jsonPath("$.data.message").exists());
 
-        // Verify new password works by logging in with it
+        // Verify new password works by logging in (needs fresh login challenge).
         final AuthRequest newLoginRequest = new AuthRequest();
         newLoginRequest.setEmail(uniqueEmail);
         newLoginRequest.setPasswordHash(newPasswordHash);
+        newLoginRequest.setChallenge(fetchChallenge("/api/auth/login/challenge", uniqueEmail));
 
         mockMvc.perform(
                         post("/api/auth/login")
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(newLoginRequest)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.accessToken").exists());
+                .andExpect(jsonPath("$.data.accessToken").exists());
     }
 
     @Test
@@ -271,6 +289,7 @@ class AuthControllerIntegrationTest {
         final AuthRequest registerRequest = new AuthRequest();
         registerRequest.setEmail(uniqueEmail);
         registerRequest.setPasswordHash(passwordHash);
+        registerRequest.setChallenge(fetchChallenge("/api/auth/register/challenge", uniqueEmail));
 
         final String registerResponse =
                 mockMvc.perform(
@@ -282,27 +301,24 @@ class AuthControllerIntegrationTest {
                         .getResponse()
                         .getContentAsString();
 
-        // Extract access token from response
         final String accessToken =
-                objectMapper.readTree(registerResponse).get("accessToken").asText();
+                objectMapper.readTree(registerResponse).get("data").get("accessToken").asText();
 
-        // Prepare password change request with wrong current password
         final String newPasswordHash =
                 java.util.Base64.getEncoder()
                         .encodeToString("new-hashed-password".getBytes(StandardCharsets.UTF_8));
-        final String newClientSalt =
-                java.util.Base64.getEncoder()
-                        .encodeToString("new-client-salt".getBytes(StandardCharsets.UTF_8));
 
-        // BREAKING CHANGE: Client salt removed
         final AuthController.ChangePasswordRequest changeRequest =
                 new AuthController.ChangePasswordRequest();
         changeRequest.setCurrentPasswordHash("wrong-password-hash");
-        // BREAKING CHANGE: Client salt removed - backend handles salt management
         changeRequest.setNewPasswordHash(newPasswordHash);
-        // BREAKING CHANGE: Client salt removed
+        // PAKE2 challenges required so the request gets past validation
+        // and reaches the credential check (which is the assertion target).
+        changeRequest.setCurrentPasswordChallenge(
+                fetchChallenge("/api/auth/login/challenge", uniqueEmail));
+        changeRequest.setNewPasswordChallenge(
+                fetchChallenge("/api/auth/login/challenge", uniqueEmail));
 
-        // Change password should fail
         mockMvc.perform(
                         post("/api/auth/change-password")
                                 .header("Authorization", "Bearer " + accessToken)

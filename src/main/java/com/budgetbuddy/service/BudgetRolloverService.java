@@ -240,7 +240,9 @@ public class BudgetRolloverService {
      * Convenience predicate combining currency match and posted-only. Use this at call sites in
      * preference to inlining both checks; keeps the rule single-source-of-truth.
      */
-    /* default */ static boolean countsTowardBudget(final BudgetTable budget, final TransactionTable t) {
+    // Opened to public so the insights subpackage (BudgetExhaustionForecastService)
+    // applies the same "counts toward budget" predicate without duplicating logic.
+    public static boolean countsTowardBudget(final BudgetTable budget, final TransactionTable t) {
         return matchesBudgetCurrency(budget, t) && isPosted(t);
     }
 

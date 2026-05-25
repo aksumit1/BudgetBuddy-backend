@@ -117,6 +117,23 @@ public class TransactionController {
     private final UserService userService;
     private final AccountRepository accountRepository;
 
+    /** Async PDF-import collaborators. Wired via setter injection so
+     *  existing controller construction sites are unaffected. */
+    private com.budgetbuddy.service.pdf.jobs.PdfImportJobService pdfJobService;
+    private com.budgetbuddy.service.pdf.jobs.PdfImportJobWorker pdfJobWorker;
+
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    public void setPdfJobService(
+            final com.budgetbuddy.service.pdf.jobs.PdfImportJobService s) {
+        this.pdfJobService = s;
+    }
+
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    public void setPdfJobWorker(
+            final com.budgetbuddy.service.pdf.jobs.PdfImportJobWorker w) {
+        this.pdfJobWorker = w;
+    }
+
     // Security services for file uploads
     private final FileUploadRateLimiter fileUploadRateLimiter;
     private final FileSecurityValidator fileSecurityValidator;
@@ -3601,6 +3618,95 @@ public class TransactionController {
         }
     }
 
+    /**
+     * Async PDF import: enqueue a job, return the jobId immediately.
+     * The client polls {@code GET /import-pdf/jobs/{id}} until status
+     * reaches a terminal state (COMPLETED / FAILED / CANCELLED).
+     *
+     * <p>Solves the synchronous-import bug class where a large statement
+     * holds the LB connection open long enough to time out (5-60s
+     * typical, more for batch imports). Worker processes the parse out
+     * of band.
+     *
+     * <p>Returns 503 when the async subsystem isn't wired (graceful
+     * degradation — clients fall back to the synchronous endpoint).
+     */
+    @PostMapping("/import-pdf/async")
+    public ResponseEntity<java.util.Map<String, Object>> importPdfAsync(
+            @AuthenticationPrincipal final UserDetails userDetails,
+            @RequestParam(FILE) final MultipartFile file,
+            @RequestParam(required = false) final String filename) {
+        if (userDetails == null || userDetails.getUsername() == null) {
+            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, USER_NOT_AUTHENTICATED);
+        }
+        if (pdfJobService == null || pdfJobWorker == null) {
+            // Async subsystem disabled (no DDB table) — return 503 so
+            // iOS falls back to the synchronous endpoint cleanly.
+            return ResponseEntity.status(503)
+                    .body(java.util.Map.of(
+                            "error", "Async import not available; use /import-pdf"));
+        }
+        final UserTable user = userService.findByEmail(userDetails.getUsername())
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND, USER_NOT_FOUND));
+        try {
+            final byte[] bytes = file.getBytes();
+            final String sha = sha256Hex(bytes);
+            final String name = filename != null && !filename.isBlank()
+                    ? sanitizeFilename(filename) : getOriginalFilenameSafely(file);
+            final com.budgetbuddy.service.pdf.jobs.PdfImportJob job =
+                    pdfJobService.create(user.getUserId(), name, bytes.length, sha);
+            final java.nio.file.Path scratch = pdfJobWorker.persistScratch(job.getJobId(), bytes);
+            pdfJobWorker.scheduleAsyncProcess(job, scratch, name);
+            return ResponseEntity.accepted().body(java.util.Map.of(
+                    "jobId", job.getJobId(),
+                    "status", job.getStatus(),
+                    "pollUrl", "/api/transactions/import-pdf/jobs/" + job.getJobId()));
+        } catch (final java.io.IOException e) {
+            throw new AppException(ErrorCode.INVALID_INPUT,
+                    "Could not read uploaded PDF: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Polling endpoint for async PDF imports. iOS polls every 1-2s
+     * until the status reaches COMPLETED / FAILED / CANCELLED. 404 when
+     * the jobId doesn't exist (e.g. expired or belongs to another user).
+     */
+    @GetMapping("/import-pdf/jobs/{jobId}")
+    public ResponseEntity<com.budgetbuddy.service.pdf.jobs.PdfImportJob> getPdfJob(
+            @AuthenticationPrincipal final UserDetails userDetails,
+            @PathVariable final String jobId) {
+        if (userDetails == null || userDetails.getUsername() == null) {
+            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, USER_NOT_AUTHENTICATED);
+        }
+        if (pdfJobService == null) {
+            return ResponseEntity.status(503).build();
+        }
+        final UserTable user = userService.findByEmail(userDetails.getUsername())
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND, USER_NOT_FOUND));
+        final com.budgetbuddy.service.pdf.jobs.PdfImportJob job = pdfJobService.findById(jobId);
+        // 404 unconditionally for not-mine — don't leak job existence
+        // by returning a 403 instead. (Standard "treat unauthorised
+        // resources as not-found" hardening.)
+        if (job == null || !pdfJobService.isOwnedBy(job, user.getUserId())) {
+            return ResponseEntity.notFound().build();
+        }
+        return ResponseEntity.ok(job);
+    }
+
+    private static String sha256Hex(final byte[] bytes) {
+        try {
+            final java.security.MessageDigest md =
+                    java.security.MessageDigest.getInstance("SHA-256");
+            final byte[] d = md.digest(bytes);
+            final StringBuilder sb = new StringBuilder(d.length * 2);
+            for (final byte b : d) sb.append(String.format("%02x", b));
+            return sb.toString();
+        } catch (final java.security.NoSuchAlgorithmException e) {
+            return null;
+        }
+    }
+
     @PostMapping("/import-pdf/chunk")
     public ResponseEntity<ChunkImportResponse> importPDFChunk(
             @AuthenticationPrincipal final UserDetails userDetails,
@@ -4167,6 +4273,28 @@ public class TransactionController {
         if (parsed.getExchangeRate() != null) {
             txMap.put("exchangeRate", parsed.getExchangeRate());
         }
+        // Structured geo fields — surface here so the preview screen can
+        // render a map / city-state badge before the user commits the import.
+        // All optional; null fields aren't pushed into the map so iOS can
+        // treat missing keys as "no signal" rather than "explicitly empty".
+        if (parsed.getCity() != null) {
+            txMap.put("city", parsed.getCity());
+        }
+        if (parsed.getState() != null) {
+            txMap.put("state", parsed.getState());
+        }
+        if (parsed.getCountry() != null) {
+            txMap.put("country", parsed.getCountry());
+        }
+        if (parsed.getPostalCode() != null) {
+            txMap.put("postalCode", parsed.getPostalCode());
+        }
+        if (parsed.getPhoneNumber() != null) {
+            txMap.put("phoneNumber", parsed.getPhoneNumber());
+        }
+        if (parsed.getStreetAddress() != null) {
+            txMap.put("streetAddress", parsed.getStreetAddress());
+        }
         return txMap;
     }
 
@@ -4466,72 +4594,25 @@ public class TransactionController {
                                 parsed.getCategoryPrimary());
                     }
 
-                    final TransactionTable createdTx =
-                            transactionService.createTransaction(
-                                    user,
-                                    parsed.getAccountId(), // May be null - TransactionService
-                                    // will use pseudo account
-                                    parsed.getAmount(),
-                                    parsed.getDate(),
-                                    parsed.getDescription(),
-                                    parsed.getCategoryPrimary(),
-                                    parsed.getCategoryDetailed(),
-                                    parsed.getImporterCategoryPrimary(), // Importer category
-                                    // (from parser)
-                                    parsed.getImporterCategoryDetailed(), // Importer category
-                                    // (from parser)
-                                    parsed.getTransactionId(),
-                                    null, // notes
-                                    null, // plaidAccountId
-                                    null, // plaidTransactionId
-                                    parsed.getTransactionType(),
-                                    parsed.getCurrencyCode(),
-                                    importSource,
-                                    batchId,
-                                    fileName,
-                                    null, // reviewStatus
-                                    parsed.getMerchantName(), // merchantName (where purchase was
-                                    // made)
-                                    parsed.getLocation(), // location (store/city/state)
-                                    parsed.getPaymentChannel(), // paymentChannel
-                                    parsed.getUserName(), // userName (card/account user - family
-                                    // member)
-                                    null, // goalId
-                                    null // linkedTransactionId
-                                    );
-
-                    // Persist FX context (Chase "EXCHG RATE" block → original currency,
-                    // original amount, exchange rate) onto the row. Only fires when the
-                    // parser attached an FX annotation to this transaction; domestic
-                    // purchases fall through with no extra write. Done as a follow-up
-                    // save rather than threading 4 more params through every
-                    // createTransaction overload — the overload chain is already 5 deep.
-                    if (parsed.getOriginalCurrencyCode() != null
-                            || parsed.getOriginalAmount() != null
-                            || parsed.getExchangeRate() != null
-                            || parsed.getWalletProvider() != null) {
-                        createdTx.setOriginalCurrencyCode(parsed.getOriginalCurrencyCode());
-                        createdTx.setOriginalCurrencyDisplay(
-                                parsed.getOriginalCurrencyDisplay());
-                        createdTx.setOriginalAmount(parsed.getOriginalAmount());
-                        createdTx.setExchangeRate(parsed.getExchangeRate());
-                        // Wallet provider — detected from merchant description prefix
-                        // (Apple Pay / Google Pay / PayPal / Square / Venmo / Zelle / Cash App).
-                        createdTx.setWalletProvider(parsed.getWalletProvider());
-                        try {
-                            transactionService.saveTransaction(createdTx);
-                        } catch (Exception fxSaveErr) {
-                            // Non-fatal: the parent transaction is already created.
-                            // FX context lives in the description suffix as a fallback,
-                            // so the user still sees it; we just lose the structured
-                            // fields for queries. Log and move on.
-                            if (LOGGER.isWarnEnabled()) {
-                                LOGGER.warn(
-                                        "FX persist failed for tx={}: {}",
-                                        createdTx.getTransactionId(),
-                                        fxSaveErr.getMessage());
-                            }
+                    // Consolidated create + enrichment. Replaces the prior
+                    // pattern of createTransaction → updateTransaction (two
+                    // DDB writes per row). The new path writes the base row
+                    // first, then re-saves with FX/wallet/geo/cardLastFour
+                    // only when at least one is set. Domestic non-wallet
+                    // rows skip the second write entirely (~30% of typical
+                    // statements). Net: 2x DDB call reduction on the
+                    // import path. See TransactionService for details.
+                    final TransactionTable createdTx;
+                    try {
+                        createdTx = transactionService.createTransactionFromParsedPdf(
+                                user, parsed, batchId, fileName);
+                    } catch (Exception createErr) {
+                        if (LOGGER.isErrorEnabled()) {
+                            LOGGER.error(
+                                    "Failed to create transaction from PDF import: {}",
+                                    createErr.getMessage(), createErr);
                         }
+                        throw createErr;
                     }
 
                     // CRITICAL: Log amount after creation to verify sign preservation

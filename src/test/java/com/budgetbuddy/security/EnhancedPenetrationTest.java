@@ -354,7 +354,7 @@ class EnhancedPenetrationTest {
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content("{\"invalid\":\"json\""))
                 .andExpect(status().is4xxClientError())
-                .andExpect(jsonPath("$.message").exists())
+                .andExpect(jsonPath("$.error.message").exists())
                 .andExpect(
                         jsonPath("$.stackTrace")
                                 .doesNotExist()); // Stack traces should never be exposed

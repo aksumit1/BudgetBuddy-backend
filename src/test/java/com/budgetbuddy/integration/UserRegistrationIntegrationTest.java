@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.budgetbuddy.AWSTestConfiguration;
+import com.budgetbuddy.api.response.ApiResponse;
 import com.budgetbuddy.dto.AuthRequest;
 import com.budgetbuddy.dto.AuthResponse;
 import com.budgetbuddy.exception.ErrorCode;
@@ -106,7 +107,13 @@ class UserRegistrationIntegrationTest {
                 resp.getStatusCode().is2xxSuccessful(),
                 "Challenge endpoint should succeed for " + email);
         assertNotNull(resp.getBody(), "Challenge response body must not be null");
-        final Object challenge = resp.getBody().get("challenge");
+        // Envelope: top-level is {status, data, correlationId, timestamp};
+        // the challenge field lives under `data`.
+        final Object dataObj = resp.getBody().get("data");
+        assertNotNull(dataObj, "Envelope must include 'data' field");
+        @SuppressWarnings("unchecked")
+        final java.util.Map<String, Object> data = (java.util.Map<String, Object>) dataObj;
+        final Object challenge = data.get("challenge");
         assertNotNull(challenge, "Challenge response must include 'challenge' field");
         return challenge.toString();
     }
@@ -125,20 +132,22 @@ class UserRegistrationIntegrationTest {
         headers.setContentType(org.springframework.http.MediaType.APPLICATION_JSON);
         final HttpEntity<AuthRequest> entity = new HttpEntity<>(request, headers);
 
-        // Act
-        final ResponseEntity<AuthResponse> response =
+        // Act — envelope-wrapped: ResponseEntity<ApiResponse<AuthResponse>>
+        final ResponseEntity<ApiResponse<AuthResponse>> response =
                 restTemplate.exchange(
                         baseUrl + "/api/auth/register",
                         HttpMethod.POST,
                         entity,
-                        AuthResponse.class);
+                        new org.springframework.core.ParameterizedTypeReference<>() {});
 
         // Assert
         assertTrue(response.getStatusCode().is2xxSuccessful(), "Registration should succeed");
         assertNotNull(response.getBody());
-        assertNotNull(response.getBody().getAccessToken());
-        assertNotNull(response.getBody().getRefreshToken());
-        assertFalse(response.getBody().getAccessToken().isEmpty());
+        final AuthResponse auth = response.getBody().data();
+        assertNotNull(auth);
+        assertNotNull(auth.getAccessToken());
+        assertNotNull(auth.getRefreshToken());
+        assertFalse(auth.getAccessToken().isEmpty());
 
         // Verify user was created in database
         final Optional<UserTable> createdUser = userRepository.findByEmail(uniqueEmail);
@@ -176,22 +185,22 @@ class UserRegistrationIntegrationTest {
         final HttpEntity<AuthRequest> duplicateEntity = new HttpEntity<>(duplicateRequest, headers);
 
         // Act
-        final ResponseEntity<com.budgetbuddy.exception.EnhancedGlobalExceptionHandler.ErrorResponse>
-                response =
-                        restTemplate.exchange(
-                                baseUrl + "/api/auth/register",
-                                HttpMethod.POST,
-                                duplicateEntity,
-                                com.budgetbuddy.exception.EnhancedGlobalExceptionHandler
-                                        .ErrorResponse.class);
+        @SuppressWarnings("rawtypes")
+        final ResponseEntity<ApiResponse> response =
+                restTemplate.exchange(
+                        baseUrl + "/api/auth/register",
+                        HttpMethod.POST,
+                        duplicateEntity,
+                        ApiResponse.class);
 
         // Assert
         assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
         assertNotNull(response.getBody());
-        assertEquals(ErrorCode.USER_ALREADY_EXISTS.name(), response.getBody().getErrorCode());
+        assertNotNull(response.getBody().error());
+        assertEquals(ErrorCode.USER_ALREADY_EXISTS.name(), response.getBody().error().code());
         assertTrue(
-                response.getBody().getMessage().contains("already exists")
-                        || response.getBody().getMessage().contains("User with this email"));
+                response.getBody().error().message().contains("already exists")
+                        || response.getBody().error().message().contains("User with this email"));
     }
 
     @Test
@@ -208,17 +217,18 @@ class UserRegistrationIntegrationTest {
         headers.setContentType(org.springframework.http.MediaType.APPLICATION_JSON);
         final HttpEntity<AuthRequest> entity = new HttpEntity<>(request, headers);
 
-        // Act
-        final ResponseEntity<AuthResponse> response =
+        // Act — envelope-wrapped
+        final ResponseEntity<ApiResponse<AuthResponse>> response =
                 restTemplate.exchange(
                         baseUrl + "/api/auth/register",
                         HttpMethod.POST,
                         entity,
-                        AuthResponse.class);
+                        new org.springframework.core.ParameterizedTypeReference<>() {});
 
         // Assert
         assertTrue(response.getStatusCode().is2xxSuccessful(), "Registration should succeed");
-        final AuthResponse authResponse = response.getBody();
+        assertNotNull(response.getBody());
+        final AuthResponse authResponse = response.getBody().data();
         assertNotNull(authResponse);
 
         final String accessToken = authResponse.getAccessToken();
@@ -256,17 +266,19 @@ class UserRegistrationIntegrationTest {
             request.setChallenge(fetchRegistrationChallenge(email));
             final HttpEntity<AuthRequest> entity = new HttpEntity<>(request, headers);
 
-            final ResponseEntity<AuthResponse> response =
+            final ResponseEntity<ApiResponse<AuthResponse>> response =
                     restTemplate.exchange(
                             baseUrl + "/api/auth/register",
                             HttpMethod.POST,
                             entity,
-                            AuthResponse.class);
+                            new org.springframework.core.ParameterizedTypeReference<>() {});
 
             assertTrue(
                     response.getStatusCode().is2xxSuccessful(),
                     "Registration should succeed for email: " + email);
-            assertNotNull(response.getBody().getAccessToken());
+            assertNotNull(response.getBody());
+            assertNotNull(response.getBody().data());
+            assertNotNull(response.getBody().data().getAccessToken());
         }
     }
 
@@ -283,14 +295,13 @@ class UserRegistrationIntegrationTest {
         final HttpEntity<AuthRequest> entity = new HttpEntity<>(request, headers);
 
         // Act
-        final ResponseEntity<com.budgetbuddy.exception.EnhancedGlobalExceptionHandler.ErrorResponse>
-                response =
-                        restTemplate.exchange(
-                                baseUrl + "/api/auth/register",
-                                HttpMethod.POST,
-                                entity,
-                                com.budgetbuddy.exception.EnhancedGlobalExceptionHandler
-                                        .ErrorResponse.class);
+        @SuppressWarnings("rawtypes")
+        final ResponseEntity<ApiResponse> response =
+                restTemplate.exchange(
+                        baseUrl + "/api/auth/register",
+                        HttpMethod.POST,
+                        entity,
+                        ApiResponse.class);
 
         // Assert - Should return 400 for invalid input, but accept 500 if there's a processing
         // error
@@ -301,7 +312,9 @@ class UserRegistrationIntegrationTest {
                 "Registration with missing password_hash should fail. Status: "
                         + response.getStatusCode()
                         + ", Error: "
-                        + (response.getBody() != null ? response.getBody().getMessage() : "null"));
+                        + (response.getBody() != null && response.getBody().error() != null
+                                ? response.getBody().error().message()
+                                : "null"));
 
         // Prefer 400, but log if we get 500 (indicates a backend bug)
         if (response.getStatusCode() == HttpStatus.INTERNAL_SERVER_ERROR) {

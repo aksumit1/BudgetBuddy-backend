@@ -301,7 +301,12 @@ public class AccountRepository {
             }
         }
 
-        return results;
+        // Belt-and-suspenders: drop any row whose userId field disagrees
+        // with the GSI key. The GSI alone is the primary defence; this
+        // catches data drift (manual DDB edit, migration bug) before
+        // it becomes a cross-user leak. See UserOwnershipGuard javadoc.
+        return com.budgetbuddy.security.UserOwnershipGuard.filter(
+                results, userId, AccountTable::getUserId);
     }
 
     public Optional<AccountTable> findByPlaidAccountId(final String plaidAccountId) {

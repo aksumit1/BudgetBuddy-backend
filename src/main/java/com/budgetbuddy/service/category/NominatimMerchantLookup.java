@@ -118,13 +118,38 @@ public class NominatimMerchantLookup implements ChainedLocationLookup.ExternalCa
     private CategoryResult query(
             final String merchantName, final String city, final String state,
             final String country) throws Exception {
+        // Nominatim's free-text search rewards SHORT queries. Passing all
+        // four fields ("merchant, city, state, country") produces empty
+        // results because the matcher is over-constrained. Empirically
+        // "merchant, city" (or "merchant, state" when city is missing)
+        // returns the most hits. Only fall back to a longer query when
+        // the merchant token is very short (≤4 chars) and could be
+        // ambiguous without the state code.
         final StringBuilder q = new StringBuilder(merchantName);
-        if (city != null && !city.isBlank()) q.append(", ").append(city);
-        if (state != null && !state.isBlank()) q.append(", ").append(state);
-        if (country != null && !country.isBlank()) q.append(", ").append(country);
+        if (city != null && !city.isBlank()) {
+            q.append(", ").append(city);
+            if (merchantName.length() <= 4 && state != null && !state.isBlank()) {
+                q.append(", ").append(state);
+            }
+        } else if (state != null && !state.isBlank()) {
+            q.append(", ").append(state);
+        }
+        // Country-aware: for non-US merchants, include the country in the
+        // query so Nominatim doesn't default-pick the US match. Also pass
+        // the official countrycodes= filter for hard scoping (ISO alpha-2).
+        // For US merchants we leave countrycodes= off — adding it doesn't
+        // help and slightly slows the query.
+        final String countryCode = normalizeCountryToAlpha2(country);
+        if (countryCode != null && !"US".equals(countryCode)) {
+            q.append(", ").append(countryCode);
+        }
         final String url =
                 apiUrl
                         + "?q=" + URLEncoder.encode(q.toString(), StandardCharsets.UTF_8)
+                        + (countryCode != null && !"US".equals(countryCode)
+                                ? "&countrycodes="
+                                        + countryCode.toLowerCase(java.util.Locale.ROOT)
+                                : "")
                         + "&format=json&limit=3&addressdetails=0&extratags=1&namedetails=0";
 
         final HttpRequest req = HttpRequest.newBuilder()
@@ -184,5 +209,85 @@ public class NominatimMerchantLookup implements ChainedLocationLookup.ExternalCa
 
     private static String safe(final String s) {
         return s == null ? "" : s.toLowerCase(Locale.ROOT).trim();
+    }
+
+    /**
+     * Normalise a country input (could be ISO alpha-2 "GB", alpha-3 "GBR",
+     * or a country name "United Kingdom") into the alpha-2 form Nominatim
+     * expects for {@code countrycodes=}. Returns null for blank or
+     * unrecognised inputs (caller then leaves the country off the query).
+     *
+     * <p>The set below mirrors what
+     * {@link com.budgetbuddy.service.ml.MerchantLocationSplitter}
+     * recognises so the lookup chain stays consistent with the upstream
+     * splitter's country detection.
+     */
+    private static String normalizeCountryToAlpha2(final String country) {
+        if (country == null) return null;
+        final String s = country.trim().toUpperCase(Locale.ROOT);
+        if (s.isEmpty()) return null;
+        // Already alpha-2
+        if (s.length() == 2) return s;
+        // Alpha-3 → alpha-2 mapping for the codes the splitter recognises.
+        // Only the most common ones — Nominatim is forgiving for others.
+        switch (s) {
+            case "USA": return "US";
+            case "GBR": return "GB";
+            case "UK":  return "GB";
+            case "CAN": return "CA";
+            case "AUS": return "AU";
+            case "DEU": return "DE";
+            case "FRA": return "FR";
+            case "ITA": return "IT";
+            case "ESP": return "ES";
+            case "NLD": return "NL";
+            case "IND": return "IN";
+            case "SGP": return "SG";
+            case "JPN": return "JP";
+            case "CHN": return "CN";
+            case "KOR": return "KR";
+            case "BRA": return "BR";
+            case "MEX": return "MX";
+            case "NZL": return "NZ";
+            case "IRL": return "IE";
+            case "CHE": return "CH";
+            case "SWE": return "SE";
+            case "NOR": return "NO";
+            case "DNK": return "DK";
+            case "FIN": return "FI";
+            case "BEL": return "BE";
+            case "AUT": return "AT";
+            case "POL": return "PL";
+            case "CZE": return "CZ";
+            case "PRT": return "PT";
+            case "GRC": return "GR";
+            case "ZAF": return "ZA";
+            case "ARE": return "AE";
+            case "SAU": return "SA";
+            case "QAT": return "QA";
+            case "ISR": return "IL";
+            case "TUR": return "TR";
+            case "HKG": return "HK";
+            case "TWN": return "TW";
+            case "THA": return "TH";
+            case "VNM": return "VN";
+            case "IDN": return "ID";
+            case "MYS": return "MY";
+            case "PHL": return "PH";
+            case "ARG": return "AR";
+            case "CHL": return "CL";
+            case "COL": return "CO";
+            case "PER": return "PE";
+            // Country names → alpha-2 (a few common variants)
+            case "UNITED STATES":    return "US";
+            case "UNITED KINGDOM":   return "GB";
+            case "INDIA":            return "IN";
+            case "JAPAN":            return "JP";
+            case "CANADA":           return "CA";
+            case "AUSTRALIA":        return "AU";
+            case "GERMANY":          return "DE";
+            case "FRANCE":           return "FR";
+            default: return null;
+        }
     }
 }

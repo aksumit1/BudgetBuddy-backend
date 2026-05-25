@@ -28,8 +28,17 @@ FROM --platform=linux/arm64 eclipse-temurin:25-jre-alpine
 
 WORKDIR /app
 
-# Create non-root user
-RUN addgroup -S spring && adduser -S spring -G spring
+# Create non-root user + pre-create the archive directories owned by
+# spring. The docker-compose volume mounts (pdf_archive_data,
+# pdf_diagnostics_data) target /var/lib/pdf-archive and
+# /var/lib/pdf-diagnostics; without pre-creating + chown'ing them here,
+# the volumes mount with root ownership and the non-root spring user
+# can't write to them. Doing it before USER change avoids needing
+# privilege escalation at runtime.
+RUN addgroup -S spring \
+    && adduser -S spring -G spring \
+    && mkdir -p /var/lib/pdf-archive /var/lib/pdf-diagnostics \
+    && chown -R spring:spring /var/lib/pdf-archive /var/lib/pdf-diagnostics
 USER spring:spring
 
 # Copy jar from build stage

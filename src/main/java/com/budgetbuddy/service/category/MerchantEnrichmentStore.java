@@ -22,7 +22,7 @@ import org.springframework.stereotype.Service;
  * <p>The interface is intentionally small — just {@link #get} and
  * {@link #put}. Production deployments back it with DynamoDB (one row
  * per (normalised merchant, city, state, country) with TTL of, say,
- * one year). The {@link InProcess} default does the same job in-memory
+ * five years). The {@link InProcess} default does the same job in-memory
  * so the cascade compiles + runs without new infrastructure.
  *
  * <h3>Why this matters</h3>
@@ -48,6 +48,36 @@ public interface MerchantEnrichmentStore {
      */
     void put(String merchantName, String city, String state, String country,
              CategoryResult result);
+
+    /**
+     * Remember that NO external source could resolve this merchant +
+     * location. Lets us skip the L6 chain on the next import for the
+     * same merchant instead of re-burning the per-request budget on a
+     * known-failing lookup. Stored with a 5-year TTL (positive entries
+     * are stored forever — see {@link #put}). The asymmetry: a confirmed
+     * positive almost never needs to be re-validated; a negative might
+     * eventually gain coverage upstream and is worth retrying after a
+     * few years. If you need to force a re-query before TTL expiry, the
+     * L0 user-override layer can do it for a specific merchant without
+     * invalidating the whole table.
+     *
+     * <p>Default is no-op so {@link InProcess} and any future impl that
+     * doesn't want to track negatives can ignore it.
+     */
+    default void putNegative(final String merchantName, final String city,
+                             final String state, final String country) {
+        // no-op by default
+    }
+
+    /**
+     * Has a previous lookup for this (merchant, location) been recorded
+     * as failing? Used by {@link ChainedLocationLookup} so the chain
+     * skips known-bad lookups instead of re-walking every source.
+     */
+    default boolean isKnownNegative(final String merchantName, final String city,
+                                    final String state, final String country) {
+        return false;
+    }
 
     /** Build a stable key for cache / store lookups. */
     static String key(

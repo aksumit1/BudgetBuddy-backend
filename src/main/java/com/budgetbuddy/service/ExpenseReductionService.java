@@ -80,21 +80,50 @@ public class ExpenseReductionService {
 
     /**
      * Context-aware overload. The /summary path uses this so the
-     * service's category / lifestyle / duplicate-services analyses
-     * read the same shared transaction snapshot instead of issuing
-     * three more {@code findByUserIdAndDateRange} calls.
+     * service's category / low-value / lifestyle analyses read the
+     * same shared transaction snapshot — eliminates the 4 separate
+     * {@code findByUserIdAndDateRange} calls that this service
+     * otherwise issues. Subscriptions analysis still hits
+     * SubscriptionService directly (subs aren't carried in the
+     * context yet) but every other branch is satisfied from the
+     * snapshot.
      */
     public List<ExpenseRecommendation> getRecommendations(
             final com.budgetbuddy.service.insights.InsightsContext ctx) {
         if (ctx == null) {
             return new ArrayList<>();
         }
-        // Subscriptions analysis still calls subscriptionService directly
-        // (not yet in the context), but the costly category/lifestyle
-        // passes use the snapshot. Future revision: pre-fetch subs into
-        // ctx too. The /summary path benefits from the bulk of the
-        // savings immediately.
-        return getRecommendations(ctx.userId());
+        LOGGER.info("Generating expense recommendations from context for user: {}", ctx.userId());
+
+        // Filter the snapshot once for each window each analyzer needs.
+        final LocalDate today = ctx.asOf();
+        final LocalDate ninetyAgo = today.minusDays(analysisWindowDays());
+        final LocalDate thirtyAgo = today.minusDays(30);
+        final List<TransactionTable> last90 = ctx.transactions().stream()
+                .filter(tx -> tx.getTransactionDate() != null
+                        && tx.getTransactionDate().compareTo(ninetyAgo.toString()) >= 0
+                        && tx.getTransactionDate().compareTo(today.toString()) <= 0)
+                .collect(Collectors.toList());
+        final List<TransactionTable> last30 = last90.stream()
+                .filter(tx -> tx.getTransactionDate().compareTo(thirtyAgo.toString()) >= 0)
+                .collect(Collectors.toList());
+        final List<TransactionTable> historical60 = last90.stream()
+                .filter(tx -> tx.getTransactionDate().compareTo(thirtyAgo.toString()) < 0)
+                .collect(Collectors.toList());
+
+        final List<ExpenseRecommendation> recommendations = new ArrayList<>();
+        // Subscriptions come from the context now (pre-fetched by the
+        // factory). Zero subscriptionService calls in this path.
+        recommendations.addAll(analyzeSubscriptionsFromList(ctx.userId(), ctx.subscriptions()));
+        recommendations.addAll(analyzeDuplicateServicesFromList(ctx.subscriptions()));
+        recommendations.addAll(analyzeCategoryOverspendingFromTxs(last90));
+        recommendations.addAll(analyzeLowValueHighCostFromTxs(last90));
+        recommendations.addAll(analyzeLifestyleInflationFromTxs(last30, historical60));
+
+        return recommendations.stream()
+                .sorted(Comparator.comparing(
+                        ExpenseRecommendation::getMonthlySavings, Comparator.reverseOrder()))
+                .collect(Collectors.toList());
     }
 
     /** Get expense reduction recommendations for a user */
@@ -131,12 +160,24 @@ public class ExpenseReductionService {
                 .collect(Collectors.toList());
     }
 
-    /** Analyze subscriptions for cancellation/downgrade opportunities */
+    /** Legacy fetch + analyse. The context path uses the List variant directly. */
     private List<ExpenseRecommendation> analyzeSubscriptions(final String userId) {
+        try {
+            return analyzeSubscriptionsFromList(
+                    userId, subscriptionService.getSubscriptions(userId));
+        } catch (Exception e) {
+            if (LOGGER.isWarnEnabled()) {
+                LOGGER.warn("Error fetching subscriptions: {}", e.getMessage());
+            }
+            return new ArrayList<>();
+        }
+    }
+
+    private List<ExpenseRecommendation> analyzeSubscriptionsFromList(
+            final String userId, final List<Subscription> subscriptions) {
         final List<ExpenseRecommendation> recommendations = new ArrayList<>();
 
         try {
-            final List<Subscription> subscriptions = subscriptionService.getSubscriptions(userId);
 
             for (final Subscription sub : subscriptions) {
                 if (sub.getActive() == null || !sub.getActive()) {
@@ -319,13 +360,24 @@ public class ExpenseReductionService {
         return null;
     }
 
-    /** Analyze duplicate services (e.g., multiple streaming services) */
+    /** Legacy fetch + analyse. Context path uses {@link #analyzeDuplicateServicesFromList}. */
     private List<ExpenseRecommendation> analyzeDuplicateServices(final String userId) {
+        try {
+            return analyzeDuplicateServicesFromList(subscriptionService.getSubscriptions(userId));
+        } catch (Exception e) {
+            if (LOGGER.isWarnEnabled()) {
+                LOGGER.warn("Error fetching subscriptions for duplicate analysis: {}",
+                        e.getMessage());
+            }
+            return new ArrayList<>();
+        }
+    }
+
+    private List<ExpenseRecommendation> analyzeDuplicateServicesFromList(
+            final List<Subscription> subscriptions) {
         final List<ExpenseRecommendation> recommendations = new ArrayList<>();
 
         try {
-            final List<Subscription> subscriptions = subscriptionService.getSubscriptions(userId);
-
             // Group subscriptions by type
             final Map<String, List<Subscription>> byType =
                     subscriptions.stream()
@@ -427,17 +479,24 @@ public class ExpenseReductionService {
 
     /** Analyze category overspending */
     private List<ExpenseRecommendation> analyzeCategoryOverspending(final String userId) {
-        final List<ExpenseRecommendation> recommendations = new ArrayList<>();
-
         final LocalDate endDate = LocalDate.now();
         final LocalDate startDate = endDate.minusDays(analysisWindowDays());
-
         final String startDateStr =
                 startDate.format(java.time.format.DateTimeFormatter.ISO_LOCAL_DATE);
         final String endDateStr = endDate.format(java.time.format.DateTimeFormatter.ISO_LOCAL_DATE);
+        return analyzeCategoryOverspendingFromTxs(
+                transactionRepository.findByUserIdAndDateRange(userId, startDateStr, endDateStr));
+    }
 
-        final List<TransactionTable> transactions =
-                transactionRepository.findByUserIdAndDateRange(userId, startDateStr, endDateStr);
+    /**
+     * Analyse category-overspending from a pre-fetched transaction
+     * list. Used by both the legacy fetch path (above) and the
+     * context-aware path so the analysis itself only lives in one
+     * place.
+     */
+    private List<ExpenseRecommendation> analyzeCategoryOverspendingFromTxs(
+            final List<TransactionTable> transactions) {
+        final List<ExpenseRecommendation> recommendations = new ArrayList<>();
 
         // Filter to expenses
         final List<TransactionTable> expenses =
@@ -507,18 +566,18 @@ public class ExpenseReductionService {
 
     /** Analyze low-value high-cost expenses */
     private List<ExpenseRecommendation> analyzeLowValueHighCost(final String userId) {
-        final List<ExpenseRecommendation> recommendations = new ArrayList<>();
-
         final LocalDate endDate = LocalDate.now();
         final LocalDate startDate = endDate.minusDays(analysisWindowDays());
-
         final String startDateStr =
                 startDate.format(java.time.format.DateTimeFormatter.ISO_LOCAL_DATE);
         final String endDateStr = endDate.format(java.time.format.DateTimeFormatter.ISO_LOCAL_DATE);
+        return analyzeLowValueHighCostFromTxs(
+                transactionRepository.findByUserIdAndDateRange(userId, startDateStr, endDateStr));
+    }
 
-        final List<TransactionTable> transactions =
-                transactionRepository.findByUserIdAndDateRange(userId, startDateStr, endDateStr);
-
+    private List<ExpenseRecommendation> analyzeLowValueHighCostFromTxs(
+            final List<TransactionTable> transactions) {
+        final List<ExpenseRecommendation> recommendations = new ArrayList<>();
         // Group by merchant
         final Map<String, List<TransactionTable>> byMerchant =
                 transactions.stream()
@@ -569,8 +628,6 @@ public class ExpenseReductionService {
 
     /** Analyze lifestyle inflation (gradual spending increases) */
     private List<ExpenseRecommendation> analyzeLifestyleInflation(final String userId) {
-        final List<ExpenseRecommendation> recommendations = new ArrayList<>();
-
         final LocalDate endDate = LocalDate.now();
         final LocalDate recentStart = endDate.minusDays(30);
         final LocalDate historicalStart = endDate.minusDays(90);
@@ -584,11 +641,15 @@ public class ExpenseReductionService {
         // Compare recent month to previous 2 months
         final List<TransactionTable> recent =
                 transactionRepository.findByUserIdAndDateRange(userId, recentStartStr, endDateStr);
-
         final List<TransactionTable> historical =
                 transactionRepository.findByUserIdAndDateRange(
                         userId, historicalStartStr, recentStartStr);
+        return analyzeLifestyleInflationFromTxs(recent, historical);
+    }
 
+    private List<ExpenseRecommendation> analyzeLifestyleInflationFromTxs(
+            final List<TransactionTable> recent, final List<TransactionTable> historical) {
+        final List<ExpenseRecommendation> recommendations = new ArrayList<>();
         final BigDecimal recentTotal =
                 recent.stream()
                         .filter(

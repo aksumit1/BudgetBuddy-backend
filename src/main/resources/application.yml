@@ -122,7 +122,10 @@ app:
   
   # JWT Configuration - Zero Trust: Short-lived access tokens, longer refresh tokens
   jwt:
-    secret: ${JWT_SECRET:your-256-bit-secret-key-change-in-production}
+    # No default. SecretsValidator (@PostConstruct) fails startup with a clear
+    # message if JWT_SECRET is unset, instead of silently booting with a known
+    # weak placeholder. Tests inject a fixed value via @TestPropertySource.
+    secret: ${JWT_SECRET:}
     secret-name: ${JWT_SECRET_NAME:budgetbuddy/jwt-secret}
     expiration: 14400000 # 4 hours — bumped from 30 min. Combined with refresh-token revocation paths
     # (FIDO2 step-up, MFA, explicit logout) and the iOS biometric gate on the refresh token itself,
@@ -200,7 +203,9 @@ app:
       allow-credentials: true
     encryption:
       algorithm: AES-256-GCM
-      key: ${ENCRYPTION_KEY:change-in-production}
+      # No default — SecretsValidator fails startup if unset rather than
+      # encrypting at-rest data with a known placeholder key.
+      key: ${ENCRYPTION_KEY:}
     tls:
       min-version: ${TLS_MIN_VERSION:TLSv1.2}
       enabled-protocols: ${TLS_ENABLED_PROTOCOLS:TLSv1.2,TLSv1.3}
@@ -370,6 +375,16 @@ app:
       batch-size: ${CATEGORY_SELF_LEARNING_BATCH_SIZE:50}
       confidence-threshold: ${CATEGORY_SELF_LEARNING_CONFIDENCE_THRESHOLD:0.75}
       fixed-rate-ms: ${CATEGORY_SELF_LEARNING_FIXED_RATE_MS:60000}
+    # Daily exporter that promotes stable positive cache entries into a
+    # draft YAML rules file. Output is reviewed and selectively merged
+    # into category-rules-v2.yaml; we never auto-write to production rules.
+    # Bundled with the daily self-learning window so the full augment cycle
+    # (LLM drain + rule promotion) runs together.
+    rule-export:
+      enabled: ${CATEGORY_RULE_EXPORT_ENABLED:false}
+      confidence-floor: ${CATEGORY_RULE_EXPORT_CONFIDENCE_FLOOR:0.85}
+      output-path: ${CATEGORY_RULE_EXPORT_OUTPUT_PATH:/tmp/budgetbuddy-rule-export/learned-rules-draft.yaml}
+      cron: ${CATEGORY_RULE_EXPORT_CRON:0 30 3 * * *}  # 03:30 daily
 
 # Actuator Configuration (Minimal - only essential endpoints)
 management:
@@ -592,5 +607,31 @@ pdf:
     # PathMatchingResourcePatternResolver (single-colon classpath: only
     # resolves single resources, not directory globs).
     resource-pattern: ${PDF_TEMPLATES_RESOURCE:classpath*:pdf-templates/*.yaml}
+  # Raw PDF archive — stores every uploaded statement so the dev team can
+  # reproduce parser issues against the original document. Off-by-default
+  # for privacy (raw PDFs contain PII); turned on per-environment via
+  # PDF_ARCHIVE_ENABLED=true. In production this is wired by the ECS task
+  # definition (infrastructure/cloudformation/ecs-service.yaml).
+  # The S3 bucket is created by pdf-archive.yaml (encrypted with the same
+  # CMK as the rest of the app, 90-day lifecycle delete as PII safety
+  # valve). Local FS path is a dev convenience; S3 mirror is the durable
+  # store. See PdfRawArchive.java for write semantics.
+  archive:
+    enabled: ${PDF_ARCHIVE_ENABLED:false}
+    root: ${PDF_ARCHIVE_ROOT:/tmp/pdf-archive}
+    max-bytes: ${PDF_ARCHIVE_MAX_BYTES:26214400}
+    s3:
+      bucket: ${PDF_ARCHIVE_S3_BUCKET:}
+      prefix: ${PDF_ARCHIVE_S3_PREFIX:pdf-archive/}
+  # Redacted-diagnostic store — JSON snapshot of any parse that produced a
+  # reconciliation failure or errors. Distinct from the raw archive above:
+  # this is lossy and PII-redacted but cheap to keep forever. See
+  # PdfImportDiagnosticStore.java.
+  diagnostics:
+    enabled: ${PDF_DIAGNOSTICS_ENABLED:true}
+    root: ${PDF_DIAGNOSTICS_ROOT:/tmp/pdf-diagnostics}
+    s3:
+      bucket: ${PDF_DIAGNOSTICS_S3_BUCKET:}
+      prefix: ${PDF_DIAGNOSTICS_S3_PREFIX:pdf-diagnostics/}
 
 

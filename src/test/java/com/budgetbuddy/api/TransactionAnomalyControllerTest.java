@@ -70,9 +70,9 @@ class TransactionAnomalyControllerTest {
 
         mockMvc.perform(get("/api/transactions/anomaly/" + txId))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.transactionId").value(txId))
-                .andExpect(jsonPath("$.score").value(0.72))
-                .andExpect(jsonPath("$.anomalous").value(true));
+                .andExpect(jsonPath("$.data.transactionId").value(txId))
+                .andExpect(jsonPath("$.data.score").value(0.72))
+                .andExpect(jsonPath("$.data.anomalous").value(true));
     }
 
     @Test
@@ -92,8 +92,8 @@ class TransactionAnomalyControllerTest {
 
         mockMvc.perform(get("/api/transactions/anomaly/" + txId))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.score").value(-1.0))
-                .andExpect(jsonPath("$.anomalous").value(false));
+                .andExpect(jsonPath("$.data.score").value(-1.0))
+                .andExpect(jsonPath("$.data.anomalous").value(false));
     }
 
     @Test

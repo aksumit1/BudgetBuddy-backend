@@ -147,19 +147,20 @@ public class SubscriptionServiceOpenAITest {
     @Test
     @DisplayName("Should detect OpenAI ChatGPT subscription with minimum 3 transactions")
     void testOpenAISubscriptionDetection3Transactions() {
-        // Given: Create 3 monthly OpenAI transactions (need 3+ for detection)
+        // Given: 4 monthly OpenAI transactions. The MONTHLY occurrence
+        // floor was tightened from 3 to 4 to prevent gas-pump / weekly
+        // grocery patterns from being mis-flagged as subscriptions;
+        // legitimate monthly subs accumulate the 4th cycle within a
+        // few months of opening.
         final LocalDate date1 = LocalDate.of(2025, 8, 9);
         final LocalDate date2 = LocalDate.of(2025, 9, 9);
         final LocalDate date3 = LocalDate.of(2025, 10, 9);
+        final LocalDate date4 = LocalDate.of(2025, 11, 9);
 
-        final TransactionTable tx1 = createOpenAITransaction(new BigDecimal("-22.04"), date1);
-        transactionRepository.save(tx1);
-
-        final TransactionTable tx2 = createOpenAITransaction(new BigDecimal("-22.04"), date2);
-        transactionRepository.save(tx2);
-
-        final TransactionTable tx3 = createOpenAITransaction(new BigDecimal("-22.04"), date3);
-        transactionRepository.save(tx3);
+        transactionRepository.save(createOpenAITransaction(new BigDecimal("-22.04"), date1));
+        transactionRepository.save(createOpenAITransaction(new BigDecimal("-22.04"), date2));
+        transactionRepository.save(createOpenAITransaction(new BigDecimal("-22.04"), date3));
+        transactionRepository.save(createOpenAITransaction(new BigDecimal("-22.04"), date4));
 
         // When: Detect subscriptions
         final List<Subscription> subscriptions =
@@ -180,7 +181,8 @@ public class SubscriptionServiceOpenAITest {
                         .orElse(null);
 
         assertNotNull(
-                openAISubscription, "OpenAI subscription should be detected with 3 transactions");
+                openAISubscription,
+                "OpenAI subscription should be detected once 4 monthly cycles are present");
         assertEquals(Subscription.SubscriptionFrequency.MONTHLY, openAISubscription.getFrequency());
     }
 
@@ -188,25 +190,20 @@ public class SubscriptionServiceOpenAITest {
     @DisplayName(
             "Should detect OpenAI subscription even with tech category (not subscriptions category)")
     void testOpenAISubscriptionDetectionTechCategory() {
-        // Given: Create 3 transactions with tech category (need 3+ for detection)
+        // Given: 4 monthly tech-categorised transactions (the MONTHLY
+        // floor was tightened to 4 — see testOpenAISubscriptionDetection3Transactions
+        // for the full rationale).
         final LocalDate date1 = LocalDate.of(2025, 8, 9);
         final LocalDate date2 = LocalDate.of(2025, 9, 9);
         final LocalDate date3 = LocalDate.of(2025, 10, 9);
+        final LocalDate date4 = LocalDate.of(2025, 11, 9);
 
-        final TransactionTable tx1 = createOpenAITransaction(new BigDecimal("-22.04"), date1);
-        tx1.setCategoryPrimary(TECH);
-        tx1.setCategoryDetailed(TECH);
-        transactionRepository.save(tx1);
-
-        final TransactionTable tx2 = createOpenAITransaction(new BigDecimal("-22.04"), date2);
-        tx2.setCategoryPrimary(TECH);
-        tx2.setCategoryDetailed(TECH);
-        transactionRepository.save(tx2);
-
-        final TransactionTable tx3 = createOpenAITransaction(new BigDecimal("-22.04"), date3);
-        tx3.setCategoryPrimary(TECH);
-        tx3.setCategoryDetailed(TECH);
-        transactionRepository.save(tx3);
+        for (final LocalDate d : java.util.List.of(date1, date2, date3, date4)) {
+            final TransactionTable tx = createOpenAITransaction(new BigDecimal("-22.04"), d);
+            tx.setCategoryPrimary(TECH);
+            tx.setCategoryDetailed(TECH);
+            transactionRepository.save(tx);
+        }
 
         // When: Detect subscriptions
         final List<Subscription> subscriptions =

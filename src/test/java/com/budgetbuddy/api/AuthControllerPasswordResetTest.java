@@ -117,9 +117,9 @@ class AuthControllerPasswordResetTest {
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.status").value("success"))
+                .andExpect(jsonPath("$.data.status").value("success"))
                 .andExpect(
-                        jsonPath("$.message")
+                        jsonPath("$.data.message")
                                 .value("Verification code sent to your email if it's valid."));
 
         verify(passwordResetService).requestPasswordReset(testEmail);
@@ -186,8 +186,8 @@ class AuthControllerPasswordResetTest {
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.status").value("success"))
-                .andExpect(jsonPath("$.message").value("Code verified successfully"));
+                .andExpect(jsonPath("$.data.status").value("success"))
+                .andExpect(jsonPath("$.data.message").value("Code verified successfully"));
 
         verify(passwordResetService).verifyResetCode(testEmail, testCode);
     }
@@ -217,8 +217,8 @@ class AuthControllerPasswordResetTest {
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.success").value(true))
-                .andExpect(jsonPath("$.message").value("Password reset successful"));
+                .andExpect(jsonPath("$.data.success").value(true))
+                .andExpect(jsonPath("$.data.message").value("Password reset successful"));
 
         // BREAKING CHANGE: Client salt removed
         verify(passwordResetService).resetPassword(testEmail, testCode, PASSWORD_HASH);

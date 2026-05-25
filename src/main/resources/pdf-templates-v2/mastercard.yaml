@@ -1,0 +1,394 @@
+# Mastercard — PayPal Cashback Mastercard / PayPal Cashback World Mastercard
+# (issued by Synchrony Bank, branded under www.paypal.com).
+#
+# Covers the 10 PayPal-Mastercard statements in the corpus. The v1 detector
+# classifies these as institution="Mastercard" (since the statement carries
+# the Mastercard wordmark on every page and the network rules are the most
+# specific match before any issuer-specific cues), so we keep the same
+# institution name here.
+#
+# Statement structure (post stitchContinuationLines preprocessing):
+#  - Header block (top of page): cardholder name, "Account number:  <last4>",
+#    "Visit us at www.paypal.com", and prominent summary "New balance",
+#    "Minimum payment due", "Payment due date".
+#  - "Account summary" — labels in column 1, amounts in column 2 separated
+#    from the sign by a space (no $ glyph). Examples:
+#       Previous balance as of 05/10/2025 $20,257.29
+#       Payments - 19,992.11
+#       Other credits - 265.18
+#       Purchases & other debits + 1,889.92
+#       Interest charges + 246.98
+#       New balance as of 06/09/2025 $246.98
+#       31 day billing cycle from 05/10/2025 to 06/09/2025
+#  - "Transaction details" — section headers are short text fragments
+#    that the stitcher sometimes glues onto the LAST transaction line of
+#    the prior section (e.g.
+#      "06/02 F1192004T00CHGDDA AUTOMATIC PAYMENT - THANK YOU -$19,992.11 Other Credits -$265.18"
+#    appears as a single line). The TransactionExtractor's section tracker
+#    handles this — the trailing fragment that matches a section anchor
+#    becomes the active section, and the rolling regex still extracts the
+#    PAYMENTS row on that line.
+#  - Three printed sections:
+#      (1) "Payments"                  — leading-minus amounts (-$X.XX).
+#                                        AUTOPAY payment rows → CREDIT.
+#      (2) "Other Credits"             — leading-minus amounts (-$X.XX).
+#                                        Refund / interest-reversal rows → CREDIT.
+#      (3) "Purchases and Other Debits" — positive amounts ($X.XX).
+#                                        Purchase rows → DEBIT.
+#  - "Interest charge calculation" prints the APR table:
+#      "Purchases & Balance Transfers N/A 19.24% (v) $15,112.11 $246.98"
+#      "Cash advances N/A 31.24% (v) $0.00 $0.00"
+#
+# Status: production — v2 transaction shapes are the source of truth under
+# PDFImportService.V2_TX_PRODUCTION_ISSUERS. Sign-discriminated shapes
+# correctly classify refunds (e.g. *INTEREST CHARGE* PURCHASES REFUND,
+# large credit-balance refunds) as CREDITs and purchase rows as DEBITs.
+# Validated against the 10 PayPal Mastercard PDFs in the corpus
+# (statement-2025-06-09 through statement-2026-05-10): 0 math-tally
+# failures, all 10 reconcile with both purchasesDelta and paymentsDelta
+# = 0.00 in PdfFullAuditTest.
+id: mastercard-v2
+institution: Mastercard
+description: "PayPal Cashback Mastercard / PayPal Cashback World Mastercard (Synchrony Bank)"
+status: unverified
+extends: [common]
+
+card_detection:
+  institution_match:
+    - any_of:
+        - "(?i)paypal\\.com"
+        - "(?i)PayPal\\s+Cashback\\s+(?:World\\s+)?Mastercard"
+        - "(?i)PAYPAL\\s+CREDIT\\s+SVCS/SYNCB"
+        - "(?i)\\bMastercard\\s+ID\\s+Theft\\s+Protection\\b"
+
+  # PayPal/Synchrony prints "Account number:  7705" at the very top of every
+  # page, and "Account Number    xxxx xxxx xxxx 7705" in the payment-slip
+  # block. Both forms are accepted.
+  last_four:
+    - pattern: "(?i)Account\\s+number[:\\s]+(?:[#x*\\s-]+)?(\\d{4})\\b"
+      filename_fallback: true
+    - pattern: "(?i)Account\\s+Number[\\s:]+x{3,}[\\sx]*(\\d{4})\\b"
+      filename_fallback: true
+
+  account_holder:
+    - source: above_account_ending
+      lines_above_account: 1-3
+
+metadata:
+  statement_date:
+    # PayPal/Synchrony prints "New balance as of MM/DD/YYYY $X.XX" — the
+    # closing date is embedded in that line. The "X day billing cycle from
+    # MM/DD/YYYY to MM/DD/YYYY" line below is parsed by statement_period
+    # (end date wins as statement_date when statement_date is absent — see
+    # statement_period_end_is_statement_date below).
+    - pattern: "(?i)New\\s+balance\\s+as\\s+of\\s+(\\d{1,2}/\\d{1,2}/\\d{2,4})"
+    - label: "Statement Date"
+      adjacent: date
+    - label: "Closing Date"
+      adjacent: date
+
+  # "31 day billing cycle from 05/10/2025 to 06/09/2025"
+  statement_period:
+    - pattern: "(?i)\\d{1,3}\\s+day\\s+billing\\s+cycle\\s+from\\s+(\\d{1,2}/\\d{1,2}/\\d{2,4})\\s+to\\s+(\\d{1,2}/\\d{1,2}/\\d{2,4})"
+    - pattern: "(?i)billing\\s+cycle\\s+from\\s+(\\d{1,2}/\\d{1,2}/\\d{2,4})\\s+to\\s+(\\d{1,2}/\\d{1,2}/\\d{2,4})"
+
+  # Top-of-page summary prints "New balance $X.XX" (may be negative for
+  # credit-balance statements: "New balance -$1,565.75"). The "$" is fixed
+  # but the optional leading minus is allowed.
+  new_balance:
+    - pattern: "(?im)^\\s*New\\s+balance\\s+(-?\\$[\\d,]+\\.\\d{2})"
+    - pattern: "(?i)New\\s+balance\\s+as\\s+of\\s+\\d{1,2}/\\d{1,2}/\\d{2,4}\\s+(-?\\$[\\d,]+\\.\\d{2})"
+
+  previous_balance:
+    - pattern: "(?i)Previous\\s+balance\\s+as\\s+of\\s+\\d{1,2}/\\d{1,2}/\\d{2,4}\\s+(-?\\$[\\d,]+\\.\\d{2})"
+    - pattern: "(?im)^\\s*Previous\\s+balance\\s+(-?\\$[\\d,]+\\.\\d{2})"
+
+  # Account summary prints "Purchases & other debits + 1,889.92" — note
+  # no $ glyph and a space between the sign and the amount.
+  purchases_total:
+    - pattern: "(?im)^\\s*Purchases\\s+&\\s+other\\s+debits\\s+\\+\\s*([\\d,]+\\.\\d{2})"
+    - pattern: "(?im)^\\s*Purchases\\s+\\+\\s*\\$?([\\d,]+\\.\\d{2})"
+
+  # Mastercard prints two reducer rows under Account summary:
+  #   "Payments - 19,992.11"
+  #   "Other credits - 265.18"
+  # Both reduce the cardholder balance. The audit's credit-side reconciliation
+  # needs BOTH summed against parsedCreditSum. payments_total captures the
+  # "Payments" row; other_credits_total captures the "Other credits" row;
+  # V2FieldBinder.mergeOtherCreditsIntoPayments rolls them into
+  # paymentsAndCreditsTotal so paymentsDelta = 0.
+  payments_total:
+    - pattern: "(?im)^\\s*Payments\\s+-\\s*([\\d,]+\\.\\d{2})"
+
+  other_credits_total:
+    - pattern: "(?im)^\\s*Other\\s+credits\\s+-\\s*([\\d,]+\\.\\d{2})"
+
+  # "Fees charged + X" — not observed in the current corpus but support it
+  # for future statements that levy late-payment fees.
+  fees_total:
+    - pattern: "(?im)^\\s*Fees?\\s+charged\\s+\\+\\s*\\$?([\\d,]+\\.\\d{2})"
+    - pattern: "(?im)^\\s*Total\\s+Fees\\s+Charged\\s+This\\s+Period\\s+\\$([\\d,]+\\.\\d{2})"
+
+  # "Interest charges + 246.98" (Account summary) AND
+  # "Total Interest Charged This Period $246.98" (Transaction details).
+  # Either form picks up the same period interest total.
+  interest_total:
+    - pattern: "(?im)^\\s*Interest\\s+charges?\\s+\\+\\s*([\\d,]+\\.\\d{2})"
+    - pattern: "(?im)^\\s*Total\\s+Interest\\s+Charged\\s+This\\s+Period\\s+\\$([\\d,]+\\.\\d{2})"
+
+  # PayPal/Synchrony prints integer-dollar limits ("Credit limit $20,000",
+  # "Available credit $19,753"). Accept both the with- and without-cents
+  # forms; the audit only consumes credit_limit + available_credit for
+  # informational display.
+  credit_limit:
+    - pattern: "(?im)^\\s*Credit\\s+limit\\s+\\$([\\d,]+\\.\\d{2})"
+    - pattern: "(?im)^\\s*Credit\\s+limit\\s+\\$([\\d,]+)\\s*$"
+  available_credit:
+    - pattern: "(?im)^\\s*Available\\s+credit\\s+\\$([\\d,]+\\.\\d{2})"
+    - pattern: "(?im)^\\s*Available\\s+credit\\s+\\$([\\d,]+)\\s*$"
+  cash_limit:
+    - pattern: "(?im)^\\s*Cash\\s+limit\\s+\\$([\\d,]+\\.\\d{2})"
+    - pattern: "(?im)^\\s*Cash\\s+limit\\s+\\$([\\d,]+)\\s*$"
+  available_cash:
+    - pattern: "(?im)^\\s*Available\\s+cash\\s+\\$([\\d,]+\\.\\d{2})"
+    - pattern: "(?im)^\\s*Available\\s+cash\\s+\\$([\\d,]+)\\s*$"
+
+  minimum_payment_due:
+    - pattern: "(?im)^\\s*Minimum\\s+payment\\s+due\\s+\\$([\\d,]+\\.\\d{2})"
+
+  payment_due_date:
+    - pattern: "(?im)^\\s*Payment\\s+due\\s+date\\s+(\\d{1,2}/\\d{1,2}/\\d{2,4})"
+
+  # APR table prints the rate inline:
+  #   "Purchases & Balance Transfers N/A 19.24% (v) $15,112.11 $246.98"
+  #   "Cash advances N/A 31.24% (v) $0.00 $0.00"
+  purchase_apr:
+    - pattern: "(?im)^\\s*Purchases\\s+&\\s+Balance\\s+Transfers\\s+\\S+\\s+(\\d{1,2}\\.\\d{1,3})\\s*%"
+    - pattern: "(?im)^\\s*Purchases?\\s+(\\d{1,2}\\.\\d{1,3})\\s*%"
+  cash_advance_apr:
+    - pattern: "(?im)^\\s*Cash\\s+advances?\\s+\\S+\\s+(\\d{1,2}\\.\\d{1,3})\\s*%"
+    - pattern: "(?im)^\\s*Cash\\s+advances?\\s+(\\d{1,2}\\.\\d{1,3})\\s*%"
+  balance_transfer_apr:
+    - pattern: "(?im)^\\s*Balance\\s+Transfers?\\s+(\\d{1,2}\\.\\d{1,3})\\s*%"
+
+  # "increased up to the Penalty APR of 34.990%."
+  penalty_apr:
+    - pattern: "(?i)Penalty\\s+APR(?:\\s+of)?\\s+(\\d{1,2}\\.\\d{1,3})\\s*%"
+
+  # "Autopay of $246.98 set for 07/02/25" — presence of this sentence
+  # implies AutoPay is enrolled, and the dollar amount is the upcoming
+  # debit. The "set for MM/DD/YY" phrase is unique enough to anchor on
+  # without false-positives.
+  autopay_enabled:
+    - label: "Autopay of $"
+    - label: "set for"
+  next_autopay_amount:
+    - pattern: "(?i)Autopay\\s+of\\s+\\$([\\d,]+\\.\\d{2})\\s+set\\s+for"
+
+  # YTD totals appear in the "Year to date fees and interest" sub-block.
+  ytd_fees:
+    - pattern: "(?i)Total\\s+fees\\s+charged\\s+\\$([\\d,]+\\.\\d{2})"
+  ytd_interest:
+    - pattern: "(?i)Total\\s+interest\\s+charged\\s+\\$([\\d,]+\\.\\d{2})"
+
+  # Cashback program — Synchrony PayPal Mastercard prints a "Cashback
+  # Snapshot" block with the running rewards balance.
+  cashback_balance:
+    - pattern: "(?i)Current\\s+Cashback\\s+Balance\\s+\\$([\\d,]+\\.\\d{2})"
+    - pattern: "(?i)Current\\s+Cash\\s+Rewards\\s+Balance\\s+\\$([\\d,]+\\.\\d{2})"
+
+  foreign_tx_fee_percent:
+    - pattern: "(?i)[Ff]oreign\\s+[Tt]ransaction\\s+[Ff]ee[^%]*?(\\d{1,2}(?:\\.\\d{1,3})?)\\s*%"
+
+  billing_days:
+    - pattern: "(?i)(\\d{1,3})\\s+day\\s+billing\\s+cycle"
+    - pattern: "(?i)(?<!\\d)(\\d{1,3})\\s+Days?\\s+in\\s+Billing\\s+(?:Period|Cycle)"
+
+preprocessing:
+  stitch:
+    # Section anchors that PDFBox sometimes pushes into the same logical
+    # line as the previous content. Listing them here keeps the stitcher
+    # from gluing them awkwardly AND ensures TransactionExtractor's
+    # currentSection tracker still sees them as anchor strings.
+    section_headers:
+      - "Transaction details"
+      - "Payments"
+      - "Purchases and Other Debits"
+      - "Other Credits"
+      - "Total Fees Charged This Period"
+      - "Total Interest Charged This Period"
+      - "Year to date fees and interest"
+      - "Interest charge calculation"
+      - "Cashback Snapshot"
+      - "Cashback Details"
+
+samples:
+  # Synthetic PayPal Mastercard fixture covering the four corpus shapes:
+  # AUTOPAY payment (negative), refund in Other Credits (negative), two
+  # purchases (positive), Account-summary totals, APR table, AutoPay
+  # sentence inference, cashback balance, and YTD totals. Mirrors the
+  # 10-PDF PayPal Mastercard sub-corpus the template was validated against.
+  - name: paypal-cashback-mastercard-june-2025
+    input: |
+      SUMIT AGARWAL
+      Account number:  7705
+      Visit us at www.paypal.com or Call 1-855-938-3684
+      New balance $246.98
+      Minimum payment due $246.98
+      Payment due date 07/02/2025
+      Late payment warning: increased up to the Penalty APR of 34.990%.
+      Autopay of $246.98 set for 07/02/25
+      Account summary
+      Previous balance as of 05/10/2025 $20,257.29
+      Payments - 19,992.11
+      Other credits - 265.18
+      Interest charges + 246.98
+      New balance as of 06/09/2025 $246.98
+      31 day billing cycle from 05/10/2025 to 06/09/2025
+      Credit limit $20,000
+      Available credit $19,753
+      Cash limit $4,000
+      Available cash $4,000
+      Cashback Snapshot
+      Cashback Earned this Period        $0.00
+      Current Cashback Balance        $0.03
+      Transaction details
+      Date Reference # Description           Amount
+      Payments -$19,992.11
+      06/02 F1192004T00CHGDDA AUTOMATIC PAYMENT - THANK YOU -$19,992.11
+      Other Credits -$265.18
+      05/25 F1192004H000FC145 *INTEREST CHARGE* PURCHASES REFUND -$265.18
+      Total Fees Charged This Period $0.00
+      Total Interest Charged This Period $246.98
+      2025 Year to date fees and interest
+             Total fees charged $0.00
+             Total interest charged $246.98
+             Total interest paid $0.00
+      Interest charge calculation
+      Purchases & Balance Transfers N/A 19.24% (v) $15,112.11 $246.98
+      Cash advances N/A 31.24% (v) $0.00 $0.00
+    expected:
+      new_balance: 246.98
+      previous_balance: 20257.29
+      payments_total: 19992.11
+      # other_credits_total: 265.18 — extracted to a separate field which
+      # V2FieldBinder rolls into paymentsAndCreditsTotal at the ImportResult
+      # boundary (not asserted here because V2YamlSelfTest reads
+      # MetadataResult fields directly, before the rollup applies).
+      interest_total: 246.98
+      credit_limit: 20000
+      available_credit: 19753
+      minimum_payment_due: 246.98
+      payment_due_date: 07/02/2025
+      purchase_apr: 19.24
+      cash_advance_apr: 31.24
+      penalty_apr: 34.990
+      billing_days: 31
+      autopay_enabled: true
+      next_autopay_amount: 246.98
+      cashback_balance: 0.03
+      ytd_fees: 0.00
+      ytd_interest: 246.98
+
+  # A purchases-only month — no Payments row in Account summary, only
+  # the Purchases & other debits reducer. Validates that payments_total
+  # is correctly null (and the v2 evaluator does not synthesize a 0).
+  - name: paypal-cashback-mastercard-purchases-only
+    input: |
+      Account summary
+      Previous balance as of 07/11/2025 $0.00
+      Purchases & other debits + 14.20
+      New balance as of 08/10/2025 $14.20
+      31 day billing cycle from 07/11/2025 to 08/10/2025
+      Transaction details
+      Purchases and Other Debits $14.20
+      07/25 85218536G011ZT43R PAYPAL PURCHASE SAN JOSE  CA $0.99 APPLE.COM/BILL
+      08/02 85218536P011ZYRZM PAYPAL PURCHASE SAN JOSE  CA $13.21 APPLE.COM/BILL
+    expected:
+      new_balance: 14.20
+      previous_balance: 0.00
+      purchases_total: 14.20
+      payments_total: null
+      billing_days: 31
+
+layouts:
+  # PayPal Mastercard single-date row with reference number:
+  #   "06/02 F1192004T00CHGDDA AUTOMATIC PAYMENT - THANK YOU -$19,992.11"
+  #   "07/25 85218536G011ZT43R PAYPAL PURCHASE SAN JOSE  CA $0.99 APPLE.COM/BILL"
+  # The trailing merchant continuation (APPLE.COM/BILL) is part of the
+  # description — captured greedily up to the final amount token.
+  - name: mastercard-credit-single-date
+    accountType: credit
+    lineRegex: '^(?<date>\d{1,2}/\d{1,2}(?:/\d{2,4})?)\s+\S+\s+(?<description>.+?)\s+-?\$(?<amount>\d{1,3}(?:,\d{3})*\.\d{2})(?:\s+\S.*)?\s*$'
+    dateFormat: "M/d"
+    signConvention: credit-positive
+    minAmount: 0.01
+
+# v2 transaction-shape declarations — sign-discriminated and validated
+# against the 10-PDF PayPal Mastercard corpus. This is the source of truth
+# when v2 cutover is enabled (see PDFImportService V2_TX_PRODUCTION_ISSUERS).
+#
+# PayPal Mastercard rows arrive post-stitching in the canonical form:
+#   "MM/DD <ref_number> <description> [-]$<amount> [<continuation>]"
+# The discriminator is the AMOUNT SIGN:
+#  - Payments / Other Credits / refunds → LEADING MINUS on the amount
+#    ("-$19,992.11", "-$265.18", "-$1,572.65").
+#  - Purchases / fees / interest charges → POSITIVE amount, NO leading
+#    minus ("$1,347.29", "$246.98").
+#
+# Section anchors are intentionally NOT used. The PayPal/Synchrony PDFBox
+# extraction routinely stitches a section header into the LAST transaction
+# of the preceding section, e.g.
+#   "10/02 ... AUTOMATIC PAYMENT - THANK YOU -$0.99 Purchases and Other Debits $1,347.29"
+# If the purchases shape were anchored on "Purchases and Other Debits"
+# the section tracker would (correctly) flip to that anchor on the
+# stitched line — and then the purchases shape would capture the SECOND
+# amount on the line ($1,347.29) instead of the payment row's $0.99.
+# Sign discrimination avoids this entirely: the lazy ".+?" description
+# always captures the FIRST `-$X.XX` for the credit shape (the actual
+# payment amount) and the FIRST `\$X.XX` for the purchase shape (which
+# only matches on lines that contain NO leading-minus amount earlier).
+#
+# A negative-lookahead "(?!.*\\s-\\$\\d)" on the purchase shape forbids
+# the line from containing a `-$X` amount anywhere — without it, the
+# purchase shape would still match the stitched payment line because the
+# `\s+\$1,347.29` substring at the end of the line satisfies its regex.
+#
+# Order matters: payment / other-credit shapes are tried FIRST so they
+# win the stitched-row case; the purchase shape only fires when no
+# leading-minus amount is present.
+#
+# The 06/09 statement carries a "06/09 INTEREST CHARGE ON PURCHASES &
+# $246.98 BALANCE TRANSFERS ..." mega-stitched line. The purchase shape
+# captures it as a DEBIT $246.98 — matching the statementInterest bucket
+# on the audit side. The matching 06/09 cash-advances row prints
+# $0.00 and is filtered by min_amount.
+transactions:
+  # CREDIT shape — Payments / AUTOPAY / Other Credits / refunds. Any row
+  # whose amount carries a LEADING MINUS belongs here regardless of which
+  # printed section ("Payments" vs "Other Credits") it falls under, since
+  # both reduce the cardholder balance and the audit-side
+  # paymentsAndCreditsTotal sums them via V2FieldBinder rollup of
+  # other_credits_total.
+  - name: mastercard-credits
+    line_regex: '^(?<date>\d{1,2}/\d{1,2})\s+\S+\s+(?<description>.+?)\s+-\$(?<amount>\d{1,3}(?:,\d{3})*\.\d{2})(?:\s+\S.*)?\s*$'
+    date_format: "M/d"
+    account_type: credit
+    sign_convention: credit-card-credit
+    min_amount: 0.01
+
+  # DEBIT shape — Purchases / fees / interest charges. Rejects lines with
+  # any leading-minus amount via the (?!.*\s-\$\d) lookahead — that guard
+  # is what keeps the purchase shape from over-matching the stitched
+  # AUTOPAY+Purchases header line. The reference number (\S+) after the
+  # date is optional on the interest-charge line ("06/09 INTEREST CHARGE
+  # ON PURCHASES & $246.98 BALANCE TRANSFERS ..."), which is why the \S+
+  # token is grouped optionally with description tolerating no-leading
+  # token. We support BOTH forms: with-refnum (regular tx) and
+  # without-refnum (interest charge).
+  - name: mastercard-purchases
+    line_regex: '^(?!.*\s-\$\d)(?<date>\d{1,2}/\d{1,2})\s+(?<description>\S+(?:\s+\S+)*?)\s+\$(?<amount>\d{1,3}(?:,\d{3})*\.\d{2})(?:\s+\S.*)?\s*$'
+    date_format: "M/d"
+    account_type: credit
+    sign_convention: credit-card-purchase
+    min_amount: 0.01

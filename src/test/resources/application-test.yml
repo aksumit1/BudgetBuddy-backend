@@ -122,6 +122,24 @@ app:
       min-version: TLSv1.2
       enabled-protocols: TLSv1.2,TLSv1.3
 
+  # External merchant-category lookups are ENABLED by default in
+  # application.yml (CATEGORY_*_ENABLED:true) — but for tests they hit
+  # real public APIs (Overpass, Nominatim, Wikidata), each with a per-
+  # source budget of 800ms and a per-request total of 1500ms. That
+  # turned a 1000-row CSV import test into a multi-hour run as every
+  # row blocked on three external HTTPs. Disabling them here keeps the
+  # in-process MerchantEnrichmentStore + InMemoryMerchantService doing
+  # all the work, which is what unit/integration tests should exercise
+  # anyway. Re-enable per-test with @TestPropertySource if a specific
+  # test needs to exercise the external path.
+  category:
+    overpass:
+      enabled: false
+    nominatim:
+      enabled: false
+    wikidata:
+      enabled: false
+
 # Resilience4j Circuit Breaker Configuration for Tests (Very Lenient for Heavy Testing)
 resilience4j:
   circuitbreaker:

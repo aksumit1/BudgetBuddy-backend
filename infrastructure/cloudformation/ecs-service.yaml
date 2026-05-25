@@ -171,6 +171,25 @@ Resources:
               Value: ${BERT_DOWNLOAD_RETRY_DELAY:5}
             - Name: BERT_DOWNLOAD_TIMEOUT
               Value: ${BERT_DOWNLOAD_TIMEOUT:300}
+            # PDF raw-archive: stores every uploaded PDF (encrypted at
+            # rest, 90d lifecycle delete) for parser-issue forensics.
+            # See infrastructure/cloudformation/pdf-archive.yaml for the
+            # bucket spec. Off-by-default in code; this turns it on for
+            # this environment.
+            - Name: PDF_ARCHIVE_ENABLED
+              Value: 'true'
+            - Name: PDF_ARCHIVE_S3_BUCKET
+              Value: !Sub 'budgetbuddy-pdf-archive-${Environment}'
+            - Name: PDF_ARCHIVE_S3_PREFIX
+              Value: 'pdf-archive/'
+            # Local filesystem fallback — the ECS task writes to /tmp
+            # for the local copy. The S3 mirror is the durable store;
+            # /tmp is just a dev convenience.
+            - Name: PDF_ARCHIVE_ROOT
+              Value: '/tmp/pdf-archive'
+            # 25 MB cap — bigger than any real bank statement we've seen.
+            - Name: PDF_ARCHIVE_MAX_BYTES
+              Value: '26214400'
           Secrets:
             - Name: JWT_SECRET
               ValueFrom: !Sub 'arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:budgetbuddy/${Environment}/jwt-secret'

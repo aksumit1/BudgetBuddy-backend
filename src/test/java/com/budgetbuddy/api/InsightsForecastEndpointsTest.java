@@ -93,6 +93,11 @@ final class InsightsForecastEndpointsTest {
                 .setCustomArgumentResolvers(
                         new org.springframework.security.web.method.annotation
                                 .AuthenticationPrincipalArgumentResolver())
+                // Wire the prod envelope-wrapping advice so jsonPath
+                // assertions match the live wire shape (`$.data.…`)
+                // rather than the raw controller return value.
+                .setControllerAdvice(
+                        new com.budgetbuddy.api.response.ApiResponseWrappingAdvice())
                 .build();
     }
 
@@ -123,9 +128,9 @@ final class InsightsForecastEndpointsTest {
         mockMvc.perform(get("/api/insights/cash-flow-forecast"))
                 .andExpect(status().isOk())
                 .andExpect(content().contentTypeCompatibleWith("application/json"))
-                .andExpect(jsonPath("$.status").value("CRITICAL"))
-                .andExpect(jsonPath("$.runwayDays").value(21))
-                .andExpect(jsonPath("$.message",
+                .andExpect(jsonPath("$.data.status").value("CRITICAL"))
+                .andExpect(jsonPath("$.data.runwayDays").value(21))
+                .andExpect(jsonPath("$.data.message",
                         containsString("21 days")));
     }
 
@@ -135,7 +140,7 @@ final class InsightsForecastEndpointsTest {
         authenticateAs("test@example.com");
         mockMvc.perform(get("/api/insights/cash-flow-forecast"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.status").value("UNAVAILABLE"));
+                .andExpect(jsonPath("$.data.status").value("UNAVAILABLE"));
     }
 
     @Test
@@ -151,9 +156,9 @@ final class InsightsForecastEndpointsTest {
         authenticateAs("test@example.com");
         mockMvc.perform(get("/api/insights/subscription-creep"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.status").value("SPIKING"))
-                .andExpect(jsonPath("$.activeSubscriptionCount").value(5))
-                .andExpect(jsonPath("$.currentMonthlyTotal").value(85.0));
+                .andExpect(jsonPath("$.data.status").value("SPIKING"))
+                .andExpect(jsonPath("$.data.activeSubscriptionCount").value(5))
+                .andExpect(jsonPath("$.data.currentMonthlyTotal").value(85.0));
     }
 
     @Test
@@ -170,9 +175,9 @@ final class InsightsForecastEndpointsTest {
         authenticateAs("test@example.com");
         mockMvc.perform(get("/api/insights/budget-exhaustion"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].category").value("dining"))
-                .andExpect(jsonPath("$[0].severity").value("HIGH"))
-                .andExpect(jsonPath("$[0].daysUntilExhausted").value(2));
+                .andExpect(jsonPath("$.data[0].category").value("dining"))
+                .andExpect(jsonPath("$.data[0].severity").value("HIGH"))
+                .andExpect(jsonPath("$.data[0].daysUntilExhausted").value(2));
     }
 
     @Test
@@ -181,7 +186,8 @@ final class InsightsForecastEndpointsTest {
         authenticateAs("test@example.com");
         mockMvc.perform(get("/api/insights/budget-exhaustion"))
                 .andExpect(status().isOk())
-                .andExpect(content().json("[]"));
+                .andExpect(jsonPath("$.data").isArray())
+                .andExpect(jsonPath("$.data.length()").value(0));
     }
 
     @Test

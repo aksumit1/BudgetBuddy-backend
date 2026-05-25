@@ -48,4 +48,44 @@ public final class PrivacyRedaction {
         sb.append(trimmed, total - 4, total);
         return sb.toString();
     }
+
+    /**
+     * Mask an email for logging. Keeps the first character of the local
+     * part + the domain, replaces the rest of the local part with
+     * asterisks. Examples:
+     * <ul>
+     *   <li>{@code "alice@example.com"} → {@code "a****@example.com"}</li>
+     *   <li>{@code "a@x.com"} → {@code "a@x.com"} (single-char local part
+     *       can't be further redacted without becoming useless)</li>
+     *   <li>{@code "bad-no-at-sign"} → {@code "<masked>"} (defensive)</li>
+     *   <li>null / blank → returned unchanged</li>
+     * </ul>
+     *
+     * <p>The goal is operational debuggability (you can spot patterns
+     * like "every alice@... fails") without exposing the full address in
+     * CloudWatch / Splunk / wherever logs land. Compliance teams treat
+     * full emails as PII; this is the cheap fix.
+     */
+    public static String maskEmail(final String raw) {
+        if (raw == null || raw.isBlank()) {
+            return raw;
+        }
+        final int at = raw.indexOf('@');
+        if (at <= 0 || at == raw.length() - 1) {
+            // Either no '@', or '@' at start/end — can't structurally mask.
+            return "<masked>";
+        }
+        final String local = raw.substring(0, at);
+        final String domain = raw.substring(at);
+        if (local.length() <= 1) {
+            return raw;
+        }
+        final StringBuilder sb = new StringBuilder(raw.length());
+        sb.append(local.charAt(0));
+        for (int i = 1; i < local.length(); i++) {
+            sb.append('*');
+        }
+        sb.append(domain);
+        return sb.toString();
+    }
 }

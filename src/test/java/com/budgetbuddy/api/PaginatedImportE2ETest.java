@@ -167,9 +167,9 @@ class PaginatedImportE2ETest {
                                 .param(SIZE, "100")
                                 .with(user(userDetails)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.total").value(0))
-                .andExpect(jsonPath("$.totalPages").value(0))
-                .andExpect(jsonPath("$.importResponse.created").value(0));
+                .andExpect(jsonPath("$.data.total").value(0))
+                .andExpect(jsonPath("$.data.totalPages").value(0))
+                .andExpect(jsonPath("$.data.importResponse.created").value(0));
     }
 
     @Test
@@ -191,11 +191,11 @@ class PaginatedImportE2ETest {
                                 .param(SIZE, "100")
                                 .with(user(userDetails)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.total").value(1))
-                .andExpect(jsonPath("$.totalPages").value(1))
-                .andExpect(jsonPath("$.page").value(0))
-                .andExpect(jsonPath("$.hasNext").value(false))
-                .andExpect(jsonPath("$.importResponse.created").value(1));
+                .andExpect(jsonPath("$.data.total").value(1))
+                .andExpect(jsonPath("$.data.totalPages").value(1))
+                .andExpect(jsonPath("$.data.page").value(0))
+                .andExpect(jsonPath("$.data.hasNext").value(false))
+                .andExpect(jsonPath("$.data.importResponse.created").value(1));
 
         // Then: Verify transaction was created
         final List<TransactionTable> transactions =
@@ -222,11 +222,11 @@ class PaginatedImportE2ETest {
                                 .param(SIZE, "100")
                                 .with(user(userDetails)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.total").value(100))
-                .andExpect(jsonPath("$.totalPages").value(1))
-                .andExpect(jsonPath("$.page").value(0))
-                .andExpect(jsonPath("$.hasNext").value(false))
-                .andExpect(jsonPath("$.importResponse.created").value(100));
+                .andExpect(jsonPath("$.data.total").value(100))
+                .andExpect(jsonPath("$.data.totalPages").value(1))
+                .andExpect(jsonPath("$.data.page").value(0))
+                .andExpect(jsonPath("$.data.hasNext").value(false))
+                .andExpect(jsonPath("$.data.importResponse.created").value(100));
 
         // Then: Verify all transactions were created
         final List<TransactionTable> transactions =
@@ -253,11 +253,11 @@ class PaginatedImportE2ETest {
                                 .param(SIZE, "100")
                                 .with(user(userDetails)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.total").value(101))
-                .andExpect(jsonPath("$.totalPages").value(2))
-                .andExpect(jsonPath("$.page").value(0))
-                .andExpect(jsonPath("$.hasNext").value(true))
-                .andExpect(jsonPath("$.importResponse.created").value(100));
+                .andExpect(jsonPath("$.data.total").value(101))
+                .andExpect(jsonPath("$.data.totalPages").value(2))
+                .andExpect(jsonPath("$.data.page").value(0))
+                .andExpect(jsonPath("$.data.hasNext").value(true))
+                .andExpect(jsonPath("$.data.importResponse.created").value(100));
 
         // When: Importing chunk 1 (remaining 1)
         mockMvc.perform(
@@ -267,11 +267,11 @@ class PaginatedImportE2ETest {
                                 .param(SIZE, "100")
                                 .with(user(userDetails)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.total").value(101))
-                .andExpect(jsonPath("$.totalPages").value(2))
-                .andExpect(jsonPath("$.page").value(1))
-                .andExpect(jsonPath("$.hasNext").value(false))
-                .andExpect(jsonPath("$.importResponse.created").value(1));
+                .andExpect(jsonPath("$.data.total").value(101))
+                .andExpect(jsonPath("$.data.totalPages").value(2))
+                .andExpect(jsonPath("$.data.page").value(1))
+                .andExpect(jsonPath("$.data.hasNext").value(false))
+                .andExpect(jsonPath("$.data.importResponse.created").value(1));
 
         // Then: Verify all 101 transactions were created
         // Note: findByUserId has maxLimit of 100, so we need to paginate
@@ -313,10 +313,10 @@ class PaginatedImportE2ETest {
                                     .param(SIZE, String.valueOf(size))
                                     .with(user(userDetails)))
                     .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.total").value(476))
-                    .andExpect(jsonPath("$.totalPages").value(totalPages))
-                    .andExpect(jsonPath("$.page").value(i))
-                    .andExpect(jsonPath("$.hasNext").value(i < totalPages - 1));
+                    .andExpect(jsonPath("$.data.total").value(476))
+                    .andExpect(jsonPath("$.data.totalPages").value(totalPages))
+                    .andExpect(jsonPath("$.data.page").value(i))
+                    .andExpect(jsonPath("$.data.hasNext").value(i < totalPages - 1));
         }
 
         // Then: Verify all transactions were created
@@ -422,10 +422,10 @@ class PaginatedImportE2ETest {
                                     .param(SIZE, String.valueOf(size))
                                     .with(user(userDetails)))
                     .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.total").value(250))
-                    .andExpect(jsonPath("$.totalPages").value(totalPages))
-                    .andExpect(jsonPath("$.page").value(page))
-                    .andExpect(jsonPath("$.hasNext").value(page < totalPages - 1));
+                    .andExpect(jsonPath("$.data.total").value(250))
+                    .andExpect(jsonPath("$.data.totalPages").value(totalPages))
+                    .andExpect(jsonPath("$.data.page").value(page))
+                    .andExpect(jsonPath("$.data.hasNext").value(page < totalPages - 1));
         }
 
         // Then: Verify all transactions were created
@@ -523,8 +523,8 @@ class PaginatedImportE2ETest {
                                 .param(SIZE, "100")
                                 .with(user(userDetails)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.page").value(2))
-                .andExpect(jsonPath("$.hasNext").value(false));
+                .andExpect(jsonPath("$.data.page").value(2))
+                .andExpect(jsonPath("$.data.hasNext").value(false));
 
         mockMvc.perform(
                         multipart("/api/transactions/import-csv/chunk")
@@ -533,8 +533,8 @@ class PaginatedImportE2ETest {
                                 .param(SIZE, "100")
                                 .with(user(userDetails)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.page").value(1))
-                .andExpect(jsonPath("$.hasNext").value(true));
+                .andExpect(jsonPath("$.data.page").value(1))
+                .andExpect(jsonPath("$.data.hasNext").value(true));
 
         mockMvc.perform(
                         multipart("/api/transactions/import-csv/chunk")
@@ -543,8 +543,8 @@ class PaginatedImportE2ETest {
                                 .param(SIZE, "100")
                                 .with(user(userDetails)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.page").value(0))
-                .andExpect(jsonPath("$.hasNext").value(true));
+                .andExpect(jsonPath("$.data.page").value(0))
+                .andExpect(jsonPath("$.data.hasNext").value(true));
 
         // Then: Verify all transactions were created
         // Note: findByUserId has maxLimit of 100, so we need to paginate
@@ -582,12 +582,12 @@ class PaginatedImportE2ETest {
                                 .param(SIZE, "500")
                                 .with(user(userDetails)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.total").value(1000))
-                .andExpect(jsonPath("$.totalPages").value(2))
-                .andExpect(jsonPath("$.page").value(0))
-                .andExpect(jsonPath("$.size").value(500))
-                .andExpect(jsonPath("$.hasNext").value(true))
-                .andExpect(jsonPath("$.importResponse.created").value(500));
+                .andExpect(jsonPath("$.data.total").value(1000))
+                .andExpect(jsonPath("$.data.totalPages").value(2))
+                .andExpect(jsonPath("$.data.page").value(0))
+                .andExpect(jsonPath("$.data.size").value(500))
+                .andExpect(jsonPath("$.data.hasNext").value(true))
+                .andExpect(jsonPath("$.data.importResponse.created").value(500));
 
         // Then: Import second page
         mockMvc.perform(
@@ -597,9 +597,9 @@ class PaginatedImportE2ETest {
                                 .param(SIZE, "500")
                                 .with(user(userDetails)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.page").value(1))
-                .andExpect(jsonPath("$.hasNext").value(false))
-                .andExpect(jsonPath("$.importResponse.created").value(500));
+                .andExpect(jsonPath("$.data.page").value(1))
+                .andExpect(jsonPath("$.data.hasNext").value(false))
+                .andExpect(jsonPath("$.data.importResponse.created").value(500));
 
         // Then: Verify all transactions were created
         // Note: findByUserId has maxLimit of 100, so we need to paginate
@@ -638,17 +638,17 @@ class PaginatedImportE2ETest {
                                 .with(user(userDetails)))
                 .andExpect(status().isOk())
                 // Verify ChunkImportResponse structure
-                .andExpect(jsonPath("$.importResponse").exists())
-                .andExpect(jsonPath("$.importResponse.total").exists())
-                .andExpect(jsonPath("$.importResponse.created").exists())
-                .andExpect(jsonPath("$.importResponse.failed").exists())
-                .andExpect(jsonPath("$.importResponse.duplicates").exists())
+                .andExpect(jsonPath("$.data.importResponse").exists())
+                .andExpect(jsonPath("$.data.importResponse.total").exists())
+                .andExpect(jsonPath("$.data.importResponse.created").exists())
+                .andExpect(jsonPath("$.data.importResponse.failed").exists())
+                .andExpect(jsonPath("$.data.importResponse.duplicates").exists())
                 // Verify pagination fields
-                .andExpect(jsonPath("$.page").exists())
-                .andExpect(jsonPath("$.size").exists())
-                .andExpect(jsonPath("$.total").exists())
-                .andExpect(jsonPath("$.totalPages").exists())
-                .andExpect(jsonPath("$.hasNext").exists());
+                .andExpect(jsonPath("$.data.page").exists())
+                .andExpect(jsonPath("$.data.size").exists())
+                .andExpect(jsonPath("$.data.total").exists())
+                .andExpect(jsonPath("$.data.totalPages").exists())
+                .andExpect(jsonPath("$.data.hasNext").exists());
     }
 
     // ========== Preview Endpoint Tests ==========
@@ -673,14 +673,14 @@ class PaginatedImportE2ETest {
                                 .with(user(userDetails)))
                 .andExpect(status().isOk())
                 // Verify preview response structure
-                .andExpect(jsonPath("$.totalParsed").exists())
-                .andExpect(jsonPath("$.transactions").exists())
-                .andExpect(jsonPath("$.transactions").isArray())
-                .andExpect(jsonPath("$.page").exists())
-                .andExpect(jsonPath("$.size").exists())
-                .andExpect(jsonPath("$.totalPages").exists())
-                .andExpect(jsonPath("$.totalElements").exists())
-                .andExpect(jsonPath("$.detectedAccount").exists());
+                .andExpect(jsonPath("$.data.totalParsed").exists())
+                .andExpect(jsonPath("$.data.transactions").exists())
+                .andExpect(jsonPath("$.data.transactions").isArray())
+                .andExpect(jsonPath("$.data.page").exists())
+                .andExpect(jsonPath("$.data.size").exists())
+                .andExpect(jsonPath("$.data.totalPages").exists())
+                .andExpect(jsonPath("$.data.totalElements").exists())
+                .andExpect(jsonPath("$.data.detectedAccount").exists());
     }
 
     @Test
@@ -716,9 +716,9 @@ class PaginatedImportE2ETest {
                                 .param(SIZE, "100")
                                 .with(user(userDetails)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.totalParsed").value(5))
-                .andExpect(jsonPath("$.transactions").isArray())
-                .andExpect(jsonPath("$.transactions.length()").value(5));
+                .andExpect(jsonPath("$.data.totalParsed").value(5))
+                .andExpect(jsonPath("$.data.transactions").isArray())
+                .andExpect(jsonPath("$.data.transactions.length()").value(5));
     }
 
     // ========== Account Scenario Tests ==========
@@ -756,7 +756,7 @@ class PaginatedImportE2ETest {
                                 .param("accountId", existingAccount.getAccountId())
                                 .with(user(userDetails)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.importResponse.created").value(50));
+                .andExpect(jsonPath("$.data.importResponse.created").value(50));
 
         // Then: Verify all transactions are associated with the selected account
         final List<TransactionTable> transactions =
@@ -790,7 +790,7 @@ class PaginatedImportE2ETest {
                                 .param(SIZE, "100")
                                 .with(user(userDetails)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.importResponse.created").value(100));
+                .andExpect(jsonPath("$.data.importResponse.created").value(100));
 
         // Get the account created on page 0 (if any)
         // Note: Account creation depends on detected account info from filename/metadata
@@ -845,7 +845,7 @@ class PaginatedImportE2ETest {
                                 .param(SIZE, "100")
                                 .with(user(userDetails)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.importResponse.created").value(50));
+                .andExpect(jsonPath("$.data.importResponse.created").value(50));
 
         // Then: Verify account was reused (if account was created)
         if (accountIdFromPage0 != null) {
@@ -929,7 +929,7 @@ class PaginatedImportE2ETest {
                                 .param(SIZE, "100")
                                 .with(user(userDetails)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.importResponse.created").value(25));
+                .andExpect(jsonPath("$.data.importResponse.created").value(25));
 
         // Then: Verify an account was created
         final List<AccountTable> accounts = accountRepository.findByUserId(testUser.getUserId());
@@ -963,11 +963,11 @@ class PaginatedImportE2ETest {
                                 .param(SIZE, "100")
                                 .with(user(userDetails)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.detectedAccount").exists())
+                .andExpect(jsonPath("$.data.detectedAccount").exists())
                 // Detected account may or may not be present depending on detection logic
                 // But the field should exist in the response
-                .andExpect(jsonPath("$.totalParsed").value(10))
-                .andExpect(jsonPath("$.transactions").isArray());
+                .andExpect(jsonPath("$.data.totalParsed").value(10))
+                .andExpect(jsonPath("$.data.transactions").isArray());
     }
 
     @Test
@@ -1004,7 +1004,7 @@ class PaginatedImportE2ETest {
                                 .param(SIZE, "100")
                                 .with(user(userDetails)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.importResponse.created").value(30));
+                .andExpect(jsonPath("$.data.importResponse.created").value(30));
 
         // Then: Verify account was reused (still only 1 account, not 2)
         final List<AccountTable> accounts = accountRepository.findByUserId(testUser.getUserId());

@@ -135,15 +135,15 @@ class SyncControllerIntegrationTest {
                                 .header("Authorization", "Bearer " + accessToken)
                                 .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.accounts").isArray())
-                .andExpect(jsonPath("$.transactions").isArray())
-                .andExpect(jsonPath("$.budgets").isArray())
-                .andExpect(jsonPath("$.goals").isArray())
-                .andExpect(jsonPath("$.actions").isArray())
-                .andExpect(jsonPath("$.syncTimestamp").exists())
-                .andExpect(jsonPath("$.accounts[0].accountId").value(testAccount.getAccountId()))
+                .andExpect(jsonPath("$.data.accounts").isArray())
+                .andExpect(jsonPath("$.data.transactions").isArray())
+                .andExpect(jsonPath("$.data.budgets").isArray())
+                .andExpect(jsonPath("$.data.goals").isArray())
+                .andExpect(jsonPath("$.data.actions").isArray())
+                .andExpect(jsonPath("$.data.syncTimestamp").exists())
+                .andExpect(jsonPath("$.data.accounts[0].accountId").value(testAccount.getAccountId()))
                 .andExpect(
-                        jsonPath("$.transactions[0].transactionId")
+                        jsonPath("$.data.transactions[0].transactionId")
                                 .value(testTransaction.getTransactionId()));
     }
 
@@ -166,13 +166,13 @@ class SyncControllerIntegrationTest {
                                 .param("since", String.valueOf(sinceTimestamp))
                                 .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.accounts").isArray())
-                .andExpect(jsonPath("$.transactions").isArray())
-                .andExpect(jsonPath("$.budgets").isArray())
-                .andExpect(jsonPath("$.goals").isArray())
-                .andExpect(jsonPath("$.actions").isArray())
-                .andExpect(jsonPath("$.syncTimestamp").exists())
-                .andExpect(jsonPath("$.hasMore").value(false));
+                .andExpect(jsonPath("$.data.accounts").isArray())
+                .andExpect(jsonPath("$.data.transactions").isArray())
+                .andExpect(jsonPath("$.data.budgets").isArray())
+                .andExpect(jsonPath("$.data.goals").isArray())
+                .andExpect(jsonPath("$.data.actions").isArray())
+                .andExpect(jsonPath("$.data.syncTimestamp").exists())
+                .andExpect(jsonPath("$.data.hasMore").value(false));
     }
 
     @Test
@@ -186,11 +186,11 @@ class SyncControllerIntegrationTest {
                                 .param("since", String.valueOf(futureTimestamp))
                                 .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.accounts").isEmpty())
-                .andExpect(jsonPath("$.transactions").isEmpty())
-                .andExpect(jsonPath("$.budgets").isEmpty())
-                .andExpect(jsonPath("$.goals").isEmpty())
-                .andExpect(jsonPath("$.actions").isEmpty());
+                .andExpect(jsonPath("$.data.accounts").isEmpty())
+                .andExpect(jsonPath("$.data.transactions").isEmpty())
+                .andExpect(jsonPath("$.data.budgets").isEmpty())
+                .andExpect(jsonPath("$.data.goals").isEmpty())
+                .andExpect(jsonPath("$.data.actions").isEmpty());
     }
 
     @Test
@@ -201,7 +201,7 @@ class SyncControllerIntegrationTest {
                                 .header("Authorization", "Bearer " + accessToken)
                                 .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.accounts").isArray())
-                .andExpect(jsonPath("$.transactions").isArray());
+                .andExpect(jsonPath("$.data.accounts").isArray())
+                .andExpect(jsonPath("$.data.transactions").isArray());
     }
 }

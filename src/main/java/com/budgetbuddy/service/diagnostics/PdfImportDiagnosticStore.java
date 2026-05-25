@@ -76,10 +76,12 @@ public class PdfImportDiagnosticStore {
     public Path store(final PdfImportDiagnostic diagnostic) {
         if (!enabled || diagnostic == null) return null;
         try {
-            final String issuerSlug = slugify(
-                    diagnostic.getDetectedAccount() == null
-                            ? "unknown"
-                            : diagnostic.getDetectedAccount().institution);
+            // Path scheme co-managed with PdfRawArchive via
+            // PdfDiagnosticCorrelation so a JSON + its companion raw PDF
+            // share a derivable path for forensic re-parsing.
+            final String institution = diagnostic.getDetectedAccount() == null
+                    ? null : diagnostic.getDetectedAccount().institution;
+            final String issuerSlug = PdfDiagnosticCorrelation.institutionSlug(institution);
             final String yyyymm = LocalDate.now()
                     .format(DateTimeFormatter.ofPattern("yyyy-MM"));
             final String hash = diagnostic.getPdfHash() == null

@@ -52,6 +52,23 @@ public class UserTable {
      */
     private String anomalySensitivity;
 
+    /**
+     * MCP persistent money-moving consent. True ⇒ external AI agents
+     * the user has connected via the MCP server may invoke
+     * money-moving tools without re-prompting per session. The user
+     * grants this in iOS settings and the MCP layer reads it on every
+     * session creation. Defaults to false (consent required per
+     * session via {@code enable_money_moving_consent}).
+     */
+    private Boolean mcpMoneyMovingConsent;
+
+    /**
+     * Audit stamp — when {@link #mcpMoneyMovingConsent} was last set
+     * to true. Used by the iOS Settings screen to surface "granted on
+     * March 4" and by ops to investigate suspicious mutations.
+     */
+    private Instant mcpConsentGrantedAt;
+
     @DynamoDbPartitionKey
     @DynamoDbAttribute("userId")
     public String getUserId() {
@@ -252,5 +269,23 @@ public class UserTable {
 
     public void setAnomalySensitivity(final String anomalySensitivity) {
         this.anomalySensitivity = anomalySensitivity;
+    }
+
+    @DynamoDbAttribute("mcpMoneyMovingConsent")
+    public Boolean getMcpMoneyMovingConsent() {
+        return mcpMoneyMovingConsent;
+    }
+
+    public void setMcpMoneyMovingConsent(final Boolean v) {
+        this.mcpMoneyMovingConsent = v;
+    }
+
+    @DynamoDbAttribute("mcpConsentGrantedAt")
+    public Instant getMcpConsentGrantedAt() {
+        return mcpConsentGrantedAt;
+    }
+
+    public void setMcpConsentGrantedAt(final Instant v) {
+        this.mcpConsentGrantedAt = v;
     }
 }

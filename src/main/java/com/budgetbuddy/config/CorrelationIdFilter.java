@@ -11,13 +11,33 @@ import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
-/** Correlation ID Filter Adds correlation ID to all requests for distributed tracing */
+/**
+ * Correlation ID Filter — populates the SLF4J MDC with per-request
+ * identifiers so existing {@code LOGGER.info("...")} calls
+ * automatically gain structured context without any code change at the
+ * call site. Compatible JSON log appenders include the MDC fields in
+ * each event.
+ *
+ * <p>Fields populated:
+ * <ul>
+ *   <li>{@code correlationId} — propagated from {@code X-Correlation-ID}
+ *       header if present, else freshly generated.</li>
+ *   <li>{@code httpMethod} — request method (GET/POST/...).</li>
+ *   <li>{@code path} — request URI (no query string).</li>
+ * </ul>
+ *
+ * <p>User identity is populated by a separate authentication
+ * interceptor that runs after Spring Security, so anonymous requests
+ * still get correlation/path tracking.
+ */
 @Component
 @Order(1)
 public class CorrelationIdFilter extends OncePerRequestFilter {
 
-    private static final String CORRELATION_ID_HEADER = "X-Correlation-ID";
-    private static final String CORRELATION_ID_MDC_KEY = "correlationId";
+    public static final String CORRELATION_ID_HEADER = "X-Correlation-ID";
+    public static final String CORRELATION_ID_MDC_KEY = "correlationId";
+    public static final String HTTP_METHOD_MDC_KEY = "httpMethod";
+    public static final String PATH_MDC_KEY = "path";
 
     @Override
     protected void doFilterInternal(
@@ -31,10 +51,12 @@ public class CorrelationIdFilter extends OncePerRequestFilter {
             correlationId = UUID.randomUUID().toString();
         }
 
-        // Add to MDC for logging
+        // Per-request MDC fields. Cleared in `finally` so a re-used
+        // request thread doesn't carry stale values to the next call.
         MDC.put(CORRELATION_ID_MDC_KEY, correlationId);
+        MDC.put(HTTP_METHOD_MDC_KEY, request.getMethod());
+        MDC.put(PATH_MDC_KEY, request.getRequestURI());
 
-        // Add to response header
         response.setHeader(CORRELATION_ID_HEADER, correlationId);
 
         try {

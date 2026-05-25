@@ -140,8 +140,8 @@ class TaxExportControllerIntegrationTest {
                                 .accept(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-                .andExpect(jsonPath("$.totalSalary").exists())
-                .andExpect(jsonPath("$.totalInterest").exists());
+                .andExpect(jsonPath("$.data.totalSalary").exists())
+                .andExpect(jsonPath("$.data.totalInterest").exists());
     }
 
     @Test
@@ -154,7 +154,7 @@ class TaxExportControllerIntegrationTest {
                                 .header(AUTHORIZATION, "Bearer " + accessToken))
                 .andExpect(status().isOk())
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-                .andExpect(jsonPath("$.totalSalary").exists());
+                .andExpect(jsonPath("$.data.totalSalary").exists());
     }
 
     @Test

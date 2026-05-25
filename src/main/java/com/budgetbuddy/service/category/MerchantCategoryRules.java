@@ -71,6 +71,59 @@ public final class MerchantCategoryRules {
                     compiledRules.size(),
                     classpathResource);
         }
+        warnOnRedundantKeywords();
+    }
+
+    /**
+     * Scan the loaded rules for keywords that are subsumed by a
+     * higher-priority rule's keyword — those lower-priority keywords are
+     * dead code that will never fire. Warn (don't fail) so the operator
+     * can clean them up at their leisure.
+     *
+     * <p>"Subsumed" means: there exists a higher-priority rule whose
+     * keyword is a SUBSTRING of this rule's keyword. Example: if
+     * priority-1000 has keyword "automatic payment - thank you" and a
+     * priority-500 rule has keyword "automatic payment", the priority-500
+     * keyword will never beat the priority-1000 keyword — the redundancy
+     * check flags it.
+     */
+    private void warnOnRedundantKeywords() {
+        if (!LOGGER.isWarnEnabled()) {
+            return;
+        }
+        int dead = 0;
+        for (int i = 0; i < compiledRules.size(); i++) {
+            final Rule lower = compiledRules.get(i);
+            for (final KeywordMatcher lowerKw : lower.matchers) {
+                for (int j = 0; j < i; j++) {
+                    final Rule higher = compiledRules.get(j);
+                    if (higher.priority <= lower.priority) continue;
+                    if (higher.source.ordinal() > lower.source.ordinal()) continue;
+                    for (final KeywordMatcher higherKw : higher.matchers) {
+                        // If the higher-priority keyword would match anywhere
+                        // the lower keyword matches, the lower is dead code.
+                        if (higherKw.keyword != null
+                                && lowerKw.keyword != null
+                                && lowerKw.keyword.contains(higherKw.keyword)
+                                && higher.category.equals(lower.category)) {
+                            dead++;
+                            if (dead <= 3) {
+                                LOGGER.warn(
+                                        "Redundant rule keyword: '{}' (prio {}) is subsumed "
+                                                + "by '{}' (prio {}) — same category '{}', "
+                                                + "lower rule will never fire",
+                                        lowerKw.keyword, lower.priority,
+                                        higherKw.keyword, higher.priority,
+                                        lower.category);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        if (dead > 3) {
+            LOGGER.warn("…and {} more redundant rule keyword(s)", dead - 3);
+        }
     }
 
     /**

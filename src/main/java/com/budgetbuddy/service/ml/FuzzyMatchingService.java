@@ -7,6 +7,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import org.apache.commons.text.similarity.JaroWinklerSimilarity;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -375,16 +377,13 @@ public class FuzzyMatchingService {
             // Check if token exists as a whole word in query (exact token match)
             if (queryTokenSet.contains(token)) {
                 matchedTokens++;
-            } else if (token.length() >= 5) {
-                // Fallback: only allow substring match with word-boundary anchoring, and only
-                // for 5+ char tokens — this stops "mart" in "walmart", "sumit" in "summit", etc.
-                final String boundaryPattern =
-                        "(?i)(^|[^a-z0-9])"
-                                + java.util.regex.Pattern.quote(token)
-                                + "([^a-z0-9]|$)";
-                if (java.util.regex.Pattern.compile(boundaryPattern).matcher(query).find()) {
-                    matchedTokens++;
-                }
+            } else if (token.length() >= 5 && hasBoundedSubstring(query, token)) {
+                // Fallback: word-boundary anchored substring match for 5+ char
+                // tokens — stops "mart" in "walmart", "sumit" in "summit", etc.
+                // Hot path: replaced per-call `Pattern.compile(...).matcher().find()`
+                // with a manual scan so we don't pay regex compilation per
+                // candidate-token (was ~20-50 µs × thousands of candidates per row).
+                matchedTokens++;
             }
         }
 
@@ -463,14 +462,41 @@ public class FuzzyMatchingService {
     }
 
     /**
-     * Normalize string for matching - Convert to lowercase - Remove special characters - Remove
-     * common prefixes/suffixes - Normalize abbreviations
+     * Memoizes {@link #computeNormalizedForMatching(String)} — the
+     * merchant catalogue (~2,977 entries) flows through here on every
+     * single findBestMatch call, with ~10 regex passes each.
+     * Re-computing those same strings per row was the dominant cost in
+     * E2E import suites (turning a 1000-row CSV import into a multi-
+     * hour test). Cap is generous (50k) — catalogue + query strings
+     * both fit; eviction is a coarse "drop everything" once the cap
+     * is hit, which never triggers in normal operation. Per-instance
+     * field (not static) so unit tests using fresh service instances
+     * stay isolated.
      */
-    private String normalizeForMatching(String input) {
+    private final ConcurrentMap<String, String> normalizationCache = new ConcurrentHashMap<>();
+    private static final int NORMALIZATION_CACHE_CAP = 50_000;
+
+    /**
+     * Normalize string for matching - Convert to lowercase - Remove special characters - Remove
+     * common prefixes/suffixes - Normalize abbreviations.
+     *
+     * <p>Thin caching wrapper around {@link #computeNormalizedForMatching}.
+     */
+    private String normalizeForMatching(final String input) {
         if (input == null) {
             return "";
         }
+        // Bounded cap: if we've blown past it, fall back to computing
+        // uncached. This protects against pathological adversarial input
+        // exhausting heap without removing the steady-state win.
+        if (normalizationCache.size() >= NORMALIZATION_CACHE_CAP) {
+            return computeNormalizedForMatching(input);
+        }
+        return normalizationCache.computeIfAbsent(input, this::computeNormalizedForMatching);
+    }
 
+    /** Actual normalization work. Side-effect free. Cached above. */
+    private String computeNormalizedForMatching(String input) {
         // CRITICAL: Handle very long strings (performance protection)
         if (input.length() > 10_000) {
             if (LOGGER.isWarnEnabled()) {
@@ -540,6 +566,39 @@ public class FuzzyMatchingService {
         }
 
         return result;
+    }
+
+    /**
+     * Word-boundary anchored substring match — semantics match the prior
+     * regex {@code (?i)(^|[^a-z0-9])<token>([^a-z0-9]|$)} but without
+     * Pattern.compile on every candidate-token. Returns true iff
+     * {@code token} appears in {@code haystack} such that the chars
+     * immediately before/after are non-alphanumeric (or the string
+     * boundary). Both inputs are already lower-cased by normalize.
+     */
+    private static boolean hasBoundedSubstring(final String haystack, final String token) {
+        if (haystack == null || token == null || token.isEmpty() || haystack.length() < token.length()) {
+            return false;
+        }
+        int from = 0;
+        while (from <= haystack.length() - token.length()) {
+            final int idx = haystack.indexOf(token, from);
+            if (idx < 0) {
+                return false;
+            }
+            final boolean leftOk = idx == 0 || !isAlnum(haystack.charAt(idx - 1));
+            final int end = idx + token.length();
+            final boolean rightOk = end == haystack.length() || !isAlnum(haystack.charAt(end));
+            if (leftOk && rightOk) {
+                return true;
+            }
+            from = idx + 1;
+        }
+        return false;
+    }
+
+    private static boolean isAlnum(final char c) {
+        return (c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') || (c >= 'A' && c <= 'Z');
     }
 
     /** Check if similarity score indicates high confidence */

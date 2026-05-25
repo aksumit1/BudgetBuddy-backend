@@ -1,6 +1,6 @@
 package com.budgetbuddy.security.ddos;
 
-import com.budgetbuddy.exception.EnhancedGlobalExceptionHandler;
+import com.budgetbuddy.api.response.ApiResponse;
 import com.budgetbuddy.exception.ErrorCode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
@@ -10,7 +10,6 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
-import java.time.Instant;
 import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -197,20 +196,14 @@ public class NotFoundErrorTrackingFilter extends OncePerRequestFilter {
             MDC.put("correlationId", correlationId);
         }
 
-        final EnhancedGlobalExceptionHandler.ErrorResponse errorResponse =
-                EnhancedGlobalExceptionHandler.ErrorResponse.builder()
-                        .errorCode(ErrorCode.RATE_LIMIT_EXCEEDED.name())
-                        .message(message)
-                        .correlationId(correlationId)
-                        .timestamp(Instant.now())
-                        .path("")
-                        .build();
+        final ApiResponse<Void> body = ApiResponse.error(
+                ErrorCode.RATE_LIMIT_EXCEEDED.name(), message, correlationId);
 
         response.setStatus(429); // SC_TOO_MANY_REQUESTS
         response.setHeader("Retry-After", String.valueOf(retryAfter));
         response.setContentType("application/json");
         response.setCharacterEncoding("UTF-8");
 
-        OBJECT_MAPPER.writeValue(response.getWriter(), errorResponse);
+        OBJECT_MAPPER.writeValue(response.getWriter(), body);
     }
 }

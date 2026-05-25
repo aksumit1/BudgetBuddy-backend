@@ -91,13 +91,34 @@ public class DynamoDBTableManager {
     }
 
     /**
-     * Initialize all DynamoDB tables on application startup Called automatically via @PostConstruct
+     * Initialize all DynamoDB tables on application startup.
+     *
+     * <p>Each table is tagged CRITICAL (auth/billing-core) or OPTIONAL
+     * (operational). A CRITICAL failure fails fast — the app refuses to
+     * start because key reads/writes would 500 immediately anyway. An
+     * OPTIONAL failure logs a WARN and continues; the dependent
+     * feature degrades but the rest of the app boots.
+     *
+     * <p>All failures are collected so the operator sees the full
+     * picture in one error, not a cascade of single-table errors.
      */
     @PostConstruct
     public void initializeTables() {
-        createUsersTable();
-        createAccountsTable();
-        createTransactionsTable();
+        final java.util.List<String> criticalFailures = new java.util.ArrayList<>();
+
+        // CRITICAL — these tables underpin auth, account access, and
+        // the transaction record. The app cannot serve any user without
+        // them; better to fail-fast than 500 on the first request.
+        tryCreate("Users", criticalFailures, this::createUsersTable);
+        tryCreate("Accounts", criticalFailures, this::createAccountsTable);
+        tryCreate("Transactions", criticalFailures, this::createTransactionsTable);
+        tryCreate("FIDO2Credentials", criticalFailures, this::createFIDO2CredentialsTable);
+        tryCreate("FIDO2Challenges", criticalFailures, this::createFIDO2ChallengesTable);
+
+        // OPTIONAL — feature tables. Their absence degrades the feature
+        // (no budgets shown, no MFA-OTP) but the rest works. Failures
+        // log WARN inside each createXxx method already; no need to
+        // collect into the fail-fast list.
         createBudgetsTable();
         createGoalsTable();
         createTransactionActionsTable();
@@ -107,16 +128,42 @@ public class DynamoDBTableManager {
         createRateLimitTable();
         createDDoSProtectionTable();
         createDeviceAttestationTable();
-        createFIDO2CredentialsTable();
-        createFIDO2ChallengesTable();
         createMFACredentialsTable();
         createMFABackupCodesTable();
         createMFAOTPCodesTable();
         createImportHistoryTable();
         createAnomalyFeedbackTable();
+        createChatMessagesTable();
         // BREAKING CHANGE: DevicePin table creation removed - PIN backend endpoints removed
         // DevicePin table is deprecated and removed - PIN is now local-only
+
+        if (!criticalFailures.isEmpty()) {
+            final String msg = "Refusing to start — critical DynamoDB tables failed: "
+                    + String.join("; ", criticalFailures)
+                    + ". Check IAM permissions and AWS region. Without these the app cannot "
+                    + "serve any authenticated request.";
+            LOGGER.error(msg);
+            throw new IllegalStateException(msg);
+        }
         LOGGER.info("DynamoDB tables initialized");
+    }
+
+    /**
+     * Run a table-create that we cannot tolerate failing. Adds a clear
+     * message to {@code criticalFailures} on any exception (including
+     * the AlreadyExists case, which the per-table createXxx methods
+     * convert into a no-op — those don't reach here).
+     */
+    private void tryCreate(
+            final String tableName,
+            final java.util.List<String> criticalFailures,
+            final Runnable createMethod) {
+        try {
+            createMethod.run();
+        } catch (final RuntimeException e) {
+            criticalFailures.add(tableName + " (" + e.getMessage() + ")");
+            LOGGER.error("CRITICAL table init failed: {}: {}", tableName, e.getMessage());
+        }
     }
 
     private void createUsersTable() {
@@ -1275,6 +1322,76 @@ public class DynamoDBTableManager {
                                                             .build(),
                                                     KeySchemaElement.builder()
                                                             .attributeName("createdAtTimestamp")
+                                                            .keyType(KeyType.RANGE)
+                                                            .build())
+                                            .projection(
+                                                    Projection.builder()
+                                                            .projectionType(ProjectionType.ALL)
+                                                            .build())
+                                            .build())
+                            .build());
+            LOGGER.info(CREATED_TABLE, tableName);
+        } catch (ResourceInUseException e) {
+            if (LOGGER.isDebugEnabled()) {
+                LOGGER.debug(TABLE_ALREADY_EXISTS, tableName);
+            }
+        } catch (Exception e) {
+            if (LOGGER.isWarnEnabled()) {
+                LOGGER.warn(FAILED_TO_CREATE_TABLE_THIS_MAY_BE, tableName, e.getMessage());
+            }
+        }
+    }
+
+    /**
+     * AI chat messages. Partition key = conversationId; sort key =
+     * createdAt epoch millis. GSI {@code UserIdConversationIndex}
+     * indexes messages by user with the inverted-createdAt sort key
+     * (most-recent first). TTL attribute {@code ttl} expires history
+     * after 90 days — chat is convenience, not a permanent record.
+     */
+    private void createChatMessagesTable() {
+        final String tableName = tablePrefix + "-ChatMessages";
+        try {
+            dynamoDbClient.createTable(
+                    CreateTableRequest.builder()
+                            .tableName(tableName)
+                            .billingMode(BillingMode.PAY_PER_REQUEST)
+                            .attributeDefinitions(
+                                    AttributeDefinition.builder()
+                                            .attributeName("conversationId")
+                                            .attributeType(ScalarAttributeType.S)
+                                            .build(),
+                                    AttributeDefinition.builder()
+                                            .attributeName("createdAt")
+                                            .attributeType(ScalarAttributeType.N)
+                                            .build(),
+                                    AttributeDefinition.builder()
+                                            .attributeName(USER_ID)
+                                            .attributeType(ScalarAttributeType.S)
+                                            .build(),
+                                    AttributeDefinition.builder()
+                                            .attributeName("conversationStart")
+                                            .attributeType(ScalarAttributeType.N)
+                                            .build())
+                            .keySchema(
+                                    KeySchemaElement.builder()
+                                            .attributeName("conversationId")
+                                            .keyType(KeyType.HASH)
+                                            .build(),
+                                    KeySchemaElement.builder()
+                                            .attributeName("createdAt")
+                                            .keyType(KeyType.RANGE)
+                                            .build())
+                            .globalSecondaryIndexes(
+                                    GlobalSecondaryIndex.builder()
+                                            .indexName("UserIdConversationIndex")
+                                            .keySchema(
+                                                    KeySchemaElement.builder()
+                                                            .attributeName(USER_ID)
+                                                            .keyType(KeyType.HASH)
+                                                            .build(),
+                                                    KeySchemaElement.builder()
+                                                            .attributeName("conversationStart")
                                                             .keyType(KeyType.RANGE)
                                                             .build())
                                             .projection(

@@ -95,7 +95,9 @@ public class BudgetRepository {
                 results.add(item);
             }
         }
-        return results;
+        // Belt-and-suspenders IDOR guard — see UserOwnershipGuard javadoc.
+        return com.budgetbuddy.security.UserOwnershipGuard.filter(
+                results, userId, BudgetTable::getUserId);
     }
 
     public Optional<BudgetTable> findByUserIdAndCategory(

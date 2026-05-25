@@ -246,8 +246,8 @@ class CSVImportE2ETest {
                                                         userDetails))
                                         .contentType(MediaType.MULTIPART_FORM_DATA))
                         .andExpect(status().isOk())
-                        .andExpect(jsonPath("$.totalParsed").exists())
-                        .andExpect(jsonPath("$.transactions").isArray())
+                        .andExpect(jsonPath("$.data.totalParsed").exists())
+                        .andExpect(jsonPath("$.data.transactions").isArray())
                         .andReturn();
 
         // Parse preview response
@@ -279,7 +279,7 @@ class CSVImportE2ETest {
                                                         userDetails))
                                         .contentType(MediaType.MULTIPART_FORM_DATA))
                         .andExpect(status().isOk())
-                        .andExpect(jsonPath("$.created").exists())
+                        .andExpect(jsonPath("$.data.created").exists())
                         .andReturn();
 
         // Verify first import created transactions
@@ -287,11 +287,18 @@ class CSVImportE2ETest {
         assertNotNull(importResponse1);
         assertTrue(importResponse1.contains("created"));
 
-        // Parse JSON response to get created count
+        // Parse JSON response to get created count. The response is
+        // wrapped in the universal envelope, so the import payload
+        // lives under `data`.
         final com.fasterxml.jackson.databind.ObjectMapper mapper =
                 new com.fasterxml.jackson.databind.ObjectMapper();
-        final java.util.Map<String, Object> responseMap1 =
+        final java.util.Map<String, Object> envelope1 =
                 mapper.readValue(importResponse1, java.util.Map.class);
+        @SuppressWarnings("unchecked")
+        final java.util.Map<String, Object> responseMap1 =
+                envelope1.containsKey("data") && envelope1.get("data") instanceof java.util.Map
+                        ? (java.util.Map<String, Object>) envelope1.get("data")
+                        : envelope1;
         final int firstImportCreated = ((Number) responseMap1.get("created")).intValue();
 
         // Fetch all transactions (may need multiple queries due to pagination)
@@ -334,8 +341,8 @@ class CSVImportE2ETest {
                                                         userDetails))
                                         .contentType(MediaType.MULTIPART_FORM_DATA))
                         .andExpect(status().isOk())
-                        .andExpect(jsonPath("$.totalParsed").exists())
-                        .andExpect(jsonPath("$.transactions").isArray())
+                        .andExpect(jsonPath("$.data.totalParsed").exists())
+                        .andExpect(jsonPath("$.data.transactions").isArray())
                         .andReturn();
 
         // Parse preview response and verify duplicates are marked
@@ -367,16 +374,21 @@ class CSVImportE2ETest {
                                                         userDetails))
                                         .contentType(MediaType.MULTIPART_FORM_DATA))
                         .andExpect(status().isOk())
-                        .andExpect(jsonPath("$.created").exists())
+                        .andExpect(jsonPath("$.data.created").exists())
                         .andReturn();
 
         // Verify second import did not create duplicates
         final String importResponse2 = importResult2.getResponse().getContentAsString();
         assertNotNull(importResponse2);
 
-        // Parse JSON response to check created count
-        final java.util.Map<String, Object> responseMap2 =
+        // Parse JSON response to check created count (envelope-aware)
+        final java.util.Map<String, Object> envelope2 =
                 mapper.readValue(importResponse2, java.util.Map.class);
+        @SuppressWarnings("unchecked")
+        final java.util.Map<String, Object> responseMap2 =
+                envelope2.containsKey("data") && envelope2.get("data") instanceof java.util.Map
+                        ? (java.util.Map<String, Object>) envelope2.get("data")
+                        : envelope2;
         final int secondImportCreated = ((Number) responseMap2.get("created")).intValue();
         final int secondImportDuplicates =
                 responseMap2.get("duplicates") != null
@@ -476,8 +488,8 @@ class CSVImportE2ETest {
                                                         userDetails))
                                         .contentType(MediaType.MULTIPART_FORM_DATA))
                         .andExpect(status().isOk())
-                        .andExpect(jsonPath("$.totalParsed").exists())
-                        .andExpect(jsonPath("$.transactions").isArray())
+                        .andExpect(jsonPath("$.data.totalParsed").exists())
+                        .andExpect(jsonPath("$.data.transactions").isArray())
                         .andReturn();
 
         final String previewResponse1 = previewResult1.getResponse().getContentAsString();
@@ -496,7 +508,7 @@ class CSVImportE2ETest {
                                 .with(SecurityMockMvcRequestPostProcessors.user(userDetails))
                                 .contentType(MediaType.MULTIPART_FORM_DATA))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.created").exists());
+                .andExpect(jsonPath("$.data.created").exists());
 
         // ========== STEP 3: Preview again with accountId (should show duplicates) ==========
         final MockMultipartFile csvFileForPreview2 =
@@ -513,8 +525,8 @@ class CSVImportE2ETest {
                                                         userDetails))
                                         .contentType(MediaType.MULTIPART_FORM_DATA))
                         .andExpect(status().isOk())
-                        .andExpect(jsonPath("$.totalParsed").exists())
-                        .andExpect(jsonPath("$.transactions").isArray())
+                        .andExpect(jsonPath("$.data.totalParsed").exists())
+                        .andExpect(jsonPath("$.data.transactions").isArray())
                         .andReturn();
 
         final String previewResponse2 = previewResult2.getResponse().getContentAsString();

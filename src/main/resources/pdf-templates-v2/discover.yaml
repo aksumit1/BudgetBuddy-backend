@@ -1,16 +1,33 @@
 # Discover — Discover it Cash Back, it Miles, it Chrome, it Student, it
 # Secured, it Business, NHL Discover it.
 #
-# No Discover PDF in the corpus yet; patterns mirror legacy DiscoverIssuerProfile.
-# Status: unverified.
+# Covers the 11 Discover PDFs in the corpus (6 Discover-Statement-* monthly
+# statements + 5 Discover-AccountActivity-* interim activity reports). Both
+# formats are issued by Discover but have radically different layouts:
+#
+#   * Discover-Statement-*  — full monthly statement, single-date rows in two
+#     in-document sections "PAYMENTS AND CREDITS AMOUNT" and "PURCHASES
+#     MERCHANT CATEGORY AMOUNT". Because PDFBox layout extraction places these
+#     headers ~15-20 lines BEFORE the transaction rows themselves, anchoring
+#     shapes on section headers is unreliable; instead we discriminate by SIGN
+#     (payments print "-$X.XX", purchases print "$X.XX") — same Chase-style
+#     pattern used to fix the Chase XFINITY-refund delta in 2026.
+#   * Discover-AccountActivity-*  — interim activity export, two-date rows
+#     ("MM/DD/YY MM/DD/YY DESC $ X.XX Category"). Payments still discriminated
+#     by sign ("$ -X.XX"). These PDFs have NO summary totals (no New Balance,
+#     no Purchases-bucket, no statement period), so the audit reports blank
+#     deltas for them — that's expected.
+#
+# Status: unverified
 id: discover-v2
 institution: Discover
 description: "Discover credit cards"
 status: unverified
-# Pull in shared Payment Due Date / Minimum Payment Due / FX fee / billing
-# days patterns from common.yaml as fallbacks. Discover's own rules below
-# take precedence — extends only fills gaps.
-extends: [common]
+# Discover declares every metadata pattern it uses inline — historically this
+# file pulled the common fragment via `extends: [common]`, but the v2 cutover
+# requires per-issuer transaction shapes (which are NOT carried by the merger
+# across an extends boundary). The two-line gap (the `Days in Billing Cycle:
+# N` form of billing_days) is inlined below to keep the sample passing.
 
 card_detection:
   institution_match:
@@ -18,13 +35,27 @@ card_detection:
         - "(?i)\\bdiscover\\b\\s*(?:bank|card|it|financial|services)"
         - "(?i)discover\\.com"
         - "(?i)discover\\s+(?:credit\\s+card|cardmember\\s+services)"
+        # The interim AccountActivity export has none of the marketing text
+        # ("DISCOVER IT CARD", "discover.com"); the only Discover-specific
+        # tell is the "Acct Ending NNNN" prefix on line 1. Add a coarse
+        # institution anchor on the closing-page Capital One/FDIC footer
+        # so the AccountActivity PDFs still detect as Discover.
+        - "(?i)Discover,?\\s+a\\s+division\\s+of\\s+Capital\\s+One"
 
   last_four:
     - pattern: "(?i)account\\s+(?:number|ending)(?:\\s+in)?[\\s:]+(?:[#x*\\s-]+)?(\\d{4})\\b"
+    # AccountActivity prints "Acct Ending NNNN" on the first line.
+    - pattern: "(?i)\\bAcct\\s+Ending\\s+(\\d{4})\\b"
+      filename_fallback: true
 
   account_holder:
     - source: above_account_ending
       lines_above_account: 1-3
+    # Discover-AccountActivity prints "NAME | Acct Ending NNNN" on line 1.
+    # The above_account_ending fallback picks up the address line; this
+    # explicit regex captures the cardholder name from the same line as
+    # the Acct Ending marker.
+    - pattern: "(?i)^\\s*([A-Z][A-Z\\s]+[A-Z])\\s*\\|\\s*Acct\\s+Ending\\s+\\d{4}"
 
 metadata:
   statement_date:
@@ -32,35 +63,63 @@ metadata:
       adjacent: date
     - label: "Closing Date"
       adjacent: date
+    # Discover-AccountActivity interim export prints:
+    #   "Activity Period: Oct 17 - Nov 16, 2025"
+    # Use the END date of the activity period as the statement date so
+    # downstream consumers have something to display. The year sits at the
+    # end of the range; long-form month parsing handled by parseLooseDate's
+    # MMMM/MMM format alternatives.
+    - pattern: "(?i)Activity\\s+Period:\\s+\\w+\\s+\\d{1,2}\\s*[-–]\\s*(\\w+\\s+\\d{1,2},\\s+\\d{4})"
 
   statement_period:
     - pattern: "(?i)(?:open|opening)\\s+date[:\\s]+(\\d{1,2}/\\d{1,2}/\\d{2,4}).*?(?:close|closing)\\s+date[:\\s]+(\\d{1,2}/\\d{1,2}/\\d{2,4})"
     - pattern: "(?i)statement\\s+period[:\\s]+(\\d{1,2}/\\d{1,2}/\\d{2,4})\\s*[-–to]+\\s*(\\d{1,2}/\\d{1,2}/\\d{2,4})"
+    # Discover-Statement-* prints the period as a bare "MM/DD/YYYY - MM/DD/YYYY"
+    # prefix on the Account Summary block (line begins with the period and
+    # is followed by "Late Payment Warning: ACCOUNT NUMBER..."). It also
+    # prints "OPEN TO CLOSE DATE: MM/DD/YYYY - MM/DD/YYYY" further down.
+    - pattern: "(?i)OPEN\\s+TO\\s+CLOSE\\s+DATE[:\\s]+(\\d{1,2}/\\d{1,2}/\\d{2,4})\\s*-\\s*(\\d{1,2}/\\d{1,2}/\\d{2,4})"
+    - pattern: "(?m)^(\\d{1,2}/\\d{1,2}/\\d{2,4})\\s*-\\s*(\\d{1,2}/\\d{1,2}/\\d{2,4})\\s+Late\\s+Payment\\s+Warning"
 
+  # Discover Statement prints "New Balance: $X.XX" on the Account Summary line
+  # (with a colon). The original line-anchored "^New Balance $X.XX" never
+  # matched because the value is sandwiched inside a single PDFBox-extracted
+  # super-line. Drop the line-anchor and accept the colon form.
   new_balance:
+    - pattern: "(?i)New\\s+Balance:\\s+\\$([\\d,]+\\.\\d{2})"
     - pattern: "(?im)^\\s*New\\s+Balance\\s+\\$([\\d,]+\\.\\d{2})"
 
   previous_balance:
-    - pattern: "(?im)^\\s*Previous\\s+Balance\\s+\\$([\\d,]+\\.\\d{2})"
+    - pattern: "(?i)Previous\\s+Balance\\s+\\$([\\d,]+\\.\\d{2})"
 
+  # Discover prints summary buckets with a leading sign:
+  #   "Purchases +$23.35", "Payments and Credits -$5.66",
+  #   "Fees Charged +$0.00", "Interest Charged +$0.00".
+  # The original "Purchases $X.XX" pattern missed every row because PDFBox
+  # extraction keeps the "+" sign attached to the amount. Accept "[+-]?" so
+  # both the signed (period buckets) and unsigned (legacy) forms match.
   purchases_total:
-    - pattern: "(?im)^\\s*Purchases\\s+\\$([\\d,]+\\.\\d{2})"
-    - pattern: "(?im)^\\s*Total\\s+Purchases\\s+\\$([\\d,]+\\.\\d{2})"
+    - pattern: "(?i)Purchases\\s+[+-]?\\$([\\d,]+\\.\\d{2})"
+    - pattern: "(?i)Total\\s+Purchases\\s+[+-]?\\$([\\d,]+\\.\\d{2})"
 
   payments_total:
-    - pattern: "(?im)^\\s*Payments\\s+and\\s+Credits\\s+-?\\$([\\d,]+\\.\\d{2})"
-    - pattern: "(?im)^\\s*Payments(?:\\s+/\\s+Credits)?\\s+-?\\$([\\d,]+\\.\\d{2})"
+    - pattern: "(?i)Payments\\s+and\\s+Credits\\s+[+-]?\\$([\\d,]+\\.\\d{2})"
+    - pattern: "(?i)Payments(?:\\s+/\\s+Credits)?\\s+[+-]?\\$([\\d,]+\\.\\d{2})"
 
   fees_total:
-    - pattern: "(?im)^\\s*Fees\\s+Charged\\s+\\$([\\d,]+\\.\\d{2})"
+    - pattern: "(?i)Fees\\s+Charged\\s+[+-]?\\$([\\d,]+\\.\\d{2})"
 
   interest_total:
-    - pattern: "(?im)^\\s*Interest\\s+Charged\\s+\\$([\\d,]+\\.\\d{2})"
+    - pattern: "(?i)Interest\\s+Charged\\s+[+-]?\\$([\\d,]+\\.\\d{2})"
 
+  # Discover prints "Credit Line $X,XXX" (not "Credit Limit"); the existing
+  # patterns are kept as backstops.
   credit_limit:
+    - pattern: "(?i)Credit\\s+Line\\s+\\$([\\d,]+(?:\\.\\d{2})?)"
     - pattern: "(?im)^\\s*Credit\\s+Limit\\s+\\$([\\d,]+\\.\\d{2})"
     - pattern: "(?im)^\\s*Total\\s+Credit\\s+Limit\\s+\\$([\\d,]+\\.\\d{2})"
   available_credit:
+    - pattern: "(?i)Credit\\s+Line\\s+Available\\s+\\$([\\d,]+(?:\\.\\d{2})?)"
     - pattern: "(?im)^\\s*Available\\s+Credit\\s+\\$([\\d,]+\\.\\d{2})"
   minimum_payment_due:
     - pattern: "(?im)Minimum\\s+Payment\\s+Due\\s+\\$([\\d,]+\\.\\d{2})"
@@ -81,20 +140,26 @@ metadata:
   cashback_balance:
     - pattern: "(?i)Cashback\\s+Bonus\\s+(?:Balance|Available)\\s+\\$([\\d,]+\\.\\d{2})"
     - pattern: "(?i)Total\\s+Cashback\\s+Bonus\\s+\\$([\\d,]+\\.\\d{2})"
+    - pattern: "(?i)CASHBACK\\s+BONUS\\s+BALANCE\\s+\\$([\\d,]+\\.\\d{2})"
 
   autopay_enabled:
     - label: "AUTOPAY IS ON"
+    # Discover phrases autopay as "Your next DirectPay automatic payment of
+    # $X.XX will be on MMMM D, YYYY." — there is no discrete "AUTOPAY IS ON"
+    # line on Discover statements. Use the DirectPay sentence as the anchor.
+    - label: "DirectPay automatic payment"
     - label: "AUTOPAY IS OFF"
       pattern: "false"
 
   foreign_tx_fee_percent:
     - pattern: "(?i)[Ff]oreign\\s+[Tt]ransaction\\s+[Ff]ee[^%]*?(\\d{1,2}(?:\\.\\d{1,3})?)\\s*%"
-  # Discover only declares the "30 Days in Billing Period" form here. The
-  # "Days in Billing Cycle: 30" form is inherited from common.yaml. The
-  # sample below covers the inherited path so the extends: link is exercised
-  # by V2YamlSelfTest, not just unit-tested in TemplateMergerTest.
+  # Discover statements print "30 Days in Billing Period"; the secondary
+  # "Days in Billing Cycle: 30" form is the cross-issuer canonical pattern
+  # (previously inherited from common.yaml — inlined here so the sample below
+  # passes without depending on the extends-merger).
   billing_days:
     - pattern: "(?i)(?<!\\d)(\\d{1,3})\\s+Days?\\s+in\\s+Billing\\s+(?:Period|Cycle)"
+    - pattern: "(?i)Days?\\s+in\\s+Billing\\s+(?:Cycle|Period)[:\\s]+(\\d{1,3})"
 
 samples:
   - name: extends-common-billing-days
@@ -121,3 +186,96 @@ layouts:
     dateFormat: "M/d"
     signConvention: credit-positive
     minAmount: 0.01
+
+# v2 transaction-shape declarations — validated against all 11 Discover PDFs
+# in the corpus (6 Statement + 5 AccountActivity). Discover statements use a
+# layout where transaction rows print on a single physical PDF line and the
+# in-document section headers ("PAYMENTS AND CREDITS AMOUNT", "PURCHASES
+# MERCHANT CATEGORY AMOUNT") appear ~15-20 lines BEFORE the data, separated
+# by interleaved footer/disclosure text. Section-anchored shapes are therefore
+# unreliable for Discover; the cleanest discriminator is the AMOUNT SIGN:
+#
+#  (a) Payments print with a leading minus on the dollar amount:
+#      "06/06 DIRECTPAY FULL BALANCE -$39.69 SEE DETAILS..."
+#      "1% Cashback Bonus +$0.2311/06 DIRECTPAY FULL BALANCE -$5.66"
+#      Sign: credit-card-credit (CREDIT).
+#  (b) Purchases print with a bare positive dollar amount:
+#      "08/06 AMZ SJ14 CAFE SUNNYVALE CA Restaurants $10.59 APPLE PAY..."
+#      Sign: credit-card-purchase (DEBIT).
+#
+# Discover-AccountActivity-* exports use a two-date row form
+#   "MM/DD/YY MM/DD/YY DESC $ X.XX Category"  (purchase, positive)
+#   "MM/DD/YY MM/DD/YY DESC $ -X.XX Payments and Credits"  (payment)
+# The "$ " (space between $ and digits) is unique to this export — using it
+# as part of the anchor keeps the activity shapes from misfiring on the
+# Statement layout.
+#
+# Edge cases handled:
+#   * The Discover-Statement payment line is sometimes prefixed by the prior
+#     Cashback-Bonus row jammed against the date ("+$0.23" + "11/06 ..."),
+#     so the payment shape accepts an optional "1% Cashback Bonus +$N.NN"
+#     prefix before the date.
+#   * Purchase rows commonly carry trailing summary text on the LAST row
+#     ("... PREVIOUS BALANCE $237.00 EARNED THIS PERIOD ..."); the purchase
+#     regex captures only up through the FIRST $-amount, leaving the trailer
+#     untouched. The lazy `.+?` capture + `\b` boundary anchors do this.
+#   * The standalone DIRECTPAY payment row also has a long trailing block
+#     ("SEE DETAILS... PREVIOUS BALANCE ... CASHBACK BONUS BALANCE $237.23");
+#     same first-$-amount truncation handles it.
+#   * Negative lookahead `(?!\s*DIRECTPAY\b)` on the purchase shape stops it
+#     from falsely matching the DIRECTPAY-payment line (which DOES start with
+#     a date+description and contains a "$X.XX" downstream).
+transactions:
+  # Statement: payment row prefixed by a Cashback-Bonus stitched fragment
+  # ("1% Cashback Bonus +$0.2311/06 DIRECTPAY FULL BALANCE -$5.66"). Must
+  # come before the bare statement-payment shape because both start the
+  # same way; this one is more specific.
+  - name: discover-statement-payment-with-cashback-prefix
+    line_regex: '^\s*1%\s+Cashback\s+Bonus\s+\+\$\d+(?:,\d{3})*\.\d{2}(?<date>\d{1,2}/\d{1,2})\s+(?<description>DIRECTPAY[^$]*?)\s*-\$(?<amount>\d{1,3}(?:,\d{3})*\.\d{2})\b'
+    date_format: "M/d"
+    account_type: credit
+    sign_convention: credit-card-credit
+    min_amount: 0.01
+
+  # Statement: standalone payment row ("06/06 DIRECTPAY FULL BALANCE -$39.69
+  # SEE DETAILS..."). Trailing summary text after the amount is ignored
+  # because the regex stops at the first dollar amount.
+  - name: discover-statement-payment
+    line_regex: '^\s*(?<date>\d{1,2}/\d{1,2})\s+(?<description>DIRECTPAY[^$]*?)\s*-\$(?<amount>\d{1,3}(?:,\d{3})*\.\d{2})\b'
+    date_format: "M/d"
+    account_type: credit
+    sign_convention: credit-card-credit
+    min_amount: 0.01
+
+  # Statement: purchase row ("08/06 AMZ SJ14 CAFE SUNNYVALE CA Restaurants
+  # $10.59 APPLE PAY ENDING IN 8772"). Lazy `.+?` captures description up to
+  # the first un-signed $AMOUNT; trailing "APPLE PAY..." / "PREVIOUS BALANCE"
+  # text after the amount is left out. Negative lookahead skips DIRECTPAY
+  # rows (those are handled by the payment shape above).
+  - name: discover-statement-purchase
+    line_regex: '^\s*(?<date>\d{1,2}/\d{1,2})\s+(?!DIRECTPAY\b)(?<description>[^$\n]+?)\s+\$(?<amount>\d{1,3}(?:,\d{3})*\.\d{2})\b'
+    date_format: "M/d"
+    account_type: credit
+    sign_convention: credit-card-purchase
+    min_amount: 0.01
+
+  # AccountActivity: payment row ("MM/DD/YY MM/DD/YY DESC $ -X.XX Payments
+  # and Credits"). Negative-sign discriminator MUST be tried before the
+  # purchase shape (same prefix, different sign).
+  - name: discover-activity-payment
+    line_regex: '^\s*(?<date>\d{1,2}/\d{1,2}/\d{2})\s+\d{1,2}/\d{1,2}/\d{2}\s+(?<description>.+?)\s+\$\s*-(?<amount>\d{1,3}(?:,\d{3})*\.\d{2})\b'
+    date_format: "M/d/yy"
+    account_type: credit
+    sign_convention: credit-card-credit
+    min_amount: 0.01
+
+  # AccountActivity: purchase row ("MM/DD/YY MM/DD/YY DESC $ X.XX Category").
+  # The `$\s+` (whitespace between $ and digits) is the AccountActivity tell —
+  # the Statement layout glues "$X.XX" together so this shape never fires on
+  # statement rows.
+  - name: discover-activity-purchase
+    line_regex: '^\s*(?<date>\d{1,2}/\d{1,2}/\d{2})\s+\d{1,2}/\d{1,2}/\d{2}\s+(?<description>.+?)\s+\$\s+(?<amount>\d{1,3}(?:,\d{3})*\.\d{2})\b'
+    date_format: "M/d/yy"
+    account_type: credit
+    sign_convention: credit-card-purchase
+    min_amount: 0.01

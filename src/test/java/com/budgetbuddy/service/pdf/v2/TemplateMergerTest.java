@@ -31,7 +31,10 @@ class TemplateMergerTest {
     }
 
     @Test
-    void childRulesComeBeforeParentRules() {
+    void childOverridesParentWhenDeclared() {
+        // Override semantics: when child declares ANY rule for a field, the
+        // parent's rules for that field are IGNORED entirely (no concat).
+        // Avoids common.yaml's generic patterns polluting issuer-tuned ones.
         final PdfTemplateV2 parent = template("common", List.of());
         final PdfTemplateV2.MetadataRules pm = new PdfTemplateV2.MetadataRules();
         pm.setNewBalance(List.of(pattern("parent-A"), pattern("parent-B")));
@@ -45,11 +48,29 @@ class TemplateMergerTest {
         final List<PdfTemplateV2> out = TemplateMerger.resolve(List.of(parent, child));
         final PdfTemplateV2 resolved = out.get(1);
         final List<PdfTemplateV2.LabelRule> merged = resolved.getMetadata().getNewBalance();
-        assertEquals(3, merged.size());
-        assertEquals("child-1", merged.get(0).getPattern(),
-                "child rule must come first so it wins on first-match");
-        assertEquals("parent-A", merged.get(1).getPattern());
-        assertEquals("parent-B", merged.get(2).getPattern());
+        assertEquals(1, merged.size(), "child OVERRIDES parent — no concat");
+        assertEquals("child-1", merged.get(0).getPattern());
+    }
+
+    @Test
+    void parentFillsFieldsChildOmitsEntirely() {
+        // When child declares no rules for a field (empty list), parent's
+        // rules apply. The "fill the gap" case extends: is intended for.
+        final PdfTemplateV2 parent = template("common", List.of());
+        final PdfTemplateV2.MetadataRules pm = new PdfTemplateV2.MetadataRules();
+        pm.setNewBalance(List.of(pattern("parent-A"), pattern("parent-B")));
+        parent.setMetadata(pm);
+
+        final PdfTemplateV2 child = template("issuer", List.of("common"));
+        final PdfTemplateV2.MetadataRules cm = new PdfTemplateV2.MetadataRules();
+        // child declares NOTHING for newBalance
+        child.setMetadata(cm);
+
+        final PdfTemplateV2 resolved = TemplateMerger.resolve(List.of(parent, child)).get(1);
+        final List<PdfTemplateV2.LabelRule> merged = resolved.getMetadata().getNewBalance();
+        assertEquals(2, merged.size(), "parent fills the gap when child omits");
+        assertEquals("parent-A", merged.get(0).getPattern());
+        assertEquals("parent-B", merged.get(1).getPattern());
     }
 
     @Test
@@ -78,7 +99,9 @@ class TemplateMergerTest {
 
     @Test
     void transitiveChainIsResolved() {
-        // base <- mid <- leaf, with one rule per level. Final order: leaf, mid, base.
+        // base <- mid <- leaf, with one rule per level. Override semantics:
+        // leaf wins entirely because it declares the field. Mid and base
+        // never contribute when the leaf is non-empty.
         final PdfTemplateV2 base = template("base", List.of());
         final PdfTemplateV2.MetadataRules bm = new PdfTemplateV2.MetadataRules();
         bm.setNewBalance(List.of(pattern("base")));
@@ -98,10 +121,31 @@ class TemplateMergerTest {
         final PdfTemplateV2 resolvedLeaf = out.get(2);
         final List<PdfTemplateV2.LabelRule> merged =
                 resolvedLeaf.getMetadata().getNewBalance();
-        assertEquals(3, merged.size());
+        assertEquals(1, merged.size(),
+                "leaf overrides mid + base when leaf declares the field");
         assertEquals("leaf", merged.get(0).getPattern());
-        assertEquals("mid", merged.get(1).getPattern());
-        assertEquals("base", merged.get(2).getPattern());
+    }
+
+    @Test
+    void transitiveChainInheritsFromBaseWhenLeafAndMidOmit() {
+        // base declares the field; mid and leaf omit it. Base fills the gap.
+        final PdfTemplateV2 base = template("base", List.of());
+        final PdfTemplateV2.MetadataRules bm = new PdfTemplateV2.MetadataRules();
+        bm.setNewBalance(List.of(pattern("base")));
+        base.setMetadata(bm);
+
+        final PdfTemplateV2 mid = template("mid", List.of("base"));
+        mid.setMetadata(new PdfTemplateV2.MetadataRules()); // declares no rules
+
+        final PdfTemplateV2 leaf = template("leaf", List.of("mid"));
+        leaf.setMetadata(new PdfTemplateV2.MetadataRules()); // declares no rules
+
+        final PdfTemplateV2 resolved =
+                TemplateMerger.resolve(List.of(base, mid, leaf)).get(2);
+        final List<PdfTemplateV2.LabelRule> merged =
+                resolved.getMetadata().getNewBalance();
+        assertEquals(1, merged.size(), "base fills the gap when both leaf and mid omit");
+        assertEquals("base", merged.get(0).getPattern());
     }
 
     @Test

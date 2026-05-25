@@ -110,10 +110,19 @@ public class WikidataMerchantLookup implements ChainedLocationLookup.ExternalCat
     );
 
     private static final double WIKIDATA_CONFIDENCE = 0.85;
+    /** How long to skip Wikidata after a 429 rate-limit response. */
+    private static final long RATE_LIMIT_COOLDOWN_MS = 60 * 60 * 1000L; // 1 hour
 
     private final String wikidataUrl;
     private final HttpClient http;
     private final ObjectMapper jsonMapper = new ObjectMapper();
+    /**
+     * Wall-clock instant (ms since epoch) until which we skip Wikidata
+     * because the SPARQL endpoint returned 429. Atomically read/written so
+     * concurrent requests don't pile up after a single rate-limit event.
+     */
+    private final java.util.concurrent.atomic.AtomicLong rateLimitedUntilMs =
+            new java.util.concurrent.atomic.AtomicLong();
 
     public WikidataMerchantLookup(
             @Value("${app.category.wikidata.url:https://query.wikidata.org/sparql}")
@@ -131,6 +140,14 @@ public class WikidataMerchantLookup implements ChainedLocationLookup.ExternalCat
             final String country) {
         // Caching handled by ChainedLocationLookup via MerchantEnrichmentStore.
         if (merchantName == null || merchantName.isBlank()) {
+            return null;
+        }
+        // Wikidata public SPARQL is aggressively rate-limited per IP. If we
+        // got a 429 recently, skip every subsequent call for an hour so we
+        // don't burn the cascade's wall-clock budget on guaranteed-failing
+        // queries. The cooldown resets automatically.
+        final long until = rateLimitedUntilMs.get();
+        if (until > 0 && System.currentTimeMillis() < until) {
             return null;
         }
         try {
@@ -166,6 +183,21 @@ public class WikidataMerchantLookup implements ChainedLocationLookup.ExternalCat
                 .build();
         final HttpResponse<String> resp =
                 http.send(req, HttpResponse.BodyHandlers.ofString());
+        if (resp.statusCode() == 429) {
+            // Public SPARQL endpoint is rate-limiting. Trip the cooldown so
+            // subsequent calls in this hour return null immediately rather
+            // than waiting on a 429 round-trip. Logged at INFO since this
+            // is operationally meaningful (the L6 chain effectively loses
+            // this source until the cooldown expires).
+            final long until = System.currentTimeMillis() + RATE_LIMIT_COOLDOWN_MS;
+            rateLimitedUntilMs.set(until);
+            if (LOGGER.isInfoEnabled()) {
+                LOGGER.info(
+                        "Wikidata SPARQL returned 429 — skipping for {} minutes",
+                        RATE_LIMIT_COOLDOWN_MS / 60_000);
+            }
+            return null;
+        }
         if (resp.statusCode() != 200) {
             return null;
         }

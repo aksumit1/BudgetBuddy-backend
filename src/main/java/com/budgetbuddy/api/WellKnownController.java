@@ -1,5 +1,6 @@
 package com.budgetbuddy.api;
 
+import com.budgetbuddy.api.response.RawResponse;
 import java.util.HashMap;
 import java.util.Map;
 import org.slf4j.Logger;
@@ -17,7 +18,14 @@ import org.springframework.web.bind.annotation.RestController;
  *
  * <p>Handles: - Apple App Site Association file for Universal Links - Other well-known endpoints as
  * needed
+ *
+ * <p>All endpoints here are marked {@link RawResponse} at the class
+ * level: well-known files have strict externally-defined shapes
+ * (Apple parses the file by structure, OIDC clients expect a flat
+ * discovery document, etc.) and must never be wrapped in the
+ * {@code {status, data, ...}} envelope.
  */
+@RawResponse
 @RestController
 @RequestMapping("/.well-known")
 public class WellKnownController {

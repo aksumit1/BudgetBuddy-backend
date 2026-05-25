@@ -6,8 +6,12 @@ import com.budgetbuddy.model.dynamodb.ChatMessageTable;
 import com.budgetbuddy.model.dynamodb.UserTable;
 import com.budgetbuddy.repository.dynamodb.ChatMessageRepository;
 import com.budgetbuddy.service.UserService;
+import com.budgetbuddy.service.insights.ai.ChatMetrics;
 import com.budgetbuddy.service.insights.ai.ChatRateLimiter;
 import com.budgetbuddy.service.insights.ai.InsightsChatService;
+import com.budgetbuddy.service.insights.ai.InsightsChatStreamingService;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.time.Instant;
 import java.util.List;
@@ -48,6 +52,7 @@ public class InsightsChatController {
     private final UserService userService;
     private final ChatMessageRepository chatRepo;
     private final ChatRateLimiter rateLimiter;
+    private final ChatMetrics metrics;
 
     /**
      * Optional. Null when the chat feature flag is off — the endpoint
@@ -56,13 +61,19 @@ public class InsightsChatController {
     @Autowired(required = false)
     private InsightsChatService chatService;
 
+    /** Optional — present only when the streaming bean is wired (feature-flagged on). */
+    @Autowired(required = false)
+    private InsightsChatStreamingService chatStreamingService;
+
     public InsightsChatController(
             final UserService userService,
             final ChatMessageRepository chatRepo,
-            final ChatRateLimiter rateLimiter) {
+            final ChatRateLimiter rateLimiter,
+            final ChatMetrics metrics) {
         this.userService = userService;
         this.chatRepo = chatRepo;
         this.rateLimiter = rateLimiter;
+        this.metrics = metrics;
     }
 
     /** POST /api/insights/chat — one chat turn (user message → assistant reply). */
@@ -92,6 +103,7 @@ public class InsightsChatController {
                     "message too long (max 2000 chars)");
         }
         if (!rateLimiter.tryAcquire(user.getUserId())) {
+            metrics.recordRateLimited();
             return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
                     .header("Retry-After", String.valueOf(rateLimiter.retryAfterSeconds()))
                     .body(new ChatTurnResponse(
@@ -123,6 +135,59 @@ public class InsightsChatController {
             throw new AppException(ErrorCode.EXTERNAL_API_ERROR,
                     "AI chat request failed — please retry");
         }
+    }
+
+    /**
+     * GET /api/insights/chat/stream — server-sent-event variant of
+     * the chat POST. Streams the assistant's reply token-by-token so
+     * the iOS client can render incrementally. Same rate limit + auth
+     * rules as the non-streaming endpoint.
+     *
+     * <p>Implemented as GET with query params so SSE clients (e.g.
+     * iOS URLSession) can use the simpler streaming-task API instead
+     * of body-encoded POSTs.
+     */
+    @GetMapping(value = "/stream", produces = "text/event-stream")
+    public SseEmitter stream(
+            @AuthenticationPrincipal final UserDetails userDetails,
+            @RequestParam(required = false) final String conversationId,
+            @RequestParam final String message,
+            @RequestParam(required = false, defaultValue = "general") final String mode) {
+        if (userDetails == null || userDetails.getUsername() == null) {
+            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, USER_NOT_AUTH);
+        }
+        final UserTable user = userService.findByEmail(userDetails.getUsername())
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND, USER_NOT_FOUND));
+        if (chatStreamingService == null) {
+            throw new AppException(ErrorCode.EXTERNAL_API_ERROR,
+                    "Streaming chat is not enabled in this environment.");
+        }
+        if (message == null || message.isBlank()) {
+            throw new AppException(ErrorCode.INVALID_INPUT, "message is required");
+        }
+        if (message.length() > 2_000) {
+            throw new AppException(ErrorCode.INVALID_INPUT, "message too long (max 2000 chars)");
+        }
+        if (!rateLimiter.tryAcquire(user.getUserId())) {
+            metrics.recordRateLimited();
+            throw new AppException(ErrorCode.RATE_LIMIT_EXCEEDED,
+                    "You're sending messages too quickly. Please wait a moment.");
+        }
+        // 5-minute server-side timeout — long enough for any reasonable
+        // chat turn; client should reconnect if it hits this.
+        final SseEmitter emitter = new SseEmitter(5L * 60 * 1000);
+        // Run the LLM call on a separate thread so the HTTP thread is
+        // released immediately and the emitter can stream back.
+        new Thread(() -> {
+            try {
+                chatStreamingService.stream(
+                        user.getUserId(), conversationId, message, mode, emitter);
+            } catch (final RuntimeException e) {
+                LOGGER.warn("Streaming worker died: {}", e.getMessage());
+                emitter.completeWithError(e);
+            }
+        }, "insights-chat-stream-" + user.getUserId()).start();
+        return emitter;
     }
 
     /**

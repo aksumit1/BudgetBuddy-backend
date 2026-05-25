@@ -7,6 +7,7 @@ id: bank-of-america-v2
 institution: Bank of America
 description: "Bank of America credit cards"
 status: unverified
+extends: [common]
 
 card_detection:
   institution_match:

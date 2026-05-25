@@ -70,7 +70,7 @@ public class SubscriptionRepository {
         }
 
         try {
-            return StreamSupport.stream(
+            final List<SubscriptionTable> results = StreamSupport.stream(
                             userIdIndex
                                     .query(
                                             QueryConditional.keyEqualTo(
@@ -79,6 +79,9 @@ public class SubscriptionRepository {
                             false)
                     .flatMap(page -> page.items().stream())
                     .collect(Collectors.toList());
+            // Belt-and-suspenders IDOR guard — see UserOwnershipGuard javadoc.
+            return com.budgetbuddy.security.UserOwnershipGuard.filter(
+                    results, userId, SubscriptionTable::getUserId);
         } catch (software.amazon.awssdk.services.dynamodb.model.ResourceNotFoundException e) {
             // GSI not available - return empty list (fallback logic can be added if needed)
             LOGGER.warn("UserIdIndex GSI not found for userId {}. Returning empty list.", userId);

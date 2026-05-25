@@ -2651,8 +2651,8 @@
       "aliases": [
         "cvs pharmacy"
       ],
-      "primary_category": "healthcare",
-      "detailed_category": "healthcare",
+      "primary_category": "health",
+      "detailed_category": "health",
       "mcc_code": "5912",
       "country_code": "US",
       "confidence": 0.95
@@ -2663,8 +2663,8 @@
       "aliases": [
         "walgreens pharmacy"
       ],
-      "primary_category": "healthcare",
-      "detailed_category": "healthcare",
+      "primary_category": "health",
+      "detailed_category": "health",
       "mcc_code": "5912",
       "country_code": "US",
       "confidence": 0.95
@@ -2675,8 +2675,8 @@
       "aliases": [
         "rite aid pharmacy"
       ],
-      "primary_category": "healthcare",
-      "detailed_category": "healthcare",
+      "primary_category": "health",
+      "detailed_category": "health",
       "mcc_code": "5912",
       "country_code": "US",
       "confidence": 0.95
@@ -2687,8 +2687,8 @@
       "aliases": [
         "walmart pharmacy"
       ],
-      "primary_category": "healthcare",
-      "detailed_category": "healthcare",
+      "primary_category": "health",
+      "detailed_category": "health",
       "mcc_code": "5912",
       "country_code": "US",
       "confidence": 0.95
@@ -2699,8 +2699,8 @@
       "aliases": [
         "target pharmacy"
       ],
-      "primary_category": "healthcare",
-      "detailed_category": "healthcare",
+      "primary_category": "health",
+      "detailed_category": "health",
       "mcc_code": "5912",
       "country_code": "US",
       "confidence": 0.95
@@ -2711,8 +2711,8 @@
       "aliases": [
         "kroger pharmacy"
       ],
-      "primary_category": "healthcare",
-      "detailed_category": "healthcare",
+      "primary_category": "health",
+      "detailed_category": "health",
       "mcc_code": "5912",
       "country_code": "US",
       "confidence": 0.95
@@ -2723,8 +2723,8 @@
       "aliases": [
         "safeway pharmacy"
       ],
-      "primary_category": "healthcare",
-      "detailed_category": "healthcare",
+      "primary_category": "health",
+      "detailed_category": "health",
       "mcc_code": "5912",
       "country_code": "US",
       "confidence": 0.95
@@ -2735,8 +2735,8 @@
       "aliases": [
         "costco pharmacy"
       ],
-      "primary_category": "healthcare",
-      "detailed_category": "healthcare",
+      "primary_category": "health",
+      "detailed_category": "health",
       "mcc_code": "5912",
       "country_code": "US",
       "confidence": 0.95
@@ -18313,8 +18313,8 @@
         "cvs",
         "cvs"
       ],
-      "primary_category": "healthcare",
-      "detailed_category": "healthcare",
+      "primary_category": "health",
+      "detailed_category": "health",
       "mcc_code": "5912",
       "country_code": "US",
       "confidence": 0.95
@@ -18326,8 +18326,8 @@
         "walgreens",
         "walgreens"
       ],
-      "primary_category": "healthcare",
-      "detailed_category": "healthcare",
+      "primary_category": "health",
+      "detailed_category": "health",
       "mcc_code": "5912",
       "country_code": "US",
       "confidence": 0.95
@@ -18339,8 +18339,8 @@
         "rite aid",
         "riteaid"
       ],
-      "primary_category": "healthcare",
-      "detailed_category": "healthcare",
+      "primary_category": "health",
+      "detailed_category": "health",
       "mcc_code": "5912",
       "country_code": "US",
       "confidence": 0.95
@@ -18352,8 +18352,8 @@
         "duane reade",
         "duanereade"
       ],
-      "primary_category": "healthcare",
-      "detailed_category": "healthcare",
+      "primary_category": "health",
+      "detailed_category": "health",
       "mcc_code": "5912",
       "country_code": "US",
       "confidence": 0.95
@@ -18365,8 +18365,8 @@
         "bartell drugs",
         "bartelldrugs"
       ],
-      "primary_category": "healthcare",
-      "detailed_category": "healthcare",
+      "primary_category": "health",
+      "detailed_category": "health",
       "mcc_code": "5912",
       "country_code": "US",
       "confidence": 0.95
@@ -18378,8 +18378,8 @@
         "longs drugs",
         "longsdrugs"
       ],
-      "primary_category": "healthcare",
-      "detailed_category": "healthcare",
+      "primary_category": "health",
+      "detailed_category": "health",
       "mcc_code": "5912",
       "country_code": "US",
       "confidence": 0.95
@@ -18391,8 +18391,8 @@
         "sav-on",
         "savon"
       ],
-      "primary_category": "healthcare",
-      "detailed_category": "healthcare",
+      "primary_category": "health",
+      "detailed_category": "health",
       "mcc_code": "5912",
       "country_code": "US",
       "confidence": 0.95
@@ -18404,8 +18404,8 @@
         "osco drug",
         "oscodrug"
       ],
-      "primary_category": "healthcare",
-      "detailed_category": "healthcare",
+      "primary_category": "health",
+      "detailed_category": "health",
       "mcc_code": "5912",
       "country_code": "US",
       "confidence": 0.95
@@ -18417,8 +18417,8 @@
         "albertsons pharmacy",
         "albertsonspharmacy"
       ],
-      "primary_category": "healthcare",
-      "detailed_category": "healthcare",
+      "primary_category": "health",
+      "detailed_category": "health",
       "mcc_code": "5912",
       "country_code": "US",
       "confidence": 0.95
@@ -18430,8 +18430,8 @@
         "walmart pharmacy",
         "walmartpharmacy"
       ],
-      "primary_category": "healthcare",
-      "detailed_category": "healthcare",
+      "primary_category": "health",
+      "detailed_category": "health",
       "mcc_code": "5912",
       "country_code": "US",
       "confidence": 0.95
@@ -18443,8 +18443,8 @@
         "target pharmacy",
         "targetpharmacy"
       ],
-      "primary_category": "healthcare",
-      "detailed_category": "healthcare",
+      "primary_category": "health",
+      "detailed_category": "health",
       "mcc_code": "5912",
       "country_code": "US",
       "confidence": 0.95
@@ -18456,8 +18456,8 @@
         "kroger pharmacy",
         "krogerpharmacy"
       ],
-      "primary_category": "healthcare",
-      "detailed_category": "healthcare",
+      "primary_category": "health",
+      "detailed_category": "health",
       "mcc_code": "5912",
       "country_code": "US",
       "confidence": 0.95
@@ -18469,8 +18469,8 @@
         "safeway pharmacy",
         "safewaypharmacy"
       ],
-      "primary_category": "healthcare",
-      "detailed_category": "healthcare",
+      "primary_category": "health",
+      "detailed_category": "health",
       "mcc_code": "5912",
       "country_code": "US",
       "confidence": 0.95
@@ -18482,8 +18482,8 @@
         "costco pharmacy",
         "costcopharmacy"
       ],
-      "primary_category": "healthcare",
-      "detailed_category": "healthcare",
+      "primary_category": "health",
+      "detailed_category": "health",
       "mcc_code": "5912",
       "country_code": "US",
       "confidence": 0.95
@@ -18495,8 +18495,8 @@
         "sam's club pharmacy",
         "samsclubpharmacy"
       ],
-      "primary_category": "healthcare",
-      "detailed_category": "healthcare",
+      "primary_category": "health",
+      "detailed_category": "health",
       "mcc_code": "5912",
       "country_code": "US",
       "confidence": 0.95
@@ -18508,8 +18508,8 @@
         "bj's pharmacy",
         "bjspharmacy"
       ],
-      "primary_category": "healthcare",
-      "detailed_category": "healthcare",
+      "primary_category": "health",
+      "detailed_category": "health",
       "mcc_code": "5912",
       "country_code": "US",
       "confidence": 0.95
@@ -18521,8 +18521,8 @@
         "publix pharmacy",
         "publixpharmacy"
       ],
-      "primary_category": "healthcare",
-      "detailed_category": "healthcare",
+      "primary_category": "health",
+      "detailed_category": "health",
       "mcc_code": "5912",
       "country_code": "US",
       "confidence": 0.95
@@ -18534,8 +18534,8 @@
         "wegmans pharmacy",
         "wegmanspharmacy"
       ],
-      "primary_category": "healthcare",
-      "detailed_category": "healthcare",
+      "primary_category": "health",
+      "detailed_category": "health",
       "mcc_code": "5912",
       "country_code": "US",
       "confidence": 0.95
@@ -18547,8 +18547,8 @@
         "h-e-b pharmacy",
         "hebpharmacy"
       ],
-      "primary_category": "healthcare",
-      "detailed_category": "healthcare",
+      "primary_category": "health",
+      "detailed_category": "health",
       "mcc_code": "5912",
       "country_code": "US",
       "confidence": 0.95
@@ -18560,8 +18560,8 @@
         "giant eagle pharmacy",
         "gianteaglepharmacy"
       ],
-      "primary_category": "healthcare",
-      "detailed_category": "healthcare",
+      "primary_category": "health",
+      "detailed_category": "health",
       "mcc_code": "5912",
       "country_code": "US",
       "confidence": 0.95
@@ -18573,8 +18573,8 @@
         "meijer pharmacy",
         "meijerpharmacy"
       ],
-      "primary_category": "healthcare",
-      "detailed_category": "healthcare",
+      "primary_category": "health",
+      "detailed_category": "health",
       "mcc_code": "5912",
       "country_code": "US",
       "confidence": 0.95
@@ -18586,8 +18586,8 @@
         "hy-vee pharmacy",
         "hyveepharmacy"
       ],
-      "primary_category": "healthcare",
-      "detailed_category": "healthcare",
+      "primary_category": "health",
+      "detailed_category": "health",
       "mcc_code": "5912",
       "country_code": "US",
       "confidence": 0.95
@@ -18599,8 +18599,8 @@
         "shoprite pharmacy",
         "shopritepharmacy"
       ],
-      "primary_category": "healthcare",
-      "detailed_category": "healthcare",
+      "primary_category": "health",
+      "detailed_category": "health",
       "mcc_code": "5912",
       "country_code": "US",
       "confidence": 0.95
@@ -18612,8 +18612,8 @@
         "stop & shop pharmacy",
         "stopshoppharmacy"
       ],
-      "primary_category": "healthcare",
-      "detailed_category": "healthcare",
+      "primary_category": "health",
+      "detailed_category": "health",
       "mcc_code": "5912",
       "country_code": "US",
       "confidence": 0.95
@@ -18625,8 +18625,8 @@
         "food lion pharmacy",
         "foodlionpharmacy"
       ],
-      "primary_category": "healthcare",
-      "detailed_category": "healthcare",
+      "primary_category": "health",
+      "detailed_category": "health",
       "mcc_code": "5912",
       "country_code": "US",
       "confidence": 0.95
@@ -18638,8 +18638,8 @@
         "giant pharmacy",
         "giantpharmacy"
       ],
-      "primary_category": "healthcare",
-      "detailed_category": "healthcare",
+      "primary_category": "health",
+      "detailed_category": "health",
       "mcc_code": "5912",
       "country_code": "US",
       "confidence": 0.95
@@ -18651,8 +18651,8 @@
         "harris teeter pharmacy",
         "harristeeterpharmacy"
       ],
-      "primary_category": "healthcare",
-      "detailed_category": "healthcare",
+      "primary_category": "health",
+      "detailed_category": "health",
       "mcc_code": "5912",
       "country_code": "US",
       "confidence": 0.95
@@ -18664,8 +18664,8 @@
         "kaiser permanente",
         "kaiserpermanente"
       ],
-      "primary_category": "healthcare",
-      "detailed_category": "healthcare",
+      "primary_category": "health",
+      "detailed_category": "health",
       "mcc_code": "8011",
       "country_code": "US",
       "confidence": 0.95
@@ -18677,8 +18677,8 @@
         "kaiser",
         "kaiser"
       ],
-      "primary_category": "healthcare",
-      "detailed_category": "healthcare",
+      "primary_category": "health",
+      "detailed_category": "health",
       "mcc_code": "8011",
       "country_code": "US",
       "confidence": 0.95
@@ -18690,8 +18690,8 @@
         "kaiser pharmacy",
         "kaiserpharmacy"
       ],
-      "primary_category": "healthcare",
-      "detailed_category": "healthcare",
+      "primary_category": "health",
+      "detailed_category": "health",
       "mcc_code": "5912",
       "country_code": "US",
       "confidence": 0.95
@@ -18703,8 +18703,8 @@
         "kaiser medical",
         "kaisermedical"
       ],
-      "primary_category": "healthcare",
-      "detailed_category": "healthcare",
+      "primary_category": "health",
+      "detailed_category": "health",
       "mcc_code": "8011",
       "country_code": "US",
       "confidence": 0.95
@@ -18716,8 +18716,8 @@
         "kaiser hospital",
         "kaiserhospital"
       ],
-      "primary_category": "healthcare",
-      "detailed_category": "healthcare",
+      "primary_category": "health",
+      "detailed_category": "health",
       "mcc_code": "8011",
       "country_code": "US",
       "confidence": 0.95
@@ -18729,8 +18729,8 @@
         "kaiser clinic",
         "kaiserclinic"
       ],
-      "primary_category": "healthcare",
-      "detailed_category": "healthcare",
+      "primary_category": "health",
+      "detailed_category": "health",
       "mcc_code": "8011",
       "country_code": "US",
       "confidence": 0.95
@@ -18742,8 +18742,8 @@
         "kaiser urgent care",
         "kaiserurgentcare"
       ],
-      "primary_category": "healthcare",
-      "detailed_category": "healthcare",
+      "primary_category": "health",
+      "detailed_category": "health",
       "mcc_code": "8011",
       "country_code": "US",
       "confidence": 0.95
@@ -18755,8 +18755,8 @@
         "kaiser emergency",
         "kaiseremergency"
       ],
-      "primary_category": "healthcare",
-      "detailed_category": "healthcare",
+      "primary_category": "health",
+      "detailed_category": "health",
       "mcc_code": "8011",
       "country_code": "US",
       "confidence": 0.95
@@ -18768,8 +18768,8 @@
         "kaiser lab",
         "kaiserlab"
       ],
-      "primary_category": "healthcare",
-      "detailed_category": "healthcare",
+      "primary_category": "health",
+      "detailed_category": "health",
       "mcc_code": "8011",
       "country_code": "US",
       "confidence": 0.95
@@ -18781,8 +18781,8 @@
         "kaiser imaging",
         "kaiserimaging"
       ],
-      "primary_category": "healthcare",
-      "detailed_category": "healthcare",
+      "primary_category": "health",
+      "detailed_category": "health",
       "mcc_code": "8011",
       "country_code": "US",
       "confidence": 0.95
@@ -18794,8 +18794,8 @@
         "kaiser surgery",
         "kaisersurgery"
       ],
-      "primary_category": "healthcare",
-      "detailed_category": "healthcare",
+      "primary_category": "health",
+      "detailed_category": "health",
       "mcc_code": "8011",
       "country_code": "US",
       "confidence": 0.95
@@ -18807,8 +18807,8 @@
         "kaiser physical therapy",
         "kaiserphysicaltherapy"
       ],
-      "primary_category": "healthcare",
-      "detailed_category": "healthcare",
+      "primary_category": "health",
+      "detailed_category": "health",
       "mcc_code": "8011",
       "country_code": "US",
       "confidence": 0.95
@@ -18820,8 +18820,8 @@
         "kaiser mental health",
         "kaisermentalhealth"
       ],
-      "primary_category": "healthcare",
-      "detailed_category": "healthcare",
+      "primary_category": "health",
+      "detailed_category": "health",
       "mcc_code": "8011",
       "country_code": "US",
       "confidence": 0.95
@@ -18833,8 +18833,8 @@
         "kaiser dental",
         "kaiserdental"
       ],
-      "primary_category": "healthcare",
-      "detailed_category": "healthcare",
+      "primary_category": "health",
+      "detailed_category": "health",
       "mcc_code": "8011",
       "country_code": "US",
       "confidence": 0.95
@@ -18846,8 +18846,8 @@
         "kaiser vision",
         "kaiservision"
       ],
-      "primary_category": "healthcare",
-      "detailed_category": "healthcare",
+      "primary_category": "health",
+      "detailed_category": "health",
       "mcc_code": "8011",
       "country_code": "US",
       "confidence": 0.95
@@ -18859,8 +18859,8 @@
         "kaiser medical group",
         "kaisermedicalgroup"
       ],
-      "primary_category": "healthcare",
-      "detailed_category": "healthcare",
+      "primary_category": "health",
+      "detailed_category": "health",
       "mcc_code": "8011",
       "country_code": "US",
       "confidence": 0.95
@@ -18872,8 +18872,8 @@
         "kaiser foundation health plan",
         "kaiserfoundationhealthplan"
       ],
-      "primary_category": "healthcare",
-      "detailed_category": "healthcare",
+      "primary_category": "health",
+      "detailed_category": "health",
       "mcc_code": "8011",
       "country_code": "US",
       "confidence": 0.95
@@ -18885,8 +18885,8 @@
         "kaiser foundation hospitals",
         "kaiserfoundationhospitals"
       ],
-      "primary_category": "healthcare",
-      "detailed_category": "healthcare",
+      "primary_category": "health",
+      "detailed_category": "health",
       "mcc_code": "8011",
       "country_code": "US",
       "confidence": 0.95
@@ -18898,8 +18898,8 @@
         "kaiser permanente medical group",
         "kaiserpermanentemedicalgroup"
       ],
-      "primary_category": "healthcare",
-      "detailed_category": "healthcare",
+      "primary_category": "health",
+      "detailed_category": "health",
       "mcc_code": "8011",
       "country_code": "US",
       "confidence": 0.95
@@ -18911,8 +18911,8 @@
         "kaiser permanente medical care",
         "kaiserpermanentemedicalcare"
       ],
-      "primary_category": "healthcare",
-      "detailed_category": "healthcare",
+      "primary_category": "health",
+      "detailed_category": "health",
       "mcc_code": "8011",
       "country_code": "US",
       "confidence": 0.95
@@ -18924,8 +18924,8 @@
         "kaiser permanente medical centers",
         "kaiserpermanentemedicalcenters"
       ],
-      "primary_category": "healthcare",
-      "detailed_category": "healthcare",
+      "primary_category": "health",
+      "detailed_category": "health",
       "mcc_code": "8011",
       "country_code": "US",
       "confidence": 0.95
@@ -18937,8 +18937,8 @@
         "kaiser permanente hospitals",
         "kaiserpermanentehospitals"
       ],
-      "primary_category": "healthcare",
-      "detailed_category": "healthcare",
+      "primary_category": "health",
+      "detailed_category": "health",
       "mcc_code": "8011",
       "country_code": "US",
       "confidence": 0.95
@@ -18950,8 +18950,8 @@
         "kaiser permanente clinics",
         "kaiserpermanenteclinics"
       ],
-      "primary_category": "healthcare",
-      "detailed_category": "healthcare",
+      "primary_category": "health",
+      "detailed_category": "health",
       "mcc_code": "8011",
       "country_code": "US",
       "confidence": 0.95
@@ -18963,8 +18963,8 @@
         "kaiser permanente urgent care",
         "kaiserpermanenteurgentcare"
       ],
-      "primary_category": "healthcare",
-      "detailed_category": "healthcare",
+      "primary_category": "health",
+      "detailed_category": "health",
       "mcc_code": "8011",
       "country_code": "US",
       "confidence": 0.95
@@ -18976,8 +18976,8 @@
         "kaiser permanente emergency",
         "kaiserpermanenteemergency"
       ],
-      "primary_category": "healthcare",
-      "detailed_category": "healthcare",
+      "primary_category": "health",
+      "detailed_category": "health",
       "mcc_code": "8011",
       "country_code": "US",
       "confidence": 0.95
@@ -18989,8 +18989,8 @@
         "kaiser permanente labs",
         "kaiserpermanentelabs"
       ],
-      "primary_category": "healthcare",
-      "detailed_category": "healthcare",
+      "primary_category": "health",
+      "detailed_category": "health",
       "mcc_code": "8011",
       "country_code": "US",
       "confidence": 0.95
@@ -19002,8 +19002,8 @@
         "kaiser permanente imaging",
         "kaiserpermanenteimaging"
       ],
-      "primary_category": "healthcare",
-      "detailed_category": "healthcare",
+      "primary_category": "health",
+      "detailed_category": "health",
       "mcc_code": "8011",
       "country_code": "US",
       "confidence": 0.95
@@ -19015,8 +19015,8 @@
         "kaiser permanente surgery",
         "kaiserpermanentesurgery"
       ],
-      "primary_category": "healthcare",
-      "detailed_category": "healthcare",
+      "primary_category": "health",
+      "detailed_category": "health",
       "mcc_code": "8011",
       "country_code": "US",
       "confidence": 0.95
@@ -19028,8 +19028,8 @@
         "kaiser permanente physical therapy",
         "kaiserpermanentephysicaltherapy"
       ],
-      "primary_category": "healthcare",
-      "detailed_category": "healthcare",
+      "primary_category": "health",
+      "detailed_category": "health",
       "mcc_code": "8011",
       "country_code": "US",
       "confidence": 0.95
@@ -19041,8 +19041,8 @@
         "kaiser permanente mental health",
         "kaiserpermanentementalhealth"
       ],
-      "primary_category": "healthcare",
-      "detailed_category": "healthcare",
+      "primary_category": "health",
+      "detailed_category": "health",
       "mcc_code": "8011",
       "country_code": "US",
       "confidence": 0.95
@@ -19054,8 +19054,8 @@
         "kaiser permanente dental",
         "kaiserpermanentedental"
       ],
-      "primary_category": "healthcare",
-      "detailed_category": "healthcare",
+      "primary_category": "health",
+      "detailed_category": "health",
       "mcc_code": "8011",
       "country_code": "US",
       "confidence": 0.95
@@ -19067,8 +19067,8 @@
         "kaiser permanente vision",
         "kaiserpermanentevision"
       ],
-      "primary_category": "healthcare",
-      "detailed_category": "healthcare",
+      "primary_category": "health",
+      "detailed_category": "health",
       "mcc_code": "8011",
       "country_code": "US",
       "confidence": 0.95
@@ -19080,8 +19080,8 @@
         "kaiser permanente pharmacy",
         "kaiserpermanentepharmacy"
       ],
-      "primary_category": "healthcare",
-      "detailed_category": "healthcare",
+      "primary_category": "health",
+      "detailed_category": "health",
       "mcc_code": "5912",
       "country_code": "US",
       "confidence": 0.95
@@ -19093,8 +19093,8 @@
         "unitedhealthcare",
         "unitedhealthcare"
       ],
-      "primary_category": "healthcare",
-      "detailed_category": "healthcare",
+      "primary_category": "health",
+      "detailed_category": "health",
       "mcc_code": "8011",
       "country_code": "US",
       "confidence": 0.95
@@ -19106,8 +19106,8 @@
         "united health",
         "unitedhealth"
       ],
-      "primary_category": "healthcare",
-      "detailed_category": "healthcare",
+      "primary_category": "health",
+      "detailed_category": "health",
       "mcc_code": "8011",
       "country_code": "US",
       "confidence": 0.95
@@ -19119,8 +19119,8 @@
         "united health care",
         "unitedhealthcare"
       ],
-      "primary_category": "healthcare",
-      "detailed_category": "healthcare",
+      "primary_category": "health",
+      "detailed_category": "health",
       "mcc_code": "8011",
       "country_code": "US",
       "confidence": 0.95
@@ -19132,8 +19132,8 @@
         "united healthcare",
         "unitedhealthcare"
       ],
-      "primary_category": "healthcare",
-      "detailed_category": "healthcare",
+      "primary_category": "health",
+      "detailed_category": "health",
       "mcc_code": "8011",
       "country_code": "US",
       "confidence": 0.95
@@ -19145,8 +19145,8 @@
         "uhc",
         "uhc"
       ],
-      "primary_category": "healthcare",
-      "detailed_category": "healthcare",
+      "primary_category": "health",
+      "detailed_category": "health",
       "mcc_code": "8011",
       "country_code": "US",
       "confidence": 0.95
@@ -19158,8 +19158,8 @@
         "unitedhealth",
         "unitedhealth"
       ],
-      "primary_category": "healthcare",
-      "detailed_category": "healthcare",
+      "primary_category": "health",
+      "detailed_category": "health",
       "mcc_code": "8011",
       "country_code": "US",
       "confidence": 0.95
@@ -19171,8 +19171,8 @@
         "unitedhealth group",
         "unitedhealthgroup"
       ],
-      "primary_category": "healthcare",
-      "detailed_category": "healthcare",
+      "primary_category": "health",
+      "detailed_category": "health",
       "mcc_code": "8011",
       "country_code": "US",
       "confidence": 0.95
@@ -19184,8 +19184,8 @@
         "unitedhealthcare insurance",
         "unitedhealthcareinsurance"
       ],
-      "primary_category": "healthcare",
-      "detailed_category": "healthcare",
+      "primary_category": "health",
+      "detailed_category": "health",
       "mcc_code": "8011",
       "country_code": "US",
       "confidence": 0.95
@@ -19197,8 +19197,8 @@
         "unitedhealthcare medical",
         "unitedhealthcaremedical"
       ],
-      "primary_category": "healthcare",
-      "detailed_category": "healthcare",
+      "primary_category": "health",
+      "detailed_category": "health",
       "mcc_code": "8011",
       "country_code": "US",
       "confidence": 0.95
@@ -19210,8 +19210,8 @@
         "unitedhealthcare dental",
         "unitedhealthcaredental"
       ],
-      "primary_category": "healthcare",
-      "detailed_category": "healthcare",
+      "primary_category": "health",
+      "detailed_category": "health",
       "mcc_code": "8011",
       "country_code": "US",
       "confidence": 0.95
@@ -19223,8 +19223,8 @@
         "unitedhealthcare vision",
         "unitedhealthcarevision"
       ],
-      "primary_category": "healthcare",
-      "detailed_category": "healthcare",
+      "primary_category": "health",
+      "detailed_category": "health",
       "mcc_code": "8011",
       "country_code": "US",
       "confidence": 0.95
@@ -19236,8 +19236,8 @@
         "unitedhealthcare pharmacy",
         "unitedhealthcarepharmacy"
       ],
-      "primary_category": "healthcare",
-      "detailed_category": "healthcare",
+      "primary_category": "health",
+      "detailed_category": "health",
       "mcc_code": "5912",
       "country_code": "US",
       "confidence": 0.95
@@ -19249,8 +19249,8 @@
         "unitedhealthcare mental health",
         "unitedhealthcarementalhealth"
       ],
-      "primary_category": "healthcare",
-      "detailed_category": "healthcare",
+      "primary_category": "health",
+      "detailed_category": "health",
       "mcc_code": "8011",
       "country_code": "US",
       "confidence": 0.95
@@ -19262,8 +19262,8 @@
         "unitedhealthcare behavioral health",
         "unitedhealthcarebehavioralhealth"
       ],
-      "primary_category": "healthcare",
-      "detailed_category": "healthcare",
+      "primary_category": "health",
+      "detailed_category": "health",
       "mcc_code": "8011",
       "country_code": "US",
       "confidence": 0.95
@@ -19275,8 +19275,8 @@
         "unitedhealthcare substance abuse",
         "unitedhealthcaresubstanceabuse"
       ],
-      "primary_category": "healthcare",
-      "detailed_category": "healthcare",
+      "primary_category": "health",
+      "detailed_category": "health",
       "mcc_code": "8011",
       "country_code": "US",
       "confidence": 0.95
@@ -19288,8 +19288,8 @@
         "anthem",
         "anthem"
       ],
-      "primary_category": "healthcare",
-      "detailed_category": "healthcare",
+      "primary_category": "health",
+      "detailed_category": "health",
       "mcc_code": "8011",
       "country_code": "US",
       "confidence": 0.95
@@ -19301,8 +19301,8 @@
         "anthem blue cross",
         "anthembluecross"
       ],
-      "primary_category": "healthcare",
-      "detailed_category": "healthcare",
+      "primary_category": "health",
+      "detailed_category": "health",
       "mcc_code": "8011",
       "country_code": "US",
       "confidence": 0.95
@@ -19314,8 +19314,8 @@
         "anthem blue cross blue shield",
         "anthembluecrossblueshield"
       ],
-      "primary_category": "healthcare",
-      "detailed_category": "healthcare",
+      "primary_category": "health",
+      "detailed_category": "health",
       "mcc_code": "8011",
       "country_code": "US",
       "confidence": 0.95
@@ -19327,8 +19327,8 @@
         "blue cross blue shield",
         "bluecrossblueshield"
       ],
-      "primary_category": "healthcare",
-      "detailed_category": "healthcare",
+      "primary_category": "health",
+      "detailed_category": "health",
       "mcc_code": "8011",
       "country_code": "US",
       "confidence": 0.95
@@ -19340,8 +19340,8 @@
         "bcbs",
         "bcbs"
       ],
-      "primary_category": "healthcare",
-      "detailed_category": "healthcare",
+      "primary_category": "health",
+      "detailed_category": "health",
       "mcc_code": "8011",
       "country_code": "US",
       "confidence": 0.95
@@ -19353,8 +19353,8 @@
         "blue cross",
         "bluecross"
       ],
-      "primary_category": "healthcare",
-      "detailed_category": "healthcare",
+      "primary_category": "health",
+      "detailed_category": "health",
       "mcc_code": "8011",
       "country_code": "US",
       "confidence": 0.95
@@ -19366,8 +19366,8 @@
         "blue shield",
         "blueshield"
       ],
-      "primary_category": "healthcare",
-      "detailed_category": "healthcare",
+      "primary_category": "health",
+      "detailed_category": "health",
       "mcc_code": "8011",
       "country_code": "US",
       "confidence": 0.95
@@ -19379,8 +19379,8 @@
         "aetna",
         "aetna"
       ],
-      "primary_category": "healthcare",
-      "detailed_category": "healthcare",
+      "primary_category": "health",
+      "detailed_category": "health",
       "mcc_code": "8011",
       "country_code": "US",
       "confidence": 0.95
@@ -19392,8 +19392,8 @@
         "aetna insurance",
         "aetnainsurance"
       ],
-      "primary_category": "healthcare",
-      "detailed_category": "healthcare",
+      "primary_category": "health",
+      "detailed_category": "health",
       "mcc_code": "8011",
       "country_code": "US",
       "confidence": 0.95
@@ -19405,8 +19405,8 @@
         "aetna medical",
         "aetnamedical"
       ],
-      "primary_category": "healthcare",
-      "detailed_category": "healthcare",
+      "primary_category": "health",
+      "detailed_category": "health",
       "mcc_code": "8011",
       "country_code": "US",
       "confidence": 0.95
@@ -19418,8 +19418,8 @@
         "aetna dental",
         "aetnadental"
       ],
-      "primary_category": "healthcare",
-      "detailed_category": "healthcare",
+      "primary_category": "health",
+      "detailed_category": "health",
       "mcc_code": "8011",
       "country_code": "US",
       "confidence": 0.95
@@ -19431,8 +19431,8 @@
         "aetna vision",
         "aetnavision"
       ],
-      "primary_category": "healthcare",
-      "detailed_category": "healthcare",
+      "primary_category": "health",
+      "detailed_category": "health",
       "mcc_code": "8011",
       "country_code": "US",
       "confidence": 0.95
@@ -19444,8 +19444,8 @@
         "aetna pharmacy",
         "aetnapharmacy"
       ],
-      "primary_category": "healthcare",
-      "detailed_category": "healthcare",
+      "primary_category": "health",
+      "detailed_category": "health",
       "mcc_code": "5912",
       "country_code": "US",
       "confidence": 0.95
@@ -19457,8 +19457,8 @@
         "aetna mental health",
         "aetnamentalhealth"
       ],
-      "primary_category": "healthcare",
-      "detailed_category": "healthcare",
+      "primary_category": "health",
+      "detailed_category": "health",
       "mcc_code": "8011",
       "country_code": "US",
       "confidence": 0.95
@@ -19470,8 +19470,8 @@
         "cigna",
         "cigna"
       ],
-      "primary_category": "healthcare",
-      "detailed_category": "healthcare",
+      "primary_category": "health",
+      "detailed_category": "health",
       "mcc_code": "8011",
       "country_code": "US",
       "confidence": 0.95
@@ -19483,8 +19483,8 @@
         "cigna insurance",
         "cignainsurance"
       ],
-      "primary_category": "healthcare",
-      "detailed_category": "healthcare",
+      "primary_category": "health",
+      "detailed_category": "health",
       "mcc_code": "8011",
       "country_code": "US",
       "confidence": 0.95
@@ -19496,8 +19496,8 @@
         "cigna medical",
         "cignamedical"
       ],
-      "primary_category": "healthcare",
-      "detailed_category": "healthcare",
+      "primary_category": "health",
+      "detailed_category": "health",
       "mcc_code": "8011",
       "country_code": "US",
       "confidence": 0.95
@@ -19509,8 +19509,8 @@
         "cigna dental",
         "cignadental"
       ],
-      "primary_category": "healthcare",
-      "detailed_category": "healthcare",
+      "primary_category": "health",
+      "detailed_category": "health",
       "mcc_code": "8011",
       "country_code": "US",
       "confidence": 0.95
@@ -19522,8 +19522,8 @@
         "cigna vision",
         "cignavision"
       ],
-      "primary_category": "healthcare",
-      "detailed_category": "healthcare",
+      "primary_category": "health",
+      "detailed_category": "health",
       "mcc_code": "8011",
       "country_code": "US",
       "confidence": 0.95
@@ -19535,8 +19535,8 @@
         "cigna pharmacy",
         "cignapharmacy"
       ],
-      "primary_category": "healthcare",
-      "detailed_category": "healthcare",
+      "primary_category": "health",
+      "detailed_category": "health",
       "mcc_code": "5912",
       "country_code": "US",
       "confidence": 0.95
@@ -19548,8 +19548,8 @@
         "cigna mental health",
         "cignamentalhealth"
       ],
-      "primary_category": "healthcare",
-      "detailed_category": "healthcare",
+      "primary_category": "health",
+      "detailed_category": "health",
       "mcc_code": "8011",
       "country_code": "US",
       "confidence": 0.95
@@ -19561,8 +19561,8 @@
         "humana",
         "humana"
       ],
-      "primary_category": "healthcare",
-      "detailed_category": "healthcare",
+      "primary_category": "health",
+      "detailed_category": "health",
       "mcc_code": "8011",
       "country_code": "US",
       "confidence": 0.95
@@ -19574,8 +19574,8 @@
         "humana insurance",
         "humanainsurance"
       ],
-      "primary_category": "healthcare",
-      "detailed_category": "healthcare",
+      "primary_category": "health",
+      "detailed_category": "health",
       "mcc_code": "8011",
       "country_code": "US",
       "confidence": 0.95
@@ -19587,8 +19587,8 @@
         "humana medical",
         "humanamedical"
       ],
-      "primary_category": "healthcare",
-      "detailed_category": "healthcare",
+      "primary_category": "health",
+      "detailed_category": "health",
       "mcc_code": "8011",
       "country_code": "US",
       "confidence": 0.95
@@ -19600,8 +19600,8 @@
         "humana dental",
         "humanadental"
       ],
-      "primary_category": "healthcare",
-      "detailed_category": "healthcare",
+      "primary_category": "health",
+      "detailed_category": "health",
       "mcc_code": "8011",
       "country_code": "US",
       "confidence": 0.95
@@ -19613,8 +19613,8 @@
         "humana vision",
         "humanavision"
       ],
-      "primary_category": "healthcare",
-      "detailed_category": "healthcare",
+      "primary_category": "health",
+      "detailed_category": "health",
       "mcc_code": "8011",
       "country_code": "US",
       "confidence": 0.95
@@ -19626,8 +19626,8 @@
         "humana pharmacy",
         "humanapharmacy"
       ],
-      "primary_category": "healthcare",
-      "detailed_category": "healthcare",
+      "primary_category": "health",
+      "detailed_category": "health",
       "mcc_code": "5912",
       "country_code": "US",
       "confidence": 0.95
@@ -19639,8 +19639,8 @@
         "humana mental health",
         "humanamentalhealth"
       ],
-      "primary_category": "healthcare",
-      "detailed_category": "healthcare",
+      "primary_category": "health",
+      "detailed_category": "health",
       "mcc_code": "8011",
       "country_code": "US",
       "confidence": 0.95
@@ -19652,8 +19652,8 @@
         "medicare",
         "medicare"
       ],
-      "primary_category": "healthcare",
-      "detailed_category": "healthcare",
+      "primary_category": "health",
+      "detailed_category": "health",
       "mcc_code": "8011",
       "country_code": "US",
       "confidence": 0.95
@@ -19665,8 +19665,8 @@
         "medicaid",
         "medicaid"
       ],
-      "primary_category": "healthcare",
-      "detailed_category": "healthcare",
+      "primary_category": "health",
+      "detailed_category": "health",
       "mcc_code": "8011",
       "country_code": "US",
       "confidence": 0.95
@@ -19678,8 +19678,8 @@
         "tricare",
         "tricare"
       ],
-      "primary_category": "healthcare",
-      "detailed_category": "healthcare",
+      "primary_category": "health",
+      "detailed_category": "health",
       "mcc_code": "8011",
       "country_code": "US",
       "confidence": 0.95
@@ -19691,8 +19691,8 @@
         "va",
         "va"
       ],
-      "primary_category": "healthcare",
-      "detailed_category": "healthcare",
+      "primary_category": "health",
+      "detailed_category": "health",
       "mcc_code": "8011",
       "country_code": "US",
       "confidence": 0.95
@@ -19704,8 +19704,8 @@
         "veterans affairs",
         "veteransaffairs"
       ],
-      "primary_category": "healthcare",
-      "detailed_category": "healthcare",
+      "primary_category": "health",
+      "detailed_category": "health",
       "mcc_code": "8011",
       "country_code": "US",
       "confidence": 0.95
@@ -19717,8 +19717,8 @@
         "champva",
         "champva"
       ],
-      "primary_category": "healthcare",
-      "detailed_category": "healthcare",
+      "primary_category": "health",
+      "detailed_category": "health",
       "mcc_code": "8011",
       "country_code": "US",
       "confidence": 0.95
@@ -19730,8 +19730,8 @@
         "tricare",
         "tricare"
       ],
-      "primary_category": "healthcare",
-      "detailed_category": "healthcare",
+      "primary_category": "health",
+      "detailed_category": "health",
       "mcc_code": "8011",
       "country_code": "US",
       "confidence": 0.95
@@ -19743,8 +19743,8 @@
         "tricare prime",
         "tricareprime"
       ],
-      "primary_category": "healthcare",
-      "detailed_category": "healthcare",
+      "primary_category": "health",
+      "detailed_category": "health",
       "mcc_code": "8011",
       "country_code": "US",
       "confidence": 0.95
@@ -19756,8 +19756,8 @@
         "tricare select",
         "tricareselect"
       ],
-      "primary_category": "healthcare",
-      "detailed_category": "healthcare",
+      "primary_category": "health",
+      "detailed_category": "health",
       "mcc_code": "8011",
       "country_code": "US",
       "confidence": 0.95
@@ -19769,8 +19769,8 @@
         "tricare for life",
         "tricareforlife"
       ],
-      "primary_category": "healthcare",
-      "detailed_category": "healthcare",
+      "primary_category": "health",
+      "detailed_category": "health",
       "mcc_code": "8011",
       "country_code": "US",
       "confidence": 0.95
@@ -19782,8 +19782,8 @@
         "tricare reserve select",
         "tricarereserveselect"
       ],
-      "primary_category": "healthcare",
-      "detailed_category": "healthcare",
+      "primary_category": "health",
+      "detailed_category": "health",
       "mcc_code": "8011",
       "country_code": "US",
       "confidence": 0.95
@@ -19795,8 +19795,8 @@
         "tricare retired reserve",
         "tricareretiredreserve"
       ],
-      "primary_category": "healthcare",
-      "detailed_category": "healthcare",
+      "primary_category": "health",
+      "detailed_category": "health",
       "mcc_code": "8011",
       "country_code": "US",
       "confidence": 0.95
@@ -19808,8 +19808,8 @@
         "tricare young adult",
         "tricareyoungadult"
       ],
-      "primary_category": "healthcare",
-      "detailed_category": "healthcare",
+      "primary_category": "health",
+      "detailed_category": "health",
       "mcc_code": "8011",
       "country_code": "US",
       "confidence": 0.95
@@ -19821,8 +19821,8 @@
         "tricare prime remote",
         "tricareprimeremote"
       ],
-      "primary_category": "healthcare",
-      "detailed_category": "healthcare",
+      "primary_category": "health",
+      "detailed_category": "health",
       "mcc_code": "8011",
       "country_code": "US",
       "confidence": 0.95
@@ -19834,8 +19834,8 @@
         "tricare prime remote plus",
         "tricareprimeremoteplus"
       ],
-      "primary_category": "healthcare",
-      "detailed_category": "healthcare",
+      "primary_category": "health",
+      "detailed_category": "health",
       "mcc_code": "8011",
       "country_code": "US",
       "confidence": 0.95
@@ -19847,8 +19847,8 @@
         "tricare prime overseas",
         "tricareprimeoverseas"
       ],
-      "primary_category": "healthcare",
-      "detailed_category": "healthcare",
+      "primary_category": "health",
+      "detailed_category": "health",
       "mcc_code": "8011",
       "country_code": "US",
       "confidence": 0.95
@@ -19860,8 +19860,8 @@
         "tricare select overseas",
         "tricareselectoverseas"
       ],
-      "primary_category": "healthcare",
-      "detailed_category": "healthcare",
+      "primary_category": "health",
+      "detailed_category": "health",
       "mcc_code": "8011",
       "country_code": "US",
       "confidence": 0.95
@@ -19873,8 +19873,8 @@
         "tricare for life overseas",
         "tricareforlifeoverseas"
       ],
-      "primary_category": "healthcare",
-      "detailed_category": "healthcare",
+      "primary_category": "health",
+      "detailed_category": "health",
       "mcc_code": "8011",
       "country_code": "US",
       "confidence": 0.95
@@ -19886,8 +19886,8 @@
         "tricare prime remote overseas",
         "tricareprimeremoteoverseas"
       ],
-      "primary_category": "healthcare",
-      "detailed_category": "healthcare",
+      "primary_category": "health",
+      "detailed_category": "health",
       "mcc_code": "8011",
       "country_code": "US",
       "confidence": 0.95
@@ -19899,8 +19899,8 @@
         "tricare prime remote plus overseas",
         "tricareprimeremoteplusoverseas"
       ],
-      "primary_category": "healthcare",
-      "detailed_category": "healthcare",
+      "primary_category": "health",
+      "detailed_category": "health",
       "mcc_code": "8011",
       "country_code": "US",
       "confidence": 0.95
@@ -24505,8 +24505,8 @@
         "shoppers drug mart",
         "shoppersdrugmart"
       ],
-      "primary_category": "healthcare",
-      "detailed_category": "healthcare",
+      "primary_category": "health",
+      "detailed_category": "health",
       "mcc_code": "5912",
       "country_code": "CA",
       "confidence": 0.95
@@ -24624,8 +24624,8 @@
         "boots",
         "boots"
       ],
-      "primary_category": "healthcare",
-      "detailed_category": "healthcare",
+      "primary_category": "health",
+      "detailed_category": "health",
       "mcc_code": "5912",
       "country_code": "GB",
       "confidence": 0.95
@@ -24698,8 +24698,8 @@
         "chemist warehouse",
         "chemistwarehouse"
       ],
-      "primary_category": "healthcare",
-      "detailed_category": "healthcare",
+      "primary_category": "health",
+      "detailed_category": "health",
       "mcc_code": "5912",
       "country_code": "AU",
       "confidence": 0.95

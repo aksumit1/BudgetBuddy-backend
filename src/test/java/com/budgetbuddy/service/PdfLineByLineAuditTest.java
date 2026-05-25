@@ -68,7 +68,8 @@ class PdfLineByLineAuditTest {
         try (BufferedWriter txw = new BufferedWriter(new FileWriter(perTx.toFile()))) {
             txw.write("file,institution,last4,row,date,amount,direction,description,merchant,"
                     + "location,username,category,type,card_last_four,currency,fx_orig_code,fx_orig_amount,"
-                    + "fx_rate,wallet,date_ok,amount_ok,desc_ok,direction_ok\n");
+                    + "fx_rate,wallet,date_ok,amount_ok,desc_ok,direction_ok,"
+                    + "city,state,country,postal_code,phone\n");
             for (final File pdf : pdfs) {
                 rows.add(auditOne(svc, pdf, txw));
             }
@@ -189,7 +190,10 @@ class PdfLineByLineAuditTest {
             for (final ParsedTransaction t : result.getTransactions()) {
                 row++;
                 final boolean dateOk = t.getDate() != null;
-                final boolean amountOk = t.getAmount() != null && t.getAmount().signum() != 0;
+                // amount=0 is LEGITIMATE: zero-amount Annual Membership Fee /
+                // zero-amount Interest Charged rows are real statement entries
+                // ("ANNUAL MEMBERSHIP FEE $0.00"). The check is null-only.
+                final boolean amountOk = t.getAmount() != null;
                 final boolean descOk = t.getDescription() != null && !t.getDescription().isBlank();
                 final boolean dirOk = t.getFlowDirection() != null;
                 if (!dateOk) { r.incompleteFields++; r.issues.add("tx#" + row + " missing date"); }
@@ -222,7 +226,12 @@ class PdfLineByLineAuditTest {
                         csv(t.getExchangeRate() == null ? "" : t.getExchangeRate().toPlainString()),
                         csv(t.getWalletProvider()),
                         String.valueOf(dateOk), String.valueOf(amountOk),
-                        String.valueOf(descOk), String.valueOf(dirOk)) + "\n");
+                        String.valueOf(descOk), String.valueOf(dirOk),
+                        csv(t.getCity()),
+                        csv(t.getState()),
+                        csv(t.getCountry()),
+                        csv(t.getPostalCode()),
+                        csv(t.getPhoneNumber())) + "\n");
             }
             r.txCount = row;
 
@@ -369,10 +378,23 @@ class PdfLineByLineAuditTest {
                 .thenReturn(java.util.Collections.emptyList());
         final AccountDetectionService det = new AccountDetectionService(repo, new BalanceExtractor());
         final ImportCategoryParser cat = org.mockito.Mockito.mock(ImportCategoryParser.class);
+        // Match both the 6-arg legacy signature and the 9-arg signature the
+        // v2 cutover uses (categoryString, desc, merchant, amount, channel,
+        // null, null, accountType, accountSubtype). Without the 9-arg stub,
+        // v2-cutover transactions return null category and show as
+        // "missing category" in the audit even though categorization is
+        // wired correctly in production.
         org.mockito.Mockito.when(cat.parseCategory(
                 org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(),
                 org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(),
                 org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any()))
+                .thenReturn("Uncategorized");
+        org.mockito.Mockito.when(cat.parseCategory(
+                org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(),
+                org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(),
+                org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(),
+                org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(),
+                org.mockito.ArgumentMatchers.any()))
                 .thenReturn("Uncategorized");
         final EnhancedPatternMatcher pm = new EnhancedPatternMatcher();
         final com.budgetbuddy.service.pdf.PdfTemplateRegistry reg =

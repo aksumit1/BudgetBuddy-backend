@@ -1,16 +1,23 @@
 # Citi — Double Cash, Costco Anywhere, ThankYou variants
 #
-# Covers 9 statements (5 Double Cash + 4 Costco). Citi's statement layout has a
-# two-column page (transactions on the left, rewards summary on the right) that
-# PDFBox extracts as interleaved lines — so the stitching rules below must
-# match the rewards-prose phrases Citi prints to avoid them being treated as
-# section breaks.
+# Covers the full Citi corpus (Double Cash + Costco Anywhere). Citi's
+# statement layout has a two-column page (transactions on the left, rewards
+# summary on the right) that PDFBox extracts as interleaved lines — so the
+# stitching rules below must match the rewards-prose phrases Citi prints to
+# avoid them being treated as section breaks.
 #
-# Status: unverified
+# Status: production — v2 transaction shapes are the source of truth for
+# Citibank under PDFImportService.V2_TX_PRODUCTION_ISSUERS. Section-aware
+# shapes (see `transactions:` block at bottom) correctly classify refunds,
+# credit adjustments, and AUTOPAY rows as CREDITs (vs purchases as DEBITs)
+# — fixing the legacy mis-classification that broke audit math for Citi
+# statements containing refunds (e.g. SHERWIN-WILLIAMS, COSTCO returns,
+# OFFER 04 promotional-APR rollovers).
 id: citi-v2
 institution: Citibank
 description: "Citi credit cards (Double Cash, Costco Anywhere, ThankYou)"
 status: unverified
+extends: [common]
 
 card_detection:
   institution_match:
@@ -328,3 +335,104 @@ layouts:
     dateFormat: "M/d"
     signConvention: credit-positive
     minAmount: 0.01
+
+# v2 transaction-shape declarations — section-aware, validated against the
+# 9-PDF Citi corpus (5 Double Cash + 4 Costco). This is the source of truth
+# when v2 cutover is enabled (see PDFImportService V2_TX_PRODUCTION_ISSUERS).
+#
+# Citi statements organize transactions into TWO printed sections:
+#  (1) "Payments, Credits and Adjustments" — payments (AUTOPAY) AND refunds /
+#      credit adjustments. Citi prints all of these as NEGATIVE amounts
+#      (leading minus, e.g. "-$4,784.23", "-$319.45"). Each row in this
+#      section reduces the cardholder's balance → FlowDirection.CREDIT.
+#      Examples:
+#        "01/28 AUTOPAY 999990000012756RAUTOPAY AUTO-PMT -$4,784.23"
+#        "01/17 01/17 SHERWIN-WILLIAMS708148 BELLEVUE  WA -$319.45"
+#        "02/03 02/03 COSTCO WHSE #0110  ISSAQUAH  WA -$297.70"
+#  (2) "Standard Purchases" — purchase debits. POSITIVE amounts only
+#      ("$13.47", "$141.67"). Costco statements print one "Standard
+#      Purchases" sub-section per cardholder ("AGARWAL S KUMAR" then
+#      "Standard Purchases" then rows; repeated for "GARIMA AGARWAL").
+#      Double Cash doesn't always emit a literal "Standard Purchases"
+#      header line — the section is implied by the transition from
+#      negative to positive amounts. The header sometimes gets STITCHED
+#      onto the last refund row of the previous section, e.g.:
+#        "12/21 12/21 CURSOR, AI POWERED IDE NEW YORK NY -$22.23 Standard Purchases"
+#
+# Critical: shapes are sign-discriminated in addition to section-anchored,
+# so the refund/purchase classification survives even when the stitcher
+# fuses the section-header text onto a transaction row (which would
+# otherwise update currentSection BEFORE the credit shape sees the row).
+#
+# Two row formats are supported per shape:
+#  (a) Two-date: "MM/DD MM/DD <description> <amount>"
+#  (b) Single-date: "MM/DD <description> <amount>"  (AUTOPAY rows only)
+# All shapes use credit-card sign_convention so the cutover trusts the
+# direction without falling back to description heuristics.
+transactions:
+  # CREDIT shape — Payments, Credits and Adjustments. Amount carries a
+  # leading minus (with optional $). Matches BOTH two-date rows and
+  # single-date AUTOPAY rows. Unscoped on section because the "Standard
+  # Purchases" header is sometimes stitched onto the last credit row,
+  # which would flip currentSection BEFORE the credit shape evaluates;
+  # the leading-minus amount regex is itself a strong section-discriminator
+  # (no purchase row in any Citi corpus statement has a negative amount).
+  - name: citi-payments-credits-two-date
+    line_regex: '^(?<date>\d{1,2}/\d{1,2})\s+\d{1,2}/\d{1,2}\s+(?<description>.+?)\s+-\$(?<amount>\d{1,3}(?:,\d{3})*\.\d{2})(?:\s+\S.*)?\s*$'
+    date_format: "M/d"
+    account_type: credit
+    sign_convention: credit-card-credit
+    min_amount: 0.01
+  - name: citi-payments-credits-single-date
+    line_regex: '^(?<date>\d{1,2}/\d{1,2})(?!\s+\d{1,2}/\d{1,2})\s+(?<description>.+?)\s+-\$(?<amount>\d{1,3}(?:,\d{3})*\.\d{2})(?:\s+\S.*)?\s*$'
+    date_format: "M/d"
+    account_type: credit
+    sign_convention: credit-card-credit
+    min_amount: 0.01
+
+  # DEBIT shapes — Standard Purchases. Amount must NOT have a leading
+  # minus (negative amounts always belong to the credit shapes above —
+  # see PDFBox dump: no Citi corpus statement has a negative amount in
+  # a Standard Purchases row). The leading "$" is required to avoid
+  # false-matching on stray numeric tail tokens. Each shape is anchored
+  # on a section so spurious positive-amount lines elsewhere in the
+  # document (rewards-summary dollar phrases) don't get pulled in.
+  #  - "Standard Purchases" — the Costco variant always prints this
+  #     header (and repeats it per cardholder block).
+  #  - "Payments, Credits and Adjustments" — the Double Cash variant
+  #     transitions from credits to purchases under the SAME header
+  #     (no separate "Standard Purchases" line — sometimes that text
+  #     is stitched onto the last credit row, which the credit shapes'
+  #     trailing-text tolerance handles).
+  # Both two-date and single-date row formats are supported; trailing
+  # stitched text after the amount (e.g. "Fees Charged", "Costco Cash
+  # Back Rewards Summary", "Promo Purchase-Offer 4 (9.990%)") is
+  # tolerated by the optional ".*" suffix.
+  - name: citi-purchases-standard-two-date
+    section_anchor: "Standard Purchases"
+    line_regex: '^(?<date>\d{1,2}/\d{1,2})\s+\d{1,2}/\d{1,2}\s+(?<description>.+?)\s+\$(?<amount>\d{1,3}(?:,\d{3})*\.\d{2})(?:\s+\S.*)?\s*$'
+    date_format: "M/d"
+    account_type: credit
+    sign_convention: credit-card-purchase
+    min_amount: 0.01
+  - name: citi-purchases-standard-single-date
+    section_anchor: "Standard Purchases"
+    line_regex: '^(?<date>\d{1,2}/\d{1,2})(?!\s+\d{1,2}/\d{1,2})\s+(?<description>.+?)\s+\$(?<amount>\d{1,3}(?:,\d{3})*\.\d{2})(?:\s+\S.*)?\s*$'
+    date_format: "M/d"
+    account_type: credit
+    sign_convention: credit-card-purchase
+    min_amount: 0.01
+  - name: citi-purchases-in-pca-two-date
+    section_anchor: "Payments, Credits and Adjustments"
+    line_regex: '^(?<date>\d{1,2}/\d{1,2})\s+\d{1,2}/\d{1,2}\s+(?<description>.+?)\s+\$(?<amount>\d{1,3}(?:,\d{3})*\.\d{2})(?:\s+\S.*)?\s*$'
+    date_format: "M/d"
+    account_type: credit
+    sign_convention: credit-card-purchase
+    min_amount: 0.01
+  - name: citi-purchases-in-pca-single-date
+    section_anchor: "Payments, Credits and Adjustments"
+    line_regex: '^(?<date>\d{1,2}/\d{1,2})(?!\s+\d{1,2}/\d{1,2})\s+(?<description>.+?)\s+\$(?<amount>\d{1,3}(?:,\d{3})*\.\d{2})(?:\s+\S.*)?\s*$'
+    date_format: "M/d"
+    account_type: credit
+    sign_convention: credit-card-purchase
+    min_amount: 0.01

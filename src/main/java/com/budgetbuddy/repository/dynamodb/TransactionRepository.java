@@ -127,6 +127,13 @@ public class TransactionRepository {
         this(enhancedClient, dynamoDbClient, tablePrefix, MAX_FALLBACK_FETCH_DEFAULT);
     }
 
+    // Cache key includes skip+limit (see findByUserId below), and callers use
+    // many different (skip, limit) shapes (1, 100, 1000, 10000, batchSize…).
+    // A key-targeted evict can only nuke ONE shape, leaving every other paginated
+    // view stale after a write — which silently dropped freshly-imported PDF
+    // transactions from subsequent reads in the same request. allEntries=true is
+    // scoped to the TRANSACTIONS cache only (it does NOT touch users/accounts/etc.),
+    // so the blast radius is contained; Caffeine TTL/LRU absorbs the re-fill cost.
     @CacheEvict(value = TRANSACTIONS, allEntries = true)
     public void save(final TransactionTable transaction) {
         if (transaction == null) {

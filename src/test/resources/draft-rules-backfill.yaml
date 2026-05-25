@@ -1,0 +1,1227 @@
+# =====================================================================
+# Draft category rules from LLM batch-backfill (Claude Code, hand-classified)
+# Source: 326 unique merchant clusters from 1126 cascade-misses across 170 PDFs
+# This file is a REVIEW DRAFT — review and merge into category-rules-v2.yaml.
+#
+# Coverage of this draft: top 70 clusters covering ~800 of the 1126 misses (~71%).
+# Skipped (intentional): genuine transfers, deposits, checks, generic "withdrawal"
+# rows — these aren't merchant transactions and shouldn't have a merchant category.
+# =====================================================================
+
+rules:
+
+  # =================================================================
+  # PAYMENT — priority 1000
+  # NARROW DEFINITION: CC-statement-side credit lines. These appear when
+  # the card issuer settles the user's CC debt — the bill itself going to
+  # zero. They are NEUTRAL for budget analytics: they don't represent new
+  # spending nor income, just settlement of existing debt. The matching
+  # outflow on the user's checking account is categorised separately as
+  # `transfer` (see below) so we don't double-count.
+  # =================================================================
+  - category: payment
+    priority: 1000
+    mode: contains
+    keywords:
+      # CC-statement "thank you" strings — all card issuers use these on
+      # the credit-card side (FlowDirection.CREDIT on a credit-card account).
+      - "automatic payment - thank you"
+      - "automatic payment-thank you"
+      - "mobile payment - thank you"
+      - "online payment - thank you"
+      - "et payment   thank you"
+      - "mtc payment   thank you"
+      - "ach payment - thank you"
+      - "payment - thank you"
+      - "payment-thank you"
+      - "autopay payment received"
+      - "directpay full balance"
+      - "internet payment thank you"  # flipped from interest; CC online-portal pay
+
+  # =================================================================
+  # TRANSFER — priority 1000
+  # CC-payment OUTFLOW from a bank account (the user pulling money from
+  # checking to pay the CC issuer). On the bank-statement side, these are
+  # FlowDirection.DEBIT but they are NOT merchant spend — they're the
+  # cash-flow side of the issuer settlement above. Budget analytics should:
+  #   • surface these as a "transfer" line in cash-flow views
+  #   • exclude them from "merchant spend by category" totals
+  # Keeping payment and transfer distinct lets the UI/insights layer
+  # decide how to present each without losing information.
+  # =================================================================
+  - category: transfer
+    priority: 1000
+    mode: contains
+    keywords:
+      # Card-issuer autopay pulls from checking
+      - "citi autopay"
+      - "chase credit crd autopay"
+      - "wf credit card   auto pay"
+      - "wf credit card"
+      - "discover         e-payment"
+      - "amex ach pmt"
+      - "american express ach pmt"
+      - "american express retry pymt"
+      - "cardmember serv  web pymt"
+      - "target card srvc payment"
+      - "amz_storecrd_pmt payment"
+      - "autopay auto-pmt"
+      - "payment to chase card"
+      # PayPal credit-card repayment
+      - "paypal           inst xfer  ppcr cc repayme"
+      - "ppcr cc repayme"
+      # Inter-account transfers visible in the still-missing list
+      - "online transfer to chk"
+      - "online transfer from chk"
+      - "online transfer to sav"
+      - "online transfer from sav"
+      - "online transfer from morganstanley"
+      - "online transfer 2"  # numeric-prefixed Chase transfer IDs
+      - "first tech fcu   extrnltfr"
+      - "first tech fcu extrnltfr"
+      - "jpmorgan chase   chase ach"
+      - "jpmorgan chase chase ach"
+      - "pc bellevue      pcb ach"
+      - "pc bellevue pcb ach"
+      - "morgan stanley   ach debit"
+      - "morgan stanley ach debit"
+      # International remittance
+      - "remitly united s payments"
+      - "rmtly* "
+      - "xoom             debit"
+      - "xoom debit"
+
+  # =================================================================
+  # INCOME — priority 1000
+  # NOT an expense category. These are money-IN flows on the checking
+  # account (FlowDirection.CREDIT on a debit/checking account). Distinct
+  # from `transfer` (which is movement between the user's own accounts)
+  # and from `payment` (which is CC-debt settlement). Subdivided into
+  # specific income types so the UI can break down "where did your
+  # income come from" without lumping rent + salary + dividends.
+  # =================================================================
+  - category: salary
+    priority: 1000
+    mode: contains
+    keywords:
+      # Employer payroll Direct Deposit. Each employer's ACH descriptor is
+      # slightly different (spacing, casing, "Svcs" vs "Services" vs "Pay")
+      # so we list common shapes seen in this dataset plus generic catches.
+      # Note: priority 1000 BEATS v2's "amazon"/"amazon.com" shopping rules
+      # (priority 700) so an "Amazon.Com Svcs Direct Dep" line lands here,
+      # not in shopping.
+      - "amazon.com svcs  direct dep"   # double space (Chase Checking export)
+      - "amazon.com svcs direct dep"    # single space (other issuers)
+      - "amazon.com payments  direct dep"
+      - "amazon.com payments direct dep"
+      - "amazon.com services direct dep"
+      - "amazon  direct dep"
+      - "amazon direct dep"
+      # Generic payroll catches — match the descriptor pattern. Use specific
+      # 2-token phrases ("payroll direct dep") rather than the single word
+      # "payroll" or "direct dep" alone, which would over-match.
+      - "payroll direct dep"
+      - "payroll direct deposit"
+      - "direct dep payroll"
+      - "ach direct dep payroll"
+      - "salary"
+      - "salary credit"
+      - "salary deposit"
+      - "wages"
+      # Common payroll-processor descriptors
+      - "adp payroll"
+      - "gusto pay"
+      - "paychex"
+      - "rippling"
+      - "trinet"
+      - "workday "
+
+  - category: rent
+    priority: 1000
+    mode: contains
+    keywords:
+      # Rental income from a property management ACH
+      - "grisalin managem sigonfile"
+      - "grisalin managem"
+
+  - category: dividend
+    priority: 1000
+    mode: contains
+    keywords:
+      # Investment account ACH credit (Morgan Stanley etc.).
+      # ACH DEBIT from the same account is a transfer (money out to
+      # checking is just moving cash; the income realisation is the
+      # credit side).
+      - "morgan stanley   ach credit"
+      - "morgan stanley ach credit"
+
+  - category: income
+    priority: 1000
+    mode: contains
+    keywords:
+      # Generic incoming money that doesn't fit salary/rent/dividend.
+      # Real Time Payment (RTP) credits, generic Deposit rows.
+      - "real time payment credit recd"
+
+  - category: deposit
+    priority: 950
+    mode: word
+    keywords:
+      # Bank's catch-all "Deposit" row when no specific source is given.
+      # Match as word so we don't catch substrings like "DEPOSIT TICKET".
+      - "deposit"
+
+  # =================================================================
+  # CHECK — priority 950
+  # Paper checks issued from a checking account. The PDF shows them as
+  # `Check                         # 170`. No merchant identity attached;
+  # treat them as an expense bucket separate from merchant categories so
+  # the UI can distinguish "money paid via paper check" from "money paid
+  # at a specific merchant".
+  # =================================================================
+  - category: check
+    priority: 950
+    mode: contains
+    keywords:
+      - "check                         #"
+      - "check                          #"
+      # Single-space variant — appears in some Chase Checking exports.
+      # Anchor with "check #" + numeric to avoid spurious matches on
+      # merchant names that happen to contain "check #".
+      - "check # 1"
+      - "check # 2"
+      - "check # 3"
+      - "check # 4"
+      - "check # 5"
+      - "check # 6"
+      - "check # 7"
+      - "check # 8"
+      - "check # 9"
+
+  # =================================================================
+  # CASH — priority 900
+  # Generic ATM / cash withdrawals. "Withdrawal" with no other token is
+  # the bank's catch-all for over-the-counter and ATM cash. Match as a
+  # word so we don't catch substrings like "WITHDRAWALS" in a section
+  # header.
+  # =================================================================
+  - category: cash
+    priority: 900
+    mode: word
+    keywords:
+      - "withdrawal"
+      - "atm withdrawal"
+
+  # =================================================================
+  # REFUND — priority 900
+  # Credit-card rewards credits, statement credits, airline-fee
+  # reimbursements, cash-rebate transactions. Distinct from `payment`
+  # (which is debt settlement) and from `income` (which is wages /
+  # external deposits): these are spending offsets the issuer applies
+  # to the user's statement.
+  # =================================================================
+  - category: refund
+    priority: 900
+    mode: contains
+    keywords:
+      - "cash reward/refund"
+      - "your cash reward/refund"
+      - "cash rebate transaction"
+      - "fee reimbursement"
+      - "airline fee reimbursement"
+      - "statement credit bonus"
+      - "platinum digital entertainment credit"
+      - "amex offer credit"
+      - "offer 04 moved to standard purch"
+      - "offer 04 promotional apr ended"
+
+  # =================================================================
+  # FEES (taxes, interest, wire fees, government services) — priority 950
+  # =================================================================
+  - category: fees
+    priority: 950
+    mode: contains
+    keywords:
+      - "consumer usd international wire fee"
+      - "consumer online usd intl wire fee"
+      - "consumer usd international wire"
+      - "consumer international wire"
+      - "consumer online international wire"
+      - "interest charge on purchases"
+      - "interest charge on cash"
+      - "irs              usataxpymt"
+      - "irs usataxpymt"
+      - "us treas tax pymt"
+      - "us treasury tax"
+      # Government services / court fees
+      - "king county dc efiling"
+      - "identogo"
+      - "sterling background"
+      - "trg  holdings  limited"  # UK gov-fee-style processor
+
+  # =================================================================
+  # TRANSPORTATION — priority 800-850
+  # =================================================================
+  - category: transportation
+    priority: 850
+    mode: contains
+    keywords:
+      # University of Washington parking pay-by-phone (huge volume — 98 tx)
+      - "uw pay by phone"
+      - "uw transportation"
+      - "uw slu parking"
+      - "uwb cc commuter services"
+      # Seattle DOT parking
+      - "sdot paybyphone"
+      # Other parking authorities
+      - "city of van paybyphone"
+      - "city of vancouver paybyphone"
+      - "metropolis parking"
+      - "impark"
+      - "hangtag parking"
+      - "grsm parking"
+      - "hmc view park garage"
+      - "sea airport parking"
+      - "pmc - paid parking"
+      - "portland parking kitty"
+      # Scooters / micromobility (Apple Pay descriptors strip to these)
+      - "spin* pending.bird.co"
+      - "pending.bird.co"
+      - "spin* ride pass"  # flipped from entertainment; scooter ride
+      - "bird app*"
+      - "lime*ride"
+      # Tolls + tunnels
+      - "wsdot-goodtogo"
+      - "eractoll"
+      # International rideshare
+      - "uberbv"
+      # EV charging (vs subscription)
+      - "tesla supercharger"
+      # Public transit
+      - "lul ticket machine"  # London Underground
+      # Gas stations (one-off + chains not covered)
+      - "kwik sak"
+      - "exxonmobil 4788"
+      - "alliance gas"
+
+  # =================================================================
+  # DINING (restaurants, cafes, bars) — priority 800
+  # Mostly Apple Pay-stripped merchant tokens for Bellevue / Nashville
+  # restaurants the user frequents.
+  # =================================================================
+  - category: dining
+    priority: 800
+    mode: contains
+    keywords:
+      - "85c bakery cafe"
+      - "amz sj14 cafe"
+      - "turnip truck midtown"
+      - "ygf malatang"
+      - "yangguofu"
+      - "shao kao"
+      - "iberian pig"
+      - "brick top"
+      - "mochinut"
+      - "nuodle"
+      - "barons sino kitchen"
+      - "ta joia"
+      - "ginger & scallion"
+      - "hello banhmi"
+      - "lil jon restaurant"
+      - "meet noodles"
+      - "desi dhaba"
+      - "little rey vanderbilt"
+      - "waffle cabin"
+      - "gdp*waffle cabin"
+      - "cucina venti"
+      - "11 olives"
+      - "lucky buns"
+      - "sun & fork"
+      - "yifang fruit tea"
+      - "nyx=canteen"
+      - "kosho by tabu"
+      - "py *kosho"
+      - "5guys"
+      - "jenis splendid ice"
+      - "betsutenjin"
+      - "insomnia cookies"
+      - "fang?s noodle"
+      - "fang's noodle"
+      - "kyuramen"
+      - "il fornaio"
+      - "dish n dash"
+      - "maggianos"
+      - "everest cuisine"
+      - "olympia oyster"
+      - "delhi to kathmandu"
+      - "r+m dessert"
+      - "hand cut nashville"
+      - "optimist nashville"
+      - "hermitage pink"
+      - "tai tung restaurant"
+      - "late night kitchen"
+      - "sperry's restaurant"
+      - "e3 chophouse"
+      - "mendocinofarms"
+      - "mendocino farms"
+      - "hinbor kiosk"
+      - "screaming parrots"
+      - "ezcater"  # corporate catering
+      - "answer restaurant"
+      - "ac htl sunnyvale moffe"  # actually a hotel; will be overridden by travel rule below
+      - "kwik sak"
+      - "ginger and scallion"
+      - "petite bistro"
+
+  # =================================================================
+  # HEALTH (beauty, salon, gym, medical) — priority 800
+  # =================================================================
+  - category: health
+    priority: 800
+    mode: contains
+    keywords:
+      - "noire the nail bar"
+      - "urvashi beauty studio"
+      - "van's salon"
+      - "lucky hair salin"
+      - "lucky hair salon"
+      - "goshen hair"
+      - "studio wax esthetics"
+      - "labcorp"
+      - "transparent labs"
+      - "seattle badminton"
+      - "northwest badminton"
+      - "vanderbilt recreation"
+
+  # =================================================================
+  # ENTERTAINMENT — priority 750
+  # =================================================================
+  - category: entertainment
+    priority: 750
+    mode: contains
+    keywords:
+      - "belcourt theatre"
+      - "washington state fair"
+      - "seattle great wheel"
+      - "pike place market"
+      - "capilano suspension"
+      - "soc for neuroscience"
+      - "society for neuroscience"
+      - "amc 9640"
+      - "amc 2434"
+      - "amc 0607"
+
+  # =================================================================
+  # SHOPPING — priority 700
+  # =================================================================
+  - category: shopping
+    priority: 700
+    mode: contains
+    keywords:
+      - "charles tyrwhitt"
+      - "usps po"  # postage
+      - "sp university book"
+      - "university book store"
+      - "365 market"
+      - "elc online inc"  # Estée Lauder
+      - "dollar tree"
+      - "t&t supermarket"
+      - "wal-mart #"
+      - "viasat, inc"  # hardware/internet (could also be tech)
+
+  # =================================================================
+  # GROCERIES — priority 800
+  # =================================================================
+  - category: groceries
+    priority: 800
+    mode: contains
+    keywords:
+      - "fred-meyer"
+      - "fred meyer"
+      - "pcc - "
+      - "pcc -issaquah"
+      - "wholefds nvl"  # Whole Foods Nashville abbrev
+
+  # =================================================================
+  # SUBSCRIPTIONS — priority 800
+  # =================================================================
+  - category: subscriptions
+    priority: 800
+    mode: contains
+    keywords:
+      - "cursor, ai powered"
+      - "huluplus"
+      - "hlu*hulu"
+      - "wmt plus"  # Walmart+
+      - "tesla subscription"
+      - "bird app* subscription"
+      - "agent eo premium"
+      - "paypal           inst xfer  apple.com bill"  # Apple subscriptions via PayPal
+      - "apple.com bill"
+
+  # =================================================================
+  # UTILITIES — priority 800
+  # =================================================================
+  - category: utilities
+    priority: 800
+    mode: contains
+    keywords:
+      - "puget sound ener"
+      - "puget sound energy"
+      - "city of bellevue utility"
+      - "comcast-xfinity"
+      - "comcast / xfinity"
+      - "xfinity mobile"
+      - "santa clara dtac"
+
+  # =================================================================
+  # TRAVEL — priority 800
+  # =================================================================
+  - category: travel
+    priority: 800
+    mode: contains
+    keywords:
+      - "summit rtp"
+      - "summit at snoqualmie"
+      - "recreation.gov"
+      - "ukvi"  # UK visa
+      - "trg holdings limited london"
+      - "sodexo ltd longford"
+      - "american express tvl svc"
+      - "amex airline fee reimbursement"
+      - "sonder.com"
+      - "ac htl"
+      - "ac hotel"
+      - "blrw fo"  # Westin Bangalore abbrev
+      - "chalet hotels limited"
+      - "hms host services india"
+      - "narita airport terminal"
+      - "encalm lounge"
+      - "axp centurion lounge"
+
+  # =================================================================
+  # PET — priority 800
+  # =================================================================
+  - category: pet
+    priority: 800
+    mode: contains
+    keywords:
+      - "petcare clinic"
+      - "pet supplies plus"
+      - "farmers fetch bones"  # SP FARMERS FETCH BONES
+
+  # =================================================================
+  # CHARITY — priority 800
+  # =================================================================
+  - category: charity
+    priority: 800
+    mode: contains
+    keywords:
+      - "girl scouts"
+
+  # =================================================================
+  # USER-VALIDATED SWEEP (pdf_merged_misses.numbers, 2026-05-17)
+  # The user reviewed the 87-cluster miss list and assigned categories.
+  # Rules below are anchored to specific descriptor shapes from THIS
+  # dataset; they are correct as-classified but may need broader keyword
+  # variants for other users.
+  # =================================================================
+
+  # PLUS84 is a single coffee/snack merchant; the GOODS/SERVICES vs
+  # squareup.com/receipts suffix is just an MCC-code variation, not a
+  # different product line. Both go to dining.
+  - category: dining
+    priority: 810
+    mode: contains
+    keywords:
+      - "plus84 seattle"
+      # Sweep — Bellevue/Nashville/Seattle restaurants the user confirmed
+      - "shack n stack"
+      - "molly tea"
+      - "chowbus"
+      - "beechers"
+      - "spice waala"
+      - "drip drip coffeehouse"
+      - "the baked bear"
+      - "145 torchys"
+      - "torchys midtown"
+      - "u dupbop"
+      - "billys restaurant"
+      - "lady m -"
+      - "sandwich house tres"
+      - "flemings"
+      - "maize and malt"
+      - "xing fu tang"
+      - "figurehead stone way"
+      - "cluely suwanee"
+      - "kijiji"
+      - "meet fresh"        # flipped from shopping; Taiwanese dessert chain
+      - "crumbl hillsboro"  # flipped from other; Crumbl cookie chain
+      - "t'latte"
+      - "the bob seattle wa squareup"
+      - "friday afternoon seattle wa squareup"
+      - "my friend derek"
+      - "dishdash"
+      - "ezells famous chicken"
+      - "www.honestbellevue.com"
+      - "bt*dd *doordash"
+      - "dd *doordash"
+      - "doordash"
+      # User-confirmed (lowercase "dining" in source list)
+      - "mollie bear farm"
+
+  - category: shopping
+    priority: 710
+    mode: contains
+    keywords:
+      - "store                    newcastle"
+      - "blue sky narita"
+      - "ls the dolar shop"
+      - "dollartree"
+      - "wal-mart supercenter"
+
+  - category: travel
+    priority: 810
+    mode: contains
+    keywords:
+      - "engine pigeon"
+      - "engine.com   co"
+      - "under canvas smoky mou"
+      - "the west in chennai"
+      - "wifionboard"
+      - "encalm atithya"
+      - "d&g hospitality"
+
+  - category: education
+    priority: 810
+    mode: contains
+    keywords:
+      - "act*minimountain"
+      - "impact ms. c"
+      - "bt*course hero"
+      - "course hero"
+      - "san diego convention"
+      - "sp anki remote"
+      - "uworld"
+      - "aamc washington dc"
+
+  - category: entertainment
+    priority: 760
+    mode: contains
+    keywords:
+      - "conundroom.us"
+      - "cape disappointment"
+      - "airsoft challenge"   # flipped from shopping; pay-to-play venue
+
+  - category: transportation
+    priority: 860
+    mode: contains
+    keywords:
+      - "university district pa seattle"
+      - "seattleap cart/chair"
+      - "city of olympia pbp"
+
+  - category: pet
+    priority: 810
+    mode: contains
+    keywords:
+      - "pets best insurance"
+
+  - category: health
+    priority: 810
+    mode: contains
+    keywords:
+      - "stop 4 nails"
+
+  - category: groceries
+    priority: 810
+    mode: contains
+    keywords:
+      - "chefstore"
+
+  - category: tech
+    priority: 810
+    mode: contains
+    keywords:
+      - "intuit *turbotax"
+      - "intuit turbotax"
+
+  # =================================================================
+  # OTHER — priority 300 (long-tail catch-all)
+  # User chose this for genuine one-off merchants and PayPal numeric-ID
+  # purchases that don't fit anywhere specific. Low priority so any
+  # future specific rule supersedes.
+  # =================================================================
+  - category: other
+    priority: 300
+    mode: contains
+    keywords:
+      # PayPal numeric-ID purchases (8521853… style hash with PAYPAL PURCHASE)
+      - "paypal purchase san jose"
+      - "paypal purchase"
+      # User-labelled one-offs
+      - "aplpay 3670 150th ave se"
+      - "linda sibounheuang"
+      - "aow-agrawalswa"
+      - "king county rask"
+      - "cardmember serv web pymt ***********"
+
+  # =================================================================
+  # INTEREST PAID — priority 900 (new category, distinct from fees)
+  # User-confirmed: interest charges and interest refunds. Currently
+  # mapped here from two patterns in the dataset.
+  # =================================================================
+  - category: interest
+    priority: 900
+    mode: contains
+    keywords:
+      - "*interest charge* purchases refund"
+      - "interest charge purchases refund"
+
+  # =================================================================
+  # POS / DELIVERY PREFIX RULES — priority 500
+  # Tier reserved (per v2.yaml header) for POS-aggregator prefixes that
+  # imply a category regardless of the specific downstream merchant:
+  # Toast (restaurant POS), DoorDash, Grubhub, etc. always indicate dining;
+  # Amazon Marketplace always indicates shopping. These complement the v2
+  # rules already present (tst*, wpy*, ctlp*) without overlapping them.
+  # =================================================================
+  - category: dining
+    priority: 500
+    mode: contains
+    keywords:
+      - "doordash"           # all DoorDash deliveries are dining
+      - "dd *doordash"
+      - "grubhub"
+      - "grb*"
+      - "uber eats"
+      - "ubereats"
+      - "ubr eats"
+      - "postmates"
+      - "caviar"
+      - "seamless"
+      - "slice "             # pizza delivery app
+      - "chownow"
+      - "toast inc"          # Toast POS company itself
+      - "ezcater"            # corporate catering (already in another block, dedup is fine)
+      - "snackpass"
+
+  - category: groceries
+    priority: 500
+    mode: contains
+    keywords:
+      - "gopuff"             # rapid grocery / convenience delivery
+      - "getir"
+      - "jokr"
+      - "amazon fresh"
+      - "amzn fresh"
+
+  # "Instacart Shopper" payouts (the customer is the gig worker getting paid)
+  # appear as bank-side CREDITs — these are income, not grocery spend.
+  - category: salary
+    priority: 700
+    mode: contains
+    keywords:
+      - "instacart shopper"
+      - "doordash dasher"
+      - "uber driver"
+      - "lyft driver"
+
+  - category: shopping
+    priority: 500
+    mode: contains
+    keywords:
+      - "amzn mkt"           # Amazon Marketplace abbreviated (v2 has amzn mktp)
+      - "amzn mktpl"
+      - "amz mktp"
+      - "amzn.co"
+      - "amzn pmts"
+
+  # =================================================================
+  # WORLD-KNOWLEDGE EXPANSION (added 2026-05-17 after coverage review)
+  # Broad-market brand coverage based on US consumer purchase patterns.
+  # Priority 700 (standard "single-word brand tokens" tier).
+  # =================================================================
+
+  # ---- Streaming services (subscriptions) ----
+  - category: subscriptions
+    priority: 700
+    mode: contains
+    keywords:
+      - "disney plus"
+      - "disney+"
+      - "disneyplus"
+      - "hbo max"
+      - "hbomax"
+      - "max.com"
+      - "paramount+"
+      - "paramount plus"
+      - "peacock tv"
+      - "peacock premium"
+      - "apple tv+"
+      - "apple tv plus"
+      - "youtube premium"
+      - "youtube tv"
+      - "youtubepremium"
+      - "youtubetv"
+      - "spotify premium"
+      - "pandora premium"
+      - "audible"
+      - "patreon"
+      - "substack"
+      - "masterclass"
+      - "coursera"
+      - "udemy"
+      - "skillshare"
+      - "edx"
+      - "duolingo"
+      - "babbel"
+      - "rosetta stone"
+      - "betterhelp"
+      - "talkspace"
+      - "calm.com"
+      - "headspace"
+      - "noom"
+      - "strava"
+      - "myfitnesspal"
+      - "fubo"
+      - "fubotv"
+      - "sling tv"
+      - "discovery+"
+      - "discovery plus"
+      - "crunchyroll"
+      - "funimation"
+      - "shudder"
+      - "starz play"
+      - "showtime"
+      - "tidal"
+      - "deezer"
+      - "iheartradio plus"
+      - "siriusxm"
+      - "amazon music unlimited"
+
+  # ---- Auto repair / maintenance / parts (transportation) ----
+  - category: transportation
+    priority: 700
+    mode: contains
+    keywords:
+      - "jiffy lube"
+      - "midas"
+      - "firestone complete auto"
+      - "discount tire"
+      - "valvoline instant"
+      - "valvoline"
+      - "autozone"
+      - "o'reilly auto"
+      - "oreilly auto"
+      - "napa auto parts"
+      - "advance auto parts"
+      - "pep boys"
+      - "meineke"
+      - "monro muffler"
+      - "big o tires"
+      - "les schwab"
+      - "goodyear auto"
+      - "carmax"
+      - "carvana"
+      - "vroom"
+      - "shift cars"
+      - "drivetime"
+      - "u-haul"
+      - "uhaul"
+      - "penske truck"
+      - "budget truck"
+      - "ezpass"
+      - "fastrak"
+      - "sunpass"
+      - "good to go"
+      - "i-pass"
+
+  # ---- Healthcare specifics (health) ----
+  - category: health
+    priority: 700
+    mode: contains
+    keywords:
+      - "quest diagnostics"
+      - "labcorp"
+      - "mychart"
+      - "goodrx"
+      - "one medical"
+      - "teladoc"
+      - "amwell"
+      - "doctor on demand"
+      - "kaiser"
+      - "blue cross"
+      - "blue shield"
+      - "anthem health"
+      - "aetna"
+      - "cigna"
+      - "humana"
+      - "united healthcare"
+      - "unitedhealthcare"
+      - "molina healthcare"
+      - "centene"
+      - "vsp vision"
+      - "lenscrafters"
+      - "warby parker"
+      - "pearle vision"
+      - "americas best"
+      - "america's best"
+      - "smiledirectclub"
+      - "invisalign"
+      - "aspen dental"
+      - "western dental"
+      - "great expressions dental"
+      - "concentra"
+      - "carbon health"
+      - "minuteclinic"
+      - "minute clinic"
+      - "urgent care"
+      - "patient first"
+      - "afc urgent"
+      - "memorial sloan"
+      - "mayo clinic"
+      - "cleveland clinic"
+
+  # ---- Childcare (NEW CATEGORY) ----
+  - category: childcare
+    priority: 700
+    mode: contains
+    keywords:
+      - "kindercare"
+      - "kinder care"
+      - "bright horizons"
+      - "la petite academy"
+      - "primrose school"
+      - "the goddard school"
+      - "tutor time"
+      - "learning experience"
+      - "kumon"
+      - "sylvan learning"
+      - "mathnasium"
+      - "kids r kids"
+      - "knowledge universe"
+      - "child care"
+      - "kids academy"
+
+  # ---- Pet specifics ----
+  - category: pet
+    priority: 700
+    mode: contains
+    keywords:
+      - "banfield pet hospital"
+      - "banfield"
+      - "vca animal hospitals"
+      - "vca animal"
+      - "petsmart"
+      - "petco"
+      - "chewy.com"
+      - "rover.com"
+      - "wag.com"
+      - "wagwalking"
+      - "barkbox"
+      - "bark box"
+      - "petmeds"
+      - "1800petmeds"
+      - "pet supplies plus"
+      - "doggy daycare"
+      - "pet sitter"
+
+  # ---- Crypto (kept under tech for now) ----
+  - category: tech
+    priority: 700
+    mode: contains
+    keywords:
+      - "coinbase"
+      - "kraken.com"
+      - "gemini trust"
+      - "binance.us"
+      - "binanceus"
+      - "crypto.com"
+      - "blockfi"
+      - "ftx"
+      - "uniswap"
+      - "metamask"
+      - "ledger.com"
+      - "trezor"
+      - "block.one"
+
+  # ---- BNPL (payment) ----
+  - category: payment
+    priority: 700
+    mode: contains
+    keywords:
+      - "affirm.com"
+      - "affirm payment"
+      - "klarna"
+      - "afterpay"
+      - "sezzle"
+      - "zip pay"
+      - "zip co"
+      - "perpay"
+      - "splitit"
+
+  # ---- Housing (NEW CATEGORY: mortgage, HOA, property tax) ----
+  - category: housing
+    priority: 700
+    mode: contains
+    keywords:
+      - "rocket mortgage"
+      - "rocket loans"
+      - "wells fargo home mortgage"
+      - "chase home mortgage"
+      - "chase mortgage"
+      - "quicken loans"
+      - "loandepot"
+      - "mr cooper"
+      - "freedom mortgage"
+      - "guild mortgage"
+      - "newrez"
+      - "lakeview loan"
+      - "carrington mortgage"
+      - "shellpoint mortgage"
+      - "pennymac"
+      - "lakeview"
+      - "hoa dues"
+      - "hoa fee"
+      - "homeowners assoc"
+      - "homeowner association"
+      - "condo association"
+      - "property tax"
+      - "real estate tax"
+      - "property management"
+
+  # ---- Investment / Brokerage (mostly handled by dividend; brokerage fees → fees) ----
+  - category: fees
+    priority: 700
+    mode: contains
+    keywords:
+      - "schwab brokerage"
+      - "fidelity invest"
+      - "vanguard.com"
+      - "robinhood"
+      - "interactive brokers"
+      - "tastytrade"
+      - "etrade"
+      - "e*trade"
+      - "tdameritrade"
+      - "td ameritrade"
+      - "merrill edge"
+      - "wealthfront"
+      - "betterment"
+      - "sofi invest"
+      - "stash invest"
+      - "acorns"
+      - "public.com"
+
+  # ---- Government / benefits / tax refunds (income) ----
+  - category: income
+    priority: 700
+    mode: contains
+    keywords:
+      - "irs treas refund"
+      - "irs refund"
+      - "irs tax refund"
+      - "us treasury"
+      - "social security admin"
+      - "soc sec"
+      - "ssa benefit"
+      - "dol unemployment"
+      - "edd benefit"
+      - "tax credit"
+      - "child tax credit"
+      - "stimulus payment"
+
+  # ---- Office / SaaS / Hosting (tech) ----
+  - category: tech
+    priority: 700
+    mode: contains
+    keywords:
+      - "amazon web services"
+      - "aws marketplace"
+      - "microsoft azure"
+      - "microsoft 365"
+      - "google cloud"
+      - "google workspace"
+      - "google one"
+      - "dropbox"
+      - "box.com"
+      - "godaddy"
+      - "namecheap"
+      - "cloudflare"
+      - "digitalocean"
+      - "linode"
+      - "heroku"
+      - "vercel"
+      - "netlify"
+      - "stripe.com"
+      - "square inc"
+      - "shopify"
+      - "quickbooks"
+      - "xero accounting"
+      - "freshbooks"
+      - "mailchimp"
+      - "constant contact"
+      - "zoom.us"
+      - "slack technologies"
+      - "notion labs"
+      - "asana"
+      - "trello"
+      - "monday.com"
+      - "atlassian"
+      - "jetbrains"
+      - "1password"
+      - "lastpass"
+      - "dashlane"
+      - "norton lifelock"
+      - "mcafee"
+      - "github"
+      - "gitlab"
+      - "anthropic"
+      - "openai"
+      - "perplexity"
+      - "huggingface"
+
+  # ---- Hobby / craft / specialty retail (shopping) ----
+  - category: shopping
+    priority: 700
+    mode: contains
+    keywords:
+      - "michaels stores"
+      - "michaels.com"
+      - "joann fabric"
+      - "joanns"
+      - "hobby lobby"
+      - "ben franklin crafts"
+      - "etsy.com"
+      - "ebay.com"
+      - "reverb.com"
+      - "guitar center"
+      - "sweetwater music"
+      - "sam ash music"
+      - "bass pro shops"
+      - "cabela's"
+      - "rei.com"
+      - "dick's sporting"
+      - "dicks sporting"
+      - "academy sports"
+      - "scheels"
+      - "modell's"
+      - "big 5 sporting"
+      - "five below"
+      - "ross dress for less"
+      - "tj maxx"
+      - "tjmaxx"
+      - "marshalls"
+      - "homegoods"
+      - "burlington stores"
+      - "nordstrom rack"
+      - "nordstrom.com"
+
+  # ---- International — UK / EU / India common merchants ----
+  - category: dining
+    priority: 600
+    mode: contains
+    keywords:
+      - "pret a manger"
+      - "wagamama"
+      - "nando's"
+      - "yo sushi"
+      - "five guys uk"
+      - "wetherspoon"
+      - "wetherspoons"
+      - "greggs plc"
+      - "costa coffee"
+      - "harvester restaurant"
+      - "zizzi"
+      - "pizza express"
+      - "café nero"
+      - "cafe nero"
+      - "haldiram"
+      - "barbeque nation"
+      - "wow! momo"
+      - "mainland china"
+      - "social house"
+      - "starbucks india"
+
+  - category: groceries
+    priority: 600
+    mode: contains
+    keywords:
+      - "tesco stores"
+      - "sainsbury's"
+      - "sainsburys"
+      - "asda stores"
+      - "morrisons"
+      - "waitrose"
+      - "marks & spencer food"
+      - "m&s food"
+      - "carrefour"
+      - "lidl deutschland"
+      - "aldi süd"
+      - "rewe markt"
+      - "edeka"
+      - "mercadona"
+      - "bigbasket"
+      - "blinkit"
+      - "zepto"
+      - "dunzo"
+      - "reliance fresh"
+      - "more retail"
+      - "dmart"
+
+  - category: travel
+    priority: 700
+    mode: contains
+    keywords:
+      - "indigo airlines"
+      - "indigo air"
+      - "air india"
+      - "vistara"
+      - "spicejet"
+      - "akasa air"
+      - "british airways"
+      - "lufthansa"
+      - "klm royal"
+      - "air france"
+      - "swiss airlines"
+      - "easyjet"
+      - "ryanair"
+      - "vueling"
+      - "ana all nippon"
+      - "japan airlines"
+      - "singapore airlines"
+      - "qatar airways"
+      - "emirates"
+      - "etihad airways"
+      - "cathay pacific"
+      - "korean air"
+      - "thai airways"
+      - "trainline"
+      - "trip.com"
+      - "makemytrip"
+      - "yatra.com"
+      - "cleartrip"
+      - "booking.com"
+      - "agoda"
+      - "kayak"
+      - "skyscanner"
+
+# =====================================================================
+# INTENTIONALLY NOT CATEGORISED (these are transfers / income / state-only)
+# =====================================================================
+# - "jpmorgan chase   chase ACH PPD ID" — outbound ACH transfer
+# - "first tech fcu   extrnltfr" — external transfer
+# - "morgan stanley   ach credit" — likely income / investment account
+# - "online transfer to chk" / "online transfer from morganstanley" — bank transfer
+# - "grisalin managem sigonfile" — likely rental income; could be "income" category later
+# - "real time payment credit recd from" — bank-to-bank transfer
+# - "check                         #" — paper check (no merchant identity)
+# - "deposit" / "withdrawal" — generic bank operations
+# - "amazon.com svcs  direct dep" — direct deposit (income)
+# - "irs              usataxpymt" / "us treas tax pymt" — tax (categorised as fees above)
+# - "remitly" / "xoom" — international remittance (could be "transfer" later)
+#
+# These belong to a different categorisation taxonomy (transfer/income vs merchant).
+# The current cascade has no rule for these and that's correct — they shouldn't
+# be force-fit into merchant categories.

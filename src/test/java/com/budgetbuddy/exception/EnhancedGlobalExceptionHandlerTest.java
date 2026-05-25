@@ -15,6 +15,7 @@ import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
+import com.budgetbuddy.api.response.ApiResponse;
 import com.budgetbuddy.util.MessageUtil;
 import java.util.List;
 import java.util.Locale;
@@ -71,14 +72,15 @@ class EnhancedGlobalExceptionHandlerTest {
         org.slf4j.MDC.put("correlationId", "test-correlation-id");
 
         // When
-        final ResponseEntity<EnhancedGlobalExceptionHandler.ErrorResponse> response =
+        final ResponseEntity<ApiResponse<Void>> response =
                 exceptionHandler.handleAppException(ex, webRequest);
 
         // Then
         assertNotNull(response);
         assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
         assertNotNull(response.getBody());
-        assertEquals("USER_NOT_FOUND", response.getBody().getErrorCode());
+        assertNotNull(response.getBody().error());
+        assertEquals("USER_NOT_FOUND", response.getBody().error().code());
     }
 
     @Test
@@ -94,7 +96,7 @@ class EnhancedGlobalExceptionHandlerTest {
                 .thenReturn(java.util.Collections.singletonList(fieldError));
 
         // When
-        final ResponseEntity<EnhancedGlobalExceptionHandler.ErrorResponse> response =
+        final ResponseEntity<ApiResponse<Void>> response =
                 exceptionHandler.handleValidationException(ex, webRequest);
 
         // Then
@@ -126,16 +128,18 @@ class EnhancedGlobalExceptionHandlerTest {
         when(messageUtil.getValidationMessage("code")).thenReturn(null);
 
         // When - Should not throw NullPointerException
-        final ResponseEntity<EnhancedGlobalExceptionHandler.ErrorResponse> response =
+        final ResponseEntity<ApiResponse<Void>> response =
                 exceptionHandler.handleValidationException(ex, webRequest);
 
         // Then
         assertNotNull(response);
         assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
         assertNotNull(response.getBody());
-        assertNotNull(response.getBody().getValidationErrors());
+        assertNotNull(response.getBody().error());
+        assertNotNull(response.getBody().error().validationErrors());
         // Should use fallback "Invalid value" when errorMessage is null
-        assertEquals("Invalid value", response.getBody().getValidationErrors().get("code"));
+        assertEquals(
+                "Invalid value", response.getBody().error().validationErrors().get("code"));
     }
 
     @Test
@@ -148,7 +152,7 @@ class EnhancedGlobalExceptionHandlerTest {
         org.slf4j.MDC.put("correlationId", "test-correlation-id");
 
         // When
-        final ResponseEntity<EnhancedGlobalExceptionHandler.ErrorResponse> response =
+        final ResponseEntity<ApiResponse<Void>> response =
                 exceptionHandler.handleGenericException(ex, webRequest);
 
         // Then

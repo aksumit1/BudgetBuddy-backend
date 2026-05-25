@@ -36,11 +36,32 @@ public class McpSessionRegistry {
     private final Map<String, Instant> lastUsedAt = new ConcurrentHashMap<>();
 
     public McpSession create(final String userId) {
+        return create(userId, /*persistentConsent=*/false);
+    }
+
+    /**
+     * Create a session honouring the user's persistent money-moving
+     * consent. Callers that have the user record handy pass the flag
+     * so a returning AI client doesn't have to re-prompt on every
+     * reconnect when the user has already granted standing consent.
+     */
+    public McpSession create(final String userId, final boolean persistentConsent) {
         evictIfFull();
         final McpSession s = new McpSession(userId);
+        if (persistentConsent) {
+            s.grantMoneyMovingConsent();
+        }
         sessions.put(s.sessionId(), s);
         lastUsedAt.put(s.sessionId(), Instant.now());
         return s;
+    }
+
+    /** Snapshot of every active session for a user — used by the iOS Settings screen. */
+    public java.util.List<McpSession> sessionsForUser(final String userId) {
+        if (userId == null) return java.util.List.of();
+        return sessions.values().stream()
+                .filter(s -> userId.equals(s.userId()))
+                .toList();
     }
 
     public Optional<McpSession> get(final String sessionId) {
@@ -49,6 +70,11 @@ public class McpSessionRegistry {
         if (s == null) return Optional.empty();
         lastUsedAt.put(sessionId, Instant.now());
         return Optional.of(s);
+    }
+
+    /** Last-touch timestamp for a session, used by the iOS list view. */
+    public Optional<Instant> lastUsedAt(final String sessionId) {
+        return Optional.ofNullable(sessionId == null ? null : lastUsedAt.get(sessionId));
     }
 
     public void terminate(final String sessionId) {

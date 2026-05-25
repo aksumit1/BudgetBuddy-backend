@@ -64,6 +64,15 @@ public class InsightsChatService {
     private final ChatMessageRepository chatRepo;
     private final InsightsContextFactory contextFactory;
     private final PrivacyPreservingExtractor extractor;
+    /** Optional — null in unit tests; used to emit token/latency metrics. */
+    private final ChatMetrics metrics;
+    private final PromptRegistry promptRegistry;
+    /** Optional — when null, long histories are simply truncated. */
+    private final ConversationSummarizer summarizer;
+    /** Tool registry — null in tests = no tool-use loop. */
+    private final ChatToolRegistry toolRegistry;
+    /** Cap on tool-use iterations per turn to bound cost. */
+    private static final int MAX_TOOL_LOOPS = 3;
     private final ObjectMapper mapper = new ObjectMapper();
     private final HttpClient http =
             HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(5)).build();
@@ -80,13 +89,36 @@ public class InsightsChatService {
     @Value("${app.insights.chat.max-output-tokens:600}")
     private int maxOutputTokens;
 
+    @org.springframework.beans.factory.annotation.Autowired
+    public InsightsChatService(
+            final ChatMessageRepository chatRepo,
+            final InsightsContextFactory contextFactory,
+            final PrivacyPreservingExtractor extractor,
+            @org.springframework.beans.factory.annotation.Autowired(required = false)
+                    final ChatMetrics metrics,
+            @org.springframework.beans.factory.annotation.Autowired(required = false)
+                    final PromptRegistry promptRegistry,
+            @org.springframework.beans.factory.annotation.Autowired(required = false)
+                    final ConversationSummarizer summarizer,
+            @org.springframework.beans.factory.annotation.Autowired(required = false)
+                    final ChatToolRegistry toolRegistry) {
+        this.chatRepo = chatRepo;
+        this.contextFactory = contextFactory;
+        this.extractor = extractor;
+        this.metrics = metrics;
+        // Defensive default — tests that don't wire the registry get
+        // a fresh instance so the inline-prompt path still works.
+        this.promptRegistry = promptRegistry != null ? promptRegistry : new PromptRegistry();
+        this.summarizer = summarizer;
+        this.toolRegistry = toolRegistry;
+    }
+
+    /** Backwards-compat constructor for tests that don't wire optional deps. */
     public InsightsChatService(
             final ChatMessageRepository chatRepo,
             final InsightsContextFactory contextFactory,
             final PrivacyPreservingExtractor extractor) {
-        this.chatRepo = chatRepo;
-        this.contextFactory = contextFactory;
-        this.extractor = extractor;
+        this(chatRepo, contextFactory, extractor, null, null, null, null);
     }
 
     /**
@@ -110,11 +142,22 @@ public class InsightsChatService {
                 ? UUID.randomUUID().toString()
                 : req.conversationId();
 
-        // 1. Load prior turns (trimmed to a recency window so prompt size stays bounded).
+        // 1. Load prior turns. When the history exceeds the recency
+        // window, summarise the older portion into one synthetic
+        // system message so the conversation stays coherent without
+        // unbounded prompt growth.
         final List<ChatMessageTable> history = chatRepo.loadConversation(conversationId);
-        final List<ChatMessageTable> recentHistory = history.size() > MAX_HISTORY_TURNS
-                ? history.subList(history.size() - MAX_HISTORY_TURNS, history.size())
-                : history;
+        final List<ChatMessageTable> recentHistory;
+        final String summarisedPreface;
+        if (history.size() > MAX_HISTORY_TURNS) {
+            final List<ChatMessageTable> older =
+                    history.subList(0, history.size() - MAX_HISTORY_TURNS);
+            recentHistory = history.subList(history.size() - MAX_HISTORY_TURNS, history.size());
+            summarisedPreface = summarizer == null ? null : summarizer.summarise(older);
+        } else {
+            recentHistory = history;
+            summarisedPreface = null;
+        }
 
         // 2. Build sanitised data snapshot — what the LLM gets to see.
         final InsightsContext ctx = contextFactory.buildFor(req.userId());
@@ -122,9 +165,22 @@ public class InsightsChatService {
 
         // 3. Call LLM (asks for structured JSON: reply + 2-3 follow-ups).
         final LlmResponse llmResponse;
+        final long startMillis = System.currentTimeMillis();
         try {
-            llmResponse = callLlm(req.message(), recentHistory, snapshot, mode);
+            llmResponse = callLlm(
+                    req.message(), recentHistory, snapshot, mode, summarisedPreface);
+            if (metrics != null) {
+                metrics.recordTurn(
+                        model,
+                        mode.name(),
+                        System.currentTimeMillis() - startMillis,
+                        llmResponse.inputTokens(),
+                        llmResponse.outputTokens());
+            }
         } catch (final Exception e) {
+            if (metrics != null) {
+                metrics.recordFailure(model, mode.name(), classifyFailure(e));
+            }
             LOGGER.warn("InsightsChatService: LLM call failed: {}", e.getMessage());
             throw new RuntimeException("chat-llm-call-failed", e);
         }
@@ -151,11 +207,19 @@ public class InsightsChatService {
             final String userMessage,
             final List<ChatMessageTable> history,
             final PrivacyPreservingExtractor.SanitizedSnapshot snapshot,
-            final ChatMode mode) throws Exception {
+            final ChatMode mode,
+            final String summarisedPreface) throws Exception {
         final ObjectNode body = mapper.createObjectNode();
         body.put("model", model);
         body.put("max_tokens", maxOutputTokens);
-        body.put("system", buildSystemPrompt(snapshot, mode));
+        // System prompt = mode-tailored snapshot prompt + optional
+        // summary of older turns (when history was trimmed).
+        final String systemPrompt = summarisedPreface == null || summarisedPreface.isBlank()
+                ? buildSystemPrompt(snapshot, mode)
+                : buildSystemPrompt(snapshot, mode)
+                        + "\n\nPrior conversation summary (older turns elided):\n"
+                        + summarisedPreface;
+        body.put("system", systemPrompt);
 
         final ArrayNode messages = body.putArray("messages");
         for (final ChatMessageTable m : history) {
@@ -168,22 +232,85 @@ public class InsightsChatService {
         currentTurn.put("role", "user");
         currentTurn.put("content", userMessage);
 
-        final HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(ANTHROPIC_API))
-                .header("x-api-key", apiKey)
-                .header("anthropic-version", ANTHROPIC_VERSION)
-                .header("content-type", "application/json")
-                .timeout(Duration.ofSeconds(timeoutSeconds))
-                .POST(HttpRequest.BodyPublishers.ofString(body.toString(), StandardCharsets.UTF_8))
-                .build();
-
-        final HttpResponse<String> resp = http.send(request, HttpResponse.BodyHandlers.ofString());
-        if (resp.statusCode() != 200) {
-            throw new RuntimeException("Anthropic HTTP " + resp.statusCode() + ": " + resp.body());
+        // Expose the tool registry to the LLM when wired. The model
+        // chooses whether to use a tool; if it does, we loop, execute,
+        // and feed the result back, up to MAX_TOOL_LOOPS times.
+        if (toolRegistry != null) {
+            body.set("tools", toolRegistry.toolDefinitions());
         }
-        final String raw = mapper.readTree(resp.body())
-                .path("content").path(0).path("text").asText("").trim();
-        return parseLlmJson(raw);
+
+        int inputTokensTotal = 0;
+        int outputTokensTotal = 0;
+        for (int loop = 0; loop <= MAX_TOOL_LOOPS; loop++) {
+            final HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(ANTHROPIC_API))
+                    .header("x-api-key", apiKey)
+                    .header("anthropic-version", ANTHROPIC_VERSION)
+                    .header("content-type", "application/json")
+                    .timeout(Duration.ofSeconds(timeoutSeconds))
+                    .POST(HttpRequest.BodyPublishers.ofString(
+                            body.toString(), StandardCharsets.UTF_8))
+                    .build();
+
+            final HttpResponse<String> resp =
+                    http.send(request, HttpResponse.BodyHandlers.ofString());
+            if (resp.statusCode() != 200) {
+                throw new RuntimeException(
+                        "Anthropic HTTP " + resp.statusCode() + ": " + resp.body());
+            }
+            final var parsed = mapper.readTree(resp.body());
+            inputTokensTotal += parsed.path("usage").path("input_tokens").asInt(0);
+            outputTokensTotal += parsed.path("usage").path("output_tokens").asInt(0);
+
+            final String stopReason = parsed.path("stop_reason").asText("");
+            if ("tool_use".equals(stopReason) && toolRegistry != null
+                    && loop < MAX_TOOL_LOOPS) {
+                // Echo the assistant's tool_use block back into the
+                // conversation, then append each tool_result block.
+                // Anthropic requires the original tool_use block to
+                // appear verbatim as an assistant message.
+                final var assistantContent = parsed.path("content");
+                final ObjectNode assistantMsg = messages.addObject();
+                assistantMsg.put("role", "assistant");
+                assistantMsg.set("content", assistantContent);
+
+                final ObjectNode userToolResult = messages.addObject();
+                userToolResult.put("role", "user");
+                final ArrayNode resultBlocks = userToolResult.putArray("content");
+                for (final var block : assistantContent) {
+                    if (!"tool_use".equals(block.path("type").asText(""))) {
+                        continue;
+                    }
+                    final String toolUseId = block.path("id").asText("");
+                    final String toolName = block.path("name").asText("");
+                    final var toolInput = block.path("input");
+                    final String execResult =
+                            toolRegistry.executeTool(toolName, toolInput, snapshot);
+                    final ObjectNode resultBlock = resultBlocks.addObject();
+                    resultBlock.put("type", "tool_result");
+                    resultBlock.put("tool_use_id", toolUseId);
+                    resultBlock.put("content", execResult);
+                }
+                continue;
+            }
+
+            // end_turn or other terminal stop_reason — extract reply.
+            final String raw = parsed.path("content").path(0).path("text").asText("").trim();
+            final LlmResponse parsedJson = parseLlmJson(raw);
+            return new LlmResponse(
+                    parsedJson.reply(),
+                    parsedJson.followUps(),
+                    inputTokensTotal > 0 ? inputTokensTotal : -1,
+                    outputTokensTotal > 0 ? outputTokensTotal : -1);
+        }
+        // Hit MAX_TOOL_LOOPS without the model concluding — surface a
+        // gentle fallback rather than throwing. Cost is already capped.
+        return new LlmResponse(
+                "I gathered some context but couldn't finalize an answer this turn. "
+                        + "Try rephrasing or asking a more specific question.",
+                List.of(),
+                inputTokensTotal > 0 ? inputTokensTotal : -1,
+                outputTokensTotal > 0 ? outputTokensTotal : -1);
     }
 
     /**
@@ -239,38 +366,15 @@ public class InsightsChatService {
         return buildSystemPrompt(snapshot, ChatMode.GENERAL);
     }
 
+    /**
+     * Delegates to {@link PromptRegistry}. Kept as an instance method
+     * (package-private) so existing tests can introspect the prompt
+     * without grabbing the registry directly.
+     */
     String buildSystemPrompt(
             final PrivacyPreservingExtractor.SanitizedSnapshot snapshot,
             final ChatMode mode) {
-        final String snapshotJson;
-        try {
-            snapshotJson = mapper.writeValueAsString(snapshot);
-        } catch (final Exception e) {
-            throw new RuntimeException("Failed to serialize snapshot", e);
-        }
-        return "You are BudgetBuddy's financial-insights assistant. You answer the user's "
-                + "questions about THEIR spending and finances using ONLY the JSON snapshot "
-                + "below.\n\n"
-                + "Mode focus: " + mode.focusInstruction() + "\n\n"
-                + "Hard rules — never break:\n"
-                + " - Never invent specific transactions, merchants, or amounts not present "
-                + "in the snapshot. If asked about something not there, say so plainly.\n"
-                + " - Quote dollar figures only as found in the snapshot. Round naturally.\n"
-                + " - Keep the reply under 120 words. Be specific, actionable.\n"
-                + " - No emoji, no markdown headers. Plain sentences.\n"
-                + " - You don't know the user's name, email, or any personal identifier.\n"
-                + " - Currency: " + snapshot.currency() + "\n\n"
-                + "Output format — return ONLY a JSON object, nothing else:\n"
-                + "{\n"
-                + "  \"reply\": \"<your one-paragraph reply, under 120 words>\",\n"
-                + "  \"followUps\": [\n"
-                + "    \"<follow-up question 1, short, user POV>\",\n"
-                + "    \"<follow-up question 2>\",\n"
-                + "    \"<follow-up question 3, optional>\"\n"
-                + "  ]\n"
-                + "}\n\n"
-                + "Data snapshot (all monetary values in " + snapshot.currency() + "):\n"
-                + snapshotJson;
+        return promptRegistry.buildSystemPrompt(mode, snapshot);
     }
 
     /** Chat focus modes — each tailors the system prompt without changing privacy rules. */
@@ -337,6 +441,34 @@ public class InsightsChatService {
             List<String> followUps,
             Instant timestamp) {}
 
-    /** Internal — what the LLM call returns before persistence. */
-    record LlmResponse(String reply, List<String> followUps) {}
+    /**
+     * Internal — what the LLM call returns before persistence.
+     * Token counts come from Anthropic's response usage block; -1
+     * indicates the parser couldn't read them (don't emit a metric).
+     */
+    record LlmResponse(String reply, List<String> followUps, int inputTokens, int outputTokens) {
+        /** Backwards-compat for callers that don't track tokens. */
+        public LlmResponse(final String reply, final List<String> followUps) {
+            this(reply, followUps, -1, -1);
+        }
+    }
+
+    /** Map LLM failure to a low-cardinality reason tag for metrics. */
+    private static String classifyFailure(final Exception e) {
+        if (e instanceof java.net.http.HttpTimeoutException
+                || e.getCause() instanceof java.net.http.HttpTimeoutException) {
+            return "timeout";
+        }
+        final String msg = e.getMessage() == null ? "" : e.getMessage();
+        if (msg.contains("Anthropic HTTP 429")) {
+            return "anthropic-rate-limit";
+        }
+        if (msg.contains("Anthropic HTTP 5")) {
+            return "anthropic-5xx";
+        }
+        if (msg.contains("Anthropic HTTP 4")) {
+            return "anthropic-4xx";
+        }
+        return "other";
+    }
 }

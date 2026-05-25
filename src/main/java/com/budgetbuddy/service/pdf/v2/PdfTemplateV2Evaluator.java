@@ -7,6 +7,7 @@ import java.time.format.DateTimeParseException;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -145,6 +146,7 @@ public final class PdfTemplateV2Evaluator {
         public BigDecimal paymentsAndCreditsTotal;
         public BigDecimal feesTotal;
         public BigDecimal interestTotal;
+        public BigDecimal otherCreditsTotal;
         public BigDecimal ytdFees;
         public BigDecimal ytdInterest;
         public BigDecimal purchaseApr;
@@ -190,12 +192,15 @@ public final class PdfTemplateV2Evaluator {
         r.availableCredit = firstLabelAmount("available_credit", m.getAvailableCredit(), ctx);
         r.minimumPaymentDue = firstLabelAmount("minimum_payment_due", m.getMinimumPaymentDue(), ctx);
         r.paymentDueDate = firstLabelDate("payment_due_date", m.getPaymentDueDate(), ctx);
-        r.purchasesTotal = firstLabelAmount("purchases_total", m.getPurchasesTotal(), ctx);
+        r.purchasesTotal = m.isPurchasesTotalSum()
+                ? sumLabelAmounts("purchases_total", m.getPurchasesTotal(), ctx)
+                : firstLabelAmount("purchases_total", m.getPurchasesTotal(), ctx);
         r.paymentsAndCreditsTotal = m.isPaymentsTotalSum()
                 ? sumLabelAmounts("payments_total", m.getPaymentsTotal(), ctx)
                 : firstLabelAmount("payments_total", m.getPaymentsTotal(), ctx);
         r.feesTotal = firstLabelAmount("fees_total", m.getFeesTotal(), ctx);
         r.interestTotal = firstLabelAmount("interest_total", m.getInterestTotal(), ctx);
+        r.otherCreditsTotal = firstLabelAmount("other_credits_total", m.getOtherCreditsTotal(), ctx);
         r.ytdFees = firstLabelAmount("ytd_fees", m.getYtdFees(), ctx);
         r.ytdInterest = firstLabelAmount("ytd_interest", m.getYtdInterest(), ctx);
         r.purchaseApr = firstLabelPercent("purchase_apr", m.getPurchaseApr(), ctx);
@@ -735,11 +740,17 @@ public final class PdfTemplateV2Evaluator {
     static LocalDate parseLooseDate(final String raw) {
         if (raw == null) return null;
         final String[] fmts = {
-                "M/d/yyyy", "M/d/yy", "MM/dd/yyyy", "MM/dd/yy", "yyyy-MM-dd"
+                "M/d/yyyy", "M/d/yy", "MM/dd/yyyy", "MM/dd/yy", "yyyy-MM-dd",
+                // Long-form dates printed by Chase checking statements:
+                // "December 04, 2025" or "April 7, 2026".
+                "MMMM d, yyyy",
+                // Short month name (Discover AccountActivity activity period):
+                // "Nov 16, 2025"
+                "MMM d, yyyy"
         };
         for (final String f : fmts) {
             try {
-                return LocalDate.parse(raw.trim(), DateTimeFormatter.ofPattern(f));
+                return LocalDate.parse(raw.trim(), DateTimeFormatter.ofPattern(f, Locale.US));
             } catch (final DateTimeParseException ignored) {
                 // try next
             }

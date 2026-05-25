@@ -35,9 +35,12 @@ public final class OsmTagMapper {
         if (tags == null || tags.isEmpty()) {
             return null;
         }
-        // Order matters — check most specific keys first.
+        // Order matters — check most specific keys first. Specific POI tags
+        // (amenity, shop, tourism, …) before generic land-use signals
+        // (landuse, building) which only fire as last-resort defaults.
         final String[] checkOrder = {
-                "amenity", "shop", "tourism", "leisure", "office", "healthcare", "craft", "sport"
+                "amenity", "shop", "tourism", "leisure", "office", "healthcare", "craft", "sport",
+                "landuse", "building"
         };
         for (final String key : checkOrder) {
             final String value = tags.get(key);
@@ -62,7 +65,29 @@ public final class OsmTagMapper {
             case "healthcare":  return "health";
             case "craft":       return fromCraft(value);
             case "sport":       return "entertainment";
+            case "landuse":     return fromLanduse(value);
+            case "building":    return fromBuilding(value);
             default:            return null;
+        }
+    }
+
+    /** Land-use signal (last-resort). Only retail / commercial useful here. */
+    private static String fromLanduse(final String value) {
+        switch (value) {
+            case "retail":     return "shopping";
+            case "commercial": return "shopping";
+            default:           return null;
+        }
+    }
+
+    /** Building tag (very last resort — used when no POI tag exists). */
+    private static String fromBuilding(final String value) {
+        switch (value) {
+            case "retail":     return "shopping";
+            case "supermarket": return "groceries";
+            case "hotel":      return "travel";
+            case "restaurant": return "dining";
+            default:           return null;
         }
     }
 

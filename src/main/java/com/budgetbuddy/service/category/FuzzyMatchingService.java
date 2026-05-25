@@ -88,14 +88,23 @@ public class FuzzyMatchingService {
             return new FuzzyMatch(normalizedQuery, 1.0, "EXACT", 0.95);
         }
 
-        // Try Levenshtein distance matching
+        // Try Levenshtein distance matching.
+        //
+        // The outer filter must match (or be tighter than) the inner early-exit
+        // in `levenshteinDistance`. Previously it allowed diff up to
+        // `MAX_LEVENSHTEIN_DISTANCE * 2` (6) while the inner early-exit fired at
+        // diff > MAX_LEVENSHTEIN_DISTANCE (3) and returned a fake distance — for
+        // a 70-char query vs a 66-char candidate it claimed similarity 0.943
+        // even when the strings shared zero characters. That produced 768 false
+        // healthcare matches in the cascade audit. Tightening to the same
+        // threshold means we never enter the early-exit case; we only score
+        // pairs that can realistically be within MAX_LEVENSHTEIN_DISTANCE edits.
         for (final Map.Entry<String, InMemoryMerchantService.Merchant> entry :
                 candidates.entrySet()) {
             final String candidate = entry.getKey();
 
-            // Skip if lengths are too different (performance optimization)
             if (Math.abs(normalizedQuery.length() - candidate.length())
-                    > MAX_LEVENSHTEIN_DISTANCE * 2) {
+                    > MAX_LEVENSHTEIN_DISTANCE) {
                 continue;
             }
 
@@ -198,9 +207,16 @@ public class FuzzyMatchingService {
         final int len1 = s1.length();
         final int len2 = s2.length();
 
-        // Early exit for very different lengths
+        // Early exit for very different lengths. Levenshtein has a hard lower
+        // bound of |len1 - len2| (you need at least that many insertions to
+        // close the gap). The previous "return MAX_LEVENSHTEIN_DISTANCE + 1"
+        // was wrong: against a 30-char query, it claimed distance=4 even when
+        // the strings shared zero characters, which makes similarity = 1 -
+        // 4/30 = 0.867 — passing the 0.85 threshold and producing 774 false
+        // healthcare matches in the cascade audit. Return the true lower
+        // bound so the threshold check rejects these.
         if (Math.abs(len1 - len2) > MAX_LEVENSHTEIN_DISTANCE) {
-            return MAX_LEVENSHTEIN_DISTANCE + 1; // Too different
+            return Math.abs(len1 - len2);
         }
 
         final int[][] dp = new int[len1 + 1][len2 + 1];

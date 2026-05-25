@@ -135,11 +135,13 @@ public class SubscriptionServiceRealWorldScenariosTest {
     @Test
     @DisplayName("Real-world: Netflix subscription with price increase")
     void testNetflixSubscriptionWithPriceIncrease() {
-        // Given: Netflix subscription with price increase from $15.99 to $17.99
-        final LocalDate baseDate = LocalDate.now().minusMonths(6);
+        // Given: Netflix subscription with price increase from $15.99 to
+        // $17.99. Each amount tier needs 4+ cycles to clear the
+        // tightened MONTHLY detection floor; total 8 months of history.
+        final LocalDate baseDate = LocalDate.now().minusMonths(9);
 
-        // First 3 months at $15.99
-        for (int i = 0; i < 3; i++) {
+        // First 4 months at $15.99
+        for (int i = 0; i < 4; i++) {
             transactionRepository.save(
                     createTransaction(
                             "NETFLIX.COM",
@@ -150,8 +152,8 @@ public class SubscriptionServiceRealWorldScenariosTest {
                             STREAMING));
         }
 
-        // Next 3 months at $17.99 (price increase)
-        for (int i = 3; i < 6; i++) {
+        // Next 4 months at $17.99 (price increase)
+        for (int i = 4; i < 8; i++) {
             transactionRepository.save(
                     createTransaction(
                             "NETFLIX.COM",

@@ -128,18 +128,18 @@ class IOSAppBackendIntegrationTest {
                         withAuth(get("/api/plaid/accounts"))
                                 .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.accounts").isArray())
-                .andExpect(jsonPath("$.accounts[0].accountId").exists())
-                .andExpect(jsonPath("$.accounts[0].accountName").exists())
-                .andExpect(jsonPath("$.accounts[0].institutionName").exists())
-                .andExpect(jsonPath("$.accounts[0].accountType").exists())
-                .andExpect(jsonPath("$.accounts[0].balance").exists())
-                .andExpect(jsonPath("$.accounts[0].currencyCode").exists())
-                .andExpect(jsonPath("$.accounts[0].active").exists())
+                .andExpect(jsonPath("$.data.accounts").isArray())
+                .andExpect(jsonPath("$.data.accounts[0].accountId").exists())
+                .andExpect(jsonPath("$.data.accounts[0].accountName").exists())
+                .andExpect(jsonPath("$.data.accounts[0].institutionName").exists())
+                .andExpect(jsonPath("$.data.accounts[0].accountType").exists())
+                .andExpect(jsonPath("$.data.accounts[0].balance").exists())
+                .andExpect(jsonPath("$.data.accounts[0].currencyCode").exists())
+                .andExpect(jsonPath("$.data.accounts[0].active").exists())
                 // BUG FIX: Verify dates are present (can be Int64 or ISO8601 string)
-                .andExpect(jsonPath("$.accounts[0].createdAt").exists())
-                .andExpect(jsonPath("$.accounts[0].updatedAt").exists())
-                .andExpect(jsonPath("$.accounts[0].lastSyncedAt").exists());
+                .andExpect(jsonPath("$.data.accounts[0].createdAt").exists())
+                .andExpect(jsonPath("$.data.accounts[0].updatedAt").exists())
+                .andExpect(jsonPath("$.data.accounts[0].lastSyncedAt").exists());
     }
 
     @Test
@@ -182,7 +182,7 @@ class IOSAppBackendIntegrationTest {
                         withAuth(get("/api/plaid/accounts"))
                                 .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.accounts").isArray())
+                .andExpect(jsonPath("$.data.accounts").isArray())
                 // BUG FIX: Should include account with null active
                 // Use hasItem matcher which is more reliable than filter expression
                 .andExpect(
@@ -200,17 +200,17 @@ class IOSAppBackendIntegrationTest {
                                 .param("end", LocalDate.now().toString())
                                 .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$").isArray())
-                .andExpect(jsonPath("$[0].transactionId").exists())
-                .andExpect(jsonPath("$[0].accountId").exists())
-                .andExpect(jsonPath("$[0].amount").exists())
-                .andExpect(jsonPath("$[0].description").exists())
+                .andExpect(jsonPath("$.data").isArray())
+                .andExpect(jsonPath("$.data[0].transactionId").exists())
+                .andExpect(jsonPath("$.data[0].accountId").exists())
+                .andExpect(jsonPath("$.data[0].amount").exists())
+                .andExpect(jsonPath("$.data[0].description").exists())
                 .andExpect(
-                        jsonPath("$[0].category").exists()) // BUG FIX: category should not be null
-                .andExpect(jsonPath("$[0].transactionDate").exists())
+                        jsonPath("$.data[0].category").exists()) // BUG FIX: category should not be null
+                .andExpect(jsonPath("$.data[0].transactionDate").exists())
                 // BUG FIX: Verify dates are present (can be Int64 or ISO8601 string)
-                .andExpect(jsonPath("$[0].createdAt").exists())
-                .andExpect(jsonPath("$[0].updatedAt").exists());
+                .andExpect(jsonPath("$.data[0].createdAt").exists())
+                .andExpect(jsonPath("$.data[0].updatedAt").exists());
     }
 
     @Test
@@ -239,7 +239,7 @@ class IOSAppBackendIntegrationTest {
                                 .param("end", LocalDate.now().toString())
                                 .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$").isArray());
+                .andExpect(jsonPath("$.data").isArray());
         // Note: Backend may return null category, but iOS app handles it
     }
 
@@ -268,8 +268,8 @@ class IOSAppBackendIntegrationTest {
                                 .param("end", specificDate.plusDays(1).toString())
                                 .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$").isArray())
-                .andExpect(jsonPath("$[?(@.description == 'Dated Transaction')]").exists());
+                .andExpect(jsonPath("$.data").isArray())
+                .andExpect(jsonPath("$.data[?(@.description == 'Dated Transaction')]").exists());
     }
 
     @Test

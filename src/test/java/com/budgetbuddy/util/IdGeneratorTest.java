@@ -173,7 +173,10 @@ class IdGeneratorTest {
 
     @Test
     void testGenerateSubscriptionIdWithNullInputsThrowsException() {
-        // When/Then
+        // userId and merchantName are required. amount is no longer part
+        // of the hash (see IdGenerator.generateSubscriptionId Javadoc /
+        // SubscriptionService.consolidateMultiPriceSubscriptions) so null
+        // amount no longer throws — only the user/merchant nulls do.
         assertThrows(
                 IllegalArgumentException.class,
                 () ->
@@ -182,25 +185,27 @@ class IdGeneratorTest {
         assertThrows(
                 IllegalArgumentException.class,
                 () -> IdGenerator.generateSubscriptionId("user", null, new BigDecimal("10.00")));
-        assertThrows(
-                IllegalArgumentException.class,
-                () -> IdGenerator.generateSubscriptionId("user", "merchant", null));
     }
 
     @Test
-    void testGenerateSubscriptionIdWithDifferentAmountPrecisionHandlesCorrectly() {
-        // Given
+    void testGenerateSubscriptionIdWithDifferentAmountsGeneratesSameId() {
+        // amount is intentionally ignored in the hash so that a
+        // $9.99 → $10.00 price change UPDATEs the same DynamoDB row
+        // instead of orphaning the prior subscription. Different amounts
+        // for the same (user, merchant) must collapse to one ID.
         final String userId = USER_123;
         final String merchantName = "Netflix";
         final BigDecimal amount1 = new BigDecimal("9.99");
         final BigDecimal amount2 = new BigDecimal("10.00");
 
-        // When
         final String id1 = IdGenerator.generateSubscriptionId(userId, merchantName, amount1);
         final String id2 = IdGenerator.generateSubscriptionId(userId, merchantName, amount2);
 
-        // Then
-        assertNotEquals(id1, id2, "Different amounts should generate different IDs");
+        assertEquals(
+                id1,
+                id2,
+                "Same (user, merchant) must produce one ID regardless of amount — "
+                        + "price changes UPDATE the existing row, not insert a sibling");
     }
 
     @Test

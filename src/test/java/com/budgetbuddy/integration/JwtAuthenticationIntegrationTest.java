@@ -85,7 +85,7 @@ class JwtAuthenticationIntegrationTest {
                                         .contentType(MediaType.APPLICATION_JSON)
                                         .content(objectMapper.writeValueAsString(loginRequest)))
                         .andExpect(status().isOk())
-                        .andExpect(jsonPath("$.accessToken").exists())
+                        .andExpect(jsonPath("$.data.accessToken").exists())
                         .andReturn()
                         .getResponse()
                         .getContentAsString();

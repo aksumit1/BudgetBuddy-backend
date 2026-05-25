@@ -281,6 +281,46 @@ public class PDFImportService {
     }
 
     /**
+     * Setter injection for the format-anomaly detector. Off by default
+     * (feature-flagged via {@code app.pdf.anomaly-detector.enabled}); when
+     * enabled, gets called after every parse to flag structural drift
+     * per (institution, accountNumber).
+     */
+    private com.budgetbuddy.service.pdf.ai.StatementFormatAnomalyDetector anomalyDetector;
+
+    @Autowired(required = false)
+    public void setAnomalyDetector(
+            final com.budgetbuddy.service.pdf.ai.StatementFormatAnomalyDetector det) {
+        this.anomalyDetector = det;
+    }
+
+    /**
+     * Setter injection for the AI YAML template author. Off by default;
+     * when enabled, gets called when an unknown issuer arrives without
+     * a v2 template so a draft YAML can be authored async.
+     */
+    private com.budgetbuddy.service.pdf.ai.AiYamlTemplateAuthor yamlAuthor;
+
+    @Autowired(required = false)
+    public void setYamlAuthor(
+            final com.budgetbuddy.service.pdf.ai.AiYamlTemplateAuthor a) {
+        this.yamlAuthor = a;
+    }
+
+    /**
+     * Setter injection for the AI merchant-name canonicalizer. Off by
+     * default; when enabled, fires per-tx as the L8 fallback after rules
+     * fail to normalize the descriptor.
+     */
+    private com.budgetbuddy.service.pdf.ai.AiMerchantCanonicalizer merchantCanonicalizer;
+
+    @Autowired(required = false)
+    public void setMerchantCanonicalizer(
+            final com.budgetbuddy.service.pdf.ai.AiMerchantCanonicalizer c) {
+        this.merchantCanonicalizer = c;
+    }
+
+    /**
      * Legacy 4-arg constructor for the existing 24+ unit tests that instantiate PDFImportService
      * directly with mocks. Delegates with null for the new optional collaborators (OCR, template
      * registry, miss tracker) — all handle null gracefully at the call site.
@@ -1784,6 +1824,37 @@ public class PDFImportService {
             // weeks later can be reproduced exactly. SHA-256 dedup ensures
             // re-imports of the same statement don't cost extra storage.
             archiveRawPdfIfEnabled(pdfBytes, result, fileName);
+
+            // Layer 4: format-anomaly detection. Compares this parse's
+            // structural fingerprint against the historical baseline for
+            // this (institution, accountNumber). Drift fires a metric +
+            // optional triage report. Non-fatal — never breaks the parse.
+            if (anomalyDetector != null) {
+                try {
+                    anomalyDetector.inspect(result);
+                } catch (final RuntimeException e) {
+                    LOGGER.warn(
+                            "Anomaly detector failed (non-fatal): {}", e.getMessage());
+                }
+            }
+
+            // Layer 5: AI YAML auto-author. When the parse completed but
+            // the issuer has no v2 template (the legacy parser handled it),
+            // queue an async draft-yaml generation so the dev team gets a
+            // PR-ready template by morning. Fire-and-forget — caller must
+            // never wait on LLM latency.
+            if (yamlAuthor != null && shouldRequestYamlDraft(result)) {
+                final String inst = result.getDetectedAccount() != null
+                        ? result.getDetectedAccount().getInstitutionName() : null;
+                final String txt = fullText;
+                java.util.concurrent.CompletableFuture.runAsync(() -> {
+                    try {
+                        yamlAuthor.generateDraft(inst, txt);
+                    } catch (final RuntimeException e) {
+                        LOGGER.debug("AI YAML author async failed: {}", e.getMessage());
+                    }
+                });
+            }
 
             if (LOGGER.isInfoEnabled()) {
                 LOGGER.info(
@@ -8995,7 +9066,28 @@ public class PDFImportService {
             // Strip the cardholder/family name from the merchant so a card
             // family statement doesn't leave "AGARWAL SUMIT" attached.
             final String cleaned = removeNamesFromText(merchant, null, accountHolderName);
-            tx.setMerchantName(cleaned != null && !cleaned.isBlank() ? cleaned : merchant);
+            final String afterRules = cleaned != null && !cleaned.isBlank() ? cleaned : merchant;
+            // L8 fallback: AI canonicalizer. Off by default; when on, only
+            // returns high-confidence canonicalizations (e.g. "STARBUCKS
+            // #5421" → "Starbucks"). Same string back when LLM is unsure
+            // or rules already cleaned it. Cached in-process so a second
+            // identical descriptor in the same statement doesn't re-call.
+            String finalMerchant = afterRules;
+            if (merchantCanonicalizer != null && afterRules != null
+                    && afterRules.equals(merchant)) {
+                // Rules didn't change anything — try the LLM. Skipped
+                // when rules already produced a different value (rules
+                // know best on what they recognise).
+                try {
+                    final String canon = merchantCanonicalizer.canonicalize(afterRules);
+                    if (canon != null && !canon.isBlank()) {
+                        finalMerchant = canon;
+                    }
+                } catch (final RuntimeException e) {
+                    // Non-fatal — keep the rules result.
+                }
+            }
+            tx.setMerchantName(finalMerchant);
         }
         // Currency: v2 amount comes in as a plain BigDecimal — caller hasn't
         // preserved the original amount string with currency hint, so
@@ -9640,6 +9732,27 @@ public class PDFImportService {
         // so downstream consumers don't have to handle two "no info" cases
         // (null vs "unknown").
         return "unknown";
+    }
+
+    /**
+     * Decide whether to ask the AI YAML author for a draft template. Fires
+     * when an institution was detected but no v2 template exists for it
+     * (the legacy parser handled the file). Cheap signal: just checks the
+     * v2 registry. Off-by-default (yamlAuthor null) means the check is a
+     * no-op in production until the feature flag flips on.
+     */
+    private boolean shouldRequestYamlDraft(final ImportResult result) {
+        if (yamlAuthor == null || result == null || result.getDetectedAccount() == null) {
+            return false;
+        }
+        final String inst = result.getDetectedAccount().getInstitutionName();
+        if (inst == null || inst.isBlank()) return false;
+        if (pdfTemplateV2Registry == null) return true;
+        try {
+            return pdfTemplateV2Registry.findByInstitution(inst) == null;
+        } catch (final RuntimeException e) {
+            return false;
+        }
     }
 
     private String deriveTransactionType(final ParsedTransaction tx) {

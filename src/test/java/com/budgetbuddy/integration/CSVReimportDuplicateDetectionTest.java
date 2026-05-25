@@ -147,7 +147,7 @@ class CSVReimportDuplicateDetectionTest {
                                                         userDetails))
                                         .contentType(MediaType.MULTIPART_FORM_DATA))
                         .andExpect(status().isOk())
-                        .andExpect(jsonPath("$.created").exists())
+                        .andExpect(jsonPath("$.data.created").exists())
                         .andReturn();
 
         // Verify first import created transactions
@@ -181,7 +181,7 @@ class CSVReimportDuplicateDetectionTest {
                                                         userDetails))
                                         .contentType(MediaType.MULTIPART_FORM_DATA))
                         .andExpect(status().isOk())
-                        .andExpect(jsonPath("$.created").exists())
+                        .andExpect(jsonPath("$.data.created").exists())
                         .andReturn();
 
         // Verify second import did not create duplicates

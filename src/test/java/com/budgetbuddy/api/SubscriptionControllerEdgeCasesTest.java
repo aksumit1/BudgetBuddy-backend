@@ -139,8 +139,8 @@ public class SubscriptionControllerEdgeCasesTest {
         // When: Get subscriptions
         mockMvc.perform(withAuth(get("/api/subscriptions")).contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$").isArray())
-                .andExpect(jsonPath("$.length()").value(0));
+                .andExpect(jsonPath("$.data").isArray())
+                .andExpect(jsonPath("$.data.length()").value(0));
     }
 
     @Test

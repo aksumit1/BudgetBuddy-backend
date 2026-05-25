@@ -2,6 +2,8 @@ package com.budgetbuddy.service.category;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
@@ -130,17 +132,72 @@ class DynamoDbMerchantEnrichmentStoreTest {
     }
 
     @Test
-    @DisplayName("TTL is set ~365 days in the future")
-    void ttlIsOneYear() {
+    @DisplayName("Positive entries have NO TTL — confirmed merchants live forever")
+    void positiveEntriesHaveNoTtl() {
         store.put("Test", "City", "WA", "US",
                 new CategoryResult("dining", "dining", "TEST", 1.0));
         ArgumentCaptor<MerchantEnrichmentCacheTable> captor =
                 ArgumentCaptor.forClass(MerchantEnrichmentCacheTable.class);
         verify(repo).put(captor.capture());
-        long ttl = captor.getValue().getTtl();
-        long now = java.time.Instant.now().getEpochSecond();
-        long days = (ttl - now) / 86_400;
-        assertTrue(days >= 364 && days <= 366,
-                "TTL should be ~365 days, got " + days + " days");
+        assertNull(captor.getValue().getTtl(),
+                "Positive cache entries must be written with TTL=null so DynamoDB never expires them");
+    }
+
+    @Test
+    @DisplayName("putNegative writes the sentinel category + 90-day TTL")
+    void putNegativeWritesSentinelAndShortTtl() {
+        store.putNegative("Unknown Co", "Atlanta", "GA", "US");
+        ArgumentCaptor<MerchantEnrichmentCacheTable> captor =
+                ArgumentCaptor.forClass(MerchantEnrichmentCacheTable.class);
+        verify(repo).put(captor.capture());
+        MerchantEnrichmentCacheTable row = captor.getValue();
+        assertEquals("__L6_NEGATIVE__", row.getCategoryPrimary(),
+                "Negative entries use a sentinel category that get() filters out");
+        assertNotNull(row.getTtl(),
+                "Negative entries MUST have a TTL so they eventually re-validate");
+        // Production constant is NEGATIVE_TTL_DAYS = 90. Tolerance ±1 day
+        // accounts for the second-granularity rounding in the assertion math.
+        long days = (row.getTtl() - java.time.Instant.now().getEpochSecond()) / 86_400;
+        assertTrue(days >= 89 && days <= 91,
+                "Negative TTL should be ~90 days (re-validates quarterly), got " + days);
+    }
+
+    @Test
+    @DisplayName("isKnownNegative returns true after putNegative")
+    void isKnownNegativeAfterPutNegative() {
+        // Pre-warm the hot negative-cache via putNegative — no Dynamo read needed.
+        store.putNegative("Mystery Corp", "Atlanta", "GA", "US");
+        assertTrue(store.isKnownNegative("Mystery Corp", "Atlanta", "GA", "US"),
+                "After putNegative, isKnownNegative should short-circuit subsequent lookups");
+    }
+
+    @Test
+    @DisplayName("isKnownNegative reads sentinel rows from DynamoDB on cold start")
+    void isKnownNegativeReadsSentinelFromDynamo() {
+        final String key = MerchantEnrichmentStore.key("Cold Miss", "Bellevue", "WA", "US");
+        MerchantEnrichmentCacheTable row = new MerchantEnrichmentCacheTable();
+        row.setCacheKey(key);
+        row.setCategoryPrimary("__L6_NEGATIVE__");
+        when(repo.get(key)).thenReturn(Optional.of(row));
+
+        assertTrue(store.isKnownNegative("Cold Miss", "Bellevue", "WA", "US"),
+                "Sentinel row in Dynamo → isKnownNegative=true even after restart");
+    }
+
+    @Test
+    @DisplayName("get() filters out sentinel rows — never returns __L6_NEGATIVE__ as a category")
+    void getFiltersOutSentinel() {
+        final String key = MerchantEnrichmentStore.key("Cold Miss", "Bellevue", "WA", "US");
+        MerchantEnrichmentCacheTable row = new MerchantEnrichmentCacheTable();
+        row.setCacheKey(key);
+        row.setCategoryPrimary("__L6_NEGATIVE__");
+        row.setCategoryDetailed("__L6_NEGATIVE__");
+        row.setSource("L6_CHAIN_NULL");
+        row.setConfidence(0.0);
+        when(repo.get(key)).thenReturn(Optional.of(row));
+
+        Optional<CategoryResult> r = store.get("Cold Miss", "Bellevue", "WA", "US");
+        assertTrue(r.isEmpty(),
+                "Sentinel rows must never bubble up as positive results");
     }
 }

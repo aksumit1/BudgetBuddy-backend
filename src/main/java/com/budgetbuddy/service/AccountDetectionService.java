@@ -1246,7 +1246,21 @@ public class AccountDetectionService {
 
         // Detect institution name from PDF content using strict matching (word boundaries)
         // This prevents false positives from substrings (e.g., "chase" in "purchase")
-        final String institution = extractInstitutionFromTextStrict(headerText);
+        String institution = extractInstitutionFromTextStrict(headerText);
+        // Chase Total Checking + Savings statements have to route to the
+        // chase-checking-v2 template (institution "Chase Checking"), NOT the
+        // generic credit-card chase-v2 template. Both PDFs carry the "Chase"
+        // keyword (matched by the generic detector above), so we need to
+        // narrow the institution name when the statement headline contains
+        // "Chase Total Checking". Has to be after the generic match because
+        // the headline string contains "Chase" — without this override, every
+        // combined-checking statement gets misclassified as a Chase credit
+        // card and the v2 cutover routes through the wrong template.
+        if ("Chase".equals(institution) && isChaseTotalCheckingStatement(pdfText)) {
+            institution = "Chase Checking";
+            LOGGER.info(
+                    "✓ Narrowed institution from 'Chase' to 'Chase Checking' (Chase Total Checking statement detected)");
+        }
         if (institution != null) {
             detected.setInstitutionName(institution);
             LOGGER.info("✓ Extracted institution name from PDF: {}", institution);
@@ -2126,6 +2140,22 @@ public class AccountDetectionService {
         /* default */ boolean hasWebsiteMatch = false;
         /* default */ int keywordSpecificity = 0; // 0=abbreviation, 1=partial, 2=full name
     }
+
+    /**
+     * Returns true when the PDF text carries a Chase Total Checking + Savings
+     * combined statement headline. Used to narrow the generic "Chase"
+     * institution match to "Chase Checking" so the v2 registry routes these
+     * statements to chase-checking.yaml instead of the credit-card chase.yaml.
+     */
+    private boolean isChaseTotalCheckingStatement(final String pdfText) {
+        if (pdfText == null || pdfText.isEmpty()) {
+            return false;
+        }
+        return CHASE_TOTAL_CHECKING_PATTERN.matcher(pdfText).find();
+    }
+
+    private static final Pattern CHASE_TOTAL_CHECKING_PATTERN = Pattern.compile(
+            "Chase\\s+Total\\s+Checking", Pattern.CASE_INSENSITIVE);
 
     /**
      * Enhanced institution name extraction with: 1. Context-aware section prioritization (header vs
@@ -3080,7 +3110,40 @@ public class AccountDetectionService {
      * Extract product/card name from PDF content General approach that works for ALL credit card
      * issuers and product names Uses institution keywords list instead of hardcoded values
      */
+    /**
+     * Reject extracted product names that look like disclosure-prose fragments
+     * rather than real card-product names. Real card names start with a
+     * capitalized word, contain an issuer brand or product word (Visa,
+     * Mastercard, Cash, Rewards, Platinum, etc.), and don't begin with a
+     * truncated word fragment like "ing" / "this" / "your".
+     */
+    private boolean isPlausibleCardName(final String name) {
+        if (name == null || name.length() < 4 || name.length() > 100) return false;
+        final String trimmed = name.trim();
+        // Must start with an uppercase letter — card names are proper nouns.
+        if (!Character.isUpperCase(trimmed.charAt(0))) return false;
+        // Reject leading word fragments / disclosure-prose stopwords.
+        final String firstWord = trimmed.split("\\s+", 2)[0].toLowerCase(Locale.ROOT);
+        final java.util.Set<String> bannedFirstWords = java.util.Set.of(
+                "ing", "this", "your", "the", "and", "or", "if", "as", "of", "to",
+                "for", "using", "make", "you", "we", "an", "is", "by", "any",
+                "page", "monthly", "service", "fee");
+        if (bannedFirstWords.contains(firstWord)) return false;
+        // Reject "Total Checking Monthly Service Fee" / "Page of X" prose runs
+        // by checking for a 4+ word string with all common dictionary words.
+        if (trimmed.toLowerCase(Locale.ROOT).matches(
+                ".*\\b(monthly\\s+service\\s+fee|page\\s+of|page\\s+\\d|sm\\s+®|customer\\s+service|payment\\s+coupon).*")) {
+            return false;
+        }
+        return true;
+    }
+
     private String extractProductNameFromPDF(final String headerText) {
+        final String raw = extractProductNameFromPDFInternal(headerText);
+        return isPlausibleCardName(raw) ? raw : null;
+    }
+
+    private String extractProductNameFromPDFInternal(final String headerText) {
         if (headerText == null || headerText.isEmpty()) {
             return null;
         }

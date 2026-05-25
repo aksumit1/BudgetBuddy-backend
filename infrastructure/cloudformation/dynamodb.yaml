@@ -188,6 +188,54 @@ Resources:
         - Key: ManagedBy
           Value: CloudFormation
 
+  # PDF Import Jobs Table
+  # Stores async PDF-import jobs (QUEUED/PROCESSING/COMPLETED/FAILED).
+  # Backed by PdfImportJobService; polled by iOS via
+  # /api/transactions/import-pdf/jobs/{id}. TTL set to 7d on
+  # completedAt — jobs aren't archived once the user has the results.
+  PdfImportJobsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub '${TablePrefix}-PdfImportJobs'
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: jobId
+          AttributeType: S
+        - AttributeName: userId
+          AttributeType: S
+        - AttributeName: updatedAtTimestamp
+          AttributeType: N
+      KeySchema:
+        - AttributeName: jobId
+          KeyType: HASH
+      GlobalSecondaryIndexes:
+        - IndexName: UserIdCreatedAtIndex
+          KeySchema:
+            - AttributeName: userId
+              KeyType: HASH
+            - AttributeName: updatedAtTimestamp
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: false  # Jobs are ephemeral
+      SSESpecification:
+        SSEEnabled: true
+        SSEType: KMS
+        KMSMasterKeyId: !If
+          - HasKMSKey
+          - !Ref KMSKeyId
+          - !Ref AWS::NoValue
+      Tags:
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Application
+          Value: BudgetBuddy
+        - Key: Component
+          Value: PdfImport
+        - Key: ManagedBy
+          Value: CloudFormation
+
   # Budgets Table
   # Cost Optimization: Streams and PITR disabled (can use polling/eventual consistency)
   BudgetsTable:

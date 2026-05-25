@@ -9,6 +9,7 @@ id: wells-fargo-v2
 institution: Wells Fargo
 description: "Wells Fargo credit cards"
 status: unverified
+extends: [common]
 
 card_detection:
   institution_match:
@@ -64,6 +65,14 @@ metadata:
       adjacent: dollar
   interest_total:
     - label: "Interest Charged"
+      adjacent: dollar
+
+  # WF segregates refunds/adjustments into "Other Credits" — separate from
+  # Payments. V2FieldBinder rolls this into paymentsAndCreditsTotal so the
+  # audit's credit-side reconciliation accounts for both.
+  other_credits_total:
+    - pattern: "(?i)TOTAL\\s+OTHER\\s+CREDITS\\s+FOR\\s+THIS\\s+PERIOD\\s+\\$([\\d,]+\\.\\d{2})"
+    - label: "Other Credits"
       adjacent: dollar
 
   credit_limit:
@@ -280,29 +289,46 @@ layouts:
     signConvention: credit-positive
     minAmount: 0.01
 
-# v2 transaction-shape declarations. Runs in shadow mode (parallel to legacy)
-# via V2TransactionShadow on every import; production behavior is unchanged.
-# Shadow logs PARITY/DELTA so we can iterate the shapes against the corpus
-# without risk to existing reconciliation.
+# v2 transaction-shape declarations — section-aware, validated against the
+# WF corpus. Shadow comparison reports PARITY across 4 WF statements; this
+# is the source of truth when v2 cutover is enabled (see PDFImportService
+# V2_TX_PRODUCTION_ISSUERS).
 #
-# WF statements have TWO transaction sections with different prefixes:
+# WF statements organize transactions into THREE distinct sections:
 #  (1) Payments — date at start of line:
 #      "04/12 04/12 F353100FN00CHGDDA AUTOMATIC PAYMENT - THANK YOU 545.91"
-#  (2) Purchases — 4-digit card suffix BEFORE the date:
-#      "6779 03/18 03/19 2494166EX8ASR99D0 REPUBLIC SERVICES ... 116.59"
-# Both rows have transaction-date + posting-date + reference number +
-# merchant + bare numeric amount (no $ sigil). Each shape captures `date`
-# (transaction date), `description` (merchant + reference), `amount`.
+#      Header anchor: "Payments"
+#      Sign: credit-card-credit (autopay decreases card balance → CREDIT)
+#  (2) Other Credits — refunds/adjustments, with 4-digit card suffix:
+#      "6779 10/18 10/18 74692169332ALL13N XFINITY MOBILE ... 172.39"
+#      Header anchor: "Other Credits"
+#      Sign: credit-card-credit (refunds → CREDIT)
+#      THIS is the section that breaks the 081825/111725 audit math when
+#      mis-classified — the XFINITY refund must NOT count as a purchase.
+#  (3) Purchases, Balance Transfers & Other Charges — purchases:
+#      Same line shape as Other Credits but in the Purchases section.
+#      Sign: credit-card-purchase (debits)
+# All rows have transaction-date + posting-date + reference number +
+# merchant + bare numeric amount (no $ sigil).
 transactions:
   - name: wells-fargo-payments
+    section_anchor: "Payments"
     line_regex: '^(?<date>\d{1,2}/\d{1,2})\s+\d{1,2}/\d{1,2}\s+\S+\s+(?<description>.+?)\s+(?<amount>-?\d{1,3}(?:,\d{3})*\.\d{2})\s*$'
     date_format: "M/d"
     account_type: credit
-    sign_convention: credit-positive
+    sign_convention: credit-card-credit
     min_amount: 0.01
-  - name: wells-fargo-purchases-with-card-suffix
+  - name: wells-fargo-other-credits
+    section_anchor: "Other Credits"
     line_regex: '^\d{4}\s+(?<date>\d{1,2}/\d{1,2})\s+\d{1,2}/\d{1,2}\s+\S+\s+(?<description>.+?)\s+(?<amount>-?\d{1,3}(?:,\d{3})*\.\d{2})\s*$'
     date_format: "M/d"
     account_type: credit
-    sign_convention: credit-positive
+    sign_convention: credit-card-credit
+    min_amount: 0.01
+  - name: wells-fargo-purchases
+    section_anchor: "Purchases, Balance Transfers"
+    line_regex: '^\d{4}\s+(?<date>\d{1,2}/\d{1,2})\s+\d{1,2}/\d{1,2}\s+\S+\s+(?<description>.+?)\s+(?<amount>-?\d{1,3}(?:,\d{3})*\.\d{2})\s*$'
+    date_format: "M/d"
+    account_type: credit
+    sign_convention: credit-card-purchase
     min_amount: 0.01

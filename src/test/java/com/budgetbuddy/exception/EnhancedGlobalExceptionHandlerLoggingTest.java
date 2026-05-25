@@ -12,6 +12,7 @@ import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
+import com.budgetbuddy.api.response.ApiResponse;
 import com.budgetbuddy.util.MessageUtil;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
@@ -74,7 +75,7 @@ class EnhancedGlobalExceptionHandlerLoggingTest {
                 new AppException(ErrorCode.USER_ALREADY_EXISTS, "User already exists");
 
         // Act
-        final ResponseEntity<EnhancedGlobalExceptionHandler.ErrorResponse> response =
+        final ResponseEntity<ApiResponse<Void>> response =
                 exceptionHandler.handleAppException(exception, webRequest);
 
         // Assert
@@ -121,7 +122,7 @@ class EnhancedGlobalExceptionHandlerLoggingTest {
                 new AppException(ErrorCode.INTERNAL_SERVER_ERROR, "Internal server error");
 
         // Act
-        final ResponseEntity<EnhancedGlobalExceptionHandler.ErrorResponse> response =
+        final ResponseEntity<ApiResponse<Void>> response =
                 exceptionHandler.handleAppException(exception, webRequest);
 
         // Assert

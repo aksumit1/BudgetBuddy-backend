@@ -74,6 +74,16 @@ public class BertEmbeddingService {
     @Value("${bert.max-tokens:128}")
     private int maxTokens;
 
+    /**
+     * Expected SHA-256 of the ONNX model file. When set, init refuses to
+     * load a model whose checksum differs — protects against silent
+     * corruption during S3 download and against an attacker swapping the
+     * model file on disk. When unset (default), the checksum gate is
+     * skipped and the service falls back to the original behavior.
+     */
+    @Value("${bert.model.expected-sha256:}")
+    private String expectedSha256;
+
     private OrtEnvironment ortEnv;
     private OrtSession ortSession;
     private HuggingFaceTokenizer tokenizer;
@@ -100,6 +110,29 @@ public class BertEmbeddingService {
                         tokenizerFile.isFile());
             }
             return;
+        }
+
+        // Optional checksum gate. If configured, verify the model file's
+        // SHA-256 before loading — catches silent corruption on S3
+        // download, partial-write at startup, or an attacker swapping
+        // the file. When the gate fires, BERT stays disabled (fall back
+        // to keyword/fuzzy/semantic) instead of loading a bad model.
+        if (!isBlank(expectedSha256)) {
+            try {
+                final String actual = sha256OfFile(modelFile);
+                if (!expectedSha256.equalsIgnoreCase(actual)) {
+                    LOGGER.error(
+                            "BertEmbeddingService: model checksum mismatch (expected={}, actual={}) — BERT disabled.",
+                            expectedSha256, actual);
+                    return;
+                }
+                LOGGER.info("BertEmbeddingService: model checksum verified ({})", actual);
+            } catch (final java.io.IOException e) {
+                LOGGER.warn(
+                        "BertEmbeddingService: checksum verification failed (could not read model): {}",
+                        e.getMessage());
+                return;
+            }
         }
 
         try {
@@ -318,6 +351,35 @@ public class BertEmbeddingService {
 
     private static boolean isBlank(final String s) {
         return s == null || s.isBlank();
+    }
+
+    /**
+     * SHA-256 of the given file as a lowercase hex string. Streams the
+     * file in 64 KB blocks so a large ONNX model (sentence-transformers
+     * is 90 MB) doesn't pin a heap-sized buffer. Used at startup for
+     * the optional model-integrity gate.
+     */
+    static String sha256OfFile(final File f) throws java.io.IOException {
+        try {
+            final java.security.MessageDigest md = java.security.MessageDigest.getInstance("SHA-256");
+            try (java.io.InputStream in = new java.io.BufferedInputStream(
+                    new java.io.FileInputStream(f))) {
+                final byte[] buf = new byte[64 * 1024];
+                int n;
+                while ((n = in.read(buf)) > 0) {
+                    md.update(buf, 0, n);
+                }
+            }
+            final byte[] digest = md.digest();
+            final StringBuilder sb = new StringBuilder(digest.length * 2);
+            for (final byte b : digest) {
+                sb.append(String.format("%02x", b));
+            }
+            return sb.toString();
+        } catch (final java.security.NoSuchAlgorithmException e) {
+            // SHA-256 is required by every JRE — should never happen.
+            throw new IllegalStateException("SHA-256 unavailable", e);
+        }
     }
 
     private static void closeTensorQuietly(final OnnxTensor t) {

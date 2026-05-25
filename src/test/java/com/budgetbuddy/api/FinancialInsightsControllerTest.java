@@ -52,6 +52,10 @@ class FinancialInsightsControllerTest {
 
     @Mock private UserService userService;
 
+    @Mock private com.budgetbuddy.service.CrossAccountAnomalyDetector crossAccountDetector;
+    @Mock private com.budgetbuddy.service.CreditCardInsightsService creditCardInsightsService;
+    @Mock private com.budgetbuddy.service.insights.InsightsContextFactory insightsContextFactory;
+
     @InjectMocks private FinancialInsightsController controller;
 
     private UserDetails userDetails;
@@ -225,11 +229,20 @@ class FinancialInsightsControllerTest {
         // Arrange
         when(userService.findByEmail("test@example.com")).thenReturn(Optional.of(user));
 
-        when(anomalyService.detectAnomalies(USER_123)).thenReturn(new ArrayList<>());
-        when(expenseReductionService.getRecommendations(USER_123)).thenReturn(new ArrayList<>());
-        when(goalsService.getRecommendations(USER_123)).thenReturn(new ArrayList<>());
-        when(missedPaymentService.detectMissedPayments(USER_123)).thenReturn(new ArrayList<>());
-        when(highInterestService.detectHighInterest(USER_123)).thenReturn(new ArrayList<>());
+        // The /summary endpoint now builds a shared InsightsContext
+        // once and passes it to every detector — that's the whole point
+        // of the refactor. Stub the context overloads, not the legacy
+        // userId overloads.
+        final com.budgetbuddy.service.insights.InsightsContext ctx =
+                new com.budgetbuddy.service.insights.InsightsContext(
+                        USER_123, LocalDate.now(),
+                        new ArrayList<>(), new ArrayList<>(), new ArrayList<>());
+        when(insightsContextFactory.buildFor(USER_123)).thenReturn(ctx);
+        when(anomalyService.detectAnomalies(ctx)).thenReturn(new ArrayList<>());
+        when(expenseReductionService.getRecommendations(ctx)).thenReturn(new ArrayList<>());
+        when(goalsService.getRecommendations(ctx)).thenReturn(new ArrayList<>());
+        when(missedPaymentService.detectMissedPayments(ctx)).thenReturn(new ArrayList<>());
+        when(highInterestService.detectHighInterest(ctx)).thenReturn(new ArrayList<>());
 
         // Act
         final ResponseEntity<Map<String, Object>> response =
@@ -238,6 +251,43 @@ class FinancialInsightsControllerTest {
         // Assert
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertNotNull(response.getBody());
+    }
+
+    @Test
+    void summaryEndpoint_buildsContextExactlyOnce_andNeverHitsLegacyUserIdOverloads() {
+        // The whole point of #182: /summary used to issue 9+ DDB scans
+        // (one per detector). Now the context factory makes one bundle
+        // of fetches; detectors operate on that snapshot. Verify both:
+        //   1. buildFor is called exactly once
+        //   2. None of the legacy userId-only overloads are touched
+        when(userService.findByEmail("test@example.com")).thenReturn(Optional.of(user));
+        final com.budgetbuddy.service.insights.InsightsContext ctx =
+                new com.budgetbuddy.service.insights.InsightsContext(
+                        USER_123, LocalDate.now(),
+                        new ArrayList<>(), new ArrayList<>(), new ArrayList<>());
+        when(insightsContextFactory.buildFor(USER_123)).thenReturn(ctx);
+        when(anomalyService.detectAnomalies(ctx)).thenReturn(new ArrayList<>());
+        when(expenseReductionService.getRecommendations(ctx)).thenReturn(new ArrayList<>());
+        when(goalsService.getRecommendations(ctx)).thenReturn(new ArrayList<>());
+        when(missedPaymentService.detectMissedPayments(ctx)).thenReturn(new ArrayList<>());
+        when(highInterestService.detectHighInterest(ctx)).thenReturn(new ArrayList<>());
+
+        controller.getInsightsSummary(userDetails);
+
+        org.mockito.Mockito.verify(insightsContextFactory, org.mockito.Mockito.times(1))
+                .buildFor(USER_123);
+        // Legacy overloads must NOT be called from /summary — they fetch
+        // their own data and would defeat the purpose of the context.
+        org.mockito.Mockito.verify(anomalyService, org.mockito.Mockito.never())
+                .detectAnomalies(USER_123);
+        org.mockito.Mockito.verify(expenseReductionService, org.mockito.Mockito.never())
+                .getRecommendations(USER_123);
+        org.mockito.Mockito.verify(goalsService, org.mockito.Mockito.never())
+                .getRecommendations(USER_123);
+        org.mockito.Mockito.verify(missedPaymentService, org.mockito.Mockito.never())
+                .detectMissedPayments(USER_123);
+        org.mockito.Mockito.verify(highInterestService, org.mockito.Mockito.never())
+                .detectHighInterest(USER_123);
     }
 
     @Test

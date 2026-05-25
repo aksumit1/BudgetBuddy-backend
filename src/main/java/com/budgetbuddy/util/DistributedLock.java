@@ -77,6 +77,47 @@ public class DistributedLock {
     }
 
     /**
+     * Strict-mode acquire — fail fast (throw {@link RedisUnavailableException})
+     * when Redis is unreachable. Use at call sites where the local-lock
+     * fallback would silently allow two pods to race (Plaid webhook
+     * ingestion, batch import, idempotency-sensitive paths).
+     *
+     * <p>{@code reason} is logged alongside the failure so on-call can
+     * tell which safety-critical path tripped.
+     */
+    public LockResult acquireLockStrict(final String lockKey, final String reason) {
+        return acquireLockStrict(lockKey, DEFAULT_TIMEOUT, reason);
+    }
+
+    public LockResult acquireLockStrict(
+            final String lockKey, final Duration timeout, final String reason) {
+        if (redisTemplate == null) {
+            throw new RedisUnavailableException(
+                    "Strict lock '" + lockKey + "' required Redis but it is not wired ("
+                            + reason + ")");
+        }
+        try {
+            return acquireLock(lockKey, timeout);
+        } catch (final RuntimeException e) {
+            throw new RedisUnavailableException(
+                    "Strict lock '" + lockKey + "' failed to reach Redis ("
+                            + reason + "): " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Thrown by {@link #acquireLockStrict} when Redis is unavailable
+     * and the caller has declared the lock as safety-critical.
+     */
+    public static final class RedisUnavailableException extends RuntimeException {
+        private static final long serialVersionUID = 1L;
+        public RedisUnavailableException(final String msg) { super(msg); }
+        public RedisUnavailableException(final String msg, final Throwable cause) {
+            super(msg, cause);
+        }
+    }
+
+    /**
      * Acquire a distributed lock with custom timeout Automatically falls back to local lock if
      * Redis is unavailable
      */

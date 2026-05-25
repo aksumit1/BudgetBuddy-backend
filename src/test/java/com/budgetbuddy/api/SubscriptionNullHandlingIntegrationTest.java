@@ -159,7 +159,7 @@ public class SubscriptionNullHandlingIntegrationTest {
                                 withAuth(get("/api/subscriptions"))
                                         .contentType(MediaType.APPLICATION_JSON))
                         .andExpect(status().isOk())
-                        .andExpect(jsonPath("$").isArray())
+                        .andExpect(jsonPath("$.data").isArray())
                         .andReturn();
 
         // Then: Response should not contain null subscriptions
@@ -228,7 +228,7 @@ public class SubscriptionNullHandlingIntegrationTest {
                                 withAuth(get("/api/subscriptions/active"))
                                         .contentType(MediaType.APPLICATION_JSON))
                         .andExpect(status().isOk())
-                        .andExpect(jsonPath("$").isArray())
+                        .andExpect(jsonPath("$.data").isArray())
                         .andReturn();
 
         // Then: Response should not contain null subscriptions
@@ -519,13 +519,13 @@ public class SubscriptionNullHandlingIntegrationTest {
                                 withAuth(get("/api/subscriptions"))
                                         .contentType(MediaType.APPLICATION_JSON))
                         .andExpect(status().isOk())
-                        .andExpect(jsonPath("$").isArray())
-                        .andExpect(jsonPath("$[0]").exists())
-                        .andExpect(jsonPath("$[0].subscriptionId").exists())
-                        .andExpect(jsonPath("$[0].merchantName").exists())
-                        .andExpect(jsonPath("$[0].amount").exists())
-                        .andExpect(jsonPath("$[0].frequency").exists())
-                        .andExpect(jsonPath("$[0].startDate").exists())
+                        .andExpect(jsonPath("$.data").isArray())
+                        .andExpect(jsonPath("$.data[0]").exists())
+                        .andExpect(jsonPath("$.data[0].subscriptionId").exists())
+                        .andExpect(jsonPath("$.data[0].merchantName").exists())
+                        .andExpect(jsonPath("$.data[0].amount").exists())
+                        .andExpect(jsonPath("$.data[0].frequency").exists())
+                        .andExpect(jsonPath("$.data[0].startDate").exists())
                         .andReturn();
 
         // Then: Verify response doesn't contain null subscription objects

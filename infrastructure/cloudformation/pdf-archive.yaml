@@ -1,0 +1,226 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: >
+  S3 bucket for raw PDF statement archive. Stores user-uploaded PDFs
+  (encrypted at rest, lifecycle-managed) so a future fix to the import
+  pipeline can be verified against the original document that exposed
+  the issue. See PdfRawArchive.java for write semantics.
+
+Parameters:
+  Environment:
+    Type: String
+    Default: production
+    AllowedValues: [development, staging, production]
+    Description: Deployment environment
+
+  KMSKeyId:
+    Type: String
+    Default: ''
+    Description: KMS key ID for encryption at rest. Strongly recommended in production — raw PDFs contain PII.
+
+  RetentionDays:
+    Type: Number
+    Default: 90
+    Description: How long to retain archived PDFs before lifecycle deletion. Default 90d balances debug utility vs. PII minimization.
+    MinValue: 7
+    MaxValue: 365
+
+Conditions:
+  HasKMSKey: !Not [!Equals [!Ref KMSKeyId, '']]
+
+Resources:
+  # ====================================================================
+  # Primary archive bucket. One folder per institution-slug (chase,
+  # citi, wells-fargo, _unparseable, etc.) — see PdfRawArchive path
+  # scheme. Versioning ON so an accidental delete during forensics
+  # doesn't lose the original; lifecycle reaps versions on the same
+  # cadence as live objects.
+  # ====================================================================
+  # Dedicated log-target bucket for server-access logs. Separate from
+  # the archive bucket so a compromised application role can't tamper
+  # with its own access trail. AES256 encryption (KMS doesn't apply to
+  # S3 access logs by design — the log writer is the S3 service itself).
+  PdfArchiveLogBucket:
+    Metadata:
+      checkov:
+        skip:
+          - id: CKV_AWS_18
+            comment: This IS the access-log target bucket; logging itself is meta-recursion
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      BucketName: !Sub 'budgetbuddy-pdf-archive-logs-${Environment}'
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+            BucketKeyEnabled: true
+      OwnershipControls:
+        Rules:
+          - ObjectOwnership: BucketOwnerEnforced
+      LifecycleConfiguration:
+        Rules:
+          # Access logs are most useful for the first 30 days
+          # (incident triage). Archive to Glacier IR after 30d, hard
+          # delete after 1 year so we still satisfy long-window
+          # forensics without unbounded storage cost.
+          - Id: MoveLogsToGlacier
+            Status: Enabled
+            Transitions:
+              - Days: 30
+                StorageClass: GLACIER_IR
+          - Id: PurgeOldLogs
+            Status: Enabled
+            ExpirationInDays: 365
+      Tags:
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Application
+          Value: BudgetBuddy
+        - Key: Component
+          Value: PdfArchiveLogs
+
+  PdfArchiveBucket:
+    # Server-access logging now ENABLED; CKV_AWS_18 satisfied.
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    DependsOn: PdfArchiveLogBucket
+    Properties:
+      BucketName: !Sub 'budgetbuddy-pdf-archive-${Environment}'
+      LoggingConfiguration:
+        # Captures every S3 API call (PUT/GET/DELETE/HEAD) on the
+        # archive bucket. Logs land in the dedicated log bucket under
+        # a date-partitioned prefix. Complements (does not replace)
+        # CloudTrail S3 data events.
+        DestinationBucketName: !Ref PdfArchiveLogBucket
+        LogFilePrefix: !Sub 'access-logs/${Environment}/'
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      VersioningConfiguration:
+        Status: Enabled
+      # Encryption — KMS preferred (CMK), AES256 fallback. BucketKeyEnabled
+      # cuts KMS request cost by ~99% by caching the data key per object batch.
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              !If
+              - HasKMSKey
+              - SSEAlgorithm: aws:kms
+                KMSMasterKeyID: !Ref KMSKeyId
+              - SSEAlgorithm: AES256
+            BucketKeyEnabled: true
+      OwnershipControls:
+        Rules:
+          - ObjectOwnership: BucketOwnerEnforced
+      LifecycleConfiguration:
+        Rules:
+          # Quick-cheap path: live objects move to STANDARD_IA after 30d.
+          # Most parser-issue debugging happens within the first month of
+          # an import landing in the archive.
+          - Id: MoveToInfrequentAccess
+            Status: Enabled
+            Transitions:
+              - Days: 30
+                StorageClass: STANDARD_IA
+          # Cold storage for the residual window — 60-day-old PDFs are
+          # almost never needed but cheap enough to retain just-in-case.
+          - Id: MoveToGlacier
+            Status: Enabled
+            Transitions:
+              - Days: 60
+                StorageClass: GLACIER
+          # Hard deletion at the configured retention horizon. This is the
+          # PII-minimization safety valve: any PDF older than N days is
+          # gone for good.
+          - Id: PurgeOldObjects
+            Status: Enabled
+            ExpirationInDays: !Ref RetentionDays
+          # Reap non-current versions on the same cadence so a versioned
+          # delete doesn't silently extend retention.
+          - Id: PurgeOldVersions
+            Status: Enabled
+            NoncurrentVersionExpirationInDays: !Ref RetentionDays
+            NoncurrentVersionTransitions:
+              - NewerNoncurrentVersions: 1
+                StorageClass: STANDARD_IA
+                TransitionInDays: 30
+              - NewerNoncurrentVersions: 1
+                StorageClass: GLACIER
+                TransitionInDays: 60
+          # Clean up failed multipart uploads aggressively.
+          - Id: AbortIncompleteUploads
+            Status: Enabled
+            AbortIncompleteMultipartUpload:
+              DaysAfterInitiation: 7
+      # Notification configuration left empty — diagnostics live in
+      # CloudWatch logs (PdfRawArchive emits INFO on every archive), no
+      # need for S3 event fan-out yet.
+      Tags:
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Application
+          Value: BudgetBuddy
+        - Key: Component
+          Value: PdfArchive
+        - Key: ContainsPII
+          Value: 'true'
+        - Key: ManagedBy
+          Value: CloudFormation
+        - Key: CostCenter
+          Value: engineering
+
+  # Bucket policy: deny non-TLS access and require AES256-or-KMS encryption
+  # on every put. The bucket-level encryption above provides server-side
+  # default, but a client can still PUT with an unencrypted header — this
+  # policy makes that path a hard 403.
+  PdfArchiveBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref PdfArchiveBucket
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: DenyInsecureTransport
+            Effect: Deny
+            Principal: '*'
+            Action: 's3:*'
+            Resource:
+              - !GetAtt PdfArchiveBucket.Arn
+              - !Sub '${PdfArchiveBucket.Arn}/*'
+            Condition:
+              Bool:
+                aws:SecureTransport: 'false'
+          - Sid: DenyUnencryptedObjectUploads
+            Effect: Deny
+            Principal: '*'
+            Action: 's3:PutObject'
+            Resource: !Sub '${PdfArchiveBucket.Arn}/*'
+            Condition:
+              StringNotEquals:
+                s3:x-amz-server-side-encryption: !If [HasKMSKey, 'aws:kms', 'AES256']
+
+Outputs:
+  BucketName:
+    Description: Name of the PDF archive S3 bucket
+    Value: !Ref PdfArchiveBucket
+    Export:
+      Name: !Sub '${AWS::StackName}-PdfArchiveBucketName'
+  BucketArn:
+    Description: ARN of the PDF archive S3 bucket
+    Value: !GetAtt PdfArchiveBucket.Arn
+    Export:
+      Name: !Sub '${AWS::StackName}-PdfArchiveBucketArn'
+  LogBucketName:
+    Description: Name of the S3 access-log bucket for the PDF archive
+    Value: !Ref PdfArchiveLogBucket
+    Export:
+      Name: !Sub '${AWS::StackName}-PdfArchiveLogBucketName'

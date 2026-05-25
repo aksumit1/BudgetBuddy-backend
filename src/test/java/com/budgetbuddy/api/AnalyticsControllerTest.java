@@ -61,7 +61,7 @@ class AnalyticsControllerTest {
                                 .param("startDate", "2024-01-01")
                                 .param("endDate", "2024-01-31"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.totalSpending").exists());
+                .andExpect(jsonPath("$.data.totalSpending").exists());
     }
 
     @Test
@@ -87,6 +87,6 @@ class AnalyticsControllerTest {
                                 .param("startDate", "2024-01-01")
                                 .param("endDate", "2024-01-31"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.FOOD_AND_DRINK").exists());
+                .andExpect(jsonPath("$.data.FOOD_AND_DRINK").exists());
     }
 }

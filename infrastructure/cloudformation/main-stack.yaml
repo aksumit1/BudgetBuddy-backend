@@ -763,6 +763,19 @@ Resources:
                   - s3:PutObject
                   - s3:DeleteObject
                 Resource: !Sub 'arn:aws:s3:::budgetbuddy-storage/*'
+              # PDF archive (raw uploaded statements). PutObject for the
+              # write path, GetObject for forensic re-parsing from prod
+              # shells / debug tools, HeadObject for the S3-existence
+              # check that skips redundant PUTs.
+              - Effect: Allow
+                Action:
+                  - s3:PutObject
+                  - s3:GetObject
+                  - s3:HeadObject
+                  - s3:ListBucket
+                Resource:
+                  - !Sub 'arn:aws:s3:::budgetbuddy-pdf-archive-${Environment}'
+                  - !Sub 'arn:aws:s3:::budgetbuddy-pdf-archive-${Environment}/*'
         - PolicyName: CloudWatchAccess
           PolicyDocument:
             Version: '2012-10-17'
@@ -972,6 +985,27 @@ Resources:
           Value: !Ref Environment
         - Key: Application
           Value: BudgetBuddy
+
+  # PDF archive bucket — stores raw uploaded PDFs so the dev team can
+  # reproduce parser issues against the original document. Encrypted at
+  # rest with the same CMK as the rest of the app data. 90-day lifecycle
+  # delete is the PII safety valve. See PdfRawArchive.java / app config
+  # for write semantics.
+  PdfArchiveStack:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: pdf-archive.yaml
+      Parameters:
+        Environment: !Ref Environment
+        KMSKeyId: !Ref AppDataKey
+        RetentionDays: 90
+      Tags:
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Application
+          Value: BudgetBuddy
+        - Key: Component
+          Value: PdfArchive
 
 Outputs:
   VPCId:

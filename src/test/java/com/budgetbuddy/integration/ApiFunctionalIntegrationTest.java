@@ -124,8 +124,8 @@ class ApiFunctionalIntegrationTest {
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.token").exists())
-                .andExpect(jsonPath("$.accessToken").exists());
+                .andExpect(jsonPath("$.data.token").exists())
+                .andExpect(jsonPath("$.data.accessToken").exists());
     }
 
     @Test
@@ -141,8 +141,8 @@ class ApiFunctionalIntegrationTest {
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.token").exists())
-                .andExpect(jsonPath("$.accessToken").exists());
+                .andExpect(jsonPath("$.data.token").exists())
+                .andExpect(jsonPath("$.data.accessToken").exists());
     }
 
     @Test
@@ -177,7 +177,7 @@ class ApiFunctionalIntegrationTest {
                                                 + loginResponse.getRefreshToken()
                                                 + "\"}"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.token").exists());
+                .andExpect(jsonPath("$.data.token").exists());
     }
 
     // ==================== ACCOUNTS API TESTS ====================
@@ -190,7 +190,7 @@ class ApiFunctionalIntegrationTest {
                                 .header(AUTHORIZATION, "Bearer " + authToken)
                                 .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$").isArray());
+                .andExpect(jsonPath("$.data").isArray());
     }
 
     @Test
@@ -230,7 +230,7 @@ class ApiFunctionalIntegrationTest {
                                 .param("size", "20")
                                 .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$").isArray());
+                .andExpect(jsonPath("$.data").isArray());
     }
 
     @Test
@@ -243,7 +243,7 @@ class ApiFunctionalIntegrationTest {
                                 .param("size", "10")
                                 .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$").isArray());
+                .andExpect(jsonPath("$.data").isArray());
     }
 
     @Test
@@ -261,7 +261,7 @@ class ApiFunctionalIntegrationTest {
                                 .param("endDate", endDate.format(formatter))
                                 .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$").isArray());
+                .andExpect(jsonPath("$.data").isArray());
     }
 
     @Test
@@ -279,7 +279,7 @@ class ApiFunctionalIntegrationTest {
                                 .param("endDate", endDate.format(formatter))
                                 .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.total").exists());
+                .andExpect(jsonPath("$.data.total").exists());
     }
 
     @Test
@@ -370,7 +370,7 @@ class ApiFunctionalIntegrationTest {
                                 .header(AUTHORIZATION, "Bearer " + authToken)
                                 .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$").isArray());
+                .andExpect(jsonPath("$.data").isArray());
     }
 
     @Test
@@ -414,7 +414,7 @@ class ApiFunctionalIntegrationTest {
                                 .header(AUTHORIZATION, "Bearer " + authToken)
                                 .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$").isArray());
+                .andExpect(jsonPath("$.data").isArray());
     }
 
     // ==================== BUDGETS API TESTS ====================
@@ -427,7 +427,7 @@ class ApiFunctionalIntegrationTest {
                                 .header(AUTHORIZATION, "Bearer " + authToken)
                                 .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$").isArray());
+                .andExpect(jsonPath("$.data").isArray());
     }
 
     @Test
@@ -486,7 +486,7 @@ class ApiFunctionalIntegrationTest {
                                 .header(AUTHORIZATION, "Bearer " + authToken)
                                 .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$").isArray());
+                .andExpect(jsonPath("$.data").isArray());
     }
 
     @Test
@@ -595,7 +595,7 @@ class ApiFunctionalIntegrationTest {
                                 .header(AUTHORIZATION, "Bearer " + authToken)
                                 .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.email").exists());
+                .andExpect(jsonPath("$.data.email").exists());
     }
 
     @Test
@@ -709,7 +709,7 @@ class ApiFunctionalIntegrationTest {
                                 .param("endDate", endDate.format(DateTimeFormatter.ISO_DATE))
                                 .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$").exists());
+                .andExpect(jsonPath("$.data").exists());
     }
 
     @Test
@@ -726,6 +726,6 @@ class ApiFunctionalIntegrationTest {
                                 .param("endDate", endDate.format(DateTimeFormatter.ISO_DATE))
                                 .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$").exists());
+                .andExpect(jsonPath("$.data").exists());
     }
 }

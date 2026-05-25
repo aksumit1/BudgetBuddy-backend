@@ -106,13 +106,13 @@ class TokenRefreshIntegrationTest {
                                     .contentType(MediaType.APPLICATION_JSON)
                                     .content(refreshRequestBody))
                     .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.accessToken").exists())
-                    .andExpect(jsonPath("$.accessToken").isNotEmpty())
-                    .andExpect(jsonPath("$.refreshToken").exists())
-                    .andExpect(jsonPath("$.refreshToken").isNotEmpty())
-                    .andExpect(jsonPath("$.expiresAt").exists())
-                    .andExpect(jsonPath("$.user").exists())
-                    .andExpect(jsonPath("$.user.email").value(testEmail));
+                    .andExpect(jsonPath("$.data.accessToken").exists())
+                    .andExpect(jsonPath("$.data.accessToken").isNotEmpty())
+                    .andExpect(jsonPath("$.data.refreshToken").exists())
+                    .andExpect(jsonPath("$.data.refreshToken").isNotEmpty())
+                    .andExpect(jsonPath("$.data.expiresAt").exists())
+                    .andExpect(jsonPath("$.data.user").exists())
+                    .andExpect(jsonPath("$.data.user.email").value(testEmail));
 
         } catch (Exception e) {
             // If DynamoDB is not available, skip the test
@@ -209,8 +209,8 @@ class TokenRefreshIntegrationTest {
                                             .contentType(MediaType.APPLICATION_JSON)
                                             .content(refreshRequestBody))
                             .andExpect(status().isOk())
-                            .andExpect(jsonPath("$.accessToken").exists())
-                            .andExpect(jsonPath("$.refreshToken").exists())
+                            .andExpect(jsonPath("$.data.accessToken").exists())
+                            .andExpect(jsonPath("$.data.refreshToken").exists())
                             .andReturn()
                             .getResponse()
                             .getContentAsString();
@@ -228,8 +228,8 @@ class TokenRefreshIntegrationTest {
                                     .contentType(MediaType.APPLICATION_JSON)
                                     .content(secondRefreshRequestBody))
                     .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.accessToken").exists())
-                    .andExpect(jsonPath("$.refreshToken").exists());
+                    .andExpect(jsonPath("$.data.accessToken").exists())
+                    .andExpect(jsonPath("$.data.refreshToken").exists());
 
         } catch (Exception e) {
             org.junit.jupiter.api.Assumptions.assumeTrue(
@@ -262,7 +262,7 @@ class TokenRefreshIntegrationTest {
                                             .contentType(MediaType.APPLICATION_JSON)
                                             .content(refreshRequestBody))
                             .andExpect(status().isOk())
-                            .andExpect(jsonPath("$.accessToken").exists())
+                            .andExpect(jsonPath("$.data.accessToken").exists())
                             .andReturn()
                             .getResponse()
                             .getContentAsString();

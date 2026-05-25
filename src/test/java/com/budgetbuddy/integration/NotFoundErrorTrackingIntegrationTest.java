@@ -235,9 +235,9 @@ class NotFoundErrorTrackingIntegrationTest {
                                 .header(X_FORWARDED_FOR, testIp1)
                                 .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isTooManyRequests())
-                .andExpect(jsonPath("$.errorCode").value("RATE_LIMIT_EXCEEDED"))
+                .andExpect(jsonPath("$.error.code").value("RATE_LIMIT_EXCEEDED"))
                 .andExpect(
-                        jsonPath("$.message")
+                        jsonPath("$.error.message")
                                 .value(StringContains.containsString("Too many 404 errors")))
                 .andExpect(header().exists("Retry-After"));
     }
@@ -406,9 +406,9 @@ class NotFoundErrorTrackingIntegrationTest {
                                 .header(X_FORWARDED_FOR, testIp1)
                                 .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isTooManyRequests())
-                .andExpect(jsonPath("$.errorCode").value("RATE_LIMIT_EXCEEDED"))
+                .andExpect(jsonPath("$.error.code").value("RATE_LIMIT_EXCEEDED"))
                 .andExpect(
-                        jsonPath("$.message")
+                        jsonPath("$.error.message")
                                 .value(StringContains.containsString("Too many 404 errors")))
                 .andExpect(header().string("Retry-After", "3600"));
     }
@@ -581,9 +581,9 @@ class NotFoundErrorTrackingIntegrationTest {
                                 .header("X-Real-IP", testIp1)
                                 .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isTooManyRequests())
-                .andExpect(jsonPath("$.errorCode").value("RATE_LIMIT_EXCEEDED"))
+                .andExpect(jsonPath("$.error.code").value("RATE_LIMIT_EXCEEDED"))
                 .andExpect(
-                        jsonPath("$.message")
+                        jsonPath("$.error.message")
                                 .value(StringContains.containsString("Too many 404 errors")));
     }
 
@@ -679,8 +679,8 @@ class NotFoundErrorTrackingIntegrationTest {
                                 .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isTooManyRequests())
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
-                .andExpect(jsonPath("$.errorCode").value("RATE_LIMIT_EXCEEDED"))
-                .andExpect(jsonPath("$.message").exists())
+                .andExpect(jsonPath("$.error.code").value("RATE_LIMIT_EXCEEDED"))
+                .andExpect(jsonPath("$.error.message").exists())
                 .andExpect(jsonPath("$.correlationId").exists())
                 .andExpect(jsonPath("$.timestamp").exists())
                 .andExpect(header().string("Retry-After", "3600"));

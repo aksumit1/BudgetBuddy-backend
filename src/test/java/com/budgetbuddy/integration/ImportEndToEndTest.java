@@ -113,11 +113,11 @@ class ImportEndToEndTest {
                                 .file(file)
                                 .header(AUTHORIZATION, "Bearer " + authToken))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.transactions").isArray())
-                .andExpect(jsonPath("$.transactions.length()").value(2))
-                .andExpect(jsonPath("$.transactions[0].description").exists())
-                .andExpect(jsonPath("$.transactions[0].amount").exists())
-                .andExpect(jsonPath("$.transactions[0].date").exists());
+                .andExpect(jsonPath("$.data.transactions").isArray())
+                .andExpect(jsonPath("$.data.transactions.length()").value(2))
+                .andExpect(jsonPath("$.data.transactions[0].description").exists())
+                .andExpect(jsonPath("$.data.transactions[0].amount").exists())
+                .andExpect(jsonPath("$.data.transactions[0].date").exists());
     }
 
     @Test
@@ -134,8 +134,8 @@ class ImportEndToEndTest {
                                 .param("accountId", testAccount.getAccountId())
                                 .header(AUTHORIZATION, "Bearer " + authToken))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.successful").exists())
-                .andExpect(jsonPath("$.failed").exists());
+                .andExpect(jsonPath("$.data.successful").exists())
+                .andExpect(jsonPath("$.data.failed").exists());
     }
 
     @Test
@@ -265,7 +265,7 @@ class ImportEndToEndTest {
                                         .file(file)
                                         .header(AUTHORIZATION, "Bearer " + authToken))
                         .andExpect(status().isOk())
-                        .andExpect(jsonPath("$.transactions").exists())
+                        .andExpect(jsonPath("$.data.transactions").exists())
                         .andReturn()
                         .getResponse()
                         .getContentAsString();

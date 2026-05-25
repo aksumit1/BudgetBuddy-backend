@@ -136,7 +136,7 @@ class PlaidControllerIntegrationTest {
                                     .header(AUTHORIZATION, "Bearer " + accessToken)
                                     .contentType(MediaType.APPLICATION_JSON))
                     .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.accounts").isArray());
+                    .andExpect(jsonPath("$.data.accounts").isArray());
         }
     }
 
@@ -192,7 +192,7 @@ class PlaidControllerIntegrationTest {
                                     .param("accessToken", "")
                                     .contentType(MediaType.APPLICATION_JSON))
                     .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.accounts").isArray());
+                    .andExpect(jsonPath("$.data.accounts").isArray());
         }
     }
 
@@ -222,7 +222,7 @@ class PlaidControllerIntegrationTest {
                                     .header(AUTHORIZATION, "Bearer " + accessToken)
                                     .contentType(MediaType.APPLICATION_JSON))
                     .andExpect(status().isOk())
-                    .andExpect(jsonPath("$").isArray());
+                    .andExpect(jsonPath("$.data").isArray());
         }
     }
 
@@ -255,7 +255,7 @@ class PlaidControllerIntegrationTest {
                                     .param(END, "2025-12-31")
                                     .contentType(MediaType.APPLICATION_JSON))
                     .andExpect(status().isOk())
-                    .andExpect(jsonPath("$").isArray());
+                    .andExpect(jsonPath("$.data").isArray());
         }
     }
 
@@ -333,9 +333,9 @@ class PlaidControllerIntegrationTest {
                                     .header(AUTHORIZATION, "Bearer " + accessToken)
                                     .contentType(MediaType.APPLICATION_JSON))
                     .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.accounts").isArray())
+                    .andExpect(jsonPath("$.data.accounts").isArray())
                     .andExpect(
-                            jsonPath("$.accounts.length()")
+                            jsonPath("$.data.accounts.length()")
                                     .value(org.hamcrest.Matchers.greaterThanOrEqualTo(1)));
         }
     }
@@ -379,7 +379,7 @@ class PlaidControllerIntegrationTest {
                                     .header(AUTHORIZATION, "Bearer " + accessToken)
                                     .contentType(MediaType.APPLICATION_JSON))
                     .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.accounts").isArray());
+                    .andExpect(jsonPath("$.data.accounts").isArray());
 
             // Verify inactive account is not in response
             final String responseContent = result.getResponse().getContentAsString();
@@ -459,8 +459,8 @@ class PlaidControllerIntegrationTest {
                                     .contentType(MediaType.APPLICATION_JSON)
                                     .content("[]"))
                     .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.status").value(SUCCESS))
-                    .andExpect(jsonPath("$.accountsUpdated").exists());
+                    .andExpect(jsonPath("$.data.status").value(SUCCESS))
+                    .andExpect(jsonPath("$.data.accountsUpdated").exists());
         }
 
         // Then - All accounts should have lastSyncedAt set to current time (only if request
@@ -506,8 +506,8 @@ class PlaidControllerIntegrationTest {
                                     .header(AUTHORIZATION, "Bearer " + accessToken)
                                     .contentType(MediaType.APPLICATION_JSON))
                     .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.status").value(SUCCESS))
-                    .andExpect(jsonPath("$.accountsUpdated").exists());
+                    .andExpect(jsonPath("$.data.status").value(SUCCESS))
+                    .andExpect(jsonPath("$.data.accountsUpdated").exists());
         }
 
         // Then - All accounts should have lastSyncedAt set (only if request succeeded)
@@ -571,8 +571,8 @@ class PlaidControllerIntegrationTest {
                                     .contentType(MediaType.APPLICATION_JSON)
                                     .content(requestBody))
                     .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.status").value(SUCCESS))
-                    .andExpect(jsonPath("$.accountsUpdated").value("1"));
+                    .andExpect(jsonPath("$.data.status").value(SUCCESS))
+                    .andExpect(jsonPath("$.data.accountsUpdated").value("1"));
         }
 
         // Then - Only the specified account should be updated (only if request succeeded)
@@ -647,8 +647,8 @@ class PlaidControllerIntegrationTest {
                                     .contentType(MediaType.APPLICATION_JSON)
                                     .content(requestBody))
                     .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.status").value(SUCCESS))
-                    .andExpect(jsonPath("$.accountsUpdated").value("2"));
+                    .andExpect(jsonPath("$.data.status").value(SUCCESS))
+                    .andExpect(jsonPath("$.data.accountsUpdated").value("2"));
         }
 
         // Then - Both accounts should be updated with their respective timestamps (only if request
@@ -704,8 +704,8 @@ class PlaidControllerIntegrationTest {
                                     .contentType(MediaType.APPLICATION_JSON)
                                     .content(requestBody))
                     .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.status").value(SUCCESS))
-                    .andExpect(jsonPath("$.accountsUpdated").value("0"));
+                    .andExpect(jsonPath("$.data.status").value(SUCCESS))
+                    .andExpect(jsonPath("$.data.accountsUpdated").value("0"));
         }
 
         // Then - No accounts should be updated
@@ -750,7 +750,7 @@ class PlaidControllerIntegrationTest {
                                     .contentType(MediaType.APPLICATION_JSON)
                                     .content(requestBody))
                     .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.status").value(SUCCESS));
+                    .andExpect(jsonPath("$.data.status").value(SUCCESS));
         }
 
         // Then - Account should have current time set (only if request succeeded)
@@ -802,7 +802,7 @@ class PlaidControllerIntegrationTest {
                                     .contentType(MediaType.APPLICATION_JSON)
                                     .content(requestBody))
                     .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.status").value(SUCCESS));
+                    .andExpect(jsonPath("$.data.status").value(SUCCESS));
         }
 
         // Then - Account should have current time set (only if request succeeded)
@@ -850,8 +850,8 @@ class PlaidControllerIntegrationTest {
                                     .contentType(MediaType.APPLICATION_JSON)
                                     .content(requestBody))
                     .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.status").value(SUCCESS))
-                    .andExpect(jsonPath("$.accountsUpdated").value("0"));
+                    .andExpect(jsonPath("$.data.status").value(SUCCESS))
+                    .andExpect(jsonPath("$.data.accountsUpdated").value("0"));
         }
 
         // Then - No accounts should be updated
@@ -897,8 +897,8 @@ class PlaidControllerIntegrationTest {
                                     .contentType(MediaType.APPLICATION_JSON)
                                     .content("[]"))
                     .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.status").value(SUCCESS))
-                    .andExpect(jsonPath("$.message").value("No accounts to update"));
+                    .andExpect(jsonPath("$.data.status").value(SUCCESS))
+                    .andExpect(jsonPath("$.data.message").value("No accounts to update"));
         }
     }
 }

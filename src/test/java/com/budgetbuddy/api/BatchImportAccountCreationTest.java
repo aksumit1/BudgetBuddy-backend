@@ -84,6 +84,20 @@ class BatchImportAccountCreationTest {
     private String accessToken;
     private String testEmail;
 
+    /**
+     * Strip the universal {@code {status, data, …}} envelope so the
+     * test can deserialise the inner payload directly into the
+     * controller's response DTO. Falls back to the raw JSON if the
+     * envelope wrapper isn't present (e.g. error responses or future
+     * unwrapping changes).
+     */
+    private <T> T readEnvelopeData(final String json, final Class<T> type) throws Exception {
+        final com.fasterxml.jackson.databind.JsonNode root = objectMapper.readTree(json);
+        final com.fasterxml.jackson.databind.JsonNode payload =
+                root.has("data") ? root.get("data") : root;
+        return objectMapper.treeToValue(payload, type);
+    }
+
     @BeforeEach
     void setUp() {
         // Create test user
@@ -159,16 +173,15 @@ class BatchImportAccountCreationTest {
                                         .contentType(MediaType.APPLICATION_JSON)
                                         .content(objectMapper.writeValueAsString(request)))
                         .andExpect(status().isOk())
-                        .andExpect(jsonPath("$.created").value(2))
-                        .andExpect(jsonPath("$.failed").value(0))
-                        .andExpect(jsonPath("$.createdAccountId").exists())
+                        .andExpect(jsonPath("$.data.created").value(2))
+                        .andExpect(jsonPath("$.data.failed").value(0))
+                        .andExpect(jsonPath("$.data.createdAccountId").exists())
                         .andReturn();
 
         // Then: Account should be created
         final String responseJson = result.getResponse().getContentAsString();
         final TransactionController.BatchImportResponse response =
-                objectMapper.readValue(
-                        responseJson, TransactionController.BatchImportResponse.class);
+                readEnvelopeData(responseJson, TransactionController.BatchImportResponse.class);
 
         assertNotNull(response.getCreatedAccountId(), "createdAccountId should be present");
         assertFalse(
@@ -258,8 +271,7 @@ class BatchImportAccountCreationTest {
         // Then: Transaction should be associated with matched account (not wrong accountId)
         final String responseJson = result.getResponse().getContentAsString();
         final TransactionController.BatchImportResponse response =
-                objectMapper.readValue(
-                        responseJson, TransactionController.BatchImportResponse.class);
+                readEnvelopeData(responseJson, TransactionController.BatchImportResponse.class);
 
         // createdAccountId should be set to matched account ID
         assertEquals(
@@ -315,8 +327,7 @@ class BatchImportAccountCreationTest {
         // Then: Import should succeed but accountId should not be set (invalid UUID)
         final String responseJson = result.getResponse().getContentAsString();
         final TransactionController.BatchImportResponse response =
-                objectMapper.readValue(
-                        responseJson, TransactionController.BatchImportResponse.class);
+                readEnvelopeData(responseJson, TransactionController.BatchImportResponse.class);
 
         // createdAccountId should not be set (invalid UUID)
         assertNull(
@@ -410,8 +421,7 @@ class BatchImportAccountCreationTest {
         // Then: Transaction should be associated with created account (not wrong accountId)
         final String responseJson = result.getResponse().getContentAsString();
         final TransactionController.BatchImportResponse response =
-                objectMapper.readValue(
-                        responseJson, TransactionController.BatchImportResponse.class);
+                readEnvelopeData(responseJson, TransactionController.BatchImportResponse.class);
 
         final String createdAccountId = response.getCreatedAccountId();
         assertNotNull(createdAccountId);

@@ -108,8 +108,10 @@ public class SubscriptionServiceRealWorldTest {
     @Test
     @DisplayName("Should detect Wall Street Journal subscription")
     void testWSJSubscription() {
-        final LocalDate baseDate = LocalDate.now().minusMonths(2);
-        for (int i = 0; i < 3; i++) {
+        // 3 months back so the 4 iterations fit before today.
+        final LocalDate baseDate = LocalDate.now().minusMonths(3);
+        // MONTHLY occurrence floor was tightened from 3 to 4; need 4 cycles to detect.
+        for (int i = 0; i < 4; i++) {
             final TransactionTable tx =
                     createTransaction(
                             "WSJ.COM",
@@ -265,8 +267,10 @@ public class SubscriptionServiceRealWorldTest {
     @Test
     @DisplayName("Should detect gym membership")
     void testGymMembership() {
-        final LocalDate baseDate = LocalDate.now().minusMonths(2);
-        for (int i = 0; i < 3; i++) {
+        // 3 months back so the 4 iterations fit before today.
+        final LocalDate baseDate = LocalDate.now().minusMonths(3);
+        // MONTHLY occurrence floor was tightened from 3 to 4; need 4 cycles to detect.
+        for (int i = 0; i < 4; i++) {
             final TransactionTable tx =
                     createTransaction(
                             "Planet Fitness",
@@ -297,8 +301,10 @@ public class SubscriptionServiceRealWorldTest {
     @Test
     @DisplayName("Should detect insurance recurring payment")
     void testInsuranceSubscription() {
-        final LocalDate baseDate = LocalDate.now().minusMonths(2);
-        for (int i = 0; i < 3; i++) {
+        // 3 months back so the 4 iterations fit before today.
+        final LocalDate baseDate = LocalDate.now().minusMonths(3);
+        // MONTHLY occurrence floor was tightened from 3 to 4; need 4 cycles to detect.
+        for (int i = 0; i < 4; i++) {
             final TransactionTable tx =
                     createTransaction(
                             "State Farm Insurance",
@@ -328,8 +334,10 @@ public class SubscriptionServiceRealWorldTest {
     @Test
     @DisplayName("Should detect YouTube Music subscription")
     void testYouTubeMusicSubscription() {
-        final LocalDate baseDate = LocalDate.now().minusMonths(2);
-        for (int i = 0; i < 3; i++) {
+        // 3 months back so the 4 iterations fit before today.
+        final LocalDate baseDate = LocalDate.now().minusMonths(3);
+        // MONTHLY occurrence floor was tightened from 3 to 4; need 4 cycles to detect.
+        for (int i = 0; i < 4; i++) {
             final TransactionTable tx =
                     createTransaction(
                             "Google",
@@ -360,8 +368,10 @@ public class SubscriptionServiceRealWorldTest {
     @Test
     @DisplayName("Should detect Cursor AI subscription")
     void testCursorAISubscription() {
-        final LocalDate baseDate = LocalDate.now().minusMonths(2);
-        for (int i = 0; i < 3; i++) {
+        // 3 months back so the 4 iterations fit before today.
+        final LocalDate baseDate = LocalDate.now().minusMonths(3);
+        // MONTHLY occurrence floor was tightened from 3 to 4; need 4 cycles to detect.
+        for (int i = 0; i < 4; i++) {
             final TransactionTable tx =
                     createTransaction(
                             "Cursor",

@@ -166,6 +166,27 @@ public class TransactionTable {
         this.userName = userName;
     }
 
+    /**
+     * Last-4 of the card used for THIS specific transaction. Distinct from
+     * the account's accountNumber: on family-card statements (Amex Blue
+     * Business Cash w/ employee cards) different rows carry different
+     * last-4s. iOS already decodes this field; pre-fix it was extracted by
+     * the parser but never persisted to DDB — silently dropped during the
+     * createTransaction → updateTransaction roundtrip in
+     * processPDFBatchImport. Now persisted via the new
+     * createTransactionFromParsedPdf path.
+     */
+    private String cardLastFour;
+
+    @DynamoDbAttribute("cardLastFour")
+    public String getCardLastFour() {
+        return cardLastFour;
+    }
+
+    public void setCardLastFour(final String cardLastFour) {
+        this.cardLastFour = cardLastFour;
+    }
+
     @DynamoDbAttribute("categoryPrimary")
     public String getCategoryPrimary() {
         return categoryPrimary;
@@ -239,7 +260,13 @@ public class TransactionTable {
     }
 
     public void setPlaidTransactionId(final String plaidTransactionId) {
-        this.plaidTransactionId = plaidTransactionId;
+        // Normalize on store so dedup queries don't miss because of
+        // case differences. Plaid IDs are case-sensitive in the source,
+        // but our deduplication semantic treats them as identifiers,
+        // not strings — same logical row regardless of letter case.
+        this.plaidTransactionId = plaidTransactionId == null
+                ? null
+                : com.budgetbuddy.util.IdGenerator.normalizeUUID(plaidTransactionId);
     }
 
     @DynamoDbAttribute("pending")
@@ -531,5 +558,80 @@ public class TransactionTable {
 
     public void setWalletProvider(final String v) {
         this.walletProvider = v;
+    }
+
+    // ========================================================================
+    //  Structured geo fields — split out of the single human-readable
+    //  `location` string by PDFImportService.geoEnrichV2Transaction so
+    //  downstream consumers (analytics, map view, "trips abroad" detection,
+    //  geo-aggregated insights) can query by stable components.
+    //
+    //  All fields are nullable; the parser only sets a field when it has
+    //  high-confidence evidence (last-token US state code, alpha-2/alpha-3
+    //  country, spelled-out country name, USPS street-suffix pattern, etc.).
+    //  Legacy rows imported before this commit will return null — clients
+    //  must fall back to the `location` field for display in that case.
+    //
+    //  DynamoDB schemaless — no CFN change required.
+    // ========================================================================
+    private String city;
+    private String state;
+    private String country;
+    private String postalCode;
+    private String phoneNumber;
+    private String streetAddress;
+
+    @DynamoDbAttribute("city")
+    public String getCity() {
+        return city;
+    }
+
+    public void setCity(final String v) {
+        this.city = v;
+    }
+
+    @DynamoDbAttribute("state")
+    public String getState() {
+        return state;
+    }
+
+    public void setState(final String v) {
+        this.state = v;
+    }
+
+    @DynamoDbAttribute("country")
+    public String getCountry() {
+        return country;
+    }
+
+    public void setCountry(final String v) {
+        this.country = v;
+    }
+
+    @DynamoDbAttribute("postalCode")
+    public String getPostalCode() {
+        return postalCode;
+    }
+
+    public void setPostalCode(final String v) {
+        this.postalCode = v;
+    }
+
+    @DynamoDbAttribute("phoneNumber")
+    public String getPhoneNumber() {
+        return phoneNumber;
+    }
+
+    public void setPhoneNumber(final String v) {
+        this.phoneNumber = v;
+    }
+
+    @DynamoDbAttribute("streetAddress")
+    public String getStreetAddress() {
+        return streetAddress;
+    }
+
+    public void setStreetAddress(final String v) {
+        this.streetAddress = v;
     }
 }

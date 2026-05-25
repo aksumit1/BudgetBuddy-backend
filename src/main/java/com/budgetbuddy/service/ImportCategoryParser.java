@@ -130,6 +130,13 @@ public class ImportCategoryParser {
                                 CategoryCascade.Context.builder()
                                         .merchantName(merchantName)
                                         .description(description)
+                                        // Thread the issuer's MCC trailer (e.g.,
+                                        // Amex "RESTAURANT", Discover "Restaurants")
+                                        // through so L2.5 can map it directly. This
+                                        // is one of the highest-confidence signals
+                                        // and was previously discarded.
+                                        .importerCategoryPrimary(categoryString)
+                                        .importerCategoryDetailed(categoryString)
                                         .build());
                 if (cascadeResult != null
                         && cascadeResult.getCategoryPrimary() != null
