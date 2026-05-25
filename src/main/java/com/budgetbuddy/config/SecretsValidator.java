@@ -32,7 +32,12 @@ public class SecretsValidator {
     /** AES-256 wants a 32-byte key. */
     private static final int ENCRYPTION_KEY_MIN_BYTES = 32;
 
-    @Value("${spring.jwt.secret:}")
+    // Property name must match the one JwtTokenProvider reads
+    // ({@code app.jwt.secret}). An earlier draft read
+    // {@code spring.jwt.secret}, which doesn't exist anywhere — so
+    // the validator failed every startup even when JWT_SECRET was
+    // correctly mapped to {@code app.jwt.secret} via application.yml.
+    @Value("${app.jwt.secret:}")
     private String jwtSecret;
 
     @Value("${app.security.encryption.key:}")

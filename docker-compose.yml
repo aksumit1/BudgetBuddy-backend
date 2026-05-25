@@ -145,6 +145,10 @@ services:
       BERT_MODEL_S3_KEY: ${BERT_MODEL_S3_KEY:-distilbert-base-uncased.onnx}
       BERT_MODEL_S3_ENDPOINT: http://localstack:4566
       JWT_SECRET: test-secret-change-in-production-this-must-be-at-least-64-characters-long-for-hs512-algorithm-to-work-properly
+      # Local-dev placeholder. Production must inject a real 32-byte key
+      # via AWS Secrets Manager. The new SecretsValidator refuses to boot
+      # if this is unset.
+      ENCRYPTION_KEY: local-dev-encryption-key-32-bytes-aes256-placeholder-do-not-use-in-prod
       # Plaid credentials - use environment variables or .env file (NEVER commit real credentials)
       # For local development, create a .env file with:
       # PLAID_CLIENT_ID=your-client-id

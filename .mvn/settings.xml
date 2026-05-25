@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    Maven settings used by the Docker build.
+
+    Why this file exists:
+    Yubico's webauthn-server-core depends on yubico-util, which in turn
+    depends on jackson-dataformat-cbor whose *parent POM chain* references
+    `jackson-databind:2.19.5-SNAPSHOT`. That SNAPSHOT artifact isn't
+    actually published; Maven happily wanders into central-snapshots and
+    fails the build with "Could not find jackson-base:2.19.5-SNAPSHOT".
+
+    The local developer build doesn't hit this because everything is
+    already cached in ~/.m2 from before the SNAPSHOT range broke. Fresh
+    builds (Docker, CI) hit it every time.
+
+    Disabling snapshot lookups in the central mirror short-circuits the
+    bad walk — Maven falls back to the release version it already has
+    (jackson-databind 2.18.x via the Spring Boot BOM), which is what we
+    actually want anyway.
+
+    Once Yubico cuts a release without the broken parent chain (or once
+    the parallel WebAuthn 2.9 → 2.x bump finishes propagating), this
+    file can be deleted.
+-->
+<settings xmlns="http://maven.apache.org/SETTINGS/1.0.0"
+          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+          xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.0.0
+                              https://maven.apache.org/xsd/settings-1.0.0.xsd">
+    <!-- Mirror central-snapshots into oblivion. Maven 3.9+ ships with
+         a default "central-snapshots" repo at
+         https://central.sonatype.com/repository/maven-snapshots that
+         our build keeps wandering into when chasing the unpublished
+         jackson-databind:2.19.5-SNAPSHOT. A non-resolving mirror URL
+         makes the lookup fail fast and Maven moves on to release
+         versions from regular central. -->
+    <mirrors>
+        <mirror>
+            <id>block-central-snapshots</id>
+            <mirrorOf>central-snapshots</mirrorOf>
+            <name>Blocked snapshot mirror</name>
+            <url>http://0.0.0.0:0/blocked</url>
+            <blocked>true</blocked>
+        </mirror>
+    </mirrors>
+    <profiles>
+        <profile>
+            <id>no-snapshots-central</id>
+            <repositories>
+                <repository>
+                    <id>central</id>
+                    <url>https://repo.maven.apache.org/maven2</url>
+                    <releases>
+                        <enabled>true</enabled>
+                    </releases>
+                    <snapshots>
+                        <enabled>false</enabled>
+                    </snapshots>
+                </repository>
+            </repositories>
+            <pluginRepositories>
+                <pluginRepository>
+                    <id>central</id>
+                    <url>https://repo.maven.apache.org/maven2</url>
+                    <releases>
+                        <enabled>true</enabled>
+                    </releases>
+                    <snapshots>
+                        <enabled>false</enabled>
+                    </snapshots>
+                </pluginRepository>
+            </pluginRepositories>
+        </profile>
+    </profiles>
+    <activeProfiles>
+        <activeProfile>no-snapshots-central</activeProfile>
+    </activeProfiles>
+</settings>
