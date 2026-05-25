@@ -35,14 +35,32 @@ public class PromptRegistry {
     private static final Logger LOGGER = LoggerFactory.getLogger(PromptRegistry.class);
 
     /** Bump when ANY mode template changes, so observability can group runs. */
-    public static final String REGISTRY_VERSION = "2026.05.23-1";
+    public static final String REGISTRY_VERSION = "2026.05.25-2";
 
     /** Per-mode template. Each carries its own version for granular rollback. */
     public record PromptTemplate(ChatMode mode, String version, String focusInstruction) {}
 
     private final Map<ChatMode, PromptTemplate> templates;
     private final ObjectMapper mapper = new ObjectMapper();
+    /**
+     * Renders the snapshot as structured markdown for the LLM prompt.
+     * Null in unit tests that pre-date the renderer; the prompt
+     * then falls back to a JSON dump.
+     */
+    private ContextMarkdownRenderer markdownRenderer;
 
+    /** Spring constructor — markdownRenderer wired automatically. */
+    @org.springframework.beans.factory.annotation.Autowired
+    public PromptRegistry(final ContextMarkdownRenderer markdownRenderer) {
+        this();
+        this.markdownRenderer = markdownRenderer;
+    }
+
+    /**
+     * No-arg constructor used by unit tests + retained for back-compat.
+     * When invoked, the markdown renderer is null and the system prompt
+     * falls back to JSON dump.
+     */
     public PromptRegistry() {
         templates = new EnumMap<>(ChatMode.class);
         templates.put(ChatMode.GENERAL, new PromptTemplate(
@@ -91,20 +109,31 @@ public class PromptRegistry {
             final ChatMode mode,
             final PrivacyPreservingExtractor.SanitizedSnapshot snapshot) {
         final PromptTemplate tmpl = templateFor(mode);
-        final String snapshotJson;
-        try {
-            snapshotJson = mapper.writeValueAsString(snapshot);
-        } catch (final Exception e) {
-            throw new RuntimeException("Failed to serialize snapshot", e);
+        // Prefer the structured markdown rendering — Claude parses
+        // headings + tables more reliably than a flat JSON blob for
+        // long, multi-section context. Fall back to JSON if the
+        // renderer isn't wired (unit-test compat).
+        final String snapshotBody;
+        final String snapshotFormat;
+        if (markdownRenderer != null) {
+            snapshotBody = markdownRenderer.render(snapshot);
+            snapshotFormat = "markdown report";
+        } else {
+            try {
+                snapshotBody = mapper.writeValueAsString(snapshot);
+                snapshotFormat = "JSON snapshot";
+            } catch (final Exception e) {
+                throw new RuntimeException("Failed to serialize snapshot", e);
+            }
         }
         if (LOGGER.isDebugEnabled()) {
             LOGGER.debug(
-                    "PromptRegistry: building system prompt mode={} tmplVersion={} registry={}",
-                    mode, tmpl.version(), REGISTRY_VERSION);
+                    "PromptRegistry: building system prompt mode={} tmplVersion={} registry={} fmt={}",
+                    mode, tmpl.version(), REGISTRY_VERSION, snapshotFormat);
         }
         return "You are BudgetBuddy's financial-insights assistant. You answer the user's "
-                + "questions about THEIR spending and finances using ONLY the JSON snapshot "
-                + "below.\n\n"
+                + "questions about THEIR spending and finances using ONLY the portfolio "
+                + snapshotFormat + " below.\n\n"
                 + "Mode focus: " + tmpl.focusInstruction() + "\n\n"
                 + "Hard rules — never break:\n"
                 + " - Never invent specific transactions, merchants, or amounts not present "
@@ -123,7 +152,7 @@ public class PromptRegistry {
                 + "    \"<follow-up question 3, optional>\"\n"
                 + "  ]\n"
                 + "}\n\n"
-                + "Data snapshot (all monetary values in " + snapshot.currency() + "):\n"
-                + snapshotJson;
+                + "Portfolio (all monetary values in " + snapshot.currency() + "):\n\n"
+                + snapshotBody;
     }
 }

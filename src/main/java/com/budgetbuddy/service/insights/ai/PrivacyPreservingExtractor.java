@@ -103,7 +103,8 @@ public class PrivacyPreservingExtractor {
         if (ctx == null) {
             return new SanitizedSnapshot(
                     Map.of(), Map.of(), Map.of(), List.of(),
-                    List.of(), List.of(), 0, 0, "USD");
+                    List.of(), List.of(), List.of(), 0, 0, "USD",
+                    BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO);
         }
 
         final List<TransactionTable> txs = ctx.transactions();
@@ -119,10 +120,112 @@ public class PrivacyPreservingExtractor {
                 spendingByKnownMerchant(last90),
                 subscriptionAggregates(ctx.subscriptions()),
                 budgetAggregates(ctx.budgets()),
+                goalAggregates(ctx),
                 recentAnomalies(ctx.userId()),
                 ctx.accounts().size(),
                 last90.size(),
-                inferCurrency(ctx.accounts(), last90));
+                inferCurrency(ctx.accounts(), last90),
+                netWorth(ctx.accounts()),
+                liquidAssets(ctx.accounts()),
+                estimatedMonthlyIncome(txs, ctx.asOf()));
+    }
+
+    /** Sum across all account balances. Whole-dollar rounded. */
+    private BigDecimal netWorth(final List<AccountTable> accounts) {
+        if (accounts == null || accounts.isEmpty()) return BigDecimal.ZERO;
+        return accounts.stream()
+                .map(a -> a.getBalance() == null ? BigDecimal.ZERO : a.getBalance())
+                .reduce(BigDecimal.ZERO, BigDecimal::add)
+                .setScale(0, RoundingMode.HALF_UP);
+    }
+
+    /**
+     * Liquid assets = sum of checking/savings/cash accounts (not
+     * credit, not investment, not loans). Used by the LLM to reason
+     * about "what can I spend safely today".
+     */
+    private BigDecimal liquidAssets(final List<AccountTable> accounts) {
+        if (accounts == null || accounts.isEmpty()) return BigDecimal.ZERO;
+        return accounts.stream()
+                .filter(a -> {
+                    final String type = a.getAccountType() == null
+                            ? "" : a.getAccountType().toLowerCase(Locale.ROOT);
+                    return type.contains("check") || type.contains("saving")
+                            || type.contains("cash") || type.contains("money market");
+                })
+                .map(a -> a.getBalance() == null ? BigDecimal.ZERO : a.getBalance())
+                .reduce(BigDecimal.ZERO, BigDecimal::add)
+                .setScale(0, RoundingMode.HALF_UP);
+    }
+
+    /**
+     * Heuristic monthly income: sum of positive transactions in the
+     * last 90 days categorised as INCOME or TRANSFER_IN, divided by
+     * 3. Falls back to "deposits over $500" if categories aren't set.
+     * Whole-dollar rounded.
+     */
+    private BigDecimal estimatedMonthlyIncome(
+            final List<TransactionTable> txs, final LocalDate asOf) {
+        if (txs == null || txs.isEmpty()) return BigDecimal.ZERO;
+        final LocalDate cutoff = asOf.minusDays(90);
+        BigDecimal total = BigDecimal.ZERO;
+        for (final TransactionTable t : txs) {
+            if (t.getAmount() == null || t.getAmount().signum() <= 0) continue;
+            if (t.getTransactionDate() == null
+                    || t.getTransactionDate().compareTo(cutoff.toString()) < 0) continue;
+            final String cat = t.getCategoryPrimary() == null
+                    ? "" : t.getCategoryPrimary().toLowerCase(Locale.ROOT);
+            final boolean looksLikeIncome = cat.contains("income")
+                    || cat.contains("payroll")
+                    || cat.contains("salary")
+                    || cat.contains("transfer_in")
+                    || (cat.isEmpty() && t.getAmount().compareTo(BigDecimal.valueOf(500)) > 0);
+            if (looksLikeIncome) {
+                total = total.add(t.getAmount());
+            }
+        }
+        return total.divide(BigDecimal.valueOf(3), 0, RoundingMode.HALF_UP);
+    }
+
+    /**
+     * Per-goal progress for "am I on track?" questions. Names pass
+     * through unchanged because a user's own goal labels aren't PII
+     * any more than category names — and the LLM needs them to
+     * answer specifically about which goal the user means.
+     */
+    private List<SanitizedGoal> goalAggregates(final InsightsContext ctx) {
+        if (ctx == null || !ctx.goalsAvailable() || ctx.goals().isEmpty()) {
+            return List.of();
+        }
+        final List<SanitizedGoal> out = new ArrayList<>();
+        for (final var g : ctx.goals()) {
+            if (g.getDeletedAt() != null) continue;
+            final BigDecimal target = g.getTargetAmount() == null
+                    ? BigDecimal.ZERO : g.getTargetAmount();
+            final BigDecimal current = g.getCurrentAmount() == null
+                    ? BigDecimal.ZERO : g.getCurrentAmount();
+            final double pct = target.signum() == 0
+                    ? 0.0
+                    : current.divide(target, 4, RoundingMode.HALF_UP)
+                            .multiply(BigDecimal.valueOf(100)).doubleValue();
+            LocalDate parsedTargetDate = null;
+            if (g.getTargetDate() != null && !g.getTargetDate().isBlank()) {
+                try {
+                    parsedTargetDate = LocalDate.parse(g.getTargetDate());
+                } catch (final Exception ignored) {
+                    // Malformed date — drop silently rather than skip the whole goal.
+                }
+            }
+            out.add(new SanitizedGoal(
+                    g.getName(),
+                    target.setScale(0, RoundingMode.HALF_UP),
+                    current.setScale(0, RoundingMode.HALF_UP),
+                    Math.min(pct, 999.0),
+                    parsedTargetDate,
+                    g.getGoalType() == null ? "OTHER" : g.getGoalType(),
+                    g.getCompletedAt() != null));
+        }
+        return out;
     }
 
     /**
@@ -355,10 +458,14 @@ public class PrivacyPreservingExtractor {
             Map<String, BigDecimal> spendingByKnownMerchant90d,
             List<SanitizedSubscription> subscriptions,
             List<SanitizedBudget> budgets,
+            List<SanitizedGoal> goals,
             List<SanitizedAnomaly> recentAnomalies,
             int accountCount,
             int transactionCount90d,
-            String currency) {
+            String currency,
+            BigDecimal netWorth,
+            BigDecimal liquidAssets,
+            BigDecimal estimatedMonthlyIncome) {
 
         /** Days the spending-by-month bucket implicitly covers. */
         public long monthsCovered() {
@@ -375,6 +482,20 @@ public class PrivacyPreservingExtractor {
             }
         }
     }
+
+    /**
+     * One goal with progress fields. Name passes through (user-chosen
+     * labels like "Emergency fund" / "Vacation 2026" aren't PII —
+     * categories aren't either).
+     */
+    public record SanitizedGoal(
+            String name,
+            BigDecimal targetAmount,
+            BigDecimal currentAmount,
+            double percentComplete,
+            @Nullable LocalDate targetDate,
+            String goalType,
+            boolean completed) {}
 
     public record SanitizedSubscription(
             String displayName, BigDecimal monthlyCost, String billingCycle) {}

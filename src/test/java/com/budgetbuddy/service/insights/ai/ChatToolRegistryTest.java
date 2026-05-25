@@ -142,7 +142,8 @@ class ChatToolRegistryTest {
     private SanitizedSnapshot emptySnapshot() {
         return new SanitizedSnapshot(
                 Map.of(), Map.of(), Map.of(),
-                List.of(), List.of(), List.of(), 0, 0, "USD");
+                List.of(), List.of(), List.of(), List.of(), 0, 0, "USD",
+                BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO);
     }
 
     /** Snapshot factory used by tests — records are final so we build directly. */
@@ -154,6 +155,7 @@ class ChatToolRegistryTest {
             final List<SanitizedAnomaly> anomalies) {
         return new SanitizedSnapshot(
                 byCategory, Map.of(), byKnownMerchant, subs,
-                budgets, anomalies, 0, 0, "USD");
+                budgets, List.of(), anomalies, 0, 0, "USD",
+                BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO);
     }
 }

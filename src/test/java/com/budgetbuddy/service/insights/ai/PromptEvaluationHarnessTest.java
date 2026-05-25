@@ -94,8 +94,12 @@ class PromptEvaluationHarnessTest {
         final PrivacyPreservingExtractor.SanitizedSnapshot empty =
                 new PrivacyPreservingExtractor.SanitizedSnapshot(
                         java.util.Map.of(), java.util.Map.of(), java.util.Map.of(),
-                        java.util.List.of(), java.util.List.of(), java.util.List.of(),
-                        0, 0, "USD");
+                        java.util.List.of(), java.util.List.of(),
+                        java.util.List.of(), java.util.List.of(),
+                        0, 0, "USD",
+                        java.math.BigDecimal.ZERO,
+                        java.math.BigDecimal.ZERO,
+                        java.math.BigDecimal.ZERO);
         for (final ChatMode mode : ChatMode.values()) {
             final String prompt = registry.buildSystemPrompt(mode, empty);
             final PromptScore score = harness.score(prompt, mode);
@@ -111,8 +115,12 @@ class PromptEvaluationHarnessTest {
         final PrivacyPreservingExtractor.SanitizedSnapshot empty =
                 new PrivacyPreservingExtractor.SanitizedSnapshot(
                         java.util.Map.of(), java.util.Map.of(), java.util.Map.of(),
-                        java.util.List.of(), java.util.List.of(), java.util.List.of(),
-                        0, 0, "USD");
+                        java.util.List.of(), java.util.List.of(),
+                        java.util.List.of(), java.util.List.of(),
+                        0, 0, "USD",
+                        java.math.BigDecimal.ZERO,
+                        java.math.BigDecimal.ZERO,
+                        java.math.BigDecimal.ZERO);
         final String good = registry.buildSystemPrompt(ChatMode.SPENDING, empty);
         final String bad = "Answer questions about spending."; // missing everything
         final var comparison = harness.compare(

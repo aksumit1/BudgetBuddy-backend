@@ -3,10 +3,12 @@ package com.budgetbuddy.service.insights;
 import com.budgetbuddy.model.Subscription;
 import com.budgetbuddy.model.dynamodb.AccountTable;
 import com.budgetbuddy.model.dynamodb.BudgetTable;
+import com.budgetbuddy.model.dynamodb.GoalTable;
 import com.budgetbuddy.model.dynamodb.TransactionActionTable;
 import com.budgetbuddy.model.dynamodb.TransactionTable;
 import com.budgetbuddy.repository.dynamodb.AccountRepository;
 import com.budgetbuddy.repository.dynamodb.BudgetRepository;
+import com.budgetbuddy.repository.dynamodb.GoalRepository;
 import com.budgetbuddy.repository.dynamodb.TransactionActionRepository;
 import com.budgetbuddy.repository.dynamodb.TransactionRepository;
 import com.budgetbuddy.service.SubscriptionService;
@@ -49,6 +51,8 @@ public class InsightsContextFactory {
     private final TransactionActionRepository actionRepository;
     /** Setter-injected so old tests don't need to thread a sixth arg. */
     private BudgetRepository budgetRepository;
+    /** Setter-injected, same pattern as {@link #budgetRepository}. */
+    private GoalRepository goalRepository;
 
     public InsightsContextFactory(
             final TransactionRepository transactionRepository,
@@ -64,6 +68,11 @@ public class InsightsContextFactory {
     @org.springframework.beans.factory.annotation.Autowired(required = false)
     public void setBudgetRepository(final BudgetRepository budgetRepository) {
         this.budgetRepository = budgetRepository;
+    }
+
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    public void setGoalRepository(final GoalRepository goalRepository) {
+        this.goalRepository = goalRepository;
     }
 
     /**
@@ -117,6 +126,20 @@ public class InsightsContextFactory {
             }
         }
 
-        return new InsightsContext(userId, today, txs, accounts, subs, actions, budgets);
+        List<GoalTable> goals;
+        if (goalRepository == null) {
+            goals = null;  // unavailable — chat snapshot will note this
+        } else {
+            try {
+                goals = goalRepository.findByUserId(userId);
+            } catch (final RuntimeException e) {
+                LOGGER.warn("InsightsContext: goal fetch failed for user {}: {}",
+                        userId, e.getMessage());
+                goals = List.of();
+            }
+        }
+
+        return new InsightsContext(
+                userId, today, txs, accounts, subs, actions, budgets, goals);
     }
 }

@@ -3,6 +3,7 @@ package com.budgetbuddy.service.insights;
 import com.budgetbuddy.model.Subscription;
 import com.budgetbuddy.model.dynamodb.AccountTable;
 import com.budgetbuddy.model.dynamodb.BudgetTable;
+import com.budgetbuddy.model.dynamodb.GoalTable;
 import com.budgetbuddy.model.dynamodb.TransactionActionTable;
 import com.budgetbuddy.model.dynamodb.TransactionTable;
 import java.time.LocalDate;
@@ -47,6 +48,9 @@ public final class InsightsContext {
      */
     private final List<BudgetTable> budgets;
     private final boolean budgetsAvailable;
+    /** Same null-vs-empty contract as {@link #budgets}. */
+    private final List<GoalTable> goals;
+    private final boolean goalsAvailable;
 
     public InsightsContext(
             final String userId,
@@ -55,7 +59,8 @@ public final class InsightsContext {
             final List<AccountTable> accounts,
             final List<Subscription> subscriptions,
             final List<TransactionActionTable> transactionActions,
-            final List<BudgetTable> budgets) {
+            final List<BudgetTable> budgets,
+            final List<GoalTable> goals) {
         this.userId = Objects.requireNonNull(userId, "userId");
         this.asOf = Objects.requireNonNull(asOf, "asOf");
         this.transactions = Collections.unmodifiableList(
@@ -70,6 +75,23 @@ public final class InsightsContext {
                 ? List.of()
                 : Collections.unmodifiableList(budgets);
         this.budgetsAvailable = budgets != null;
+        this.goals = goals == null
+                ? List.of()
+                : Collections.unmodifiableList(goals);
+        this.goalsAvailable = goals != null;
+    }
+
+    /** Back-compat: pre-goals callers. Goals default to null (unavailable). */
+    public InsightsContext(
+            final String userId,
+            final LocalDate asOf,
+            final List<TransactionTable> transactions,
+            final List<AccountTable> accounts,
+            final List<Subscription> subscriptions,
+            final List<TransactionActionTable> transactionActions,
+            final List<BudgetTable> budgets) {
+        this(userId, asOf, transactions, accounts, subscriptions,
+             transactionActions, budgets, null);
     }
 
     /**
@@ -110,4 +132,7 @@ public final class InsightsContext {
     public List<BudgetTable> budgets() { return budgets; }
     /** True when {@link #budgets()} was authoritatively supplied — see field doc. */
     public boolean budgetsAvailable() { return budgetsAvailable; }
+    public List<GoalTable> goals() { return goals; }
+    /** True when {@link #goals()} was authoritatively supplied. */
+    public boolean goalsAvailable() { return goalsAvailable; }
 }
