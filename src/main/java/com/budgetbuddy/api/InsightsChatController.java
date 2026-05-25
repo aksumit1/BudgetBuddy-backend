@@ -119,7 +119,8 @@ public class InsightsChatController {
                             user.getUserId(),
                             req.conversationId(),
                             req.message(),
-                            req.mode()));
+                            req.mode(),
+                            toServiceContext(req.context())));
             return ResponseEntity.ok(
                     new ChatTurnResponse(
                             result.conversationId(),
@@ -253,7 +254,30 @@ public class InsightsChatController {
             String conversationId,
             String message,
             /** Optional. One of: general, spending, budget, goal, subscription, anomaly. */
-            String mode) {}
+            String mode,
+            /**
+             * Optional UI context. The iOS "AI Review" hub passes the
+             * tab the user invoked chat from + optional entity id (e.g.
+             * the budget row they were looking at). The service folds
+             * this into the system prompt so replies can reference
+             * "your groceries budget" instead of asking which budget.
+             */
+            ScreenContext context) {
+
+        /** Backwards-compat constructor for clients that don't send context. */
+        public ChatTurnRequest(
+                final String conversationId, final String message, final String mode) {
+            this(conversationId, message, mode, null);
+        }
+    }
+
+    /** Tab + entity the user was on when they opened the chat. */
+    public record ScreenContext(String tab, String entityId, String entityKind) {}
+
+    private static InsightsChatService.ScreenContext toServiceContext(final ScreenContext c) {
+        if (c == null) return null;
+        return new InsightsChatService.ScreenContext(c.tab(), c.entityId(), c.entityKind());
+    }
 
     public record ChatTurnResponse(
             String conversationId,

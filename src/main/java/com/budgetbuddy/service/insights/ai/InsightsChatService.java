@@ -168,7 +168,8 @@ public class InsightsChatService {
         final long startMillis = System.currentTimeMillis();
         try {
             llmResponse = callLlm(
-                    req.message(), recentHistory, snapshot, mode, summarisedPreface);
+                    req.message(), recentHistory, snapshot, mode, summarisedPreface,
+                    req.context());
             if (metrics != null) {
                 metrics.recordTurn(
                         model,
@@ -208,18 +209,35 @@ public class InsightsChatService {
             final List<ChatMessageTable> history,
             final PrivacyPreservingExtractor.SanitizedSnapshot snapshot,
             final ChatMode mode,
-            final String summarisedPreface) throws Exception {
+            final String summarisedPreface,
+            final ScreenContext uiContext) throws Exception {
         final ObjectNode body = mapper.createObjectNode();
         body.put("model", model);
         body.put("max_tokens", maxOutputTokens);
         // System prompt = mode-tailored snapshot prompt + optional
-        // summary of older turns (when history was trimmed).
-        final String systemPrompt = summarisedPreface == null || summarisedPreface.isBlank()
-                ? buildSystemPrompt(snapshot, mode)
-                : buildSystemPrompt(snapshot, mode)
-                        + "\n\nPrior conversation summary (older turns elided):\n"
-                        + summarisedPreface;
-        body.put("system", systemPrompt);
+        // summary of older turns (when history was trimmed) + optional
+        // UI context (the tab the user came from).
+        final StringBuilder sb = new StringBuilder(buildSystemPrompt(snapshot, mode));
+        if (summarisedPreface != null && !summarisedPreface.isBlank()) {
+            sb.append("\n\nPrior conversation summary (older turns elided):\n")
+                    .append(summarisedPreface);
+        }
+        if (uiContext != null && uiContext.tab() != null && !uiContext.tab().isBlank()) {
+            sb.append("\n\nThe user opened this chat from the ")
+                    .append(uiContext.tab())
+                    .append(" screen.");
+            if (uiContext.entityKind() != null && !uiContext.entityKind().isBlank()
+                    && uiContext.entityId() != null && !uiContext.entityId().isBlank()) {
+                sb.append(" They were looking at ")
+                        .append(uiContext.entityKind())
+                        .append(" id=")
+                        .append(uiContext.entityId())
+                        .append(".");
+            }
+            sb.append(" When the user says \"this\" or \"that\", assume they mean "
+                    + "something on that screen unless they clarify.");
+        }
+        body.put("system", sb.toString());
 
         final ArrayNode messages = body.putArray("messages");
         for (final ChatMessageTable m : history) {
@@ -426,14 +444,30 @@ public class InsightsChatService {
     // -----------------------------------------------------------------
 
     public record ChatTurnRequest(
-            String userId, String conversationId, String message, String mode) {
+            String userId, String conversationId, String message, String mode,
+            /** Optional UI context (tab the user invoked chat from, etc.). */
+            ScreenContext context) {
 
         /** Backwards-compat: tests that pre-date the {@code mode} parameter. */
         public ChatTurnRequest(
                 final String userId, final String conversationId, final String message) {
-            this(userId, conversationId, message, null);
+            this(userId, conversationId, message, null, null);
+        }
+
+        /** Backwards-compat: callers that don't supply context. */
+        public ChatTurnRequest(
+                final String userId, final String conversationId, final String message,
+                final String mode) {
+            this(userId, conversationId, message, mode, null);
         }
     }
+
+    /**
+     * Tab + entity the user was on when they invoked chat. Folded into
+     * the system prompt so the assistant can answer "this budget"
+     * questions without re-asking which budget.
+     */
+    public record ScreenContext(String tab, String entityId, String entityKind) {}
 
     public record ChatTurnResult(
             String conversationId,
