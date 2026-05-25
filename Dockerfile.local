@@ -1,8 +1,15 @@
 # Multi-stage build for BudgetBuddy Backend - Local Development
 # Java 25 LTS, matching production (Dockerfile) and CI.
+#
+# No --platform is set; Docker uses the host platform by default
+# (linux/arm64 on Apple Silicon, matching AWS Graviton2 production).
+# Force an amd64 image with `docker build --platform=linux/amd64 ...`.
+#
+# Production Dockerfile uses ${BUILDPLATFORM}/${TARGETPLATFORM} for
+# explicit cross-build via buildx; this local file lets Docker infer.
 
 # Build stage
-FROM --platform=linux/arm64 maven:3.9-eclipse-temurin-25 AS build
+FROM maven:3.9-eclipse-temurin-25 AS build
 
 WORKDIR /app
 
@@ -27,8 +34,8 @@ COPY infrastructure ./infrastructure
 
 RUN mvn -s .mvn/settings.xml clean package -DskipTests
 
-# Runtime stage - ARM64 Temurin JRE 25, matching the build stage above.
-FROM --platform=linux/arm64 eclipse-temurin:25-jre-alpine
+# Runtime stage - Temurin JRE 25, matching the build stage above.
+FROM eclipse-temurin:25-jre-alpine
 
 WORKDIR /app
 
