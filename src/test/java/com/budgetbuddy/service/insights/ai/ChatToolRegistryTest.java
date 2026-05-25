@@ -143,7 +143,8 @@ class ChatToolRegistryTest {
         return new SanitizedSnapshot(
                 Map.of(), Map.of(), Map.of(),
                 List.of(), List.of(), List.of(), List.of(), 0, 0, "USD",
-                BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO);
+                BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO,
+                PrivacyPreservingExtractor.SanitizedForecasts.empty());
     }
 
     /** Snapshot factory used by tests — records are final so we build directly. */
@@ -156,6 +157,7 @@ class ChatToolRegistryTest {
         return new SanitizedSnapshot(
                 byCategory, Map.of(), byKnownMerchant, subs,
                 budgets, List.of(), anomalies, 0, 0, "USD",
-                BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO);
+                BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO,
+                PrivacyPreservingExtractor.SanitizedForecasts.empty());
     }
 }

@@ -6,7 +6,10 @@ import com.budgetbuddy.model.dynamodb.BudgetTable;
 import com.budgetbuddy.model.dynamodb.TransactionTable;
 import com.budgetbuddy.service.TransactionAnomalyService;
 import com.budgetbuddy.service.TransactionAnomalyService.TransactionAnomaly;
+import com.budgetbuddy.service.insights.BudgetExhaustionForecastService;
+import com.budgetbuddy.service.insights.CashFlowForecastService;
 import com.budgetbuddy.service.insights.InsightsContext;
+import com.budgetbuddy.service.insights.SubscriptionCreepForecastService;
 import edu.umd.cs.findbugs.annotations.Nullable;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.math.BigDecimal;
@@ -59,6 +62,14 @@ public class PrivacyPreservingExtractor {
      * don't care about anomalies; the extractor degrades gracefully.
      */
     private final TransactionAnomalyService anomalyService;
+    /**
+     * Optional forecast services — wired when their feature flag is on.
+     * Null in unit tests / when flagged off; the extractor degrades by
+     * emitting empty forecast fields.
+     */
+    private CashFlowForecastService cashFlowForecastService;
+    private BudgetExhaustionForecastService budgetExhaustionForecastService;
+    private SubscriptionCreepForecastService subscriptionCreepForecastService;
 
     @Autowired
     public PrivacyPreservingExtractor(
@@ -70,6 +81,21 @@ public class PrivacyPreservingExtractor {
     /** Convenience constructor for unit tests that don't need anomalies. */
     public PrivacyPreservingExtractor() {
         this(null);
+    }
+
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    public void setCashFlowForecastService(final CashFlowForecastService s) {
+        this.cashFlowForecastService = s;
+    }
+
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    public void setBudgetExhaustionForecastService(final BudgetExhaustionForecastService s) {
+        this.budgetExhaustionForecastService = s;
+    }
+
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    public void setSubscriptionCreepForecastService(final SubscriptionCreepForecastService s) {
+        this.subscriptionCreepForecastService = s;
     }
 
     /**
@@ -104,7 +130,8 @@ public class PrivacyPreservingExtractor {
             return new SanitizedSnapshot(
                     Map.of(), Map.of(), Map.of(), List.of(),
                     List.of(), List.of(), List.of(), 0, 0, "USD",
-                    BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO);
+                    BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO,
+                    SanitizedForecasts.empty());
         }
 
         final List<TransactionTable> txs = ctx.transactions();
@@ -127,7 +154,71 @@ public class PrivacyPreservingExtractor {
                 inferCurrency(ctx.accounts(), last90),
                 netWorth(ctx.accounts()),
                 liquidAssets(ctx.accounts()),
-                estimatedMonthlyIncome(txs, ctx.asOf()));
+                estimatedMonthlyIncome(txs, ctx.asOf()),
+                buildForecasts(ctx));
+    }
+
+    /**
+     * Run the three forecast services against the supplied context and
+     * collapse their outputs into a sanitized summary. Each service is
+     * optional — if any is missing or throws, we emit empty values
+     * rather than dropping the whole snapshot.
+     */
+    private SanitizedForecasts buildForecasts(final InsightsContext ctx) {
+        int runwayDays = -1;
+        BigDecimal projected30 = BigDecimal.ZERO;
+        BigDecimal projected60 = BigDecimal.ZERO;
+        BigDecimal projected90 = BigDecimal.ZERO;
+        String cashFlowStatus = "UNKNOWN";
+        String cashFlowMessage = "";
+        if (cashFlowForecastService != null) {
+            try {
+                final var f = cashFlowForecastService.forecast(ctx);
+                runwayDays = f.runwayDays;
+                projected30 = f.projectedCashAt30Days == null
+                        ? BigDecimal.ZERO : f.projectedCashAt30Days
+                                .setScale(0, RoundingMode.HALF_UP);
+                projected60 = f.projectedCashAt60Days == null
+                        ? BigDecimal.ZERO : f.projectedCashAt60Days
+                                .setScale(0, RoundingMode.HALF_UP);
+                projected90 = f.projectedCashAt90Days == null
+                        ? BigDecimal.ZERO : f.projectedCashAt90Days
+                                .setScale(0, RoundingMode.HALF_UP);
+                cashFlowStatus = f.status == null ? "UNKNOWN" : f.status;
+                cashFlowMessage = f.message == null ? "" : f.message;
+            } catch (final RuntimeException ignored) {
+                // Degrade silently.
+            }
+        }
+
+        int budgetsExhaustingCount = 0;
+        List<String> budgetsExhaustingCategories = List.of();
+        if (budgetExhaustionForecastService != null) {
+            try {
+                final var alerts = budgetExhaustionForecastService.forecast(ctx);
+                budgetsExhaustingCount = alerts.size();
+                budgetsExhaustingCategories = alerts.stream()
+                        .limit(5)
+                        .map(a -> a.category == null ? "(unknown)" : a.category)
+                        .toList();
+            } catch (final RuntimeException ignored) { }
+        }
+
+        String creepStatus = "UNKNOWN";
+        String creepMessage = "";
+        if (subscriptionCreepForecastService != null) {
+            try {
+                final var c = subscriptionCreepForecastService.forecast(ctx);
+                creepStatus = c.status == null ? "UNKNOWN" : c.status;
+                creepMessage = c.message == null ? "" : c.message;
+            } catch (final RuntimeException ignored) { }
+        }
+
+        return new SanitizedForecasts(
+                runwayDays, projected30, projected60, projected90,
+                cashFlowStatus, cashFlowMessage,
+                budgetsExhaustingCount, budgetsExhaustingCategories,
+                creepStatus, creepMessage);
     }
 
     /** Sum across all account balances. Whole-dollar rounded. */
@@ -465,7 +556,8 @@ public class PrivacyPreservingExtractor {
             String currency,
             BigDecimal netWorth,
             BigDecimal liquidAssets,
-            BigDecimal estimatedMonthlyIncome) {
+            BigDecimal estimatedMonthlyIncome,
+            SanitizedForecasts forecasts) {
 
         /** Days the spending-by-month bucket implicitly covers. */
         public long monthsCovered() {
@@ -496,6 +588,34 @@ public class PrivacyPreservingExtractor {
             @Nullable LocalDate targetDate,
             String goalType,
             boolean completed) {}
+
+    /**
+     * Forecast roll-up: cash-flow runway + 30/60/90-day projected
+     * balance, count of budgets projected to exhaust this cycle (with
+     * up to 5 category labels), subscription portfolio creep status.
+     *
+     * <p>{@code runwayDays = -1} means the forecast service wasn't
+     * wired (chat shouldn't say "you have -1 days of runway"; the
+     * markdown renderer drops the field instead).
+     */
+    public record SanitizedForecasts(
+            int runwayDays,
+            BigDecimal projectedCashAt30Days,
+            BigDecimal projectedCashAt60Days,
+            BigDecimal projectedCashAt90Days,
+            String cashFlowStatus,
+            String cashFlowMessage,
+            int budgetsExhaustingThisCycle,
+            List<String> budgetsExhaustingCategories,
+            String subscriptionCreepStatus,
+            String subscriptionCreepMessage) {
+
+        public static SanitizedForecasts empty() {
+            return new SanitizedForecasts(
+                    -1, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO,
+                    "UNKNOWN", "", 0, List.of(), "UNKNOWN", "");
+        }
+    }
 
     public record SanitizedSubscription(
             String displayName, BigDecimal monthlyCost, String billingCycle) {}

@@ -42,7 +42,8 @@ final class ContextMarkdownRendererTest {
                 3, 142, "USD",
                 new BigDecimal("12450"),
                 new BigDecimal("4200"),
-                new BigDecimal("5200"));
+                new BigDecimal("5200"),
+                PrivacyPreservingExtractor.SanitizedForecasts.empty());
 
         final ContextMarkdownRenderer renderer = new ContextMarkdownRenderer();
         final String md = renderer.render(snapshot);
@@ -84,7 +85,8 @@ final class ContextMarkdownRendererTest {
                 Map.of(), Map.of(), Map.of(),
                 List.of(), List.of(), List.of(), List.of(),
                 0, 0, "USD",
-                BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO);
+                BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO,
+                PrivacyPreservingExtractor.SanitizedForecasts.empty());
         final String md = new ContextMarkdownRenderer().render(snapshot);
 
         // Sections appear even when empty so the LLM never wonders if
@@ -104,7 +106,8 @@ final class ContextMarkdownRendererTest {
                         new BigDecimal("3000"), 100.0, null, "VACATION", true)),
                 List.of(),
                 0, 0, "USD",
-                BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO);
+                BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO,
+                PrivacyPreservingExtractor.SanitizedForecasts.empty());
         final String md = new ContextMarkdownRenderer().render(snapshot);
         assertTrue(md.contains("Vacation"));
         assertTrue(md.contains("completed"));

@@ -2,6 +2,7 @@ package com.budgetbuddy.service.insights.ai;
 
 import com.budgetbuddy.service.insights.ai.PrivacyPreservingExtractor.SanitizedAnomaly;
 import com.budgetbuddy.service.insights.ai.PrivacyPreservingExtractor.SanitizedBudget;
+import com.budgetbuddy.service.insights.ai.PrivacyPreservingExtractor.SanitizedForecasts;
 import com.budgetbuddy.service.insights.ai.PrivacyPreservingExtractor.SanitizedGoal;
 import com.budgetbuddy.service.insights.ai.PrivacyPreservingExtractor.SanitizedSnapshot;
 import com.budgetbuddy.service.insights.ai.PrivacyPreservingExtractor.SanitizedSubscription;
@@ -50,6 +51,7 @@ public class ContextMarkdownRenderer {
         out.append("Transactions (last 90 days): ").append(s.transactionCount90d()).append("\n\n");
 
         renderIncomeAndNetWorth(out, s);
+        renderForecasts(out, s);
         renderSpending(out, s);
         renderBudgets(out, s);
         renderGoals(out, s);
@@ -171,6 +173,45 @@ public class ContextMarkdownRenderer {
                     .append(" | ").append(money(sub.monthlyCost()))
                     .append(" | ").append(sub.billingCycle() == null ? "monthly" : sub.billingCycle())
                     .append(" |\n");
+        }
+        out.append('\n');
+    }
+
+    private void renderForecasts(final StringBuilder out, final SanitizedSnapshot s) {
+        final SanitizedForecasts f = s.forecasts();
+        if (f == null || (f.runwayDays() < 0
+                && f.budgetsExhaustingThisCycle() == 0
+                && "UNKNOWN".equals(f.subscriptionCreepStatus()))) {
+            return;  // No forecast surface available — silently omit.
+        }
+        out.append("## Forecasts\n");
+        if (f.runwayDays() >= 0) {
+            out.append("- Cash-flow runway: **").append(f.runwayDays()).append(" days** (")
+                    .append(f.cashFlowStatus()).append(")");
+            if (f.cashFlowMessage() != null && !f.cashFlowMessage().isBlank()) {
+                out.append(" — ").append(f.cashFlowMessage());
+            }
+            out.append('\n');
+            out.append("- Projected balance: 30d ").append(money(f.projectedCashAt30Days()))
+                    .append(", 60d ").append(money(f.projectedCashAt60Days()))
+                    .append(", 90d ").append(money(f.projectedCashAt90Days())).append('\n');
+        }
+        if (f.budgetsExhaustingThisCycle() > 0) {
+            out.append("- Budgets projected to exhaust this cycle: ")
+                    .append(f.budgetsExhaustingThisCycle());
+            if (!f.budgetsExhaustingCategories().isEmpty()) {
+                out.append(" (").append(String.join(", ", f.budgetsExhaustingCategories()))
+                        .append(")");
+            }
+            out.append('\n');
+        }
+        if (!"UNKNOWN".equals(f.subscriptionCreepStatus())) {
+            out.append("- Subscription portfolio: ").append(f.subscriptionCreepStatus());
+            if (f.subscriptionCreepMessage() != null
+                    && !f.subscriptionCreepMessage().isBlank()) {
+                out.append(" — ").append(f.subscriptionCreepMessage());
+            }
+            out.append('\n');
         }
         out.append('\n');
     }

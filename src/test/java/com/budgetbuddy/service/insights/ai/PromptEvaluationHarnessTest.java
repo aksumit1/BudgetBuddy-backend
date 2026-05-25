@@ -99,7 +99,8 @@ class PromptEvaluationHarnessTest {
                         0, 0, "USD",
                         java.math.BigDecimal.ZERO,
                         java.math.BigDecimal.ZERO,
-                        java.math.BigDecimal.ZERO);
+                        java.math.BigDecimal.ZERO,
+                        PrivacyPreservingExtractor.SanitizedForecasts.empty());
         for (final ChatMode mode : ChatMode.values()) {
             final String prompt = registry.buildSystemPrompt(mode, empty);
             final PromptScore score = harness.score(prompt, mode);
@@ -120,7 +121,8 @@ class PromptEvaluationHarnessTest {
                         0, 0, "USD",
                         java.math.BigDecimal.ZERO,
                         java.math.BigDecimal.ZERO,
-                        java.math.BigDecimal.ZERO);
+                        java.math.BigDecimal.ZERO,
+                        PrivacyPreservingExtractor.SanitizedForecasts.empty());
         final String good = registry.buildSystemPrompt(ChatMode.SPENDING, empty);
         final String bad = "Answer questions about spending."; // missing everything
         final var comparison = harness.compare(
