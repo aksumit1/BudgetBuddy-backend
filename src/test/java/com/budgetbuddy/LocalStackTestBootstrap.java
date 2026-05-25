@@ -86,6 +86,10 @@ public final class LocalStackTestBootstrap {
             }
 
             try {
+                // .withReuse(true) was dropped: Testcontainers 2.0.4+ ships Ryuk 0.14, which
+                // races with reused LocalStack containers (testcontainers-java#7097/#8795) and
+                // produces wholesale "connection refused" across the suite. We rely instead on
+                // the JVM-singleton + start-once cache below to amortise startup cost.
                 container =
                         new LocalStackContainer(IMAGE)
                                 .withServices(
@@ -94,8 +98,7 @@ public final class LocalStackTestBootstrap {
                                         LocalStackContainer.Service.SECRETSMANAGER,
                                         LocalStackContainer.Service.CLOUDWATCH,
                                         LocalStackContainer.Service.IAM,
-                                        LocalStackContainer.Service.STS)
-                                .withReuse(true);
+                                        LocalStackContainer.Service.STS);
                 container.start();
                 resolvedEndpoint = container.getEndpoint().toString();
                 LOGGER.info(

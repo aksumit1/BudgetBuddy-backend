@@ -63,7 +63,7 @@ public class DynamoDBConfig {
         }
         // For production, use IAM role or default credentials provider
         LOGGER.debug("Using default credentials provider for DynamoDB (AWS mode)");
-        return DefaultCredentialsProvider.create();
+        return DefaultCredentialsProvider.builder().build();
     }
 
     @Bean(destroyMethod = "close")

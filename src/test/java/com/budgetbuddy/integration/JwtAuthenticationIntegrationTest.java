@@ -8,6 +8,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.budgetbuddy.AWSTestConfiguration;
+import com.budgetbuddy.api.AuthController;
 import com.budgetbuddy.dto.AuthRequest;
 import com.budgetbuddy.dto.AuthResponse;
 import com.budgetbuddy.model.dynamodb.UserTable;
@@ -22,7 +23,7 @@ import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
@@ -78,6 +79,7 @@ class JwtAuthenticationIntegrationTest {
         final AuthRequest loginRequest = new AuthRequest();
         loginRequest.setEmail(testEmail);
         loginRequest.setPasswordHash(testPasswordHash);
+        loginRequest.setChallenge(fetchLoginChallenge(testEmail));
 
         final String loginResponse =
                 mockMvc.perform(
@@ -90,7 +92,7 @@ class JwtAuthenticationIntegrationTest {
                         .getResponse()
                         .getContentAsString();
 
-        final AuthResponse authResponse = objectMapper.readValue(loginResponse, AuthResponse.class);
+        final AuthResponse authResponse = parseLoginEnvelope(loginResponse);
         final String token = authResponse.getAccessToken();
 
         // When - Use token to access protected endpoint
@@ -156,6 +158,7 @@ class JwtAuthenticationIntegrationTest {
         final AuthRequest loginRequest = new AuthRequest();
         loginRequest.setEmail(testEmail);
         loginRequest.setPasswordHash(testPasswordHash);
+        loginRequest.setChallenge(fetchLoginChallenge(testEmail));
 
         final String loginResponse =
                 mockMvc.perform(
@@ -167,7 +170,7 @@ class JwtAuthenticationIntegrationTest {
                         .getResponse()
                         .getContentAsString();
 
-        final AuthResponse authResponse = objectMapper.readValue(loginResponse, AuthResponse.class);
+        final AuthResponse authResponse = parseLoginEnvelope(loginResponse);
         final String token = authResponse.getAccessToken();
 
         // Delete user
@@ -213,6 +216,7 @@ class JwtAuthenticationIntegrationTest {
         final AuthRequest loginRequest = new AuthRequest();
         loginRequest.setEmail(testEmail);
         loginRequest.setPasswordHash(testPasswordHash);
+        loginRequest.setChallenge(fetchLoginChallenge(testEmail));
 
         final String loginResponse =
                 mockMvc.perform(
@@ -224,11 +228,31 @@ class JwtAuthenticationIntegrationTest {
                         .getResponse()
                         .getContentAsString();
 
-        final AuthResponse authResponse = objectMapper.readValue(loginResponse, AuthResponse.class);
+        final AuthResponse authResponse = parseLoginEnvelope(loginResponse);
         final String token = authResponse.getAccessToken();
 
         // Then - Token should be valid and contain correct username
         assertTrue(jwtTokenProvider.validateToken(token));
         assertEquals(testEmail, jwtTokenProvider.getUsernameFromToken(token));
+    }
+
+    private AuthResponse parseLoginEnvelope(final String body) throws Exception {
+        final var dataNode = objectMapper.readTree(body).get("data");
+        return objectMapper.treeToValue(dataNode, AuthResponse.class);
+    }
+
+    private String fetchLoginChallenge(final String email) throws Exception {
+        final AuthController.ChallengeRequest req = new AuthController.ChallengeRequest();
+        req.setEmail(email);
+        final String body =
+                mockMvc.perform(
+                                post("/api/auth/login/challenge")
+                                        .contentType(MediaType.APPLICATION_JSON)
+                                        .content(objectMapper.writeValueAsString(req)))
+                        .andExpect(status().isOk())
+                        .andReturn()
+                        .getResponse()
+                        .getContentAsString();
+        return objectMapper.readTree(body).get("data").get("challenge").asText();
     }
 }

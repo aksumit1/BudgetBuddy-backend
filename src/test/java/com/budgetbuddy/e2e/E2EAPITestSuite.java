@@ -66,6 +66,7 @@ import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
                 "JUnit idiom — test methods accept any setup exception; "
                         + "literal LF in CSV / wire format (not platform newline)")
 @SuppressWarnings("PMD.LawOfDemeter")
+@org.springframework.boot.resttestclient.autoconfigure.AutoConfigureTestRestTemplate
 @SpringBootTest(
         classes = com.budgetbuddy.BudgetBuddyApplication.class,
         webEnvironment =
@@ -81,7 +82,7 @@ public class E2EAPITestSuite {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(E2EAPITestSuite.class);
 
-    @Autowired private org.springframework.boot.test.web.client.TestRestTemplate restTemplate;
+    @Autowired private org.springframework.boot.resttestclient.TestRestTemplate restTemplate;
 
     @Value("${local.server.port}")
     private int port;

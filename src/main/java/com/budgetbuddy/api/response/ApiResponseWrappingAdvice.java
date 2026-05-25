@@ -6,7 +6,6 @@ import org.slf4j.MDC;
 import org.springframework.core.MethodParameter;
 import org.springframework.http.MediaType;
 import org.springframework.http.converter.HttpMessageConverter;
-import org.springframework.http.converter.json.AbstractJackson2HttpMessageConverter;
 import org.springframework.http.server.ServerHttpRequest;
 import org.springframework.http.server.ServerHttpResponse;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -42,7 +41,15 @@ public class ApiResponseWrappingAdvice implements ResponseBodyAdvice<Object> {
         // Only wrap when the body is destined for a Jackson JSON
         // converter — SSE, byte[], Resource, String, etc. use their
         // own converters and must pass through unmodified.
-        if (!AbstractJackson2HttpMessageConverter.class.isAssignableFrom(converterType)) {
+        //
+        // Spring Boot 4 / Spring 7 ship both flavours of Jackson converter:
+        //   - AbstractJackson2HttpMessageConverter (Jackson 2 — what we
+        //     pin into the converter chain in WebMvcConfig)
+        //   - AbstractJacksonHttpMessageConverter  (Jackson 3 — Spring's
+        //     new default, no "2" in the name)
+        // Either is a JSON destination; match on simple-name containment
+        // so both keep the envelope wrapping behaviour.
+        if (!converterType.getSimpleName().contains("Jackson")) {
             return false;
         }
         // Explicit opt-out for endpoints with strict externally-fixed

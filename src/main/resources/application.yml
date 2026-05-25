@@ -34,9 +34,10 @@ spring:
         shutdown-timeout: ${SPRING_DATA_REDIS_SHUTDOWN_TIMEOUT:100ms}  # Fast shutdown for health checks
   
   # Jackson Configuration
+  # Spring Boot 4 / Spring 7 switched the autoconfigured ObjectMapper to Jackson 3
+  # (tools.jackson.*). The Jackson 2 `serialization.write-dates-as-timestamps`
+  # property no longer maps (Jackson 3 dropped it and ships ISO-8601 by default).
   jackson:
-    serialization:
-      write-dates-as-timestamps: false
     time-zone: UTC
   
   # Multipart File Upload Configuration

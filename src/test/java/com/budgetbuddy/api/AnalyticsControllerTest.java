@@ -17,10 +17,10 @@ import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
-import org.springframework.security.test.context.support.WithMockUser;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
@@ -40,8 +40,13 @@ class AnalyticsControllerTest {
 
     @MockitoBean private UserService userService;
 
+    // Spring Security 7's SecurityContextHolderFilter clears the thread-local
+    // SecurityContext at the start of each request, so @WithMockUser no longer
+    // bridges through MockMvc-dispatched requests. The .with(user(...))
+    // RequestPostProcessor pattern is the supported replacement — it injects
+    // the authenticated principal into the request-scoped repository where
+    // the filter can read it.
     @Test
-    @WithMockUser(username = "test@example.com")
     void testGetSpendingSummaryReturnsSummary() throws Exception {
         // Given
         final UserTable user = new UserTable();
@@ -58,6 +63,7 @@ class AnalyticsControllerTest {
         // When/Then
         mockMvc.perform(
                         get("/api/analytics/spending-summary")
+                                .with(user("test@example.com"))
                                 .param("startDate", "2024-01-01")
                                 .param("endDate", "2024-01-31"))
                 .andExpect(status().isOk())
@@ -65,7 +71,6 @@ class AnalyticsControllerTest {
     }
 
     @Test
-    @WithMockUser(username = "test@example.com")
     void testGetSpendingByCategoryReturnsCategorySpending() throws Exception {
         // Given
         final UserTable user = new UserTable();
@@ -84,6 +89,7 @@ class AnalyticsControllerTest {
         // When/Then
         mockMvc.perform(
                         get("/api/analytics/spending-by-category")
+                                .with(user("test@example.com"))
                                 .param("startDate", "2024-01-01")
                                 .param("endDate", "2024-01-31"))
                 .andExpect(status().isOk())

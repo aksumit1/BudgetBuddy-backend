@@ -27,7 +27,7 @@ COPY infrastructure ./infrastructure
 
 RUN mvn -s .mvn/settings.xml clean package -DskipTests
 
-# Runtime stage - Use ARM64 base image with JRE 21
+# Runtime stage - ARM64 Temurin JRE 25, matching the build stage above.
 FROM --platform=linux/arm64 eclipse-temurin:25-jre-alpine
 
 WORKDIR /app

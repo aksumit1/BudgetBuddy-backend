@@ -19,10 +19,10 @@ import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
-import org.springframework.security.test.context.support.WithMockUser;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
@@ -52,7 +52,7 @@ class TransactionAnomalyControllerTest {
     private static final String EMAIL = "test@example.com";
 
     @Test
-    @WithMockUser(username = EMAIL)
+
     void anomalousTransactionReturnsScoreAndFlag() throws Exception {
         final UserTable user = userWithId(USER_ID);
         when(userService.findByEmail(eq(EMAIL))).thenReturn(Optional.of(user));
@@ -68,7 +68,7 @@ class TransactionAnomalyControllerTest {
         when(detector.scoreUnusualness(any(), any())).thenReturn(0.72);
         when(detector.isAnomalous(eq(0.72))).thenReturn(true);
 
-        mockMvc.perform(get("/api/transactions/anomaly/" + txId))
+        mockMvc.perform(get("/api/transactions/anomaly/" + txId).with(user(EMAIL)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.transactionId").value(txId))
                 .andExpect(jsonPath("$.data.score").value(0.72))
@@ -76,7 +76,7 @@ class TransactionAnomalyControllerTest {
     }
 
     @Test
-    @WithMockUser(username = EMAIL)
+
     void scoreSentinelReturnsNegativeOneAndFalse() throws Exception {
         final UserTable user = userWithId(USER_ID);
         when(userService.findByEmail(eq(EMAIL))).thenReturn(Optional.of(user));
@@ -90,14 +90,14 @@ class TransactionAnomalyControllerTest {
         // Detector returns sentinel -1 (couldn't score).
         when(detector.scoreUnusualness(any(), any())).thenReturn(-1.0);
 
-        mockMvc.perform(get("/api/transactions/anomaly/" + txId))
+        mockMvc.perform(get("/api/transactions/anomaly/" + txId).with(user(EMAIL)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.score").value(-1.0))
                 .andExpect(jsonPath("$.data.anomalous").value(false));
     }
 
     @Test
-    @WithMockUser(username = EMAIL)
+
     void crossUserAccessIsRejected() throws Exception {
         final UserTable user = userWithId(USER_ID);
         when(userService.findByEmail(eq(EMAIL))).thenReturn(Optional.of(user));
@@ -109,17 +109,17 @@ class TransactionAnomalyControllerTest {
         tx.setUserId("other-user");
         when(transactionRepository.findById(eq(txId))).thenReturn(Optional.of(tx));
 
-        mockMvc.perform(get("/api/transactions/anomaly/" + txId))
+        mockMvc.perform(get("/api/transactions/anomaly/" + txId).with(user(EMAIL)))
                 .andExpect(status().is4xxClientError());
     }
 
     @Test
-    @WithMockUser(username = EMAIL)
+
     void missingTransactionReturns404Family() throws Exception {
         when(userService.findByEmail(eq(EMAIL))).thenReturn(Optional.of(userWithId(USER_ID)));
         when(transactionRepository.findById(any())).thenReturn(Optional.empty());
 
-        mockMvc.perform(get("/api/transactions/anomaly/" + UUID.randomUUID()))
+        mockMvc.perform(get("/api/transactions/anomaly/" + UUID.randomUUID()).with(user(EMAIL)))
                 .andExpect(status().is4xxClientError());
     }
 

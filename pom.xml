@@ -8,7 +8,7 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>3.5.14</version>
+        <version>4.0.6</version>
         <relativePath/>
     </parent>
 
@@ -23,10 +23,10 @@
         <maven.compiler.source>25</maven.compiler.source>
         <maven.compiler.target>25</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <spring-cloud.version>2024.0.0</spring-cloud.version>
+        <spring-cloud.version>2025.1.1</spring-cloud.version>
         <plaid.version>40.2.0</plaid.version>
         <jwt.version>0.13.0</jwt.version>
-        <springdoc.version>2.6.0</springdoc.version>
+        <springdoc.version>3.0.3</springdoc.version>
         <aws.sdk.version>2.44.12</aws.sdk.version>
         <resilience4j.version>2.4.0</resilience4j.version>
         <testcontainers.version>2.0.5</testcontainers.version>
@@ -72,6 +72,12 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+        <!-- Spring Boot 4 split RestTemplateBuilder + RestClient into its own
+             starter; needed by DeploymentSafetyService. -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-restclient</artifactId>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -155,7 +161,7 @@
         <!-- Resilience4j for circuit breakers and retries -->
         <dependency>
             <groupId>io.github.resilience4j</groupId>
-            <artifactId>resilience4j-spring-boot3</artifactId>
+            <artifactId>resilience4j-spring-boot4</artifactId>
             <version>${resilience4j.version}</version>
         </dependency>
         <dependency>
@@ -298,6 +304,20 @@
                     <artifactId>android-json</artifactId>
                 </exclusion>
             </exclusions>
+        </dependency>
+        <!-- Spring Boot 4 split TestRestTemplate into its own module
+             (org.springframework.boot.resttestclient.TestRestTemplate). -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-resttestclient</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <!-- Spring Boot 4 also split @AutoConfigureMockMvc + MockMvc auto-config
+             into spring-boot-webmvc-test. -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-webmvc-test</artifactId>
+            <scope>test</scope>
         </dependency>
         <!-- Explicitly add jsonassert without android-json to maintain test functionality -->
         <dependency>
@@ -476,7 +496,6 @@
         <dependency>
             <groupId>com.fasterxml.jackson.dataformat</groupId>
             <artifactId>jackson-dataformat-cbor</artifactId>
-            <version>2.18.2</version>
         </dependency>
 
         <!-- PDF Parsing - Apache PDFBox -->
@@ -527,16 +546,15 @@
 
     <dependencyManagement>
         <dependencies>
-            <!-- Jackson BOM pin: Yubico webauthn-server-core 2.3.0 pulls
-                 jackson-dataformat-cbor 2.18.5, which has a transitive
-                 SNAPSHOT range on jackson-databind 2.19.5-SNAPSHOT.
-                 That snapshot isn't published, so a fresh Maven resolve
-                 (e.g. docker build) fails. Pinning the Jackson BOM to a
-                 stable release short-circuits the SNAPSHOT lookup. -->
+            <!-- Jackson BOM pin: latest 2.x GA. Originally added to
+                 short-circuit the SNAPSHOT range that older Yubico
+                 webauthn-server-core (2.3.0) pulled transitively;
+                 still pinned to override Spring Boot 3.5.x's managed
+                 2.18.x with the newer 2.21.x line. -->
             <dependency>
                 <groupId>com.fasterxml.jackson</groupId>
                 <artifactId>jackson-bom</artifactId>
-                <version>2.18.5</version>
+                <version>2.21.3</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
@@ -546,6 +564,25 @@
                 <groupId>software.amazon.awssdk</groupId>
                 <artifactId>bom</artifactId>
                 <version>${aws.sdk.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+
+            <!-- Micrometer BOM override: Spring Boot 3.5.x manages 1.15.x;
+                 1.16.5 is the latest GA. Bumping the BOM cascades through
+                 micrometer-core, micrometer-registry-prometheus, and the
+                 tracing bridge consistently. -->
+            <dependency>
+                <groupId>io.micrometer</groupId>
+                <artifactId>micrometer-bom</artifactId>
+                <version>1.16.5</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            <dependency>
+                <groupId>io.micrometer</groupId>
+                <artifactId>micrometer-tracing-bom</artifactId>
+                <version>1.6.5</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>

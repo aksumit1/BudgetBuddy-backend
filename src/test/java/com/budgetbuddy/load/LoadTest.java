@@ -22,7 +22,7 @@ import org.junit.jupiter.api.TestInstance;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.web.client.TestRestTemplate;
+import org.springframework.boot.resttestclient.TestRestTemplate;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -37,6 +37,11 @@ import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 // getters; this class has many such idiomatic uses. Suppress at
 // class level rather than littering every method.
 @SuppressWarnings({"PMD.LawOfDemeter", "PMD.AvoidCatchingGenericException"})
+// Spring Boot 4 moved the TestRestTemplate auto-registration into its own
+// module (spring-boot-resttestclient). The auto-config no longer fires
+// implicitly for @SpringBootTest(webEnvironment=RANDOM_PORT) — we have to
+// opt in with @AutoConfigureTestRestTemplate so the bean is exposed.
+@org.springframework.boot.resttestclient.autoconfigure.AutoConfigureTestRestTemplate
 @SpringBootTest(
         classes = com.budgetbuddy.BudgetBuddyApplication.class,
         webEnvironment =

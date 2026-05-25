@@ -89,7 +89,19 @@ final class McpControllerTest {
         final McpController controller =
                 new McpController(userService, handler, sessionRegistry, mapper, jwtTokenProvider);
 
+        // Boot 4's default message converter chain uses Jackson 3, which can't
+        // deserialize Jackson 2's com.fasterxml.jackson.databind.JsonNode that
+        // the MCP controller declares as @RequestBody. Pin a Jackson 2
+        // converter onto the standalone MockMvc so test calls hit the same
+        // path as production WebMvcConfig.configureMessageConverters.
         mockMvc = MockMvcBuilders.standaloneSetup(controller)
+                .setMessageConverters(
+                        new org.springframework.http.converter.json
+                                .MappingJackson2HttpMessageConverter(mapper),
+                        // text/event-stream SSE responses are written as plain Strings,
+                        // so register a String converter alongside Jackson.
+                        new org.springframework.http.converter
+                                .StringHttpMessageConverter(java.nio.charset.StandardCharsets.UTF_8))
                 .setCustomArgumentResolvers(
                         new org.springframework.security.web.method.annotation
                                 .AuthenticationPrincipalArgumentResolver())

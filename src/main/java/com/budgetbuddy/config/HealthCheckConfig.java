@@ -4,8 +4,8 @@ import java.time.Duration;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.actuate.health.Health;
-import org.springframework.boot.actuate.health.HealthIndicator;
+import org.springframework.boot.health.contributor.Health;
+import org.springframework.boot.health.contributor.HealthIndicator;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
@@ -80,8 +80,13 @@ public class HealthCheckConfig {
      * the probe succeeds. Wire the ALB / k8s readiness probe at {@code /actuator/health/readiness}
      * — the existing path is gated by this bean's state.
      */
+    // Spring Boot 4 reserves the bare names "readiness" and "liveness" for
+    // the health groups (/actuator/health/{readiness,liveness}); a custom
+    // HealthContributor with either name collides with the group registry.
+    // Use bb-prefixed bean names so our DynamoDB-readiness contributor
+    // appears at /actuator/health/bbReadiness without colliding.
     @Bean
-    public HealthIndicator readinessHealthIndicator(final StartupReadinessProbe probe) {
+    public HealthIndicator bbReadinessHealthIndicator(final StartupReadinessProbe probe) {
         return () -> {
             if (probe.isReady()) {
                 return Health.up().withDetail(STATUS, "ready").build();
@@ -141,7 +146,7 @@ public class HealthCheckConfig {
     }
 
     @Bean
-    public HealthIndicator livenessHealthIndicator() {
+    public HealthIndicator bbLivenessHealthIndicator() {
         return new HealthIndicator() {
             @Override
             public Health health() {

@@ -55,7 +55,7 @@ public class AwsConfig {
                     AwsBasicCredentials.create(accessKeyId, secretAccessKey));
         }
         // For production, use default credentials provider (IAM role or env vars)
-        return DefaultCredentialsProvider.create();
+        return DefaultCredentialsProvider.builder().build();
     }
 
     @Bean(destroyMethod = "close")

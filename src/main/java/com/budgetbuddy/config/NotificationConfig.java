@@ -25,7 +25,7 @@ public class NotificationConfig {
         try {
             return InstanceProfileCredentialsProvider.create();
         } catch (Exception e) {
-            return DefaultCredentialsProvider.create();
+            return DefaultCredentialsProvider.builder().build();
         }
     }
 

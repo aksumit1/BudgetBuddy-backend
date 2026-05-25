@@ -121,7 +121,7 @@ class ComplianceControllerTest {
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertNotNull(response.getBody());
         assertEquals(jsonData, response.getBody());
-        assertTrue(response.getHeaders().containsKey(HttpHeaders.CONTENT_DISPOSITION));
+        assertNotNull(response.getHeaders().getFirst(HttpHeaders.CONTENT_DISPOSITION));
         assertEquals(
                 "attachment; filename=user-data.json",
                 response.getHeaders().getFirst(HttpHeaders.CONTENT_DISPOSITION));

@@ -20,10 +20,10 @@ import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
-import org.springframework.security.test.context.support.WithMockUser;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -53,7 +53,6 @@ class SubscriptionCancellationLikelihoodControllerTest {
     private static final String EMAIL = "test@example.com";
 
     @Test
-    @WithMockUser(username = EMAIL)
     void returnsLikelihoodPerActiveSubscription() throws Exception {
         when(userService.findByEmail(eq(EMAIL))).thenReturn(Optional.of(userWithId(USER_ID)));
         final Subscription a = sub("sub-1", "Netflix");
@@ -66,7 +65,7 @@ class SubscriptionCancellationLikelihoodControllerTest {
         when(predictor.shouldFlagForCancellation(eq(0.81))).thenReturn(true);
         when(predictor.shouldFlagForCancellation(eq(0.15))).thenReturn(false);
 
-        mockMvc.perform(get("/api/subscriptions/insights/cancellation-likelihood"))
+        mockMvc.perform(get("/api/subscriptions/insights/cancellation-likelihood").with(user(EMAIL)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data[0].subscriptionId").value("sub-1"))
                 .andExpect(jsonPath("$.data[0].likelihood").value(0.81))
@@ -76,21 +75,19 @@ class SubscriptionCancellationLikelihoodControllerTest {
     }
 
     @Test
-    @WithMockUser(username = EMAIL)
     void emptySubscriptionListReturnsEmptyArray() throws Exception {
         when(userService.findByEmail(eq(EMAIL))).thenReturn(Optional.of(userWithId(USER_ID)));
         when(subscriptionService.getActiveSubscriptions(eq(USER_ID))).thenReturn(List.of());
         when(transactionRepository.findByUserId(eq(USER_ID), anyInt(), anyInt()))
                 .thenReturn(List.of());
 
-        mockMvc.perform(get("/api/subscriptions/insights/cancellation-likelihood"))
+        mockMvc.perform(get("/api/subscriptions/insights/cancellation-likelihood").with(user(EMAIL)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data").isArray())
                 .andExpect(jsonPath("$.data.length()").value(0));
     }
 
     @Test
-    @WithMockUser(username = EMAIL)
     void sentinelLikelihoodReportedAsNegativeOne() throws Exception {
         when(userService.findByEmail(eq(EMAIL))).thenReturn(Optional.of(userWithId(USER_ID)));
         final Subscription s = sub("sub-x", "Mystery");
@@ -99,7 +96,7 @@ class SubscriptionCancellationLikelihoodControllerTest {
                 .thenReturn(List.of());
         when(predictor.cancellationLikelihood(eq(s), any())).thenReturn(-1.0);
 
-        mockMvc.perform(get("/api/subscriptions/insights/cancellation-likelihood"))
+        mockMvc.perform(get("/api/subscriptions/insights/cancellation-likelihood").with(user(EMAIL)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data[0].likelihood").value(-1.0))
                 .andExpect(jsonPath("$.data[0].shouldFlag").value(false));

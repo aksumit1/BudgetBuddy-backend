@@ -4,12 +4,16 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import com.budgetbuddy.AWSTestConfiguration;
+import com.budgetbuddy.config.StartupReadinessProbe;
+import com.budgetbuddy.util.TableInitializer;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.actuate.health.HealthIndicator;
+import org.springframework.boot.health.contributor.HealthIndicator;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
+import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 
 /** Tests for HealthCheckConfig */
 // PMD's LawOfDemeter is documented as imprecise on chains involving
@@ -26,10 +30,25 @@ class HealthCheckConfigTest {
     private HealthIndicator dynamoDbHealthIndicator;
 
     @Autowired(required = false)
-    private HealthIndicator readinessHealthIndicator;
+    private HealthIndicator bbReadinessHealthIndicator;
 
     @Autowired(required = false)
-    private HealthIndicator livenessHealthIndicator;
+    private HealthIndicator bbLivenessHealthIndicator;
+
+    @Autowired private DynamoDbClient dynamoDbClient;
+
+    @Autowired private StartupReadinessProbe readinessProbe;
+
+    @BeforeEach
+    void seedTablesAndProbe() {
+        // The readiness probe runs once at app startup; if it lost the race
+        // with table creation (or LocalStack was empty when the probe ran),
+        // the indicator stays DOWN for the rest of the test JVM. Initialize
+        // the tables and re-trigger the probe so testReadinessHealthIndicatorReturnsUp
+        // observes UP regardless of prior test ordering.
+        TableInitializer.initializeTables(dynamoDbClient);
+        readinessProbe.probeAtStartup();
+    }
 
     @Test
     void testDynamoDbHealthIndicatorIsCreated() {
@@ -50,13 +69,13 @@ class HealthCheckConfigTest {
     @Test
     void testReadinessHealthIndicatorIsCreated() {
         // Then
-        assertNotNull(readinessHealthIndicator, "Readiness health indicator should be created");
+        assertNotNull(bbReadinessHealthIndicator, "Readiness health indicator should be created");
     }
 
     @Test
     void testReadinessHealthIndicatorReturnsUp() {
         // When
-        final var health = readinessHealthIndicator.health();
+        final var health = bbReadinessHealthIndicator.health();
 
         // Then
         assertNotNull(health, "Health should not be null");
@@ -66,13 +85,13 @@ class HealthCheckConfigTest {
     @Test
     void testLivenessHealthIndicatorIsCreated() {
         // Then
-        assertNotNull(livenessHealthIndicator, "Liveness health indicator should be created");
+        assertNotNull(bbLivenessHealthIndicator, "Liveness health indicator should be created");
     }
 
     @Test
     void testLivenessHealthIndicatorReturnsUp() {
         // When
-        final var health = livenessHealthIndicator.health();
+        final var health = bbLivenessHealthIndicator.health();
 
         // Then
         assertNotNull(health, "Health should not be null");

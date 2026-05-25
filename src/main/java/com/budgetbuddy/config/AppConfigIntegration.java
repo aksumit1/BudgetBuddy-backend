@@ -113,7 +113,7 @@ public class AppConfigIntegration {
         try {
             return InstanceProfileCredentialsProvider.create();
         } catch (Exception e) {
-            return DefaultCredentialsProvider.create();
+            return DefaultCredentialsProvider.builder().build();
         }
     }
 
