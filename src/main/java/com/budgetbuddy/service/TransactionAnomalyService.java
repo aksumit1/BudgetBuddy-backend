@@ -621,7 +621,13 @@ public class TransactionAnomalyService {
             "loan_payment",
             "utilities",
             "insurance",
-            "tax");
+            "tax",
+            // Interest charges are surfaced by HighInterestDetectionService
+            // and aren't really "anomalies" — they're expected on any
+            // carried balance. Showing them in both surfaces double-counts
+            // and clutters the anomaly list.
+            "interest_charged",
+            "interest");
 
     /** Detect first-time or rare merchant transactions with high amounts */
     private List<TransactionAnomaly> detectMerchantAnomalies(

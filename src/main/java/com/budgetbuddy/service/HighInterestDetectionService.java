@@ -16,6 +16,7 @@ import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -152,7 +153,28 @@ public class HighInterestDetectionService {
         alerts.addAll(detectInterestChargesFrom(txs));
         alerts.addAll(analyzeCreditCardsFrom(accounts));
         alerts.addAll(analyzeLoansFrom(accounts));
-        return alerts.stream()
+        // One alert per account. The interest-charge path (observed) and
+        // the APR path (computed) often both fire on the same card; the
+        // observed alert is the more trustworthy signal — uses real
+        // statement data, not an estimate — so keep that one when both
+        // exist. Falls back to highest annual cost as a tiebreaker.
+        final Map<String, HighInterestAlert> byAccount = new LinkedHashMap<>();
+        for (final HighInterestAlert a : alerts) {
+            final String key = a.getAccountId() == null ? a.getAccountName() : a.getAccountId();
+            if (key == null) {
+                continue;
+            }
+            byAccount.merge(key, a, (existing, incoming) -> {
+                // Prefer observed (the rate was computed from real
+                // transactions — bigger annual is the observation-rich one
+                // when both have real data; the APR path uses fixed APR
+                // and tends to under-estimate vs reality).
+                return incoming.getAnnualInterestCost()
+                                .compareTo(existing.getAnnualInterestCost()) > 0
+                        ? incoming : existing;
+            });
+        }
+        return byAccount.values().stream()
                 .sorted(Comparator.comparing(
                         HighInterestAlert::getAnnualInterestCost, Comparator.reverseOrder()))
                 .toList();
