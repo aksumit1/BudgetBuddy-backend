@@ -124,7 +124,7 @@ public class MerchantCanonicalisationService {
         for (final Map.Entry<String, Map<String, Integer>> e : buckets.entrySet()) {
             final List<Map.Entry<String, Integer>> bySeen = new ArrayList<>(e.getValue().entrySet());
             bySeen.sort(Comparator.<Map.Entry<String, Integer>>comparingInt(Map.Entry::getValue).reversed());
-            out.put(e.getKey(), bySeen.get(0).getKey());
+            out.put(e.getKey(), bySeen.getFirst().getKey());
         }
         return out;
     }

@@ -121,7 +121,7 @@ class SubscriptionServiceComprehensiveTest {
 
         // Then: Should detect as subscription
         assertEquals(1, subscriptions.size());
-        final Subscription sub = subscriptions.get(0);
+        final Subscription sub = subscriptions.getFirst();
         assertTrue(sub.getMerchantName().toLowerCase(Locale.ROOT).contains("lyft"));
         assertEquals("membership", sub.getSubscriptionType());
     }
@@ -186,7 +186,7 @@ class SubscriptionServiceComprehensiveTest {
 
         // Then: Should detect as subscription
         assertEquals(1, subscriptions.size());
-        final Subscription sub = subscriptions.get(0);
+        final Subscription sub = subscriptions.getFirst();
         assertTrue(sub.getMerchantName().toLowerCase(Locale.ROOT).contains("uber"));
         assertEquals("membership", sub.getSubscriptionType());
     }
@@ -261,7 +261,7 @@ class SubscriptionServiceComprehensiveTest {
 
         // Then
         assertEquals(1, subscriptions.size());
-        assertEquals("streaming", subscriptions.get(0).getSubscriptionType());
+        assertEquals("streaming", subscriptions.getFirst().getSubscriptionType());
     }
 
     @ParameterizedTest
@@ -299,7 +299,7 @@ class SubscriptionServiceComprehensiveTest {
 
         // Then
         assertEquals(1, subscriptions.size());
-        assertEquals("software", subscriptions.get(0).getSubscriptionType());
+        assertEquals("software", subscriptions.getFirst().getSubscriptionType());
     }
 
     @Test
@@ -330,7 +330,7 @@ class SubscriptionServiceComprehensiveTest {
 
         // Then
         assertEquals(1, subscriptions.size());
-        assertEquals("cloud_storage", subscriptions.get(0).getSubscriptionType());
+        assertEquals("cloud_storage", subscriptions.getFirst().getSubscriptionType());
     }
 
     @Test
@@ -361,7 +361,7 @@ class SubscriptionServiceComprehensiveTest {
 
         // Then
         assertEquals(1, subscriptions.size());
-        assertEquals("membership", subscriptions.get(0).getSubscriptionType());
+        assertEquals("membership", subscriptions.getFirst().getSubscriptionType());
     }
 
     @Test
@@ -392,7 +392,7 @@ class SubscriptionServiceComprehensiveTest {
 
         // Then
         assertEquals(1, subscriptions.size());
-        assertEquals("other", subscriptions.get(0).getSubscriptionType());
+        assertEquals("other", subscriptions.getFirst().getSubscriptionType());
     }
 
     // ========== CATEGORY CONTEXT PRESERVATION TESTS ==========
@@ -425,7 +425,7 @@ class SubscriptionServiceComprehensiveTest {
 
         // Then: Original categories should be preserved
         assertEquals(1, subscriptions.size());
-        final Subscription sub = subscriptions.get(0);
+        final Subscription sub = subscriptions.getFirst();
         assertEquals("entertainment", sub.getOriginalCategoryPrimary());
         assertEquals("streaming", sub.getOriginalCategoryDetailed());
         // Category should still be SUBSCRIPTIONS for display
@@ -465,7 +465,7 @@ class SubscriptionServiceComprehensiveTest {
         assertEquals(1, subscriptions.size());
         assertEquals(
                 Subscription.SubscriptionFrequency.SEMI_ANNUAL,
-                subscriptions.get(0).getFrequency());
+                subscriptions.getFirst().getFrequency());
     }
 
     @Test

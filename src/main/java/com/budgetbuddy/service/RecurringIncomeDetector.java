@@ -114,7 +114,7 @@ public class RecurringIncomeDetector {
 
             LocalDate last;
             try {
-                last = LocalDate.parse(txs.get(txs.size() - 1).getTransactionDate());
+                last = LocalDate.parse(txs.getLast().getTransactionDate());
             } catch (Exception e) {
                 continue;
             }
@@ -123,9 +123,9 @@ public class RecurringIncomeDetector {
             final double confidence = confidenceFrom(txs, avgGap);
 
             final RecurringIncome r = new RecurringIncome();
-            r.userId = txs.get(0).getUserId();
-            r.merchantName = txs.get(0).getMerchantName();
-            r.amount = txs.get(txs.size() - 1).getAmount();
+            r.userId = txs.getFirst().getUserId();
+            r.merchantName = txs.getFirst().getMerchantName();
+            r.amount = txs.getLast().getAmount();
             r.cadence = cadence;
             r.cadenceDays = cadenceDays;
             r.lastSeen = last;
@@ -346,7 +346,7 @@ public class RecurringIncomeDetector {
             final int cadence = (int) Math.round(avgGap);
             LocalDate last;
             try {
-                last = LocalDate.parse(txs.get(txs.size() - 1).getTransactionDate());
+                last = LocalDate.parse(txs.getLast().getTransactionDate());
             } catch (Exception e) {
                 continue;
             }
@@ -356,15 +356,15 @@ public class RecurringIncomeDetector {
             }
             while (!next.isAfter(horizon)) {
                 final Map<String, Object> bill = new java.util.LinkedHashMap<>();
-                bill.put("merchantName", txs.get(txs.size() - 1).getMerchantName());
+                bill.put("merchantName", txs.getLast().getMerchantName());
                 bill.put(
                         "amount",
-                        txs.get(txs.size() - 1)
+                        txs.getLast()
                                 .getAmount()
                                 .abs()
                                 .setScale(2, RoundingMode.HALF_UP));
                 bill.put(DUE_DATE, next.toString());
-                bill.put("category", txs.get(txs.size() - 1).getCategoryPrimary());
+                bill.put("category", txs.getLast().getCategoryPrimary());
                 out.add(bill);
                 next = next.plusDays(cadence);
             }

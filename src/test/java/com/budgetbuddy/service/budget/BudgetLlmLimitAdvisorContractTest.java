@@ -33,8 +33,8 @@ final class BudgetLlmLimitAdvisorContractTest {
         final List<BudgetSuggestion> input = List.of(suggestion("dining", "100"));
         final List<BudgetSuggestion> out = advisor.annotate(input);
         assertSame(input, out, "Blank-key path must short-circuit to the same list reference");
-        assertNull(out.get(0).reasoning, "No annotation must be applied without an API key");
-        assertEquals(new BigDecimal("100"), out.get(0).recommendedMonthlyLimit);
+        assertNull(out.getFirst().reasoning, "No annotation must be applied without an API key");
+        assertEquals(new BigDecimal("100"), out.getFirst().recommendedMonthlyLimit);
     }
 
     @Test

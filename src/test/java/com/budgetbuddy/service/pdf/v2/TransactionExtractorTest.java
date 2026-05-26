@@ -59,8 +59,8 @@ class TransactionExtractorTest {
         final List<TransactionExtractor.ExtractedTransaction> out =
                 EXTRACTOR.extract(t, fixture);
         assertEquals(2, out.size());
-        assertEquals("SAFEWAY #1444 BELLEVUE WA", out.get(0).description);
-        assertEquals(0, new BigDecimal("14.27").compareTo(out.get(0).amount));
+        assertEquals("SAFEWAY #1444 BELLEVUE WA", out.getFirst().description);
+        assertEquals(0, new BigDecimal("14.27").compareTo(out.getFirst().amount));
         assertEquals("STARBUCKS SEATTLE WA", out.get(1).description);
     }
 
@@ -83,11 +83,11 @@ class TransactionExtractorTest {
         final List<TransactionExtractor.ExtractedTransaction> out =
                 EXTRACTOR.extract(t, fixture);
         assertEquals(1, out.size());
-        assertEquals(LocalDate.of(2025, 12, 19), out.get(0).date);
-        assertTrue(out.get(0).description.contains("YOUTUBE MUSIC"));
-        assertTrue(out.get(0).description.contains("G.CO/HELPPAY"),
+        assertEquals(LocalDate.of(2025, 12, 19), out.getFirst().date);
+        assertTrue(out.getFirst().description.contains("YOUTUBE MUSIC"));
+        assertTrue(out.getFirst().description.contains("G.CO/HELPPAY"),
                 "intermediate line must be folded into description");
-        assertEquals(0, new BigDecimal("18.72").compareTo(out.get(0).amount));
+        assertEquals(0, new BigDecimal("18.72").compareTo(out.getFirst().amount));
     }
 
     @Test
@@ -122,7 +122,7 @@ class TransactionExtractorTest {
         final List<TransactionExtractor.ExtractedTransaction> out =
                 EXTRACTOR.extract(t, fixture);
         assertEquals(2, out.size(), "FX info block must NOT count as a third tx");
-        assertEquals(0, new BigDecimal("10.05").compareTo(out.get(0).amount));
+        assertEquals(0, new BigDecimal("10.05").compareTo(out.getFirst().amount));
         assertEquals(0, new BigDecimal("5.95").compareTo(out.get(1).amount));
     }
 
@@ -139,7 +139,7 @@ class TransactionExtractorTest {
         final List<TransactionExtractor.ExtractedTransaction> out =
                 EXTRACTOR.extract(t, fixture);
         assertEquals(1, out.size());
-        assertEquals(0, new BigDecimal("5.00").compareTo(out.get(0).amount));
+        assertEquals(0, new BigDecimal("5.00").compareTo(out.getFirst().amount));
     }
 
     @Test
@@ -162,7 +162,7 @@ class TransactionExtractorTest {
         final List<TransactionExtractor.ExtractedTransaction> out =
                 EXTRACTOR.extract(t, "12/05/2025 FOO $1.00");
         assertEquals(1, out.size());
-        assertEquals("strict", out.get(0).shapeName,
+        assertEquals("strict", out.getFirst().shapeName,
                 "first-matching shape must win");
     }
 

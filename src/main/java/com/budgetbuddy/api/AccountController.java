@@ -245,6 +245,17 @@ public class AccountController {
         account.setPlaidItemId(request.getPlaidItemId());
         account.setAccountNumber(request.getAccountNumber());
         account.setActive(request.getActive() != null ? request.getActive() : true);
+        // APR is needed by the high-interest detector to evaluate a credit
+        // account. Without this set, debt-heavy users with real card debt
+        // never get a "$2K/yr at 22% APR" alert because the detector silently
+        // skips accounts with null aprPercent (intentional — better silent
+        // than fabricated). Seeders and manual overrides depend on this.
+        if (request.getAprPercent() != null) {
+            account.setAprPercent(request.getAprPercent());
+        }
+        if (request.getCreditLimit() != null) {
+            account.setCreditLimit(request.getCreditLimit());
+        }
 
         final Instant now = Instant.now();
         account.setCreatedAt(now);
@@ -351,6 +362,12 @@ public class AccountController {
         }
         if (request.getIsHidden() != null) {
             account.setIsHidden(request.getIsHidden());
+        }
+        if (request.getAprPercent() != null) {
+            account.setAprPercent(request.getAprPercent());
+        }
+        if (request.getCreditLimit() != null) {
+            account.setCreditLimit(request.getCreditLimit());
         }
 
         final Instant now = Instant.now();
@@ -553,6 +570,13 @@ public class AccountController {
         private String plaidItemId;
         private String accountNumber;
         private Boolean active;
+        private BigDecimal aprPercent;
+        private BigDecimal creditLimit;
+
+        public BigDecimal getAprPercent() { return aprPercent; }
+        public void setAprPercent(final BigDecimal aprPercent) { this.aprPercent = aprPercent; }
+        public BigDecimal getCreditLimit() { return creditLimit; }
+        public void setCreditLimit(final BigDecimal creditLimit) { this.creditLimit = creditLimit; }
 
         // Getters and setters
         public String getAccountId() {
@@ -656,6 +680,13 @@ public class AccountController {
         private String plaidItemId;
         private String accountNumber;
         private Boolean active;
+        private BigDecimal aprPercent;
+        private BigDecimal creditLimit;
+
+        public BigDecimal getAprPercent() { return aprPercent; }
+        public void setAprPercent(final BigDecimal aprPercent) { this.aprPercent = aprPercent; }
+        public BigDecimal getCreditLimit() { return creditLimit; }
+        public void setCreditLimit(final BigDecimal creditLimit) { this.creditLimit = creditLimit; }
 
         // Getters and setters
         public String getAccountName() {

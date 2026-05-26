@@ -90,7 +90,7 @@ class CSVImportServiceAccountDetectionTest {
         assertEquals(1, result.getSuccessCount());
         assertFalse(result.getTransactions().isEmpty());
 
-        final CSVImportService.ParsedTransaction transaction = result.getTransactions().get(0);
+        final CSVImportService.ParsedTransaction transaction = result.getTransactions().getFirst();
         assertEquals("matched-account-id", transaction.getAccountId());
 
         verify(accountDetectionService, times(1)).detectFromHeaders(anyList(), eq(filename));
@@ -127,7 +127,7 @@ class CSVImportServiceAccountDetectionTest {
         assertNotNull(result);
         assertEquals(1, result.getSuccessCount());
 
-        final CSVImportService.ParsedTransaction transaction = result.getTransactions().get(0);
+        final CSVImportService.ParsedTransaction transaction = result.getTransactions().getFirst();
         assertNull(transaction.getAccountId()); // No match found
     }
 

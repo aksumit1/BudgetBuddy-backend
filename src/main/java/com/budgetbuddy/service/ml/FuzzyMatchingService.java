@@ -172,7 +172,7 @@ public class FuzzyMatchingService {
             return null;
         }
 
-        final MatchResult bestMatch = allMatches.get(0);
+        final MatchResult bestMatch = allMatches.getFirst();
 
         // Only return matches above low confidence threshold
         if (bestMatch.combinedScore >= LOW_CONFIDENCE_THRESHOLD) {

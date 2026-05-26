@@ -269,9 +269,9 @@ class TransactionActionIntegrationTest {
 
         // Then
         assertEquals(1, tx1Actions.size());
-        assertEquals(action1.getActionId(), tx1Actions.get(0).getActionId());
+        assertEquals(action1.getActionId(), tx1Actions.getFirst().getActionId());
         assertEquals(1, tx2Actions.size());
-        assertEquals(action2.getActionId(), tx2Actions.get(0).getActionId());
+        assertEquals(action2.getActionId(), tx2Actions.getFirst().getActionId());
     }
 
     @Test

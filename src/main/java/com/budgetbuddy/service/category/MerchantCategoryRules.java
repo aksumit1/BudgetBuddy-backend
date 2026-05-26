@@ -208,7 +208,11 @@ public final class MerchantCategoryRules {
                 return Collections.emptyList();
             }
             final ObjectMapper yaml = new ObjectMapper(new YAMLFactory());
-            final Map<String, Object> root = yaml.readValue(in, Map.class);
+            final Map<String, Object> root =
+                    yaml.readValue(
+                            in,
+                            new com.fasterxml.jackson.core.type.TypeReference<
+                                    Map<String, Object>>() {});
             final Object rules = root == null ? null : root.get("rules");
             if (!(rules instanceof List)) {
                 return Collections.emptyList();
@@ -285,8 +289,8 @@ public final class MerchantCategoryRules {
     }
 
     private static int intOr(final Object o, final int fallback) {
-        if (o instanceof Number) {
-            return ((Number) o).intValue();
+        if (o instanceof Number n) {
+            return n.intValue();
         }
         if (o == null) {
             return fallback;
@@ -299,8 +303,8 @@ public final class MerchantCategoryRules {
     }
 
     private static double doubleOr(final Object o, final double fallback) {
-        if (o instanceof Number) {
-            return ((Number) o).doubleValue();
+        if (o instanceof Number n) {
+            return n.doubleValue();
         }
         if (o == null) {
             return fallback;

@@ -70,7 +70,7 @@ public class MissedPaymentForecaster {
                 continue;
             }
             final LocalDate lastPayment = LocalDate.parse(
-                    payments.get(payments.size() - 1).getTransactionDate());
+                    payments.getLast().getTransactionDate());
             final LocalDate nextExpected = lastPayment.plusDays(pattern.expectedIntervalDays);
             final LocalDate today = LocalDate.now();
             if (!nextExpected.isBefore(today.plusDays(7))) {

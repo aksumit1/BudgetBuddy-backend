@@ -89,7 +89,7 @@ class ImportAccountValidationIntegrationTest {
         assertNotNull(result);
         assertEquals(1, result.getSuccessCount());
 
-        final CSVImportService.ParsedTransaction transaction = result.getTransactions().get(0);
+        final CSVImportService.ParsedTransaction transaction = result.getTransactions().getFirst();
         assertNotNull(
                 transaction.getAccountId(),
                 "Transaction should have accountId when account is matched");
@@ -112,7 +112,7 @@ class ImportAccountValidationIntegrationTest {
         assertNotNull(result);
         assertEquals(1, result.getSuccessCount());
 
-        final CSVImportService.ParsedTransaction transaction = result.getTransactions().get(0);
+        final CSVImportService.ParsedTransaction transaction = result.getTransactions().getFirst();
         assertNull(
                 transaction.getAccountId(),
                 "Transaction should have null accountId when no account is matched");

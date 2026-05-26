@@ -238,7 +238,7 @@ class CSVImportControllerTest {
         assertNotNull(transactions, "Transactions list should not be null");
         assertFalse(transactions.isEmpty(), "Transactions list should not be empty");
 
-        final Map<String, Object> firstTx = transactions.get(0);
+        final Map<String, Object> firstTx = transactions.getFirst();
         // Required fields
         assertTrue(firstTx.containsKey(SELECTED), "Transaction must have 'selected' field");
         assertEquals(true, firstTx.get(SELECTED), "Transaction 'selected' should default to true");
@@ -315,7 +315,7 @@ class CSVImportControllerTest {
         assertNotNull(response.getBody());
         if (response.getBody().getTransactions() != null
                 && !response.getBody().getTransactions().isEmpty()) {
-            final Map<String, Object> tx = response.getBody().getTransactions().get(0);
+            final Map<String, Object> tx = response.getBody().getTransactions().getFirst();
             assertTrue(tx.containsKey("currencyCode") || tx.get("currencyCode") != null);
         }
 
@@ -409,7 +409,7 @@ class CSVImportControllerTest {
         assertNotNull(transactions);
         assertFalse(transactions.isEmpty());
 
-        final Map<String, Object> tx = transactions.get(0);
+        final Map<String, Object> tx = transactions.getFirst();
         assertEquals(
                 true,
                 tx.get("hasDuplicates"),
@@ -471,7 +471,7 @@ class CSVImportControllerTest {
         assertNotNull(transactions, "Transactions must not be null");
         assertEquals(1, transactions.size(), "Should have one transaction");
 
-        final Map<String, Object> tx = transactions.get(0);
+        final Map<String, Object> tx = transactions.getFirst();
 
         // Required fields that iOS app expects (from CSVUploadService.PreviewTransaction)
         assertTrue(

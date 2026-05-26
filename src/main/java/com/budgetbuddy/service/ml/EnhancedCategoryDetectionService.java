@@ -550,7 +550,7 @@ public class EnhancedCategoryDetectionService {
 
             // If we have multiple results, combine them
             if (results.size() == 1) {
-                return results.get(0);
+                return results.getFirst();
             }
 
             // Weighted combination: fuzzy matching gets higher weight if confidence is high

@@ -544,7 +544,7 @@ public class PlaidWebhookService {
             }
 
             // Get user ID from first account
-            final String userId = accounts.get(0).getUserId();
+            final String userId = accounts.getFirst().getUserId();
             if (userId == null || userId.isEmpty()) {
                 LOGGER.warn("Account has no user ID for item: {}", itemId);
                 return Optional.empty();

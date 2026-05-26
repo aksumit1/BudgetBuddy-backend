@@ -41,7 +41,7 @@ final class BudgetSuggestionServiceTest {
         final BudgetSuggestionService svc = new BudgetSuggestionService(repo);
         final List<BudgetSuggestion> out = svc.suggestForUser(user("u1"), NOW);
         assertEquals(1, out.size());
-        final BudgetSuggestion s = out.get(0);
+        final BudgetSuggestion s = out.getFirst();
         assertEquals("dining", s.category);
         assertEquals(new BigDecimal("110.00"), s.recommendedMonthlyLimit);
         assertEquals(3, s.monthsObserved);
@@ -87,8 +87,8 @@ final class BudgetSuggestionServiceTest {
         assertEquals(1, out.size());
         // Note: the refund-netting comment in the service is "positive amounts are refunds,
         // negative are charges". We assert the resulting recommended limit reflects netting.
-        assertNotNull(out.get(0).recommendedMonthlyLimit);
-        assertFalse(out.get(0).recommendedMonthlyLimit.signum() <= 0);
+        assertNotNull(out.getFirst().recommendedMonthlyLimit);
+        assertFalse(out.getFirst().recommendedMonthlyLimit.signum() <= 0);
     }
 
     @Test
@@ -103,7 +103,7 @@ final class BudgetSuggestionServiceTest {
 
         final BudgetSuggestionService svc = new BudgetSuggestionService(repo);
         final List<BudgetSuggestion> out = svc.suggestForUser(user("u1"), NOW);
-        assertEquals("groceries", out.get(0).category);
+        assertEquals("groceries", out.getFirst().category);
         assertEquals("dining", out.get(1).category);
     }
 
@@ -115,7 +115,7 @@ final class BudgetSuggestionServiceTest {
                         tx("dining", "2026-02-10", "80"),
                         tx("dining", "2026-03-10", "100")));
         final BudgetSuggestionService svc = new BudgetSuggestionService(repo);
-        assertNull(svc.suggestForUser(user("u1"), NOW).get(0).reasoning);
+        assertNull(svc.suggestForUser(user("u1"), NOW).getFirst().reasoning);
     }
 
     @Test
@@ -144,8 +144,8 @@ final class BudgetSuggestionServiceTest {
                 });
 
         final List<BudgetSuggestion> out = svc.suggestForUser(user("u1"), NOW);
-        assertNotNull(out.get(0).reasoning);
-        assertTrue(out.get(0).reasoning.contains("buffer"));
+        assertNotNull(out.getFirst().reasoning);
+        assertTrue(out.getFirst().reasoning.contains("buffer"));
     }
 
     @Test
@@ -164,8 +164,8 @@ final class BudgetSuggestionServiceTest {
 
         final List<BudgetSuggestion> out = svc.suggestForUser(user("u1"), NOW);
         assertEquals(1, out.size());
-        assertNull(out.get(0).reasoning, "Advisor failure must not leak partial reasoning");
-        assertNotNull(out.get(0).recommendedMonthlyLimit);
+        assertNull(out.getFirst().reasoning, "Advisor failure must not leak partial reasoning");
+        assertNotNull(out.getFirst().recommendedMonthlyLimit);
     }
 
     /**

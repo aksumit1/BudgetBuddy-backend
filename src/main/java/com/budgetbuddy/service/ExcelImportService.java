@@ -146,9 +146,9 @@ public class ExcelImportService {
      */
     private static void logExcelMetadataAndSheets(final Workbook workbook) {
         LOGGER.info("=== EXCEL FILE METADATA ANALYSIS ===");
-        if (workbook instanceof XSSFWorkbook) {
+        if (workbook instanceof XSSFWorkbook xssfWorkbook) {
             final org.apache.poi.ooxml.POIXMLProperties props =
-                    ((XSSFWorkbook) workbook).getProperties();
+                    xssfWorkbook.getProperties();
             if (props != null) {
                 final org.apache.poi.ooxml.POIXMLProperties.CoreProperties coreProps =
                         props.getCoreProperties();

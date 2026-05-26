@@ -74,7 +74,7 @@ class CSVImportServiceGlobalImportTest {
         final List<CSVImportService.ParsedTransaction> transactions = result.getTransactions();
         assertFalse(transactions.isEmpty());
 
-        final CSVImportService.ParsedTransaction tx = transactions.get(0);
+        final CSVImportService.ParsedTransaction tx = transactions.getFirst();
         assertEquals(LocalDate.of(2024, 12, 15), tx.getDate(), "Should parse DD.MM.YYYY format");
         // Amount should be parsed correctly (1.234,56 = 1234.56 in US format)
         final BigDecimal amount = tx.getAmount();
@@ -107,7 +107,7 @@ class CSVImportServiceGlobalImportTest {
         final List<CSVImportService.ParsedTransaction> transactions = result.getTransactions();
         assertFalse(transactions.isEmpty());
 
-        final CSVImportService.ParsedTransaction tx = transactions.get(0);
+        final CSVImportService.ParsedTransaction tx = transactions.getFirst();
         assertEquals(LocalDate.of(2024, 12, 15), tx.getDate(), "Should parse DD/MM/YYYY format");
     }
 
@@ -132,7 +132,7 @@ class CSVImportServiceGlobalImportTest {
         final List<CSVImportService.ParsedTransaction> transactions = result.getTransactions();
         assertFalse(transactions.isEmpty());
 
-        final CSVImportService.ParsedTransaction tx = transactions.get(0);
+        final CSVImportService.ParsedTransaction tx = transactions.getFirst();
         assertEquals(LocalDate.of(2024, 12, 15), tx.getDate(), "Should parse DD/MM/YYYY format");
         assertEquals("GBP", tx.getCurrencyCode(), "Should detect GBP currency");
     }
@@ -160,7 +160,7 @@ class CSVImportServiceGlobalImportTest {
         final List<CSVImportService.ParsedTransaction> transactions = result.getTransactions();
         assertFalse(transactions.isEmpty());
 
-        final CSVImportService.ParsedTransaction tx = transactions.get(0);
+        final CSVImportService.ParsedTransaction tx = transactions.getFirst();
         assertEquals(LocalDate.of(2024, 12, 15), tx.getDate(), "Should parse yyyy/MM/dd format");
         assertEquals("JPY", tx.getCurrencyCode(), "Should detect JPY currency");
     }
@@ -186,7 +186,7 @@ class CSVImportServiceGlobalImportTest {
         final List<CSVImportService.ParsedTransaction> transactions = result.getTransactions();
         assertFalse(transactions.isEmpty());
 
-        final CSVImportService.ParsedTransaction tx = transactions.get(0);
+        final CSVImportService.ParsedTransaction tx = transactions.getFirst();
         assertEquals(LocalDate.of(2024, 12, 15), tx.getDate(), "Should parse yyyy/MM/dd format");
         assertEquals("CNY", tx.getCurrencyCode(), "Should detect CNY currency");
     }
@@ -212,7 +212,7 @@ class CSVImportServiceGlobalImportTest {
         final List<CSVImportService.ParsedTransaction> transactions = result.getTransactions();
         assertFalse(transactions.isEmpty());
 
-        final CSVImportService.ParsedTransaction tx = transactions.get(0);
+        final CSVImportService.ParsedTransaction tx = transactions.getFirst();
         assertEquals(LocalDate.of(2024, 12, 15), tx.getDate(), "Should parse DD/MM/YYYY format");
         assertEquals("INR", tx.getCurrencyCode(), "Should detect INR currency");
     }
@@ -240,7 +240,7 @@ class CSVImportServiceGlobalImportTest {
         final List<CSVImportService.ParsedTransaction> transactions = result.getTransactions();
         assertFalse(transactions.isEmpty());
 
-        final CSVImportService.ParsedTransaction tx = transactions.get(0);
+        final CSVImportService.ParsedTransaction tx = transactions.getFirst();
         assertEquals(LocalDate.of(2024, 12, 15), tx.getDate(), "Should parse DD.MM.YYYY format");
         assertTrue(
                 tx.getDescription().contains("APPLE") || tx.getDescription().contains("Kauf"),
@@ -268,7 +268,7 @@ class CSVImportServiceGlobalImportTest {
         final List<CSVImportService.ParsedTransaction> transactions = result.getTransactions();
         assertFalse(transactions.isEmpty());
 
-        final CSVImportService.ParsedTransaction tx = transactions.get(0);
+        final CSVImportService.ParsedTransaction tx = transactions.getFirst();
         assertEquals(LocalDate.of(2024, 12, 15), tx.getDate(), "Should parse DD/MM/YYYY format");
     }
 
@@ -295,7 +295,7 @@ class CSVImportServiceGlobalImportTest {
         final List<CSVImportService.ParsedTransaction> transactions = result.getTransactions();
         assertFalse(transactions.isEmpty());
 
-        final CSVImportService.ParsedTransaction tx = transactions.get(0);
+        final CSVImportService.ParsedTransaction tx = transactions.getFirst();
         assertEquals(LocalDate.of(2024, 12, 15), tx.getDate(), "Should parse yyyy/MM/dd format");
         assertEquals("JPY", tx.getCurrencyCode(), "Should detect JPY currency");
     }
@@ -321,7 +321,7 @@ class CSVImportServiceGlobalImportTest {
         final List<CSVImportService.ParsedTransaction> transactions = result.getTransactions();
         assertFalse(transactions.isEmpty());
 
-        final CSVImportService.ParsedTransaction tx = transactions.get(0);
+        final CSVImportService.ParsedTransaction tx = transactions.getFirst();
         assertEquals(LocalDate.of(2024, 12, 15), tx.getDate(), "Should parse yyyy/MM/dd format");
         assertEquals("CNY", tx.getCurrencyCode(), "Should detect CNY currency");
     }
@@ -347,7 +347,7 @@ class CSVImportServiceGlobalImportTest {
         final List<CSVImportService.ParsedTransaction> transactions = result.getTransactions();
         assertFalse(transactions.isEmpty());
 
-        final CSVImportService.ParsedTransaction tx = transactions.get(0);
+        final CSVImportService.ParsedTransaction tx = transactions.getFirst();
         assertEquals(LocalDate.of(2024, 12, 15), tx.getDate(), "Should parse DD/MM/YYYY format");
         assertEquals("INR", tx.getCurrencyCode(), "Should detect INR currency");
     }
@@ -456,7 +456,7 @@ class CSVImportServiceGlobalImportTest {
         final List<CSVImportService.ParsedTransaction> transactions = result.getTransactions();
 
         // Verify amounts are parsed correctly
-        final CSVImportService.ParsedTransaction tx1 = transactions.get(0);
+        final CSVImportService.ParsedTransaction tx1 = transactions.getFirst();
         final BigDecimal amount1 = tx1.getAmount();
         final BigDecimal amount1Abs =
                 amount1.compareTo(BigDecimal.ZERO) < 0 ? amount1.negate() : amount1;

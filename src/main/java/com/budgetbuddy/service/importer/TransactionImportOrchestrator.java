@@ -219,7 +219,7 @@ public class TransactionImportOrchestrator {
                         parsed.getMerchantName(),
                         parsed.getAmount(),
                         parsed.getDate(),
-                        matches.get(0).getSimilarity());
+                        matches.getFirst().getSimilarity());
             }
         }
     }

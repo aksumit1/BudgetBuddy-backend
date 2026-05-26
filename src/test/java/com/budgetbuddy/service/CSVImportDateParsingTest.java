@@ -86,7 +86,7 @@ public class CSVImportDateParsingTest {
         assertTrue(result.getErrors().isEmpty(), "Should have no errors");
 
         assertFalse(result.getTransactions().isEmpty(), "Should have transactions");
-        final CSVImportService.ParsedTransaction transaction = result.getTransactions().get(0);
+        final CSVImportService.ParsedTransaction transaction = result.getTransactions().getFirst();
 
         assertNotNull(transaction, "Transaction should not be null");
         assertNotNull(transaction.getDate(), "Transaction date should not be null");
@@ -146,7 +146,7 @@ public class CSVImportDateParsingTest {
             LOGGER.info("Testing date format: '{}'", dateStr);
 
             if (!result.getTransactions().isEmpty()) {
-                final CSVImportService.ParsedTransaction tx = result.getTransactions().get(0);
+                final CSVImportService.ParsedTransaction tx = result.getTransactions().getFirst();
                 final String isoDate = tx.getDate().format(DateTimeFormatter.ISO_LOCAL_DATE);
                 LOGGER.info("  Parsed as: {}", isoDate);
                 assertEquals(
@@ -179,7 +179,7 @@ public class CSVImportDateParsingTest {
         assertNotNull(result);
         assertFalse(result.getTransactions().isEmpty(), "Should parse transaction");
 
-        final CSVImportService.ParsedTransaction transaction = result.getTransactions().get(0);
+        final CSVImportService.ParsedTransaction transaction = result.getTransactions().getFirst();
         final LocalDate parsedDate = transaction.getDate();
         final String isoDate = parsedDate.format(DateTimeFormatter.ISO_LOCAL_DATE);
 
@@ -209,7 +209,7 @@ public class CSVImportDateParsingTest {
         assertNotNull(result);
         assertEquals(1, result.getSuccessCount(), "Should parse 1 transaction");
 
-        final CSVImportService.ParsedTransaction parsed = result.getTransactions().get(0);
+        final CSVImportService.ParsedTransaction parsed = result.getTransactions().getFirst();
         final LocalDate parsedDate = parsed.getDate();
 
         LOGGER.info("=== Complete Flow Test ===");
@@ -269,7 +269,7 @@ public class CSVImportDateParsingTest {
         assertEquals(3, result.getTransactions().size(), "Should have exactly 3 transactions");
 
         // Verify first transaction (12/19/2025, -250.00)
-        final CSVImportService.ParsedTransaction tx1 = result.getTransactions().get(0);
+        final CSVImportService.ParsedTransaction tx1 = result.getTransactions().getFirst();
         LOGGER.info("=== Transaction 1 ===");
         LOGGER.info("Description: {}", tx1.getDescription());
         LOGGER.info("Amount: {}", tx1.getAmount());
@@ -358,7 +358,7 @@ public class CSVImportDateParsingTest {
         assertEquals(3, result.getTransactions().size(), "Should have exactly 3 transactions");
 
         // Verify first transaction (12/19/2025, -250.00)
-        final CSVImportService.ParsedTransaction tx1 = result.getTransactions().get(0);
+        final CSVImportService.ParsedTransaction tx1 = result.getTransactions().getFirst();
         LOGGER.info("=== Transaction 1 (Quoted Description) ===");
         LOGGER.info("Description: {}", tx1.getDescription());
         LOGGER.info("Amount: {}", tx1.getAmount());

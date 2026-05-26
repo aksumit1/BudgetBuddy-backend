@@ -362,7 +362,7 @@ public class BenchmarkAggregationService {
             return 0;
         }
         if (n == 1) {
-            return sorted.get(0);
+            return sorted.getFirst();
         }
         final double rank = p * (n - 1);
         final int lower = (int) Math.floor(rank);

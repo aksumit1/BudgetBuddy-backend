@@ -83,8 +83,8 @@ class ForecasterParityTest {
         if (!oldOut.isEmpty()) {
             // Same probability + same predicted savings means the
             // savings-rate math matches end-to-end.
-            assertEquals(oldOut.get(0).getAchievementProbability(),
-                    newOut.get(0).getAchievementProbability(), 1e-9);
+            assertEquals(oldOut.getFirst().getAchievementProbability(),
+                    newOut.getFirst().getAchievementProbability(), 1e-9);
         }
     }
 
@@ -151,8 +151,8 @@ class ForecasterParityTest {
         assertEquals(oldOut.size(), newOut.size());
         if (!oldOut.isEmpty()) {
             // Annual interest is the headline number — pin it exactly.
-            assertEquals(0, oldOut.get(0).getAnnualInterest()
-                    .compareTo(newOut.get(0).getAnnualInterest()));
+            assertEquals(0, oldOut.getFirst().getAnnualInterest()
+                    .compareTo(newOut.getFirst().getAnnualInterest()));
         }
     }
 

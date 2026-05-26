@@ -91,7 +91,7 @@ class MFAIntegrationTest {
         // Given
         final String userId = testUser.getUserId();
         final List<String> codes = mfaService.generateBackupCodes(userId);
-        final String codeToVerify = codes.get(0);
+        final String codeToVerify = codes.getFirst();
 
         // When - Verify first time
         final boolean isValid1 = mfaService.verifyBackupCode(userId, codeToVerify);

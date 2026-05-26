@@ -284,7 +284,7 @@ public class FinancialInsightsController {
             out.put(
                     entry.getKey(),
                     new FinancialInsightsPredictionService.PaymentPattern(
-                            txs.get(txs.size() - 1).getAmount().abs(), (int) Math.round(avg)));
+                            txs.getLast().getAmount().abs(), (int) Math.round(avg)));
         }
         return out;
     }

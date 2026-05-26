@@ -328,18 +328,18 @@ public class UserRepository {
         // Set the field value using reflection or switch statement
         switch (fieldName) {
             case "lastLoginAt":
-                if (value instanceof Instant) {
-                    user.setLastLoginAt((Instant) value);
+                if (value instanceof Instant instant) {
+                    user.setLastLoginAt(instant);
                 }
                 break;
             case "emailVerified":
-                if (value instanceof Boolean) {
-                    user.setEmailVerified((Boolean) value);
+                if (value instanceof Boolean b) {
+                    user.setEmailVerified(b);
                 }
                 break;
             case "twoFactorEnabled":
-                if (value instanceof Boolean) {
-                    user.setTwoFactorEnabled((Boolean) value);
+                if (value instanceof Boolean b) {
+                    user.setTwoFactorEnabled(b);
                 }
                 break;
             default:

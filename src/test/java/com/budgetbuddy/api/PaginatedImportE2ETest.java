@@ -834,7 +834,7 @@ class PaginatedImportE2ETest {
         // The test should verify account reuse IF an account was created
         String accountIdFromPage0 = null;
         if (accountsAfterPage0 != null && accountsAfterPage0.size() >= 1) {
-            accountIdFromPage0 = accountsAfterPage0.get(0).getAccountId();
+            accountIdFromPage0 = accountsAfterPage0.getFirst().getAccountId();
         }
 
         // When: Importing page 1 (remaining 50)
@@ -874,7 +874,7 @@ class PaginatedImportE2ETest {
                     "Should still have exactly 1 account after page 1 (account should be reused)");
             assertEquals(
                     accountIdFromPage0,
-                    accountsAfterPage1.get(0).getAccountId(),
+                    accountsAfterPage1.getFirst().getAccountId(),
                     "Account ID should be the same (account reused)");
         } else {
             // If no account was created, that's acceptable - transactions will use pseudo accounts

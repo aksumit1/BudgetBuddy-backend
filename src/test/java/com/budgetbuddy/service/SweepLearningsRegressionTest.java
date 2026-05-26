@@ -144,7 +144,7 @@ class SweepLearningsRegressionTest {
         final var citiTemplates = reg.orderedFor("Citi");
         assertEquals(1, citiTemplates.size(),
                 "When institution is detected, orderedFor returns ONLY matching templates");
-        assertEquals("citi-v1", citiTemplates.get(0).getId());
+        assertEquals("citi-v1", citiTemplates.getFirst().getId());
 
         // 'Citibank' / 'Citicards' also resolve to the Citi template via substring match.
         assertEquals(1, reg.orderedFor("Citibank").size());

@@ -148,7 +148,7 @@ class PDFImportAccountAssociationTest {
                 accountRepository.findByUserId(testUser.getUserId());
         assertEquals(
                 1, accountsAfterPdf1.size(), "Should have created exactly 1 account after PDF 1");
-        final AccountTable account1 = accountsAfterPdf1.get(0);
+        final AccountTable account1 = accountsAfterPdf1.getFirst();
         final String account1Id = account1.getAccountId();
         LOGGER.info(
                 "✅ Account 1 created: ID='{}', Name='{}', Institution='{}', Number='{}'",
@@ -297,7 +297,7 @@ class PDFImportAccountAssociationTest {
         final List<AccountTable> accountsAfterPdf1 =
                 accountRepository.findByUserId(testUser.getUserId());
         assertEquals(1, accountsAfterPdf1.size());
-        final String account1Id = accountsAfterPdf1.get(0).getAccountId();
+        final String account1Id = accountsAfterPdf1.getFirst().getAccountId();
 
         // When: Import PDF 2 (same account)
         final org.springframework.mock.web.MockMultipartFile pdf2File =
@@ -310,7 +310,7 @@ class PDFImportAccountAssociationTest {
                 accountRepository.findByUserId(testUser.getUserId());
         assertEquals(
                 1, accountsAfterPdf2.size(), "Should reuse existing account, not create duplicate");
-        assertEquals(account1Id, accountsAfterPdf2.get(0).getAccountId(), "Should reuse account 1");
+        assertEquals(account1Id, accountsAfterPdf2.getFirst().getAccountId(), "Should reuse account 1");
 
         // Verify all transactions are associated with the same account
         final List<TransactionTable> allTransactions =

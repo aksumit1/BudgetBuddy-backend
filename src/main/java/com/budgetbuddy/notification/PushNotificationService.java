@@ -324,7 +324,7 @@ public class PushNotificationService {
         if (devices.isEmpty()) {
             return null;
         }
-        return devices.get(0).getEndpointArn();
+        return devices.getFirst().getEndpointArn();
     }
 
     /** Get platform application ARN from configuration */

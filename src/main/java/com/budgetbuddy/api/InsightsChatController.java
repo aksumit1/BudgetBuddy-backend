@@ -230,7 +230,7 @@ public class InsightsChatController {
         final List<ChatMessageTable> rows = chatRepo.loadConversation(conversationId);
         // Defensive: reject cross-user access. A user should never see
         // another user's conversation even if they guess the id.
-        if (!rows.isEmpty() && !user.getUserId().equals(rows.get(0).getUserId())) {
+        if (!rows.isEmpty() && !user.getUserId().equals(rows.getFirst().getUserId())) {
             throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS,
                     "Not your conversation");
         }

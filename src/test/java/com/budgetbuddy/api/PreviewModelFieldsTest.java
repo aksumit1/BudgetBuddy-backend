@@ -191,7 +191,7 @@ class PreviewModelFieldsTest {
         final List<Map<String, Object>> transactions = response.getBody().getTransactions();
         assertEquals(1, transactions.size());
 
-        final Map<String, Object> txMap = transactions.get(0);
+        final Map<String, Object> txMap = transactions.getFirst();
         assertTrue(txMap.containsKey(TRANSACTIONTYPEINDICATOR));
         assertEquals("DEBIT", txMap.get(TRANSACTIONTYPEINDICATOR));
     }
@@ -221,7 +221,7 @@ class PreviewModelFieldsTest {
         final List<Map<String, Object>> transactions = response.getBody().getTransactions();
         assertEquals(1, transactions.size());
 
-        final Map<String, Object> txMap = transactions.get(0);
+        final Map<String, Object> txMap = transactions.getFirst();
         // Field should not be present if null (based on buildTransactionMap logic)
         assertFalse(
                 txMap.containsKey(TRANSACTIONTYPEINDICATOR)
@@ -251,7 +251,7 @@ class PreviewModelFieldsTest {
         // Assert
         assertNotNull(response.getBody());
         final List<Map<String, Object>> transactions = response.getBody().getTransactions();
-        final Map<String, Object> txMap = transactions.get(0);
+        final Map<String, Object> txMap = transactions.getFirst();
         assertEquals("CREDIT", txMap.get(TRANSACTIONTYPEINDICATOR));
     }
 
@@ -278,7 +278,7 @@ class PreviewModelFieldsTest {
         // Assert
         assertNotNull(response.getBody());
         final List<Map<String, Object>> transactions = response.getBody().getTransactions();
-        final Map<String, Object> txMap = transactions.get(0);
+        final Map<String, Object> txMap = transactions.getFirst();
         assertEquals("DR", txMap.get(TRANSACTIONTYPEINDICATOR));
     }
 
@@ -416,7 +416,7 @@ class PreviewModelFieldsTest {
         final List<Map<String, Object>> transactions = response.getBody().getTransactions();
         assertEquals(3, transactions.size());
 
-        assertEquals("DEBIT", transactions.get(0).get(TRANSACTIONTYPEINDICATOR));
+        assertEquals("DEBIT", transactions.getFirst().get(TRANSACTIONTYPEINDICATOR));
         assertEquals("CREDIT", transactions.get(1).get(TRANSACTIONTYPEINDICATOR));
         assertEquals("DR", transactions.get(2).get(TRANSACTIONTYPEINDICATOR));
     }

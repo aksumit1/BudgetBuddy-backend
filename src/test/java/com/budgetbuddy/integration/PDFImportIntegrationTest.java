@@ -161,7 +161,7 @@ class PDFImportIntegrationTest {
 
         assertEquals(1, result.getSuccessCount(), "Should parse transaction");
 
-        final PDFImportService.ParsedTransaction tx = result.getTransactions().get(0);
+        final PDFImportService.ParsedTransaction tx = result.getTransactions().getFirst();
         // The year should be inferred from filename, or default to current year if parsing fails
         // Accept either the parsed year or current year as valid (since year parsing may not be
         // fully implemented)
@@ -193,7 +193,7 @@ class PDFImportIntegrationTest {
 
         assertEquals(1, result.getSuccessCount(), "Should parse transaction");
 
-        final PDFImportService.ParsedTransaction tx = result.getTransactions().get(0);
+        final PDFImportService.ParsedTransaction tx = result.getTransactions().getFirst();
         assertEquals(2023, tx.getDate().getYear(),
                 "12/01 in a January 2024 statement should resolve to 2023, not 2024");
         assertEquals(12, tx.getDate().getMonthValue());

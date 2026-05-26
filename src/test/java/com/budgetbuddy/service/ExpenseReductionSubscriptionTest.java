@@ -71,7 +71,7 @@ class ExpenseReductionSubscriptionTest {
                 .filter(r -> r.getType() == RecommendationType.CANCEL).toList();
         assertEquals(1, cancels.size());
 
-        final ExpenseRecommendation rec = cancels.get(0);
+        final ExpenseRecommendation rec = cancels.getFirst();
         // Copy must NOT claim the subscription is unused — we can't know
         // that from billing data.
         assertFalse(rec.getDescription().toLowerCase().contains("unused"),

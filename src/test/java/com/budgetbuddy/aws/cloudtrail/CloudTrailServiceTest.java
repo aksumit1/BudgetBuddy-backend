@@ -75,7 +75,7 @@ class CloudTrailServiceTest {
         // Then
         assertNotNull(events);
         assertEquals(1, events.size());
-        assertEquals("CreateTransaction", events.get(0).eventName());
+        assertEquals("CreateTransaction", events.getFirst().eventName());
     }
 
     @Test

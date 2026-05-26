@@ -178,6 +178,9 @@ public class AiYamlTemplateAuthor {
         final JsonNode root = mapper.readTree(resp.body());
         final JsonNode content = root.path("content");
         if (!content.isArray() || content.size() == 0) return null;
+        // content is a JsonNode array — JsonNode.get(int) is the array-element
+        // accessor; it doesn't implement SequencedCollection so getFirst() does
+        // not apply here.
         final JsonNode firstBlock = content.get(0);
         final String text = firstBlock.path("text").asText("");
         // Strip markdown fences if the model added them despite the prompt.

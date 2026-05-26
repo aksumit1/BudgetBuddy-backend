@@ -332,8 +332,8 @@ public class E2EAPITestSuite {
         assertNotNull(response.getBody());
         assertTrue(response.getBody() instanceof List);
         assertFalse(response.getBody().isEmpty());
-        assertTrue(response.getBody().get(0) instanceof Map);
-        assertNotNull(response.getBody().get(0).get("accountId"));
+        assertTrue(response.getBody().getFirst() instanceof Map);
+        assertNotNull(response.getBody().getFirst().get("accountId"));
     }
 
     // MARK: - Budget CRUD Tests
@@ -557,8 +557,8 @@ public class E2EAPITestSuite {
         assertNotNull(response.getBody());
         assertTrue(response.getBody() instanceof List);
         assertFalse(response.getBody().isEmpty());
-        assertTrue(response.getBody().get(0) instanceof Map);
-        assertNotNull(response.getBody().get(0).get("actionId"));
+        assertTrue(response.getBody().getFirst() instanceof Map);
+        assertNotNull(response.getBody().getFirst().get("actionId"));
     }
 
     // MARK: - Helper Methods

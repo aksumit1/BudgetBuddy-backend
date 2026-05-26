@@ -383,8 +383,8 @@ public class CategoryClassificationModel {
                         .sorted((a, b) -> Double.compare(b.getValue(), a.getValue()))
                         .toList();
 
-        final String bestCategory = sorted.get(0).getKey();
-        final double bestScore = sorted.get(0).getValue();
+        final String bestCategory = sorted.getFirst().getKey();
+        final double bestScore = sorted.getFirst().getValue();
 
         // Normalize score to 0-1 range
         final double maxPossibleScore = 1.0; // Sum of all weights

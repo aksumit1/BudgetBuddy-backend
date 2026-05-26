@@ -115,7 +115,7 @@ class ImportAccountDetectionIntegrationTest {
         assertNotNull(result);
         assertEquals(1, result.getSuccessCount());
 
-        final CSVImportService.ParsedTransaction transaction = result.getTransactions().get(0);
+        final CSVImportService.ParsedTransaction transaction = result.getTransactions().getFirst();
         // Account ID should be null if no match found (user can select account in UI)
         assertNull(
                 transaction.getAccountId(),

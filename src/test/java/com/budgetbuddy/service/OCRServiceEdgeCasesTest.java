@@ -124,21 +124,21 @@ class OCRServiceEdgeCasesTest {
     void testDetectLanguagesNullText() {
         final List<String> languages = ocrService.detectLanguages(null);
         assertEquals(1, languages.size());
-        assertEquals(ENG, languages.get(0));
+        assertEquals(ENG, languages.getFirst());
     }
 
     @Test
     void testDetectLanguagesEmptyText() {
         final List<String> languages = ocrService.detectLanguages("");
         assertEquals(1, languages.size());
-        assertEquals(ENG, languages.get(0));
+        assertEquals(ENG, languages.getFirst());
     }
 
     @Test
     void testDetectLanguagesWhitespaceOnly() {
         final List<String> languages = ocrService.detectLanguages("   \n\t  ");
         assertEquals(1, languages.size());
-        assertEquals(ENG, languages.get(0));
+        assertEquals(ENG, languages.getFirst());
     }
 
     @Test

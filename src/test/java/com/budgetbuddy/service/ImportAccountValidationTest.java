@@ -78,7 +78,7 @@ class ImportAccountValidationTest {
         assertNotNull(result);
         assertEquals(1, result.getSuccessCount());
 
-        final CSVImportService.ParsedTransaction transaction = result.getTransactions().get(0);
+        final CSVImportService.ParsedTransaction transaction = result.getTransactions().getFirst();
         assertNull(
                 transaction.getAccountId(),
                 "Transaction should have null accountId when no account detected");

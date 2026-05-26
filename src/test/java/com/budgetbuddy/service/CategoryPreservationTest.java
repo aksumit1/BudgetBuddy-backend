@@ -153,7 +153,7 @@ class CategoryPreservationTest {
                         + result.getErrors());
 
         // Verify first transaction has preserved category
-        final CSVImportService.ParsedTransaction tx1 = result.getTransactions().get(0);
+        final CSVImportService.ParsedTransaction tx1 = result.getTransactions().getFirst();
         assertEquals(GROCERIES, tx1.getCategoryPrimary());
         assertEquals(GROCERIES, tx1.getImporterCategoryPrimary());
 
@@ -192,7 +192,7 @@ class CategoryPreservationTest {
                         + ". Errors: "
                         + result.getErrors());
 
-        final CSVImportService.ParsedTransaction tx = result.getTransactions().get(0);
+        final CSVImportService.ParsedTransaction tx = result.getTransactions().getFirst();
         assertNotNull(tx.getCategoryPrimary());
         // Category should be detected by backend (not preserved)
     }
@@ -245,7 +245,7 @@ class CategoryPreservationTest {
                         + ". Errors: "
                         + result.getErrors());
 
-        assertEquals(GROCERIES, result.getTransactions().get(0).getCategoryPrimary());
+        assertEquals(GROCERIES, result.getTransactions().getFirst().getCategoryPrimary());
         assertEquals(DINING, result.getTransactions().get(1).getCategoryPrimary());
         // Third transaction should have detected category (not preserved)
         assertNotNull(result.getTransactions().get(2).getCategoryPrimary());
@@ -280,7 +280,7 @@ class CategoryPreservationTest {
                         + ". Errors: "
                         + result.getErrors());
 
-        final CSVImportService.ParsedTransaction tx = result.getTransactions().get(0);
+        final CSVImportService.ParsedTransaction tx = result.getTransactions().getFirst();
         assertNotNull(tx.getCategoryPrimary());
     }
 }

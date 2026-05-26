@@ -212,11 +212,11 @@ public class StripeService {
             cardMap.put(NUMBER, cardDetails.get(NUMBER));
             final Object expMonthObj = cardDetails.get("expMonth");
             final Object expYearObj = cardDetails.get("expYear");
-            if (expMonthObj instanceof Number) {
-                cardMap.put("exp_month", ((Number) expMonthObj).longValue());
+            if (expMonthObj instanceof Number expMonth) {
+                cardMap.put("exp_month", expMonth.longValue());
             }
-            if (expYearObj instanceof Number) {
-                cardMap.put("exp_year", ((Number) expYearObj).longValue());
+            if (expYearObj instanceof Number expYear) {
+                cardMap.put("exp_year", expYear.longValue());
             }
             cardMap.put("cvc", cardDetails.get("cvc"));
 

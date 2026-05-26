@@ -92,7 +92,7 @@ class SubscriptionServiceTest {
         assertNotNull(subscriptions);
         assertEquals(1, subscriptions.size());
 
-        final Subscription subscription = subscriptions.get(0);
+        final Subscription subscription = subscriptions.getFirst();
         assertEquals(
                 merchantName,
                 subscription.getMerchantName()); // Use actual merchant name (not uppercase)
@@ -128,7 +128,7 @@ class SubscriptionServiceTest {
         assertNotNull(subscriptions);
         assertEquals(1, subscriptions.size());
         assertEquals(
-                Subscription.SubscriptionFrequency.QUARTERLY, subscriptions.get(0).getFrequency());
+                Subscription.SubscriptionFrequency.QUARTERLY, subscriptions.getFirst().getFrequency());
     }
 
     @Test
@@ -155,7 +155,7 @@ class SubscriptionServiceTest {
         assertNotNull(subscriptions);
         assertEquals(1, subscriptions.size());
         assertEquals(
-                Subscription.SubscriptionFrequency.ANNUAL, subscriptions.get(0).getFrequency());
+                Subscription.SubscriptionFrequency.ANNUAL, subscriptions.getFirst().getFrequency());
     }
 
     @Test
@@ -247,7 +247,7 @@ class SubscriptionServiceTest {
         // Then
         assertNotNull(subscriptions);
         assertEquals(1, subscriptions.size());
-        assertEquals(NETFLIX, subscriptions.get(0).getMerchantName());
+        assertEquals(NETFLIX, subscriptions.getFirst().getMerchantName());
     }
 
     @Test
@@ -290,8 +290,8 @@ class SubscriptionServiceTest {
         // Then
         assertNotNull(subscriptions);
         assertEquals(1, subscriptions.size());
-        assertEquals(NETFLIX, subscriptions.get(0).getMerchantName());
-        assertTrue(subscriptions.get(0).getActive());
+        assertEquals(NETFLIX, subscriptions.getFirst().getMerchantName());
+        assertTrue(subscriptions.getFirst().getActive());
     }
 
     @Test
@@ -352,7 +352,7 @@ class SubscriptionServiceTest {
         // Then
         assertNotNull(subscriptions);
         assertEquals(1, subscriptions.size());
-        final Subscription subscription = subscriptions.get(0);
+        final Subscription subscription = subscriptions.getFirst();
         assertEquals(
                 "subscription",
                 subscription.getSubscriptionCategory(),
@@ -384,7 +384,7 @@ class SubscriptionServiceTest {
         // Then
         assertNotNull(subscriptions);
         assertEquals(1, subscriptions.size());
-        final Subscription subscription = subscriptions.get(0);
+        final Subscription subscription = subscriptions.getFirst();
         assertEquals(
                 "recurring",
                 subscription.getSubscriptionCategory(),
@@ -415,7 +415,7 @@ class SubscriptionServiceTest {
         // ONE consolidated subscription, not two.
         assertEquals(1, subscriptions.size(),
                 "Same merchant with small price change should collapse into one subscription");
-        final Subscription sub = subscriptions.get(0);
+        final Subscription sub = subscriptions.getFirst();
         assertEquals(new BigDecimal("-14.28"), sub.getAmount(),
                 "Current price should be the latest amount, not the older one");
         assertNotNull(sub.getDescription(),
@@ -452,7 +452,7 @@ class SubscriptionServiceTest {
         assertEquals(1, subscriptions.size(),
                 "Cell-bill style merchant with bounded variation (spread < 1.5×) should consolidate into one subscription");
         // Current price should be the latest amount, not an average.
-        assertEquals(new BigDecimal("-230.74"), subscriptions.get(0).getAmount(),
+        assertEquals(new BigDecimal("-230.74"), subscriptions.getFirst().getAmount(),
                 "Latest amount should be the current price");
     }
 
@@ -510,7 +510,7 @@ class SubscriptionServiceTest {
         final List<Subscription> subs = subscriptionService.detectSubscriptions(testUserId);
 
         assertEquals(1, subs.size(), "Sub should survive one missed month via median-gap detection");
-        assertEquals(Subscription.SubscriptionFrequency.MONTHLY, subs.get(0).getFrequency());
+        assertEquals(Subscription.SubscriptionFrequency.MONTHLY, subs.getFirst().getFrequency());
     }
 
     @Test
@@ -559,7 +559,7 @@ class SubscriptionServiceTest {
         final List<Subscription> subs = subscriptionService.detectSubscriptions(testUserId);
 
         assertEquals(1, subs.size());
-        final Subscription s = subs.get(0);
+        final Subscription s = subs.getFirst();
         assertNotNull(s.getPredictedNextAmount(),
                 "Variable sub should have a predictedNextAmount populated");
         // Median of [172, 185, 230] is 185 (one of each unique amount appears as the median candidate)
@@ -584,7 +584,7 @@ class SubscriptionServiceTest {
                 .thenReturn(testTransactions);
         final List<Subscription> subs = subscriptionService.detectSubscriptions(testUserId);
         assertEquals(1, subs.size());
-        final String id = subs.get(0).getSubscriptionId();
+        final String id = subs.getFirst().getSubscriptionId();
         // Mock the repository delete + a findById that returns the sub so the
         // telemetry code can record the merchant name.
         final com.budgetbuddy.model.dynamodb.SubscriptionTable row =
@@ -624,12 +624,12 @@ class SubscriptionServiceTest {
         final List<Subscription> subs = subscriptionService.detectSubscriptions(testUserId);
 
         assertEquals(1, subs.size(), "Price change should collapse into one sub");
-        final Subscription s = subs.get(0);
+        final Subscription s = subs.getFirst();
         assertEquals(new BigDecimal("-14.28"), s.getAmount(), "Current amount = latest price");
         assertNotNull(s.getPriceHistory(), "priceHistory must not be null after consolidation");
         assertFalse(s.getPriceHistory().isEmpty(),
                 "priceHistory should contain the older $14.27 entry");
-        assertEquals(new BigDecimal("-14.27"), s.getPriceHistory().get(0).getAmount(),
+        assertEquals(new BigDecimal("-14.27"), s.getPriceHistory().getFirst().getAmount(),
                 "First history entry should be the prior price");
     }
 

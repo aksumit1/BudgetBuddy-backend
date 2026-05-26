@@ -135,7 +135,7 @@ class MFAServiceTest {
         final String userId = TEST_USER_ID;
         final List<String> codes = mfaService.generateBackupCodes(userId);
         assertFalse(codes.isEmpty(), "Backup codes should be generated");
-        final String codeToVerify = codes.get(0);
+        final String codeToVerify = codes.getFirst();
 
         // When
         final boolean isValid = mfaService.verifyBackupCode(userId, codeToVerify);

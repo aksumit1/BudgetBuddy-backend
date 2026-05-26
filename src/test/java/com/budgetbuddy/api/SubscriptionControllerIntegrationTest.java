@@ -216,7 +216,7 @@ public class SubscriptionControllerIntegrationTest {
         // Verify via service
         final var activeSubscriptions = subscriptionService.getActiveSubscriptions(testUserId);
         assertEquals(1, activeSubscriptions.size());
-        assertEquals(NETFLIX, activeSubscriptions.get(0).getMerchantName());
+        assertEquals(NETFLIX, activeSubscriptions.getFirst().getMerchantName());
     }
 
     @Test

@@ -4114,8 +4114,8 @@ public class TransactionController {
 
                     BigDecimal amount = null;
                     if (txMap.get(AMOUNT) != null) {
-                        if (txMap.get(AMOUNT) instanceof Number) {
-                            amount = BigDecimal.valueOf(((Number) txMap.get(AMOUNT)).doubleValue());
+                        if (txMap.get(AMOUNT) instanceof Number n) {
+                            amount = BigDecimal.valueOf(n.doubleValue());
                         } else if (txMap.get(AMOUNT) instanceof String) {
                             try {
                                 amount = new BigDecimal(txMap.get(AMOUNT).toString());
@@ -4496,7 +4496,7 @@ public class TransactionController {
         if (hasDuplicates && duplicateMatches != null) {
             if (!duplicateMatches.isEmpty()) {
                 // Fuzzy matches - use the best match
-                final DuplicateDetectionService.DuplicateMatch bestMatch = duplicateMatches.get(0);
+                final DuplicateDetectionService.DuplicateMatch bestMatch = duplicateMatches.getFirst();
                 // CRITICAL: Validate similarity and reason are not null
                 final Double similarity = bestMatch.getSimilarity();
                 final String reason = bestMatch.getMatchReason();
@@ -6886,7 +6886,7 @@ public class TransactionController {
 
         try {
             final Optional<AccountTable> accountOpt = accountRepository.findById(accountId);
-            if (!accountOpt.isPresent()) {
+            if (accountOpt.isEmpty()) {
                 LOGGER.warn("⚠️ Cannot update account metadata: account '{}' not found", accountId);
                 return;
             }

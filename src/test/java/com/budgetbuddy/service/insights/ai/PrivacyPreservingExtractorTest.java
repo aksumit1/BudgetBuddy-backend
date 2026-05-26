@@ -132,7 +132,7 @@ class PrivacyPreservingExtractorTest {
                 "u1", LocalDate.now(), List.of(), List.of(), List.of(sub));
         final SanitizedSnapshot snap = svc.extract(ctx);
         assertEquals(1, snap.subscriptions().size());
-        final String name = snap.subscriptions().get(0).displayName();
+        final String name = snap.subscriptions().getFirst().displayName();
         assertFalse(name.toLowerCase().contains("anchor"),
                 "Subscription merchant name leaked: " + name);
         assertFalse(name.toLowerCase().contains("counseling"),

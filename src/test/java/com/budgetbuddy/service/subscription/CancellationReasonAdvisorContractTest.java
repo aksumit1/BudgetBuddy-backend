@@ -34,9 +34,9 @@ final class CancellationReasonAdvisorContractTest {
         final List<CancellationRecommendation> input = List.of(rec);
         final List<CancellationRecommendation> out = advisor.annotate(input);
         assertSame(input, out, "Blank-key path must short-circuit to the same list reference");
-        assertNull(out.get(0).getHumanMessage(),
+        assertNull(out.getFirst().getHumanMessage(),
                 "No annotation must be applied without an API key");
-        assertEquals("Unused for 90 days", out.get(0).getReason(),
+        assertEquals("Unused for 90 days", out.getFirst().getReason(),
                 "Deterministic reason must stay untouched");
     }
 

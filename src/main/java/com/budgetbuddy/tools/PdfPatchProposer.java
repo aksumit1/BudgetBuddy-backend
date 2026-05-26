@@ -215,10 +215,12 @@ public final class PdfPatchProposer {
             }
             // Extract the content[].text from the response — Anthropic returns
             // an object with content as an array of typed blocks.
-            final Map<?, ?> obj = mapper.readValue(resp.body(), Map.class);
+            final Map<String, Object> obj = mapper.readValue(
+                    resp.body(),
+                    new com.fasterxml.jackson.core.type.TypeReference<Map<String, Object>>() {});
             final Object content = obj.get("content");
             if (content instanceof List<?> list && !list.isEmpty()) {
-                final Object block = list.get(0);
+                final Object block = list.getFirst();
                 if (block instanceof Map<?, ?> bm) {
                     final Object text = bm.get("text");
                     if (text != null) return text.toString();

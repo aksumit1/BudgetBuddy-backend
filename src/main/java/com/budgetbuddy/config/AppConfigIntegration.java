@@ -453,8 +453,7 @@ public class AppConfigIntegration {
 
     /** Check if exception is a 501 Not Implemented from LocalStack */
     private boolean isLocalStackNotImplemented(final Exception e) {
-        if (e instanceof SdkServiceException) {
-            final SdkServiceException sdkException = (SdkServiceException) e;
+        if (e instanceof SdkServiceException sdkException) {
             return sdkException.statusCode() == 501;
         }
         // Check error message for LocalStack 501 pattern

@@ -408,27 +408,16 @@ public class FileSecurityValidator {
             }
 
             extension = extension.toLowerCase(Locale.ROOT);
-            boolean valid = false;
-
-            switch (extension) {
-                case "csv":
-                    // CSV files can start with UTF-8 BOM or plain text
-                    // Check if it starts with UTF-8 BOM or is plain text (no binary)
-                    valid = startsWith(header, CSV_MAGIC) || isTextFile(header);
-                    break;
-                case "pdf":
-                    valid = startsWith(header, PDF_MAGIC);
-                    break;
-                case "xlsx":
-                    valid = startsWith(header, XLSX_MAGIC);
-                    break;
-                case "xls":
-                    valid = startsWith(header, XLS_MAGIC);
-                    break;
-                default:
-                    // For unknown types, just check it's not a dangerous binary
-                    valid = true;
-            }
+            final boolean valid = switch (extension) {
+                // CSV files can start with UTF-8 BOM or plain text
+                // Check if it starts with UTF-8 BOM or is plain text (no binary)
+                case "csv" -> startsWith(header, CSV_MAGIC) || isTextFile(header);
+                case "pdf" -> startsWith(header, PDF_MAGIC);
+                case "xlsx" -> startsWith(header, XLSX_MAGIC);
+                case "xls" -> startsWith(header, XLS_MAGIC);
+                // For unknown types, just check it's not a dangerous binary
+                default -> true;
+            };
 
             if (!valid) {
                 if (LOGGER.isWarnEnabled()) {

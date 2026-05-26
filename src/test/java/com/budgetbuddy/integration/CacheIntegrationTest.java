@@ -221,7 +221,7 @@ public class CacheIntegrationTest {
                     "Should find 1 updated account after " + retryCount + " retries. " + debugInfo);
         }
 
-        assertEquals("Updated Account", incrementalResponse.getAccounts().get(0).getAccountName());
+        assertEquals("Updated Account", incrementalResponse.getAccounts().getFirst().getAccountName());
     }
 
     @Test
@@ -241,7 +241,7 @@ public class CacheIntegrationTest {
         // Query again - should get fresh data
         final List<AccountTable> after = accountRepository.findByUserId(testUserId);
         assertEquals(1, after.size());
-        assertEquals("New Name", after.get(0).getAccountName());
+        assertEquals("New Name", after.getFirst().getAccountName());
     }
 
     @Test
@@ -286,7 +286,7 @@ public class CacheIntegrationTest {
 
         assertEquals(1, user1Accounts.size());
         assertEquals(1, user2Accounts.size());
-        assertNotEquals(user1Accounts.get(0).getAccountId(), user2Accounts.get(0).getAccountId());
+        assertNotEquals(user1Accounts.getFirst().getAccountId(), user2Accounts.getFirst().getAccountId());
 
         // Verify cache isolation
         final var stats = cacheMonitoringService.getCacheStatistics("accounts");

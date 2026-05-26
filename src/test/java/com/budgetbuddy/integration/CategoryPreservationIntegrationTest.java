@@ -334,7 +334,7 @@ class CategoryPreservationIntegrationTest {
 
         assertEquals(1, transactions.size());
         // Category should be detected, not necessarily GROCERIES
-        assertNotNull(transactions.get(0).getCategoryPrimary());
+        assertNotNull(transactions.getFirst().getCategoryPrimary());
         // May or may not be GROCERIES depending on detection
     }
 
@@ -385,7 +385,7 @@ class CategoryPreservationIntegrationTest {
                 transactionRepository.findByUserId(testUser.getUserId(), 0, 10);
 
         assertEquals(1, transactions.size());
-        final TransactionTable tx = transactions.get(0);
+        final TransactionTable tx = transactions.getFirst();
         assertEquals(GROCERIES, tx.getCategoryPrimary());
         assertEquals("other", tx.getImporterCategoryPrimary()); // Preserved from preview
     }
@@ -439,7 +439,7 @@ class CategoryPreservationIntegrationTest {
                 transactionRepository.findByUserId(testUser.getUserId(), 0, 10);
 
         assertEquals(1, transactions.size());
-        final TransactionTable tx = transactions.get(0);
+        final TransactionTable tx = transactions.getFirst();
         // The parser should correctly identify PCC Store as groceries
         // Both categoryPrimary and importerCategoryPrimary should match since user didn't edit
         assertEquals(

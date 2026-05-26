@@ -41,7 +41,7 @@ final class BudgetExhaustionForecastServiceTest {
                         .forecast(USER, LocalDate.of(2026, 5, 10));
 
         assertEquals(1, alerts.size());
-        final BudgetExhaustionForecastService.ExhaustionAlert a = alerts.get(0);
+        final BudgetExhaustionForecastService.ExhaustionAlert a = alerts.getFirst();
         assertEquals("dining", a.category);
         assertTrue(a.daysUntilExhausted < a.daysRemainingInCycle);
     }
@@ -57,7 +57,7 @@ final class BudgetExhaustionForecastServiceTest {
         final BudgetExhaustionForecastService.ExhaustionAlert a =
                 new BudgetExhaustionForecastService(budgets, tx)
                         .forecast(USER, LocalDate.of(2026, 5, 15))
-                        .get(0);
+                        .getFirst();
         assertEquals("EXHAUSTED", a.severity);
         assertTrue(a.remaining.signum() <= 0);
     }

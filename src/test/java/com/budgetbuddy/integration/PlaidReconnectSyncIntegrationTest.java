@@ -324,7 +324,7 @@ class PlaidReconnectSyncIntegrationTest {
         // Then - Account should have lastSyncedAt set
         final List<AccountTable> retrieved = accountRepository.findByUserId(testUser.getUserId());
         assertEquals(1, retrieved.size());
-        final AccountTable retrievedAccount = retrieved.get(0);
+        final AccountTable retrievedAccount = retrieved.getFirst();
         assertNotNull(
                 retrievedAccount.getLastSyncedAt(),
                 "Account should have lastSyncedAt set after reconnect sync");

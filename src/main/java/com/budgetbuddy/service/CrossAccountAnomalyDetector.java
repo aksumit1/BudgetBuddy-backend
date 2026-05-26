@@ -117,7 +117,7 @@ public class CrossAccountAnomalyDetector {
                     txs.stream()
                             .map(t -> t.getAmount().abs())
                             .reduce(BigDecimal.ZERO, BigDecimal::add);
-            final String merchant = txs.get(0).getMerchantName();
+            final String merchant = txs.getFirst().getMerchantName();
             out.add(
                     new Pattern(
                             "SAME_MERCHANT_MULTIPLE_ACCOUNTS",
@@ -127,7 +127,7 @@ public class CrossAccountAnomalyDetector {
                                     txs.size(),
                                     merchant,
                                     distinctAccounts.size(),
-                                    txs.get(0).getTransactionDate(),
+                                    txs.getFirst().getTransactionDate(),
                                     total),
                             merchant,
                             total,
@@ -166,7 +166,7 @@ public class CrossAccountAnomalyDetector {
                     txs.stream()
                             .map(t -> t.getAmount().abs())
                             .reduce(BigDecimal.ZERO, BigDecimal::add);
-            final String merchant = txs.get(0).getMerchantName();
+            final String merchant = txs.getFirst().getMerchantName();
             final Set<String> accounts =
                     txs.stream().map(TransactionTable::getAccountId).collect(Collectors.toSet());
             out.add(

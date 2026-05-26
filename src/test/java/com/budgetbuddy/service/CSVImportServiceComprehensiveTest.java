@@ -139,8 +139,8 @@ class CSVImportServiceComprehensiveTest {
         assertEquals(
                 1, result.getErrors().size(), "Should have exactly 1 error message for empty file");
         assertTrue(
-                result.getErrors().get(0).toLowerCase(Locale.ROOT).contains("empty"),
-                "Error message should mention empty file. Got: " + result.getErrors().get(0));
+                result.getErrors().getFirst().toLowerCase(Locale.ROOT).contains("empty"),
+                "Error message should mention empty file. Got: " + result.getErrors().getFirst());
     }
 
     @Test

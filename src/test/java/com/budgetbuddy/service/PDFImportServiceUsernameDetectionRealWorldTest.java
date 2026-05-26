@@ -683,7 +683,7 @@ public class PDFImportServiceUsernameDetectionRealWorldTest {
         // matchingAllCaps will have both, and we return the first one in the list
         // Since we iterate candidates in order ["NEW NAME", "OLD NAME"], matchingAllCaps should be
         // ["NEW NAME", "OLD NAME"]
-        // So we return matchingAllCaps.get(0) = "NEW NAME"
+        // So we return matchingAllCaps.getFirst() = "NEW NAME"
         final String username =
                 (String) detectUsernameBeforeHeader.invoke(pdfImportService, lines, 2, account);
         // Should return a matching candidate (either NEW NAME or OLD NAME both match due to token

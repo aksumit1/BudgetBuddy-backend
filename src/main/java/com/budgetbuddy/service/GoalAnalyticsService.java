@@ -347,7 +347,7 @@ public class GoalAnalyticsService {
         new java.util.TreeMap<>(perMonth).values().forEach(oldestFirst::add);
 
         final double alpha = 0.5;
-        double ema = oldestFirst.get(0).doubleValue();
+        double ema = oldestFirst.getFirst().doubleValue();
         for (int i = 1; i < oldestFirst.size(); i++) {
             ema = alpha * oldestFirst.get(i).doubleValue() + (1 - alpha) * ema;
         }

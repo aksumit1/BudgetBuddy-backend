@@ -504,7 +504,7 @@ public class SubscriptionService {
                 }
 
                 if (frequency != null) {
-                    final TransactionTable firstTransaction = sameAmountTransactions.get(0);
+                    final TransactionTable firstTransaction = sameAmountTransactions.getFirst();
                     final LocalDate startDate = parseDate(firstTransaction.getTransactionDate());
 
                     if (startDate != null) {
@@ -569,7 +569,7 @@ public class SubscriptionService {
                         // CRITICAL FIX: Calculate nextPaymentDate from lastPaymentDate if available
                         // This ensures active subscriptions show up correctly
                         final TransactionTable lastTransaction =
-                                sameAmountTransactions.get(sameAmountTransactions.size() - 1);
+                                sameAmountTransactions.getLast();
                         final LocalDate lastPaymentDate =
                                 parseDate(lastTransaction.getTransactionDate());
                         if (lastPaymentDate != null) {
@@ -766,7 +766,7 @@ public class SubscriptionService {
                 if (s.getLastPaymentDate() != null) dates.add(s.getLastPaymentDate());
                 else if (s.getStartDate() != null) dates.add(s.getStartDate());
             }
-            final Subscription head = group.get(0);
+            final Subscription head = group.getFirst();
             return llmSubscriptionClassifier.classify(
                     new com.budgetbuddy.service.category.LlmSubscriptionClassifier.Series(
                             head.getMerchantName(),
@@ -896,7 +896,7 @@ public class SubscriptionService {
         final List<Subscription> result = new ArrayList<>();
         for (final List<Subscription> group : byMerchantCadence.values()) {
             if (group.size() == 1) {
-                result.add(group.get(0));
+                result.add(group.getFirst());
                 continue;
             }
             // Distinct amounts on this merchant + cadence
@@ -912,8 +912,8 @@ public class SubscriptionService {
             // distinguishes a real subscription with monthly drift (a cell
             // bill at $172–$230) from per-use spend (Bird scooter rides at
             // $2–$11). VARIABLE_SPREAD_LIMIT separates the two.
-            final BigDecimal min = distinctAmounts.get(0);
-            final BigDecimal max = distinctAmounts.get(distinctAmounts.size() - 1);
+            final BigDecimal min = distinctAmounts.getFirst();
+            final BigDecimal max = distinctAmounts.getLast();
             final double spread =
                     min.signum() > 0
                             ? max.divide(min, 4, java.math.RoundingMode.HALF_UP).doubleValue()
@@ -943,13 +943,13 @@ public class SubscriptionService {
                         LOGGER.info(
                                 "LLM kept subscription that heuristic would have dropped: "
                                         + "merchant='{}' verdict={} confidence={} reason='{}'",
-                                group.get(0).getMerchantName(),
+                                group.getFirst().getMerchantName(),
                                 verdict.verdict, verdict.confidence, verdict.reasoning);
                         // Fall through to consolidation (don't drop).
                     } else {
                         LOGGER.info(
                                 "Subscription dropped (LLM/heuristic agreed): merchant='{}' had {} distinct prices, spread {}×",
-                                group.get(0).getMerchantName(),
+                                group.getFirst().getMerchantName(),
                                 distinctAmounts.size(),
                                 String.format("%.2f", spread));
                         continue;
@@ -958,7 +958,7 @@ public class SubscriptionService {
                     if (LOGGER.isInfoEnabled()) {
                         LOGGER.info(
                                 "Subscription dropped (variable usage billing): merchant='{}' had {} distinct prices, spread {}× exceeds {}×",
-                                group.get(0).getMerchantName(),
+                                group.getFirst().getMerchantName(),
                                 distinctAmounts.size(),
                                 String.format("%.2f", spread),
                                 VARIABLE_SPREAD_LIMIT);
@@ -981,7 +981,7 @@ public class SubscriptionService {
             // without parsing free-text. The description still gets the
             // human-readable summary for backward compat with the existing
             // UI surface; can be removed once the iOS migration ships.
-            final Subscription latest = group.get(group.size() - 1);
+            final Subscription latest = group.getLast();
             final java.util.List<Subscription.PriceHistoryEntry> history = new java.util.ArrayList<>();
             for (int i = 0; i < group.size() - 1; i++) {
                 final Subscription older = group.get(i);

@@ -36,7 +36,7 @@ class GoalMilestoneServiceTest {
                 milestoneService.getMilestones(testGoal);
 
         assertEquals(4, milestones.size());
-        assertFalse(milestones.get(0).isReached()); // 25%
+        assertFalse(milestones.getFirst().isReached()); // 25%
         assertFalse(milestones.get(1).isReached()); // 50%
         assertFalse(milestones.get(2).isReached()); // 75%
         assertFalse(milestones.get(3).isReached()); // 100%
@@ -49,11 +49,11 @@ class GoalMilestoneServiceTest {
         final List<GoalMilestoneService.Milestone> milestones =
                 milestoneService.getMilestones(testGoal);
 
-        assertTrue(milestones.get(0).isReached()); // 25%
+        assertTrue(milestones.getFirst().isReached()); // 25%
         assertFalse(milestones.get(1).isReached()); // 50%
         assertFalse(milestones.get(2).isReached()); // 75%
         assertFalse(milestones.get(3).isReached()); // 100%
-        assertEquals(25, milestones.get(0).getPercentage());
+        assertEquals(25, milestones.getFirst().getPercentage());
     }
 
     @Test
@@ -63,7 +63,7 @@ class GoalMilestoneServiceTest {
         final List<GoalMilestoneService.Milestone> milestones =
                 milestoneService.getMilestones(testGoal);
 
-        assertTrue(milestones.get(0).isReached()); // 25%
+        assertTrue(milestones.getFirst().isReached()); // 25%
         assertTrue(milestones.get(1).isReached()); // 50%
         assertFalse(milestones.get(2).isReached()); // 75%
         assertFalse(milestones.get(3).isReached()); // 100%
@@ -76,7 +76,7 @@ class GoalMilestoneServiceTest {
         final List<GoalMilestoneService.Milestone> milestones =
                 milestoneService.getMilestones(testGoal);
 
-        assertTrue(milestones.get(0).isReached()); // 25%
+        assertTrue(milestones.getFirst().isReached()); // 25%
         assertTrue(milestones.get(1).isReached()); // 50%
         assertTrue(milestones.get(2).isReached()); // 75%
         assertTrue(milestones.get(3).isReached()); // 100%

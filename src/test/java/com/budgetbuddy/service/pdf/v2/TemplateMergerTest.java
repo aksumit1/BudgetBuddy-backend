@@ -27,7 +27,7 @@ class TemplateMergerTest {
     void templateWithoutExtendsIsReturnedUnchanged() {
         final PdfTemplateV2 t = template("solo", List.of());
         final List<PdfTemplateV2> out = TemplateMerger.resolve(List.of(t));
-        assertSame(t, out.get(0));
+        assertSame(t, out.getFirst());
     }
 
     @Test
@@ -49,7 +49,7 @@ class TemplateMergerTest {
         final PdfTemplateV2 resolved = out.get(1);
         final List<PdfTemplateV2.LabelRule> merged = resolved.getMetadata().getNewBalance();
         assertEquals(1, merged.size(), "child OVERRIDES parent — no concat");
-        assertEquals("child-1", merged.get(0).getPattern());
+        assertEquals("child-1", merged.getFirst().getPattern());
     }
 
     @Test
@@ -69,7 +69,7 @@ class TemplateMergerTest {
         final PdfTemplateV2 resolved = TemplateMerger.resolve(List.of(parent, child)).get(1);
         final List<PdfTemplateV2.LabelRule> merged = resolved.getMetadata().getNewBalance();
         assertEquals(2, merged.size(), "parent fills the gap when child omits");
-        assertEquals("parent-A", merged.get(0).getPattern());
+        assertEquals("parent-A", merged.getFirst().getPattern());
         assertEquals("parent-B", merged.get(1).getPattern());
     }
 
@@ -92,9 +92,9 @@ class TemplateMergerTest {
         // Should not throw — missing parent logs WARN and the child loads with
         // only its own rules.
         final List<PdfTemplateV2> out = TemplateMerger.resolve(List.of(child));
-        final PdfTemplateV2 resolved = out.get(0);
+        final PdfTemplateV2 resolved = out.getFirst();
         assertEquals(1, resolved.getMetadata().getNewBalance().size());
-        assertEquals("own", resolved.getMetadata().getNewBalance().get(0).getPattern());
+        assertEquals("own", resolved.getMetadata().getNewBalance().getFirst().getPattern());
     }
 
     @Test
@@ -123,7 +123,7 @@ class TemplateMergerTest {
                 resolvedLeaf.getMetadata().getNewBalance();
         assertEquals(1, merged.size(),
                 "leaf overrides mid + base when leaf declares the field");
-        assertEquals("leaf", merged.get(0).getPattern());
+        assertEquals("leaf", merged.getFirst().getPattern());
     }
 
     @Test
@@ -145,7 +145,7 @@ class TemplateMergerTest {
         final List<PdfTemplateV2.LabelRule> merged =
                 resolved.getMetadata().getNewBalance();
         assertEquals(1, merged.size(), "base fills the gap when both leaf and mid omit");
-        assertEquals("base", merged.get(0).getPattern());
+        assertEquals("base", merged.getFirst().getPattern());
     }
 
     @Test
@@ -164,7 +164,7 @@ class TemplateMergerTest {
 
         final List<PdfTemplateV2> out = TemplateMerger.resolve(List.of(a, b));
         // The contract: NO infinite loop, both templates loadable.
-        assertNotNull(out.get(0).getMetadata());
+        assertNotNull(out.getFirst().getMetadata());
         assertNotNull(out.get(1).getMetadata());
     }
 
@@ -195,6 +195,6 @@ class TemplateMergerTest {
 
         final PdfTemplateV2 resolved = TemplateMerger.resolve(List.of(parent, child)).get(1);
         assertEquals(1, resolved.getMetadata().getNewBalance().size());
-        assertEquals("child-only", resolved.getMetadata().getNewBalance().get(0).getPattern());
+        assertEquals("child-only", resolved.getMetadata().getNewBalance().getFirst().getPattern());
     }
 }

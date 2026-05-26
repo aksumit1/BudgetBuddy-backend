@@ -980,8 +980,8 @@ public class CSVImportService {
 
                 // Remove ONLY truly trailing empty fields beyond the expected header count
                 // This handles cases like ",," at the end while preserving legitimate empty columns
-                while (values.size() > headers.size() && values.get(values.size() - 1).isBlank()) {
-                    values.remove(values.size() - 1);
+                while (values.size() > headers.size() && values.getLast().isBlank()) {
+                    values.removeLast();
                 }
 
                 // Handle column count mismatch - use header count as truth
@@ -8289,7 +8289,11 @@ public class CSVImportService {
             final com.fasterxml.jackson.databind.ObjectMapper mapper =
                     new com.fasterxml.jackson.databind.ObjectMapper(
                             new com.fasterxml.jackson.dataformat.yaml.YAMLFactory());
-            final java.util.Map<String, Object> root = mapper.readValue(in, java.util.Map.class);
+            final java.util.Map<String, Object> root =
+                    mapper.readValue(
+                            in,
+                            new com.fasterxml.jackson.core.type.TypeReference<
+                                    java.util.Map<String, Object>>() {});
             final Object merchants = root == null ? null : root.get("merchants");
             if (!(merchants instanceof java.util.Map)) {
                 return out;

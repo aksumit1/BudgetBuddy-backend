@@ -149,7 +149,7 @@ class FIDO2CredentialRepositoryTest {
 
         // Then
         assertEquals(1, result.size());
-        assertEquals(testCredentialId, result.get(0).getCredentialId());
+        assertEquals(testCredentialId, result.getFirst().getCredentialId());
     }
 
     @Test

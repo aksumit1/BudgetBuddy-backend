@@ -16,6 +16,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
+import java.util.Set;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -150,22 +151,30 @@ public class FinancialGoalsRecommendationService {
 
         LOGGER.info("Generating financial goal recommendations for user: {}", userId);
 
+        // Load the user's existing goals so we don't recommend a category
+        // they're already pursuing. Before this filter, the saver persona
+        // (who already had Emergency Fund + House Down Payment goals)
+        // still got "Build Emergency Fund" recommended — pure noise that
+        // made every persona's recommendations indistinguishable.
+        final Set<String> existingGoalTypes = loadExistingGoalTypes(userId);
+
         final List<FinancialGoalRecommendation> recommendations = new ArrayList<>();
 
-        // 1. Emergency Fund Goal
-        recommendations.addAll(recommendEmergencyFund(userId, analysis));
-
-        // 2. Debt Payoff Goals
-        recommendations.addAll(recommendDebtPayoff(userId, analysis));
-
-        // 3. Savings Rate Goals
-        recommendations.addAll(recommendSavingsRate(userId, analysis));
-
-        // 4. Wants Budget Goal
-        recommendations.addAll(recommendWantsBudget(userId, analysis));
-
-        // 5. Retirement Goals
-        recommendations.addAll(recommendRetirement(userId, analysis));
+        if (!existingGoalTypes.contains("EMERGENCY_FUND")) {
+            recommendations.addAll(recommendEmergencyFund(userId, analysis));
+        }
+        if (!existingGoalTypes.contains("DEBT_PAYOFF")) {
+            recommendations.addAll(recommendDebtPayoff(userId, analysis));
+        }
+        if (!existingGoalTypes.contains("SAVINGS_RATE")) {
+            recommendations.addAll(recommendSavingsRate(userId, analysis));
+        }
+        if (!existingGoalTypes.contains("WANTS_BUDGET")) {
+            recommendations.addAll(recommendWantsBudget(userId, analysis));
+        }
+        if (!existingGoalTypes.contains("RETIREMENT")) {
+            recommendations.addAll(recommendRetirement(userId, analysis));
+        }
 
         // Sort by priority
         return recommendations.stream()
@@ -174,6 +183,20 @@ public class FinancialGoalsRecommendationService {
                                 FinancialGoalRecommendation::getPriority,
                                 Comparator.reverseOrder()))
                 .toList();
+    }
+
+    private Set<String> loadExistingGoalTypes(final String userId) {
+        try {
+            return goalRepository.findByUserId(userId).stream()
+                    .filter(g -> g.getDeletedAt() == null)
+                    .filter(g -> g.getCompleted() == null || !g.getCompleted())
+                    .map(g -> g.getGoalType() == null ? "" : g.getGoalType().toUpperCase(Locale.ROOT))
+                    .filter(s -> !s.isEmpty())
+                    .collect(Collectors.toSet());
+        } catch (Exception e) {
+            LOGGER.debug("Could not load existing goals for {}: {}", userId, e.getMessage());
+            return Set.of();
+        }
     }
 
     /**

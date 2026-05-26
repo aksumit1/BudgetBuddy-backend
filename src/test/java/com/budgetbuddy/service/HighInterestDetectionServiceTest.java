@@ -110,7 +110,7 @@ class HighInterestDetectionServiceTest {
         assertFalse(alerts.isEmpty(),
                 "Expected an alert from real interest charges");
         // 240 total / 2 distinct months = 120/month, not 240/3 = 80/month.
-        assertEquals(0, alerts.get(0).getMonthlyInterest()
+        assertEquals(0, alerts.getFirst().getMonthlyInterest()
                 .compareTo(new BigDecimal("120.00")),
                 "Monthly interest must reflect distinct billing months actually observed");
     }
@@ -160,9 +160,9 @@ class HighInterestDetectionServiceTest {
         final List<HighInterestAlert> alerts = svc.detectHighInterest(USER);
         assertEquals(1, alerts.size());
         // 28.99% / 100 = 0.2899
-        assertTrue(alerts.get(0).getInterestRate() > 0.28
-                && alerts.get(0).getInterestRate() < 0.29);
-        assertEquals(Severity.HIGH, alerts.get(0).getSeverity());
+        assertTrue(alerts.getFirst().getInterestRate() > 0.28
+                && alerts.getFirst().getInterestRate() < 0.29);
+        assertEquals(Severity.HIGH, alerts.getFirst().getSeverity());
     }
 
     // ------------------------------------------------------------------
@@ -183,8 +183,8 @@ class HighInterestDetectionServiceTest {
         // Even though estimated rate would otherwise be HIGH (>=25%)
         // — here 15% is just MEDIUM — confirm we never escalate based
         // on a guess.
-        assertEquals(Severity.MEDIUM, alerts.get(0).getSeverity());
-        assertTrue(alerts.get(0).getRecommendation().contains("estimated"),
+        assertEquals(Severity.MEDIUM, alerts.getFirst().getSeverity());
+        assertTrue(alerts.getFirst().getRecommendation().contains("estimated"),
                 "Loan recommendation must disclose APR is estimated");
     }
 
@@ -196,8 +196,8 @@ class HighInterestDetectionServiceTest {
 
         final List<HighInterestAlert> alerts = svc.detectHighInterest(USER);
         assertEquals(1, alerts.size());
-        assertEquals(Severity.HIGH, alerts.get(0).getSeverity());
-        assertFalse(alerts.get(0).getRecommendation().contains("estimated"),
+        assertEquals(Severity.HIGH, alerts.getFirst().getSeverity());
+        assertFalse(alerts.getFirst().getRecommendation().contains("estimated"),
                 "Real APR must not be tagged as estimated");
     }
 

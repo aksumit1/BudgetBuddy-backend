@@ -113,12 +113,9 @@ public class SubscriptionAdvancedService {
 
         // Check for price changes (stability)
         if (subscriptionTransactions.size() >= 2) {
-            final BigDecimal firstAmount = subscriptionTransactions.get(0).getAmount().abs();
+            final BigDecimal firstAmount = subscriptionTransactions.getFirst().getAmount().abs();
             final BigDecimal lastAmount =
-                    subscriptionTransactions
-                            .get(subscriptionTransactions.size() - 1)
-                            .getAmount()
-                            .abs();
+                    subscriptionTransactions.getLast().getAmount().abs();
             final BigDecimal percentChange =
                     lastAmount
                             .subtract(firstAmount)
@@ -205,7 +202,7 @@ public class SubscriptionAdvancedService {
                 // Check if this is the first payment (trial period)
                 if (subTransactions.size() == 1) {
                     final LocalDate firstPayment =
-                            parseDate(subTransactions.get(0).getTransactionDate());
+                            parseDate(subTransactions.getFirst().getTransactionDate());
                     if (firstPayment != null) {
                         // Assume 7, 14, or 30 day trial
                         final LocalDate[] trialEndDates = {

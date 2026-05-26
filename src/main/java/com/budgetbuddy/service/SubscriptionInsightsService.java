@@ -290,7 +290,7 @@ public class SubscriptionInsightsService {
                 continue;
             }
             // The latest entry in history is the prior price; subscription.amount is current.
-            final Subscription.PriceHistoryEntry last = hist.get(hist.size() - 1);
+            final Subscription.PriceHistoryEntry last = hist.getLast();
             final BigDecimal prior = last.getAmount() == null ? null : last.getAmount().abs();
             final BigDecimal current = subscription.getAmount() == null
                     ? null : subscription.getAmount().abs();
@@ -335,7 +335,7 @@ public class SubscriptionInsightsService {
                 if (pct.abs().compareTo(priceChangeAlertThresholdPct) > 0) {
                     alerts.add(new PriceChangeAlert(
                             subscription, averageRecentAmount, subscriptionAmount, pct,
-                            recentTransactions.get(0).getTransactionDate()));
+                            recentTransactions.getFirst().getTransactionDate()));
                 }
             }
         }
@@ -387,7 +387,7 @@ public class SubscriptionInsightsService {
                 // Recommend canceling more expensive ones
                 for (int i = 1; i < sorted.size(); i++) {
                     final Subscription expensive = sorted.get(i);
-                    final Subscription cheap = sorted.get(0);
+                    final Subscription cheap = sorted.getFirst();
                     final BigDecimal savings = expensive.getAmount().subtract(cheap.getAmount());
 
                     recommendations.add(
@@ -544,24 +544,16 @@ public class SubscriptionInsightsService {
             return null;
         }
 
-        switch (frequency) {
-            case DAILY:
-                return lastPayment.plusDays(1);
-            case WEEKLY:
-                return lastPayment.plusWeeks(1);
-            case BI_WEEKLY:
-                return lastPayment.plusWeeks(2);
-            case MONTHLY:
-                return lastPayment.plusMonths(1);
-            case QUARTERLY:
-                return lastPayment.plusMonths(3);
-            case SEMI_ANNUAL:
-                return lastPayment.plusMonths(6);
-            case ANNUAL:
-                return lastPayment.plusYears(1);
-            default:
-                return lastPayment.plusMonths(1);
-        }
+        return switch (frequency) {
+            case DAILY -> lastPayment.plusDays(1);
+            case WEEKLY -> lastPayment.plusWeeks(1);
+            case BI_WEEKLY -> lastPayment.plusWeeks(2);
+            case MONTHLY -> lastPayment.plusMonths(1);
+            case QUARTERLY -> lastPayment.plusMonths(3);
+            case SEMI_ANNUAL -> lastPayment.plusMonths(6);
+            case ANNUAL -> lastPayment.plusYears(1);
+            default -> lastPayment.plusMonths(1);
+        };
     }
 
     /**
@@ -570,16 +562,16 @@ public class SubscriptionInsightsService {
      */
     private long unusedThresholdDays(final Subscription.SubscriptionFrequency frequency) {
         if (frequency == null) return 60;
-        switch (frequency) {
-            case DAILY:        return 14;
-            case WEEKLY:       return 21;
-            case BI_WEEKLY:    return 35;
-            case MONTHLY:      return 60;
-            case QUARTERLY:    return 150;
-            case SEMI_ANNUAL:  return 250;
-            case ANNUAL:       return 90;
-            default:           return 60;
-        }
+        return switch (frequency) {
+            case DAILY -> 14;
+            case WEEKLY -> 21;
+            case BI_WEEKLY -> 35;
+            case MONTHLY -> 60;
+            case QUARTERLY -> 150;
+            case SEMI_ANNUAL -> 250;
+            case ANNUAL -> 90;
+            default -> 60;
+        };
     }
 
     private int getDaysForFrequency(final Subscription.SubscriptionFrequency frequency) {
@@ -587,24 +579,16 @@ public class SubscriptionInsightsService {
             return 30;
         }
 
-        switch (frequency) {
-            case DAILY:
-                return 1;
-            case WEEKLY:
-                return 7;
-            case BI_WEEKLY:
-                return 14;
-            case MONTHLY:
-                return 30;
-            case QUARTERLY:
-                return 90;
-            case SEMI_ANNUAL:
-                return 180;
-            case ANNUAL:
-                return 365;
-            default:
-                return 30;
-        }
+        return switch (frequency) {
+            case DAILY -> 1;
+            case WEEKLY -> 7;
+            case BI_WEEKLY -> 14;
+            case MONTHLY -> 30;
+            case QUARTERLY -> 90;
+            case SEMI_ANNUAL -> 180;
+            case ANNUAL -> 365;
+            default -> 30;
+        };
     }
 
     private BigDecimal calculatePotentialSavings(final Subscription subscription) {

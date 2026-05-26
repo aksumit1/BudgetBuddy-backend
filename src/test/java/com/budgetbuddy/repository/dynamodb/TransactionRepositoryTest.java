@@ -156,7 +156,7 @@ class TransactionRepositoryTest {
         // Then
         assertNotNull(result);
         assertEquals(1, result.size());
-        assertEquals(testTransactionId, result.get(0).getTransactionId());
+        assertEquals(testTransactionId, result.getFirst().getTransactionId());
     }
 
     @Test
@@ -374,7 +374,7 @@ class TransactionRepositoryTest {
         // Since testTransaction has date "2024-01-15" and range is "2024-01-01" to "2024-01-31", it
         // should be included
         assertEquals(1, result.size(), "Should return transaction within date range via fallback");
-        assertEquals(testTransactionId, result.get(0).getTransactionId());
+        assertEquals(testTransactionId, result.getFirst().getTransactionId());
     }
 
     @Test

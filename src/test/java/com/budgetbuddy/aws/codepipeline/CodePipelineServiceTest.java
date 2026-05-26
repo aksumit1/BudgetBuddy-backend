@@ -119,7 +119,7 @@ class CodePipelineServiceTest {
         // Then
         assertNotNull(pipelines);
         assertEquals(1, pipelines.size());
-        assertEquals(TEST_PIPELINE, pipelines.get(0).name());
+        assertEquals(TEST_PIPELINE, pipelines.getFirst().name());
         verify(codePipelineClient).listPipelines(any(ListPipelinesRequest.class));
     }
 
@@ -161,7 +161,7 @@ class CodePipelineServiceTest {
         // Then
         assertNotNull(executions);
         assertEquals(1, executions.size());
-        assertEquals("execution-123", executions.get(0).pipelineExecutionId());
+        assertEquals("execution-123", executions.getFirst().pipelineExecutionId());
         verify(codePipelineClient).listPipelineExecutions(any(ListPipelineExecutionsRequest.class));
     }
 

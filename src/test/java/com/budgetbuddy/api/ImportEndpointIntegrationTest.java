@@ -409,7 +409,7 @@ class ImportEndpointIntegrationTest {
         assertNotNull(previewResponse);
         assertEquals(1, previewResponse.getTransactions().size());
 
-        final java.util.Map<String, Object> transaction = previewResponse.getTransactions().get(0);
+        final java.util.Map<String, Object> transaction = previewResponse.getTransactions().getFirst();
         assertTrue(transaction.containsKey("transactionTypeIndicator"));
         assertEquals("DEBIT", transaction.get("transactionTypeIndicator"));
     }

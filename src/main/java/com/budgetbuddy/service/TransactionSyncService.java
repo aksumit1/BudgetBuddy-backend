@@ -583,10 +583,10 @@ public class TransactionSyncService {
                     plaidTransaction.getClass().getMethod("getAmount");
             final Object amount = getAmount.invoke(plaidTransaction);
             if (amount != null) {
-                if (amount instanceof Double) {
-                    return java.math.BigDecimal.valueOf((Double) amount);
-                } else if (amount instanceof Number) {
-                    return java.math.BigDecimal.valueOf(((Number) amount).doubleValue());
+                if (amount instanceof Double d) {
+                    return java.math.BigDecimal.valueOf(d);
+                } else if (amount instanceof Number n) {
+                    return java.math.BigDecimal.valueOf(n.doubleValue());
                 }
             }
         } catch (Exception e) {

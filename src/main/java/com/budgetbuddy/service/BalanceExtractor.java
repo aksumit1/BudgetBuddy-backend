@@ -699,7 +699,7 @@ public class BalanceExtractor {
         }
 
         if (matches.size() == 1) {
-            return matches.get(0);
+            return matches.getFirst();
         }
 
         // Sort by position (earlier is better), then by label preference
@@ -725,7 +725,7 @@ public class BalanceExtractor {
                 });
 
         // Return the first (best) match
-        return matches.get(0);
+        return matches.getFirst();
     }
 
     /** Validate that balance is within reasonable bounds */

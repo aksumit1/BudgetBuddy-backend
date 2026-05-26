@@ -93,7 +93,7 @@ class AuditLogRepositoryTest {
         // Then
         assertNotNull(result);
         assertEquals(1, result.size());
-        assertEquals(testUserId, result.get(0).getUserId());
+        assertEquals(testUserId, result.getFirst().getUserId());
     }
 
     @Test
@@ -122,8 +122,8 @@ class AuditLogRepositoryTest {
         assertNotNull(result);
         // Should only include logs within range
         assertEquals(1, result.size());
-        assertTrue(result.get(0).getCreatedAt() >= startTimestamp);
-        assertTrue(result.get(0).getCreatedAt() <= endTimestamp);
+        assertTrue(result.getFirst().getCreatedAt() >= startTimestamp);
+        assertTrue(result.getFirst().getCreatedAt() <= endTimestamp);
     }
 
     @Test

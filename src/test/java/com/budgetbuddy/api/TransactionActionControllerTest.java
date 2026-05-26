@@ -91,7 +91,7 @@ class TransactionActionControllerTest {
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertNotNull(response.getBody());
         assertEquals(1, response.getBody().size());
-        assertEquals("Test Action", response.getBody().get(0).getTitle());
+        assertEquals("Test Action", response.getBody().getFirst().getTitle());
     }
 
     @Test

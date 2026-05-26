@@ -33,20 +33,20 @@ class PdfTemplateV2Test {
             assertNotNull(t.getCardDetection());
             assertFalse(t.getCardDetection().getInstitutionMatch().isEmpty());
             assertFalse(t.getCardDetection().getLastFour().isEmpty());
-            assertTrue(t.getCardDetection().getLastFour().get(0).getFilenameFallback());
+            assertTrue(t.getCardDetection().getLastFour().getFirst().getFilenameFallback());
 
             // Metadata — USB template now uses explicit regex patterns (not
             // label-adjacent) for total extraction so the rule's pattern field
             // is set, not its label field.
             assertNotNull(t.getMetadata());
-            assertNotNull(t.getMetadata().getNewBalance().get(0).getPattern());
-            assertTrue(t.getMetadata().getNewBalance().get(0).getPattern()
+            assertNotNull(t.getMetadata().getNewBalance().getFirst().getPattern());
+            assertTrue(t.getMetadata().getNewBalance().getFirst().getPattern()
                     .contains("New\\s+Balance"));
 
             // Layouts (existing v1 shape, kept)
             assertEquals(1, t.getLayouts().size());
             assertEquals("usb-credit-card-single-line",
-                    t.getLayouts().get(0).getName());
+                    t.getLayouts().getFirst().getName());
         }
     }
 }

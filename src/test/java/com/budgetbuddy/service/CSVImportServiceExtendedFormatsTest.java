@@ -67,7 +67,7 @@ class CSVImportServiceExtendedFormatsTest {
         assertFalse(transactions.isEmpty());
 
         // Verify first transaction (BUY)
-        final CSVImportService.ParsedTransaction buyTx = transactions.get(0);
+        final CSVImportService.ParsedTransaction buyTx = transactions.getFirst();
         assertEquals(
                 LocalDate.of(2025, 12, 19),
                 buyTx.getDate(),
@@ -110,7 +110,7 @@ class CSVImportServiceExtendedFormatsTest {
         final List<CSVImportService.ParsedTransaction> transactions = result.getTransactions();
         assertFalse(transactions.isEmpty(), "Transactions list should not be empty");
 
-        final CSVImportService.ParsedTransaction dividendTx = transactions.get(0);
+        final CSVImportService.ParsedTransaction dividendTx = transactions.getFirst();
         assertEquals(LocalDate.of(2025, 12, 15), dividendTx.getDate());
         assertTrue(
                 dividendTx.getAmount().compareTo(BigDecimal.ZERO) > 0,
@@ -147,7 +147,7 @@ class CSVImportServiceExtendedFormatsTest {
         assertFalse(transactions.isEmpty());
 
         // Verify payment transaction
-        final CSVImportService.ParsedTransaction paymentTx = transactions.get(0);
+        final CSVImportService.ParsedTransaction paymentTx = transactions.getFirst();
         assertEquals(LocalDate.of(2025, 12, 19), paymentTx.getDate());
         assertTrue(
                 paymentTx.getAmount().compareTo(BigDecimal.ZERO) < 0, "Payment should be negative");
@@ -184,7 +184,7 @@ class CSVImportServiceExtendedFormatsTest {
         final List<CSVImportService.ParsedTransaction> transactions = result.getTransactions();
         assertFalse(transactions.isEmpty());
 
-        final CSVImportService.ParsedTransaction tx = transactions.get(0);
+        final CSVImportService.ParsedTransaction tx = transactions.getFirst();
         assertEquals("INR", tx.getCurrencyCode(), "Currency should be detected as INR");
         final BigDecimal expectedAmount = new BigDecimal("500.00");
         final BigDecimal actualAmount = tx.getAmount();
@@ -219,7 +219,7 @@ class CSVImportServiceExtendedFormatsTest {
         final List<CSVImportService.ParsedTransaction> transactions = result.getTransactions();
         assertFalse(transactions.isEmpty());
 
-        final CSVImportService.ParsedTransaction contributionTx = transactions.get(0);
+        final CSVImportService.ParsedTransaction contributionTx = transactions.getFirst();
         assertEquals(LocalDate.of(2025, 12, 19), contributionTx.getDate());
         assertTrue(
                 contributionTx.getAmount().compareTo(BigDecimal.ZERO) > 0,
@@ -248,7 +248,7 @@ class CSVImportServiceExtendedFormatsTest {
         final List<CSVImportService.ParsedTransaction> transactions = result.getTransactions();
         assertFalse(transactions.isEmpty());
 
-        final CSVImportService.ParsedTransaction withdrawalTx = transactions.get(0);
+        final CSVImportService.ParsedTransaction withdrawalTx = transactions.getFirst();
         assertEquals(LocalDate.of(2025, 12, 20), withdrawalTx.getDate());
         assertTrue(
                 withdrawalTx.getAmount().compareTo(BigDecimal.ZERO) < 0,
@@ -274,7 +274,7 @@ class CSVImportServiceExtendedFormatsTest {
         final List<CSVImportService.ParsedTransaction> transactions = result.getTransactions();
         assertFalse(transactions.isEmpty());
 
-        final CSVImportService.ParsedTransaction dividendTx = transactions.get(0);
+        final CSVImportService.ParsedTransaction dividendTx = transactions.getFirst();
         assertEquals(LocalDate.of(2025, 12, 15), dividendTx.getDate());
         assertTrue(
                 dividendTx.getAmount().compareTo(BigDecimal.ZERO) > 0,

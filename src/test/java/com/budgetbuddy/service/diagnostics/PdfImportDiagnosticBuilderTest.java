@@ -72,7 +72,7 @@ class PdfImportDiagnosticBuilderTest {
         assertFalse(d.getPdfTextExcerpt().contains("statement@example.com"),
                 "Email must be redacted");
         assertFalse(
-                d.getParsedRows().get(0).descriptionRedacted.contains("206-685-1140"),
+                d.getParsedRows().getFirst().descriptionRedacted.contains("206-685-1140"),
                 "Phone in description must be redacted");
         assertFalse(d.getRedactionApplied().isEmpty());
     }

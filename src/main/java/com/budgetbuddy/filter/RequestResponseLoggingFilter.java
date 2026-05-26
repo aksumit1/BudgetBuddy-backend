@@ -405,9 +405,7 @@ public class RequestResponseLoggingFilter extends OncePerRequestFilter {
 
         try {
             // Method 1: Try to access as MultipartHttpServletRequest (if already parsed by Spring)
-            if (request instanceof MultipartHttpServletRequest) {
-                final MultipartHttpServletRequest multipartRequest =
-                        (MultipartHttpServletRequest) request;
+            if (request instanceof MultipartHttpServletRequest multipartRequest) {
 
                 // Get all file parts
                 final java.util.Map<String, MultipartFile> fileMap = multipartRequest.getFileMap();
@@ -455,8 +453,8 @@ public class RequestResponseLoggingFilter extends OncePerRequestFilter {
         try {
             // Method 2: Try to read from cached body (might be empty for multipart)
             byte[] bodyBytes = null;
-            if (request instanceof ContentCachingRequestWrapper) {
-                bodyBytes = ((ContentCachingRequestWrapper) request).getContentAsByteArray();
+            if (request instanceof ContentCachingRequestWrapper wrapper) {
+                bodyBytes = wrapper.getContentAsByteArray();
             }
 
             if (bodyBytes != null && bodyBytes.length > 0) {

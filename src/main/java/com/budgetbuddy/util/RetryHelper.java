@@ -47,8 +47,7 @@ public final class RetryHelper {
         }
 
         // SDK service exceptions with retryable status codes
-        if (e instanceof SdkServiceException) {
-            final SdkServiceException sdkException = (SdkServiceException) e;
+        if (e instanceof SdkServiceException sdkException) {
             final int statusCode = sdkException.statusCode();
             // 500, 502, 503, 504 are retryable
             return statusCode >= 500 && statusCode < 600;

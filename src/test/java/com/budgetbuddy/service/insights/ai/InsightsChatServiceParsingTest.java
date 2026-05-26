@@ -43,7 +43,7 @@ class InsightsChatServiceParsingTest {
         final LlmResponse out = svc.parseLlmJson(raw);
         assertEquals("You spent $1200 on dining last month.", out.reply());
         assertEquals(2, out.followUps().size());
-        assertEquals("What about subscriptions?", out.followUps().get(0));
+        assertEquals("What about subscriptions?", out.followUps().getFirst());
     }
 
     @Test
@@ -85,7 +85,7 @@ class InsightsChatServiceParsingTest {
                 + "\"followUps\":[\"  \",\"valid\",\"\"]}";
         final LlmResponse out = svc.parseLlmJson(raw);
         assertEquals(1, out.followUps().size());
-        assertEquals("valid", out.followUps().get(0));
+        assertEquals("valid", out.followUps().getFirst());
     }
 
     @Test

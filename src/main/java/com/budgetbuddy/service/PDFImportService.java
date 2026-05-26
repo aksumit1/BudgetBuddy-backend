@@ -3728,9 +3728,9 @@ public class PDFImportService {
                 if (LOGGER.isInfoEnabled()) {
                     LOGGER.info(
                             "Detected username (all-caps, validated against account holder name): '{}'",
-                            matchingAllCaps.get(0));
+                            matchingAllCaps.getFirst());
                 }
-                return matchingAllCaps.get(0);
+                return matchingAllCaps.getFirst();
             }
 
             // No match found, but still return first all-caps candidate if available
@@ -3739,9 +3739,9 @@ public class PDFImportService {
                 if (LOGGER.isInfoEnabled()) {
                     LOGGER.info(
                             "Detected username (all-caps, no account holder name match): '{}'",
-                            allCapsCandidates.get(0));
+                            allCapsCandidates.getFirst());
                 }
-                return allCapsCandidates.get(0);
+                return allCapsCandidates.getFirst();
             }
             // No all-caps candidates found - return null (don't fall back to mixed-case)
         } else {
@@ -3750,9 +3750,9 @@ public class PDFImportService {
                 if (LOGGER.isInfoEnabled()) {
                     LOGGER.info(
                             "Detected username (all-caps, no account holder name): '{}'",
-                            allCapsCandidates.get(0));
+                            allCapsCandidates.getFirst());
                 }
-                return allCapsCandidates.get(0);
+                return allCapsCandidates.getFirst();
             }
             // No all-caps candidates found - return null (don't fall back to mixed-case)
         }
@@ -4586,8 +4586,8 @@ public class PDFImportService {
                 } catch (NumberFormatException nfe) {
                     // Fall through to header strip + line drop without recording an anchor.
                     if (!out.isEmpty()
-                            && FX_HEADER_PATTERN.matcher(out.get(out.size() - 1)).find()) {
-                        out.remove(out.size() - 1);
+                            && FX_HEADER_PATTERN.matcher(out.getLast()).find()) {
+                        out.removeLast();
                     }
                     continue;
                 }
@@ -4597,10 +4597,10 @@ public class PDFImportService {
                 String currencyDisplay = null;
                 if (!out.isEmpty()) {
                     final Matcher header =
-                            FX_HEADER_PATTERN.matcher(out.get(out.size() - 1));
+                            FX_HEADER_PATTERN.matcher(out.getLast());
                     if (header.find()) {
                         currencyDisplay = header.group(1).trim();
-                        out.remove(out.size() - 1);
+                        out.removeLast();
                     }
                 }
                 final String currencyCode =
@@ -5936,11 +5936,11 @@ public class PDFImportService {
 
                 // Use the first date for the date field, but use the last date's end for
                 // description extraction
-                final int[] firstDateRange = allDateRanges.get(0);
+                final int[] firstDateRange = allDateRanges.getFirst();
                 String dateStr = line.substring(firstDateRange[0], firstDateRange[1]);
 
                 // Use the last (rightmost) amount match
-                final int[] lastAmountRange = amountRanges.get(amountRanges.size() - 1);
+                final int[] lastAmountRange = amountRanges.getLast();
                 // Check if there's a negative sign before the amount match
                 int amountStartPos = lastAmountRange[0];
                 final int amountEndPos = lastAmountRange[1];
@@ -6437,8 +6437,8 @@ public class PDFImportService {
                     amountEnd = extractStart + simpleAmountMatcher.end();
 
                     // Now we have both date and amount, extract description
-                    final int firstDateStart = dateStartPositions.get(0);
-                    final int firstDateEnd = dateEndPositions.get(0);
+                    final int firstDateStart = dateStartPositions.getFirst();
+                    final int firstDateEnd = dateEndPositions.getFirst();
                     final String dateStr = line.substring(firstDateStart, firstDateEnd);
                     row.put(DATE, dateStr);
 
@@ -6613,8 +6613,8 @@ public class PDFImportService {
         }
 
         // Use first date found (transaction date)
-        final int firstDateStart = dateStartPositions.get(0);
-        final int firstDateEnd = dateEndPositions.get(0);
+        final int firstDateStart = dateStartPositions.getFirst();
+        final int firstDateEnd = dateEndPositions.getFirst();
         final String dateStr = line.substring(firstDateStart, firstDateEnd);
         row.put(DATE, dateStr);
 
@@ -7756,7 +7756,7 @@ public class PDFImportService {
         // original joined form — all 75 existing Pattern 7 tests still see
         // `description` as before.
         if (!cleanedDescriptionLines.isEmpty()) {
-            result.put("_amexMerchantLine", cleanedDescriptionLines.get(0));
+            result.put("_amexMerchantLine", cleanedDescriptionLines.getFirst());
             if (cleanedDescriptionLines.size() >= 2) {
                 result.put("_amexCityLine", cleanedDescriptionLines.get(1));
             }

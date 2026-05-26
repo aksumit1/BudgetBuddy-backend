@@ -85,6 +85,6 @@ class UserOwnershipGuardTest {
             return r.userId();
         });
         assertEquals(1, out.size());
-        assertEquals("ok", out.get(0).label());
+        assertEquals("ok", out.getFirst().label());
     }
 }

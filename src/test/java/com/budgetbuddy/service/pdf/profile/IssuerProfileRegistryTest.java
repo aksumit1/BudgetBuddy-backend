@@ -108,7 +108,7 @@ final class IssuerProfileRegistryTest {
 
         final List<IssuerProfile> profiles = registry.registeredProfiles();
         assertEquals(1, profiles.size());
-        assertSame(a, profiles.get(0));
+        assertSame(a, profiles.getFirst());
     }
 
     @Test

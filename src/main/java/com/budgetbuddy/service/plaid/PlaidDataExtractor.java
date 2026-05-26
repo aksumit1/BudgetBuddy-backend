@@ -758,8 +758,8 @@ public class PlaidDataExtractor {
                             plaidTransaction.getClass().getMethod("getAmount");
                     final Object amount = getAmount.invoke(plaidTransaction);
                     java.math.BigDecimal rawAmount = null;
-                    if (amount != null && amount instanceof Number) {
-                        rawAmount = java.math.BigDecimal.valueOf(((Number) amount).doubleValue());
+                    if (amount instanceof Number n) {
+                        rawAmount = java.math.BigDecimal.valueOf(n.doubleValue());
                     }
 
                     // Normalize amount (try to get account if possible)

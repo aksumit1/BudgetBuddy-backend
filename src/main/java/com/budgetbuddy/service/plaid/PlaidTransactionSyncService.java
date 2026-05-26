@@ -364,8 +364,8 @@ public class PlaidTransactionSyncService {
                 final java.lang.reflect.Method getDate =
                         plaidTransaction.getClass().getMethod("getDate");
                 final Object date = getDate.invoke(plaidTransaction);
-                if (date != null && date instanceof LocalDate) {
-                    return ((LocalDate) date).format(DATE_FORMATTER);
+                if (date instanceof LocalDate localDate) {
+                    return localDate.format(DATE_FORMATTER);
                 }
             } catch (Exception e) {
                 if (LOGGER.isDebugEnabled()) {
@@ -636,8 +636,8 @@ public class PlaidTransactionSyncService {
             } else {
                 final Object amount =
                         plaidTransaction.getClass().getMethod("getAmount").invoke(plaidTransaction);
-                if (amount instanceof Number) {
-                    raw = ((Number) amount).doubleValue();
+                if (amount instanceof Number n) {
+                    raw = n.doubleValue();
                 }
             }
         } catch (Exception e) {
@@ -669,8 +669,8 @@ public class PlaidTransactionSyncService {
                     plaidTransaction.getClass().getMethod("getDate");
             final Object date = getDate.invoke(plaidTransaction);
             if (date != null) {
-                if (date instanceof LocalDate) {
-                    return ((LocalDate) date).format(DATE_FORMATTER);
+                if (date instanceof LocalDate localDate) {
+                    return localDate.format(DATE_FORMATTER);
                 } else {
                     return date.toString();
                 }

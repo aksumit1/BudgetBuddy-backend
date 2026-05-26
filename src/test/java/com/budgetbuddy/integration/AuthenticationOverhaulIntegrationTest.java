@@ -154,7 +154,7 @@ class AuthenticationOverhaulIntegrationTest {
         // Given
         final String userId = UUID.randomUUID().toString();
         final java.util.List<String> codes = mfaService.generateBackupCodes(userId);
-        final String codeToVerify = codes.get(0);
+        final String codeToVerify = codes.getFirst();
 
         // When
         final boolean isValid = mfaService.verifyBackupCode(userId, codeToVerify);

@@ -294,7 +294,7 @@ class TransactionActionServiceTest {
         // Then
         assertNotNull(result);
         assertEquals(1, result.size());
-        assertEquals("Test Action", result.get(0).getTitle());
+        assertEquals("Test Action", result.getFirst().getTitle());
     }
 
     @Test
@@ -327,6 +327,6 @@ class TransactionActionServiceTest {
         // Then
         assertNotNull(result);
         assertEquals(1, result.size());
-        assertEquals("Test Action", result.get(0).getTitle());
+        assertEquals("Test Action", result.getFirst().getTitle());
     }
 }

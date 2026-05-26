@@ -311,7 +311,7 @@ class FinancialInsightsRealWorldScenarioTest {
         assertFalse(alerts.isEmpty(), "Should detect high interest on credit card");
 
         // Verify interest cost calculation
-        final HighInterestAlert alert = alerts.get(0);
+        final HighInterestAlert alert = alerts.getFirst();
         assertTrue(
                 alert.getAnnualInterestCost().compareTo(BigDecimal.valueOf(3000)) > 0,
                 "Should calculate high annual interest cost");

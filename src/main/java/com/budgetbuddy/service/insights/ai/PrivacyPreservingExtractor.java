@@ -566,8 +566,8 @@ public class PrivacyPreservingExtractor {
             }
             final List<String> sorted = spendingByMonth.keySet().stream().sorted().toList();
             try {
-                final LocalDate first = LocalDate.parse(sorted.get(0) + "-01");
-                final LocalDate last = LocalDate.parse(sorted.get(sorted.size() - 1) + "-01");
+                final LocalDate first = LocalDate.parse(sorted.getFirst() + "-01");
+                final LocalDate last = LocalDate.parse(sorted.getLast() + "-01");
                 return ChronoUnit.MONTHS.between(first, last) + 1;
             } catch (final Exception ignored) {
                 return spendingByMonth.size();

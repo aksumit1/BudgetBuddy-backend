@@ -308,7 +308,7 @@ class PlaidDeduplicationTest {
                                 }
                                 if (plaidTx.getCategory() != null
                                         && !plaidTx.getCategory().isEmpty()) {
-                                    txTable.setCategoryPrimary(plaidTx.getCategory().get(0));
+                                    txTable.setCategoryPrimary(plaidTx.getCategory().getFirst());
                                 } else {
                                     txTable.setCategoryPrimary("other");
                                 }
@@ -408,7 +408,7 @@ class PlaidDeduplicationTest {
                                 }
                                 if (plaidTx.getCategory() != null
                                         && !plaidTx.getCategory().isEmpty()) {
-                                    txTable.setCategoryPrimary(plaidTx.getCategory().get(0));
+                                    txTable.setCategoryPrimary(plaidTx.getCategory().getFirst());
                                 } else {
                                     txTable.setCategoryPrimary("other");
                                 }

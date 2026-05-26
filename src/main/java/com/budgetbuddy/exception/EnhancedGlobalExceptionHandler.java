@@ -430,9 +430,9 @@ public class EnhancedGlobalExceptionHandler {
             return handleClientAbortException(
                     (org.apache.catalina.connector.ClientAbortException) ex, request);
         }
-        if (ex instanceof HttpMediaTypeNotSupportedException) {
+        if (ex instanceof HttpMediaTypeNotSupportedException httpMediaTypeNotSupportedException) {
             return handleHttpMediaTypeNotSupportedException(
-                    (HttpMediaTypeNotSupportedException) ex, request);
+                    httpMediaTypeNotSupportedException, request);
         }
 
         String sanitizedMessage = messageUtil.getErrorMessage("internal.server.error");

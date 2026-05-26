@@ -46,8 +46,7 @@ public class CacheMonitoringService {
         try {
             for (final String cacheName : cacheManager.getCacheNames()) {
                 final org.springframework.cache.Cache cache = cacheManager.getCache(cacheName);
-                if (cache instanceof CaffeineCache) {
-                    final CaffeineCache caffeineCache = (CaffeineCache) cache;
+                if (cache instanceof CaffeineCache caffeineCache) {
                     final Cache<?, ?> nativeCache = caffeineCache.getNativeCache();
                     final CacheStats cacheStats = nativeCache.stats();
 
@@ -80,8 +79,7 @@ public class CacheMonitoringService {
 
         try {
             final org.springframework.cache.Cache cache = cacheManager.getCache(cacheName);
-            if (cache instanceof CaffeineCache) {
-                final CaffeineCache caffeineCache = (CaffeineCache) cache;
+            if (cache instanceof CaffeineCache caffeineCache) {
                 final Cache<?, ?> nativeCache = caffeineCache.getNativeCache();
                 final CacheStats cacheStats = nativeCache.stats();
 

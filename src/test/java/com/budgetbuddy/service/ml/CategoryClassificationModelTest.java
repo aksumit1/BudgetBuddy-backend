@@ -226,7 +226,7 @@ class CategoryClassificationModelTest {
         assertNotNull(result);
         assertTrue(result.topPredictions.size() <= 3);
         if (!result.topPredictions.isEmpty()) {
-            assertEquals(GROCERIES, result.topPredictions.get(0).category);
+            assertEquals(GROCERIES, result.topPredictions.getFirst().category);
         }
     }
 

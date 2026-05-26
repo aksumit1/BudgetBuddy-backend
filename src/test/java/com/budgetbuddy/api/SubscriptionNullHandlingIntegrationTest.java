@@ -365,7 +365,7 @@ public class SubscriptionNullHandlingIntegrationTest {
                 "Should have 1 subscription (all required fields present)");
 
         // CRITICAL: Verify subscription object itself is not null (not null field values)
-        final Subscription sub = subscriptions.get(0);
+        final Subscription sub = subscriptions.getFirst();
         assertNotNull(sub, "Subscription object should not be null");
         assertNotNull(sub.getSubscriptionId(), "Subscription ID should not be null");
         assertNotNull(sub.getStartDate(), "Start date should not be null");
@@ -498,7 +498,7 @@ public class SubscriptionNullHandlingIntegrationTest {
         // Then: Should not be null
         assertNotNull(subscriptions, "Subscriptions list should not be null");
         assertEquals(1, subscriptions.size(), "Should have 1 subscription");
-        assertNotNull(subscriptions.get(0), "Subscription should not be null");
+        assertNotNull(subscriptions.getFirst(), "Subscription should not be null");
     }
 
     @Test
@@ -543,7 +543,7 @@ public class SubscriptionNullHandlingIntegrationTest {
         assertEquals(1, subscriptions.size(), "Should have 1 subscription");
 
         // CRITICAL: Verify subscription object is not null
-        final Subscription subscriptionObj = subscriptions.get(0);
+        final Subscription subscriptionObj = subscriptions.getFirst();
         assertNotNull(subscriptionObj, "Subscription object should not be null");
         assertNotNull(subscriptionObj.getSubscriptionId(), "Subscription ID should not be null");
         assertNotNull(subscriptionObj.getMerchantName(), "Merchant name should not be null");

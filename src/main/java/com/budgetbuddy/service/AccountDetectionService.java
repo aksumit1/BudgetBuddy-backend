@@ -4262,7 +4262,7 @@ public class AccountDetectionService {
                         candidate.isContextual);
             }
         }
-        final NameCandidate best = validCandidates.get(0);
+        final NameCandidate best = validCandidates.getFirst();
         if (LOGGER.isDebugEnabled()) {
             LOGGER.debug(
                     "Selected account holder name '{}' from {} candidates (score={}, pattern={}, priority={})",

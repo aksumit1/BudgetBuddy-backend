@@ -158,8 +158,8 @@ class SyncIntegrationTest {
 
         // Then
         assertEquals(1, actions.size());
-        assertEquals("Review transaction", actions.get(0).getTitle());
-        assertEquals("HIGH", actions.get(0).getPriority());
+        assertEquals("Review transaction", actions.getFirst().getTitle());
+        assertEquals("HIGH", actions.getFirst().getPriority());
     }
 
     @Test

@@ -68,7 +68,7 @@ public class CloudFormationService {
 
             final List<Stack> stacks = response.stacks();
             if (stacks != null && !stacks.isEmpty()) {
-                final Stack firstStack = stacks.get(0);
+                final Stack firstStack = stacks.getFirst();
                 if (firstStack != null && firstStack.stackStatus() != null) {
                     return firstStack.stackStatusAsString();
                 }

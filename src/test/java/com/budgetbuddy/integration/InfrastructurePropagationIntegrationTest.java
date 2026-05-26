@@ -491,7 +491,7 @@ class InfrastructurePropagationIntegrationTest {
                                 BatchGetProjectsRequest.builder().names(projectName).build());
 
                 if (!response.projects().isEmpty()) {
-                    final Project project = response.projects().get(0);
+                    final Project project = response.projects().getFirst();
 
                     // Then
                     assertNotNull(

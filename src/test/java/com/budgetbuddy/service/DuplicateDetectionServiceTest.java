@@ -99,7 +99,7 @@ class DuplicateDetectionServiceTest {
         assertTrue(duplicates.containsKey(0), "Should detect duplicate with high similarity");
         assertFalse(duplicates.get(0).isEmpty());
         assertTrue(
-                duplicates.get(0).get(0).getSimilarity() >= 0.85,
+                duplicates.get(0).getFirst().getSimilarity() >= 0.85,
                 "Similarity should be >= 0.85 for same description, date, merchant, and very similar amount");
     }
 
@@ -129,7 +129,7 @@ class DuplicateDetectionServiceTest {
         assertTrue(
                 duplicates.isEmpty()
                         || (duplicates.containsKey(0)
-                                && duplicates.get(0).get(0).getSimilarity() < 0.85),
+                                && duplicates.get(0).getFirst().getSimilarity() < 0.85),
                 "Recurring transactions should not be detected as duplicates");
     }
 
@@ -256,7 +256,7 @@ class DuplicateDetectionServiceTest {
         assertTrue(
                 duplicates.isEmpty()
                         || (duplicates.containsKey(0)
-                                && duplicates.get(0).get(0).getSimilarity() < 0.85),
+                                && duplicates.get(0).getFirst().getSimilarity() < 0.85),
                 "Low similarity transactions should not be detected as duplicates");
     }
 

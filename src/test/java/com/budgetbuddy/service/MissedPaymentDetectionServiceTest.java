@@ -67,7 +67,7 @@ class MissedPaymentDetectionServiceTest {
 
         final List<MissedPaymentAlert> alerts = svc.detectMissedPayments(USER);
         assertEquals(1, alerts.size(), "Overdue alert must fire when no matching payment exists");
-        assertEquals(AlertType.OVERDUE, alerts.get(0).getType());
+        assertEquals(AlertType.OVERDUE, alerts.getFirst().getType());
     }
 
     @Test
@@ -134,7 +134,7 @@ class MissedPaymentDetectionServiceTest {
 
         final List<MissedPaymentAlert> alerts = svc.detectMissedPayments(USER);
         assertEquals(1, alerts.size());
-        assertEquals(AlertType.AT_RISK, alerts.get(0).getType());
+        assertEquals(AlertType.AT_RISK, alerts.getFirst().getType());
     }
 
     private static TransactionActionTable pastDueAction(

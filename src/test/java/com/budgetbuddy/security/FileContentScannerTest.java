@@ -206,7 +206,7 @@ class FileContentScannerTest {
         result.addFinding("TEST", "Test finding");
         assertTrue(result.hasFindings());
         assertEquals(1, result.getFindings().size());
-        assertTrue(result.getFindings().get(0).contains("TEST"));
+        assertTrue(result.getFindings().getFirst().contains("TEST"));
 
         result.setSafe(false);
         assertFalse(result.isSafe());

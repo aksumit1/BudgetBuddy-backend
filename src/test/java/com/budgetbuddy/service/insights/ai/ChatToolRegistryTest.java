@@ -108,6 +108,7 @@ class ChatToolRegistryTest {
         final JsonNode parsed = mapper.readTree(
                 registry.listBudgetsOverPercent(input, snap));
         assertEquals(1, parsed.path("count").asInt());
+        // JsonNode array — .get(int) is the element accessor, not a List op.
         assertEquals("dining", parsed.path("budgets").get(0).path("category").asText());
     }
 

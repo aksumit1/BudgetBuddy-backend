@@ -285,7 +285,7 @@ class BatchImportAccountCreationTest {
         assertEquals(1, savedTransactions.size());
         assertEquals(
                 existingAccount.getAccountId(),
-                savedTransactions.get(0).getAccountId(),
+                savedTransactions.getFirst().getAccountId(),
                 "Transaction should be associated with matched account, not wrong accountId");
     }
 
@@ -435,7 +435,7 @@ class BatchImportAccountCreationTest {
         assertEquals(1, savedTransactions.size());
         assertEquals(
                 createdAccountId,
-                savedTransactions.get(0).getAccountId(),
+                savedTransactions.getFirst().getAccountId(),
                 "Transaction should be associated with created account, not wrong accountId");
     }
 }

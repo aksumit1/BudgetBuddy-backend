@@ -172,7 +172,7 @@ public class FuzzyMatchingService {
                     return Double.compare(b.getConfidence(), a.getConfidence());
                 });
 
-        final FuzzyMatch bestMatch = matches.get(0);
+        final FuzzyMatch bestMatch = matches.getFirst();
         if (LOGGER.isDebugEnabled()) {
             LOGGER.debug(
                     "Fuzzy match found: '{}' → '{}' (similarity: {:.2f}, type: {}, confidence: {:.2f})",

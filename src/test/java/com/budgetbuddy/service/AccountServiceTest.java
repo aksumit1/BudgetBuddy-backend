@@ -92,7 +92,7 @@ class AccountServiceTest {
 
         // Then
         assertEquals(1, activeAccounts.size());
-        assertTrue(activeAccounts.get(0).getActive());
+        assertTrue(activeAccounts.getFirst().getActive());
     }
 
     @Test

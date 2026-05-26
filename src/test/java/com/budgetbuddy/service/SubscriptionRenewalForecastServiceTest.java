@@ -34,10 +34,10 @@ final class SubscriptionRenewalForecastServiceTest {
         final List<UpcomingRenewal> rs =
                 new SubscriptionRenewalForecastService(subs).renewalCalendar(USER, 30, NOW);
         assertEquals(1, rs.size());
-        assertEquals("Netflix", rs.get(0).merchantName);
-        assertEquals("2026-06-01", rs.get(0).nextBillingDate);
-        assertEquals(17, rs.get(0).daysUntilRenewal);
-        assertEquals(new BigDecimal("10.99"), rs.get(0).monthlyEquivalent);
+        assertEquals("Netflix", rs.getFirst().merchantName);
+        assertEquals("2026-06-01", rs.getFirst().nextBillingDate);
+        assertEquals(17, rs.getFirst().daysUntilRenewal);
+        assertEquals(new BigDecimal("10.99"), rs.getFirst().monthlyEquivalent);
     }
 
     @Test
@@ -65,7 +65,7 @@ final class SubscriptionRenewalForecastServiceTest {
         // The fast-forwarded date must not be in the past.
         if (!rs.isEmpty()) {
             assertTrue(
-                    LocalDate.parse(rs.get(0).nextBillingDate).isAfter(NOW.minusDays(1)),
+                    LocalDate.parse(rs.getFirst().nextBillingDate).isAfter(NOW.minusDays(1)),
                     "Stale lastPaymentDate must be fast-forwarded past today");
         }
     }
@@ -95,7 +95,7 @@ final class SubscriptionRenewalForecastServiceTest {
         final List<UpcomingRenewal> rs =
                 new SubscriptionRenewalForecastService(subs).annualReviewWindow(USER, 14, NOW);
         assertEquals(1, rs.size());
-        assertEquals("AmazonPrime", rs.get(0).merchantName);
+        assertEquals("AmazonPrime", rs.getFirst().merchantName);
     }
 
     @Test

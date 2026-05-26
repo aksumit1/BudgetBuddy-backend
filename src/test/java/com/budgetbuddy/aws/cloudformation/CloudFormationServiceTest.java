@@ -125,7 +125,7 @@ class CloudFormationServiceTest {
         // Then
         assertNotNull(stacks);
         assertEquals(1, stacks.size());
-        assertEquals("test-stack", stacks.get(0).stackName());
+        assertEquals("test-stack", stacks.getFirst().stackName());
     }
 
     @Test
