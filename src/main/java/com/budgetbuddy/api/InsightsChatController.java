@@ -177,17 +177,22 @@ public class InsightsChatController {
         // 5-minute server-side timeout — long enough for any reasonable
         // chat turn; client should reconnect if it hits this.
         final SseEmitter emitter = new SseEmitter(5L * 60 * 1000);
-        // Run the LLM call on a separate thread so the HTTP thread is
-        // released immediately and the emitter can stream back.
-        new Thread(() -> {
-            try {
-                chatStreamingService.stream(
-                        user.getUserId(), conversationId, message, mode, emitter);
-            } catch (final RuntimeException e) {
-                LOGGER.warn("Streaming worker died: {}", e.getMessage());
-                emitter.completeWithError(e);
-            }
-        }, "insights-chat-stream-" + user.getUserId()).start();
+        // Run the LLM call on a virtual carrier so the HTTP thread is
+        // released immediately and the emitter can stream back. Virtual
+        // threads (JDK 21+) cost a few KB instead of a full OS thread,
+        // so concurrent chat streams scale without saturating the
+        // platform-thread pool.
+        Thread.ofVirtual()
+                .name("insights-chat-stream-" + user.getUserId())
+                .start(() -> {
+                    try {
+                        chatStreamingService.stream(
+                                user.getUserId(), conversationId, message, mode, emitter);
+                    } catch (final RuntimeException e) {
+                        LOGGER.warn("Streaming worker died: {}", e.getMessage());
+                        emitter.completeWithError(e);
+                    }
+                });
         return emitter;
     }
 

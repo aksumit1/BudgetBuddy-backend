@@ -369,6 +369,12 @@ public class AccountController {
         if (request.getCreditLimit() != null) {
             account.setCreditLimit(request.getCreditLimit());
         }
+        if (request.getPaymentDueDate() != null && !request.getPaymentDueDate().isEmpty()) {
+            account.setPaymentDueDate(request.getPaymentDueDate());
+        }
+        if (request.getMinimumPaymentDue() != null) {
+            account.setMinimumPaymentDue(request.getMinimumPaymentDue());
+        }
 
         final Instant now = Instant.now();
         account.setUpdatedAt(now);

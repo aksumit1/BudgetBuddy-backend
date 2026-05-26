@@ -188,7 +188,7 @@ app:
       warming:
         enabled: true
 
-# Logging
+# Logging — structured JSON to match production. See application-production.yml.
 logging:
   level:
     root: INFO
@@ -196,9 +196,10 @@ logging:
     org.springframework.security: WARN
     org.springframework.web: INFO
     software.amazon.awssdk: WARN
-  pattern:
-    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
-    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+  structured:
+    format:
+      console: ecs
+      file: ecs
 
 # Management
 management:

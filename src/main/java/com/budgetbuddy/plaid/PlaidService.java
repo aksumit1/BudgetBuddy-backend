@@ -24,6 +24,7 @@ import com.plaid.client.model.WebhookVerificationKeyGetRequest;
 import com.plaid.client.model.WebhookVerificationKeyGetResponse;
 import com.plaid.client.request.PlaidApi;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import io.github.resilience4j.bulkhead.annotation.Bulkhead;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import io.github.resilience4j.retry.annotation.Retry;
 import java.util.HashMap;
@@ -273,6 +274,7 @@ public class PlaidService {
     /**
      * Create Link Token for Plaid Link Generates a secure link token for Plaid Link initialization
      */
+    @Bulkhead(name = PLAID)
     @CircuitBreaker(name = PLAID)
     @Retry(name = PLAID)
     public LinkTokenCreateResponse createLinkToken(final String userId, final String clientName) {
@@ -426,6 +428,7 @@ public class PlaidService {
     }
 
     /** Exchange Public Token for Access Token */
+    @Bulkhead(name = PLAID)
     @CircuitBreaker(name = PLAID)
     @Retry(name = PLAID)
     public ItemPublicTokenExchangeResponse exchangePublicToken(final String publicToken) {
@@ -465,6 +468,7 @@ public class PlaidService {
     }
 
     /** Get Accounts Retrieves all accounts for an access token */
+    @Bulkhead(name = PLAID)
     @CircuitBreaker(name = PLAID)
     @Retry(name = PLAID)
     public AccountsGetResponse getAccounts(final String accessToken) {
@@ -502,6 +506,7 @@ public class PlaidService {
      * Get Transactions Retrieves transactions for a date range Handles pagination to fetch ALL
      * transactions
      */
+    @Bulkhead(name = PLAID)
     @CircuitBreaker(name = PLAID)
     @Retry(name = PLAID)
     public TransactionsGetResponse getTransactions(
@@ -862,6 +867,7 @@ public class PlaidService {
     }
 
     /** Get Institutions Retrieves supported financial institutions */
+    @Bulkhead(name = PLAID)
     @CircuitBreaker(name = PLAID)
     @Retry(name = PLAID)
     public InstitutionsGetResponse getInstitutions(final String query, final int count) {
@@ -929,6 +935,7 @@ public class PlaidService {
     }
 
     /** Remove Item Removes a Plaid item (disconnects account) */
+    @Bulkhead(name = PLAID)
     @CircuitBreaker(name = PLAID)
     @Retry(name = PLAID)
     public ItemRemoveResponse removeItem(final String accessToken) {
@@ -965,6 +972,7 @@ public class PlaidService {
      * claim from the {@code Plaid-Verification} JWT header. Per Plaid's docs the key is rotated
      * occasionally; callers are responsible for caching with a sensible TTL.
      */
+    @Bulkhead(name = PLAID)
     @CircuitBreaker(name = PLAID)
     @Retry(name = PLAID)
     public WebhookVerificationKeyGetResponse webhookVerificationKeyGet(final String keyId) {

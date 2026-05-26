@@ -1,7 +1,16 @@
 spring:
   application:
     name: budgetbuddy-backend
-  
+
+  # JDK 21+ virtual threads. Tomcat serves every request on a virtual
+  # carrier, and @Async / @Scheduled / TaskExecutor pools all switch to
+  # virtual threads — appropriate for our workload, which is I/O-bound on
+  # Plaid, Stripe, DDB, Redis, S3 and Anthropic. Lifts the
+  # platform-thread ceiling on concurrent SSE/MCP streams + Plaid syncs.
+  threads:
+    virtual:
+      enabled: true
+
   # Redis Configuration
   # CRITICAL: Redis is optional - application will automatically fall back to backend (DynamoDB) when Redis is unavailable
   data:
@@ -562,6 +571,22 @@ resilience4j:
         # Note: Resilience4j retry doesn't support different delays per exception type
         # Rate limit errors will use exponential backoff: 1s, 2s, 4s
         # If rate limit persists, circuit breaker will open after multiple failures
+  # Bulkheads cap in-flight concurrency per external service. Without
+  # them, a Plaid degradation + our retry policy can fan out into a
+  # thread storm — virtual threads make that thread-cheap but the
+  # remote rate-limit still bites. Semaphore-style suits blocking calls.
+  bulkhead:
+    instances:
+      plaid:
+        # 50 simultaneous Plaid calls is well below Plaid's per-item
+        # limits and our Tomcat connection pool. Excess callers wait up
+        # to 500ms then fail fast with BulkheadFullException → AppException.
+        maxConcurrentCalls: 50
+        maxWaitDuration: 500ms
+      stripe:
+        # Stripe API is rate-limited per account; cap at 20 in-flight.
+        maxConcurrentCalls: 20
+        maxWaitDuration: 500ms
 
 # BERT-based semantic category matcher.
 #   bert.model.path      — absolute path to a sentence-transformers ONNX export (model.onnx)

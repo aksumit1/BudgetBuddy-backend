@@ -189,6 +189,10 @@ app:
         enabled: true
 
 # Logging
+# Spring Boot 3.4+ ships built-in structured (JSON) log emitters. Using
+# the ECS format so CloudWatch Logs Insights can `parse @message as`
+# JSON natively and the correlationId MDC entry surfaces as a top-level
+# field (no Logstash encoder dep needed).
 logging:
   level:
     root: WARN
@@ -196,9 +200,10 @@ logging:
     org.springframework.security: ERROR
     org.springframework.web: WARN
     software.amazon.awssdk: ERROR
-  pattern:
-    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
-    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+  structured:
+    format:
+      console: ecs
+      file: ecs
   file:
     name: /var/log/budgetbuddy/application.log
     max-size: 100MB

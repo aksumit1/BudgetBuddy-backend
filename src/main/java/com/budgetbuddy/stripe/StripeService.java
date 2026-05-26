@@ -15,6 +15,7 @@ import com.stripe.param.PaymentIntentCreateParams;
 import com.stripe.param.PaymentMethodCreateParams;
 import com.stripe.param.RefundCreateParams;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import io.github.resilience4j.bulkhead.annotation.Bulkhead;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import io.github.resilience4j.retry.annotation.Retry;
 import java.util.HashMap;
@@ -67,6 +68,7 @@ public class StripeService {
     }
 
     /** Create Payment Intent */
+    @Bulkhead(name = STRIPE)
     @CircuitBreaker(name = STRIPE)
     @Retry(name = STRIPE)
     public PaymentIntent createPaymentIntent(
@@ -118,6 +120,7 @@ public class StripeService {
     }
 
     /** Confirm Payment Intent */
+    @Bulkhead(name = STRIPE)
     @CircuitBreaker(name = STRIPE)
     @Retry(name = STRIPE)
     public PaymentIntent confirmPaymentIntent(
@@ -162,6 +165,7 @@ public class StripeService {
     }
 
     /** Create Customer */
+    @Bulkhead(name = STRIPE)
     @CircuitBreaker(name = STRIPE)
     @Retry(name = STRIPE)
     public Customer createCustomer(
@@ -197,6 +201,7 @@ public class StripeService {
     }
 
     /** Create Payment Method */
+    @Bulkhead(name = STRIPE)
     @CircuitBreaker(name = STRIPE)
     @Retry(name = STRIPE)
     public PaymentMethod createPaymentMethod(
@@ -251,6 +256,7 @@ public class StripeService {
     }
 
     /** Refund Payment */
+    @Bulkhead(name = STRIPE)
     @CircuitBreaker(name = STRIPE)
     @Retry(name = STRIPE)
     public Refund createRefund(final String chargeId, final Long amount, final String reason) {
