@@ -231,12 +231,12 @@ public class TransactionAnomalyService {
                 .filter(tx -> tx.getTransactionDate() != null
                         && tx.getTransactionDate().compareTo(analysisStart.toString()) >= 0
                         && tx.getTransactionDate().compareTo(today.toString()) <= 0)
-                .collect(Collectors.toList());
+                .toList();
         final List<TransactionTable> historical = ctx.transactions().stream()
                 .filter(tx -> tx.getTransactionDate() != null
                         && tx.getTransactionDate().compareTo(historicalStart.toString()) >= 0
                         && tx.getTransactionDate().compareTo(analysisStart.toString()) < 0)
-                .collect(Collectors.toList());
+                .toList();
 
         return runDetection(ctx.userId(), recent, historical);
     }
@@ -316,7 +316,7 @@ public class TransactionAnomalyService {
                                                 && tx.getAmount().compareTo(BigDecimal.ZERO) < 0)
                         .filter(tx -> tx.getDeletedAt() == null)
                         .filter(tx -> tx.getIsHidden() == null || !tx.getIsHidden())
-                        .collect(Collectors.toList());
+                        .toList();
 
         final List<TransactionTable> historicalExpenses =
                 historicalTransactions.stream()
@@ -326,7 +326,7 @@ public class TransactionAnomalyService {
                                                 && tx.getAmount().compareTo(BigDecimal.ZERO) < 0)
                         .filter(tx -> tx.getDeletedAt() == null)
                         .filter(tx -> tx.getIsHidden() == null || !tx.getIsHidden())
-                        .collect(Collectors.toList());
+                        .toList();
 
         if (recentExpenses.isEmpty()) {
             return Collections.emptyList();
@@ -363,7 +363,7 @@ public class TransactionAnomalyService {
                                                                 a.getMerchantName(),
                                                                 a.getCategory(),
                                                                 a.getAmount())))
-                                .collect(Collectors.toList());
+                                .toList();
                 if (LOGGER.isDebugEnabled()) {
                     LOGGER.debug(
                             "Suppressed {}/{} anomalies via user dismiss list",
@@ -396,7 +396,7 @@ public class TransactionAnomalyService {
                                 .thenComparing(
                                         (TransactionAnomaly a) -> a.getAmount().abs(),
                                         Comparator.reverseOrder()))
-                .collect(Collectors.toList());
+                .toList();
         // AI-3: optionally let the LLM advisor personalise reason strings.
         // Wrapped in try/catch — any failure leaves the deterministic reason
         // unchanged so the user always sees *something*.
@@ -459,7 +459,7 @@ public class TransactionAnomalyService {
         final List<BigDecimal> amounts =
                 historicalExpenses.stream()
                         .map(tx -> tx.getAmount().abs())
-                        .collect(Collectors.toList());
+                        .toList();
 
         final BigDecimal mean = calculateMean(amounts);
         final BigDecimal stdDev = calculateStandardDeviation(amounts, mean);
@@ -751,7 +751,7 @@ public class TransactionAnomalyService {
                 historicalExpenses.stream()
                         .map(tx -> tx.getAmount().abs())
                         .sorted()
-                        .collect(Collectors.toList());
+                        .toList();
 
         final BigDecimal median = calculateMedian(amounts);
         final double scaledAmount = amountThresholdMultiplier() * currentSensitivity();

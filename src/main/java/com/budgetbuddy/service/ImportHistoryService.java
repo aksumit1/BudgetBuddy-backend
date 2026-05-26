@@ -235,14 +235,14 @@ public class ImportHistoryService {
         return tables.stream()
                 .map(this::toModel)
                 .filter(Objects::nonNull)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     /** Get import history by status */
     public List<ImportHistory> getImportHistoryByStatus(final String userId, final String status) {
         return getUserImportHistory(userId).stream()
                 .filter(h -> status.equals(h.getStatus()))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     /** Get resumable imports for a user */
@@ -250,7 +250,7 @@ public class ImportHistoryService {
         return getUserImportHistory(userId).stream()
                 .filter(ImportHistory::isCanResume)
                 .filter(h -> PARTIAL.equals(h.getStatus()))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     /** Resume a partial import */

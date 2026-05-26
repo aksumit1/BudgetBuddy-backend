@@ -61,6 +61,6 @@ public class CustomUserDetailsService implements UserDetailsService {
         }
         return roles.stream()
                 .map(role -> new SimpleGrantedAuthority("ROLE_" + role.toUpperCase(Locale.ROOT)))
-                .collect(Collectors.toList());
+                .toList();
     }
 }

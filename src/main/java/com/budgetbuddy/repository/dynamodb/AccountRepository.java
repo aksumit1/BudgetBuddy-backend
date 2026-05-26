@@ -635,7 +635,7 @@ public class AccountRepository {
                                                 .putRequest(PutRequest.builder().item(item).build())
                                                 .build();
                                     })
-                            .collect(Collectors.toList());
+                            .toList();
 
             final Map<String, List<WriteRequest>> requestItems = new HashMap<>();
             requestItems.put(this.tableName, writeRequests);
@@ -690,7 +690,7 @@ public class AccountRepository {
                                                                 .build())
                                                 .build();
                                     })
-                            .collect(Collectors.toList());
+                            .toList();
 
             final Map<String, List<WriteRequest>> requestItems = new HashMap<>();
             requestItems.put(this.tableName, writeRequests);

@@ -583,7 +583,7 @@ public class TransactionRepository {
             LOGGER.warn("UserIdGoalIdIndex GSI not found. Falling back to filtering in memory.");
             return findByUserIdCapped(userId).stream()
                     .filter(tx -> goalId.equals(tx.getGoalId()))
-                    .collect(Collectors.toList());
+                    .toList();
         } catch (Exception e) {
             if (LOGGER.isErrorEnabled()) {
                 LOGGER.error(
@@ -592,7 +592,7 @@ public class TransactionRepository {
             // Fallback to filtering in memory
             return findByUserIdCapped(userId).stream()
                     .filter(tx -> goalId.equals(tx.getGoalId()))
-                    .collect(Collectors.toList());
+                    .toList();
         }
     }
 
@@ -1211,7 +1211,7 @@ public class TransactionRepository {
                                             .item(schema.itemToMap(t, true))
                                             .build())
                                     .build())
-                            .collect(Collectors.toList());
+                            .toList();
 
             final Map<String, List<WriteRequest>> requestItems = new HashMap<>();
             requestItems.put(this.tableName, writeRequests);
@@ -1265,7 +1265,7 @@ public class TransactionRepository {
                                                 AttributeValue.builder().s(id).build());
                                         return key;
                                     })
-                            .collect(Collectors.toList());
+                            .toList();
 
             final KeysAndAttributes keysAndAttributes =
                     KeysAndAttributes.builder().keys(keys).build();
@@ -1355,7 +1355,7 @@ public class TransactionRepository {
                                                                 .build())
                                                 .build();
                                     })
-                            .collect(Collectors.toList());
+                            .toList();
 
             final Map<String, List<WriteRequest>> requestItems = new HashMap<>();
             requestItems.put(this.tableName, writeRequests);

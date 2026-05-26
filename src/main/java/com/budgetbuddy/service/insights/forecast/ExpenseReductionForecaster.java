@@ -61,7 +61,7 @@ public class ExpenseReductionForecaster {
 
         return predictions.stream()
                 .sorted(Comparator.comparing(PredictedExpenseReduction::getProbability).reversed())
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private List<PredictedExpenseReduction> subscriptionPredictions(
@@ -82,7 +82,7 @@ public class ExpenseReductionForecaster {
                         return desc.contains(name) || merchant.contains(name);
                     })
                     .sorted(Comparator.comparing(TransactionTable::getTransactionDate).reversed())
-                    .collect(Collectors.toList());
+                    .toList();
 
             if (subscriptionTx.size() < 3) {
                 continue;

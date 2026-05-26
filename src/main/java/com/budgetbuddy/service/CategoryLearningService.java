@@ -300,7 +300,7 @@ public class CategoryLearningService {
 
             return customMappingTable.query(queryConditional).items().stream()
                     .filter(m -> m.getIsActive() != null && m.getIsActive())
-                    .collect(Collectors.toList());
+                    .toList();
         } catch (Exception e) {
             if (LOGGER.isErrorEnabled()) {
                 LOGGER.error("Failed to get user custom mappings: {}", e.getMessage(), e);

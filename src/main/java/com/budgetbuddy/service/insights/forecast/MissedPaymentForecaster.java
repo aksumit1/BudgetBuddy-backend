@@ -59,7 +59,7 @@ public class MissedPaymentForecaster {
                         return desc.contains(name) || merchant.contains(name);
                     })
                     .sorted(Comparator.comparing(TransactionTable::getTransactionDate))
-                    .collect(Collectors.toList());
+                    .toList();
             if (payments.size() < 3) {
                 continue;
             }
@@ -87,6 +87,6 @@ public class MissedPaymentForecaster {
         }
         return predictions.stream()
                 .sorted(Comparator.comparing(PredictedMissedPayment::getRiskProbability).reversed())
-                .collect(Collectors.toList());
+                .toList();
     }
 }

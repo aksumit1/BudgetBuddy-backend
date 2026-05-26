@@ -381,7 +381,7 @@ public class CategoryClassificationModel {
         final List<Map.Entry<String, Double>> sorted =
                 categoryScores.entrySet().stream()
                         .sorted((a, b) -> Double.compare(b.getValue(), a.getValue()))
-                        .collect(Collectors.toList());
+                        .toList();
 
         final String bestCategory = sorted.get(0).getKey();
         final double bestScore = sorted.get(0).getValue();
@@ -395,7 +395,7 @@ public class CategoryClassificationModel {
                 sorted.stream()
                         .limit(3)
                         .map(e -> new CategoryScore(e.getKey(), e.getValue() / maxPossibleScore))
-                        .collect(Collectors.toList());
+                        .toList();
 
         LOGGER.debug(
                 "ML Prediction: category='{}', confidence={:.2f}, top3={}",

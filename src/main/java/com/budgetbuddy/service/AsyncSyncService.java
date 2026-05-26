@@ -94,7 +94,7 @@ public class AsyncSyncService {
                                                     try {
                                                         return batch.stream()
                                                                 .map(processor)
-                                                                .collect(Collectors.toList());
+                                                                .toList();
                                                     } catch (Exception e) {
                                                         if (LOGGER.isErrorEnabled()) {
                                                             LOGGER.error(
@@ -106,7 +106,7 @@ public class AsyncSyncService {
                                                     }
                                                 },
                                                 executor))
-                        .collect(Collectors.toList());
+                        .toList();
 
         // Combine all batch results
         return CompletableFuture.allOf(batchFutures.toArray(new CompletableFuture<?>[0]))
@@ -127,7 +127,7 @@ public class AsyncSyncService {
                                                         return java.util.stream.Stream.empty();
                                                     }
                                                 })
-                                        .collect(Collectors.toList()));
+                                        .toList());
     }
 
     /** Process items in parallel batches with default batch size */
@@ -156,7 +156,7 @@ public class AsyncSyncService {
         for (final List<T> batch : batches) {
             try {
                 final List<R> batchResults =
-                        batch.stream().map(processor).collect(Collectors.toList());
+                        batch.stream().map(processor).toList();
                 results.addAll(batchResults);
             } catch (Exception e) {
                 if (LOGGER.isErrorEnabled()) {

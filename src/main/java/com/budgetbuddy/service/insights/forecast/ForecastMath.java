@@ -149,7 +149,7 @@ public final class ForecastMath {
                 .sorted(Comparator.comparing(TransactionTable::getTransactionDate))
                 .map(tx -> tx.getAmount() != null
                         ? tx.getAmount().abs() : BigDecimal.ZERO)
-                .collect(Collectors.toList());
+                .toList();
         return analyzeAmountTrend(amounts);
     }
 
@@ -171,13 +171,13 @@ public final class ForecastMath {
             }
         }
         final List<String> sortedMonths = monthlyCounts.keySet().stream()
-                .sorted().collect(Collectors.toList());
+                .sorted().toList();
         if (sortedMonths.size() < 2) {
             return new TrendAnalysis(0.0, 0.0);
         }
         final List<BigDecimal> counts = sortedMonths.stream()
                 .map(m -> BigDecimal.valueOf(monthlyCounts.get(m)))
-                .collect(Collectors.toList());
+                .toList();
         return analyzeAmountTrend(counts);
     }
 
@@ -315,7 +315,7 @@ public final class ForecastMath {
                 .filter(tx -> accountId.equals(tx.getAccountId()))
                 .map(tx -> tx.getAmount() != null ? tx.getAmount().abs() : BigDecimal.ZERO)
                 .limit(12)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     /**

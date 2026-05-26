@@ -184,7 +184,7 @@ public class GoalAnalyticsService {
                                 tx ->
                                         tx.getAmount() != null
                                                 && tx.getAmount().compareTo(BigDecimal.ZERO) > 0)
-                        .collect(Collectors.toList());
+                        .toList();
 
         // Calculate average monthly contribution
         final BigDecimal totalContributions =
@@ -339,7 +339,7 @@ public class GoalAnalyticsService {
         final java.util.List<BigDecimal> ordered =
                 perMonth.values().stream()
                         .map(v -> v == null ? BigDecimal.ZERO : v)
-                        .collect(Collectors.toList());
+                        .toList();
         final java.util.List<BigDecimal> oldestFirst = new java.util.ArrayList<>(ordered);
         // perMonth is insertion-ordered by parse sequence; sort the keys
         // explicitly to be safe in case data is out-of-order.
@@ -446,7 +446,7 @@ public class GoalAnalyticsService {
                                 tx ->
                                         tx.getAmount() != null
                                                 && tx.getAmount().compareTo(BigDecimal.ZERO) > 0)
-                        .collect(Collectors.toList());
+                        .toList();
 
         if (goalTransactions.isEmpty()) {
             final ContributionInsights empty =

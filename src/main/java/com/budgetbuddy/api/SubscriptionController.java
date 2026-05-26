@@ -427,7 +427,7 @@ public class SubscriptionController {
                     insightsService.detectUnusedSubscriptions(user.getUserId());
 
             final List<Map<String, Object>> response =
-                    insights.stream().map(this::toUnusedInsightMap).collect(Collectors.toList());
+                    insights.stream().map(this::toUnusedInsightMap).toList();
 
             return ResponseEntity.ok(response);
         } catch (Exception e) {
@@ -476,7 +476,7 @@ public class SubscriptionController {
                     insightsService.detectPriceChanges(user.getUserId());
 
             final List<Map<String, Object>> response =
-                    alerts.stream().map(this::toPriceChangeMap).collect(Collectors.toList());
+                    alerts.stream().map(this::toPriceChangeMap).toList();
 
             return ResponseEntity.ok(response);
         } catch (Exception e) {
@@ -520,7 +520,7 @@ public class SubscriptionController {
                     "unused",
                     insightsService.detectUnusedSubscriptions(user.getUserId()).stream()
                             .map(this::toUnusedInsightMap)
-                            .collect(Collectors.toList()));
+                            .toList());
         } catch (Exception e) {
             out.put("unused", List.of());
         }
@@ -529,7 +529,7 @@ public class SubscriptionController {
                     "priceChanges",
                     insightsService.detectPriceChanges(user.getUserId()).stream()
                             .map(this::toPriceChangeMap)
-                            .collect(Collectors.toList()));
+                            .toList());
         } catch (Exception e) {
             out.put("priceChanges", List.of());
         }
@@ -538,7 +538,7 @@ public class SubscriptionController {
                     CANCELLATION_RECOMMENDATIONS,
                     insightsService.getCancellationRecommendations(user.getUserId()).stream()
                             .map(this::toCancellationRecommendationMap)
-                            .collect(Collectors.toList()));
+                            .toList());
         } catch (Exception e) {
             out.put(CANCELLATION_RECOMMENDATIONS, List.of());
         }
@@ -577,7 +577,7 @@ public class SubscriptionController {
             final List<Map<String, Object>> response =
                     recommendations.stream()
                             .map(this::toCancellationRecommendationMap)
-                            .collect(Collectors.toList());
+                            .toList();
 
             return ResponseEntity.ok(response);
         } catch (Exception e) {
@@ -714,7 +714,7 @@ public class SubscriptionController {
                                                     alert.getDaysUntilExpiration(),
                                                     "conversionAmount",
                                                     alert.getConversionAmount()))
-                            .collect(Collectors.toList());
+                            .toList();
 
             return ResponseEntity.ok(response);
         } catch (Exception e) {
@@ -772,14 +772,14 @@ public class SubscriptionController {
                                                     "subscriptions",
                                                     rec.getSubscriptions().stream()
                                                             .map(this::toSubscriptionMap)
-                                                            .collect(Collectors.toList()),
+                                                            .toList(),
                                                     POTENTIAL_SAVINGS,
                                                     rec.getPotentialSavings(),
                                                     "estimatedBundlePrice",
                                                     rec.getEstimatedBundlePrice(),
                                                     "description",
                                                     rec.getDescription()))
-                            .collect(Collectors.toList());
+                            .toList();
 
             return ResponseEntity.ok(response);
         } catch (Exception e) {
@@ -842,7 +842,7 @@ public class SubscriptionController {
                                                     rec.getPotentialSavings(),
                                                     REASON,
                                                     rec.getReason()))
-                            .collect(Collectors.toList());
+                            .toList();
 
             return ResponseEntity.ok(response);
         } catch (Exception e) {
@@ -904,7 +904,7 @@ public class SubscriptionController {
                                                     pred.getReason(),
                                                     "healthScore",
                                                     pred.getHealthScore()))
-                            .collect(Collectors.toList());
+                            .toList();
 
             return ResponseEntity.ok(response);
         } catch (Exception e) {
@@ -959,7 +959,7 @@ public class SubscriptionController {
                                 row.put("monthlySpend", d.getMonthlySpend());
                                 return row;
                             })
-                            .collect(Collectors.toList());
+                            .toList();
             return ResponseEntity.ok(response);
         } catch (RuntimeException ex) {
             throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to compute density: " + ex.getMessage());
@@ -1204,7 +1204,7 @@ public class SubscriptionController {
                             CANCELLATION_RECOMMENDATIONS,
                             optimization.getCancellationRecommendations().stream()
                                     .map(this::toCancellationRecommendationMap)
-                                    .collect(Collectors.toList()),
+                                    .toList(),
                             "bundlingRecommendations",
                             optimization.getBundlingRecommendations().stream()
                                     .map(
@@ -1216,7 +1216,7 @@ public class SubscriptionController {
                                                             rec.getPotentialSavings(),
                                                             "description",
                                                             rec.getDescription()))
-                                    .collect(Collectors.toList()),
+                                    .toList(),
                             "alternativeRecommendations",
                             optimization.getAlternativeRecommendations().stream()
                                     .map(
@@ -1229,7 +1229,7 @@ public class SubscriptionController {
                                                             rec.getAlternativeName(),
                                                             POTENTIAL_SAVINGS,
                                                             rec.getPotentialSavings()))
-                                    .collect(Collectors.toList()),
+                                    .toList(),
                             "trialAlerts",
                             optimization.getTrialAlerts().stream()
                                     .map(
@@ -1240,7 +1240,7 @@ public class SubscriptionController {
                                                                     .getMerchantName(),
                                                             "daysUntilExpiration",
                                                             alert.getDaysUntilExpiration()))
-                                    .collect(Collectors.toList()));
+                                    .toList());
 
             return ResponseEntity.ok(response);
         } catch (Exception e) {

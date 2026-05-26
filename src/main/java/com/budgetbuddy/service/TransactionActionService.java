@@ -374,7 +374,7 @@ public class TransactionActionService {
                                 action ->
                                         action.getUserId() != null
                                                 && action.getUserId().equals(user.getUserId()))
-                        .collect(Collectors.toList());
+                        .toList();
 
         // Optional: Verify transaction exists and belongs to user (for logging/debugging)
         // But don't throw error if transaction doesn't exist - actions can exist before transaction

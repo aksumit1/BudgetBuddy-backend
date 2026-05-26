@@ -67,7 +67,7 @@ public class AnomalyForecaster {
 
         return predictions.stream()
                 .sorted(Comparator.comparing(PredictedAnomaly::getConfidence).reversed())
-                .collect(Collectors.toList());
+                .toList();
     }
 
     // --- category spike ---
@@ -92,7 +92,7 @@ public class AnomalyForecaster {
                     .sorted(Comparator.comparing(TransactionTable::getTransactionDate))
                     .map(tx -> tx.getAmount() != null
                             ? tx.getAmount().abs() : BigDecimal.ZERO)
-                    .collect(Collectors.toList());
+                    .toList();
             final TrendAnalysis trend = ForecastMath.analyzeAmountTrend(amounts);
             if (!(trend.slope > 0 && trend.confidence > props.getMediumConfidence())) {
                 continue;
@@ -127,7 +127,7 @@ public class AnomalyForecaster {
                         && tx.getAmount().compareTo(BigDecimal.ZERO) < 0)
                 .map(tx -> tx.getAmount().abs())
                 .sorted()
-                .collect(Collectors.toList());
+                .toList();
 
         if (amounts.size() < props.getMinDataPoints()) {
             return out;

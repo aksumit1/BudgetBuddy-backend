@@ -103,13 +103,13 @@ public class ExpenseReductionService {
                 .filter(tx -> tx.getTransactionDate() != null
                         && tx.getTransactionDate().compareTo(ninetyAgo.toString()) >= 0
                         && tx.getTransactionDate().compareTo(today.toString()) <= 0)
-                .collect(Collectors.toList());
+                .toList();
         final List<TransactionTable> last30 = last90.stream()
                 .filter(tx -> tx.getTransactionDate().compareTo(thirtyAgo.toString()) >= 0)
-                .collect(Collectors.toList());
+                .toList();
         final List<TransactionTable> historical60 = last90.stream()
                 .filter(tx -> tx.getTransactionDate().compareTo(thirtyAgo.toString()) < 0)
-                .collect(Collectors.toList());
+                .toList();
 
         final List<ExpenseRecommendation> recommendations = new ArrayList<>();
         // Subscriptions come from the context now (pre-fetched by the
@@ -123,7 +123,7 @@ public class ExpenseReductionService {
         return recommendations.stream()
                 .sorted(Comparator.comparing(
                         ExpenseRecommendation::getMonthlySavings, Comparator.reverseOrder()))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     /** Get expense reduction recommendations for a user */
@@ -157,7 +157,7 @@ public class ExpenseReductionService {
                         Comparator.comparing(
                                 ExpenseRecommendation::getMonthlySavings,
                                 Comparator.reverseOrder()))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     /** Legacy fetch + analyse. The context path uses the List variant directly. */
@@ -510,7 +510,7 @@ public class ExpenseReductionService {
                                 tx ->
                                         tx.getCategoryPrimary() != null
                                                 && !tx.getCategoryPrimary().isEmpty())
-                        .collect(Collectors.toList());
+                        .toList();
 
         // Group by category
         final Map<String, List<TransactionTable>> byCategory =

@@ -89,6 +89,6 @@ public class InterestCostForecaster {
         }
         return predictions.stream()
                 .sorted(Comparator.comparing(PredictedInterestCost::getAnnualInterest).reversed())
-                .collect(Collectors.toList());
+                .toList();
     }
 }

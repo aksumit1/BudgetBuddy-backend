@@ -135,7 +135,7 @@ public class HighInterestDetectionService {
         final List<TransactionTable> windowed = ctx.transactions().stream()
                 .filter(tx -> tx.getTransactionDate() != null
                         && tx.getTransactionDate().compareTo(cutoff.toString()) >= 0)
-                .collect(Collectors.toList());
+                .toList();
         return detectFrom(windowed, ctx.accounts());
     }
 
@@ -155,7 +155,7 @@ public class HighInterestDetectionService {
         return alerts.stream()
                 .sorted(Comparator.comparing(
                         HighInterestAlert::getAnnualInterestCost, Comparator.reverseOrder()))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     /**
@@ -188,7 +188,7 @@ public class HighInterestDetectionService {
                                 tx ->
                                         tx.getAmount() != null
                                                 && tx.getAmount().compareTo(BigDecimal.ZERO) < 0)
-                        .collect(Collectors.toList());
+                        .toList();
 
         // Group by account
         final Map<String, List<TransactionTable>> byAccount =

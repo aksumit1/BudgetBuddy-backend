@@ -84,7 +84,7 @@ public class MissedPaymentDetectionService {
                                 (MissedPaymentAlert a) -> a.getSeverity().ordinal())
                         .reversed()
                         .thenComparing(MissedPaymentAlert::getDueDate))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     /** Detect missed payments for a user */
@@ -109,7 +109,7 @@ public class MissedPaymentDetectionService {
                         Comparator.comparing((MissedPaymentAlert a) -> a.getSeverity().ordinal())
                                 .reversed()
                                 .thenComparing(MissedPaymentAlert::getDueDate))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     /** Check TransactionActions for overdue or at-risk payments */
@@ -231,7 +231,7 @@ public class MissedPaymentDetectionService {
                     .filter(tx -> tx.getTransactionDate() != null
                             && tx.getTransactionDate().compareTo(startStr) >= 0
                             && tx.getTransactionDate().compareTo(endStr) <= 0)
-                    .collect(Collectors.toList());
+                    .toList();
         } else {
             windowed = transactionRepository.findByUserIdAndDateRange(
                     userId,
@@ -313,7 +313,7 @@ public class MissedPaymentDetectionService {
         final List<TransactionTable> transactions = rawTransactions.stream()
                 .filter(tx -> tx.getTransactionDate() != null
                         && tx.getTransactionDate().compareTo(cutoff.toString()) >= 0)
-                .collect(Collectors.toList());
+                .toList();
         final LocalDate endDate = asOf;
 
         // Filter to expense transactions
@@ -324,7 +324,7 @@ public class MissedPaymentDetectionService {
                                         tx.getAmount() != null
                                                 && tx.getAmount().compareTo(BigDecimal.ZERO) < 0)
                         .filter(tx -> tx.getIsHidden() == null || !tx.getIsHidden())
-                        .collect(Collectors.toList());
+                        .toList();
 
         // Group by merchant and amount (for recurring bills)
         final Map<String, List<TransactionTable>> byMerchantAndAmount = new HashMap<>();

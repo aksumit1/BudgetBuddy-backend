@@ -78,7 +78,7 @@ public class SubscriptionRepository {
                                     .spliterator(),
                             false)
                     .flatMap(page -> page.items().stream())
-                    .collect(Collectors.toList());
+                    .toList();
             // Belt-and-suspenders IDOR guard — see UserOwnershipGuard javadoc.
             return com.budgetbuddy.security.UserOwnershipGuard.filter(
                     results, userId, SubscriptionTable::getUserId);
@@ -100,7 +100,7 @@ public class SubscriptionRepository {
 
         return findByUserId(userId).stream()
                 .filter(sub -> sub.getActive() != null && sub.getActive())
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @CacheEvict(value = SUBSCRIPTIONS, allEntries = true)

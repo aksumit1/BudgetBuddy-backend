@@ -12,6 +12,7 @@ import com.budgetbuddy.model.dynamodb.UserTable;
 import com.budgetbuddy.repository.dynamodb.TransactionRepository;
 import com.budgetbuddy.service.PlaidCategoryMapper;
 import com.budgetbuddy.service.TransactionService;
+import com.budgetbuddy.util.TableInitializer;
 import java.time.LocalDate;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
@@ -20,6 +21,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
+import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 
 /**
  * Integration tests for Plaid category sync end-to-end Tests the full flow from Plaid sync to
@@ -36,11 +38,17 @@ class PlaidCategoryIntegrationTest {
 
     @Autowired private TransactionRepository transactionRepository;
 
+    @Autowired private DynamoDbClient dynamoDbClient;
+
     private UserTable testUser;
     private AccountTable testAccount;
 
     @BeforeEach
     void setUp() {
+        // When run in isolation, no earlier test seeded the DDB tables this
+        // suite hits. TableInitializer is idempotent.
+        TableInitializer.initializeTables(dynamoDbClient);
+
         // Setup test user and account
         testUser = new UserTable();
         testUser.setUserId("test-user-" + System.currentTimeMillis());

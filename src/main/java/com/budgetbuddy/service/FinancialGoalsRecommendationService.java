@@ -173,7 +173,7 @@ public class FinancialGoalsRecommendationService {
                         Comparator.comparing(
                                 FinancialGoalRecommendation::getPriority,
                                 Comparator.reverseOrder()))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     /**
@@ -187,7 +187,7 @@ public class FinancialGoalsRecommendationService {
         final List<TransactionTable> transactions = ctx.transactions().stream()
                 .filter(tx -> tx.getTransactionDate() != null
                         && tx.getTransactionDate().compareTo(cutoff.toString()) >= 0)
-                .collect(Collectors.toList());
+                .toList();
         return analyzeFromData(transactions, ctx.accounts());
     }
 

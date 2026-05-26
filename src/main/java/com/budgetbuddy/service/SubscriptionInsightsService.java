@@ -319,7 +319,7 @@ public class SubscriptionInsightsService {
                                     return dateB.compareTo(dateA);
                                 })
                                 .limit(3)
-                                .collect(Collectors.toList());
+                                .toList();
                 if (recentTransactions.size() < 2) continue;
                 final BigDecimal averageRecentAmount = recentTransactions.stream()
                         .map(TransactionTable::getAmount)
@@ -382,7 +382,7 @@ public class SubscriptionInsightsService {
                 final List<Subscription> sorted =
                         entry.getValue().stream()
                                 .sorted((a, b) -> a.getAmount().compareTo(b.getAmount()))
-                                .collect(Collectors.toList());
+                                .toList();
 
                 // Recommend canceling more expensive ones
                 for (int i = 1; i < sorted.size(); i++) {
@@ -459,7 +459,7 @@ public class SubscriptionInsightsService {
 
                             return difference.compareTo(tolerance) <= 0;
                         })
-                .collect(Collectors.toList());
+                .toList();
     }
 
     /**

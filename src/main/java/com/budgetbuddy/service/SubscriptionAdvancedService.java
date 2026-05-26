@@ -273,7 +273,7 @@ public class SubscriptionAdvancedService {
                                                 sub.getMerchantName().toLowerCase(Locale.ROOT);
                                         return services.stream().anyMatch(merchant::contains);
                                     })
-                            .collect(Collectors.toList());
+                            .toList();
 
             if (userSubscriptions.size() >= 2) {
                 final BigDecimal currentTotal =
@@ -647,7 +647,7 @@ public class SubscriptionAdvancedService {
                             return difference.compareTo(tolerance) <= 0;
                         })
                 .sorted(Comparator.comparing(TransactionTable::getTransactionDate))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private String normalizeMerchantName(final String merchantName) {

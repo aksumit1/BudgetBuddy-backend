@@ -135,7 +135,7 @@ public class GoalProgressService {
                                 tx ->
                                         tx.getAmount() != null
                                                 && tx.getAmount().compareTo(BigDecimal.ZERO) > 0)
-                        .collect(Collectors.toList());
+                        .toList();
 
         final BigDecimal transactionContributions =
                 goalTransactions.stream()
@@ -170,7 +170,7 @@ public class GoalProgressService {
                             .filter(java.util.Optional::isPresent)
                             .map(java.util.Optional::get)
                             .filter(acc -> acc.getDeletedAt() == null)
-                            .collect(Collectors.toList());
+                            .toList();
             accountContribution =
                     accounts.stream()
                             .filter(
@@ -222,7 +222,7 @@ public class GoalProgressService {
             final List<GoalTable> activeGoals =
                     goalRepository.findByUserId(user.getUserId()).stream()
                             .filter(goal -> goal.getActive() != null && goal.getActive())
-                            .collect(Collectors.toList());
+                            .toList();
 
             if (LOGGER.isInfoEnabled()) {
                 LOGGER.info(

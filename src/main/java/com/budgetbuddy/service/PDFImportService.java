@@ -6163,7 +6163,7 @@ public class PDFImportService {
             return Arrays.stream(line.split("\t"))
                     .map(String::trim)
                     .filter(s -> !s.isEmpty())
-                    .collect(Collectors.toList());
+                    .toList();
         }
 
         // Try pipe
@@ -6171,14 +6171,14 @@ public class PDFImportService {
             return Arrays.stream(line.split("\\|"))
                     .map(String::trim)
                     .filter(s -> !s.isEmpty())
-                    .collect(Collectors.toList());
+                    .toList();
         }
 
         // Try multiple spaces (common in PDF tables)
         if (line.contains("  ")) {
             return Arrays.stream(line.split("\\s+"))
                     .filter(s -> !s.isEmpty())
-                    .collect(Collectors.toList());
+                    .toList();
         }
 
         // Try comma
@@ -6189,7 +6189,7 @@ public class PDFImportService {
         // Default: split on whitespace
         return Arrays.stream(line.split("\\s+"))
                 .filter(s -> !s.isEmpty())
-                .collect(Collectors.toList());
+                .toList();
     }
 
     /**
@@ -6800,7 +6800,7 @@ public class PDFImportService {
         }
         fields.add(currentField.toString().trim());
 
-        return fields.stream().filter(s -> !s.isEmpty()).collect(Collectors.toList());
+        return fields.stream().filter(s -> !s.isEmpty()).toList();
     }
 
     /** Checks if a string looks like a date */

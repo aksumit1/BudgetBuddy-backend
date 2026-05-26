@@ -275,7 +275,7 @@ public class SubscriptionService {
                                 tx ->
                                         tx.getAmount() != null
                                                 && tx.getAmount().compareTo(BigDecimal.ZERO) < 0)
-                        .collect(Collectors.toList());
+                        .toList();
 
         // CRITICAL FIX: Pre-filter transactions by category to focus on subscription-related
         // expenses
@@ -359,7 +359,10 @@ public class SubscriptionService {
 
                                     return false;
                                 })
-                        .collect(Collectors.toList());
+                        // ArrayList: addAll() called below on the pattern-based pass.
+                        // Stream.toList() returns an immutable list, which would
+                        // throw UnsupportedOperationException at line ~388.
+                        .collect(java.util.stream.Collectors.toCollection(java.util.ArrayList::new));
 
         if (LOGGER.isDebugEnabled()) {
             LOGGER.debug(
@@ -903,7 +906,7 @@ public class SubscriptionService {
                     .map(BigDecimal::abs)
                     .distinct()
                     .sorted()
-                    .collect(Collectors.toList());
+                    .toList();
 
             // Compute amount spread (max/min ratio) — bounded variation
             // distinguishes a real subscription with monthly drift (a cell
@@ -1495,7 +1498,7 @@ public class SubscriptionService {
                         subscription ->
                                 subscription.getFrequency()
                                         != null) // Ensure frequency is not null (required)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     /**
@@ -1544,7 +1547,7 @@ public class SubscriptionService {
                             return nextPayment.isAfter(gracePeriodStart)
                                     || nextPayment.isEqual(gracePeriodStart);
                         })
-                .collect(Collectors.toList());
+                .toList();
     }
 
     /**
@@ -1645,7 +1648,7 @@ public class SubscriptionService {
                         .map(tx -> parseDate(tx.getTransactionDate()))
                         .filter(d -> d != null)
                         .sorted()
-                        .collect(Collectors.toList());
+                        .toList();
         if (dates.size() < 2) {
             return false;
         }
@@ -1715,7 +1718,7 @@ public class SubscriptionService {
                         .map(tx -> parseDate(tx.getTransactionDate()))
                         .filter(date -> date != null)
                         .sorted()
-                        .collect(Collectors.toList());
+                        .toList();
 
         if (dates.size() < 2) {
             return null;

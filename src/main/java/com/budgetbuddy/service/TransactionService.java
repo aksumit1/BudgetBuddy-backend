@@ -145,7 +145,7 @@ public class TransactionService {
                                 t != null
                                         && (category.equals(t.getCategoryPrimary())
                                                 || category.equals(t.getCategoryDetailed())))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     /**
@@ -222,7 +222,7 @@ public class TransactionService {
         final List<TransactionTable> accountTransactions =
                 allTransactions.stream()
                         .filter(t -> t != null && accountId.equals(t.getAccountId()))
-                        .collect(Collectors.toList());
+                        .toList();
 
         // Determine account type
         String accountType = account.getAccountType();
@@ -251,7 +251,7 @@ public class TransactionService {
                             t ->
                                     t.getAmount() != null
                                             && t.getAmount().compareTo(BigDecimal.ZERO) > 0)
-                    .collect(Collectors.toList());
+                    .toList();
         } else if (isCreditCardAccount) {
             // For credit card accounts, return positive amounts (payments made TO the credit card)
             // and transactions with payment category
@@ -271,7 +271,7 @@ public class TransactionService {
                                                         t.getCategoryDetailed());
                                 return isPositiveAmount || isPaymentCategory;
                             })
-                    .collect(Collectors.toList());
+                    .toList();
         } else {
             // Not a loan or credit card account - return empty list
             return List.of();
@@ -1597,7 +1597,7 @@ public class TransactionService {
                         .filter(this::isCreditOrLoanAccount)
                         .map(AccountTable::getAccountId)
                         .filter(id -> id != null && !id.isEmpty())
-                        .collect(Collectors.toList());
+                        .toList();
         if (targetAccountIds.isEmpty()) {
             return;
         }

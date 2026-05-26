@@ -111,7 +111,7 @@ public class PdfTemplateMissTracker {
                         Comparator.comparingLong(InstitutionMissRanking::missCount)
                                 .reversed()
                                 .thenComparing(InstitutionMissRanking::institution))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     /** Default window ranking (7 days). */

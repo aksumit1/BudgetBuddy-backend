@@ -84,7 +84,7 @@ public class CloudWatchService {
                                                         .name(e.getKey())
                                                         .value(e.getValue())
                                                         .build())
-                                .collect(Collectors.toList())
+                                .toList()
                         : List.of();
 
         putMetricWithDimensions(metricName, value, StandardUnit.COUNT.toString(), dims);
@@ -105,7 +105,7 @@ public class CloudWatchService {
                                                         .name(e.getKey())
                                                         .value(e.getValue())
                                                         .build())
-                                .collect(Collectors.toList())
+                                .toList()
                         : List.of();
 
         putMetricWithDimensions(metricName, value, unit.toString(), dims);

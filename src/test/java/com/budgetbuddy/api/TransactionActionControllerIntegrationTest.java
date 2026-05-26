@@ -23,6 +23,7 @@ import com.budgetbuddy.repository.dynamodb.TransactionRepository;
 import com.budgetbuddy.service.AuthService;
 import com.budgetbuddy.service.TransactionService;
 import com.budgetbuddy.service.UserService;
+import com.budgetbuddy.util.TableInitializer;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
@@ -38,6 +39,7 @@ import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
+import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 
 /** Integration Tests for TransactionActionController Tests REST API endpoints with MockMvc */
 // PMD's LawOfDemeter is documented as imprecise on chains involving
@@ -86,8 +88,16 @@ class TransactionActionControllerIntegrationTest {
     private TransactionTable testTransaction;
     private String accessToken;
 
+    @Autowired private DynamoDbClient dynamoDbClient;
+
     @BeforeEach
     void setUp() {
+        // When this class is run in isolation (e.g. `mvn test -Dtest=…`),
+        // no earlier test has primed LocalStack with the DynamoDB tables
+        // this controller hits. TableInitializer is idempotent; a second
+        // call from the full-suite run is a cheap no-op.
+        TableInitializer.initializeTables(dynamoDbClient);
+
         // Mock rate limiting services to allow all requests in tests
         org.mockito.Mockito.when(rateLimitService.isAllowed(anyString(), anyString()))
                 .thenReturn(true);
@@ -228,8 +238,7 @@ class TransactionActionControllerIntegrationTest {
                         .getResponse()
                         .getContentAsString();
 
-        final TransactionActionTable createdAction =
-                objectMapper.readValue(createResponse, TransactionActionTable.class);
+        final TransactionActionTable createdAction = parseActionEnvelope(createResponse);
 
         // When - Update the action
         final TransactionActionController.UpdateActionRequest updateRequest =
@@ -274,8 +283,7 @@ class TransactionActionControllerIntegrationTest {
                         .getResponse()
                         .getContentAsString();
 
-        final TransactionActionTable createdAction =
-                objectMapper.readValue(createResponse, TransactionActionTable.class);
+        final TransactionActionTable createdAction = parseActionEnvelope(createResponse);
 
         // When/Then
         mockMvc.perform(
@@ -328,5 +336,19 @@ class TransactionActionControllerIntegrationTest {
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isNotFound());
+    }
+
+    /**
+     * Controller responses are wrapped by {@link
+     * com.budgetbuddy.api.response.ApiResponseWrappingAdvice} as
+     * {@code {"status":"ok","data":{…},"correlationId":…,"timestamp":…}}.
+     * Deserializing the envelope directly into a {@link TransactionActionTable}
+     * silently produces an all-null instance — the URL builder then renders
+     * {@code /actions/null} (or empty), the controller can't bind the path
+     * variable, and Spring returns 404/500. Unwrap {@code data} first.
+     */
+    private TransactionActionTable parseActionEnvelope(final String body) throws Exception {
+        final var data = objectMapper.readTree(body).get("data");
+        return objectMapper.treeToValue(data, TransactionActionTable.class);
     }
 }

@@ -212,7 +212,7 @@ public class InsightsChatController {
                         "lastMessageAt", Instant.ofEpochMilli(s.lastMessageEpochMillis()),
                         "messageCount", s.messageCount(),
                         "lastMessagePreview", s.lastMessagePreview()))
-                .collect(Collectors.toList());
+                .toList();
         return ResponseEntity.ok(Map.of("conversations", serialised));
     }
 
@@ -240,7 +240,7 @@ public class InsightsChatController {
                         "role", m.getRole(),
                         "content", m.getContent(),
                         "createdAt", Instant.ofEpochMilli(m.getCreatedAt())))
-                .collect(Collectors.toList());
+                .toList();
         return ResponseEntity.ok(Map.of(
                 "conversationId", conversationId,
                 "messages", messages));

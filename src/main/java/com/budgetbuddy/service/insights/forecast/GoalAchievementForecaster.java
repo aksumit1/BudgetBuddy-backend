@@ -90,6 +90,6 @@ public class GoalAchievementForecaster {
         return predictions.stream()
                 .sorted(Comparator.comparing(
                         PredictedGoalAchievement::getAchievementProbability).reversed())
-                .collect(Collectors.toList());
+                .toList();
     }
 }

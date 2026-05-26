@@ -81,7 +81,7 @@ public class CrossAccountAnomalyDetector {
                         .filter(t -> t.getDeletedAt() == null)
                         .filter(t -> t.getAmount().signum() < 0) // expenses only
                         .filter(t -> t.getAccountId() != null)
-                        .collect(Collectors.toList());
+                        .toList();
 
         final List<Pattern> results = new ArrayList<>();
         results.addAll(detectSameMerchantBurst(recent));
@@ -134,7 +134,7 @@ public class CrossAccountAnomalyDetector {
                             new ArrayList<>(distinctAccounts),
                             txs.stream()
                                     .map(TransactionTable::getTransactionId)
-                                    .collect(Collectors.toList())));
+                                    .toList()));
         }
         return out;
     }
@@ -181,7 +181,7 @@ public class CrossAccountAnomalyDetector {
                             new ArrayList<>(accounts),
                             txs.stream()
                                     .map(TransactionTable::getTransactionId)
-                                    .collect(Collectors.toList())));
+                                    .toList()));
         }
         return out;
     }

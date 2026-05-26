@@ -47,7 +47,7 @@ public final class UserOwnershipGuard {
         final List<T> out = rows.stream()
                 .filter(r -> r != null)
                 .filter(r -> matches(r, expectedUserId, getOwnerId))
-                .collect(Collectors.toList());
+                .toList();
         return out;
     }
 

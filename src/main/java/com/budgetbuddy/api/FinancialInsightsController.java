@@ -223,7 +223,7 @@ public class FinancialInsightsController {
                                     m.put("recommendation", ins.recommendation());
                                     return m;
                                 })
-                        .collect(Collectors.toList());
+                        .toList();
         return ResponseEntity.ok(response);
     }
 
@@ -431,7 +431,7 @@ public class FinancialInsightsController {
         final List<TransactionAnomaly> anomalies = anomalyService.detectAnomalies(user.getUserId());
 
         final List<Map<String, Object>> response =
-                anomalies.stream().map(this::toAnomalyMap).collect(Collectors.toList());
+                anomalies.stream().map(this::toAnomalyMap).toList();
 
         return ResponseEntity.ok(response);
     }
@@ -456,7 +456,7 @@ public class FinancialInsightsController {
         final List<Map<String, Object>> response =
                 recommendations.stream()
                         .map(this::toExpenseRecommendationMap)
-                        .collect(Collectors.toList());
+                        .toList();
 
         return ResponseEntity.ok(response);
     }
@@ -481,7 +481,7 @@ public class FinancialInsightsController {
         final List<Map<String, Object>> response =
                 recommendations.stream()
                         .map(this::toGoalRecommendationMap)
-                        .collect(Collectors.toList());
+                        .toList();
 
         return ResponseEntity.ok(response);
     }
@@ -504,7 +504,7 @@ public class FinancialInsightsController {
                 missedPaymentService.detectMissedPayments(user.getUserId());
 
         final List<Map<String, Object>> response =
-                alerts.stream().map(this::toMissedPaymentMap).collect(Collectors.toList());
+                alerts.stream().map(this::toMissedPaymentMap).toList();
 
         return ResponseEntity.ok(response);
     }
@@ -527,7 +527,7 @@ public class FinancialInsightsController {
                 highInterestService.detectHighInterest(user.getUserId());
 
         final List<Map<String, Object>> response =
-                alerts.stream().map(this::toHighInterestMap).collect(Collectors.toList());
+                alerts.stream().map(this::toHighInterestMap).toList();
 
         return ResponseEntity.ok(response);
     }
@@ -739,7 +739,7 @@ public class FinancialInsightsController {
                 predictionService.predictAnomalies(historicalTransactions, daysAhead);
 
         final List<Map<String, Object>> response =
-                predictions.stream().map(this::toPredictedAnomalyMap).collect(Collectors.toList());
+                predictions.stream().map(this::toPredictedAnomalyMap).toList();
 
         return ResponseEntity.ok(response);
     }
@@ -787,7 +787,7 @@ public class FinancialInsightsController {
         final List<Map<String, Object>> response =
                 predictions.stream()
                         .map(this::toPredictedExpenseReductionMap)
-                        .collect(Collectors.toList());
+                        .toList();
 
         return ResponseEntity.ok(response);
     }
@@ -855,7 +855,7 @@ public class FinancialInsightsController {
         final List<Map<String, Object>> response =
                 predictions.stream()
                         .map(this::toPredictedGoalAchievementMap)
-                        .collect(Collectors.toList());
+                        .toList();
 
         return ResponseEntity.ok(response);
     }
@@ -897,7 +897,7 @@ public class FinancialInsightsController {
         final List<Map<String, Object>> response =
                 predictions.stream()
                         .map(this::toPredictedMissedPaymentMap)
-                        .collect(Collectors.toList());
+                        .toList();
 
         return ResponseEntity.ok(response);
     }
@@ -940,7 +940,7 @@ public class FinancialInsightsController {
             final List<TransactionTable> accountTx =
                     historicalTransactions.stream()
                             .filter(tx -> account.getAccountId().equals(tx.getAccountId()))
-                            .collect(Collectors.toList());
+                            .toList();
 
             final List<TransactionTable> interestCharges =
                     accountTx.stream()
@@ -962,7 +962,7 @@ public class FinancialInsightsController {
                                                 && tx.getAmount() != null
                                                 && tx.getAmount().compareTo(BigDecimal.ZERO) < 0;
                                     })
-                            .collect(Collectors.toList());
+                            .toList();
 
             if (!interestCharges.isEmpty()) {
                 final BigDecimal totalInterest =
@@ -1003,7 +1003,7 @@ public class FinancialInsightsController {
         final List<Map<String, Object>> response =
                 predictions.stream()
                         .map(this::toPredictedInterestCostMap)
-                        .collect(Collectors.toList());
+                        .toList();
 
         return ResponseEntity.ok(response);
     }
@@ -1064,7 +1064,7 @@ public class FinancialInsightsController {
             final List<TransactionTable> accountTx =
                     historicalTransactions.stream()
                             .filter(tx -> account.getAccountId().equals(tx.getAccountId()))
-                            .collect(Collectors.toList());
+                            .toList();
 
             final List<TransactionTable> interestCharges =
                     accountTx.stream()
@@ -1086,7 +1086,7 @@ public class FinancialInsightsController {
                                                 && tx.getAmount() != null
                                                 && tx.getAmount().compareTo(BigDecimal.ZERO) < 0;
                                     })
-                            .collect(Collectors.toList());
+                            .toList();
 
             if (!interestCharges.isEmpty()) {
                 final BigDecimal totalInterest =
