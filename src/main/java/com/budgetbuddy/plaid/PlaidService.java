@@ -545,12 +545,19 @@ public class PlaidService {
                     endDate,
                     daysBetween);
 
-            // First request
+            // First request. Set count=500 (Plaid's documented per-page max)
+            // up front so we don't pay the round-trip cost of 5+ default-100
+            // pages on big accounts.
+            final int pageSize = 500;
             final TransactionsGetRequest request =
                     new TransactionsGetRequest()
                             .accessToken(accessToken)
                             .startDate(startLocalDate)
-                            .endDate(endLocalDate);
+                            .endDate(endLocalDate)
+                            .options(
+                                    new TransactionsGetRequestOptions()
+                                            .count(pageSize)
+                                            .offset(0));
 
             // Execute request and check response
             final retrofit2.Response<TransactionsGetResponse> httpResponse =
@@ -631,194 +638,119 @@ public class PlaidService {
                 allTransactions.addAll(response.getTransactions());
             }
 
-            // Check if there are more pages using reflection (Plaid SDK structure may vary)
+            // Plaid /transactions/get paginates with count + offset. (Cursors
+            // belong to /transactions/sync — confusing them silently broke
+            // pagination on any account with > pageSize transactions in
+            // older code.) Loop until we've fetched the totalTransactions
+            // count Plaid reported in the first response.
+            final int totalTransactions =
+                    response.getTotalTransactions() != null
+                            ? response.getTotalTransactions()
+                            : allTransactions.size();
+            int offset = allTransactions.size();
             int pageCount = 1;
-            final int maxPages = 100; // Safety limit to prevent infinite loops
-            String nextCursor = null;
+            final int maxPages = 100; // safety: 100 × 500 = 50k transactions
 
-            // Try to get nextCursor using reflection (method name may vary)
-            try {
-                final java.lang.reflect.Method getNextCursorMethod =
-                        response.getClass().getMethod("getNextCursor");
-                final Object cursorObj = getNextCursorMethod.invoke(response);
-                if (cursorObj != null) {
-                    nextCursor = cursorObj.toString();
-                }
-            } catch (NoSuchMethodException e) {
-                // Try alternative method names
-                try {
-                    final java.lang.reflect.Method getCursorMethod =
-                            response.getClass().getMethod("getCursor");
-                    final Object cursorObj = getCursorMethod.invoke(response);
-                    if (cursorObj != null) {
-                        nextCursor = cursorObj.toString();
-                    }
-                } catch (Exception e2) {
-                    if (LOGGER.isDebugEnabled()) {
-                        LOGGER.debug(
-                                "Plaid API response does not have pagination cursor - assuming single page");
-                    }
-                }
-            } catch (Exception e) {
+            while (offset < totalTransactions && pageCount < maxPages) {
+                pageCount++;
                 if (LOGGER.isDebugEnabled()) {
-                    LOGGER.debug("Could not check for pagination cursor: {}", e.getMessage());
-                }
-            }
-
-            // Fetch additional pages if cursor exists
-            while (nextCursor != null && !nextCursor.isEmpty() && pageCount < maxPages) {
-                if (LOGGER.isInfoEnabled()) {
-                    LOGGER.info(
-                            "Plaid: Fetching page {} of transactions (cursor: {})",
-                            pageCount + 1,
-                            nextCursor);
+                    LOGGER.debug(
+                            "Plaid: fetching page {} (offset={}, total={})",
+                            pageCount,
+                            offset,
+                            totalTransactions);
                 }
 
-                try {
-                    // Create request with cursor for next page
-                    final TransactionsGetRequestOptions options =
-                            new TransactionsGetRequestOptions();
-                    // Try to set cursor using reflection
-                    try {
-                        final java.lang.reflect.Method setCursorMethod =
-                                options.getClass().getMethod("cursor", String.class);
-                        setCursorMethod.invoke(options, nextCursor);
-                    } catch (NoSuchMethodException e) {
-                        // Try alternative method
-                        final java.lang.reflect.Method setCursorMethod2 =
-                                options.getClass().getMethod("setCursor", String.class);
-                        setCursorMethod2.invoke(options, nextCursor);
-                    }
+                final TransactionsGetRequest nextRequest =
+                        new TransactionsGetRequest()
+                                .accessToken(accessToken)
+                                .startDate(startLocalDate)
+                                .endDate(endLocalDate)
+                                .options(
+                                        new TransactionsGetRequestOptions()
+                                                .count(pageSize)
+                                                .offset(offset));
 
-                    final TransactionsGetRequest nextRequest =
-                            new TransactionsGetRequest()
-                                    .accessToken(accessToken)
-                                    .startDate(startLocalDate)
-                                    .endDate(endLocalDate)
-                                    .options(options);
+                final retrofit2.Response<TransactionsGetResponse> nextHttpResponse =
+                        plaidApi.transactionsGet(nextRequest).execute();
 
-                    // Execute pagination request and check for errors (including rate limits)
-                    final retrofit2.Response<TransactionsGetResponse> nextHttpResponse =
-                            plaidApi.transactionsGet(nextRequest).execute();
-
-                    if (!nextHttpResponse.isSuccessful()) {
-                        String errorBody = NO_ERROR_BODY;
-                        // Use try-with-resources to ensure ResponseBody is closed to prevent
-                        // connection leaks
-                        try (var errorBodyStream = nextHttpResponse.errorBody()) {
-                            if (errorBodyStream != null) {
-                                errorBody = errorBodyStream.string();
-                            }
-                        } catch (Exception e) {
-                            if (LOGGER.isWarnEnabled()) {
-                                LOGGER.warn("Could not read error body: {}", e.getMessage());
-                            }
-                        }
-
-                        // Check for rate limit errors (HTTP 429) during pagination
-                        if (nextHttpResponse.code() == 429) {
-                            final PlaidErrorResponse plaidError =
-                                    parsePlaidErrorResponse(errorBody);
-                            if (plaidError != null
-                                    && (plaidError.errorCode != null
-                                            && (TRANSACTIONS_LIMIT.equals(plaidError.errorCode)
-                                                    || RATE_LIMIT_EXCEEDED.equals(
-                                                            plaidError.errorCode)
-                                                    || (RATE_LIMIT_EXCEEDED.equals(
-                                                            plaidError.errorType))))) {
-                                if (LOGGER.isWarnEnabled()) {
-                                    LOGGER.warn(
-                                            "Plaid rate limit exceeded during pagination (page {}): {} - {}. Request ID: {}",
-                                            pageCount + 1,
-                                            plaidError.errorCode,
-                                            plaidError.errorMessage,
-                                            plaidError.requestId);
-                                }
-                                throw new AppException(
-                                        ErrorCode.PLAID_RATE_LIMIT_EXCEEDED,
-                                        String.format(
-                                                "Plaid rate limit exceeded during pagination: %s. %s. Please try again later.",
-                                                plaidError.errorCode != null
-                                                        ? plaidError.errorCode
-                                                        : RATE_LIMIT_EXCEEDED,
-                                                plaidError.errorMessage != null
-                                                        ? plaidError.errorMessage
-                                                        : RATE_LIMIT_EXCEEDED_FOR_TRANSACTIONS));
-                            }
-                        }
-
-                        if (LOGGER.isWarnEnabled()) {
-                            LOGGER.warn(
-                                    "Plaid pagination request failed: HTTP {} - {}. Stopping pagination.",
-                                    nextHttpResponse.code(),
-                                    errorBody);
-                        }
-                        break; // Stop pagination on error
-                    }
-
-                    final TransactionsGetResponse nextResponse = nextHttpResponse.body();
-
-                    if (nextResponse == null
-                            || nextResponse.getTransactions() == null
-                            || nextResponse.getTransactions().isEmpty()) {
-                        if (LOGGER.isDebugEnabled()) {
-                            LOGGER.debug("Plaid: No more transactions in page {}", pageCount + 1);
-                        }
-                        break;
-                    }
-
-                    allTransactions.addAll(nextResponse.getTransactions());
-
-                    // Get next cursor for next iteration
-                    nextCursor = null;
-                    try {
-                        final java.lang.reflect.Method getNextCursorMethod =
-                                nextResponse.getClass().getMethod("getNextCursor");
-                        final Object cursorObj = getNextCursorMethod.invoke(nextResponse);
-                        if (cursorObj != null) {
-                            nextCursor = cursorObj.toString();
-                        }
-                    } catch (NoSuchMethodException e) {
-                        try {
-                            final java.lang.reflect.Method getCursorMethod =
-                                    nextResponse.getClass().getMethod("getCursor");
-                            final Object cursorObj = getCursorMethod.invoke(nextResponse);
-                            if (cursorObj != null) {
-                                nextCursor = cursorObj.toString();
-                            }
-                        } catch (Exception e2) {
-                            // No more pages
-                            break;
+                if (!nextHttpResponse.isSuccessful()) {
+                    String errorBody = NO_ERROR_BODY;
+                    try (var errorBodyStream = nextHttpResponse.errorBody()) {
+                        if (errorBodyStream != null) {
+                            errorBody = errorBodyStream.string();
                         }
                     } catch (Exception e) {
-                        if (LOGGER.isDebugEnabled()) {
-                            LOGGER.debug("Could not get next cursor: {}", e.getMessage());
+                        if (LOGGER.isWarnEnabled()) {
+                            LOGGER.warn("Could not read error body: {}", e.getMessage());
                         }
-                        break;
                     }
+                    if (nextHttpResponse.code() == 429) {
+                        final PlaidErrorResponse plaidError = parsePlaidErrorResponse(errorBody);
+                        if (plaidError != null
+                                && plaidError.errorCode != null
+                                && (TRANSACTIONS_LIMIT.equals(plaidError.errorCode)
+                                        || RATE_LIMIT_EXCEEDED.equals(plaidError.errorCode)
+                                        || RATE_LIMIT_EXCEEDED.equals(plaidError.errorType))) {
+                            if (LOGGER.isWarnEnabled()) {
+                                LOGGER.warn(
+                                        "Plaid rate limit on page {} (offset={}): {} - {}",
+                                        pageCount,
+                                        offset,
+                                        plaidError.errorCode,
+                                        plaidError.errorMessage);
+                            }
+                            throw new AppException(
+                                    ErrorCode.PLAID_RATE_LIMIT_EXCEEDED,
+                                    String.format(
+                                            "Plaid rate limit exceeded mid-pagination "
+                                                    + "(page %d, offset %d): %s",
+                                            pageCount,
+                                            offset,
+                                            plaidError.errorMessage != null
+                                                    ? plaidError.errorMessage
+                                                    : RATE_LIMIT_EXCEEDED_FOR_TRANSACTIONS));
+                        }
+                    }
+                    if (LOGGER.isErrorEnabled()) {
+                        LOGGER.error(
+                                "Plaid API page {} error: HTTP {} - {}",
+                                pageCount,
+                                nextHttpResponse.code(),
+                                errorBody);
+                    }
+                    throw new AppException(
+                            ErrorCode.PLAID_CONNECTION_FAILED,
+                            String.format(
+                                    "Plaid API page %d error: HTTP %d - %s",
+                                    pageCount, nextHttpResponse.code(), errorBody));
+                }
 
-                    pageCount++;
-                } catch (Exception e) {
+                final TransactionsGetResponse nextResponse = nextHttpResponse.body();
+                if (nextResponse == null
+                        || nextResponse.getTransactions() == null
+                        || nextResponse.getTransactions().isEmpty()) {
                     if (LOGGER.isWarnEnabled()) {
-                        LOGGER.warn("Error fetching paginated transactions: {}", e.getMessage());
+                        LOGGER.warn(
+                                "Plaid returned empty page {} despite total={}; "
+                                        + "stopping pagination at {} transactions",
+                                pageCount,
+                                totalTransactions,
+                                allTransactions.size());
                     }
                     break;
                 }
+
+                allTransactions.addAll(nextResponse.getTransactions());
+                offset += nextResponse.getTransactions().size();
             }
 
-            if (pageCount > 1) {
-                if (LOGGER.isInfoEnabled()) {
-                    LOGGER.info(
-                            "Plaid: Retrieved {} transactions across {} pages",
-                            allTransactions.size(),
-                            pageCount);
-                }
-            } else {
-                if (LOGGER.isInfoEnabled()) {
-                    LOGGER.info(
-                            "Plaid: Retrieved {} transactions (single page)",
-                            allTransactions.size());
-                }
+            if (pageCount > 1 && LOGGER.isInfoEnabled()) {
+                LOGGER.info(
+                        "Plaid: fetched {} transactions across {} pages (Plaid total: {})",
+                        allTransactions.size(),
+                        pageCount,
+                        totalTransactions);
             }
 
             // Update response with all collected transactions
