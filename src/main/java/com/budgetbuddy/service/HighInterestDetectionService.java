@@ -271,8 +271,15 @@ public class HighInterestDetectionService {
     private List<HighInterestAlert> analyzeCreditCardsFrom(final List<AccountTable> accounts) {
         final List<HighInterestAlert> alerts = new ArrayList<>();
         for (final AccountTable account : accounts) {
-            if (account.getAccountType() == null
-                    || !"creditCard".equals(account.getAccountType())) {
+            // Accept both the canonical camelCase value ("creditCard") and
+            // the short Plaid/iOS value ("credit"). The detector previously
+            // matched only "creditCard" so any account created through the
+            // public POST /api/accounts endpoint (which stores "credit")
+            // silently slipped past — causing zero high-interest alerts
+            // even for users with $8K+ CC balances at 22% APR.
+            final String type = account.getAccountType();
+            if (type == null
+                    || !("creditCard".equals(type) || "credit".equals(type))) {
                 continue;
             }
 

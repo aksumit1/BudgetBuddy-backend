@@ -606,6 +606,23 @@ public class TransactionAnomalyService {
         return anomalies;
     }
 
+    /**
+     * Categories where "first-time merchant" is a meaningless signal. Rent,
+     * mortgage, utilities, loan payments, insurance — by definition these
+     * are recurring and any single occurrence is expected. Flagging them
+     * generates 12-14 false anomalies per persona (every monthly rent
+     * payment with a slightly different amount).
+     */
+    private static final Set<String> RECURRING_CATEGORIES = Set.of(
+            "rent",
+            "rent_and_utilities",
+            "mortgage",
+            "loan",
+            "loan_payment",
+            "utilities",
+            "insurance",
+            "tax");
+
     /** Detect first-time or rare merchant transactions with high amounts */
     private List<TransactionAnomaly> detectMerchantAnomalies(
             final List<TransactionTable> recentExpenses,
@@ -613,24 +630,45 @@ public class TransactionAnomalyService {
 
         final List<TransactionAnomaly> anomalies = new ArrayList<>();
 
-        // Build set of known merchants from historical data
-        final Set<String> knownMerchants =
+        // Build set of known merchants from historical data. We mutate this set
+        // as we iterate recent transactions in chronological order — so the
+        // SECOND occurrence of a merchant in recent is no longer "first-time".
+        // Without this, a user with 12 monthly rent transactions in the recent
+        // window gets 12 "first-time" alerts because none of them are in the
+        // (often-empty for new users) historical window.
+        final Set<String> knownMerchants = new java.util.HashSet<>(
                 historicalExpenses.stream()
                         .map(tx -> normalizeMerchantName(tx.getMerchantName(), tx.getDescription()))
                         .filter(Objects::nonNull)
                         .filter(name -> !name.isEmpty())
-                        .collect(Collectors.toSet());
+                        .collect(Collectors.toSet()));
 
         // Same-merchant velocity / size-spike flags (e.g. "Costco $50 → Costco $850" or "5x
         // Starbucks in an hour") are handled by the merchant-spend baseline detector earlier in
         // this class — see {@code detectMerchantSpendingAnomalies}. This method is the unknown-
         // merchant pass; keeping it focused avoids double-firing on the same transaction.
 
-        // Check recent transactions for unknown merchants
-        for (final TransactionTable tx : recentExpenses) {
+        // Sort by date ascending so we credit "known" status to the earliest
+        // occurrence and never re-flag the same merchant twice.
+        final List<TransactionTable> sorted = new ArrayList<>(recentExpenses);
+        sorted.sort(Comparator.comparing(
+                TransactionTable::getTransactionDate,
+                Comparator.nullsLast(Comparator.naturalOrder())));
+
+        for (final TransactionTable tx : sorted) {
             final String merchant =
                     normalizeMerchantName(tx.getMerchantName(), tx.getDescription());
             if (merchant == null || merchant.isEmpty()) {
+                continue;
+            }
+
+            final String categoryLower = tx.getCategoryPrimary() == null
+                    ? ""
+                    : tx.getCategoryPrimary().toLowerCase(Locale.ROOT);
+            if (RECURRING_CATEGORIES.contains(categoryLower)) {
+                // Still credit the merchant as "seen" so future categories
+                // matching this same merchant name don't re-fire either.
+                knownMerchants.add(merchant);
                 continue;
             }
 
@@ -657,10 +695,25 @@ public class TransactionAnomalyService {
                                         "First-time transaction with %s for $%.2f",
                                         merchant, amount.doubleValue())));
             }
+
+            // Whether we flagged or not, the merchant is now known for
+            // subsequent transactions in this pass.
+            knownMerchants.add(merchant);
         }
 
         return anomalies;
     }
+
+    /**
+     * Minimum amount for the duplicate-transaction detector to fire. Two
+     * $9 healthcare copays or $19 dining items on the same day are not a
+     * "duplicate charge" worth alerting the user about — they're just
+     * normal life. Real duplicate-charge fraud or accidental double-tap
+     * concerns kick in at noticeable amounts. Threshold of $50 cuts the
+     * persona-validation noise (saver: 4 of 7 anomalies were $9-$46
+     * "similar" rows) without losing legitimate signals.
+     */
+    private static final BigDecimal DUPLICATE_MIN_AMOUNT = BigDecimal.valueOf(50);
 
     /** Detect duplicate or similar transactions */
     private List<TransactionAnomaly> detectDuplicates(final List<TransactionTable> recentExpenses) {
@@ -677,6 +730,9 @@ public class TransactionAnomalyService {
             }
 
             final BigDecimal amount = tx.getAmount().abs();
+            if (amount.compareTo(DUPLICATE_MIN_AMOUNT) < 0) {
+                continue;
+            }
             // Round to nearest $5 for grouping
             final BigDecimal roundedAmount =
                     amount.divide(BigDecimal.valueOf(5), 0, RoundingMode.HALF_UP)

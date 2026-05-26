@@ -96,7 +96,8 @@ def register_or_login(email: str) -> str:
 
 
 def create_account(token: str, name: str, type_: str, balance: float,
-                   subtype: str = "", institution: str = "TestBank") -> str:
+                   subtype: str = "", institution: str = "TestBank",
+                   apr_percent: float | None = None) -> str:
     body = {
         "accountName": name,
         "accountType": type_,
@@ -106,6 +107,8 @@ def create_account(token: str, name: str, type_: str, balance: float,
         "institutionName": institution,
         "active": True,
     }
+    if apr_percent is not None:
+        body["aprPercent"] = apr_percent
     resp = http("POST", "/api/accounts", body=body, token=token)
     return envelope_data(resp)["accountId"]
 
@@ -164,15 +167,15 @@ PERSONAS = {
         checking_balance=4_200.0,
         credit_balance=-650.0,
         savings_balance=18_500.0,
-        budgets=[("FOOD_AND_DRINK", 600), ("TRANSPORTATION", 250),
-                 ("ENTERTAINMENT", 150), ("SHOPPING", 300)],
+        budgets=[("groceries", 400), ("dining", 200), ("transportation", 250),
+                 ("entertainment", 150), ("shopping", 300)],
         goals=[("Emergency Fund", 30_000, 18_500, 18),
                ("House down payment", 80_000, 12_400, 36)],
         subscription_count=3,
         monthly_spend_by_cat={
-            "RENT_AND_UTILITIES": 1_800, "FOOD_AND_DRINK": 480,
-            "TRANSPORTATION": 220, "ENTERTAINMENT": 90,
-            "SHOPPING": 250, "HEALTHCARE": 60},
+            "rent": 1_800, "groceries": 320, "dining": 160,
+            "transportation": 220, "entertainment": 90,
+            "shopping": 250, "healthcare": 60},
     ),
     "debt-heavy": Persona(
         slug="debt-heavy",
@@ -180,13 +183,13 @@ PERSONAS = {
         checking_balance=380.0,
         credit_balance=-8_900.0,
         savings_balance=None,
-        budgets=[("FOOD_AND_DRINK", 400), ("TRANSPORTATION", 200)],
+        budgets=[("groceries", 280), ("dining", 120), ("transportation", 200)],
         goals=[("Pay off CC debt", 8_900, 1_100, 24)],
         subscription_count=4,
         monthly_spend_by_cat={
-            "RENT_AND_UTILITIES": 1_500, "FOOD_AND_DRINK": 520,
-            "TRANSPORTATION": 280, "ENTERTAINMENT": 140,
-            "SHOPPING": 380, "LOAN_PAYMENTS": 250},
+            "rent": 1_500, "groceries": 340, "dining": 180,
+            "transportation": 280, "entertainment": 140,
+            "shopping": 380, "payment": 250},
     ),
     "paycheck": Persona(
         slug="paycheck",
@@ -194,13 +197,13 @@ PERSONAS = {
         checking_balance=140.0,
         credit_balance=-2_200.0,
         savings_balance=None,
-        budgets=[("FOOD_AND_DRINK", 350)],
+        budgets=[("groceries", 250), ("dining", 100)],
         goals=[("Build $1k emergency fund", 1_000, 200, 12)],
         subscription_count=5,
         monthly_spend_by_cat={
-            "RENT_AND_UTILITIES": 1_350, "FOOD_AND_DRINK": 420,
-            "TRANSPORTATION": 180, "ENTERTAINMENT": 110,
-            "SHOPPING": 220},
+            "rent": 1_350, "groceries": 280, "dining": 140,
+            "transportation": 180, "entertainment": 110,
+            "shopping": 220},
     ),
     "spender": Persona(
         slug="spender",
@@ -208,28 +211,29 @@ PERSONAS = {
         checking_balance=8_400.0,
         credit_balance=-3_400.0,
         savings_balance=6_200.0,
-        budgets=[("FOOD_AND_DRINK", 1_500), ("ENTERTAINMENT", 600),
-                 ("SHOPPING", 1_000), ("TRAVEL", 1_200)],
+        budgets=[("groceries", 600), ("dining", 900),
+                 ("entertainment", 600), ("shopping", 1_000),
+                 ("travel", 1_200)],
         goals=[("New car", 45_000, 6_200, 30)],
         subscription_count=7,
         monthly_spend_by_cat={
-            "RENT_AND_UTILITIES": 3_400, "FOOD_AND_DRINK": 1_650,
-            "ENTERTAINMENT": 550, "SHOPPING": 1_280, "TRAVEL": 980,
-            "TRANSPORTATION": 420, "PERSONAL_CARE": 220},
+            "rent": 3_400, "groceries": 800, "dining": 850,
+            "entertainment": 550, "shopping": 1_280, "travel": 980,
+            "transportation": 420, "health": 220},
     ),
 }
 
 
 # Known subscriptions to seed (cycle through up to subscription_count)
 SUB_PALETTE = [
-    ("Netflix", 15.49, "ENTERTAINMENT"),
-    ("Spotify", 9.99, "ENTERTAINMENT"),
-    ("Apple iCloud", 2.99, "PERSONAL_CARE"),
-    ("Adobe Creative Cloud", 54.99, "GENERAL_SERVICES"),
-    ("Amazon Prime", 14.99, "GENERAL_SERVICES"),
-    ("HBO Max", 15.99, "ENTERTAINMENT"),
-    ("YouTube Premium", 13.99, "ENTERTAINMENT"),
-    ("Gym Membership", 39.00, "PERSONAL_CARE"),
+    ("Netflix", 15.49, "entertainment"),
+    ("Spotify", 9.99, "entertainment"),
+    ("Apple iCloud", 2.99, "tech"),
+    ("Adobe Creative Cloud", 54.99, "tech"),
+    ("Amazon Prime", 14.99, "shopping"),
+    ("HBO Max", 15.99, "entertainment"),
+    ("YouTube Premium", 13.99, "entertainment"),
+    ("Gym Membership", 39.00, "health"),
 ]
 
 
@@ -245,7 +249,8 @@ def seed_persona(persona: Persona) -> tuple[str, str]:
                                  institution="Chase")
     credit_id = create_account(token, "Credit Card", "credit",
                                persona.credit_balance, subtype="credit card",
-                               institution="Capital One")
+                               institution="Capital One",
+                               apr_percent=22.99)
     savings_id = None
     if persona.savings_balance is not None:
         savings_id = create_account(token, "Savings", "depository",
@@ -260,12 +265,21 @@ def seed_persona(persona: Persona) -> tuple[str, str]:
     for months_back in (0, 1, 2):
         d = today.replace(day=1) - timedelta(days=30 * months_back)
         create_transaction(token, checking_id, persona.monthly_income, d,
-                           "Payroll deposit", "INCOME", "WAGES")
+                           "Payroll deposit", "salary")
 
-    # Spending — distribute monthly amounts across the 90-day window
+    # Spending — distribute monthly amounts across the 90-day window.
+    # Rent is a single full-amount monthly transaction (real rent doesn't
+    # come out in 4-6 random slices), all other categories split into
+    # 4-6 transactions to mimic real-world discretionary spend.
     rng = random.Random(hash(persona.slug) & 0xffffffff)
     for cat, monthly_total in persona.monthly_spend_by_cat.items():
         for months_back in (0, 1, 2):
+            if cat == "rent":
+                # One transaction per month on the 1st, full amount, from checking
+                d = today.replace(day=1) - timedelta(days=30 * months_back)
+                create_transaction(token, checking_id, -monthly_total, d,
+                                   "Monthly rent payment", cat)
+                continue
             # Split monthly total into ~4-6 transactions
             num_txns = rng.randint(4, 6)
             for _ in range(num_txns):
@@ -274,15 +288,14 @@ def seed_persona(persona: Persona) -> tuple[str, str]:
                 d = today - timedelta(days=30 * months_back + day_offset)
                 amount = -(monthly_total / num_txns) * (0.7 + rng.random() * 0.6)
                 desc = f"{cat.lower().replace('_', ' ').title()} purchase"
-                create_transaction(token, credit_id if "RENT" not in cat else checking_id,
-                                   round(amount, 2), d, desc, cat)
+                create_transaction(token, credit_id, round(amount, 2), d, desc, cat)
 
     # Subscriptions — recurring monthly, 3 months back
     for sub_name, monthly_cost, cat in SUB_PALETTE[: persona.subscription_count]:
         for months_back in range(3):
             d = today - timedelta(days=30 * months_back + 5)
             create_transaction(token, credit_id, -monthly_cost, d,
-                               sub_name, cat, "SUBSCRIPTION")
+                               sub_name, cat, "subscription")
 
     # Budgets
     for cat, limit in persona.budgets:

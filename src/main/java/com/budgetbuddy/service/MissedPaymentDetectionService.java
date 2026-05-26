@@ -17,6 +17,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -52,6 +53,24 @@ public class MissedPaymentDetectionService {
 
     private static final int RECURRING_PATTERN_DAYS = 90; // Look for patterns in last 90 days
     private static final int DAYS_BEFORE_OVERDUE = 3; // Alert 3 days before due date
+
+    /**
+     * Categories that are inherently discretionary and never represent a
+     * "bill" the user has to pay on a schedule. The recurring-pattern
+     * detector used to fire on these because three Dining or Shopping rows
+     * with similar amounts happened to fall ~14 days apart.
+     */
+    private static final Set<String> DISCRETIONARY_CATEGORIES = Set.of(
+            "dining",
+            "groceries",
+            "shopping",
+            "transportation",
+            "entertainment",
+            "travel",
+            "healthcare",
+            "health",
+            "personal_care",
+            "other");
 
     private final TransactionActionRepository actionRepository;
     private final TransactionRepository transactionRepository;
@@ -326,7 +345,14 @@ public class MissedPaymentDetectionService {
                         .filter(tx -> tx.getIsHidden() == null || !tx.getIsHidden())
                         .toList();
 
-        // Group by merchant and amount (for recurring bills)
+        // Group by merchant and amount (for recurring bills). Real bills
+        // have a stable cents-exact amount; discretionary spending like
+        // dining or groceries varies. Pre-validation in audit script showed
+        // a $10 rounding bucket grouped unrelated "Dining purchase" rows
+        // into a phantom "recurring bill" because they happened to land in
+        // the same bucket twice in a 90-day window. Tighten to exact-cents
+        // grouping (key contains the full amount), then also reject groups
+        // whose amounts vary by more than 5% — a real bill is stable.
         final Map<String, List<TransactionTable>> byMerchantAndAmount = new HashMap<>();
 
         for (final TransactionTable tx : expenses) {
@@ -335,13 +361,20 @@ public class MissedPaymentDetectionService {
                 continue;
             }
 
-            final BigDecimal amount = tx.getAmount().abs();
-            // Round to nearest $10 for grouping
-            final BigDecimal roundedAmount =
-                    amount.divide(BigDecimal.valueOf(10), 0, java.math.RoundingMode.HALF_UP)
-                            .multiply(BigDecimal.valueOf(10));
+            // Discretionary-spending categories never represent bills
+            // by themselves. The seed and many real users have many
+            // "Dining purchase" / "Groceries purchase" rows that the
+            // recurrence math will otherwise treat as bi-weekly bills.
+            final String categoryLower = tx.getCategoryPrimary() == null
+                    ? ""
+                    : tx.getCategoryPrimary().toLowerCase(Locale.ROOT);
+            if (DISCRETIONARY_CATEGORIES.contains(categoryLower)) {
+                continue;
+            }
 
-            final String key = merchant.toLowerCase(Locale.ROOT) + "|" + roundedAmount;
+            final BigDecimal amount = tx.getAmount().abs();
+            final String key = merchant.toLowerCase(Locale.ROOT) + "|"
+                    + amount.setScale(2, java.math.RoundingMode.HALF_UP);
             byMerchantAndAmount.computeIfAbsent(key, k -> new ArrayList<>()).add(tx);
         }
 
@@ -376,13 +409,30 @@ public class MissedPaymentDetectionService {
             final double avgInterval =
                     intervals.stream().mapToLong(Long::longValue).average().orElse(0);
 
+            // Require interval consistency too — a true bill repeats on
+            // a tight schedule (variance < 4 days). Without this the
+            // detector calls 12 + 16 + 18 day intervals "bi-weekly" and
+            // treats one-off bursts as bills.
+            final double intervalMean = avgInterval;
+            final double intervalVariance = intervals.stream()
+                    .mapToDouble(d -> {
+                        final double diff = d - intervalMean;
+                        return diff * diff;
+                    })
+                    .average()
+                    .orElse(0);
+            final double intervalStdDev = Math.sqrt(intervalVariance);
+            if (intervalStdDev > 4.0) {
+                continue;
+            }
+
             // Check if pattern is monthly (25-35 days) or bi-weekly (12-16 days)
             final boolean isMonthly = avgInterval >= 25 && avgInterval <= 35;
             final boolean isBiWeekly = avgInterval >= 12 && avgInterval <= 16;
 
             if (isMonthly || isBiWeekly) {
                 // Check if next payment is overdue
-                final TransactionTable lastPayment = group.get(group.size() - 1);
+                final TransactionTable lastPayment = group.getLast();
                 final LocalDate lastPaymentDate =
                         LocalDate.parse(lastPayment.getTransactionDate(), DATE_FORMATTER);
                 final LocalDate expectedNextPayment = lastPaymentDate.plusDays((long) avgInterval);
