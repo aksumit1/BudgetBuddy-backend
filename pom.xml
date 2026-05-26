@@ -23,7 +23,6 @@
         <maven.compiler.source>25</maven.compiler.source>
         <maven.compiler.target>25</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <spring-cloud.version>2025.1.1</spring-cloud.version>
         <plaid.version>40.2.0</plaid.version>
         <jwt.version>0.13.0</jwt.version>
         <springdoc.version>3.0.3</springdoc.version>
